@@ -1,0 +1,21 @@
+/* Admin Inventory Styles */
+
+.inventory-item-name {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.low-stock-alert {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.category-badge {
+    text-transform: capitalize;
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+}

@@ -1,0 +1,289 @@
+import React, { useState, useEffect } from 'react';
+import Axios from 'axios';
+import { Plus, Download, FileText, Settings, CreditCard, DollarSign, CheckCircle, Printer, X } from 'lucide-react';
+import AdminSideNav from '../components/AdminSideNav';
+import './AdminUsers.css';
+import './AdminSettings.css'; // Reusing form styles
+import { API_URL } from '../config';
+
+function AdminBilling() {
+    const [activeTab, setActiveTab] = useState('invoices');
+    const [invoices, setInvoices] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const [config, setConfig] = useState({
+        baseRate: 150,
+        taxRate: 8,
+        depositRate: 20,
+        size: { small: 100, medium: 250, large: 500 },
+        complexity: { simple: 1.0, detailed: 1.5, complex: 2.0 },
+        styles: { realism: 1.2, traditional: 1.0, japanese: 1.3, tribal: 1.0 }
+    });
+
+    const [invoiceModal, setInvoiceModal] = useState({ mounted: false, visible: false });
+    const [newInvoice, setNewInvoice] = useState({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
+
+    // Modal animation handlers
+    const openModal = () => {
+        setInvoiceModal({ mounted: true, visible: false });
+        setTimeout(() => setInvoiceModal({ mounted: true, visible: true }), 10);
+    };
+
+    const closeModal = () => {
+        setInvoiceModal(prev => ({ ...prev, visible: false }));
+        setTimeout(() => {
+            setInvoiceModal({ mounted: false, visible: false });
+        }, 400);
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const [invRes, settingsRes] = await Promise.all([
+                Axios.get(`${API_URL}/api/admin/invoices`),
+                Axios.get(`${API_URL}/api/admin/settings`)
+            ]);
+
+            if (invRes.data.success) {
+                setInvoices(invRes.data.data);
+            }
+            if (settingsRes.data.success && settingsRes.data.data.billing) {
+                setConfig(prev => ({ ...prev, ...settingsRes.data.data.billing }));
+            }
+            setLoading(false);
+        } catch (error) {
+            console.error("Error fetching billing data:", error);
+            setLoading(false);
+        }
+    };
+
+    const handleCreateInvoice = async (e) => {
+        e.preventDefault();
+        try {
+            await Axios.post(`${API_URL}/api/admin/invoices`, newInvoice);
+            closeModal();
+            setNewInvoice({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
+            fetchData(); // Refresh list
+        } catch (error) {
+            console.error("Error creating invoice:", error);
+            alert("Failed to create invoice");
+        }
+    };
+
+    const saveConfig = async () => {
+        try {
+            await Axios.post(`${API_URL}/api/admin/settings`, {
+                section: 'billing',
+                data: config
+            });
+            alert("Configuration saved successfully");
+        } catch (error) {
+            console.error("Error saving config:", error);
+            alert("Failed to save configuration");
+        }
+    };
+
+    const handleConfigChange = (section, key, value) => {
+        if (section) {
+            setConfig({ ...config, [section]: { ...config[section], [key]: parseFloat(value) } });
+        } else {
+            setConfig({ ...config, [key]: parseFloat(value) });
+        }
+    };
+
+    return (
+        <div className="admin-page-with-sidenav">
+            <AdminSideNav />
+            <div className="admin-page page-container-enter">
+                <header className="admin-header">
+                    <div>
+                        <h1>Billing & Payments</h1>
+                        <p>Manage invoices, deposits, and financial configuration</p>
+                    </div>
+                    <div style={{display: 'flex', gap: '10px'}}>
+                         <button className={`btn ${activeTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('invoices')}>
+                            <FileText size={18} style={{marginRight: '5px'}}/> Invoices
+                        </button>
+                        <button className={`btn ${activeTab === 'config' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('config')}>
+                            <Settings size={18} style={{marginRight: '5px'}}/> Configuration
+                        </button>
+                    </div>
+                </header>
+
+                {loading ? <div className="no-data">Loading billing data...</div> : (
+                    activeTab === 'invoices' ? (
+                        <>
+                        <div className="stats-row">
+                            <div className="stat-item">
+                                <span className="stat-label">Total Revenue (Feb)</span>
+                                <span className="stat-count">₱12,450</span>
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-label">Pending Payments</span>
+                                <span className="stat-count">₱1,200</span>
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-label">Invoices Issued</span>
+                                <span className="stat-count">{invoices.length}</span>
+                            </div>
+                        </div>
+
+                        <div style={{padding: '0 2rem', marginBottom: '1rem', display: 'flex', justifyContent: 'flex-end'}}>
+                             <button className="btn btn-primary" onClick={openModal}>
+                                <Plus size={18} style={{marginRight: '5px'}}/> Create Invoice
+                            </button>
+                        </div>
+
+                        <div className="table-card">
+                            <div className="table-responsive">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Invoice ID</th>
+                                            <th>Client</th>
+                                            <th>Service Type</th>
+                                            <th>Date</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {invoices.map(inv => (
+                                            <tr key={inv.id}>
+                                                <td>INV-{inv.id}</td>
+                                                <td>{inv.client_name}</td>
+                                                <td>{inv.service_type}</td>
+                                                <td>{new Date(inv.created_at).toLocaleDateString()}</td>
+                                                <td>₱{inv.amount}</td>
+                                                <td>
+                                                    <span className={`badge status-${inv.status.toLowerCase() === 'paid' ? 'active' : 'pending'}`}>
+                                                        {inv.status}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button className="action-btn" title="Download Receipt"><Download size={16}/></button>
+                                                    <button className="action-btn" title="Print Invoice"><Printer size={16}/></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="settings-container" style={{display: 'block', margin: '2rem'}}>
+                        <div className="settings-panel">
+                            <h2>General Pricing Rules</h2>
+                            <div className="settings-section">
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Base Hourly Rate (₱)</label>
+                                        <input type="number" className="form-input" value={config.baseRate} onChange={(e) => handleConfigChange(null, 'baseRate', e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Minimum Deposit (%)</label>
+                                        <input type="number" className="form-input" value={config.depositRate} onChange={(e) => handleConfigChange(null, 'depositRate', e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Tax Rate (%)</label>
+                                        <input type="number" className="form-input" value={config.taxRate} onChange={(e) => handleConfigChange(null, 'taxRate', e.target.value)} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="settings-panel" style={{marginTop: '2rem'}}>
+                            <h2>Complexity Multipliers</h2>
+                            <div className="settings-section">
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Simple (x)</label>
+                                        <input type="number" step="0.1" className="form-input" value={config.complexity.simple} onChange={(e) => handleConfigChange('complexity', 'simple', e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Detailed (x)</label>
+                                        <input type="number" step="0.1" className="form-input" value={config.complexity.detailed} onChange={(e) => handleConfigChange('complexity', 'detailed', e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Complex (x)</label>
+                                        <input type="number" step="0.1" className="form-input" value={config.complexity.complex} onChange={(e) => handleConfigChange('complexity', 'complex', e.target.value)} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="settings-panel" style={{marginTop: '2rem'}}>
+                            <h2>Style Multipliers</h2>
+                            <div className="settings-section">
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Realism (x)</label>
+                                        <input type="number" step="0.1" className="form-input" value={config.styles.realism} onChange={(e) => handleConfigChange('styles', 'realism', e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Traditional (x)</label>
+                                        <input type="number" step="0.1" className="form-input" value={config.styles.traditional} onChange={(e) => handleConfigChange('styles', 'traditional', e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Japanese (x)</label>
+                                        <input type="number" step="0.1" className="form-input" value={config.styles.japanese} onChange={(e) => handleConfigChange('styles', 'japanese', e.target.value)} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button className="btn btn-primary" style={{marginTop: '2rem'}} onClick={saveConfig}>Save Configuration</button>
+                    </div>
+                ))}
+
+                {/* Create Invoice Modal */}
+                {invoiceModal.mounted && (
+                    <div className={`modal-overlay ${invoiceModal.visible ? 'open' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2>Generate Invoice</h2>
+                                <button className="close-btn" onClick={closeModal}><X size={20}/></button>
+                            </div>
+                            <form onSubmit={handleCreateInvoice}>
+                                <div className="modal-body">
+                                    <div className="form-group">
+                                        <label>Client Name</label>
+                                        <input type="text" className="form-input" required value={newInvoice.client} onChange={e => setNewInvoice({...newInvoice, client: e.target.value})} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Service Type</label>
+                                        <select className="form-input" required value={newInvoice.type} onChange={e => setNewInvoice({...newInvoice, type: e.target.value})}>
+                                            <option value="Tattoo Session">Tattoo Session</option>
+                                            <option value="Consultation">Consultation</option>
+                                            <option value="Piercing">Piercing</option>
+                                            <option value="Touch-up">Touch-up</option>
+                                            <option value="Aftercare Check">Aftercare Check</option>
+                                            <option value="Jewelry Purchase">Jewelry Purchase</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Amount (₱)</label>
+                                        <input type="number" className="form-input" required value={newInvoice.amount} onChange={e => setNewInvoice({...newInvoice, amount: e.target.value})} />
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                                    <button type="submit" className="btn btn-primary">Generate</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+export default AdminBilling;

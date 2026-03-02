@@ -1,0 +1,90 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import Axios from 'axios';
+import { API_URL } from '../config';
+import './Artists.css';
+import ChatWidget from '../components/ChatWidget';
+
+function Artists() {
+    const navigate = useNavigate();
+    const [artists, setArtists] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchArtists = async () => {
+            try {
+                setLoading(true);
+                const res = await Axios.get(`${API_URL}/api/customer/artists`);
+                if (res.data.success) {
+                    setArtists(res.data.artists);
+                }
+                setLoading(false);
+            } catch (error) {
+                console.error("Error fetching artists:", error);
+                setLoading(false);
+            }
+        };
+        fetchArtists();
+    }, []);
+
+    return (
+        <div className="artists-page">
+            {/* Navigation */}
+            <nav className="home-nav">
+                <a href="/" className="home-logo">INKVICTUS</a>
+                <div className="home-nav-links">
+                    <a href="/#about">About</a>
+                    <a href="/artists" className="active-link">Artists</a>
+                    <Link to="/gallery">Gallery</Link>
+                    <a href="/#booking">Booking</a>
+                    <Link to="/contact">Contact</Link>
+                </div>
+                <div className="home-auth-buttons">
+                    <a href="/login" className="login-link">Log In</a>
+                    <button onClick={() => navigate('/register')} className="signup-btn">Sign Up</button>
+                </div>
+            </nav>
+
+            {/* Hero Section */}
+            <header className="artists-hero">
+                <div className="artists-hero-overlay"></div>
+                <div className="artists-hero-content">
+                    <h1>Meet The Artists</h1>
+                    <div className="team-photo-placeholder">
+                        <span>Team Photo Placeholder</span>
+                    </div>
+                </div>
+            </header>
+
+            {/* Artist Portfolio Grid */}
+            <section className="artists-grid-section">
+                <p className="artists-intro">
+                    Inkvictus would not be possible without the talent and creativity of our skilled artists
+                </p>
+
+                <div className="artists-grid-container">
+                    {loading ? (
+                        <div className="loading-text">Loading artists...</div>
+                    ) : (
+                        artists.map((artist, index) => (
+                            <div key={artist.id || index} className="artist-card">
+                                <div className="artist-image-wrapper">
+                                    <img src="https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&q=80&w=600" alt={artist.name} />
+                                    <div className="artist-brand-overlay">V</div>
+                                </div>
+                                <div className="artist-info">
+                                    <h2>{artist.name}</h2>
+                                    <p className="artist-specialty">{artist.specialization || 'Tattoo Artist'}</p>
+                                    <button className="view-portfolio-btn" onClick={() => navigate('/login')}>View Portfolio</button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </section>
+            <ChatWidget />
+        </div>
+    );
+}
+
+export default Artists;

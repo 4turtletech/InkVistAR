@@ -1,0 +1,63 @@
+/* --- Premium Modal / Popup Styles --- */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(17, 24, 39, 0.4); /* Using a slightly tinted dark background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+
+  /* Initial state: hidden */
+  opacity: 0;
+  visibility: hidden;
+  backdrop-filter: blur(0px);
+
+  /* Smooth transition for enter/exit */
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              backdrop-filter 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.4s;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  backdrop-filter: blur(8px); /* Premium frosted glass effect */
+}
+
+.modal-content {
+  /* Initial state: small and faded out */
+  opacity: 0;
+  transform: scale(0.96) translateY(10px);
+  
+  /* Smooth, spring-like transition */
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* When the overlay is open, the content animates in */
+.modal-overlay.open .modal-content {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* --- Premium Page Transition --- */
+/* Apply this to the root container of each page */
+.page-container-enter {
+  animation: premiumFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes premiumFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

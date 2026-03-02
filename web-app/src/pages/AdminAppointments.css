@@ -1,0 +1,22 @@
+/* Admin Appointments Styles */
+
+.appointment-filters {
+    padding: 0 2rem;
+}
+
+/* Additional styles specific to appointments if needed */
+.time-cell {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.service-badge {
+    background-color: #f3e5f5;
+    color: #6d28d9;
+}
+
+@media (max-width: 768px) {
+    .filters-section {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,212 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
+
+/* Reset Body to prevent white gaps behind nav */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0D0D0D;
+  font-family: 'Inter', sans-serif;
+}
+
+.login-page-wrapper {
+    min-height: 100vh;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../images/backg.jpg');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 2rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.login-card {
+    background-color: #0D0D0D;
+    color: white;
+    padding: 3rem;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.login-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    color: #C19A6B;
+    margin: 0;
+    font-weight: 700;
+}
+
+.login-tagline {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: #C19A6B;
+    margin: 0.5rem 0 0;
+}
+
+.login-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: #C19A6B;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-form .form-group {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.login-form .form-input {
+    width: 100%;
+    padding: 1rem;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 1rem;
+    color: #333;
+    box-sizing: border-box;
+}
+
+.login-form .form-input::placeholder {
+    color: #999;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #999;
+}
+
+.login-btn {
+    width: 100%;
+    background-color: #C19A6B;
+    color: white;
+    border: none;
+    padding: 1rem;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 1rem;
+}
+
+.login-btn:hover {
+    background-color: #d4af87;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.login-footer a {
+    color: #C19A6B;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.login-footer a:hover {
+    color: #d4af87;
+}
+
+.error-message {
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.1);
+    padding: 0.8rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .login-page-wrapper {
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .login-card {
+        padding: 2rem;
+    }
+}
+
+/* Navigation Styles (Copied from Home.css) */
+.home-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 3rem;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+    z-index: 100;
+}
+
+.home-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #C19A6B;
+    text-decoration: none;
+}
+
+.home-nav-links {
+    display: flex;
+    gap: 2.5rem;
+}
+
+.home-nav-links a {
+    color: white;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: color 0.3s;
+}
+
+.home-nav-links a:hover {
+    color: #C19A6B;
+}
+
+.home-auth-buttons {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.home-auth-buttons .login-link {
+    color: white;
+    text-decoration: none;
+    font-size: 1rem;
+}
+
+.home-auth-buttons .signup-btn {
+    background-color: #C19A6B;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.home-auth-buttons .signup-btn:hover {
+    background-color: #d4af87;
+}

@@ -1,0 +1,565 @@
+{
+  "settings": {
+    "languages": [
+      "en"
+    ],
+    "forceNER": true,
+    "tag": "nlp",
+    "threshold": 0.5,
+    "autoLoad": true,
+    "autoSave": true,
+    "modelFileName": "model.nlp",
+    "executeActionsBeforeAnswers": false,
+    "calculateSentiment": true
+  },
+  "nluManager": {
+    "settings": {
+      "tag": "nlu-manager"
+    },
+    "locales": [
+      "en"
+    ],
+    "languageNames": {},
+    "domainManagers": {
+      "en": {
+        "settings": {
+          "locale": "en",
+          "trainByDomain": false,
+          "tag": "domain-manager-en",
+          "nluByDomain": {
+            "default": {
+              "className": "NeuralNlu",
+              "settings": {}
+            }
+          },
+          "useStemDict": true
+        },
+        "stemDict": {
+          "hello": {
+            "intent": "greetings.hello",
+            "domain": "default"
+          },
+          "hi": {
+            "intent": "greetings.hello",
+            "domain": "default"
+          },
+          "hey": {
+            "intent": "greetings.hello",
+            "domain": "default"
+          },
+          "good,morn": {
+            "intent": "greetings.hello",
+            "domain": "default"
+          },
+          "how,much": {
+            "intent": "price.query",
+            "domain": "default"
+          },
+          "price": {
+            "intent": "price.query",
+            "domain": "default"
+          },
+          "cost": {
+            "intent": "price.query",
+            "domain": "default"
+          },
+          "rate": {
+            "intent": "price.query",
+            "domain": "default"
+          },
+          "book": {
+            "intent": "booking.create",
+            "domain": "default"
+          },
+          "appoint": {
+            "intent": "booking.create",
+            "domain": "default"
+          },
+          "schedul": {
+            "intent": "booking.create",
+            "domain": "default"
+          },
+          "aftercar": {
+            "intent": "info.aftercare",
+            "domain": "default"
+          },
+          "heal": {
+            "intent": "info.aftercare",
+            "domain": "default"
+          },
+          "style": {
+            "intent": "info.styles",
+            "domain": "default"
+          },
+          "design": {
+            "intent": "info.styles",
+            "domain": "default"
+          }
+        },
+        "intentDict": {
+          "greetings.hello": "default",
+          "price.query": "default",
+          "booking.create": "default",
+          "info.aftercare": "default",
+          "info.styles": "default"
+        },
+        "sentences": [
+          {
+            "domain": "default",
+            "utterance": "hello",
+            "intent": "greetings.hello"
+          },
+          {
+            "domain": "default",
+            "utterance": "hi",
+            "intent": "greetings.hello"
+          },
+          {
+            "domain": "default",
+            "utterance": "hey",
+            "intent": "greetings.hello"
+          },
+          {
+            "domain": "default",
+            "utterance": "good morning",
+            "intent": "greetings.hello"
+          },
+          {
+            "domain": "default",
+            "utterance": "how much",
+            "intent": "price.query"
+          },
+          {
+            "domain": "default",
+            "utterance": "price",
+            "intent": "price.query"
+          },
+          {
+            "domain": "default",
+            "utterance": "cost",
+            "intent": "price.query"
+          },
+          {
+            "domain": "default",
+            "utterance": "rates",
+            "intent": "price.query"
+          },
+          {
+            "domain": "default",
+            "utterance": "book",
+            "intent": "booking.create"
+          },
+          {
+            "domain": "default",
+            "utterance": "appointment",
+            "intent": "booking.create"
+          },
+          {
+            "domain": "default",
+            "utterance": "schedule",
+            "intent": "booking.create"
+          },
+          {
+            "domain": "default",
+            "utterance": "aftercare",
+            "intent": "info.aftercare"
+          },
+          {
+            "domain": "default",
+            "utterance": "healing",
+            "intent": "info.aftercare"
+          },
+          {
+            "domain": "default",
+            "utterance": "styles",
+            "intent": "info.styles"
+          },
+          {
+            "domain": "default",
+            "utterance": "design",
+            "intent": "info.styles"
+          }
+        ],
+        "domains": {
+          "master_domain": {
+            "settings": {
+              "locale": "en",
+              "tag": "nlu-en",
+              "keepStopwords": true,
+              "nonefeatureValue": 1,
+              "nonedeltaMultiplier": 1.2,
+              "spellCheck": false,
+              "spellCheckDistance": 1,
+              "filterZeros": true,
+              "log": true
+            },
+            "features": {
+              "hello": 1,
+              "hi": 1,
+              "hey": 1,
+              "good": 1,
+              "morn": 1,
+              "how": 1,
+              "much": 1,
+              "price": 1,
+              "cost": 1,
+              "rate": 1,
+              "book": 1,
+              "appoint": 1,
+              "schedul": 1,
+              "aftercar": 1,
+              "heal": 1,
+              "style": 1,
+              "design": 1
+            },
+            "intents": {
+              "greetings.hello": 1,
+              "price.query": 1,
+              "booking.create": 1,
+              "info.aftercare": 1,
+              "info.styles": 1
+            },
+            "intentFeatures": {
+              "greetings.hello": {
+                "hello": 1,
+                "hi": 1,
+                "hey": 1,
+                "good": 1,
+                "morn": 1
+              },
+              "price.query": {
+                "how": 1,
+                "much": 1,
+                "price": 1,
+                "cost": 1,
+                "rate": 1
+              },
+              "booking.create": {
+                "book": 1,
+                "appoint": 1,
+                "schedul": 1
+              },
+              "info.aftercare": {
+                "aftercar": 1,
+                "heal": 1
+              },
+              "info.styles": {
+                "style": 1,
+                "design": 1
+              }
+            },
+            "featuresToIntent": {
+              "hello": [
+                "greetings.hello"
+              ],
+              "hi": [
+                "greetings.hello"
+              ],
+              "hey": [
+                "greetings.hello"
+              ],
+              "good": [
+                "greetings.hello"
+              ],
+              "morn": [
+                "greetings.hello"
+              ],
+              "how": [
+                "price.query"
+              ],
+              "much": [
+                "price.query"
+              ],
+              "price": [
+                "price.query"
+              ],
+              "cost": [
+                "price.query"
+              ],
+              "rate": [
+                "price.query"
+              ],
+              "book": [
+                "booking.create"
+              ],
+              "appoint": [
+                "booking.create"
+              ],
+              "schedul": [
+                "booking.create"
+              ],
+              "aftercar": [
+                "info.aftercare"
+              ],
+              "heal": [
+                "info.aftercare"
+              ],
+              "style": [
+                "info.styles"
+              ],
+              "design": [
+                "info.styles"
+              ]
+            },
+            "neuralNetwork": {
+              "settings": {
+                "locale": "en",
+                "tag": "nlu-en",
+                "keepStopwords": true,
+                "nonefeatureValue": 1,
+                "nonedeltaMultiplier": 1.2,
+                "spellCheck": false,
+                "spellCheckDistance": 1,
+                "filterZeros": true,
+                "log": true
+              },
+              "features": [
+                "hello",
+                "hi",
+                "hey",
+                "good",
+                "morn",
+                "how",
+                "much",
+                "price",
+                "cost",
+                "rate",
+                "book",
+                "appoint",
+                "schedul",
+                "aftercar",
+                "heal",
+                "style",
+                "design"
+              ],
+              "intents": [
+                "greetings.hello",
+                "price.query",
+                "booking.create",
+                "info.aftercare",
+                "info.styles"
+              ],
+              "perceptrons": [
+                [
+                  11.025574684143066,
+                  11.011866569519043,
+                  10.976566314697266,
+                  5.575703144073486,
+                  5.575703144073486,
+                  -1.6751857995986938,
+                  -1.6751857995986938,
+                  -3.112945556640625,
+                  -3.104804515838623,
+                  -3.0960936546325684,
+                  -3.086819887161255,
+                  -3.0769906044006348,
+                  -3.0666146278381348,
+                  -3.055699110031128,
+                  -3.0442535877227783,
+                  -3.032287359237671,
+                  -3.019810438156128,
+                  3.104050430206549
+                ],
+                [
+                  -3.0496368408203125,
+                  -3.0371625423431396,
+                  -3.024165630340576,
+                  -1.5505867004394531,
+                  -1.5505867004394531,
+                  5.592623710632324,
+                  5.592623710632324,
+                  11.031721115112305,
+                  10.997335433959961,
+                  10.961078643798828,
+                  -3.1227548122406006,
+                  -3.114952802658081,
+                  -3.106580972671509,
+                  -3.097647190093994,
+                  -3.0881571769714355,
+                  -3.0781188011169434,
+                  -3.067540407180786,
+                  3.12303350659005
+                ],
+                [
+                  -2.6358461380004883,
+                  -2.625685453414917,
+                  -2.615053653717041,
+                  -1.3363423347473145,
+                  -1.3363423347473145,
+                  -1.3361347913742065,
+                  -1.3361347913742065,
+                  -2.5981645584106445,
+                  -2.586127996444702,
+                  -2.57365345954895,
+                  11.461945533752441,
+                  11.447213172912598,
+                  11.410804748535156,
+                  -2.6732544898986816,
+                  -2.665754556655884,
+                  -2.6577625274658203,
+                  -2.6492843627929688,
+                  2.683021192722451
+                ],
+                [
+                  -1.772429347038269,
+                  -1.7663981914520264,
+                  -1.760035753250122,
+                  -0.8965706825256348,
+                  -0.8965706825256348,
+                  -0.89613276720047,
+                  -0.89613276720047,
+                  -1.750166416168213,
+                  -1.7428284883499146,
+                  -1.7351799011230469,
+                  -1.727227807044983,
+                  -1.718979001045227,
+                  -1.710440993309021,
+                  12.321076393127441,
+                  12.302119255065918,
+                  -1.7843836545944214,
+                  -1.7794878482818604,
+                  1.7906656032399144
+                ],
+                [
+                  -1.7819797992706299,
+                  -1.7766616344451904,
+                  -1.7710000276565552,
+                  -0.9121835231781006,
+                  -0.9121835231781006,
+                  -0.9101352691650391,
+                  -0.9101352691650391,
+                  -1.7620162963867188,
+                  -1.7553561925888062,
+                  -1.7483710050582886,
+                  -1.741067886352539,
+                  -1.7334538698196411,
+                  -1.7255357503890991,
+                  -1.7173210382461548,
+                  -1.7088165283203125,
+                  12.322667121887207,
+                  12.30367660522461,
+                  1.7894803407472877
+                ]
+              ]
+            }
+          }
+        }
+      }
+    },
+    "intentDomains": {},
+    "extraSentences": [
+      [
+        "en",
+        "hello"
+      ],
+      [
+        "en",
+        "hi"
+      ],
+      [
+        "en",
+        "hey"
+      ],
+      [
+        "en",
+        "good morning"
+      ],
+      [
+        "en",
+        "how much"
+      ],
+      [
+        "en",
+        "price"
+      ],
+      [
+        "en",
+        "cost"
+      ],
+      [
+        "en",
+        "rates"
+      ],
+      [
+        "en",
+        "book"
+      ],
+      [
+        "en",
+        "appointment"
+      ],
+      [
+        "en",
+        "schedule"
+      ],
+      [
+        "en",
+        "aftercare"
+      ],
+      [
+        "en",
+        "healing"
+      ],
+      [
+        "en",
+        "styles"
+      ],
+      [
+        "en",
+        "design"
+      ]
+    ]
+  },
+  "ner": {
+    "settings": {
+      "tag": "ner",
+      "entityPreffix": "%",
+      "entitySuffix": "%"
+    },
+    "rules": {}
+  },
+  "nlgManager": {
+    "settings": {
+      "tag": "nlg-manager"
+    },
+    "responses": {
+      "en": {
+        "greetings.hello": [
+          {
+            "answer": "Hello! I'm your InkVistAR assistant. How can I help you today?"
+          },
+          {
+            "answer": "Hi there! Ready to talk tattoos?"
+          }
+        ],
+        "price.query": [
+          {
+            "answer": "Pricing depends on the artist and complexity. Typically $100-$150/hour."
+          }
+        ],
+        "booking.create": [
+          {
+            "answer": "To book, browse our artists and tap 'Book Appointment' on their profile."
+          }
+        ],
+        "info.aftercare": [
+          {
+            "answer": "Keep it clean, use unscented lotion, and avoid the sun!"
+          }
+        ],
+        "info.styles": [
+          {
+            "answer": "We specialize in Realism, Traditional, and Japanese styles. Check the Gallery!"
+          }
+        ]
+      }
+    }
+  },
+  "actionManager": {
+    "settings": {
+      "tag": "action-manager"
+    },
+    "actions": {}
+  },
+  "slotManager": {}
+}

@@ -1,0 +1,195 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700;800&display=swap');
+
+/* Reset Body to prevent white gaps behind nav */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0D0D0D;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Gallery Page Styles */
+.gallery-page {
+  background-color: #0D0D0D; /* Noir background */
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Navigation (Reused from Home.css/Artists.css for consistency) */
+.home-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 3rem;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+  z-index: 100;
+}
+
+.home-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #C19A6B;
+  text-decoration: none;
+}
+
+.home-nav-links {
+  display: flex;
+  gap: 2.5rem;
+}
+
+.home-nav-links a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: color 0.3s;
+}
+
+.home-nav-links a:hover, .home-nav-links a.active-link {
+  color: #C19A6B;
+}
+
+.home-auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.home-auth-buttons .login-link {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+.home-auth-buttons .signup-btn {
+  background-color: #C19A6B;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.home-auth-buttons .signup-btn:hover {
+  background-color: #d4af87;
+}
+
+/* Header Styling */
+.gallery-header {
+  text-align: center;
+  padding: 80px 20px 40px;
+  width: 100%;
+}
+
+.gallery-header h1 {
+  color: #C19A6B;
+  font-family: 'Playfair Display', serif; /* Luxury Serif */
+  font-size: 3.5rem;
+  margin-bottom: 40px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Filter Navigation */
+.filter-nav {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  background: #1a1a1a; /* Dark charcoal fill */
+  border: 1px solid #C19A6B; /* Gold border */
+  color: #C19A6B;
+  padding: 10px 30px;
+  border-radius: 50px; /* Pill shape */
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.filter-btn.active, .filter-btn:hover {
+  background-color: #C19A6B;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(193, 154, 107, 0.3);
+}
+
+/* Portfolio Grid */
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+  width: 90%;
+  max-width: 1400px;
+  padding-bottom: 80px;
+}
+
+.image-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  aspect-ratio: 3/4;
+}
+
+.image-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.image-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 20px rgba(193, 154, 107, 0.4); /* Gold glow */
+  border: 1px solid rgba(193, 154, 107, 0.8);
+}
+
+.watermark {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+/* Chat FAB */
+.chat-fab {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  width: 60px;
+  height: 60px;
+  background-color: #C19A6B;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+  transition: transform 0.2s;
+  z-index: 200;
+}
+
+.chat-fab:hover {
+  transform: scale(1.1);
+}

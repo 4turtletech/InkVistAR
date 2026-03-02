@@ -1,0 +1,520 @@
+/* Admin Analytics Styles */
+
+.admin-page-with-sidenav {
+    display: flex;
+    min-height: 100vh;
+    background: #f3f4f6;
+}
+
+.admin-page-with-sidenav .admin-page {
+    flex: 1;
+    margin-left: 260px;
+    transition: margin-left 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .admin-page-with-sidenav .admin-page {
+        margin-left: 0;
+        padding-top: 60px;
+    }
+}
+
+.admin-page {
+    background-color: #f5f7fa;
+    min-height: 100vh;
+    padding-bottom: 2rem;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.admin-header > div {
+    flex: 1;
+}
+
+.admin-header h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.admin-header p {
+    margin: 0.5rem 0 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+}
+
+.select-input {
+    padding: 0.8rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background-color: white;
+    cursor: pointer;
+}
+
+/* Metrics Section */
+.metrics-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem;
+    padding-top: 1rem;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    gap: 1.2rem;
+    align-items: flex-start;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.metric-card.primary {
+    background: #ffffff;
+    border-left: none;
+}
+
+.metric-icon {
+    font-size: 2rem;
+    min-width: 50px;
+    text-align: center;
+}
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-label {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-value {
+    margin: 0.5rem 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.metric-growth {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.metric-growth.positive {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.metric-info {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+/* Analytics Grid */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+    padding: 0 2rem;
+    margin-bottom: 2rem;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.card h2 {
+    margin: 0 0 1.5rem;
+    font-size: 1.1rem;
+    color: #334155;
+    font-weight: 700;
+}
+
+/* Service List */
+.service-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.service-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.service-item:hover {
+    background-color: #f3f4f6;
+}
+
+.service-info {
+    flex: 1;
+}
+
+.service-name {
+    margin: 0;
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95rem;
+}
+
+.service-stats {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.service-stats span {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.progress-bar {
+    flex: 0 0 150px;
+    height: 24px;
+    background-color: #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    transition: width 0.3s;
+}
+
+/* Artist List */
+.artist-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.artist-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 8px;
+}
+
+.artist-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.artist-rank {
+    background-color: #4f46e5;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.artist-details {
+    flex: 1;
+}
+
+.artist-name {
+    margin: 0;
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95rem;
+}
+
+.artist-rating {
+    margin: 0.2rem 0 0;
+    font-size: 0.85rem;
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.artist-stats {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.stat-value {
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 1rem;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+
+/* Hourly Chart */
+.hourly-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.hour-bar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.hour-label {
+    width: 70px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.hour-visualization {
+    flex: 1;
+    height: 24px;
+    background-color: #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.hour-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 0.5rem;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    transition: width 0.3s;
+}
+
+/* Trend Chart */
+.trend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2rem;
+    height: 250px;
+    justify-content: center;
+}
+
+.trend-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    flex: 1;
+    max-width: 120px;
+}
+
+.trend-bar-container {
+    height: 200px;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.trend-bar {
+    width: 80%;
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 0.5rem;
+    color: white;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+}
+
+.trend-bar:hover {
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.bar-value {
+    color: white;
+    font-weight: 700;
+    font-size: 0.75rem;
+}
+
+.trend-info {
+    text-align: center;
+}
+
+.trend-month {
+    margin: 0;
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 0.95rem;
+}
+
+.trend-appointments {
+    margin: 0.3rem 0 0;
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+/* Breakdown Grid */
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1.5rem;
+}
+
+.breakdown-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.2rem;
+    background-color: #f9fafb;
+    border-radius: 8px;
+}
+
+.breakdown-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+}
+
+.breakdown-stat .stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.breakdown-stat .stat-label {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.breakdown-percentage {
+    font-weight: 700;
+    font-size: 1.2rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 70px;
+}
+
+.breakdown-percentage.green {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.breakdown-percentage.blue {
+    background-color: #bfdbfe;
+    color: #1e40af;
+}
+
+.breakdown-percentage.red {
+    background-color: #fecaca;
+    color: #991b1b;
+}
+
+.breakdown-percentage.info {
+    background-color: #dbeafe;
+    color: #0c4a6e;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .analytics-grid {
+        grid-template-columns: 1fr;
+        padding: 0 1rem;
+    }
+
+    .trend-chart {
+        height: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .metrics-section {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+
+    .metric-card {
+        flex-direction: column;
+    }
+
+    .analytics-grid {
+        padding: 0 1rem;
+    }
+
+    .artist-stats {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .progress-bar {
+        flex: 0 0 100px;
+    }
+
+    .breakdown-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .trend-chart {
+        gap: 1rem;
+        height: 200px;
+    }
+
+    .trend-bar-container {
+        height: 150px;
+    }
+}
