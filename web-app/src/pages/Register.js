@@ -15,6 +15,7 @@ function Register() {
     confirmPassword: ''
   });
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const navigate = useNavigate();
 
@@ -23,6 +24,7 @@ function Register() {
     // Inline sanitization: prevent starting with space
     const sanitizedValue = value.replace(/^\s+/, '');
     setFormData({ ...formData, [name]: sanitizedValue });
+    setApiError(''); // Clear API error on change
     
     // Clear error when user types
     if (errors[name]) {
@@ -59,6 +61,7 @@ function Register() {
   const registerUser = async (e) => {
     e.preventDefault();
     
+    setApiError('');
     if (!validate()) return;
 
     try {
@@ -77,7 +80,12 @@ function Register() {
       }
     } catch (error) {
       console.error(error);
-      alert(error.response?.data?.message || "Error registering user");
+      const message = error.response?.data?.message || "An error occurred during registration.";
+      if (message.toLowerCase().includes('email')) {
+        setErrors(prev => ({ ...prev, email: message }));
+      } else {
+        setApiError(message);
+      }
     }
   };
 
@@ -107,6 +115,7 @@ function Register() {
         </div>
 
         <h2 className="login-title">Create Account</h2>
+        {apiError && <p className="error-message" style={{textAlign: 'center'}}>{apiError}</p>}
 
         <form onSubmit={registerUser} className="login-form">
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>

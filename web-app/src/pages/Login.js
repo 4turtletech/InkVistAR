@@ -10,6 +10,8 @@ function Login() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
+    const [showResend, setShowResend] = useState(false);
+    const [resendMessage, setResendMessage] = useState({ text: '', type: 'error' });
     const [loading, setLoading] = useState(false);
     
     // Forgot Password States
@@ -24,6 +26,8 @@ function Login() {
     const handleLogin = async (e) => {
         e.preventDefault();
         setError("");
+        setShowResend(false);
+        setResendMessage({ text: '' });
         setLoading(true);
         try {
             const response = await Axios.post(`${API_URL}/api/login`, {
@@ -42,9 +46,30 @@ function Login() {
                 else navigate('/customer', { replace: true });
             }
         } catch (error) {
-            setError(error.response?.data?.message || "Error logging in");
+            const errData = error.response?.data;
+            setError(errData?.message || "Error logging in");
+            if (errData?.requireVerification) {
+                setShowResend(true);
+            }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleResendVerification = async () => {
+        setResendMessage({ text: 'Sending...', type: 'info' });
+        try {
+            const response = await Axios.post(`${API_URL}/api/resend-verification`, { email });
+            if (response.data.success) {
+                setResendMessage({ text: "Verification email sent! Please check your inbox.", type: 'success' });
+            } else {
+                setResendMessage({ text: response.data.message || "Failed to resend email.", type: 'error' });
+            }
+        } catch (err) {
+            setResendMessage({ 
+                text: err.response?.data?.message || "An error occurred.",
+                type: 'error'
+            });
         }
     };
 
@@ -150,6 +175,18 @@ function Login() {
                     <>
                     <h2 className="login-title">Login</h2>
                     {error && <p className="error-message">{error}</p>}
+                    {showResend && (
+                        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                            <button type="button" onClick={handleResendVerification} style={{background: 'none', border: 'none', color: '#C19A6B', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', textDecoration: 'underline'}}>
+                                Resend Verification Email
+                            </button>
+                            {resendMessage.text && (
+                                <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', color: resendMessage.type === 'success' ? '#10b981' : '#ef4444' }}>
+                                    {resendMessage.text}
+                                </p>
+                            )}
+                        </div>
+                    )}
                     
                     <form onSubmit={handleLogin} className="login-form">
                         <div className="form-group">
