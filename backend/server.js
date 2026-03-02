@@ -3,7 +3,6 @@ const mysql = require('mysql2');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const Groq = require('groq-sdk');
-const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 require('dotenv').config();
 
@@ -414,26 +413,41 @@ db.connect(err => {
   }
 });
 
-// ========== EMAIL SETUP ==========
-const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || '',
-    pass: process.env.EMAIL_PASS || ''
-  }
-});
+// ========== EMAIL SETUP (API-BASED) ==========
+// Using Resend API (Recommended for Vercel/Render)
+const EMAIL_API_KEY = process.env.EMAIL_API_KEY;
+const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
-if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-  transporter.verify((error, success) => {
-    if (error) {
-      console.log('!!GMAIL TEST FAILED:', error.message);
+async function sendEmail(to, subject, html) {
+  if (!EMAIL_API_KEY) {
+    console.log('⚠️ EMAIL_API_KEY missing. Email logged to console.');
+    return;
+  }
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${EMAIL_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        to: to,
+        subject: subject,
+        html: html
+      })
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      console.error('❌ Email API Error:', data);
     } else {
-      console.log('GMAIL READY!');
+      console.log(`✅ Email sent to ${to}`);
     }
-  });
-} else {
-  console.log('⚠️ Email credentials missing. Emails will be logged to console only.');
-  console.log('👉 To enable real emails, create a .env file in the backend folder with EMAIL_USER and EMAIL_PASS (App Password).');
+  } catch (error) {
+    console.error('❌ Email Network Error:', error.message);
+  }
 }
 
 // Helper: Create Notification
@@ -784,23 +798,12 @@ app.post('/api/send-otp', (req, res) => {
         res.json({ success: true, message: 'OTP sent to your email!' });
 
         // Send email in background
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-          transporter.sendMail({
-            to: email,
-            subject: 'InkVistAR Login - Your OTP Code',
-            html: `
-              <h2>Your InkVistAR OTP</h2>
-              <p><strong>${otp_code}</strong></p>
-              <p>This code expires in 5 minutes.</p>
-            `
-          }).then(() => {
-            console.log('✅ OTP EMAIL SENT:', email);
-          }).catch(err => {
-            console.log('❌ OTP EMAIL FAILED:', err.message);
-          });
-        } else {
-          console.log('⚠️ Email credentials missing. OTP logged to console only.');
-        }
+        const html = `
+          <h2>Your InkVistAR OTP</h2>
+          <p><strong>${otp_code}</strong></p>
+          <p>This code expires in 5 minutes.</p>
+        `;
+        sendEmail(email, 'InkVistAR Login - Your OTP Code', html);
       }
     );
   });
@@ -951,25 +954,14 @@ app.post('/api/register', async (req, res) => {
         // LOG VERIFICATION LINK (Fix for development/Gmail issues)
         console.log('🔑 [DEBUG] Verification Link:', verifyUrl);
 
-        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-          transporter.sendMail({
-            to: email,
-            subject: 'Verify Your InkVistAR Account',
-            html: `
-              <h2>Welcome to InkVistAR, ${fullName}!</h2>
-              <p>Your account is almost ready. Please verify your email:</p>
-              <a href="${verifyUrl}" style="background: #daa520; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold">Verify Email Address</a>
-              <p>Or copy-paste: ${verifyUrl}</p>
-              <p>This link expires in 24 hours.</p>
-            `
-          }).then(() => {
-            console.log('✅ VERIFICATION EMAIL SENT:', email);
-          }).catch(err => {
-            console.log('❌ VERIFICATION EMAIL FAILED:', err.message);
-          });
-        } else {
-           console.log('⚠️ Email credentials missing. Verification link logged to console only.');
-        }
+        const html = `
+          <h2>Welcome to InkVistAR, ${fullName}!</h2>
+          <p>Your account is almost ready. Please verify your email:</p>
+          <a href="${verifyUrl}" style="background: #daa520; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold">Verify Email Address</a>
+          <p>Or copy-paste: ${verifyUrl}</p>
+          <p>This link expires in 24 hours.</p>
+        `;
+        sendEmail(email, 'Verify Your InkVistAR Account', html);
 
         // If the user is an artist, create a corresponding entry in the 'artists' table
         if (type === 'artist') {
@@ -2486,20 +2478,10 @@ app.post('/api/resend-verification', (req, res) => {
       
       console.log('🔑 [DEBUG] NEW Verification Link:', verifyUrl);
 
-      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        transporter.sendMail({
-          to: email,
-          subject: 'Resend: Verify Your InkVistAR Account',
-          html: `<h2>Verify your email</h2><p>Click here: <a href="${verifyUrl}">Verify Account</a></p>`
-        }).then(() => {
-          res.json({ success: true, message: 'Verification link resent! Check your email.' });
-        }).catch(err => {
-          console.error('Email failed:', err);
-          res.json({ success: true, message: 'Link generated (Check server console if email fails)' });
-        });
-      } else {
-        res.json({ success: true, message: 'Verification link logged to server console.' });
-      }
+      const html = `<h2>Verify your email</h2><p>Click here: <a href="${verifyUrl}">Verify Account</a></p>`;
+      sendEmail(email, 'Resend: Verify Your InkVistAR Account', html);
+      
+      res.json({ success: true, message: 'Verification link resent! Check your email.' });
     });
   });
 });
