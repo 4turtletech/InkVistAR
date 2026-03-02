@@ -8,6 +8,8 @@ require('dotenv').config();
 
 const app = express();
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
 // Enhanced CORS configuration
 app.use(cors({
   origin: '*',
@@ -857,6 +859,8 @@ app.get('/api/verify', (req, res) => {
       return res.send('<h2 style="color: red">Invalid or expired verification link.</h2>');
     }
     console.log('VERIFIED:', email);
+    const loginUrl = `${FRONTEND_URL}/login`;
+
     res.send(`
       <html>
         <head>
@@ -874,7 +878,7 @@ app.get('/api/verify', (req, res) => {
           <div class="container">
             <h2>Email Verified Successfully!</h2>
             <p>Your account is now active. You can return to the InkVistAR website or app to login.</p>
-            <a href="/" class="btn">Return to Home</a>
+            <a href="${loginUrl}" class="btn">Continue to Login</a>
           </div>
         </body>
       </html>
