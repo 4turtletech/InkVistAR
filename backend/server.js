@@ -8,7 +8,7 @@ require('dotenv').config();
 
 const app = express();
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 // Enhanced CORS configuration
 app.use(cors({
