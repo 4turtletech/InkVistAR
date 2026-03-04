@@ -123,6 +123,11 @@ function Login() {
             return;
         }
 
+        if (newPassword.length < 6) {
+            setError("Password must be at least 6 characters.");
+            return;
+        }
+
         setLoading(true);
         try {
             const response = await Axios.post(`${API_URL}/api/reset-password`, {
@@ -140,7 +145,7 @@ function Login() {
                 setError(response.data.message);
             }
         } catch (error) {
-            setError("Error resetting password");
+            setError(error.response?.data?.message || "Error resetting password");
         } finally {
             setLoading(false);
         }

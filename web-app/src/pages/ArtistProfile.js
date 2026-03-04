@@ -48,10 +48,18 @@ function ArtistProfile(){
         e.preventDefault();
         setSaving(true);
 
-        if (passwords.newPassword && passwords.newPassword !== passwords.confirmPassword) {
-            alert("New passwords do not match");
-            setSaving(false);
-            return;
+        // Password validation block
+        if (passwords.newPassword) {
+            if (passwords.newPassword !== passwords.confirmPassword) {
+                alert("New passwords do not match.");
+                setSaving(false);
+                return;
+            }
+            if (passwords.newPassword.length < 6) {
+                alert("Password must be at least 6 characters long.");
+                setSaving(false);
+                return;
+            }
         }
 
         try {
@@ -72,8 +80,10 @@ function ArtistProfile(){
             alert("Profile settings updated successfully!");
             setPasswords({ newPassword: '', confirmPassword: '' });
         } catch (error) {
-            console.error(error);
-            alert("Failed to update settings");
+            const errorMessage = error.response?.data?.message || "Failed to update settings. Please try again.";
+            console.error("Profile update error:", error.response || error);
+            // Display specific error from backend if available
+            alert(errorMessage);
         }
         setSaving(false);
     };

@@ -8,7 +8,8 @@ require('dotenv').config();
 
 const app = express();
 
-const FRONTEND_URL = process.env.FRONTEND_URL;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+console.log(`[CONFIG] Redirects will point to: ${FRONTEND_URL}`);
 
 // Enhanced CORS configuration
 app.use(cors({
@@ -756,12 +757,44 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/reset-password', async (req, res) => {
   const { email, newPassword } = req.body;
   console.log('🔐 Resetting password for:', email);
-  
-  const password_hash = await bcrypt.hash(newPassword, 10);
-  
-  db.query('UPDATE users SET password_hash = ? WHERE email = ?', [password_hash, email], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    res.json({ success: true, message: 'Password updated successfully' });
+
+  // 1. Validation and Sanitization
+  if (!email || !newPassword) {
+    return res.status(400).json({ success: false, message: 'Email and new password are required.' });
+  }
+
+  // Basic password policy (matches registration)
+  if (newPassword.length < 6) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+  }
+
+  // Find user
+  db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
+    if (err) {
+      console.error('❌ DB error on password reset:', err.message);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    if (results.length === 0) {
+      // Do not reveal if user exists or not for security.
+      return res.status(400).json({ success: false, message: 'If an account with that email exists, a password reset cannot be processed at this time.' });
+    }
+
+    const user = results[0];
+
+    // 2. Check if new password is same as old
+    const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+    if (isSamePassword) {
+      return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password.' });
+    }
+
+    // 3. Hash and update
+    const password_hash = await bcrypt.hash(newPassword, 10);
+    
+    db.query('UPDATE users SET password_hash = ?, otp_code = NULL, otp_expires = NULL WHERE email = ?', [password_hash, email], (updateErr, result) => {
+      if (updateErr) return res.status(500).json({ success: false, message: 'Database error during password update.' });
+      logAction(user.id, 'PASSWORD_RESET', `User reset their password.`, req.ip || '::1');
+      res.json({ success: true, message: 'Password updated successfully' });
+    });
   });
 });
 

@@ -24,6 +24,11 @@ function ResetPassword() {
             return;
         }
 
+        if (newPassword.length < 6) {
+            setError("Password must be at least 6 characters.");
+            return;
+        }
+
         if (!email) {
             setError("No email provided. Please restart the process.");
             return;
