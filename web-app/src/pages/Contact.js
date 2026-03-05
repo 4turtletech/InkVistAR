@@ -38,7 +38,7 @@ const Contact = () => {
         <div className="map-column">
             <iframe
               title="Studio Location"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3861.868533366366!2d121.0486!3d14.5502!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397c8f265555555%3A0x5555555555555555!2sW%20Tower%2C%20Taguig%2C%20Metro%20Manila!5e0!3m2!1sen!2sph!4v1620000000000!5m2!1sen!2sph"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3861.442111088198!2d121.0544491758839!3d14.55887038982025!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397c900427e03a9%3A0x619a86a0023020e0!2sInkvictus!5e0!3m2!1sen!2sus!4v1716321980123!5m2!1sen!2sus"
               width="100%"
               height="100%"
               style={{ border: 0 }}
@@ -53,7 +53,7 @@ const Contact = () => {
             <div className="info-icon"><MapPin size={24} /></div>
             <div className="info-text">
               <h3>Address</h3>
-              <p>W Tower, 36th Street, BGC, Taguig City, Metro Manila, Philippines</p>
+              <p>32nd Street, corner 9th Ave, Taguig, 1634 Metro Manila, Philippines</p>
             </div>
           </div>
 
