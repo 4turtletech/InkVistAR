@@ -107,10 +107,7 @@ function AdminSettings() {
             <AdminSideNav />
             <div className="admin-page page-container-enter">
             <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                <div>
-                    <h1>System Settings</h1>
-                    <p>Configure your studio and system settings</p>
-                </div>
+                <h1>System Settings</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button className="btn btn-primary" onClick={handleSave}>
                         <Save size={18} style={{marginRight:'8px'}}/> Save Changes

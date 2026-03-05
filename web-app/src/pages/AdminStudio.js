@@ -123,10 +123,7 @@ function AdminStudio() {
             <AdminSideNav />
             <div className="admin-page page-container-enter">
                 <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                    <div>
-                        <h1>Studio & Branch Management</h1>
-                        <p>Manage studio locations and operating status</p>
-                    </div>
+                    <h1>Studio & Branch Management</h1>
                     <button className="btn btn-primary" onClick={openAddModal}><Plus size={18} style={{marginRight:'5px'}}/> Add Branch</button>
                 </header>
 

@@ -202,10 +202,7 @@ function AdminUsers() {
             {isManagerView ? <ManagerSideNav /> : <AdminSideNav />}
             <div className="admin-page page-container-enter">
             <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                <div>
-                    <h1>User Management</h1>
-                    <p>Manage system users and permissions</p>
-                </div>
+                <h1>User Management</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button className="btn btn-primary" onClick={handleAddNew}>
                         + Add New User

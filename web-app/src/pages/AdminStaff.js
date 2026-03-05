@@ -344,10 +344,7 @@ function AdminStaff() {
           {isManagerView ? <ManagerSideNav /> : <AdminSideNav />}
             <div className="admin-page page-container-enter">
             <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                <div>
-                    <h1>Staff Management</h1>
-                    <p>Manage profiles, schedules, and performance</p>
-                </div>
+                <h1>Staff Management</h1>
             </header>
 
             <div className="filters-section">

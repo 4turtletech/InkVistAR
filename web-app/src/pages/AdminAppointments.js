@@ -243,10 +243,7 @@ function AdminAppointments() {
           {isManagerView ? <ManagerSideNav /> : <AdminSideNav />}
             <div className="admin-page page-container-enter">
             <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                <div>
-                    <h1>Appointment Management</h1>
-                    <p>Manage all appointments and bookings</p>
-                </div>
+                <h1>Appointment Management</h1>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <div className="view-toggle" style={{ display: 'flex', gap: '10px' }}>
                         <button 

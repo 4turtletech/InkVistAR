@@ -266,10 +266,7 @@ function AdminInventory() {
             {isManagerView ? <ManagerSideNav /> : <AdminSideNav />}
             <div className="admin-page page-container-enter">
             <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                <div>
-                    <h1>Inventory Management</h1>
-                    <p>Manage inventory and supplies</p>
-                </div>
+                <h1>Inventory Management</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button className="btn btn-secondary" onClick={fetchHistory} style={{display:'flex', alignItems:'center', gap:'5px'}}>
                         <History size={18}/> History

@@ -65,14 +65,11 @@ function AdminAnalytics() {
                <AdminSideNav />
             <div className="admin-page page-container-enter">
             <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                <div>
-                    <h1>Analytics & Reports</h1>
-                    <p>Business performance insights and statistics</p>
-                </div>
-                <button className="btn btn-primary" onClick={handleExport} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                    <Download size={18} /> Export Report
-                </button>
+                <h1>Analytics & Reports</h1>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <button className="btn btn-primary" onClick={handleExport} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <Download size={18} /> Export Report
+                    </button>
                     <select 
                         value={dateRange}
                         onChange={(e) => setDateRange(e.target.value)}

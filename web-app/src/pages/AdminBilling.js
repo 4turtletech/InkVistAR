@@ -100,10 +100,7 @@ function AdminBilling() {
             <AdminSideNav />
             <div className="admin-page page-container-enter">
                 <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                    <div>
-                        <h1>Billing & Payments</h1>
-                        <p>Manage invoices, deposits, and financial configuration</p>
-                    </div>
+                    <h1>Billing & Payments</h1>
                     <div style={{display: 'flex', gap: '10px'}}>
                          <button className={`btn ${activeTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('invoices')}>
                             <FileText size={18} style={{marginRight: '5px'}}/> Invoices

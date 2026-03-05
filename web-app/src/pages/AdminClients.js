@@ -134,10 +134,7 @@ function AdminClients() {
             <AdminSideNav />
             <div className="admin-page page-container-enter">
                 <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                    <div>
-                        <h1>Client Management</h1>
-                        <p>View client profiles, history, and consent forms</p>
-                    </div>
+                    <h1>Client Management</h1>
                 </header>
 
                 <div className="filters-section">
