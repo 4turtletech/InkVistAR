@@ -34,9 +34,9 @@ function Artists() {
                 <a href="/" className="home-logo">INKVICTUS</a>
                 <div className="home-nav-links">
                     <a href="/#about">About</a>
-                    <a href="/artists" className="active-link">Artists</a>
+                    <Link to="/artists" className="active-link">Artists</Link>
                     <Link to="/gallery">Gallery</Link>
-                    <a href="/#booking">Booking</a>
+                    <Link to="/book">Booking</Link>
                     <Link to="/contact">Contact</Link>
                 </div>
                 <div className="home-auth-buttons">

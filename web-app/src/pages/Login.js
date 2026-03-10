@@ -43,7 +43,14 @@ function Login() {
                 if (role === 'admin') navigate('/admin/dashboard', { replace: true });
                 else if (role === 'manager') navigate('/manager', { replace: true });
                 else if (role === 'artist') navigate('/artist', { replace: true });
-                else navigate('/customer', { replace: true });
+                else {
+                    const pendingBooking = sessionStorage.getItem('pendingBooking');
+                    if (pendingBooking) {
+                        navigate('/customer/book', { replace: true });
+                    } else {
+                        navigate('/customer', { replace: true });
+                    }
+                }
             }
         } catch (error) {
             const errData = error.response?.data;

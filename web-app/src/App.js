@@ -7,6 +7,7 @@ import Artists from './pages/Artists';
 import Register from './pages/Register';
 import Gallery from './pages/Gallery';
 import Contact from './pages/Contact';
+import PublicBooking from './pages/PublicBooking';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
@@ -77,6 +78,7 @@ function App() {
           <Route path="/artists" element={<Artists />} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/book" element={<PublicBooking />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/admin" element={<PublicRoute><AdminLogin /></PublicRoute>} />

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { CheckCircle, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../config';
 
-export default function CustomerBookingWizard({ customerId, onBack }) {
+export default function CustomerBookingWizard({ customerId, onBack, isPublic = false }) {
+    const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [artists, setArtists] = useState([]);
@@ -27,7 +29,31 @@ export default function CustomerBookingWizard({ customerId, onBack }) {
         try {
             const response = await Axios.get(`${API_URL}/api/customer/artists`);
             if (response.data.success) {
-                setArtists(response.data.artists);
+                const fetchedArtists = response.data.artists;
+                setArtists(fetchedArtists);
+                
+                // Check for pending booking after fetching artists
+                const pending = sessionStorage.getItem('pendingBooking');
+                if (pending && customerId) {
+                    try {
+                        const parsed = JSON.parse(pending);
+                        const matchedArtist = fetchedArtists.find(a => a.id === parsed.artistId);
+                        if (matchedArtist) {
+                            setFormData({
+                                artist: matchedArtist,
+                                date: parsed.date,
+                                time: parsed.startTime,
+                                designTitle: parsed.designTitle,
+                                notes: parsed.notes
+                            });
+                            setStep(3); // Jump to details confirmation
+                        }
+                        sessionStorage.removeItem('pendingBooking');
+                    } catch (e) {
+                        console.error('Error parsing pending booking', e);
+                        sessionStorage.removeItem('pendingBooking');
+                    }
+                }
             }
         } catch (error) {
             console.error('Error fetching artists:', error);
@@ -62,6 +88,21 @@ export default function CustomerBookingWizard({ customerId, onBack }) {
     const handleSubmit = async () => {
         if (!formData.artist || !formData.date || !formData.designTitle) {
             alert('Please fill in all required fields.');
+            return;
+        }
+
+        // Handle unauthenticated booking attempt
+        if (!customerId) {
+            sessionStorage.setItem('pendingBooking', JSON.stringify({
+                artistId: formData.artist.id,
+                date: formData.date,
+                startTime: formData.time || '13:00',
+                endTime: formData.time || '13:00',
+                designTitle: formData.designTitle,
+                notes: formData.notes
+            }));
+            // Redirect to login
+            navigate('/login?redirect=booking');
             return;
         }
 

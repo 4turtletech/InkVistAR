@@ -13,10 +13,10 @@ const Contact = () => {
       <nav className="home-nav">
           <Link to="/" className="home-logo">INKVICTUS</Link>
           <div className="home-nav-links">
-              <Link to="/#about">About</Link>
+              <a href="/#about">About</a>
               <Link to="/artists">Artists</Link>
               <Link to="/gallery">Gallery</Link>
-              <Link to="/#booking">Booking</Link>
+              <Link to="/book">Booking</Link>
               <Link to="/contact" className="active-link">Contact</Link>
           </div>
           <div className="home-auth-buttons">
