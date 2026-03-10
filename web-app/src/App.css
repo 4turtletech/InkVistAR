@@ -1,5 +1,6 @@
 .App {
   text-align: center;
+  /* removing any potential 3d or transform contexts */
 }
 
 .App-logo {
