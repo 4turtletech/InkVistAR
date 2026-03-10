@@ -170,3 +170,60 @@ body {
   pointer-events: none;
   text-transform: uppercase;
 }
+
+/* Card hover overlay */
+.image-card-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 15px;
+  background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.image-card:hover .image-card-overlay {
+  opacity: 1;
+}
+
+.image-card-title {
+  color: #C19A6B;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  margin: 0 0 4px;
+}
+
+.image-card-artist {
+  color: #ccc;
+  font-size: 0.85rem;
+  margin: 0 0 6px;
+}
+
+.image-card-category {
+  display: inline-block;
+  background: rgba(193, 154, 107, 0.25);
+  border: 1px solid rgba(193, 154, 107, 0.5);
+  color: #C19A6B;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  width: fit-content;
+}
+
+/* Loading & empty states */
+.gallery-loading,
+.gallery-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 20px;
+  color: #888;
+  font-size: 1.2rem;
+}
+
+.gallery-loading {
+  color: #C19A6B;
+}
