@@ -122,7 +122,7 @@ function Register() {
       </nav>
 
     <div className="login-page-wrapper" style={{ minHeight: '100vh', boxSizing: 'border-box', padding: '120px 20px 60px 20px' }}>
-      <div className="login-card" style={{ maxWidth: '600px', margin: '0 auto' }}>
+      <div className="login-card" style={{ width: '90%', maxWidth: '600px', margin: '0 auto' }}>
         <div className="login-header">
             <h1 className="login-logo">INKVICTUS TATTOO</h1>
             <p className="login-tagline">BGC’s Premier Luxury Tattoo Studio</p>

@@ -55,7 +55,7 @@ function ResetPassword() {
     };
 
     return (
-        <div className="reset-page-wrapper">
+        <div className="reset-page-wrapper" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', padding: '80px 20px' }}>
             {/* Navigation */}
             <nav className="home-nav">
                 <a href="/" className="home-logo">INKVICTUS</a>
@@ -72,7 +72,7 @@ function ResetPassword() {
                 </div>
             </nav>
 
-            <div className="reset-card">
+            <div className="reset-card" style={{ width: '90%', maxWidth: '450px' }}>
                 <div className="reset-header">
                     <h1 className="reset-logo">INKVICTUS TATTOO</h1>
                     <p className="reset-tagline">BGC’s Premier Luxury Tattoo Studio</p>
