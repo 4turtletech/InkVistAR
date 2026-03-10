@@ -9,6 +9,20 @@ function Artists() {
     const navigate = useNavigate();
     const [artists, setArtists] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 50) {
+                setIsScrolled(true);
+            } else {
+                setIsScrolled(false);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     useEffect(() => {
         const fetchArtists = async () => {
@@ -30,7 +44,7 @@ function Artists() {
     return (
         <div className="artists-page">
             {/* Navigation */}
-            <nav className="home-nav">
+            <nav className={`home-nav ${isScrolled ? 'is-scrolled' : ''}`}>
                 <a href="/" className="home-logo">INKVICTUS</a>
                 <div className="home-nav-links">
                     <a href="/#about">About</a>

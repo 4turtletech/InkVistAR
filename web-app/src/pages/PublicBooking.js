@@ -1,14 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CustomerBookingWizard from '../components/CustomerBookingWizard';
 import ChatWidget from '../components/ChatWidget';
 
 function PublicBooking() {
     const navigate = useNavigate();
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 50) {
+                setIsScrolled(true);
+            } else {
+                setIsScrolled(false);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     return (
         <div style={{ backgroundColor: '#0D0D0D', minHeight: '100vh', color: '#fff', paddingBottom: '50px' }}>
-            <nav className="home-nav">
+            <nav className={`home-nav ${isScrolled ? 'is-scrolled' : ''}`}>
                 <a href="/" className="home-logo">INKVICTUS</a>
                 <div className="home-nav-links">
                     <a href="/#about">About</a>

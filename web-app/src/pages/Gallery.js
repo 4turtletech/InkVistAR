@@ -11,6 +11,20 @@ const Gallery = () => {
   const [works, setWorks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+      const handleScroll = () => {
+          if (window.scrollY > 50) {
+              setIsScrolled(true);
+          } else {
+              setIsScrolled(false);
+          }
+      };
+
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Fetch categories from backend
   useEffect(() => {
@@ -48,7 +62,7 @@ const Gallery = () => {
   return (
     <>
       {/* Navigation Bar */}
-      <nav className="home-nav">
+      <nav className={`home-nav ${isScrolled ? 'is-scrolled' : ''}`}>
           <a href="/" className="home-logo">INKVICTUS</a>
           <div className="home-nav-links">
               <a href="/#about">About</a>
