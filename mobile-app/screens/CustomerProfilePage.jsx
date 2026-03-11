@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { getCustomerProfile, updateCustomerProfile } from '../src/utils/api';
 
 export function CustomerProfilePage({ userId, userName, userEmail, onBack, onLogout }) {
+  const navigation = useNavigation();
   const [profile, setProfile] = useState({
     name: userName,
     email: userEmail,
@@ -73,12 +75,13 @@ export function CustomerProfilePage({ userId, userName, userEmail, onBack, onLog
   ];
 
   const preferences = [
-    { label: 'Notifications', icon: 'notifications', hasArrow: true },
-    { label: 'Privacy & Security', icon: 'lock-closed', hasArrow: true },
-    { label: 'Payment Methods', icon: 'card', hasArrow: true },
-    { label: 'Appointment History', icon: 'time', hasArrow: true },
-    { label: 'Help & Support', icon: 'help-circle', hasArrow: true },
+    { label: 'Notifications', icon: 'notifications', hasArrow: true, onPress: () => navigation.navigate('customer-notifications') },
+    { label: 'Privacy & Security', icon: 'lock-closed', hasArrow: true, onPress: () => Alert.alert('Coming Soon', 'Privacy & Security settings will be available in a future update.') },
+    { label: 'Payment Methods', icon: 'card', hasArrow: true, onPress: () => Alert.alert('Coming Soon', 'Payment methods will be available in a future update.') },
+    { label: 'Appointment History', icon: 'time', hasArrow: true, onPress: () => navigation.navigate('Appointments') },
+    { label: 'Help & Support', icon: 'help-circle', hasArrow: true, onPress: () => Alert.alert('Coming Soon', 'Help & Support will be available in a future update.') },
   ];
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -137,7 +140,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onBack, onLog
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Preferences</Text>
             {preferences.map((item, index) => (
-              <TouchableOpacity key={index} style={styles.preferenceCard}>
+              <TouchableOpacity key={index} style={styles.preferenceCard} onPress={item.onPress}>
                 <Ionicons name={item.icon} size={24} color="#111827" />
                 <Text style={styles.preferenceLabel}>{item.label}</Text>
                 {item.hasArrow && <Ionicons name="chevron-forward" size={20} color="#9ca3af" />}

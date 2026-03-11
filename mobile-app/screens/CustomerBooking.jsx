@@ -105,9 +105,18 @@ export function CustomerBooking({ customerId, onBack }) {
     setImage(null);
   };
 
+  // Determine if time picker should be shown based on service type
+  const showTimePicker = designTitle !== 'Tattoo Session';
+
   const handleBook = async () => {
-    if (!selectedArtist || !selectedDate || !selectedTime || !designTitle) {
+    if (!selectedArtist || !selectedDate || !designTitle) {
       Alert.alert('Missing Information', 'Please fill in all fields marked with *');
+      return;
+    }
+
+    // Only require time for non-Tattoo Session types
+    if (showTimePicker && !selectedTime) {
+      Alert.alert('Missing Information', 'Please select a time slot.');
       return;
     }
 
@@ -120,8 +129,8 @@ export function CustomerBooking({ customerId, onBack }) {
           customerId,
           artistId: selectedArtist.id,
           date: selectedDate,
-          startTime: selectedTime,
-          endTime: selectedTime, // Backend handles end time logic if needed
+          startTime: showTimePicker ? selectedTime : null,
+          endTime: showTimePicker ? selectedTime : null,
           designTitle,
           notes,
           referenceImage: image
@@ -294,27 +303,8 @@ export function CustomerBooking({ customerId, onBack }) {
           </View>
         </View>
 
-        {/* 3. Select Time */}
-        <Text style={styles.sectionTitle}>3. Select Time *</Text>
-        <View style={styles.timeGrid}>
-          {timeSlots.map((slot) => (
-            <TouchableOpacity 
-              key={slot.value} 
-              style={[
-                styles.timeChip, 
-                selectedTime === slot.value && styles.selectedTimeChip
-              ]}
-              onPress={() => setSelectedTime(slot.value)}
-            >
-              <Text style={[styles.timeText, selectedTime === slot.value && styles.selectedTimeText]}>
-                {slot.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* 4. Design Details */}
-        <Text style={styles.sectionTitle}>4. Service Type *</Text>
+        {/* 3. Service Type (moved before time so conditional visibility works) */}
+        <Text style={styles.sectionTitle}>3. Service Type *</Text>
         <View style={styles.timeGrid}>
           {serviceTypes.map((type) => (
             <TouchableOpacity 
@@ -324,7 +314,13 @@ export function CustomerBooking({ customerId, onBack }) {
                 designTitle === type && styles.selectedTimeChip,
                 { width: '48%' }
               ]}
-              onPress={() => setDesignTitle(type)}
+              onPress={() => {
+                setDesignTitle(type);
+                // Clear time selection when switching to Tattoo Session
+                if (type === 'Tattoo Session') {
+                  setSelectedTime('');
+                }
+              }}
             >
               <Text style={[styles.timeText, designTitle === type && styles.selectedTimeText]}>
                 {type}
@@ -333,6 +329,37 @@ export function CustomerBooking({ customerId, onBack }) {
           ))}
         </View>
 
+        {/* 4. Select Time — conditional on service type */}
+        {showTimePicker ? (
+          <>
+            <Text style={styles.sectionTitle}>4. Select Time *</Text>
+            <View style={styles.timeGrid}>
+              {timeSlots.map((slot) => (
+                <TouchableOpacity 
+                  key={slot.value} 
+                  style={[
+                    styles.timeChip, 
+                    selectedTime === slot.value && styles.selectedTimeChip
+                  ]}
+                  onPress={() => setSelectedTime(slot.value)}
+                >
+                  <Text style={[styles.timeText, selectedTime === slot.value && styles.selectedTimeText]}>
+                    {slot.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        ) : designTitle === 'Tattoo Session' ? (
+          <View style={styles.infoBox}>
+            <Ionicons name="information-circle" size={20} color="#b8860b" />
+            <Text style={styles.infoBoxText}>
+              Time will be scheduled after artist reviews your booking request.
+            </Text>
+          </View>
+        ) : null}
+
+        {/* 5. Description & Notes */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Description & Notes</Text>
           <TextInput 
@@ -494,5 +521,23 @@ const styles = StyleSheet.create({
     marginTop: 24, shadowColor: '#daa520', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4
   },
   disabledButton: { opacity: 0.7 },
-  bookButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' }
+  bookButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  infoBoxText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#92400e',
+    lineHeight: 20,
+  },
 });

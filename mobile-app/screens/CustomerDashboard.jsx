@@ -1,8 +1,9 @@
 // CustomerDashboard.jsx - UPDATED VERSION
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { getCustomerDashboard } from '../src/utils/api';
 
 export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
@@ -28,6 +29,13 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
   useEffect(() => {
     loadDashboard();
   }, [userId]);
+
+  // Re-fetch dashboard data when screen gains focus (fixes notification dot persistence)
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) loadDashboard();
+    }, [userId])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -305,8 +313,8 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
                 <Ionicons name="trending-up" size={20} color="#111827" />
                 <Text style={[styles.sectionTitle, { marginLeft: 8 }]}>Trending Styles</Text>
               </View>
-              <TouchableOpacity>
-                <Text style={styles.viewAllText}>Explore</Text>
+              <TouchableOpacity onPress={() => onNavigate('Gallery')}>
+                <Text style={styles.viewAllText}>Discover New Artists</Text>
               </TouchableOpacity>
             </View>
             <ScrollView 
@@ -315,7 +323,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
               contentContainerStyle={styles.trendingContainer}
             >
               {trendingStyles.map((style, index) => (
-                <TouchableOpacity key={index} style={styles.trendingCard}>
+                <TouchableOpacity key={index} style={styles.trendingCard} onPress={() => onNavigate('Gallery', { searchQuery: style.name })}>
                   <View style={[styles.trendingIcon, { backgroundColor: style.color + '20' }]}>
                     <Ionicons name={style.icon} size={24} color={style.color} />
                   </View>
