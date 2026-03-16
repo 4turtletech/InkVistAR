@@ -20,7 +20,6 @@ function ArtistEarnings(){
         return saved ? JSON.parse(saved) : null;
     });
     const artistId = user ? user.id : 1;
-    const COMMISSION_RATE = 0.7; // 70% to artist
 
     useEffect(() => {
         const fetch = async () => {
@@ -30,12 +29,11 @@ function ArtistEarnings(){
                 const res = await Axios.get(`${API_URL}/api/artist/${artistId}/appointments?status=completed`);
                 
                 if (res.data.success) {
+                    const commissionRate = res.data.appointments.length > 0 ? (res.data.appointments[0].commission_rate || 0.6) : 0.6;
                     const completedAppts = res.data.appointments.map(appt => {
-                        // Mock price logic since DB doesn't have price column yet
-                        // In real app, this would come from DB
-                        const basePrice = appt.price || 150; 
-                        const artistShare = basePrice * COMMISSION_RATE;
-                        const studioShare = basePrice * (1 - COMMISSION_RATE);
+                        const basePrice = appt.price || 0; 
+                        const artistShare = basePrice * commissionRate;
+                        const studioShare = basePrice * (1 - commissionRate);
                         
                         return {
                             ...appt,
@@ -49,13 +47,18 @@ function ArtistEarnings(){
 
                     // Calculate Stats
                     const totalEarnings = completedAppts.reduce((sum, a) => sum + a.artistShare, 0);
-                    // Mock pending payout (e.g., last 3 appointments not paid out yet)
-                    const pendingPayout = completedAppts.slice(0, 3).reduce((sum, a) => sum + a.artistShare, 0); 
+                    
+                    // Calculate current month's earnings
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    const monthlyPayout = completedAppts
+                        .filter(a => new Date(a.appointment_date).getMonth() === currentMonth && new Date(a.appointment_date).getFullYear() === currentYear)
+                        .reduce((sum, a) => sum + a.artistShare, 0);
 
                     setStats({
                         totalEarnings,
-                        totalCommission: totalEarnings, // Artist's take
-                        pendingPayout
+                        totalCommission: commissionRate * 100, // Display as percentage
+                        pendingPayout: monthlyPayout
                     });
 
                     // Generate Payout History (Group by Month)
@@ -105,14 +108,14 @@ function ArtistEarnings(){
                                 <div className="stat-card">
                                     <TrendingUp className="stat-icon" size={32} />
                                     <div className="stat-info">
-                                        <p className="stat-label">Commission Rate</p>
-                                        <p className="stat-value">{(COMMISSION_RATE * 100)}%</p>
+                                        <p className="stat-label">Your Commission Rate</p>
+                                        <p className="stat-value">{stats.totalCommission}%</p>
                                     </div>
                                 </div>
                                 <div className="stat-card">
                                     <CreditCard className="stat-icon" size={32} />
                                     <div className="stat-info">
-                                        <p className="stat-label">Pending Payout</p>
+                                        <p className="stat-label">Current Month Payout</p>
                                         <p className="stat-value">₱{stats.pendingPayout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                                     </div>
                                 </div>
@@ -131,7 +134,7 @@ function ArtistEarnings(){
                                                         <th>Client</th>
                                                         <th>Service</th>
                                                         <th>Total</th>
-                                                        <th>Your Cut ({COMMISSION_RATE * 100}%)</th>
+                                                        <th>Your Cut ({stats.totalCommission}%)</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -140,7 +143,7 @@ function ArtistEarnings(){
                                                             <td>{new Date(session.appointment_date).toLocaleDateString()}</td>
                                                             <td>{session.client_name}</td>
                                                             <td>{session.design_title}</td>
-                                                            <td>₱{session.basePrice.toFixed(2)}</td>
+                                                            <td>₱{session.basePrice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                                             <td style={{color: '#10b981', fontWeight: 'bold'}}>₱{session.artistShare.toFixed(2)}</td>
                                                         </tr>
                                                     ))}

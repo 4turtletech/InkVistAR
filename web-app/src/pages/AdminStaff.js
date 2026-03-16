@@ -119,7 +119,8 @@ function AdminStaff() {
                     name: data.artist.name,
                     specialization: data.artist.specialization,
                     hourly_rate: data.artist.hourly_rate,
-                    experience_years: data.artist.experience_years
+                    experience_years: data.artist.experience_years,
+                    commission_rate: data.artist.commission_rate
                 });
             }
         } catch (error) {
@@ -222,6 +223,15 @@ function AdminStaff() {
                         onChange={e => setFormData({...formData, experience_years: e.target.value})}
                     />
                 </div>
+                <div className="form-group">
+                    <label>Commission Rate (%)</label>
+                    <input 
+                        type="number" 
+                        className="form-input" 
+                        value={(formData.commission_rate || 0) * 100} 
+                        onChange={e => setFormData({...formData, commission_rate: parseFloat(e.target.value) / 100})}
+                    />
+                </div>
             </div>
             <button className="btn btn-primary" style={{marginTop: '20px'}} onClick={handleUpdateProfile}>
                 <Save size={18} style={{marginRight:'8px'}}/> Save Changes
@@ -298,13 +308,12 @@ function AdminStaff() {
     );
 
     const renderEarningsTab = () => {
-        const commissionRate = 0.7; // 70% to artist
         const earnings = artistDetails.appointments
             .filter(a => a.status === 'completed')
             .map(a => ({
                 ...a,
-                amount: artistDetails.profile.hourly_rate || 150, // Mock calculation
-                commission: (artistDetails.profile.hourly_rate || 150) * commissionRate
+                amount: a.price || 0, // Use actual price from appointment
+                commission: (a.price || 0) * (artistDetails.profile.commission_rate || 0.6)
             }));
 
         return (
@@ -319,17 +328,17 @@ function AdminStaff() {
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th>Service</th>
+                            <th>Client</th>
                             <th>Total Amount</th>
-                            <th>Artist Commission (70%)</th>
+                            <th>Artist Commission ({((artistDetails.profile.commission_rate || 0.6) * 100)}%)</th>
                         </tr>
                     </thead>
                     <tbody>
                         {earnings.map(e => (
                             <tr key={e.id}>
                                 <td>{new Date(e.appointment_date).toLocaleDateString()}</td>
-                                <td>{e.design_title}</td>
-                                <td>₱{e.amount}</td>
+                                <td>{e.client_name}</td>
+                                <td>₱{e.amount.toLocaleString()}</td>
                                 <td style={{color: '#10b981', fontWeight: 'bold'}}>₱{e.commission.toFixed(2)}</td>
                             </tr>
                         ))}

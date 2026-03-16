@@ -89,6 +89,7 @@ db.connect(err => {
         experience_years INT,
         specialization VARCHAR(255),
         hourly_rate DECIMAL(10, 2),
+        commission_rate DECIMAL(5, 2) DEFAULT 0.60,
         rating DECIMAL(3, 2) DEFAULT 5.00,
         total_reviews INT DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -338,6 +339,7 @@ db.connect(err => {
         start_time TIME,
         end_time TIME,
         design_title VARCHAR(255),
+        price DECIMAL(10, 2) DEFAULT 0.00,
         notes TEXT,
         reference_image LONGTEXT,
         status VARCHAR(50) DEFAULT 'pending',
@@ -539,7 +541,7 @@ function createDefaultUsers() {
         db.query(createArtist, [artistPass], (err, result) => {
           if (!err && result.insertId) {
             const artistId = result.insertId;
-            const createProfile = "INSERT INTO artists (user_id, studio_name, experience_years, specialization, hourly_rate) VALUES (?, 'InkVistAR Studio', 5, 'Realism', 150.00)";
+            const createProfile = "INSERT INTO artists (user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate) VALUES (?, 'InkVistAR Studio', 5, 'Realism', 150.00, 0.60)";
             db.query(createProfile, [artistId], (err) => {
               if (!err) console.log('✅ Default Artist Created: artist@inkvistar.com / artist123');
             });
@@ -1116,6 +1118,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
       COALESCE(a.experience_years, 0) as experience_years,
       COALESCE(a.specialization, 'General Artist') as specialization,
       COALESCE(a.hourly_rate, 0) as hourly_rate,
+      COALESCE(a.commission_rate, 0.60) as commission_rate,
       COALESCE(a.rating, 0) as rating,
       COALESCE(a.total_reviews, 0) as total_reviews
     FROM users u
@@ -1207,6 +1210,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
             experience_years: artist.experience_years,
             specialization: artist.specialization,
             hourly_rate: artist.hourly_rate,
+            commission_rate: artist.commission_rate,
             rating: Number(artist.rating),
             total_reviews: artist.total_reviews
           },
@@ -1233,9 +1237,10 @@ app.get('/api/artist/:artistId/appointments', (req, res) => {
   const { status, date } = req.query;
   
   let query = `
-    SELECT ap.*, u.name as client_name, u.email as client_email
+    SELECT ap.*, u.name as client_name, u.email as client_email, ar.commission_rate
     FROM appointments ap
     JOIN users u ON ap.customer_id = u.id
+    LEFT JOIN artists ar ON ap.artist_id = ar.user_id
     WHERE ap.artist_id = ? AND ap.is_deleted = 0
   `;
   
@@ -1294,7 +1299,7 @@ app.get('/api/artist/:artistId/clients', (req, res) => {
 // Update Artist Profile
 app.put('/api/artist/profile/:id', (req, res) => {
   const { id } = req.params;
-  const { name, specialization, hourly_rate, experience_years } = req.body;
+  const { name, specialization, hourly_rate, experience_years, commission_rate } = req.body;
   
   // Update users table (name)
   db.query('UPDATE users SET name = ? WHERE id = ?', [name, id], (err) => {
@@ -1311,6 +1316,10 @@ app.put('/api/artist/profile/:id', (req, res) => {
     if (experience_years !== undefined) {
         artistQuery += ', experience_years = ?';
         params.push(experience_years);
+    }
+    if (commission_rate !== undefined) {
+        artistQuery += ', commission_rate = ?';
+        params.push(commission_rate);
     }
     
     artistQuery += ' WHERE user_id = ?';
@@ -1408,8 +1417,8 @@ app.post('/api/artist/appointments', (req, res) => {
     // Insert appointment
     const query = `
       INSERT INTO appointments 
-      (customer_id, artist_id, appointment_date, start_time, end_time, design_title, status)
-      VALUES (?, ?, ?, ?, ?, ?, 'confirmed')
+      (customer_id, artist_id, appointment_date, start_time, end_time, design_title, status, price)
+      VALUES (?, ?, ?, ?, ?, ?, 'confirmed', 0)
     `;
     
     // Simple end time (same as start for now)
@@ -1636,7 +1645,7 @@ app.get('/api/artist/:artistId/availability', (req, res) => {
 // Customer book appointment
 app.post('/api/customer/appointments', (req, res) => {
   console.log('📅 Customer booking request:', req.body);
-  const { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage } = req.body;
+  const { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price } = req.body;
   
   // Validation for time and date
   // If startTime is provided (not a Tattoo Session), validate it
@@ -1668,11 +1677,11 @@ app.post('/api/customer/appointments', (req, res) => {
 
   const query = `
     INSERT INTO appointments 
-    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
-  db.query(query, [customerId, artistId, date, finalStartTime, finalEndTime, designTitle, notes, referenceImage, bookingStatus], (err, result) => {
+  db.query(query, [customerId, artistId, date, finalStartTime, finalEndTime, designTitle, notes, referenceImage, bookingStatus, price || 0], (err, result) => {
     if (err) {
       console.error('❌ Error booking appointment:', err);
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -2358,15 +2367,15 @@ app.get('/api/admin/appointments', (req, res) => {
 
 // Admin: Create Appointment (Walk-in / Manual Booking)
 app.post('/api/admin/appointments', (req, res) => {
-  const { customerId, artistId, date, startTime, endTime, designTitle, notes, status } = req.body;
+  const { customerId, artistId, date, startTime, endTime, designTitle, notes, status, price } = req.body;
   
   const query = `
     INSERT INTO appointments 
-    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, status, price)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
-  db.query(query, [customerId, artistId, date, startTime, endTime || startTime, designTitle, notes, status || 'scheduled'], (err, result) => {
+  db.query(query, [customerId, artistId, date, startTime, endTime || startTime, designTitle, notes, status || 'scheduled', price || 0], (err, result) => {
     if (err) {
       console.error('❌ Error creating appointment:', err);
       return res.status(500).json({ success: false, message: err.message });
@@ -2379,7 +2388,7 @@ app.post('/api/admin/appointments', (req, res) => {
 // Admin: Update Appointment (Status or Reschedule)
 app.put('/api/admin/appointments/:id', (req, res) => {
   const { id } = req.params;
-  const { status, date, startTime, endTime, artistId, designTitle, notes } = req.body;
+  const { status, date, startTime, endTime, artistId, designTitle, notes, price } = req.body;
   
   let query = 'UPDATE appointments SET ';
   const params = [];
@@ -2412,6 +2421,10 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (notes) {
     updates.push('notes = ?');
     params.push(notes);
+  }
+  if (price !== undefined) {
+    updates.push('price = ?');
+    params.push(price);
   }
 
   if (updates.length === 0) return res.json({ success: true });

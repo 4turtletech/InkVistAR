@@ -34,7 +34,8 @@ function AdminAppointments() {
         date: '',
         time: '',
         status: 'confirmed',
-        notes: ''
+        notes: '',
+        price: 0
     });
 
     // Modal animation handlers
@@ -82,7 +83,8 @@ function AdminAppointments() {
                     date: apt.appointment_date ? (apt.appointment_date.includes('T') ? apt.appointment_date.split('T')[0] : apt.appointment_date.substring(0, 10)) : '',
                     time: apt.start_time,
                     status: apt.status,
-                    notes: apt.notes
+                    notes: apt.notes,
+                    price: apt.price || 0
                 }));
                 setAppointments(mappedAppointments);
                 setFilteredAppointments(mappedAppointments);
@@ -167,7 +169,8 @@ function AdminAppointments() {
             date: appointment.date,
             time: appointment.time,
             status: appointment.status,
-            notes: appointment.notes
+            notes: appointment.notes,
+            price: appointment.price
         });
         openModal();
     };
@@ -190,7 +193,8 @@ function AdminAppointments() {
             date: '',
             time: '',
             status: 'confirmed',
-            notes: ''
+            notes: '',
+            price: 0
         });
         openModal();
     };
@@ -209,7 +213,8 @@ function AdminAppointments() {
                 date: formData.date,
                 startTime: formData.time,
                 status: formData.status,
-                notes: formData.notes
+                notes: formData.notes,
+                price: formData.price
             };
 
             if (selectedAppointment) {
@@ -233,7 +238,7 @@ function AdminAppointments() {
     };
 
     const getStatusColor = (status) => {
-        switch (status) {
+        switch (status?.toLowerCase()) {
             case 'scheduled': return 'scheduled';
             case 'confirmed': return 'scheduled'; // Map confirmed to scheduled color
             case 'completed': return 'completed';
@@ -244,11 +249,11 @@ function AdminAppointments() {
     };
 
     const handleExport = () => {
-        const headers = ['ID', 'Client Name', 'Artist', 'Service Type', 'Date', 'Time', 'Status'];
+        const headers = ['ID', 'Client Name', 'Artist', 'Service Type', 'Date', 'Time', 'Status', 'Price'];
         const csvContent = [
             headers.join(','),
             ...filteredAppointments.map(a => 
-                `${a.id},"${a.clientName}","${a.artistName}","${a.serviceType}",${a.date},${a.time},${a.status}`
+                `${a.id},"${a.clientName}","${a.artistName}","${a.serviceType}",${a.date},${a.time},${a.status},${a.price}`
             )
         ].join('\n');
 
@@ -429,6 +434,7 @@ function AdminAppointments() {
                                         <th>Date</th>
                                         <th>Time</th>
                                         <th>Status</th>
+                                        <th>Price</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -445,10 +451,11 @@ function AdminAppointments() {
                                                 <td>{appointment.date}</td>
                                                 <td>{appointment.time}</td>
                                                 <td>
-                                                    <span className={`badge status-${getStatusColor(appointment.status)}`}>
+                                                    <span className={`badge status-${getStatusColor(appointment.status || 'pending')}`}>
                                                         {appointment.status}
                                                     </span>
                                                 </td>
+                                                <td>₱{Number(appointment.price).toLocaleString()}</td>
                                                 <td className="actions-cell">
                                                     {appointment.status === 'pending' && (
                                                         <>
@@ -471,7 +478,7 @@ function AdminAppointments() {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="8" className="no-data">No appointments found</td>
+                                            <td colSpan="9" className="no-data">No appointments found</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -574,6 +581,16 @@ function AdminAppointments() {
                                         className="form-input"
                                     />
                                 </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Price (₱)</label>
+                                <input
+                                    type="number"
+                                    value={formData.price}
+                                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                                    className="form-input"
+                                    placeholder="e.g. 35000"
+                                />
                             </div>
                             <div className="form-group">
                                 <label>Notes</label>
