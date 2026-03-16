@@ -1215,7 +1215,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
           works: [],
           stats: {
             total_appointments: appointments.length,
-            total_earnings: appointments.length * (artist.hourly_rate || 100),
+            total_earnings: appointments.reduce((sum, apt) => sum + (apt.price || 0), 0),
             avg_rating: Number(artist.rating)
           },
           notifications: notifications,
