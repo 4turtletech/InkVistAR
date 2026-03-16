@@ -16,7 +16,9 @@ function ArtistSessions() {
         beforePhoto: null,
         afterPhoto: null
     });
-    
+
+    const [sessionModal, setSessionModal] = useState({ mounted: false, visible: false });
+
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
         return saved ? JSON.parse(saved) : null;
@@ -42,15 +44,29 @@ function ArtistSessions() {
         fetchSessions();
     }, [artistId]);
 
+    const openSessionModal = () => {
+        setSessionModal({ mounted: true, visible: false });
+        setTimeout(() => setSessionModal({ mounted: true, visible: true }), 10);
+    };
+
+    const closeSessionModal = () => {
+        setSessionModal(prev => ({ ...prev, visible: false }));
+        setTimeout(() => {
+            setSessionModal({ mounted: false, visible: false });
+            setActiveSession(null);
+        }, 400);
+    };
+
     const handleManageSession = (session) => {
         setActiveSession(session);
         setSessionData({
             notes: session.notes || '',
-            inkUsed: '', 
+            inkUsed: '',
             needlesUsed: '',
             beforePhoto: null,
             afterPhoto: null
         });
+        openSessionModal();
     };
 
     const handlePhotoUpload = (e, type) => {
@@ -68,11 +84,11 @@ function ArtistSessions() {
         try {
             await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/status`, { status: newStatus });
             setActiveSession(prev => ({ ...prev, status: newStatus }));
-            
+
             // If completing, close modal and refresh
             if (newStatus === 'completed') {
                 alert('Session marked as completed!');
-                setActiveSession(null);
+                closeSessionModal();
                 fetchSessions();
             }
         } catch (error) {
@@ -150,15 +166,15 @@ function ArtistSessions() {
             </div>
 
             {/* Active Session Modal */}
-            {activeSession && (
-                <div className="modal-overlay">
-                    <div className="modal-content session-modal" style={{maxWidth: '800px', width: '90%'}}>
+            {sessionModal.mounted && activeSession && (
+                <div className={`modal-overlay ${sessionModal.visible ? 'open' : ''}`} onClick={closeSessionModal}>
+                    <div className="modal-content session-modal" style={{maxWidth: '800px', width: '90%'}} onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <div>
                                 <h2>Session: {activeSession.client_name}</h2>
                                 <p style={{margin: 0, color: '#666'}}>{activeSession.design_title}</p>
                             </div>
-                            <button className="close-btn" onClick={() => setActiveSession(null)}><X size={20}/></button>
+                            <button className="close-btn" onClick={closeSessionModal}><X size={20}/></button>
                         </div>
                         
                         <div className="modal-body">
@@ -242,7 +258,7 @@ function ArtistSessions() {
                         </div>
                         
                         <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={() => setActiveSession(null)}>Close</button>
+                            <button className="btn btn-secondary" onClick={closeSessionModal}>Close</button>
                             <button className="btn btn-primary" onClick={handleSaveDetails}>
                                 <Save size={16} style={{marginRight: '5px'}}/> Save Details
                             </button>
