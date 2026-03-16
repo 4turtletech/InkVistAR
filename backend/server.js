@@ -11,6 +11,9 @@ const app = express();
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 console.log(`[CONFIG] Redirects will point to: ${FRONTEND_URL}`);
 
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+console.log(`[CONFIG] Verification links will use base: ${BACKEND_URL}`);
+
 // Enhanced CORS configuration
 app.use(cors({
   origin: '*',
@@ -1040,10 +1043,8 @@ app.post('/api/register', async (req, res) => {
         logAction(result.insertId, 'REGISTER', `New ${type} account registered: ${email}`, req.ip || '::1');
 
         const newUserId = result.insertId;
-
         // Send Verification Email
-        const host = req.get('host') || 'localhost:3001';
-        const verifyUrl = `http://${host}/api/verify?token=${verification_token}&email=${email}`;
+        const verifyUrl = `${BACKEND_URL}/api/verify?token=${verification_token}&email=${email}`;
         
         // LOG VERIFICATION LINK (Fix for development/Gmail issues)
         console.log('🔑 [DEBUG] Verification Link:', verifyUrl);
@@ -2696,8 +2697,7 @@ app.post('/api/resend-verification', (req, res) => {
       if (updateErr) return res.status(500).json({ success: false, message: 'Database error' });
 
       // Send Email
-      const host = req.get('host') || 'localhost:3001';
-      const verifyUrl = `http://${host}/api/verify?token=${verification_token}&email=${email}`;
+      const verifyUrl = `${BACKEND_URL}/api/verify?token=${verification_token}&email=${email}`;
       
       console.log('🔑 [DEBUG] NEW Verification Link:', verifyUrl);
 
