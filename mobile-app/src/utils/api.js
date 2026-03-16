@@ -218,6 +218,7 @@ export const addArtistWork = async (artistId, workData) => {
 };
 
 // Artist: Delete Work (Soft Delete)
+// Marks a portfolio work as deleted (soft delete)
 export const deleteArtistWork = async (workId) => {
   // Requirement: Soft delete (mark as inactive) for audit trail
   return fetchAPI(`/artist/portfolio/${workId}`, {
@@ -412,6 +413,7 @@ export const deleteUserByAdmin = async (userId) => {
   return fetchAPI(`/admin/users/${userId}`, {
     method: 'DELETE',
   });
+
 };
 
 // Admin: Get All Appointments
@@ -421,6 +423,7 @@ export const getAllAppointmentsForAdmin = async () => {
 
 // Admin: Update Appointment (Status, Date, Time)
 export const updateAppointmentByAdmin = async (apptId, data) => {
+
   return fetchAPI(`/admin/appointments/${apptId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
@@ -429,6 +432,7 @@ export const updateAppointmentByAdmin = async (apptId, data) => {
 
 // Admin: Delete Appointment
 export const deleteAppointmentByAdmin = async (apptId) => {
+
   return fetchAPI(`/admin/appointments/${apptId}`, {
     method: 'DELETE',
   });

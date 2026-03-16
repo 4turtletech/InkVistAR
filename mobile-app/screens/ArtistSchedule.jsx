@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { getArtistAppointments, updateAppointmentStatus, createArtistAppointment } from '../src/utils/api';
+import { getArtistAppointments, updateAppointmentStatus, createArtistAppointment, updateAppointmentDetails } from '../src/utils/api';
 
 export function ArtistSchedule({ onBack, artistId }) {
   const [selectedFilter, setSelectedFilter] = useState('all');
