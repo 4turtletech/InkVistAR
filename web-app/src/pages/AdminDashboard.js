@@ -496,18 +496,18 @@ function AdminDashboard() {
                                 </table>
                             </div>
                             
-                            {totalPages > 1 && (
+                            {auditTotalPages > 1 && (
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '1rem', gap: '10px' }}>
-                                    <button 
-                                        className="btn btn-secondary" 
+                                    <button
+                                        className="btn btn-secondary"
                                         disabled={auditPage === 1}
                                         onClick={() => setAuditPage(p => p - 1)}
                                         style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}
                                     ><ChevronLeft size={16} /></button>
-                                    <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>Page {auditPage} of {totalPages}</span>
-                                    <button 
-                                        className="btn btn-secondary" 
-                                        disabled={auditPage === totalPages}
+                                    <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>Page {auditPage} of {auditTotalPages}</span>
+                                    <button
+                                        className="btn btn-secondary"
+                                        disabled={auditPage === auditTotalPages}
                                         onClick={() => setAuditPage(p => p + 1)}
                                         style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}
                                     ><ChevronRight size={16} /></button>
