@@ -121,11 +121,12 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             if (response.data.success) {
                 setStep(4);
             } else {
-                alert(response.data.message || 'Booking failed');
+                alert('Booking Failed: ' + (response.data.message || 'An unknown error occurred.'));
             }
         } catch (error) {
-            console.error('Booking error:', error);
-            alert('Failed to connect to server.');
+            console.error('Booking error:', error.response || error);
+            const errorMessage = error.response?.data?.message || 'Failed to connect to the server. Please check your connection and try again.';
+            alert(`Booking Failed: ${errorMessage}`);
         } finally {
             setLoading(false);
         }

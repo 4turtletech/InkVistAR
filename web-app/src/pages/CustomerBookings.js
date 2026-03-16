@@ -16,19 +16,27 @@ function CustomerBookings(){
     const customerId = user ? user.id : null;
 
     useEffect(() => {
-        const fetch = async () => {
+        const fetchAppointments = async () => {
+            if (!customerId) {
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
             try{
-                if (!customerId) return;
-                setLoading(true);
-                // Correct endpoint for appointments
                 const res = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
                 if (res.data.success) {
                     setAppointments(res.data.appointments || []);
+                } else {
+                    alert('Could not fetch your bookings: ' + res.data.message);
                 }
+            } catch(e){ 
+                console.error("Error fetching bookings:", e.response || e);
+                alert('Failed to connect to the server while fetching bookings. Please try again later.');
+            } finally {
                 setLoading(false);
-            } catch(e){ console.error(e); setLoading(false); }
+            }
         };
-        fetch();
+        fetchAppointments();
     }, [customerId]);
 
     // Filter Logic

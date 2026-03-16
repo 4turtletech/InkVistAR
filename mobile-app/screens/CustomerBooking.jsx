@@ -12,8 +12,8 @@ import {
   Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { API_URL } from '../src/config';
 import * as ImagePicker from 'expo-image-picker';
-import { getCustomerArtists, getArtistAvailability, createCustomerAppointment } from '../src/utils/api';
 
 export function CustomerBooking({ customerId, onBack }) {
   const [loading, setLoading] = useState(false);
@@ -35,11 +35,14 @@ export function CustomerBooking({ customerId, onBack }) {
   }, []);
 
   const fetchArtists = async () => {
-    const data = await getCustomerArtists();
-    if (data.success) {
-      setArtists(data.artists);
-    } else {
-      console.log('Error fetching artists:', data.message);
+    try {
+      const response = await fetch(`${API_URL}/api/customer/artists`);
+      const data = await response.json();
+      if (data.success) {
+        setArtists(data.artists);
+      }
+    } catch (error) {
+      console.log('Error fetching artists:', error);
       // Fallback mock data if server fails (for demo purposes)
       setArtists([
         { id: 1, name: 'Mike Chen', studio_name: 'Ink Masters', specialization: 'Realism', hourly_rate: 150 },
@@ -56,21 +59,24 @@ export function CustomerBooking({ customerId, onBack }) {
   }, [selectedArtist, currentMonth]);
 
   const fetchAvailability = async (artistId) => {
-    const data = await getArtistAvailability(artistId);
-    if (data.success) {
-      const bookings = {};
-      data.bookings.forEach(b => {
-        // Handle date string directly to avoid timezone shifts
-        const dateStr = typeof b.appointment_date === 'string' 
-          ? b.appointment_date.substring(0, 10) 
-          : new Date(b.appointment_date).toISOString().split('T')[0];
-          
-        if (!bookings[dateStr]) bookings[dateStr] = { count: 0 };
-        bookings[dateStr].count += 1;
-      });
-      setBookedDates(bookings);
-    } else {
-      console.log('Error fetching availability:', data.message);
+    try {
+      const response = await fetch(`${API_URL}/api/artist/${artistId}/availability`);
+      const data = await response.json();
+      if (data.success) {
+        const bookings = {};
+        data.bookings.forEach(b => {
+          // Handle date string directly to avoid timezone shifts
+          const dateStr = typeof b.appointment_date === 'string' 
+            ? b.appointment_date.substring(0, 10) 
+            : new Date(b.appointment_date).toISOString().split('T')[0];
+            
+          if (!bookings[dateStr]) bookings[dateStr] = { count: 0 };
+          bookings[dateStr].count += 1;
+        });
+        setBookedDates(bookings);
+      }
+    } catch (error) {
+      console.log('Error fetching availability:', error);
     }
   };
 
@@ -115,27 +121,35 @@ export function CustomerBooking({ customerId, onBack }) {
     }
 
     setLoading(true);
-    const result = await createCustomerAppointment({
-      customerId,
-      artistId: selectedArtist.id,
-      date: selectedDate,
-      startTime: showTimePicker ? selectedTime : null,
-      endTime: showTimePicker ? selectedTime : null,
-      designTitle,
-      notes,
-      referenceImage: image
-    });
-    setLoading(false);
+    try {
+      const response = await fetch(`${API_URL}/api/customer/appointments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId,
+          artistId: selectedArtist.id,
+          date: selectedDate,
+          startTime: showTimePicker ? selectedTime : null,
+          endTime: showTimePicker ? selectedTime : null,
+          designTitle,
+          notes,
+          referenceImage: image
+        })
+      });
 
-    if (result.success) {
-      Alert.alert(
-        'Booking Successful', 
-        'Your appointment request has been sent to the artist.', 
-        [{ text: 'OK', onPress: onBack }]
-      );
-    } else {
-      // The fetchAPI helper from api.js provides a user-friendly error message
-      Alert.alert('Booking Failed', result.message || 'Please try again.');
+      const result = await response.json();
+      
+      if (result.success) {
+        Alert.alert('Booking Successful', 'Your appointment request has been sent to the artist.', [
+          { text: 'OK', onPress: onBack }
+        ]);
+      } else {
+        Alert.alert('Booking Failed', result.message || 'Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not connect to server.');
+    } finally {
+      setLoading(false);
     }
   };
 
