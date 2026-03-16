@@ -426,7 +426,7 @@ function AdminStaff() {
             {/* Detailed Artist Manager Overlay */}
             {artistManagerModal.mounted && selectedArtist && (
                 <div className={`modal-overlay ${artistManagerModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                    <div className="modal-content" style={{maxWidth: '900px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column'}}>
+                    <div className="modal-content" style={{maxWidth: '900px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column'}} onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <div>
                                 <h2>{selectedArtist.name}</h2>
