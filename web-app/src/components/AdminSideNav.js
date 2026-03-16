@@ -14,7 +14,9 @@ import {
     Menu,
     Building2,
     UserCircle,
-    Receipt
+    Receipt,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 import '../styles/AdminSideNav.css';
 
@@ -22,6 +24,10 @@ function AdminSideNav() {
     const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(() => {
         const stored = localStorage.getItem('adminSidenavCollapsed');
+        return stored === 'true';
+    });
+    const [userManagementOpen, setUserManagementOpen] = useState(() => {
+        const stored = localStorage.getItem('userManagementOpen');
         return stored === 'true';
     });
 
@@ -40,6 +46,12 @@ function AdminSideNav() {
         localStorage.setItem('adminSidenavCollapsed', next ? 'true' : 'false');
     };
 
+    const toggleUserManagement = () => {
+        const next = !userManagementOpen;
+        setUserManagementOpen(next);
+        localStorage.setItem('userManagementOpen', next ? 'true' : 'false');
+    };
+
     const quickActions = [
         {
             label: 'Dashboard',
@@ -48,16 +60,29 @@ function AdminSideNav() {
             description: 'Overview'
         },
         {
-            label: 'Users',
+            label: 'User Management',
             icon: Users,
-            path: '/admin/users',
-            description: 'Manage all users'
-        },
-        {
-            label: 'Clients',
-            icon: UserCircle,
-            path: '/admin/clients',
-            description: 'Client profiles'
+            isDropdown: true,
+            children: [
+                {
+                    label: 'Users',
+                    path: '/admin/users',
+                    description: 'Manage all users',
+                    icon: Users
+                },
+                {
+                    label: 'Clients',
+                    path: '/admin/clients',
+                    description: 'Client profiles',
+                    icon: UserCircle
+                },
+                {
+                    label: 'Staff',
+                    path: '/admin/staff',
+                    description: 'Manage staff',
+                    icon: Users2
+                }
+            ]
         },
         {
             label: 'Studio',
@@ -70,12 +95,6 @@ function AdminSideNav() {
             icon: Calendar,
             path: '/admin/appointments',
             description: 'View appointments'
-        },
-        {
-            label: 'Staff',
-            icon: Users2,
-            path: '/admin/staff',
-            description: 'Manage staff'
         },
         {
             label: 'Inventory',
@@ -119,38 +138,76 @@ function AdminSideNav() {
             </div>
 
             <nav className="sidenav-menu">
-                    <div className="menu-section">
-                        <p className="menu-label">Quick Actions</p>
-                        <ul className="menu-list">
-                            {quickActions.map((action, index) => {
-                                const IconComponent = action.icon;
+                <div className="menu-section">
+                    <p className="menu-label">Quick Actions</p>
+                    <ul className="menu-list">
+                        {quickActions.map((action, index) => {
+                            const IconComponent = action.icon;
+
+                            if (action.isDropdown) {
                                 return (
-                                    <li key={index}>
+                                    <li key={index} className="dropdown-item">
                                         <button
-                                            className="menu-item"
-                                            onClick={() => navigate(action.path)}
-                                            title={action.description}
+                                            className={`menu-item dropdown-toggle ${userManagementOpen ? 'open' : ''}`}
+                                            onClick={toggleUserManagement}
+                                            title={action.label}
                                         >
                                             <IconComponent size={20} />
                                             <span className="menu-text">{action.label}</span>
+                                            <span className="dropdown-arrow">
+                                                {userManagementOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                            </span>
                                         </button>
+                                        {userManagementOpen && (
+                                            <ul className="dropdown-menu">
+                                                {action.children.map((child, childIndex) => {
+                                                    const ChildIcon = child.icon;
+                                                    return (
+                                                        <li key={childIndex}>
+                                                            <button
+                                                                className="menu-item dropdown-child"
+                                                                onClick={() => navigate(child.path)}
+                                                                title={child.description}
+                                                            >
+                                                                <ChildIcon size={18} />
+                                                                <span className="menu-text">{child.label}</span>
+                                                            </button>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        )}
                                     </li>
                                 );
-                            })}
-                        </ul>
-                    </div>
-                
-                    <div className="menu-section menu-section-bottom">
-                        <button
-                            className="menu-item logout-item"
-                            onClick={handleLogout}
-                            title="Logout"
-                        >
-                            <LogOut size={20} />
-                            <span className="menu-text">Logout</span>
-                        </button>
-                    </div>
-                </nav>
+                            }
+
+                            return (
+                                <li key={index}>
+                                    <button
+                                        className="menu-item"
+                                        onClick={() => navigate(action.path)}
+                                        title={action.description}
+                                    >
+                                        <IconComponent size={20} />
+                                        <span className="menu-text">{action.label}</span>
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
+
+                <div className="menu-section menu-section-bottom">
+                    <button
+                        className="menu-item logout-item"
+                        onClick={handleLogout}
+                        title="Logout"
+                    >
+                        <LogOut size={20} />
+                        <span className="menu-text">Logout</span>
+                    </button>
+                </div>
+            </nav>
             </aside>
     );
 }

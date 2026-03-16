@@ -269,3 +269,48 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
 .menu-section::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
 }
+
+/* Dropdown Menu Styles */
+.dropdown-item {
+    position: relative;
+}
+
+.dropdown-toggle {
+    position: relative;
+}
+
+.dropdown-toggle .dropdown-arrow {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s;
+}
+
+.dropdown-toggle.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 0;
+    overflow: hidden;
+}
+
+.dropdown-menu .menu-item {
+    padding-left: 3rem;
+    font-size: 0.9rem;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-menu .menu-item:hover,
+.dropdown-menu .menu-item.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left: 4px solid #6366f1;
+}
+
+.dropdown-menu .menu-item svg {
+    opacity: 0.8;
+}
