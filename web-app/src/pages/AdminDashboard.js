@@ -28,6 +28,11 @@ function AdminDashboard() {
     const [auditPage, setAuditPage] = useState(1);
     const itemsPerPage = 5;
 
+    // Appointments Pagination State
+    const [appointmentSearch, setAppointmentSearch] = useState('');
+    const [appointmentPage, setAppointmentPage] = useState(1);
+    const appointmentsPerPage = 10;
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -194,13 +199,21 @@ function AdminDashboard() {
     };
 
     // Filter and paginate logs
-    const filteredLogs = auditLogs.filter(log => 
+    const filteredLogs = auditLogs.filter(log =>
         (log.user_name || 'System').toLowerCase().includes(auditSearch.toLowerCase()) ||
         (log.action || '').toLowerCase().includes(auditSearch.toLowerCase()) ||
         (log.details || '').toLowerCase().includes(auditSearch.toLowerCase())
     );
-    const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+    const auditTotalPages = Math.ceil(filteredLogs.length / itemsPerPage);
     const displayedLogs = filteredLogs.slice((auditPage - 1) * itemsPerPage, auditPage * itemsPerPage);
+
+    // Filter and paginate appointments
+    const filteredAppointments = appointments.filter(apt =>
+        (apt.client_name || '').toLowerCase().includes(appointmentSearch.toLowerCase()) ||
+        (apt.artist_name || '').toLowerCase().includes(appointmentSearch.toLowerCase())
+    );
+    const appointmentTotalPages = Math.ceil(filteredAppointments.length / appointmentsPerPage);
+    const displayedAppointments = filteredAppointments.slice((appointmentPage - 1) * appointmentsPerPage, appointmentPage * appointmentsPerPage);
 
     return (
         <div className="admin-page-with-sidenav">
@@ -359,7 +372,19 @@ function AdminDashboard() {
 
                         {/* Appointments Overview */}
                         <div className="data-card">
-                            <h2>Appointments Overview</h2>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                <h2 style={{ margin: 0 }}>Appointments Overview</h2>
+                                <div style={{ position: 'relative', maxWidth: '200px' }}>
+                                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search appointments..."
+                                        value={appointmentSearch}
+                                        onChange={(e) => { setAppointmentSearch(e.target.value); setAppointmentPage(1); }}
+                                        style={{ width: '100%', padding: '6px 10px 6px 30px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '0.9rem' }}
+                                    />
+                                </div>
+                            </div>
                             <div className="table-responsive">
                                 <table className="admin-table">
                                     <thead>
@@ -373,7 +398,7 @@ function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {appointments.map((appointment) => (
+                                        {displayedAppointments.length > 0 ? displayedAppointments.map((appointment) => (
                                             <tr key={appointment.id}>
                                                 <td>{appointment.client_name}</td>
                                                 <td>{appointment.artist_name}</td>
@@ -385,19 +410,41 @@ function AdminDashboard() {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    {appointment.status === 'pending' && (
-                                                        <>
-                                                            <button className="action-btn view" style={{backgroundColor: '#10b981'}} onClick={() => handleStatusUpdate(appointment.id, 'confirmed')}>Approve</button>
-                                                            <button className="action-btn delete-btn" onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}>Reject</button>
-                                                        </>
-                                                    )}
-                                                    <button className="action-btn view">Details</button>
+                                                    <div className="actions-cell">
+                                                        {appointment.status === 'pending' && (
+                                                            <>
+                                                                <button className="action-btn approve-btn" onClick={() => handleStatusUpdate(appointment.id, 'confirmed')}>Approve</button>
+                                                                <button className="action-btn reject-btn" onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}>Reject</button>
+                                                            </>
+                                                        )}
+                                                        <button className="action-btn details-btn">Details</button>
+                                                    </div>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )) : (
+                                            <tr><td colSpan="6" className="no-data" style={{textAlign: 'center', padding: '1rem'}}>No appointments found</td></tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
+
+                            {appointmentTotalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '1rem', gap: '10px' }}>
+                                    <button
+                                        className="btn btn-secondary"
+                                        disabled={appointmentPage === 1}
+                                        onClick={() => setAppointmentPage(p => p - 1)}
+                                        style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}
+                                    ><ChevronLeft size={16} /></button>
+                                    <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>Page {appointmentPage} of {appointmentTotalPages}</span>
+                                    <button
+                                        className="btn btn-secondary"
+                                        disabled={appointmentPage === appointmentTotalPages}
+                                        onClick={() => setAppointmentPage(p => p + 1)}
+                                        style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}
+                                    ><ChevronRight size={16} /></button>
+                                </div>
+                            )}
                         </div>
 
                         {/* System Audit Logs */}

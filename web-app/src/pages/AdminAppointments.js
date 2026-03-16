@@ -24,6 +24,8 @@ function AdminAppointments() {
     const [sortBy, setSortBy] = useState('date');
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const [appointmentModal, setAppointmentModal] = useState({ mounted: false, visible: false });
     const [formData, setFormData] = useState({
         clientId: '',
@@ -77,7 +79,7 @@ function AdminAppointments() {
                     artistName: apt.artist_name,
                     artistId: apt.artist_id,
                     serviceType: apt.design_title || 'Tattoo',
-                    date: apt.appointment_date, // Already YYYY-MM-DD string from backend
+                    date: apt.appointment_date ? (apt.appointment_date.includes('T') ? apt.appointment_date.split('T')[0] : apt.appointment_date.substring(0, 10)) : '',
                     time: apt.start_time,
                     status: apt.status,
                     notes: apt.notes
@@ -108,6 +110,9 @@ function AdminAppointments() {
             
             return matchesSearch && matchesStatus && matchesDate;
         });
+
+        // Reset pagination on filter change
+        setCurrentPage(1);
 
         // Sort
         if (sortBy === 'date') {
@@ -238,6 +243,29 @@ function AdminAppointments() {
         }
     };
 
+    const handleExport = () => {
+        const headers = ['ID', 'Client Name', 'Artist', 'Service Type', 'Date', 'Time', 'Status'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredAppointments.map(a => 
+                `${a.id},"${a.clientName}","${a.artistName}","${a.serviceType}",${a.date},${a.time},${a.status}`
+            )
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `appointments_export_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
+    const currentItems = filteredAppointments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     return (
         <div className="admin-page-with-sidenav">
           {isManagerView ? <ManagerSideNav /> : <AdminSideNav />}
@@ -263,6 +291,12 @@ function AdminAppointments() {
                     </div>
                     <button className="btn btn-primary" onClick={handleAddNew}>
                         + New Appointment
+                    </button>
+                    <button className="btn btn-secondary" onClick={handleExport}>
+                        Export CSV
+                    </button>
+                    <button className="btn btn-secondary" onClick={handlePrint}>
+                        Print
                     </button>
                 </div>
             </header>
@@ -401,8 +435,8 @@ function AdminAppointments() {
                                 <tbody>
                                     {loading ? (
                                         <tr><td colSpan="8" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading appointments...</td></tr>
-                                    ) : filteredAppointments.length > 0 ? (
-                                        filteredAppointments.map((appointment) => (
+                                    ) : currentItems.length > 0 ? (
+                                        currentItems.map((appointment) => (
                                             <tr key={appointment.id}>
                                                 <td>#{appointment.id}</td>
                                                 <td>{appointment.clientName}</td>
@@ -443,6 +477,17 @@ function AdminAppointments() {
                                 </tbody>
                             </table>
                         </div>
+                        {totalPages > 1 && (
+                            <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1rem', gap: '1rem' }}>
+                                <button className="btn btn-secondary" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+                                    Previous
+                                </button>
+                                <span>Page {currentPage} of {totalPages}</span>
+                                <button className="btn btn-secondary" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </>
             )}

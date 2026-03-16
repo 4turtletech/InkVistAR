@@ -315,6 +315,55 @@
     background-color: #dc2626;
 }
 
+/* Actions cell alignment */
+.actions-cell {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.actions-cell .action-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    text-transform: capitalize;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.actions-cell .approve-btn {
+    background-color: #10b981;
+    border-color: #10b981;
+}
+
+.actions-cell .approve-btn:hover {
+    background-color: #059669;
+}
+
+.actions-cell .reject-btn {
+    background-color: #ef4444;
+    border-color: #ef4444;
+}
+
+.actions-cell .reject-btn:hover {
+    background-color: #dc2626;
+}
+
+.actions-cell .details-btn {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.actions-cell .details-btn:hover {
+    background-color: #2563eb;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .dashboard-header {

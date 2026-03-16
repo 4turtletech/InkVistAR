@@ -11,6 +11,9 @@ function ArtistAppointments(){
     const [activeTab, setActiveTab] = useState('upcoming');
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    
     
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
@@ -41,6 +44,33 @@ function ArtistAppointments(){
         return true;
     });
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab]);
+
+    const handleExport = () => {
+        const headers = ['Client', 'Service', 'Date', 'Time', 'Status'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredAppointments.map(a => 
+                `"${a.client_name}","${a.design_title}",${new Date(a.appointment_date).toLocaleDateString()},${a.start_time},${a.status}`
+            )
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `artist_appointments_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
+    const currentItems = filteredAppointments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     // Calendar Helpers
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
@@ -67,6 +97,12 @@ function ArtistAppointments(){
                     <h1>Schedule Management</h1>
                     <button className="btn btn-secondary" onClick={() => alert("Block date feature coming soon")}>
                         Block Date
+                    </button>
+                    <button className="btn btn-secondary" onClick={handleExport}>
+                        Export CSV
+                    </button>
+                    <button className="btn btn-secondary" onClick={handlePrint}>
+                        Print
                     </button>
                     <div className="view-toggle" style={{ display: 'flex', gap: '10px' }}>
                         <button 
@@ -145,19 +181,32 @@ function ArtistAppointments(){
                                     </div>
 
                                     <div className="data-card">
-                                        {filteredAppointments.length ? (
-                                            <table className="portal-table">
-                                                <thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
-                                                <tbody>{filteredAppointments.map(a => (
-                                                    <tr key={a.id}>
-                                                        <td>{a.client_name}</td>
-                                                        <td>{a.design_title}</td>
-                                                        <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
-                                                        <td>{a.start_time}</td>
-                                                        <td><span className={`status-badge ${a.status}`}>{a.status}</span></td>
-                                                    </tr>
-                                                ))}</tbody>
-                                            </table>
+                                        {currentItems.length ? (
+                                            <>
+                                                <table className="portal-table">
+                                                    <thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+                                                    <tbody>{currentItems.map(a => (
+                                                        <tr key={a.id}>
+                                                            <td>{a.client_name}</td>
+                                                            <td>{a.design_title}</td>
+                                                            <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
+                                                            <td>{a.start_time}</td>
+                                                            <td><span className={`status-badge ${a.status}`}>{a.status}</span></td>
+                                                        </tr>
+                                                    ))}</tbody>
+                                                </table>
+                                                {totalPages > 1 && (
+                                                    <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1rem', gap: '1rem' }}>
+                                                        <button className="btn btn-secondary" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+                                                            Previous
+                                                        </button>
+                                                        <span>Page {currentPage} of {totalPages}</span>
+                                                        <button className="btn btn-secondary" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                                                            Next
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </>
                                         ) : <p className="no-data">No appointments in this category</p>}
                                     </div>
                                 </>
