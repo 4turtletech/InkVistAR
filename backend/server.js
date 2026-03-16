@@ -354,6 +354,14 @@ db.connect(err => {
       else {
         console.log('📅 Appointments table ready');
         
+        // MIGRATION: Add 'price' column if it doesn't exist to prevent errors.
+        db.query("SHOW COLUMNS FROM appointments LIKE 'price'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments table: Adding price column...');
+            db.query("ALTER TABLE appointments ADD COLUMN price DECIMAL(10, 2) DEFAULT 0.00");
+          }
+        });
+        
         // MIGRATION: Ensure status is VARCHAR(50) to avoid truncation if it was ENUM
         db.query("ALTER TABLE appointments MODIFY COLUMN status VARCHAR(50) DEFAULT 'pending'", (err) => {
              if (!err) console.log('✅ Ensured appointments status is VARCHAR(50)');
