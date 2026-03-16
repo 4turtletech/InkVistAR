@@ -1,7 +1,7 @@
 // src/utils/api.js - UPDATED VERSION
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'https://inkvistar-api.onrender.com/api';
+export const API_URL = 'https://inkvistar-api.onrender.com/api';
 
 // Enhanced fetch helper with better error handling
 export const fetchAPI = async (endpoint, options = {}) => {

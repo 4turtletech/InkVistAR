@@ -3,22 +3,19 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAr
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { getArtistClients, addArtistClient, deleteArtistClient } from '../src/utils/api';
-import { API_URL } from '../src/config';
 
-export function ArtistClients({ onBack, artistId }) {
+export function ArtistClients({ onBack, artistId, navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-
-  // Details Modal State
-  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
-  const [selectedClient, setSelectedClient] = useState(null);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
+  const [newClientPassword, setNewClientPassword] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  
   const [clientHistory, setClientHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
@@ -37,34 +34,34 @@ export function ArtistClients({ onBack, artistId }) {
   };
 
   const handleAddClient = async () => {
-    if (!newName || !newEmail || !newPassword) {
-      Alert.alert('Missing Fields', 'Name, Email, and Password are required');
+    if (!newClientName || !newClientEmail || !newClientPassword) {
+      Alert.alert('Missing Fields', 'Please fill in all required fields.');
       return;
     }
-
+    setIsSaving(true);
     const result = await addArtistClient({
-      artistId: artistId,
-      name: newName,
-      email: newEmail,
-      password: newPassword
+      name: newClientName,
+      email: newClientEmail,
+      password: newClientPassword
     });
 
     if (result.success) {
-      Alert.alert('Success', 'Client profile created!');
+      Alert.alert('Success', 'New client profile created.');
       setModalVisible(false);
-      setNewName('');
-      setNewEmail('');
-      setNewPassword('');
-      loadClients(); // Refresh the client list
+      setNewClientName('');
+      setNewClientEmail('');
+      setNewClientPassword('');
+      loadClients();
     } else {
-      Alert.alert('Error', result.message || 'Failed to add client');
+      Alert.alert('Error', result.message || 'Failed to add client.');
     }
+    setIsSaving(false);
   };
 
   const handleDeleteClient = (clientId) => {
     Alert.alert(
       'Remove Client',
-      'Are you sure you want to remove this client? This will delete their account permanently.',
+      'Are you sure you want to deactivate this client? Their profile will be hidden but can be restored later.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
@@ -83,23 +80,8 @@ export function ArtistClients({ onBack, artistId }) {
     );
   };
 
-  const handleViewClient = async (client) => {
-    setSelectedClient(client);
-    setDetailsModalVisible(true);
-    setHistoryLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/api/customer/${client.id}/appointments`);
-      const data = await response.json();
-      if (data.success) {
-        // Filter to show only appointments with this artist
-        const history = data.appointments.filter(a => a.artist_id === artistId);
-        setClientHistory(history);
-      }
-    } catch (error) {
-      console.log('Error fetching history:', error);
-    } finally {
-      setHistoryLoading(false);
-    }
+  const handleViewClient = (client) => {
+    navigation.navigate('artist-client-details', { client });
   };
 
   return (
@@ -116,13 +98,12 @@ export function ArtistClients({ onBack, artistId }) {
               <Ionicons name="arrow-back" size={20} color="#ffffff" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>My Clients</Text>
-            {/* <TouchableOpacity 
+            <TouchableOpacity 
               style={styles.addButton}
               onPress={() => setModalVisible(true)}
             >
               <Ionicons name="person-add" size={22} color="#ffffff" />
-            </TouchableOpacity> */}
-            <View style={{ width: 40 }} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.statsRow}>
@@ -155,9 +136,9 @@ export function ArtistClients({ onBack, artistId }) {
             <Text style={styles.sectionTitle}>Client Directory</Text>
             {clients.map((client) => (
               <View key={client.id} style={styles.clientCard}>
-                {/*<TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteClient(client.id)}>
+                <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteClient(client.id)}>
                   <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                </TouchableOpacity>*/}
+                </TouchableOpacity>
 
                 <View style={styles.clientHeader}>
                   <View style={styles.clientAvatar}>
@@ -206,20 +187,6 @@ export function ArtistClients({ onBack, artistId }) {
         </View>
       </ScrollView>
 
-      {/* <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => setModalVisible(true)}
-      >
-        <LinearGradient
-          colors={['#000000', '#daa520']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.fabGradient}
-        >
-          <Ionicons name="person-add" size={28} color="#ffffff" />
-        </LinearGradient>
-      </TouchableOpacity> */}
-
       {/* Add Client Modal */}
       <Modal
         visible={modalVisible}
@@ -236,88 +203,36 @@ export function ArtistClients({ onBack, artistId }) {
               </TouchableOpacity>
             </View>
             
-            <Text style={styles.label}>Full Name</Text>
+            <Text style={styles.label}>Client Full Name</Text>
             <TextInput 
               style={styles.input} 
-              placeholder="John Doe" 
-              value={newName}
-              onChangeText={setNewName}
+              placeholder="John Smith" 
+              value={newClientName}
+              onChangeText={setNewClientName}
             />
 
-            <Text style={styles.label}>Email Address</Text>
+            <Text style={styles.label}>Client Email</Text>
             <TextInput 
               style={styles.input} 
               placeholder="client@email.com" 
-              value={newEmail}
-              onChangeText={setNewEmail}
+              value={newClientEmail}
+              onChangeText={setNewClientEmail}
               autoCapitalize="none"
+              keyboardType="email-address"
             />
 
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>Temporary Password</Text>
             <TextInput 
               style={styles.input} 
-              placeholder="Enter password" 
-              value={newPassword}
-              onChangeText={setNewPassword}
+              placeholder="A secure password for the client" 
+              value={newClientPassword}
+              onChangeText={setNewClientPassword}
               secureTextEntry
             />
 
-            <TouchableOpacity style={styles.saveButton} onPress={handleAddClient}>
-              <Text style={styles.saveButtonText}>Create Profile</Text>
+            <TouchableOpacity style={styles.saveButton} onPress={handleAddClient} disabled={isSaving}>
+              <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : 'Create Client Profile'}</Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Client Details Modal */}
-      <Modal
-        visible={detailsModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setDetailsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Client Details</Text>
-              <TouchableOpacity onPress={() => setDetailsModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000" />
-              </TouchableOpacity>
-            </View>
-            
-            {selectedClient && (
-              <View style={{ flex: 1 }}>
-                <View style={{ alignItems: 'center', marginBottom: 20 }}>
-                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                    <Ionicons name="person" size={32} color="#6b7280" />
-                  </View>
-                  <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{selectedClient.name}</Text>
-                  <Text style={{ color: '#6b7280' }}>{selectedClient.email}</Text>
-                </View>
-
-                <Text style={styles.sectionTitle}>History</Text>
-                {historyLoading ? (
-                  <ActivityIndicator size="small" color="#daa520" />
-                ) : (
-                  <ScrollView style={{ flex: 1 }}>
-                    {clientHistory.length > 0 ? (
-                      clientHistory.map((appt) => (
-                        <View key={appt.id} style={{ backgroundColor: '#f9fafb', padding: 12, borderRadius: 8, marginBottom: 8 }}>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Text style={{ fontWeight: '600' }}>{appt.design_title || 'Session'}</Text>
-                            <Text style={{ fontSize: 12, color: '#6b7280' }}>{new Date(appt.appointment_date).toLocaleDateString()}</Text>
-                          </View>
-                          <Text style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Status: {appt.status}</Text>
-                          {appt.notes ? <Text style={{ fontSize: 12, color: '#374151', marginTop: 4 }}>Note: {appt.notes}</Text> : null}
-                        </View>
-                      ))
-                    ) : (
-                      <Text style={{ color: '#9ca3af', fontStyle: 'italic', textAlign: 'center' }}>No history found.</Text>
-                    )}
-                  </ScrollView>
-                )}
-              </View>
-            )}
           </View>
         </View>
       </Modal>

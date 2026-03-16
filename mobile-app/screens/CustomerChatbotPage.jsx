@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { sendChatMessage } from '../src/utils/api';
 
 export function CustomerChatbotPage({ onBack }) {
   const [messages, setMessages] = useState([
@@ -13,6 +14,7 @@ export function CustomerChatbotPage({ onBack }) {
     },
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef(null);
 
   useEffect(() => {
@@ -20,47 +22,37 @@ export function CustomerChatbotPage({ onBack }) {
   }, [messages]);
 
   const handleSend = () => {
-    if (!inputValue.trim()) return;
+    sendMessage(inputValue);
+  };
+
+  const sendMessage = async (messageText) => {
+    if (messageText.trim().length === 0 || isLoading) return;
 
     const userMessage = {
-      id: messages.length + 1,
-      text: inputValue,
+      id: Date.now().toString(),
+      text: messageText.trim(),
       sender: 'user',
       timestamp: new Date(),
     };
 
-    setMessages([...messages, userMessage]);
-    setInputValue('');
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+    if (inputValue === messageText) {
+      setInputValue('');
+    }
 
-    setTimeout(() => {
-      const botResponse = getBotResponse(inputValue);
-      const botMessage = {
-        id: messages.length + 2,
-        text: botResponse,
-        sender: 'bot',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, botMessage]);
-    }, 1000);
-  };
+    const response = await sendChatMessage(messageText.trim());
+    setIsLoading(false);
 
-  const getBotResponse = (input) => {
-    const lowerInput = input.toLowerCase();
-    
-    if (lowerInput.includes('style') || lowerInput.includes('design')) {
-      return "I'd love to help you explore tattoo styles! Popular options include Traditional, Minimalist, Watercolor, Geometric, and Japanese. What kind of aesthetic appeals to you?";
-    }
-    if (lowerInput.includes('pain') || lowerInput.includes('hurt')) {
-      return "Pain levels vary by placement. Areas with more fat and muscle (outer arms, thighs) are less painful, while bony areas (ribs, ankles, spine) tend to be more sensitive.";
-    }
-    if (lowerInput.includes('aftercare') || lowerInput.includes('care')) {
-      return "Proper aftercare is crucial! Keep it clean and moisturized, avoid sun exposure, don't scratch, and follow your artist's specific instructions. Healing typically takes 2-4 weeks.";
-    }
-    if (lowerInput.includes('price') || lowerInput.includes('cost')) {
-      return "Tattoo pricing varies by size, complexity, artist experience, and location. Small simple tattoos might start around ₱50-100, while larger pieces can range from ₱200-1000+.";
-    }
-    
-    return "That's an interesting question! I'm here to help with tattoo-related questions about designs, styles, placement, aftercare, and the tattooing process. Could you tell me more?";
+    const botMessage = {
+      id: (Date.now() + 1).toString(),
+      sender: 'bot',
+      timestamp: new Date(),
+      text: response.success ? response.response : (response.message || 'Sorry, something went wrong.'),
+      isError: !response.success,
+    };
+
+    setMessages(prev => [...prev, botMessage]);
   };
 
   const quickQuestions = [
@@ -113,7 +105,8 @@ export function CustomerChatbotPage({ onBack }) {
             >
               <View style={[
                 styles.messageBubble,
-                message.sender === 'user' ? styles.messageBubbleUser : styles.messageBubbleBot
+                message.sender === 'user' ? styles.messageBubbleUser : styles.messageBubbleBot,
+                message.isError && styles.messageBubbleError,
               ]}>
                 <Text style={[
                   styles.messageText,
@@ -131,14 +124,21 @@ export function CustomerChatbotPage({ onBack }) {
             </View>
           ))}
 
-          {messages.length === 1 && (
+          {isLoading && (
+            <View style={styles.typingIndicator}>
+              <ActivityIndicator size="small" color="#6b7280" />
+              <Text style={styles.typingText}>Assistant is typing...</Text>
+            </View>
+          )}
+
+          {!isLoading && messages.length > 0 && (
             <View style={styles.quickQuestionsContainer}>
               <Text style={styles.quickQuestionsLabel}>Quick questions:</Text>
               <View style={styles.quickQuestionsButtons}>
                 {quickQuestions.map((question, index) => (
                   <TouchableOpacity
                     key={index}
-                    onPress={() => setInputValue(question)}
+                    onPress={() => sendMessage(question)}
                     style={styles.quickQuestionButton}
                   >
                     <Text style={styles.quickQuestionText}>{question}</Text>
@@ -156,9 +156,10 @@ export function CustomerChatbotPage({ onBack }) {
             placeholderTextColor="#9ca3af"
             value={inputValue}
             onChangeText={setInputValue}
+            editable={!isLoading}
             multiline
           />
-          <TouchableOpacity onPress={handleSend}>
+          <TouchableOpacity onPress={handleSend} disabled={isLoading}>
             <LinearGradient
               colors={['#000000', '#daa520']}
               start={{ x: 0, y: 0 }}
@@ -255,6 +256,11 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
+  messageBubbleError: {
+    backgroundColor: '#FFDDDD',
+    borderColor: '#D9534F',
+    borderWidth: 1,
+  },
   messageText: {
     fontSize: 14,
     lineHeight: 20,
@@ -274,6 +280,17 @@ const styles = StyleSheet.create({
   },
   messageTimeBot: {
     color: '#9ca3af',
+  },
+  typingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  typingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#6b7280',
   },
   quickQuestionsContainer: {
     marginTop: 16,

@@ -16,6 +16,7 @@ export function ArtistWorks({ onBack, artistId }) {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [newWorkTitle, setNewWorkTitle] = useState('');
   const [titleError, setTitleError] = useState('');
+  const [newWorkDescription, setNewWorkDescription] = useState('');
   const [newWorkCategory, setNewWorkCategory] = useState('traditional');
   const [newWorkImage, setNewWorkImage] = useState(''); // Using URL for now
   const [works, setWorks] = useState([]);
@@ -95,14 +96,18 @@ export function ArtistWorks({ onBack, artistId }) {
     }
 
     // Validation: Simple URL check if using URL mode
-    if (uploadType === 'url' && !newWorkImage.startsWith('http')) {
-      Alert.alert('Invalid URL', 'Please enter a valid image URL starting with http:// or https://');
-      return;
+    if (uploadType === 'url') {
+      const urlRegex = /^(https?:\/\/)/;
+      if (!urlRegex.test(newWorkImage)) {
+        Alert.alert('Invalid URL', 'Please enter a valid image URL starting with http:// or https://');
+        return;
+      }
     }
 
     const result = await addArtistWork(artistId, {
       title: newWorkTitle,
-      description: newWorkCategory, // Using description field for category for now
+      description: newWorkDescription,
+      category: newWorkCategory,
       imageUrl: newWorkImage
     });
 
@@ -110,6 +115,7 @@ export function ArtistWorks({ onBack, artistId }) {
       Alert.alert('Success!', 'Your work has been uploaded to your portfolio.');
       setNewWorkTitle('');
       setNewWorkImage('');
+      setNewWorkDescription('');
       setTitleError('');
       setShowUploadModal(false);
       loadPortfolio();
@@ -141,7 +147,7 @@ export function ArtistWorks({ onBack, artistId }) {
   };
 
   const filteredWorks = works.filter(work => {
-    const matchesCategory = selectedCategory === 'all' || (work.description || '').toLowerCase().includes(selectedCategory);
+    const matchesCategory = selectedCategory === 'all' || (work.category || '').toLowerCase() === selectedCategory;
     const matchesSearch = (work.title || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   }).sort((a, b) => {
@@ -274,21 +280,11 @@ export function ArtistWorks({ onBack, artistId }) {
                     <Text style={styles.workTitle}>{work.title}</Text>
                     <View style={styles.workMeta}>
                       <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryBadgeText}>{work.description || 'Art'}</Text>
+                        <Text style={styles.categoryBadgeText}>{work.category || 'Art'}</Text>
                       </View>
                       <Text style={styles.workDate}>
                         {new Date(work.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </Text>
-                    </View>
-                    <View style={styles.workEngagement}>
-                      <View style={styles.engagementItem}>
-                        <Ionicons name="heart" size={16} color="#dc2626" />
-                        <Text style={styles.engagementText}>{work.likes || 0}</Text>
-                      </View>
-                      <View style={styles.engagementItem}>
-                        <Ionicons name="chatbubble" size={16} color="#6b7280" />
-                        <Text style={styles.engagementText}>0</Text>
-                      </View>
                     </View>
                   </View>
                   <TouchableOpacity 
@@ -373,6 +369,17 @@ export function ArtistWorks({ onBack, artistId }) {
                 onChangeText={setNewWorkTitle}
               />
               {titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
+            </View>
+
+            {/* Description Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Description (Optional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="A short description of the piece"
+                value={newWorkDescription}
+                onChangeText={setNewWorkDescription}
+              />
             </View>
 
             {/* Category Selection */}
@@ -656,20 +663,6 @@ const styles = StyleSheet.create({
   workDate: {
     fontSize: 10,
     color: '#9ca3af',
-  },
-  workEngagement: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  engagementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  engagementText: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
   },
   workMenu: {
     position: 'absolute',

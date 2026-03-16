@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { User, Mail, Palette, Save, Lock } from 'lucide-react';
+import { User, Mail, Palette, Save, Lock, DollarSign, Clock } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import './PortalStyles.css';
 import { API_URL } from '../config';
@@ -9,7 +9,9 @@ function ArtistProfile(){
     const [profile, setProfile] = useState({
         name: '',
         email: '',
-        specialization: ''
+        specialization: '',
+        hourly_rate: 0,
+        experience_years: 0
     });
     const [passwords, setPasswords] = useState({
         newPassword: '',
@@ -35,7 +37,9 @@ function ArtistProfile(){
                     setProfile({
                         name: data.name,
                         email: data.email,
-                        specialization: data.specialization
+                        specialization: data.specialization,
+                        hourly_rate: data.hourly_rate || 0,
+                        experience_years: data.experience_years || 0
                     });
                 }
                 setLoading(false);
@@ -66,7 +70,9 @@ function ArtistProfile(){
             // Update profile details (Name & Specialization)
             await Axios.put(`${API_URL}/api/artist/profile/${artistId}`, {
                 name: profile.name,
-                specialization: profile.specialization
+                specialization: profile.specialization,
+                hourly_rate: profile.hourly_rate,
+                experience_years: profile.experience_years
             });
 
             // If password provided, call reset-password endpoint
@@ -131,6 +137,27 @@ function ArtistProfile(){
                                         placeholder="e.g. Realism, Traditional, Japanese"
                                     />
                                 </div>
+                                <div className="form-row" style={{ display: 'flex', gap: '20px' }}>
+                                    <div className="form-group" style={{ flex: 1 }}>
+                                        <label><DollarSign size={16}/> Hourly Rate (₱)</label>
+                                        <input 
+                                            type="number" 
+                                            className="form-input"
+                                            value={profile.hourly_rate}
+                                            onChange={e => setProfile({...profile, hourly_rate: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="form-group" style={{ flex: 1 }}>
+                                        <label><Clock size={16}/> Experience (Years)</label>
+                                        <input 
+                                            type="number" 
+                                            className="form-input"
+                                            value={profile.experience_years}
+                                            onChange={e => setProfile({...profile, experience_years: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+
 
                                 {/* 3. Password Management */}
                                 <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px', marginTop: '30px' }}>Password Management</h3>

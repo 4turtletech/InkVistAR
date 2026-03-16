@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { API_URL } from '../config';
 import './ChatWidget.css';
 
 export default function ChatWidget() {
@@ -13,6 +14,7 @@ export default function ChatWidget() {
     },
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -23,8 +25,8 @@ export default function ChatWidget() {
     scrollToBottom();
   }, [messages, isOpen]);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return;
 
     const userMessage = {
       id: messages.length + 1,
@@ -33,51 +35,35 @@ export default function ChatWidget() {
       timestamp: new Date(),
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
+    setIsLoading(true);
 
-    if (!isHumanMode) {
-      setTimeout(() => {
-        const botResponse = getBotResponse(inputValue);
-        const botMessage = {
-          id: messages.length + 2,
-          text: botResponse,
-          sender: 'bot',
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, botMessage]);
-      }, 1000);
-    } else {
-      // Simulate sending to a human / waiting for response
-      setTimeout(() => {
-        const supportMessage = {
-          id: messages.length + 2,
-          text: "Message sent to our artists. We'll get back to you shortly via email.",
-          sender: 'bot',
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, supportMessage]);
-      }, 1500);
-    }
-  };
+    try {
+      const response = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: inputValue })
+      });
+      const data = await response.json();
 
-  const getBotResponse = (input) => {
-    const lowerInput = input.toLowerCase();
-    
-    if (lowerInput.includes('style') || lowerInput.includes('design')) {
-      return "I'd love to help you explore tattoo styles! Popular options include Traditional, Minimalist, Watercolor, Geometric, and Japanese. What kind of aesthetic appeals to you?";
+      const botMessage = {
+        id: Date.now(),
+        text: data.success ? data.response : 'Sorry, I encountered an error.',
+        sender: 'bot',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      const errorMessage = {
+        id: Date.now(),
+        text: 'I seem to be offline. Please try again later.',
+        sender: 'bot',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
-    if (lowerInput.includes('pain') || lowerInput.includes('hurt')) {
-      return "Pain levels vary by placement. Areas with more fat and muscle (outer arms, thighs) are less painful, while bony areas (ribs, ankles, spine) tend to be more sensitive.";
-    }
-    if (lowerInput.includes('aftercare') || lowerInput.includes('care')) {
-      return "Proper aftercare is crucial! Keep it clean and moisturized, avoid sun exposure, don't scratch, and follow your artist's specific instructions. Healing typically takes 2-4 weeks.";
-    }
-    if (lowerInput.includes('price') || lowerInput.includes('cost')) {
-      return "Tattoo pricing varies by size, complexity, artist experience, and location. Small simple tattoos might start around ₱50-100, while larger pieces can range from ₱200-1000+.";
-    }
-    
-    return "That's an interesting question! I'm here to help with tattoo-related questions about designs, styles, placement, aftercare, and the tattooing process. Could you tell me more?";
+    setIsLoading(false);
   };
 
   const quickQuestions = [
@@ -130,6 +116,11 @@ export default function ChatWidget() {
                 </div>
               </div>
             ))}
+            {isLoading && (
+              <div className="message-wrapper bot">
+                <div className="message-bubble typing-indicator">...</div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
             
             {messages.length === 1 && !isHumanMode && (
@@ -151,8 +142,9 @@ export default function ChatWidget() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              disabled={isLoading}
             />
-            <button className="send-btn" onClick={handleSend}>
+            <button className="send-btn" onClick={handleSend} disabled={isLoading}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"></line>
                 <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>

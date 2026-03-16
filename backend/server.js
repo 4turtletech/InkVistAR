@@ -71,6 +71,7 @@ db.connect(err => {
         verification_token VARCHAR(255),
         otp_code VARCHAR(10),
         otp_expires DATETIME,
+        push_token VARCHAR(255),
         is_deleted BOOLEAN DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -138,6 +139,13 @@ db.connect(err => {
           db.query("ALTER TABLE users ADD COLUMN is_deleted BOOLEAN DEFAULT 0");
           console.log('✅ Added is_deleted column for soft delete support');
         }
+
+        db.query("SHOW COLUMNS FROM users LIKE 'push_token'", (err, results) => {
+          if (!err && results.length === 0) {
+            db.query("ALTER TABLE users ADD COLUMN push_token VARCHAR(255) NULL");
+            console.log('✅ Added push_token column for notifications');
+          }
+        });
       });
     });
 
@@ -455,10 +463,40 @@ async function sendEmail(to, subject, html) {
 
 // Helper: Create Notification
 function createNotification(userId, title, message, type, relatedId = null) {
-  const query = 'INSERT INTO notifications (user_id, title, message, type, related_id, created_at, is_read) VALUES (?, ?, ?, ?, ?, NOW(), 0)';
-  db.query(query, [userId, title, message, type, relatedId], (err, result) => {
-    if (err) console.error('❌ Error creating notification:', err.message);
-    else console.log(`🔔 Notification created for user ${userId}: ${title}`);
+  const insertQuery = 'INSERT INTO notifications (user_id, title, message, type, related_id, created_at, is_read) VALUES (?, ?, ?, ?, ?, NOW(), 0)';
+  db.query(insertQuery, [userId, title, message, type, relatedId], (err, result) => {
+    if (err) {
+      console.error('❌ Error creating DB notification:', err.message);
+    } else {
+      console.log(`🔔 DB Notification created for user ${userId}: ${title}`);
+      // Now, send the push notification
+      sendPushNotification(userId, title, message, { type, relatedId });
+    }
+  });
+}
+
+// Helper: Send Push Notification via Expo
+async function sendPushNotification(userId, title, body, data) {
+  // 1. Get the user's push token
+  db.query('SELECT push_token FROM users WHERE id = ?', [userId], async (err, results) => {
+    if (err || results.length === 0 || !results[0].push_token) {
+      console.log(`📲 Skipping push notification for user ${userId}: No token found.`);
+      return;
+    }
+
+    const pushToken = results[0].push_token;
+    console.log(`📲 Sending push notification to token: ${pushToken}`);
+
+    // 2. Send to Expo's push API
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ to: pushToken, title, body, data }),
+    });
   });
 }
 
@@ -1307,6 +1345,16 @@ app.get('/api/artist/:artistId/portfolio', (req, res) => {
 app.post('/api/artist/portfolio', (req, res) => {
   const { artistId, imageUrl, title, description, category, isPublic } = req.body;
   
+  if (!imageUrl) {
+    return res.status(400).json({ success: false, message: 'Image data or URL is required.' });
+  }
+
+  // Check for valid URL or base64 data URI
+  const urlRegex = new RegExp('^(https?|ftp)://');
+  if (!imageUrl.startsWith('data:image/') && !urlRegex.test(imageUrl)) {
+    return res.status(400).json({ success: false, message: 'Invalid image format. Must be a valid URL or a data URI.' });
+  }
+  
   if (imageUrl) {
     console.log(`📸 Uploading work: "${title}", Category: ${category}, Public: ${isPublic}`);
   }
@@ -1591,9 +1639,15 @@ app.post('/api/customer/appointments', (req, res) => {
   const { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage } = req.body;
   
   // Validation for time and date
-  const allowedTimes = ['13:00:00', '14:00:00', '15:00:00', '13:00', '14:00', '15:00'];
-  if (!allowedTimes.includes(startTime)) {
-    return res.status(400).json({ success: false, message: 'Selected time is not available. Please choose between 1 PM - 3 PM.' });
+  // If startTime is provided (not a Tattoo Session), validate it
+  if (startTime) {
+    const allowedTimes = [
+      '13:00:00', '14:00:00', '15:00:00', '16:00:00', '17:00:00', '18:00:00', '19:00:00', '20:00:00',
+      '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
+    ];
+    if (!allowedTimes.includes(startTime)) {
+      return res.status(400).json({ success: false, message: 'Selected time is not available. Please choose between 1 PM - 8 PM.' });
+    }
   }
 
   const today = new Date();
@@ -1607,15 +1661,18 @@ app.post('/api/customer/appointments', (req, res) => {
   // --- End Validation ---
   
   // Ensure endTime has a value (default to startTime if missing)
-  const finalEndTime = endTime || startTime;
+  const finalStartTime = startTime || null;
+  const finalEndTime = endTime || startTime || null;
+  // If no time provided (Tattoo Session), set status to pending_schedule
+  const bookingStatus = startTime ? 'pending' : 'pending_schedule';
 
   const query = `
     INSERT INTO appointments 
     (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
-  db.query(query, [customerId, artistId, date, startTime, finalEndTime, designTitle, notes, referenceImage], (err, result) => {
+  db.query(query, [customerId, artistId, date, finalStartTime, finalEndTime, designTitle, notes, referenceImage, bookingStatus], (err, result) => {
     if (err) {
       console.error('❌ Error booking appointment:', err);
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -1647,6 +1704,91 @@ app.get('/api/customer/:customerId/appointments', (req, res) => {
   db.query(query, [customerId], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'DB Error: ' + err.message });
     res.json({ success: true, appointments: results });
+  });
+});
+
+// ========== GALLERY ENDPOINT ==========
+// Get public gallery works (for customer gallery screen)
+app.get('/api/gallery/works', (req, res) => {
+  const { search, category } = req.query;
+  
+  let query = `
+    SELECT pw.id, pw.title, pw.description, pw.image_url, pw.category, pw.created_at,
+           u.name as artist_name
+    FROM portfolio_works pw
+    JOIN users u ON pw.artist_id = u.id
+    WHERE pw.is_public = 1 AND (pw.is_deleted = 0 OR pw.is_deleted IS NULL)
+  `;
+  const params = [];
+
+  if (search) {
+    query += ` AND (pw.title LIKE ? OR pw.description LIKE ? OR u.name LIKE ? OR pw.category LIKE ?)`;
+    const searchParam = `%${search}%`;
+    params.push(searchParam, searchParam, searchParam, searchParam);
+  }
+
+  if (category) {
+    query += ` AND pw.category = ?`;
+    params.push(category);
+  }
+
+  query += ` ORDER BY pw.created_at DESC LIMIT 100`;
+
+  db.query(query, params, (err, results) => {
+    if (err) {
+      console.error('❌ Error fetching gallery works:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    res.json({ success: true, works: results });
+  });
+});
+
+// Get Art of the Day
+app.get('/api/gallery/art-of-the-day', (req, res) => {
+  // First, try to get the latest public work from today
+  const todayQuery = `
+    SELECT 
+      pw.id, pw.title, pw.image_url, u.name as artist_name
+    FROM portfolio_works pw
+    JOIN users u ON pw.artist_id = u.id
+    WHERE pw.is_public = 1 AND pw.is_deleted = 0 AND DATE(pw.created_at) = CURDATE()
+    ORDER BY pw.created_at DESC
+    LIMIT 1
+  `;
+
+  db.query(todayQuery, (err, todayResults) => {
+    if (err) {
+      console.error('❌ Error fetching Art of the Day (today):', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    if (todayResults.length > 0) {
+      return res.json({ success: true, work: todayResults[0] });
+    }
+
+    // If no work from today, get the absolute latest public work
+    const latestQuery = `
+      SELECT 
+        pw.id, pw.title, pw.image_url, u.name as artist_name
+      FROM portfolio_works pw
+      JOIN users u ON pw.artist_id = u.id
+      WHERE pw.is_public = 1 AND pw.is_deleted = 0
+      ORDER BY pw.created_at DESC
+      LIMIT 1
+    `;
+
+    db.query(latestQuery, (latestErr, latestResults) => {
+      if (latestErr) {
+        console.error('❌ Error fetching Art of the Day (latest):', latestErr);
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      if (latestResults.length > 0) {
+        return res.json({ success: true, work: latestResults[0] });
+      }
+
+      return res.status(404).json({ success: false, message: 'No public portfolio works found.' });
+    });
   });
 });
 
@@ -2153,15 +2295,32 @@ app.post('/api/admin/inventory/:id/transaction', (req, res) => {
 
 // Admin: Get Inventory Transactions (Usage Report)
 app.get('/api/admin/inventory/transactions', (req, res) => {
-  const query = `
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 100;
+  const offset = (page - 1) * limit;
+
+  const dataQuery = `
     SELECT t.*, i.name as item_name, i.category 
     FROM inventory_transactions t 
     JOIN inventory i ON t.inventory_id = i.id 
-    ORDER BY t.created_at DESC LIMIT 100
+    ORDER BY t.created_at DESC 
+    LIMIT ?
+    OFFSET ?
   `;
-  db.query(query, (err, results) => {
+
+  const countQuery = 'SELECT COUNT(*) as total FROM inventory_transactions';
+
+  db.query(dataQuery, [limit, offset], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, data: results });
+    
+    db.query(countQuery, (countErr, countResults) => {
+      if (countErr) return res.status(500).json({ success: false, message: countErr.message });
+
+      const total = countResults[0].total;
+      const totalPages = Math.ceil(total / limit);
+
+      res.json({ success: true, data: results, pagination: { page, limit, total, totalPages } });
+    });
   });
 });
 

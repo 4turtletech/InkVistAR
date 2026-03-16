@@ -7,18 +7,21 @@ import {
   StyleSheet, 
   ScrollView, 
   SafeAreaView, 
-  ActivityIndicator,
-  RefreshControl 
+  ActivityIndicator, 
+  RefreshControl,
+  Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { getArtistDashboard } from '../src/utils/api';
+import { getArtistDashboard, API_URL } from '../src/utils/api';
 
 
 export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
+  const [artOfTheDay, setArtOfTheDay] = useState(null);
+  const [loadingArt, setLoadingArt] = useState(true);
   const [error, setError] = useState(null);
 
   // Load dashboard data
@@ -45,6 +48,25 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
   // Initial load
   useEffect(() => {
     loadDashboardData();
+
+    const fetchArtOfTheDay = async () => {
+      try {
+        setLoadingArt(true);
+        const response = await fetch(`${API_URL}/gallery/art-of-the-day`);
+        const data = await response.json();
+        if (data.success) {
+          setArtOfTheDay(data.work);
+        } else {
+          setArtOfTheDay(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch Art of the Day:", error);
+        setArtOfTheDay(null);
+      } finally {
+        setLoadingArt(false);
+      }
+    };
+    fetchArtOfTheDay();
   }, [userId]);
 
   // Pull to refresh
@@ -248,7 +270,7 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.profileButton}
-                onPress={() => onNavigate('artist-profile')}
+                onPress={() => onNavigate('Profile')}
               >
                 <Ionicons name="person" size={22} color="#ffffff" />
               </TouchableOpacity>
@@ -428,10 +450,6 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
                         <View style={styles.categoryBadge}>
                           <Text style={styles.categoryText}>{work.category}</Text>
                         </View>
-                        <View style={styles.likesRow}>
-                          <Ionicons name="heart" size={14} color="#ef4444" />
-                          <Text style={styles.likesCount}>{work.likes}</Text>
-                        </View>
                       </View>
                       <Text style={styles.workDate}>{work.date}</Text>
                     </View>
@@ -452,29 +470,30 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
             )}
           </View>
 
-          {/* Quick Tips */}
-          <LinearGradient
-            colors={['#000000', '#1f2937']}
-            style={styles.tipsCard}
-          >
-            <View style={styles.tipsContent}>
-              <Ionicons name="bulb" size={28} color="#fbbf24" />
-              <View style={styles.tipsText}>
-                <Text style={styles.tipsTitle}>Pro Tip</Text>
-                <Text style={styles.tipsDescription}>
-                  {totalAppointments > 10 
-                    ? `Great job! You've completed ${totalAppointments} appointments. Keep uploading portfolio photos to attract more clients.`
-                    : 'Upload new portfolio photos regularly to attract more clients'}
-                </Text>
+          {/* Art of the Day */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Art of the Day</Text>
+            {loadingArt ? (
+              <ActivityIndicator size="large" color="#daa520" style={{ height: 200, marginTop: 16 }} />
+            ) : artOfTheDay ? (
+              <View style={styles.artCard}>
+                <Image source={{ uri: artOfTheDay.image_url }} style={styles.artImage} resizeMode="cover" />
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.8)']}
+                  style={styles.artOverlay}
+                >
+                  <Text style={styles.artTitle}>{artOfTheDay.title}</Text>
+                  <Text style={styles.artArtist}>by {artOfTheDay.artist_name}</Text>
+                </LinearGradient>
               </View>
-              <TouchableOpacity 
-                style={styles.tipsButton}
-                onPress={() => onNavigate('Works')}
-              >
-                <Text style={styles.tipsButtonText}>Upload Now</Text>
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
+            ) : (
+              <View style={[styles.emptyState, { marginTop: 16 }]}>
+                <Ionicons name="image-outline" size={48} color="#9ca3af" />
+                <Text style={styles.emptyStateText}>No featured art today.</Text>
+                <Text style={styles.emptyStateSubtext}>Upload a public piece to be featured!</Text>
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -863,54 +882,45 @@ const styles = StyleSheet.create({
     color: '#374151',
     fontWeight: '600',
   },
-  likesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  likesCount: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
   workDate: {
     fontSize: 12,
     color: '#9ca3af',
   },
-  tipsCard: {
-    borderRadius: 20,
-    padding: 24,
-    marginTop: 8,
+  artCard: {
+    marginTop: 16,
+    height: 250,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#1f2937',
+    justifyContent: 'flex-end',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  tipsContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  artImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
-  tipsText: {
-    flex: 1,
-    marginLeft: 16,
-    marginRight: 16,
+  artOverlay: {
+    padding: 20,
   },
-  tipsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
+  artTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: 'white',
     marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 10
   },
-  tipsDescription: {
-    fontSize: 14,
-    color: '#e5e7eb',
-    lineHeight: 20,
-  },
-  tipsButton: {
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  tipsButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
+  artArtist: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 10
   },
 });
