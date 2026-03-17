@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { DollarSign, Calendar, Users, Download, Package } from 'lucide-react';
+import { DollarSign, Calendar, Users, Download, Package, Printer } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminAnalytics.css';
 import { API_URL } from '../config';
@@ -57,7 +57,10 @@ function AdminAnalytics() {
         link.setAttribute("download", `analytics_report_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+    };
+    
+    const handlePrint = () => {
+        window.print();
     };
 
     return (
@@ -67,6 +70,9 @@ function AdminAnalytics() {
             <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
                 <h1>Analytics & Reports</h1>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <button className="btn btn-secondary" onClick={handlePrint} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <Printer size={18} /> Print Report
+                    </button>
                     <button className="btn btn-primary" onClick={handleExport} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                         <Download size={18} /> Export Report
                     </button>
@@ -90,6 +96,19 @@ function AdminAnalytics() {
                 <div className="no-data" style={{padding: '4rem'}}>No analytics data available.</div>
             ) : (
             <>
+            {/* Print Only Header */}
+            <div className="print-only-header">
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000', paddingBottom: '10px', marginBottom: '20px'}}>
+                    <div>
+                        <h1 style={{margin: 0, color: '#000'}}>InkVistAR Studio</h1>
+                        <p style={{margin: 0}}>Analytics & Performance Report</p>
+                    </div>
+                    <div style={{textAlign: 'right'}}>
+                        <p style={{margin: 0}}>Date: {new Date().toLocaleDateString()}</p>
+                        <p style={{margin: 0}}>Range: {dateRange.charAt(0).toUpperCase() + dateRange.slice(1)}</p>
+                    </div>
+                </div>
+            </div>
             {/* Key Metrics */}
             <div className="metrics-section">
                 <div className="metric-card primary">

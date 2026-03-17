@@ -275,6 +275,19 @@ function AdminAppointments() {
         <div className="admin-page-with-sidenav">
           {isManagerView ? <ManagerSideNav /> : <AdminSideNav />}
             <div className="admin-page page-container-enter">
+            {/* Print Only Header */}
+            <div className="print-only-header">
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000', paddingBottom: '10px', marginBottom: '20px'}}>
+                    <div>
+                        <h1 style={{margin: 0, color: '#000'}}>InkVistAR Studio</h1>
+                        <p style={{margin: 0}}>Appointments & Schedule Report</p>
+                    </div>
+                    <div style={{textAlign: 'right'}}>
+                        <p style={{margin: 0}}>Date: {new Date().toLocaleDateString()}</p>
+                        <p style={{margin: 0}}>View: {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}</p>
+                    </div>
+                </div>
+            </div>
             <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
                 <h1>Appointment Management</h1>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

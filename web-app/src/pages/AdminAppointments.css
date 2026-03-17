@@ -20,3 +20,82 @@
         grid-template-columns: 1fr;
     }
 }
+
+.print-only-header {
+    display: none;
+}
+
+@media print {
+    .print-only-header {
+        display: block !important;
+    }
+
+    .admin-side-nav, 
+    .manager-side-nav, 
+    .admin-header .btn, 
+    .filters-section,
+    .pagination,
+    .actions-cell,
+    th:last-child,
+    td:last-child {
+        display: none !important;
+    }
+
+    .admin-page-with-sidenav .admin-page {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    .admin-header {
+        background: white !important;
+        color: black !important;
+        padding: 0 0 1rem 0 !important;
+        border-bottom: none !important;
+        box-shadow: none !important;
+    }
+
+    .admin-header h1 {
+        color: black !important;
+    }
+
+    .stats-row {
+        margin-bottom: 2rem !important;
+    }
+
+    .table-card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .data-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    .data-table th, 
+    .data-table td {
+        border: 1px solid #ddd !important;
+        padding: 8px !important;
+        color: black !important;
+    }
+
+    .badge {
+        border: 1px solid #000 !important;
+        background: white !important;
+        color: black !important;
+    }
+
+    /* For Calendar View */
+    .calendar-grid {
+        gap: 0 !important;
+    }
+
+    .calendar-grid > div {
+        border: 1px solid #ccc !important;
+    }
+
+    body {
+        background: white !important;
+    }
+}

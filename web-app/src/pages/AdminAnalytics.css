@@ -518,3 +518,99 @@
         height: 150px;
     }
 }
+
+.print-only-header {
+    display: none;
+}
+
+@media print {
+    .print-only-header {
+        display: block !important;
+    }
+
+    .admin-side-nav, 
+    .admin-header .btn, 
+    .admin-header .select-input,
+    .admin-side-nav-container,
+    nav {
+        display: none !important;
+    }
+
+    .admin-page-with-sidenav .admin-page {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    .admin-header {
+        background: white !important;
+        color: black !important;
+        padding: 0 0 1rem 0 !important;
+        border-bottom: 2px solid #000 !important;
+        box-shadow: none !important;
+        margin-bottom: 2rem !important;
+    }
+
+    .admin-header h1 {
+        color: black !important;
+    }
+
+    .metrics-section {
+        padding: 0 !important;
+        gap: 1rem !important;
+        margin-bottom: 2rem !important;
+    }
+
+    .metric-card {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .analytics-grid {
+        padding: 0 !important;
+        gap: 1.5rem !important;
+        display: block !important; /* Stack sections for printing */
+    }
+
+    .card {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        margin-bottom: 2rem !important;
+        break-inside: avoid;
+    }
+
+    .progress-bar {
+        border: 1px solid #000 !important;
+    }
+
+    .progress-fill {
+        background: #eee !important;
+        color: black !important;
+        border-right: 1px solid #000 !important;
+    }
+
+    .trend-bar {
+        background: #eee !important;
+        border: 1px solid #000 !important;
+    }
+
+    .bar-value {
+        color: black !important;
+    }
+
+    .breakdown-percentage {
+        border: 1px solid #000 !important;
+        background: white !important;
+        color: black !important;
+    }
+
+    body {
+        background: white !important;
+    }
+
+    .page-container-enter {
+        animation: none !important;
+        transform: none !important;
+    }
+}

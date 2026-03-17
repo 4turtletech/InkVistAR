@@ -132,24 +132,7 @@ function AdminInventory() {
     const paginatedInventory = filteredInventory.slice(startIndex, endIndex);
 
     const handlePrint = () => {
-        const printContent = filteredInventory.map(item =>
-            `${item.name} | ${item.category} | Stock: ${item.currentStock} | Min/Max: ${item.minStock}/${item.maxStock} | ${item.unit} | ${item.supplier} | Cost: P${item.cost}`
-        ).join('\n');
-        const printWindow = window.open('', '', 'width=800,height=600');
-        printWindow.document.write(`
-            <html>
-                <head><title>Inventory Report - InkVistAR</title></head>
-                <body style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h1>Inventory Report</h1>
-                    <p>Generated: ${new Date().toLocaleString()}</p>
-                    <p>Total Items: ${filteredInventory.length}</p>
-                    <hr/>
-                    <pre style="font-size: 12px; line-height: 1.6;">${printContent}</pre>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
+        window.print();
     };
 
     const handleExportCSV = () => {
@@ -349,6 +332,19 @@ function AdminInventory() {
         <div className="admin-page-with-sidenav">
             {isManagerView ? <ManagerSideNav /> : <AdminSideNav />}
             <div className="admin-page page-container-enter">
+            {/* Print Only Header */}
+            <div className="print-only-header">
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000', paddingBottom: '10px', marginBottom: '20px'}}>
+                    <div>
+                        <h1 style={{margin: 0, color: '#000'}}>InkVistAR Studio</h1>
+                        <p style={{margin: 0}}>Inventory & Stock Report</p>
+                    </div>
+                    <div style={{textAlign: 'right'}}>
+                        <p style={{margin: 0}}>Date: {new Date().toLocaleDateString()}</p>
+                        <p style={{margin: 0}}>Total Value: ₱{totalValue.toLocaleString()}</p>
+                    </div>
+                </div>
+            </div>
             <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
                 <h1>Inventory Management</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
