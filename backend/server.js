@@ -2592,6 +2592,26 @@ app.post('/api/admin/invoices', (req, res) => {
   });
 });
 
+// Admin: Update Invoice
+app.put('/api/admin/invoices/:id', (req, res) => {
+  const { id } = req.params;
+  const { client, type, amount, status } = req.body;
+  const query = 'UPDATE invoices SET client_name = ?, service_type = ?, amount = ?, status = ? WHERE id = ?';
+  db.query(query, [client, type, amount, status, id], (err) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, message: 'Invoice updated' });
+  });
+});
+
+// Admin: Delete Invoice
+app.delete('/api/admin/invoices/:id', (req, res) => {
+  const { id } = req.params;
+  db.query('DELETE FROM invoices WHERE id = ?', [id], (err) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, message: 'Invoice deleted' });
+  });
+});
+
 // Admin: Get Settings (All)
 app.get('/api/admin/settings', (req, res) => {
   db.query('SELECT * FROM app_settings', (err, results) => {

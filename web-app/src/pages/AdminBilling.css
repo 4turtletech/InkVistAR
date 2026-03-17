@@ -182,3 +182,8 @@
     background: #94a3b8;
     border-radius: 4px;
 }
+
+.action-btn.delete-btn:hover {
+    color: #ef4444;
+    background-color: #fee2e2;
+}

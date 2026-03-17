@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Plus, Download, FileText, Settings, CreditCard, DollarSign, CheckCircle, Printer, X } from 'lucide-react';
+import { Plus, Download, FileText, Settings, CreditCard, DollarSign, CheckCircle, Printer, X, Trash2, Edit } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminUsers.css';
 import './AdminSettings.css'; // Reusing form styles
@@ -21,20 +21,31 @@ function AdminBilling() {
         styles: { realism: 1.2, traditional: 1.0, japanese: 1.3, tribal: 1.0 }
     });
 
-    const [invoiceModal, setInvoiceModal] = useState({ mounted: false, visible: false });
+    const [invoiceModal, setInvoiceModal] = useState({ mounted: false, visible: false, mode: 'create', id: null });
     const [newInvoice, setNewInvoice] = useState({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
     const [previewModal, setPreviewModal] = useState({ mounted: false, visible: false, invoice: null });
 
     // Modal animation handlers
-    const openModal = () => {
-        setInvoiceModal({ mounted: true, visible: false });
-        setTimeout(() => setInvoiceModal({ mounted: true, visible: true }), 10);
+    const openModal = (mode = 'create', invoice = null) => {
+        if (mode === 'edit' && invoice) {
+            setNewInvoice({
+                client: invoice.client_name,
+                amount: invoice.amount,
+                type: invoice.service_type,
+                status: invoice.status
+            });
+            setInvoiceModal({ mounted: true, visible: false, mode: 'edit', id: invoice.id });
+        } else {
+            setNewInvoice({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
+            setInvoiceModal({ mounted: true, visible: false, mode: 'create', id: null });
+        }
+        setTimeout(() => setInvoiceModal(prev => ({ ...prev, visible: true })), 10);
     };
 
     const closeModal = () => {
         setInvoiceModal(prev => ({ ...prev, visible: false }));
         setTimeout(() => {
-            setInvoiceModal({ mounted: false, visible: false });
+            setInvoiceModal({ mounted: false, visible: false, mode: 'create', id: null });
         }, 400);
     };
 
@@ -75,16 +86,31 @@ function AdminBilling() {
         }
     };
 
-    const handleCreateInvoice = async (e) => {
+    const handleInvoiceSubmit = async (e) => {
         e.preventDefault();
         try {
-            await Axios.post(`${API_URL}/api/admin/invoices`, newInvoice);
+            if (invoiceModal.mode === 'edit') {
+                await Axios.put(`${API_URL}/api/admin/invoices/${invoiceModal.id}`, newInvoice);
+            } else {
+                await Axios.post(`${API_URL}/api/admin/invoices`, newInvoice);
+            }
             closeModal();
-            setNewInvoice({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
             fetchData(); // Refresh list
         } catch (error) {
-            console.error("Error creating invoice:", error);
-            alert("Failed to create invoice");
+            console.error("Error saving invoice:", error);
+            alert("Failed to save invoice");
+        }
+    };
+
+    const handleDeleteInvoice = async (id) => {
+        if (window.confirm("Are you sure you want to delete this invoice?")) {
+            try {
+                await Axios.delete(`${API_URL}/api/admin/invoices/${id}`);
+                fetchData();
+            } catch (error) {
+                console.error("Error deleting invoice:", error);
+                alert("Failed to delete invoice");
+            }
         }
     };
 
@@ -182,9 +208,17 @@ function AdminBilling() {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <button className="action-btn" title="View / Print Invoice" onClick={() => openPreview(inv)}>
-                                                        <FileText size={16} style={{marginRight: '5px'}}/> View
-                                                    </button>
+                                                    <div style={{display: 'flex', gap: '5px'}}>
+                                                        <button className="action-btn" title="View / Print Invoice" onClick={() => openPreview(inv)}>
+                                                            <FileText size={16}/>
+                                                        </button>
+                                                        <button className="action-btn" title="Edit" onClick={() => openModal('edit', inv)}>
+                                                            <Edit size={16}/>
+                                                        </button>
+                                                        <button className="action-btn delete-btn" title="Delete" onClick={() => handleDeleteInvoice(inv.id)}>
+                                                            <Trash2 size={16}/>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -264,10 +298,10 @@ function AdminBilling() {
                     <div className={`modal-overlay ${invoiceModal.visible ? 'open' : ''}`} onClick={closeModal}>
                         <div className="modal-content" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>Generate Invoice</h2>
+                                <h2>{invoiceModal.mode === 'edit' ? 'Edit Invoice' : 'Generate Invoice'}</h2>
                                 <button className="close-btn" onClick={closeModal}><X size={20}/></button>
                             </div>
-                            <form onSubmit={handleCreateInvoice}>
+                            <form onSubmit={handleInvoiceSubmit}>
                                 <div className="modal-body">
                                     <div className="form-group">
                                         <label>Client Name</label>
