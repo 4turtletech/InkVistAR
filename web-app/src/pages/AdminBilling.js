@@ -180,8 +180,8 @@ function AdminBilling() {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <button className="action-btn" title="Download Receipt"><Download size={16}/></button>
-                                                    <button className="action-btn" title="Print Invoice"><Printer size={16}/></button>
+                                                    <button className="action-btn" title="Download Receipt" onClick={() => handleDownloadReceipt(inv)}><Download size={16}/></button>
+                                                    <button className="action-btn" title="Print Invoice" onClick={() => handlePrintInvoice(inv)}><Printer size={16}/></button>
                                                 </td>
                                             </tr>
                                         ))}
