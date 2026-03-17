@@ -1,0 +1,107 @@
+
+/* Print Styles for Invoices */
+@media print {
+    /* Hide all UI elements except the printable invoice */
+    body * {
+        visibility: hidden;
+    }
+    
+    #printable-invoice, #printable-invoice * {
+        visibility: visible;
+    }
+    
+    #printable-invoice {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 2rem;
+        background: white;
+        color: black;
+    }
+
+    /* Reset side margins etc */
+    @page {
+        margin: 1cm;
+    }
+}
+
+/* Printable Invoice Styling (visible only in print via visibility rules above, 
+   but we also hide it in normal view) */
+.printable-only {
+    display: none;
+}
+
+@media print {
+    .printable-only {
+        display: block;
+    }
+}
+
+#printable-invoice {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #1f2937;
+}
+
+.invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+}
+
+.invoice-divider {
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 2rem;
+}
+
+.invoice-bill-to {
+    margin-bottom: 2rem;
+}
+
+.invoice-bill-to h3 {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+}
+
+.invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 3rem;
+}
+
+.invoice-table th {
+    text-align: left;
+    padding: 12px;
+    background-color: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    color: #4b5563;
+}
+
+.invoice-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.invoice-table tfoot td {
+    border-top: 2px solid #1f2937;
+    padding-top: 1rem;
+    font-size: 1.1rem;
+}
+
+.invoice-footer {
+    margin-top: 4rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.signature-line {
+    margin-top: 4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}

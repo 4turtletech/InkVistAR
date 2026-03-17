@@ -4,6 +4,7 @@ import { Plus, Download, FileText, Settings, CreditCard, DollarSign, CheckCircle
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminUsers.css';
 import './AdminSettings.css'; // Reusing form styles
+import './AdminBilling.css';
 import { API_URL } from '../config';
 
 function AdminBilling() {
@@ -22,6 +23,7 @@ function AdminBilling() {
 
     const [invoiceModal, setInvoiceModal] = useState({ mounted: false, visible: false });
     const [newInvoice, setNewInvoice] = useState({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
 
     // Modal animation handlers
     const openModal = () => {
@@ -85,6 +87,20 @@ function AdminBilling() {
             console.error("Error saving config:", error);
             alert("Failed to save configuration");
         }
+    };
+
+    const handlePrintInvoice = (invoice) => {
+        setSelectedInvoice(invoice);
+        // Wait for state to update and print
+        setTimeout(() => {
+            window.print();
+        }, 100);
+    };
+
+    const handleDownloadReceipt = (invoice) => {
+        // For simplicity and best layout, we reuse the print functionality
+        // which allows "Save as PDF" in modern browsers.
+        handlePrintInvoice(invoice);
     };
 
     const handleConfigChange = (section, key, value) => {
@@ -280,6 +296,63 @@ function AdminBilling() {
                     </div>
                 )}
             </div>
+
+            {/* Hidden Printable Invoice Section */}
+            {selectedInvoice && (
+                <div id="printable-invoice" className="printable-only">
+                    <div className="invoice-header">
+                        <div className="invoice-biz-info">
+                            <h1 style={{color: '#667eea', margin: 0}}>InkVistAR Studio</h1>
+                            <p>123 Tattoo Street, Art District</p>
+                            <p>Metropolis, NY 10001</p>
+                            <p>Phone: (555) 001-2024</p>
+                        </div>
+                        <div className="invoice-meta">
+                            <h2 style={{margin: 0}}>INVOICE</h2>
+                            <p>ID: INV-{selectedInvoice.id}</p>
+                            <p>Date: {new Date(selectedInvoice.created_at).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+
+                    <div className="invoice-divider"></div>
+
+                    <div className="invoice-bill-to">
+                        <h3>BILL TO:</h3>
+                        <p><strong>{selectedInvoice.client_name}</strong></p>
+                        <p>Client ID: CU-{selectedInvoice.client_id || 'N/A'}</p>
+                    </div>
+
+                    <table className="invoice-table">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th style={{textAlign: 'right'}}>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{selectedInvoice.service_type}</td>
+                                <td style={{textAlign: 'right'}}>₱{Number(selectedInvoice.amount).toLocaleString()}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td><strong>Total</strong></td>
+                                <td style={{textAlign: 'right'}}><strong>₱{Number(selectedInvoice.amount).toLocaleString()}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div className="invoice-footer">
+                        <p>Thank you for choosing InkVistAR Studio!</p>
+                        <p>Status: {selectedInvoice.status.toUpperCase()}</p>
+                        <div className="signature-line">
+                            <p>Authorized Signature</p>
+                            <div style={{borderBottom: '1px solid #000', width: '200px', height: '40px'}}></div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
