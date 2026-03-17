@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { getArtistAppointments, updateAppointmentStatus, createArtistAppointment, updateAppointmentDetails } from '../src/utils/api';
 
-export function ArtistSchedule({ onBack, artistId }) {
+export function ArtistSchedule({ onBack, artistId, navigation }) {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' = Oldest first, 'desc' = Newest first
   const [appointments, setAppointments] = useState([]);
@@ -365,14 +365,23 @@ export function ArtistSchedule({ onBack, artistId }) {
                       </TouchableOpacity>
                     </>
                   )}
-                  {apt.status === 'confirmed' && (
+                  {(apt.status === 'confirmed' || apt.status === 'in_progress') && (
+                    <TouchableOpacity 
+                      style={[styles.actionButton, styles.actionButtonPrimary]}
+                      onPress={() => navigation.navigate('artist-active-session', { appointment: apt })}
+                    >
+                      <Ionicons name="play-circle" size={18} color="#ffffff" />
+                      <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>Manage Session</Text>
+                    </TouchableOpacity>
+                  )}
+                  {/* {apt.status === 'confirmed' && (
                     <TouchableOpacity 
                       style={[styles.actionButton, { backgroundColor: '#059669', borderColor: '#059669' }]}
                       onPress={() => handleStatusUpdate(apt.id, 'completed')}
                     >
                       <Text style={[styles.actionButtonText, { color: '#fff' }]}>Mark Complete</Text>
                     </TouchableOpacity>
-                  )}
+                  )} */}
                 </View>
               </TouchableOpacity>
             ))}

@@ -228,8 +228,9 @@ export const deleteArtistWork = async (workId) => {
 };
 
 // Artist: Get Appointments
-export const getArtistAppointments = async (artistId) => {
-  return fetchAPI(`/artist/${artistId}/appointments`);
+export const getArtistAppointments = async (artistId, status = '') => {
+  const endpoint = status ? `/artist/${artistId}/appointments?status=${status}` : `/artist/${artistId}/appointments`;
+  return fetchAPI(endpoint);
 };
 
 // Artist: Update Appointment Status

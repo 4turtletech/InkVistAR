@@ -20,6 +20,8 @@ import { CustomerProfilePage } from './screens/CustomerProfilePage.jsx';
 import { CustomerARPage } from './screens/CustomerARPage.jsx';
 import { CustomerChatbotPage } from './screens/CustomerChatbotPage.jsx';
 import { CustomerAppointments } from './screens/CustomerAppointments.jsx';
+import { CustomerArtistDirectory } from './screens/CustomerArtistDirectory.jsx';
+import { CustomerArtistProfile } from './screens/CustomerArtistProfile.jsx';
 
 // Import artist pages
 import { ArtistProfile } from './screens/ArtistProfile.jsx';
@@ -28,6 +30,8 @@ import { ArtistClients } from './screens/ArtistClients.jsx';
 import { ArtistWorks } from './screens/ArtistWorks.jsx';
 import { ArtistEarnings } from './screens/ArtistEarnings.jsx';
 import { ArtistNotifications } from './screens/ArtistNotifications.jsx';
+import { ArtistActiveSession } from './screens/ArtistActiveSession.jsx';
+import { ArtistClientDetails } from './screens/ArtistClientDetails.jsx';
 
 // Import Admin pages
 import { AdminDashboard } from './screens/AdminDashboard.jsx';
@@ -59,68 +63,7 @@ import { loginUser, registerUser, sendOTP, resetUserPassword, deleteArtistWork, 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Simple Artist Client Details Screen
-const ArtistClientDetailsScreen = ({ navigation, route }) => {
-  const { client } = route.params || {};
-  const [details, setDetails] = useState(null);
-  
-  useEffect(() => {
-    if (client?.id) {
-      const baseUrl = Platform.OS === 'android' ? 'http://10.0.2.2:3001' : 'http://localhost:3001';
-      fetch(`${baseUrl}/api/customer/profile/${client.id}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) setDetails(data.profile);
-        })
-        .catch(err => console.error('Error fetching client details:', err));
-    }
-  }, [client]);
-
-  return (
-    <View style={{ flex: 1, backgroundColor: 'white', padding: 20, paddingTop: 50 }}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 20, flexDirection: 'row', alignItems: 'center' }}>
-        <Ionicons name="arrow-back" size={24} color="#333" />
-        <Text style={{ marginLeft: 10, fontSize: 16, color: '#333' }}>Back to Clients</Text>
-      </TouchableOpacity>
-      
-      <View style={{ alignItems: 'center', marginBottom: 30 }}>
-        <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#daa520', justifyContent: 'center', alignItems: 'center', marginBottom: 15 }}>
-          <Text style={{ fontSize: 32, color: 'white', fontWeight: 'bold' }}>
-            {client?.name ? client.name.charAt(0).toUpperCase() : '?'}
-          </Text>
-        </View>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#1f2937' }}>{client?.name || 'Unknown Client'}</Text>
-        <Text style={{ fontSize: 16, color: '#6b7280' }}>{client?.email || 'No email'}</Text>
-      </View>
-
-      <View style={{ backgroundColor: '#f3f4f6', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-        <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 15, color: '#111' }}>Contact Information</Text>
-        
-        <View style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Phone</Text>
-          <Text style={{ fontSize: 16, color: '#1f2937' }}>{details?.phone || client?.phone || 'Not provided'}</Text>
-        </View>
-        
-        <View style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Location</Text>
-          <Text style={{ fontSize: 16, color: '#1f2937' }}>{details?.location || 'Not provided'}</Text>
-        </View>
-
-        <View>
-          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Notes</Text>
-          <Text style={{ fontSize: 16, color: '#1f2937' }}>{details?.notes || 'No notes available'}</Text>
-        </View>
-      </View>
-      
-      <TouchableOpacity 
-        style={{ backgroundColor: '#daa520', padding: 15, borderRadius: 10, alignItems: 'center' }}
-        onPress={() => Alert.alert('Coming Soon', 'Booking directly from client profile will be available soon.')}
-      >
-        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Book Appointment</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
+// ArtistClientDetails component is now imported from a separate file
 
 // Artist Appointment Details Screen
 const ArtistAppointmentDetailsScreen = ({ navigation, route }) => {
@@ -496,9 +439,30 @@ export default function App() {
                   )}
                 </Stack.Screen>
 
-                <Stack.Screen name="artist-client-details" component={ArtistClientDetailsScreen} />
+                <Stack.Screen name="artist-client-details">
+                  {(props) => (
+                    <ArtistClientDetails
+                      {...props}
+                      onBack={() => props.navigation.goBack()}
+                    />
+                  )}
+                </Stack.Screen>
 
                 <Stack.Screen name="artist-appointment-details" component={ArtistAppointmentDetailsScreen} />
+
+                <Stack.Screen name="artist-active-session">
+                  {(props) => (
+                    <ArtistActiveSession
+                      {...props}
+                      appointment={props.route.params.appointment}
+                      onBack={() => props.navigation.goBack()}
+                      onComplete={() => {
+                        props.navigation.goBack();
+                        // Optional: trigger refresh in schedule if needed
+                      }}
+                    />
+                  )}
+                </Stack.Screen>
 
                 <Stack.Screen name="artist-work-details">
                   {(props) => (
@@ -540,6 +504,26 @@ export default function App() {
                       {...props}
                       userId={user.id}
                       onBack={() => props.navigation.goBack()}
+                    />
+                  )}
+                </Stack.Screen>
+
+                <Stack.Screen name="customer-artists">
+                  {(props) => (
+                    <CustomerArtistDirectory
+                      {...props}
+                      onBack={() => props.navigation.goBack()}
+                      onNavigate={props.navigation.navigate}
+                    />
+                  )}
+                </Stack.Screen>
+
+                <Stack.Screen name="CustomerArtistProfile">
+                  {(props) => (
+                    <CustomerArtistProfile
+                      {...props}
+                      onBack={() => props.navigation.goBack()}
+                      onNavigate={props.navigation.navigate}
                     />
                   )}
                 </Stack.Screen>

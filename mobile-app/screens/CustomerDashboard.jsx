@@ -313,7 +313,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
                 <Ionicons name="trending-up" size={20} color="#111827" />
                 <Text style={[styles.sectionTitle, { marginLeft: 8 }]}>Trending Styles</Text>
               </View>
-              <TouchableOpacity onPress={() => onNavigate('Gallery')}>
+              <TouchableOpacity onPress={() => onNavigate('customer-artists')}>
                 <Text style={styles.viewAllText}>Discover New Artists</Text>
               </TouchableOpacity>
             </View>

@@ -1,4 +1,4 @@
-// ArtistWorks.jsx - UPDATED WITH UPLOAD
+// ArtistWorks.jsx - UPDATED VERSION WITH VISIBILITY AND SYNCED CATEGORIES
 import { useState, useEffect } from 'react';
 import { 
   View, Text, TextInput, TouchableOpacity, StyleSheet, 
@@ -12,23 +12,25 @@ import { getArtistPortfolio, addArtistWork, deleteArtistWork } from '../src/util
 export function ArtistWorks({ onBack, artistId }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest', 'az'
+  const [sortBy, setSortBy] = useState('newest'); 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [newWorkTitle, setNewWorkTitle] = useState('');
   const [titleError, setTitleError] = useState('');
   const [newWorkDescription, setNewWorkDescription] = useState('');
-  const [newWorkCategory, setNewWorkCategory] = useState('traditional');
-  const [newWorkImage, setNewWorkImage] = useState(''); // Using URL for now
+  const [newWorkCategory, setNewWorkCategory] = useState('Realism');
+  const [isPublic, setIsPublic] = useState(true);
+  const [newWorkImage, setNewWorkImage] = useState(''); 
   const [works, setWorks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploadType, setUploadType] = useState('url'); // 'url' or 'upload'
 
   const categories = [
     { id: 'all', label: 'All', icon: 'grid' },
-    { id: 'traditional', label: 'Traditional', icon: 'color-palette' },
-    { id: 'minimalist', label: 'Minimalist', icon: 'brush' },
-    { id: 'watercolor', label: 'Watercolor', icon: 'water' },
-    { id: 'geometric', label: 'Geometric', icon: 'square' },
+    { id: 'Realism', label: 'Realism', icon: 'eye' },
+    { id: 'Traditional', label: 'Traditional', icon: 'color-palette' },
+    { id: 'Japanese', label: 'Japanese', icon: 'brush' },
+    { id: 'Tribal', label: 'Tribal', icon: 'flame' },
+    { id: 'Fine Line', label: 'Fine Line', icon: 'pencil' },
   ];
 
   useEffect(() => {
@@ -37,11 +39,9 @@ export function ArtistWorks({ onBack, artistId }) {
 
   useEffect(() => {
     if (newWorkTitle.length > 0) {
-      // Validation: Length check
       if (newWorkTitle.length < 3 || newWorkTitle.length > 50) {
         setTitleError('Title must be between 3 and 50 characters.');
       }
-      // Validation: No special characters (allow letters, numbers, spaces)
       else if (!/^[a-zA-Z0-9 ]+$/.test(newWorkTitle)) {
         setTitleError('Title can only contain letters, numbers, and spaces.');
       }
@@ -49,7 +49,7 @@ export function ArtistWorks({ onBack, artistId }) {
         setTitleError('');
       }
     } else {
-      setTitleError(''); // Clear error if field is empty
+      setTitleError('');
     }
   }, [newWorkTitle]);
 
@@ -65,7 +65,6 @@ export function ArtistWorks({ onBack, artistId }) {
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'We need access to your photos to upload work.');
       return;
@@ -85,30 +84,18 @@ export function ArtistWorks({ onBack, artistId }) {
   };
 
   const handleUploadWork = async () => {
-    // Final validation before submitting. Button is disabled, this is a safeguard.
-    if (!newWorkTitle.trim() || titleError) {
-      return;
-    }
-
+    if (!newWorkTitle.trim() || titleError) return;
     if (!newWorkImage.trim()) {
       Alert.alert('Missing Image', 'Please provide an image (URL or Upload).');
       return;
-    }
-
-    // Validation: Simple URL check if using URL mode
-    if (uploadType === 'url') {
-      const urlRegex = /^(https?:\/\/)/;
-      if (!urlRegex.test(newWorkImage)) {
-        Alert.alert('Invalid URL', 'Please enter a valid image URL starting with http:// or https://');
-        return;
-      }
     }
 
     const result = await addArtistWork(artistId, {
       title: newWorkTitle,
       description: newWorkDescription,
       category: newWorkCategory,
-      imageUrl: newWorkImage
+      imageUrl: newWorkImage,
+      isPublic: isPublic
     });
 
     if (result.success) {
@@ -117,6 +104,7 @@ export function ArtistWorks({ onBack, artistId }) {
       setNewWorkImage('');
       setNewWorkDescription('');
       setTitleError('');
+      setIsPublic(true);
       setShowUploadModal(false);
       loadPortfolio();
     } else {
@@ -147,7 +135,7 @@ export function ArtistWorks({ onBack, artistId }) {
   };
 
   const filteredWorks = works.filter(work => {
-    const matchesCategory = selectedCategory === 'all' || (work.category || '').toLowerCase() === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || (work.category || '').toLowerCase() === selectedCategory.toLowerCase();
     const matchesSearch = (work.title || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   }).sort((a, b) => {
@@ -191,12 +179,16 @@ export function ArtistWorks({ onBack, artistId }) {
               <Text style={styles.statLabel}>Total Works</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>1.8k</Text>
-              <Text style={styles.statLabel}>Total Likes</Text>
+              <Text style={styles.statNumber}>
+                {works.filter(w => w.is_public).length}
+              </Text>
+              <Text style={styles.statLabel}>Public</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>4.9</Text>
-              <Text style={styles.statLabel}>Rating</Text>
+              <Text style={styles.statNumber}>
+                {works.filter(w => !w.is_public).length}
+              </Text>
+              <Text style={styles.statLabel}>Private</Text>
             </View>
           </View>
         </LinearGradient>
@@ -216,7 +208,7 @@ export function ArtistWorks({ onBack, artistId }) {
           <View style={styles.controlsRow}>
             <TouchableOpacity style={styles.sortButton} onPress={toggleSort}>
               <Ionicons name="filter" size={16} color="#6b7280" />
-              <Text style={styles.sortButtonText}>Sort: {sortBy === 'newest' ? 'Newest' : sortBy === 'oldest' ? 'Oldest' : 'A-Z'}</Text>
+              <Text style={styles.sortButtonText}>Sort: {sortBy.toUpperCase()}</Text>
             </TouchableOpacity>
           </View>
 
@@ -252,15 +244,12 @@ export function ArtistWorks({ onBack, artistId }) {
           {loading && <ActivityIndicator size="large" color="#daa520" style={{ marginTop: 20 }} />}
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Portfolio</Text>
+            <Text style={styles.sectionTitle}>Portfolio Items</Text>
             <View style={styles.worksGrid}>
               {!loading && filteredWorks.length === 0 && (
                 <View style={styles.emptyState}>
                   <Ionicons name="search-outline" size={48} color="#d1d5db" />
                   <Text style={styles.emptyStateText}>No works found</Text>
-                  <Text style={styles.emptyStateSubtext}>
-                    {searchQuery ? `No matches for "${searchQuery}"` : "No works available in this category"}
-                  </Text>
                 </View>
               )}
 
@@ -269,29 +258,33 @@ export function ArtistWorks({ onBack, artistId }) {
                   {work.image_url ? (
                     <Image source={{ uri: work.image_url }} style={styles.workImage} />
                   ) : (
-                    <LinearGradient
-                      colors={['#000000', '#374151']}
-                      style={styles.workImage}
-                    >
-                      <Ionicons name="images" size={40} color="#9ca3af" />
-                    </LinearGradient>
+                    <View style={[styles.workImage, { backgroundColor: '#333' }]}>
+                      <Ionicons name="images" size={40} color="#666" />
+                    </View>
                   )}
                   <View style={styles.workDetails}>
-                    <Text style={styles.workTitle}>{work.title}</Text>
+                    <Text style={styles.workTitle} numberOfLines={1}>{work.title}</Text>
                     <View style={styles.workMeta}>
                       <View style={styles.categoryBadge}>
                         <Text style={styles.categoryBadgeText}>{work.category || 'Art'}</Text>
                       </View>
-                      <Text style={styles.workDate}>
-                        {new Date(work.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Ionicons 
+                          name={work.is_public ? "globe-outline" : "lock-closed-outline"} 
+                          size={12} 
+                          color={work.is_public ? "#daa520" : "#9ca3af"} 
+                        />
+                        <Text style={styles.workDate}>
+                          {new Date(work.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                   <TouchableOpacity 
-                    style={styles.workMenu}
+                    style={styles.workDelete}
                     onPress={() => handleDeleteWork(work.id)}
                   >
-                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -301,151 +294,133 @@ export function ArtistWorks({ onBack, artistId }) {
       </ScrollView>
 
       {/* Upload Modal */}
-      <Modal
-        visible={showUploadModal}
-        transparent
-        animationType="slide"
-      >
+      <Modal visible={showUploadModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Upload New Work</Text>
-              <TouchableOpacity onPress={() => setShowUploadModal(false)}>
-                <Ionicons name="close" size={24} color="#111827" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Image Selection */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Work Image</Text>
-              
-              <View style={styles.tabContainer}>
-                <TouchableOpacity 
-                  style={[styles.tabButton, uploadType === 'url' && styles.tabButtonActive]}
-                  onPress={() => setUploadType('url')}
-                >
-                  <Text style={[styles.tabButtonText, uploadType === 'url' && styles.tabButtonTextActive]}>
-                    Image URL
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.tabButton, uploadType === 'upload' && styles.tabButtonActive]}
-                  onPress={() => setUploadType('upload')}
-                >
-                  <Text style={[styles.tabButtonText, uploadType === 'upload' && styles.tabButtonTextActive]}>
-                    Upload Photo
-                  </Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add New Work</Text>
+                <TouchableOpacity onPress={() => setShowUploadModal(false)}>
+                  <Ionicons name="close" size={24} color="#111827" />
                 </TouchableOpacity>
               </View>
 
-              {uploadType === 'url' ? (
-                <TextInput
-                  style={styles.input}
-                  placeholder="https://example.com/image.jpg"
-                  value={newWorkImage}
-                  onChangeText={setNewWorkImage}
-                />
-              ) : (
-                <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
-                  {newWorkImage && newWorkImage.startsWith('data:') ? (
-                    <Image source={{ uri: newWorkImage }} style={styles.imagePreview} />
-                  ) : (
-                    <View style={styles.imagePickerPlaceholder}>
-                      <Ionicons name="cloud-upload-outline" size={32} color="#6b7280" />
-                      <Text style={styles.imagePickerText}>Tap to select from gallery</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Title Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Work Title</Text>
-              <TextInput
-                style={[styles.input, titleError ? styles.inputError : null]}
-                placeholder="Enter a descriptive title"
-                value={newWorkTitle}
-                onChangeText={setNewWorkTitle}
-              />
-              {titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
-            </View>
-
-            {/* Description Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Description (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="A short description of the piece"
-                value={newWorkDescription}
-                onChangeText={setNewWorkDescription}
-              />
-            </View>
-
-            {/* Category Selection */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Category</Text>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                style={styles.categorySelection}
-              >
-                {categories.slice(1).map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[
-                      styles.categoryOption,
-                      newWorkCategory === cat.id && styles.categoryOptionActive
-                    ]}
-                    onPress={() => setNewWorkCategory(cat.id)}
+              {/* Image Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Image Source</Text>
+                <View style={styles.tabContainer}>
+                  <TouchableOpacity 
+                    style={[styles.tabButton, uploadType === 'url' && styles.tabButtonActive]}
+                    onPress={() => setUploadType('url')}
                   >
-                    <Text style={[
-                      styles.categoryOptionText,
-                      newWorkCategory === cat.id && styles.categoryOptionTextActive
-                    ]}>
-                      {cat.label}
-                    </Text>
+                    <Text style={[styles.tabButtonText, uploadType === 'url' && styles.tabButtonTextActive]}>URL</Text>
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+                  <TouchableOpacity 
+                    style={[styles.tabButton, uploadType === 'upload' && styles.tabButtonActive]}
+                    onPress={() => setUploadType('upload')}
+                  >
+                    <Text style={[styles.tabButtonText, uploadType === 'upload' && styles.tabButtonTextActive]}>Upload</Text>
+                  </TouchableOpacity>
+                </View>
 
-            {/* Action Buttons */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={styles.cancelButton}
-                onPress={() => setShowUploadModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.uploadButton, (!!titleError || !newWorkTitle.trim()) && styles.disabledButton]}
-                onPress={handleUploadWork}
-                disabled={!!titleError || !newWorkTitle.trim()}
-              >
-                <LinearGradient
-                  colors={['#000000', '#b8860b']}
-                  style={styles.uploadButtonGradient}
+                {uploadType === 'url' ? (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="https://example.com/image.jpg"
+                    value={newWorkImage}
+                    onChangeText={setNewWorkImage}
+                  />
+                ) : (
+                  <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
+                    {newWorkImage ? (
+                      <Image source={{ uri: newWorkImage }} style={styles.imagePreview} />
+                    ) : (
+                      <View style={styles.imagePickerPlaceholder}>
+                        <Ionicons name="cloud-upload-outline" size={32} color="#6b7280" />
+                        <Text style={styles.imagePickerText}>Select Image</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Title</Text>
+                <TextInput
+                  style={[styles.input, titleError ? styles.inputError : null]}
+                  placeholder="Enter title"
+                  value={newWorkTitle}
+                  onChangeText={setNewWorkTitle}
+                />
+                {titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Description</Text>
+                <TextInput
+                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                  placeholder="Tell more about this piece..."
+                  value={newWorkDescription}
+                  onChangeText={setNewWorkDescription}
+                  multiline
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Category</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {categories.slice(1).map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[styles.categoryOption, newWorkCategory === cat.id && styles.categoryOptionActive]}
+                      onPress={() => setNewWorkCategory(cat.id)}
+                    >
+                      <Text style={[styles.categoryOptionText, newWorkCategory === cat.id && styles.categoryOptionTextActive]}>
+                        {cat.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Settings</Text>
+                <TouchableOpacity 
+                  style={styles.visibilityToggle}
+                  onPress={() => setIsPublic(!isPublic)}
                 >
-                  <Ionicons name="cloud-upload" size={20} color="#ffffff" />
-                  <Text style={styles.uploadButtonText}>Upload</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+                  <Ionicons name={isPublic ? "globe-outline" : "lock-closed-outline"} size={20} color={isPublic ? "#daa520" : "#6b7280"} />
+                  <Text style={[styles.visibilityText, isPublic && styles.visibilityTextActive]}>
+                    {isPublic ? "Public Portfolio" : "Private Portfolio"}
+                  </Text>
+                  <View style={[styles.toggleSwitch, isPublic && styles.toggleSwitchActive]}>
+                    <View style={[styles.toggleThumb, isPublic && styles.toggleThumbActive]} />
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowUploadModal(false)}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.uploadButton, (!newWorkTitle.trim() || !!titleError) && styles.disabledButton]} 
+                  onPress={handleUploadWork}
+                  disabled={!newWorkTitle.trim() || !!titleError}
+                >
+                  <LinearGradient colors={['#000', '#daa520']} style={styles.uploadButtonGradient}>
+                    <Text style={styles.uploadButtonText}>Upload Work</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => setShowUploadModal(true)}
-      >
-        <LinearGradient
-          colors={['#000000', '#daa520']}
-          style={styles.fabGradient}
-        >
-          <Ionicons name="camera" size={28} color="#ffffff" />
+      <TouchableOpacity style={styles.fab} onPress={() => setShowUploadModal(true)}>
+        <LinearGradient colors={['#000', '#daa520']} style={styles.fabGradient}>
+          <Ionicons name="add" size={32} color="#fff" />
         </LinearGradient>
       </TouchableOpacity>
     </SafeAreaView>
@@ -453,417 +428,74 @@ export function ArtistWorks({ onBack, artistId }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    padding: 24,
-    paddingTop: 60,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#ffffff',
-    opacity: 0.9,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 12,
-  },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  sortButtonText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  searchInput: {
-    flex: 1,
-    height: 48,
-    marginLeft: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
-  categoriesContainer: {
-    flexDirection: 'row',
-    marginBottom: 24,
-    paddingRight: 16,
-  },
-  categoryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginRight: 12,
-  },
-  categoryButtonActive: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  categoryText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  categoryTextActive: {
-    color: '#ffffff',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  emptyState: {
-    width: '100%',
-    alignItems: 'center',
-    padding: 32,
-    marginTop: 8,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 12,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#9ca3af',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  worksGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  workCard: {
-    width: '48%',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  workImage: {
-    width: '100%',
-    height: 160,
-    resizeMode: 'cover',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  workDetails: {
-    padding: 12,
-  },
-  workTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  workMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  categoryBadge: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  categoryBadgeText: {
-    fontSize: 10,
-    color: '#374151',
-    fontWeight: '600',
-  },
-  workDate: {
-    fontSize: 10,
-    color: '#9ca3af',
-  },
-  workMenu: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  fabGradient: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  input: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#f9fafb',
-  },
-  inputError: {
-    borderColor: '#ef4444',
-  },
-  errorText: {
-    color: '#ef4444',
-    fontSize: 12,
-    marginTop: 5,
-    marginLeft: 2,
-  },
-  categorySelection: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  categoryOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 20,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  categoryOptionActive: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  categoryOptionText: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '600',
-  },
-  categoryOptionTextActive: {
-    color: '#ffffff',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 16,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  uploadButton: {
-    flex: 1,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  uploadButtonGradient: {
-    flexDirection: 'row',
-    height: 56,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  uploadButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-    padding: 4,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 6,
-  },
-  tabButtonActive: {
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabButtonText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  tabButtonTextActive: {
-    color: '#111827',
-  },
-  imagePickerButton: {
-    height: 160,
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    overflow: 'hidden',
-  },
-  imagePickerPlaceholder: {
-    alignItems: 'center',
-  },
-  imagePickerText: {
-    marginTop: 8,
-    color: '#6b7280',
-    fontSize: 14,
-  },
-  imagePreview: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  scrollView: { flex: 1 },
+  header: { padding: 24, paddingTop: 60, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.2)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 24, fontWeight: '700', color: '#ffffff' },
+  addButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.2)', justifyContent: 'center', alignItems: 'center' },
+  statsRow: { flexDirection: 'row', gap: 12 },
+  statCard: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 12, padding: 12, alignItems: 'center' },
+  statNumber: { fontSize: 20, fontWeight: '700', color: '#ffffff', marginBottom: 2 },
+  statLabel: { fontSize: 10, color: '#ffffff', opacity: 0.8 },
+  content: { padding: 16, paddingBottom: 100 },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 12, paddingHorizontal: 16, marginBottom: 16, height: 48, elevation: 2 },
+  searchInput: { flex: 1, marginLeft: 12, fontSize: 16, color: '#111827' },
+  controlsRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 16 },
+  sortButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sortButtonText: { fontSize: 12, color: '#6b7280', fontWeight: '600' },
+  categoriesContainer: { flexDirection: 'row', marginBottom: 24 },
+  categoryButton: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#e5e7eb', marginRight: 12 },
+  categoryButtonActive: { backgroundColor: '#000000', borderColor: '#000000' },
+  categoryText: { fontSize: 14, color: '#6b7280', fontWeight: '600' },
+  categoryTextActive: { color: '#ffffff' },
+  section: { marginBottom: 24 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 16 },
+  worksGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  workCard: { width: '47%', backgroundColor: '#ffffff', borderRadius: 16, overflow: 'hidden', marginBottom: 8, elevation: 3 },
+  workImage: { width: '100%', height: 150, resizeMode: 'cover' },
+  workDetails: { padding: 10 },
+  workTitle: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 4 },
+  workMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  categoryBadge: { backgroundColor: '#f3f4f6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  categoryBadgeText: { fontSize: 10, color: '#374151' },
+  workDate: { fontSize: 10, color: '#9ca3af' },
+  workDelete: { position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '700' },
+  inputGroup: { marginBottom: 16 },
+  inputLabel: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
+  input: { backgroundColor: '#f9f9f9', borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 12, fontSize: 16 },
+  tabContainer: { flexDirection: 'row', marginBottom: 12, backgroundColor: '#eee', borderRadius: 12, padding: 4 },
+  tabButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
+  tabButtonActive: { backgroundColor: '#fff' },
+  tabButtonText: { fontSize: 12, color: '#666' },
+  tabButtonTextActive: { color: '#000', fontWeight: 'bold' },
+  imagePickerButton: { height: 150, backgroundColor: '#f9f9f9', borderRadius: 12, borderStyle: 'dashed', borderWidth: 2, borderColor: '#ddd', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  imagePreview: { width: '100%', height: '100%' },
+  imagePickerPlaceholder: { alignItems: 'center' },
+  imagePickerText: { fontSize: 12, color: '#999', marginTop: 8 },
+  categoryOption: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#f3f4f6', borderRadius: 20, marginRight: 8, borderElevation: 1 },
+  categoryOptionActive: { backgroundColor: '#000' },
+  categoryOptionText: { fontSize: 12, color: '#666' },
+  categoryOptionTextActive: { color: '#fff' },
+  visibilityToggle: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#f9f9f9', borderRadius: 12, borderWidth: 1, borderColor: '#eee' },
+  visibilityText: { flex: 1, marginLeft: 12, fontSize: 14, color: '#666' },
+  visibilityTextActive: { color: '#000', fontWeight: '600' },
+  toggleSwitch: { width: 40, height: 22, backgroundColor: '#eee', borderRadius: 11, padding: 2 },
+  toggleSwitchActive: { backgroundColor: '#daa520' },
+  toggleThumb: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff' },
+  toggleThumbActive: { transform: [{ translateX: 18 }] },
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 24 },
+  cancelButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 12 },
+  cancelButtonText: { fontWeight: '600', color: '#666' },
+  uploadButton: { flex: 2 },
+  uploadButtonGradient: { height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  uploadButtonText: { color: '#fff', fontWeight: 'bold' },
+  disabledButton: { opacity: 0.5 },
+  fab: { position: 'absolute', bottom: 30, right: 20, width: 64, height: 64, borderRadius: 32, elevation: 5 },
+  fabGradient: { width: '100%', height: '100%', borderRadius: 32, justifyContent: 'center', alignItems: 'center' },
 });

@@ -204,7 +204,8 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
         time: timeStr,
         type: apt.design_title || 'Consultation',
         status: apt.status || 'pending',
-        duration: durationStr
+        duration: durationStr,
+        fullApt: apt
       };
     });
 
@@ -375,8 +376,7 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
                 <TouchableOpacity 
                   key={apt.id} 
                   style={styles.scheduleCard}
-                  // onPress={() => onNavigate && onNavigate('artist-appointment-details', { appointmentId: apt.id })}
-                  disabled={true}
+                  onPress={() => onNavigate('artist-active-session', { appointment: apt.fullApt })}
                 >
                   <View style={styles.scheduleTime}>
                     <Ionicons name="time" size={20} color="#daa520" />
@@ -404,6 +404,7 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
                       {apt.status}
                     </Text>
                   </View>
+                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={{ marginLeft: 8 }} />
                 </TouchableOpacity>
               ))
             ) : (

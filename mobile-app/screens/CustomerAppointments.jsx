@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, ScrollView, 
-  SafeAreaView, ActivityIndicator, Modal, Platform 
+  SafeAreaView, ActivityIndicator, Modal, Platform, Alert 
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +38,39 @@ export function CustomerAppointments({ customerId, onBack, onBookNew }) {
     const newDate = new Date(currentMonth);
     newDate.setMonth(newDate.getMonth() + increment);
     setCurrentMonth(newDate);
+  };
+
+  const handleCancel = async (appointmentId) => {
+    Alert.alert(
+      'Cancel Appointment',
+      'Are you sure you want to cancel this appointment?',
+      [
+        { text: 'No', style: 'cancel' },
+        { 
+          text: 'Yes, Cancel', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetch(`${API_URL}/api/appointments/${appointmentId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'cancelled' })
+              });
+              const data = await response.json();
+              if (data.success) {
+                Alert.alert('Cancelled', 'Your appointment has been cancelled.');
+                setSelectedAppointment(null);
+                fetchAppointments();
+              } else {
+                Alert.alert('Error', data.message || 'Failed to cancel appointment.');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Could not connect to server.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderCalendar = () => {
@@ -248,6 +281,15 @@ export function CustomerAppointments({ customerId, onBack, onBookNew }) {
                   </View>
                 )}
               </ScrollView>
+            )}
+
+            {(selectedAppointment?.status === 'pending' || selectedAppointment?.status === 'confirmed') && (
+              <TouchableOpacity 
+                style={[styles.closeButton, { backgroundColor: '#fee2e2', marginBottom: 10 }]} 
+                onPress={() => handleCancel(selectedAppointment.id)}
+              >
+                <Text style={[styles.closeButtonText, { color: '#ef4444' }]}>Cancel Appointment</Text>
+              </TouchableOpacity>
             )}
 
             <TouchableOpacity 
