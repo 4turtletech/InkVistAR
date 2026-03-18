@@ -7,7 +7,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { getArtistPortfolio, addArtistWork, deleteArtistWork } from '../src/utils/api';
+import { getArtistPortfolio, addArtistWork, deleteArtistWork, updateArtistWorkVisibility } from '../src/utils/api';
 
 export function ArtistWorks({ onBack, artistId }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,6 +23,7 @@ export function ArtistWorks({ onBack, artistId }) {
   const [works, setWorks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploadType, setUploadType] = useState('url'); // 'url' or 'upload'
+  const [selectedWork, setSelectedWork] = useState(null);
 
   const categories = [
     { id: 'all', label: 'All', icon: 'grid' },
@@ -254,7 +255,11 @@ export function ArtistWorks({ onBack, artistId }) {
               )}
 
               {filteredWorks.map((work) => (
-                <View key={work.id} style={styles.workCard}>
+                <TouchableOpacity 
+                  key={work.id} 
+                  style={styles.workCard}
+                  onPress={() => setSelectedWork(work)}
+                >
                   {work.image_url ? (
                     <Image source={{ uri: work.image_url }} style={styles.workImage} />
                   ) : (
@@ -286,7 +291,7 @@ export function ArtistWorks({ onBack, artistId }) {
                   >
                     <Ionicons name="trash-outline" size={16} color="#ef4444" />
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
@@ -414,6 +419,85 @@ export function ArtistWorks({ onBack, artistId }) {
                 </TouchableOpacity>
               </View>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Selected Work Details Modal */}
+      <Modal visible={!!selectedWork} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {selectedWork && (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Work Details</Text>
+                  <TouchableOpacity onPress={() => setSelectedWork(null)}>
+                    <Ionicons name="close" size={24} color="#111827" />
+                  </TouchableOpacity>
+                </View>
+
+                {selectedWork.image_url ? (
+                  <Image source={{ uri: selectedWork.image_url }} style={{ width: '100%', height: 300, borderRadius: 12, marginBottom: 16 }} resizeMode="cover" />
+                ) : (
+                  <View style={{ width: '100%', height: 300, borderRadius: 12, backgroundColor: '#333', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                    <Ionicons name="images" size={60} color="#666" />
+                  </View>
+                )}
+
+                <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 8, color: '#111827' }}>{selectedWork.title}</Text>
+                
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryBadgeText}>{selectedWork.category || 'Art'}</Text>
+                  </View>
+                  <Text style={{ marginLeft: 12, color: '#6b7280', fontSize: 14 }}>
+                    {new Date(selectedWork.created_at).toLocaleDateString()}
+                  </Text>
+                </View>
+
+                {selectedWork.description ? (
+                  <Text style={{ fontSize: 16, color: '#4b5563', marginBottom: 24, lineHeight: 24 }}>
+                    {selectedWork.description}
+                  </Text>
+                ) : null}
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Visibility Settings</Text>
+                  <TouchableOpacity 
+                    style={styles.visibilityToggle}
+                    onPress={async () => {
+                      const newIsPublic = !selectedWork.is_public;
+                      setSelectedWork({ ...selectedWork, is_public: newIsPublic });
+                      const result = await updateArtistWorkVisibility(selectedWork.id, newIsPublic);
+                      if (result.success) {
+                        setWorks(works.map(w => w.id === selectedWork.id ? { ...w, is_public: newIsPublic } : w));
+                      } else {
+                        Alert.alert('Error', 'Failed to update visibility');
+                        setSelectedWork({ ...selectedWork, is_public: !newIsPublic }); // revert visual state
+                      }
+                    }}
+                  >
+                    <Ionicons name={selectedWork.is_public ? "globe-outline" : "lock-closed-outline"} size={20} color={selectedWork.is_public ? "#daa520" : "#6b7280"} />
+                    <Text style={[styles.visibilityText, selectedWork.is_public && styles.visibilityTextActive]}>
+                      {selectedWork.is_public ? "Public Portfolio" : "Private Portfolio"}
+                    </Text>
+                    <View style={[styles.toggleSwitch, selectedWork.is_public && styles.toggleSwitchActive]}>
+                      <View style={[styles.toggleThumb, selectedWork.is_public && styles.toggleThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                {/* <TouchableOpacity 
+                  style={[styles.cancelButton, { marginTop: 16, backgroundColor: '#fee2e2' }]} 
+                  onPress={() => {
+                    handleDeleteWork(selectedWork.id);
+                    setSelectedWork(null);
+                  }}
+                >
+                  <Text style={[styles.cancelButtonText, { color: '#ef4444' }]}>Delete Work</Text>
+                </TouchableOpacity> */}
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>

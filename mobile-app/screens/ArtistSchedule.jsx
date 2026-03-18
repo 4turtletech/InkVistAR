@@ -12,6 +12,7 @@ export function ArtistSchedule({ onBack, artistId, navigation }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(10);
   
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -85,6 +86,10 @@ export function ArtistSchedule({ onBack, artistId, navigation }) {
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     setSelectedDate(dateStr);
     if (selectedFilter === 'today') setSelectedFilter('all');
+  };
+
+  const handleLoadMore = () => {
+    setVisibleCount(prev => prev + 10);
   };
 
   // Calendar Logic
@@ -244,6 +249,7 @@ export function ArtistSchedule({ onBack, artistId, navigation }) {
                     setSelectedFilter(filter.id);
                     setSelectedDate(null);
                   }
+                  setVisibleCount(10); // Reset pagination on filter change
                 }}
                 style={[
                   styles.filterButton,
@@ -295,7 +301,7 @@ export function ArtistSchedule({ onBack, artistId, navigation }) {
             {filteredAppointments.length === 0 && (
               <Text style={{ color: '#999', fontStyle: 'italic', marginTop: 10 }}>No appointments found for this filter.</Text>
             )}
-            {filteredAppointments.map((apt) => (
+            {filteredAppointments.slice(0, visibleCount).map((apt) => (
               <TouchableOpacity 
                 key={apt.id} 
                 style={styles.appointmentCard}
@@ -349,22 +355,6 @@ export function ArtistSchedule({ onBack, artistId, navigation }) {
                 </View>
 
                 <View style={styles.appointmentActions}>
-                  {apt.status === 'pending' && (
-                    <>
-                      <TouchableOpacity 
-                        style={[styles.actionButton, { borderColor: '#ef4444' }]}
-                        onPress={() => handleStatusUpdate(apt.id, 'cancelled')}
-                      >
-                        <Text style={[styles.actionButtonText, { color: '#ef4444' }]}>Reject</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={[styles.actionButton, styles.actionButtonPrimary]}
-                        onPress={() => handleStatusUpdate(apt.id, 'confirmed')}
-                      >
-                        <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>Accept</Text>
-                      </TouchableOpacity>
-                    </>
-                  )}
                   {(apt.status === 'confirmed' || apt.status === 'in_progress') && (
                     <TouchableOpacity 
                       style={[styles.actionButton, styles.actionButtonPrimary]}
@@ -385,6 +375,11 @@ export function ArtistSchedule({ onBack, artistId, navigation }) {
                 </View>
               </TouchableOpacity>
             ))}
+            {visibleCount < filteredAppointments.length && (
+              <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
+                <Text style={styles.loadMoreText}>Load More</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -799,6 +794,20 @@ const styles = StyleSheet.create({
   },
   actionButtonTextPrimary: {
     color: '#ffffff',
+  },
+  loadMoreButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  loadMoreText: {
+    fontSize: 14,
+    color: '#4b5563',
+    fontWeight: '600',
   },
   fab: {
     position: 'absolute',

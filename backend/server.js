@@ -1466,6 +1466,24 @@ app.delete('/api/artist/portfolio/:id', (req, res) => {
   });
 });
 
+// Update portfolio work visibility
+app.put('/api/artist/portfolio/:id/visibility', (req, res) => {
+  const { id } = req.params;
+  const { isPublic } = req.body;
+
+  if (isPublic === undefined) {
+    return res.status(400).json({ success: false, message: 'isPublic is required' });
+  }
+
+  db.query('UPDATE portfolio_works SET is_public = ? WHERE id = ?', [isPublic ? 1 : 0, id], (err, result) => {
+    if (err) {
+      console.error('❌ Error updating portfolio visibility:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    res.json({ success: true, message: 'Visibility updated successfully' });
+  });
+});
+
 // Artist: Create Appointment
 app.post('/api/artist/appointments', (req, res) => {
   const { artistId, clientEmail, date, startTime, designTitle } = req.body;

@@ -222,8 +222,15 @@ export const addArtistWork = async (artistId, workData) => {
 export const deleteArtistWork = async (workId) => {
   // Requirement: Soft delete (mark as inactive) for audit trail
   return fetchAPI(`/artist/portfolio/${workId}`, {
+    method: 'DELETE'
+  });
+};
+
+// Artist: Update Work Visibility
+export const updateArtistWorkVisibility = async (workId, isPublic) => {
+  return fetchAPI(`/artist/portfolio/${workId}/visibility`, {
     method: 'PUT',
-    body: JSON.stringify({ active: false, isDeleted: true })
+    body: JSON.stringify({ isPublic })
   });
 };
 

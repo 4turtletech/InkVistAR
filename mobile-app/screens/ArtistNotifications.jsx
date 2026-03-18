@@ -29,6 +29,7 @@ const timeAgo = (dateString) => {
 export function ArtistNotifications({ onBack, userId }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   useEffect(() => {
     loadNotifications();
@@ -58,6 +59,10 @@ export function ArtistNotifications({ onBack, userId }) {
       Promise.all(unreadIds.map(id => markNotificationAsRead(id)));
       setNotifications(notifications.map(n => ({ ...n, is_read: true })));
     }
+  };
+
+  const handleLoadMore = () => {
+    setVisibleCount(prev => prev + 10);
   };
 
   const handlePress = async (item) => {
@@ -138,7 +143,7 @@ export function ArtistNotifications({ onBack, userId }) {
         <ActivityIndicator size="large" color="#daa520" style={{ marginTop: 50 }} />
       ) : (
         <FlatList
-          data={notifications}
+          data={notifications.slice(0, visibleCount)}
           renderItem={renderItem}
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={styles.listContent}
@@ -149,6 +154,13 @@ export function ArtistNotifications({ onBack, userId }) {
               <Text style={styles.emptyText}>No notifications yet</Text>
               <Text style={styles.emptySubText}>We'll let you know when something important happens.</Text>
             </View>
+          }
+          ListFooterComponent={
+            visibleCount < notifications.length ? (
+              <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
+                <Text style={styles.loadMoreText}>Load More</Text>
+              </TouchableOpacity>
+            ) : null
           }
         />
       )}
@@ -292,5 +304,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     paddingHorizontal: 40,
+  },
+  loadMoreButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  loadMoreText: {
+    fontSize: 14,
+    color: '#4b5563',
+    fontWeight: '600',
   },
 });

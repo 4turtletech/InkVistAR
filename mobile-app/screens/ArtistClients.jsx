@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Modal, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { getArtistClients, addArtistClient, deleteArtistClient } from '../src/utils/api';
+import { getArtistClients, addArtistClient } from '../src/utils/api';
 
 export function ArtistClients({ onBack, artistId, navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -58,26 +59,8 @@ export function ArtistClients({ onBack, artistId, navigation }) {
     setIsSaving(false);
   };
 
-  const handleDeleteClient = (clientId) => {
-    Alert.alert(
-      'Remove Client',
-      'Are you sure you want to deactivate this client? Their profile will be hidden but can be restored later.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Remove', 
-          style: 'destructive',
-          onPress: async () => {
-            const result = await deleteArtistClient(clientId);
-            if (result.success) {
-              loadClients();
-            } else {
-              Alert.alert('Error', 'Failed to remove client');
-            }
-          }
-        }
-      ]
-    );
+  const handleLoadMore = () => {
+    setVisibleCount(prev => prev + 10);
   };
 
   const handleViewClient = (client) => {
@@ -134,12 +117,8 @@ export function ArtistClients({ onBack, artistId, navigation }) {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Client Directory</Text>
-            {clients.map((client) => (
+            {clients.filter(c => (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (c.email || '').toLowerCase().includes(searchQuery.toLowerCase())).slice(0, visibleCount).map((client) => (
               <View key={client.id} style={styles.clientCard}>
-                <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteClient(client.id)}>
-                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                </TouchableOpacity>
-
                 <View style={styles.clientHeader}>
                   <View style={styles.clientAvatar}>
                     <Ionicons name="person" size={24} color="#6b7280" />
@@ -183,6 +162,11 @@ export function ArtistClients({ onBack, artistId, navigation }) {
                 </View>
               </View>
             ))}
+            {visibleCount < clients.filter(c => (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (c.email || '').toLowerCase().includes(searchQuery.toLowerCase())).length && (
+              <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
+                <Text style={styles.loadMoreText}>Load More</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -496,4 +480,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   saveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  loadMoreButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  loadMoreText: {
+    fontSize: 14,
+    color: '#4b5563',
+    fontWeight: '600',
+  },
 });
