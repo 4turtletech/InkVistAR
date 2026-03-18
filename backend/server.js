@@ -14,6 +14,13 @@ console.log(`[CONFIG] Redirects will point to: ${FRONTEND_URL}`);
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
 console.log(`[CONFIG] Verification links will use base: ${BACKEND_URL}`);
 
+// PayMongo configuration
+const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY;
+const PAYMONGO_PUBLIC_KEY = process.env.PAYMONGO_PUBLIC_KEY; // kept for potential client-side uses
+const PAYMONGO_WEBHOOK_SECRET = process.env.PAYMONGO_WEBHOOK_SECRET;
+const PAYMONGO_MODE = process.env.PAYMONGO_MODE || 'test';
+const PAYMONGO_API_BASE = 'https://api.paymongo.com/v1';
+
 // Enhanced CORS configuration
 app.use(cors({
   origin: '*',
@@ -22,7 +29,13 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json({ limit: '50mb' }));
+// Keep raw body for webhook signature verification while still parsing JSON elsewhere
+app.use(express.json({
+  limit: '50mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ========== SECURITY: INPUT SANITIZATION MIDDLEWARE ==========
@@ -392,6 +405,29 @@ db.connect(err => {
       }
     });
 
+    // Create Payments Table (records PayMongo webhook events)
+    const paymentsTableQuery = `
+      CREATE TABLE IF NOT EXISTS payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        appointment_id INT NOT NULL,
+        session_id VARCHAR(100),
+        paymongo_payment_id VARCHAR(100),
+        amount INT,
+        currency VARCHAR(10) DEFAULT 'PHP',
+        status VARCHAR(50) DEFAULT 'pending',
+        raw_event JSON,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_payment (paymongo_payment_id),
+        INDEX idx_session (session_id),
+        FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
+      )
+    `;
+    db.query(paymentsTableQuery, (err) => {
+      if (err) console.error('⚠️ Error checking payments table:', err.message);
+      else console.log('💳 Payments table ready');
+    });
+
     // Create Invoices Table
     const invoicesTableQuery = `
       CREATE TABLE IF NOT EXISTS invoices (
@@ -483,6 +519,14 @@ async function sendEmail(to, subject, html) {
     console.error('❌ Email Network Error:', error.message);
     throw error;
   }
+}
+
+// Helper: PayMongo auth header
+function paymongoAuthHeader() {
+  if (!PAYMONGO_SECRET_KEY) {
+    throw new Error('PAYMONGO_SECRET_KEY is not configured');
+  }
+  return 'Basic ' + Buffer.from(`${PAYMONGO_SECRET_KEY}:`).toString('base64');
 }
 
 // Helper: Create Notification
@@ -1892,48 +1936,207 @@ app.put('/api/appointments/:id/details', (req, res) => {
   });
 });
 
-// ========== PAYMENT ENDPOINTS ==========
+// ========== PAYMENT ENDPOINTS (PayMongo Checkout) ==========
 
-app.post('/api/payments/verify', (req, res) => {
-  const { appointmentId, paymentToken } = req.body;
+// Create a PayMongo Checkout Session
+app.post('/api/payments/create-checkout-session', async (req, res) => {
+  const { appointmentId } = req.body;
 
-  console.log(`💳 Verifying payment for appointment: ${appointmentId}`);
-
-  if (!appointmentId || !paymentToken) {
-    return res.status(400).json({ success: false, message: 'Appointment ID and payment token are required.' });
+  if (!appointmentId) {
+    return res.status(400).json({ success: false, message: 'appointmentId is required' });
   }
 
-  // In a real application, you would verify the paymentToken with the payment provider (PayMongo)
-  // For this simulation, we'll just assume the token is valid.
+  if (!PAYMONGO_SECRET_KEY) {
+    return res.status(500).json({ success: false, message: 'PAYMONGO_SECRET_KEY is not configured on the server.' });
+  }
 
-  const query = "UPDATE appointments SET status = 'confirmed' WHERE id = ?";
-  db.query(query, [appointmentId], (err, result) => {
+  try {
+    // 1) Pull appointment to get authoritative price
+    db.query('SELECT id, price, customer_id, artist_id, status FROM appointments WHERE id = ? AND is_deleted = 0', [appointmentId], async (err, results) => {
+      if (err) {
+        console.error('❌ DB error loading appointment for checkout:', err.message);
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      if (!results.length) {
+        return res.status(404).json({ success: false, message: 'Appointment not found' });
+      }
+
+      const appointment = results[0];
+      const amount = Math.max(1, Math.round(Number(appointment.price || 0) * 100)); // centavos
+      const description = `Appointment #${appointmentId} payment`;
+      const redirectBaseSuccess = `${FRONTEND_URL}/booking-confirmation`;
+      const redirectBaseFailed = `${FRONTEND_URL}/customer/bookings`;
+
+      const payload = {
+        data: {
+          attributes: {
+            amount,
+            currency: 'PHP',
+            description,
+            payment_method_types: ['card', 'gcash', 'paymaya', 'grab_pay'],
+            statement_descriptor: 'InkVistAR',
+            metadata: {
+              appointmentId: String(appointmentId),
+              customerId: String(appointment.customer_id),
+              artistId: String(appointment.artist_id),
+              mode: PAYMONGO_MODE,
+            },
+            redirect: {
+              success: `${redirectBaseSuccess}?appointmentId=${appointmentId}`,
+              failed: `${redirectBaseFailed}?payment=failed&appointmentId=${appointmentId}`
+            }
+          }
+        }
+      };
+
+      const response = await fetch(`${PAYMONGO_API_BASE}/checkout_sessions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': paymongoAuthHeader(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('❌ PayMongo error:', data);
+        return res.status(502).json({ success: false, message: 'Failed to create checkout session', error: data });
+      }
+
+      const sessionId = data?.data?.id;
+      const checkoutUrl = data?.data?.attributes?.checkout_url;
+
+      // Save pending record for tracking
+      db.query(
+        `INSERT INTO payments (appointment_id, session_id, amount, currency, status, raw_event)
+         VALUES (?, ?, ?, ?, 'pending', ?)
+         ON DUPLICATE KEY UPDATE session_id = VALUES(session_id), amount = VALUES(amount), currency = VALUES(currency), status = 'pending', raw_event = VALUES(raw_event)`,
+        [appointmentId, sessionId, amount, 'PHP', JSON.stringify(data?.data || {})],
+        (payErr) => {
+          if (payErr) console.error('⚠️ Could not log pending payment:', payErr.message);
+        }
+      );
+
+      return res.json({ success: true, checkoutUrl, sessionId });
+    });
+  } catch (error) {
+    console.error('🔥 Unexpected error creating checkout session:', error);
+    res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+  }
+});
+
+// Webhook receiver for PayMongo
+app.post('/api/payments/webhook', (req, res) => {
+  if (!PAYMONGO_WEBHOOK_SECRET) {
+    console.warn('⚠️ PAYMONGO_WEBHOOK_SECRET is not set. Webhook signature will not be verified.');
+  }
+
+  const signatureHeader = req.headers['paymongo-signature'];
+  const rawBody = req.rawBody ? req.rawBody.toString() : JSON.stringify(req.body || {});
+
+  if (PAYMONGO_WEBHOOK_SECRET) {
+    if (!signatureHeader) {
+      return res.status(400).json({ success: false, message: 'Missing Paymongo-Signature header' });
+    }
+
+    const parts = signatureHeader.split(',').reduce((acc, part) => {
+      const [k, v] = part.split('=');
+      acc[k] = v;
+      return acc;
+    }, {});
+
+    const timestamp = parts.t;
+    const signature = parts.v1;
+
+    if (!timestamp || !signature) {
+      return res.status(400).json({ success: false, message: 'Invalid signature header' });
+    }
+
+    const expected = crypto.createHmac('sha256', PAYMONGO_WEBHOOK_SECRET)
+      .update(`${timestamp}.${rawBody}`)
+      .digest('hex');
+
+    if (expected !== signature) {
+      console.error('❌ Webhook signature mismatch');
+      return res.status(400).json({ success: false, message: 'Signature mismatch' });
+    }
+  }
+
+  const event = req.body;
+  const eventType = event?.data?.attributes?.type;
+  const resource = event?.data?.attributes?.data;
+  const metadata = resource?.attributes?.metadata || {};
+
+  const appointmentId = metadata.appointmentId || metadata.appointment_id;
+  const paymongoPaymentId = resource?.id || resource?.attributes?.id || null;
+  const sessionId = resource?.attributes?.checkout_session_id || metadata.checkout_session_id || null;
+  const amount = resource?.attributes?.amount || null;
+  const currency = resource?.attributes?.currency || 'PHP';
+  const status = eventType && eventType.includes('paid') ? 'paid' : (resource?.attributes?.status || 'pending');
+
+  console.log('📥 PayMongo webhook received:', eventType, 'appointment', appointmentId);
+
+  if (!appointmentId) {
+    console.warn('⚠️ Webhook missing appointmentId in metadata');
+  }
+
+  // Upsert payment record (idempotent on paymongo_payment_id unique key)
+  db.query(
+    `INSERT INTO payments (appointment_id, session_id, paymongo_payment_id, amount, currency, status, raw_event)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE status = VALUES(status), amount = VALUES(amount), currency = VALUES(currency), raw_event = VALUES(raw_event), updated_at = CURRENT_TIMESTAMP`,
+    [appointmentId || null, sessionId, paymongoPaymentId, amount, currency, status, JSON.stringify(event)],
+    (err) => {
+      if (err) console.error('❌ Error saving payment record:', err.message);
+    }
+  );
+
+  // If paid, update appointment and notify
+  if (status === 'paid' && appointmentId) {
+    db.query("UPDATE appointments SET status = 'paid' WHERE id = ?", [appointmentId], (updateErr) => {
+      if (updateErr) {
+        console.error('❌ Error marking appointment paid:', updateErr.message);
+      }
+    });
+
+    db.query('SELECT customer_id, artist_id FROM appointments WHERE id = ?', [appointmentId], (fetchErr, rows) => {
+      if (!fetchErr && rows.length) {
+        const appt = rows[0];
+        createNotification(appt.customer_id, 'Payment Received', `Your payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
+        createNotification(appt.artist_id, 'Payment Received', `Payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
+      }
+    });
+  }
+
+  res.json({ success: true, received: true });
+});
+
+// Optional: allow frontend to poll payment status by session or appointment
+app.get('/api/payments/status', (req, res) => {
+  const { sessionId, appointmentId } = req.query;
+
+  if (!sessionId && !appointmentId) {
+    return res.status(400).json({ success: false, message: 'sessionId or appointmentId is required' });
+  }
+
+  const query = sessionId
+    ? 'SELECT status, amount, currency FROM payments WHERE session_id = ? ORDER BY updated_at DESC LIMIT 1'
+    : 'SELECT status, amount, currency FROM payments WHERE appointment_id = ? ORDER BY updated_at DESC LIMIT 1';
+
+  db.query(query, [sessionId || appointmentId], (err, rows) => {
     if (err) {
-      console.error('❌ Error updating appointment status after payment:', err);
+      console.error('❌ Error fetching payment status:', err.message);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Appointment not found.' });
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
     }
 
-    // Fetch appointment details to notify the correct users
-    db.query('SELECT * FROM appointments WHERE id = ?', [appointmentId], (fetchErr, results) => {
-      if (fetchErr || results.length === 0) {
-        console.error('❌ Error fetching appointment details for notification');
-        // Still return success, as the payment was "processed"
-        return res.json({ success: true, message: 'Payment verified, but failed to send notifications.' });
-      }
-      
-      const appointment = results[0];
-      
-      // Notify both customer and artist
-      createNotification(appointment.customer_id, 'Payment Received', `Your payment for appointment #${appointmentId} was successful.`, 'payment_success', appointmentId);
-      createNotification(appointment.artist_id, 'Payment Received', `Payment for appointment #${appointmentId} has been confirmed.`, 'payment_success', appointmentId);
-      
-      console.log(`✅ Payment verified and appointment ${appointmentId} confirmed.`);
-      res.json({ success: true, message: 'Payment verified successfully.' });
-    });
+    res.json({ success: true, status: rows[0].status, amount: rows[0].amount, currency: rows[0].currency });
   });
 });
 

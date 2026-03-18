@@ -1,44 +1,50 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { API_URL } from '../config'; // Assuming you have a config file for your API URL
+import { API_URL } from '../config';
 
 const PaymentSimulation = () => {
     const [status, setStatus] = useState('pending');
+    const [checkoutUrl, setCheckoutUrl] = useState(null);
+    const [error, setError] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
-    const { appointmentId, price } = location.state || { appointmentId: null, price: 50 }; // Default price for display
+    const { appointmentId, price } = location.state || { appointmentId: null, price: 50 };
 
-    const handlePayment = async () => {
+    useEffect(() => {
         if (!appointmentId) {
             alert('Error: No appointment ID found. Cannot proceed with payment.');
-            navigate('/customer/bookings'); // Redirect to a safe page
+            navigate('/customer/bookings');
             return;
         }
 
-        setStatus('processing');
-        // Simulate API call to an external payment gateway
-        setTimeout(async () => {
+        const initCheckout = async () => {
+            setStatus('processing');
             try {
-                // This is where you would normally get a payment intent or token from PayMongo
-                const paymentToken = 'dummy-payment-token-' + Math.random().toString(36).substr(2, 9);
-
-                // Send the token to your backend for verification
-                await axios.post(`${API_URL}/api/payments/verify`, {
+                const response = await axios.post(`${API_URL}/api/payments/create-checkout-session`, {
                     appointmentId,
-                    paymentToken,
                 });
 
-                setStatus('success');
-                // Don't alert here, the confirmation page is enough
-                navigate('/booking-confirmation', { state: { appointmentId } });
-
-            } catch (error) {
-                console.error('Payment verification failed:', error);
+                if (response.data?.checkoutUrl) {
+                    setCheckoutUrl(response.data.checkoutUrl);
+                    setStatus('ready');
+                } else {
+                    throw new Error('No checkout URL returned');
+                }
+            } catch (err) {
+                console.error('Failed to start payment:', err);
+                setError('Failed to start payment. Please try again or contact support.');
                 setStatus('failed');
-                alert('Payment Failed. Please try again or contact support.');
             }
-        }, 2000); // 2-second delay to simulate network latency
+        };
+
+        initCheckout();
+    }, [appointmentId, navigate]);
+
+    const handleRedirect = () => {
+        if (!checkoutUrl) return;
+        setStatus('redirecting');
+        window.location.href = checkoutUrl;
     };
 
     const pageStyles = {
@@ -77,13 +83,14 @@ const PaymentSimulation = () => {
         width: '100%',
         padding: '12px',
         marginTop: '24px',
-        backgroundColor: status === 'processing' ? '#60a5fa' : '#3b82f6', // A nice blue
+        backgroundColor: status === 'ready' ? '#3b82f6' : '#9ca3af',
         color: 'white',
         border: 'none',
         borderRadius: '6px',
         fontSize: '16px',
         fontWeight: '600',
-        cursor: status === 'processing' ? 'not-allowed' : 'pointer',
+        cursor: status === 'ready' ? 'pointer' : 'not-allowed',
+        transition: 'background-color 0.2s ease',
     };
 
     return (
@@ -96,20 +103,24 @@ const PaymentSimulation = () => {
                         PHP {price.toFixed(2)}
                     </p>
                 </div>
-                
+
                 <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '24px' }}>
-                    <h4 style={{ marginTop: 0, marginBottom: '16px' }}>Pay with Card</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <input type="text" placeholder="Card Number" style={inputStyles} />
-                        <div style={{ display: 'flex', gap: '16px' }}>
-                            <input type="text" placeholder="MM / YY" style={{ ...inputStyles, width: '50%' }} />
-                            <input type="text" placeholder="CVC" style={{ ...inputStyles, width: '50%' }} />
-                        </div>
-                    </div>
+                    <h4 style={{ marginTop: 0, marginBottom: '12px' }}>Secure payment</h4>
+                    <p style={{ margin: 0, color: '#6b7280' }}>
+                        You will be redirected to PayMongo's hosted checkout to complete your payment.
+                    </p>
+                    {error && <p style={{ color: '#dc2626', marginTop: '12px' }}>{error}</p>}
                 </div>
 
-                <button onClick={handlePayment} disabled={status === 'processing'} style={buttonStyles}>
-                    {status === 'processing' ? 'Processing...' : `Pay PHP ${price.toFixed(2)}`}
+                <button
+                    onClick={handleRedirect}
+                    disabled={status !== 'ready'}
+                    style={buttonStyles}
+                >
+                    {status === 'ready' && `Pay PHP ${price.toFixed(2)}`}
+                    {status === 'redirecting' && 'Redirecting...'}
+                    {status === 'failed' && 'Try Again'}
+                    {status !== 'ready' && status !== 'redirecting' && status !== 'failed' && 'Initializing...'}
                 </button>
             </div>
         </div>
