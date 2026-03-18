@@ -121,7 +121,9 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             if (response.data.success) {
                 const { appointmentId } = response.data;
                 const price = formData.artist.hourly_rate || 50; // Pass the price to the payment page
-                navigate('/payment', { state: { appointmentId, price } });
+                // Store for refresh resilience
+                sessionStorage.setItem('pendingPayment', JSON.stringify({ appointmentId, price }));
+                navigate(`/payment?appointmentId=${appointmentId}&price=${price}`, { state: { appointmentId, price } });
             } else {
                 alert('Booking Failed: ' + (response.data.message || 'An unknown error occurred.'));
             }

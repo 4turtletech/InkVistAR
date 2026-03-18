@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
@@ -9,12 +9,24 @@ const PaymentSimulation = () => {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
-    const { appointmentId, price } = location.state || { appointmentId: null, price: 50 };
+
+    // Accept data from navigation state, query params, or sessionStorage fallback
+    const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+    const stateAppointment = location.state?.appointmentId || null;
+    const statePrice = location.state?.price || null;
+    const paramAppointment = urlParams.get('appointmentId');
+    const paramPrice = urlParams.get('price');
+    const stored = useMemo(() => {
+        try { return JSON.parse(sessionStorage.getItem('pendingPayment') || '{}'); } catch { return {}; }
+    }, []);
+
+    const appointmentId = stateAppointment || paramAppointment || stored.appointmentId || null;
+    const price = Number(statePrice || paramPrice || stored.price || 50);
 
     useEffect(() => {
         if (!appointmentId) {
-            alert('Error: No appointment ID found. Cannot proceed with payment.');
-            navigate('/customer/bookings');
+            setError('Missing appointment. Please return to your bookings and try again.');
+            setStatus('failed');
             return;
         }
 
@@ -28,6 +40,8 @@ const PaymentSimulation = () => {
                 if (response.data?.checkoutUrl) {
                     setCheckoutUrl(response.data.checkoutUrl);
                     setStatus('ready');
+                    // keep latest session for refresh resiliency
+                    sessionStorage.setItem('pendingPayment', JSON.stringify({ appointmentId, price }));
                 } else {
                     throw new Error('No checkout URL returned');
                 }
@@ -39,7 +53,7 @@ const PaymentSimulation = () => {
         };
 
         initCheckout();
-    }, [appointmentId, navigate]);
+    }, [appointmentId, price]);
 
     const handleRedirect = () => {
         if (!checkoutUrl) return;
@@ -100,7 +114,7 @@ const PaymentSimulation = () => {
                     <h2 style={{ margin: '0 0 8px 0' }}>InkVistAR</h2>
                     <p style={{ margin: 0, color: '#6b7280' }}>Appointment ID: {appointmentId || 'N/A'}</p>
                     <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '16px 0 0 0' }}>
-                        PHP {price.toFixed(2)}
+                        PHP {Number(price || 0).toFixed(2)}
                     </p>
                 </div>
 
@@ -110,17 +124,28 @@ const PaymentSimulation = () => {
                         You will be redirected to PayMongo's hosted checkout to complete your payment.
                     </p>
                     {error && <p style={{ color: '#dc2626', marginTop: '12px' }}>{error}</p>}
+                    {API_URL === '' && (
+                        <p style={{ marginTop: '12px', color: '#92400e', background:'#fffbeb', padding:'8px', borderRadius:'6px', border:'1px solid #fbbf24' }}>
+                            API URL is not configured for production. Set REACT_APP_API_URL to your backend URL.
+                        </p>
+                    )}
                 </div>
 
                 <button
-                    onClick={handleRedirect}
-                    disabled={status !== 'ready'}
+                    onClick={status === 'failed' ? () => window.location.reload() : handleRedirect}
+                    disabled={status !== 'ready' && status !== 'failed'}
                     style={buttonStyles}
                 >
-                    {status === 'ready' && `Pay PHP ${price.toFixed(2)}`}
+                    {status === 'ready' && `Pay PHP ${Number(price || 0).toFixed(2)}`}
                     {status === 'redirecting' && 'Redirecting...'}
-                    {status === 'failed' && 'Try Again'}
+                    {status === 'failed' && 'Retry'}
                     {status !== 'ready' && status !== 'redirecting' && status !== 'failed' && 'Initializing...'}
+                </button>
+                <button
+                    onClick={() => navigate('/customer/bookings')}
+                    style={{ ...buttonStyles, backgroundColor: '#111827', marginTop: '12px', cursor: 'pointer' }}
+                >
+                    Back to Bookings
                 </button>
             </div>
         </div>
