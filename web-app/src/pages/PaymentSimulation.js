@@ -21,7 +21,7 @@ const PaymentSimulation = () => {
     }, []);
 
     const appointmentId = stateAppointment || paramAppointment || stored.appointmentId || null;
-    const price = Number(statePrice || paramPrice || stored.price || 50);
+    const price = Number(statePrice || paramPrice || stored.price || 0);
 
     useEffect(() => {
         // Fast fail if API_URL is not configured in production builds

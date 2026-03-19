@@ -26,7 +26,12 @@ function CustomerBookings(){
             try{
                 const res = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
                 if (res.data.success) {
-                    setAppointments(res.data.appointments || []);
+                    // Ensure price is parsed as a number
+                    const formattedAppointments = (res.data.appointments || []).map(appt => ({
+                        ...appt,
+                        price: parseFloat(appt.price) || 0
+                    }));
+                    setAppointments(formattedAppointments);
                 } else {
                     alert('Could not fetch your bookings: ' + res.data.message);
                 }
