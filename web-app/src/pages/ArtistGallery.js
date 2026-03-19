@@ -193,7 +193,6 @@ function ArtistGallery() {
                                 <div className="gallery-overlay">
                                     <h3>{work.title}</h3>
                                     <p>{work.category}</p>
-                                    {work.price_estimate && <p style={{color: '#ffcc00', fontWeight: '600', fontSize: '0.8rem'}}>₱{Number(work.price_estimate).toLocaleString()} est.</p>}
                                     <button className="delete-btn" onClick={(e) => { e.stopPropagation(); handleDelete(work.id); }}>
                                         <Trash2 size={16} />
                                     </button>

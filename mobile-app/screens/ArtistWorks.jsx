@@ -272,9 +272,6 @@ export function ArtistWorks({ onBack, artistId }) {
                   )}
                   <View style={styles.workDetails}>
                     <Text style={styles.workTitle} numberOfLines={1}>{work.title}</Text>
-                    {work.price_estimate && (
-                      <Text style={{fontSize: 12, color: '#daa520', fontWeight: '600', marginBottom: 4}}>₱{Number(work.price_estimate).toLocaleString()}</Text>
-                    )}
                     <View style={styles.workMeta}>
                       <View style={styles.categoryBadge}>
                         <Text style={styles.categoryBadgeText}>{work.category || 'Art'}</Text>

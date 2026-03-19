@@ -165,9 +165,6 @@ export function CustomerGallery({ onBack }) {
                     <View style={styles.workDetails}>
                       <Text style={styles.workTitle} numberOfLines={1}>{work.title}</Text>
                       <Text style={styles.workArtist} numberOfLines={1}>by {work.artist_name}</Text>
-                      {work.price_estimate && (
-                        <Text style={{fontSize: 12, color: '#daa520', fontWeight: '600', marginTop: 2}}>₱{Number(work.price_estimate).toLocaleString()} est.</Text>
-                      )}
                     </View>
                     <View style={styles.tapHint}>
                       <Ionicons name="expand-outline" size={14} color="#9ca3af" />

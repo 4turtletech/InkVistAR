@@ -131,9 +131,6 @@ export function CustomerArtistProfile({ route, onBack, onNavigate }) {
                   <Image source={{ uri: work.image_url }} style={styles.portfolioImage} />
                   <View style={styles.portfolioDetails}>
                     <Text style={styles.portfolioTitle} numberOfLines={1}>{work.title || 'Untitled'}</Text>
-                    {work.price_estimate && (
-                      <Text style={{fontSize: 12, color: '#daa520', fontWeight: '700', marginTop: 2}}>₱{Number(work.price_estimate).toLocaleString()} est.</Text>
-                    )}
                   </View>
                 </TouchableOpacity>
               )) : (
