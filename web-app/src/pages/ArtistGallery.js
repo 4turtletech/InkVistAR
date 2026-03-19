@@ -184,16 +184,16 @@ function ArtistGallery() {
                 {loading ? <div className="no-data">Loading...</div> : (
                     <div className="gallery-grid">
                         {works.length > 0 ? works.map(work => (
-                            <div key={work.id} className="gallery-item" onClick={() => openModal(setViewWorkModal, work)} style={{cursor: 'pointer'}}>
+                            <div key={work.id} className="gallery-item" onClick={() => openModal(setViewWorkModal, work)}>
                                 <img 
                                     src={work.image_url} 
                                     alt={work.title} 
-                                    style={{width: '100%', height: '250px', objectFit: 'cover'}} 
+                                    loading="lazy"
                                 />
                                 <div className="gallery-overlay">
                                     <h3>{work.title}</h3>
                                     <p>{work.category}</p>
-                                    {work.price_estimate && <p style={{color: '#daa520', fontWeight: '600', fontSize: '0.9rem'}}>₱{Number(work.price_estimate).toLocaleString()} est.</p>}
+                                    {work.price_estimate && <p style={{color: '#ffcc00', fontWeight: '600', fontSize: '0.8rem'}}>₱{Number(work.price_estimate).toLocaleString()} est.</p>}
                                     <button className="delete-btn" onClick={(e) => { e.stopPropagation(); handleDelete(work.id); }}>
                                         <Trash2 size={16} />
                                     </button>
