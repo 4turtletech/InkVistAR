@@ -410,7 +410,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew }) {
               </ScrollView>
             )}
 
-            {(selectedAppointment?.status === 'pending' || selectedAppointment?.status === 'confirmed' || selectedAppointment?.status === 'pending_schedule' || selectedAppointment?.status === 'completed') && selectedAppointment?.payment_status !== 'paid' && (
+            {(selectedAppointment?.status === 'confirmed' || selectedAppointment?.status === 'completed') && selectedAppointment?.payment_status !== 'paid' && (
               <TouchableOpacity 
                 style={[styles.closeButton, { backgroundColor: '#daa520', marginBottom: 10 }]} 
                 onPress={handlePayment}

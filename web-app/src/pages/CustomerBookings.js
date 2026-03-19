@@ -141,7 +141,7 @@ function CustomerBookings(){
                                                 </span>
                                             </td>
                                             <td>
-                                                {(['confirmed', 'pending', 'pending_schedule', 'completed'].includes(a.status?.toLowerCase())) && a.payment_status !== 'paid' && (
+                                                {(['confirmed', 'completed'].includes(a.status?.toLowerCase())) && a.payment_status !== 'paid' && (
                                                     <button 
                                                         className="btn btn-primary" 
                                                         style={{ padding: '4px 10px', fontSize: '0.8rem' }}
