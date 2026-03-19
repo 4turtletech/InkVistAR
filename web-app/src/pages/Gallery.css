@@ -130,20 +130,21 @@ body {
 /* Portfolio Grid */
 .portfolio-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 25px;
-  width: 90%;
-  max-width: 1400px;
-  padding-bottom: 80px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  width: 95%;
+  max-width: 1600px;
+  padding-bottom: 60px;
 }
 
 .image-card {
   position: relative;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  aspect-ratio: 3/4;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  aspect-ratio: 1/1; /* Square for more compact grid, or 3/4 if preferred */
+  background-color: #1a1a1a;
 }
 
 .image-card img {
@@ -193,14 +194,14 @@ body {
 .image-card-title {
   color: #C19A6B;
   font-family: 'Playfair Display', serif;
-  font-size: 1.1rem;
-  margin: 0 0 4px;
+  font-size: 0.95rem;
+  margin: 0 0 2px;
 }
 
 .image-card-artist {
   color: #ccc;
-  font-size: 0.85rem;
-  margin: 0 0 6px;
+  font-size: 0.75rem;
+  margin: 0 0 4px;
 }
 
 .image-card-category {
@@ -342,4 +343,11 @@ body {
   border-top: 1px solid rgba(193, 154, 107, 0.3);
   padding-top: 15px;
   font-size: 0.95rem;
+  color: #bbb;
+}
+
+.gallery-modal-info .filter-btn:hover {
+  transform: scale(1.02);
+  background-color: #d4af87;
+  box-shadow: 0 5px 15px rgba(193, 154, 107, 0.4);
 }

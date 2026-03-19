@@ -116,7 +116,11 @@ const Gallery = () => {
         ) : (
           paginatedWorks.map(item => (
             <div key={item.id} className="image-card" onClick={() => setSelectedImage(item)}>
-              <img src={item.image_url} alt={item.title || item.category || 'Tattoo artwork'} />
+              <img 
+                src={item.image_url} 
+                alt={item.title || item.category || 'Tattoo artwork'} 
+                loading="lazy"
+              />
               <div className="image-card-overlay">
                 {item.title && <h3 className="image-card-title">{item.title}</h3>}
                 {item.artist_name && <p className="image-card-artist">by {item.artist_name}</p>}
@@ -153,6 +157,14 @@ const Gallery = () => {
               {selectedImage.category && <p className="modal-category">Category: <strong>{selectedImage.category}</strong></p>}
               {selectedImage.description && <p className="modal-description">{selectedImage.description}</p>}
               {selectedImage.price_estimate && <p className="modal-category" style={{color: '#daa520'}}>Estimated Price: <strong>₱{Number(selectedImage.price_estimate).toLocaleString()}</strong></p>}
+              
+              <button 
+                className="filter-btn" 
+                style={{ marginTop: '30px', width: '100%', padding: '15px', fontWeight: 'bold', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}
+                onClick={() => navigate('/book', { state: { artistId: selectedImage.artist_id, designTitle: selectedImage.title } })}
+              >
+                Book Similar Tattoo
+              </button>
             </div>
           </div>
         </div>

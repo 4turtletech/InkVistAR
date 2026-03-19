@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { CheckCircle, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
 
 export default function CustomerBookingWizard({ customerId, onBack, isPublic = false }) {
     const navigate = useNavigate();
+    const location = useLocation();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [artists, setArtists] = useState([]);
@@ -32,7 +33,21 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 const fetchedArtists = response.data.artists;
                 setArtists(fetchedArtists);
                 
-                // Check for pending booking after fetching artists
+                // 1. Check for location.state (direct from Gallery)
+                if (location.state && location.state.artistId) {
+                    const matchedArtist = fetchedArtists.find(a => a.id === location.state.artistId);
+                    if (matchedArtist) {
+                        setFormData(prev => ({
+                            ...prev,
+                            artist: matchedArtist,
+                            designTitle: location.state.designTitle || ''
+                        }));
+                        setStep(2); // Jump to date selection
+                        return; // Done
+                    }
+                }
+
+                // 2. Check for pending booking session
                 const pending = sessionStorage.getItem('pendingBooking');
                 if (pending && customerId) {
                     try {
