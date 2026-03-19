@@ -1293,6 +1293,8 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
         ap.end_time,
         ap.design_title, 
         ap.status,
+        ap.price,
+        ap.payment_status,
         u.name as client_name
       FROM appointments ap
       JOIN users u ON ap.customer_id = u.id
@@ -1302,13 +1304,30 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
 
     db.query(appointmentsQuery, [artistId], (apptErr, apptResults) => {
       const appointments = apptResults || [];
+      const commissionRate = artist.commission_rate || 0.60;
+
+      // Calculate earnings correctly (Completed & Paid only, net of commission)
+      const paidCompletedAppts = appointments.filter(apt => 
+        apt.status === 'completed' && apt.payment_status === 'paid'
+      );
+      
+      const totalEarnings = paidCompletedAppts.reduce((sum, apt) => 
+        sum + (parseFloat(apt.price || 0) * commissionRate), 0
+      );
+
+      // Current month earnings
+      const now = new Date();
+      const currentMonthEarnings = paidCompletedAppts.filter(apt => {
+        const aptDate = new Date(apt.appointment_date);
+        return aptDate.getMonth() === now.getMonth() && aptDate.getFullYear() === now.getFullYear();
+      }).reduce((sum, apt) => sum + (parseFloat(apt.price || 0) * commissionRate), 0);
 
       // Fetch notifications for dashboard
       db.query('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20', [artistId], (notifErr, notifResults) => {
         const notifications = notifResults || [];
         const unreadCount = notifications.filter(n => !n.is_read).length;
 
-        // Return success with minimal data
+        // Return success with calculated stats
         res.json({
           success: true,
           artist: {
@@ -1327,7 +1346,8 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
           works: [],
           stats: {
             total_appointments: appointments.length,
-            total_earnings: appointments.reduce((sum, apt) => sum + (apt.price || 0), 0),
+            total_earnings: totalEarnings,
+            monthly_earnings: currentMonthEarnings,
             avg_rating: Number(artist.rating)
           },
           notifications: notifications,

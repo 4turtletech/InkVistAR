@@ -178,17 +178,18 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 20px 15px;
-  background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  padding: 15px;
+  background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+  opacity: 1; /* Always visible to show title */
+  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
 }
 
 .image-card:hover .image-card-overlay {
-  opacity: 1;
+  background: linear-gradient(to top, #000 0%, rgba(0,0,0,0.7) 100%);
+  padding-bottom: 25px;
 }
 
 .image-card-title {

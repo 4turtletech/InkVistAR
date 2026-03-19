@@ -161,10 +161,10 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
       change: weekAppointments > 5 ? '+3' : '+0' 
     },
     { 
-      label: 'Revenue', 
+      label: 'Total Earned', 
       value: `₱${totalEarnings.toLocaleString()}`, 
       icon: 'cash', 
-      change: totalEarnings > 1000 ? '+12%' : '+0%' 
+      change: totalEarnings > 0 ? '+12%' : '+0%' 
     },
     { 
       label: 'Rating', 

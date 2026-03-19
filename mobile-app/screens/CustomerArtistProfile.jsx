@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { 
   View, Text, TouchableOpacity, StyleSheet, 
-  ScrollView, SafeAreaView, Image, ActivityIndicator, Dimensions 
+  ScrollView, SafeAreaView, Image, ActivityIndicator, Dimensions,
+  Modal, Pressable
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,8 @@ export function CustomerArtistProfile({ route, onBack, onNavigate }) {
   const [artist, setArtist] = useState(null);
   const [portfolio, setPortfolio] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedWork, setSelectedWork] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     if (artistId) {
@@ -42,6 +45,24 @@ export function CustomerArtistProfile({ route, onBack, onNavigate }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openDetail = (work) => {
+    setSelectedWork(work);
+    setModalVisible(true);
+  };
+
+  const closeDetail = () => {
+    setModalVisible(false);
+    setSelectedWork(null);
+  };
+
+  const handleBookSimilar = () => {
+    closeDetail();
+    onNavigate('booking-create', { 
+      artistId: artistId,
+      prefillNote: `I'm interested in a design similar to "${selectedWork?.title}".` 
+    });
   };
 
   if (loading) {
@@ -106,13 +127,14 @@ export function CustomerArtistProfile({ route, onBack, onNavigate }) {
             <Text style={styles.sectionTitle}>Portfolio</Text>
             <View style={styles.portfolioGrid}>
               {portfolio.length > 0 ? portfolio.map((work) => (
-                <TouchableOpacity key={work.id} style={styles.portfolioItem}>
+                <TouchableOpacity key={work.id} style={styles.portfolioCard} onPress={() => openDetail(work)}>
                   <Image source={{ uri: work.image_url }} style={styles.portfolioImage} />
-                  {work.price_estimate && (
-                    <View style={{position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', paddingVertical: 4, paddingHorizontal: 6, borderBottomLeftRadius: 12, borderBottomRightRadius: 12}}>
-                      <Text style={{color: '#daa520', fontSize: 11, fontWeight: '700', textAlign: 'center'}}>₱{Number(work.price_estimate).toLocaleString()}</Text>
-                    </View>
-                  )}
+                  <View style={styles.portfolioDetails}>
+                    <Text style={styles.portfolioTitle} numberOfLines={1}>{work.title || 'Untitled'}</Text>
+                    {work.price_estimate && (
+                      <Text style={{fontSize: 12, color: '#daa520', fontWeight: '700', marginTop: 2}}>₱{Number(work.price_estimate).toLocaleString()} est.</Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               )) : (
                 <Text style={styles.emptyText}>No portfolio items available.</Text>
@@ -135,6 +157,72 @@ export function CustomerArtistProfile({ route, onBack, onNavigate }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Portfolio Detail Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closeDetail}
+      >
+        <Pressable style={modalStyles.modalOverlay} onPress={closeDetail}>
+          <Pressable style={modalStyles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={modalStyles.modalHandle}>
+              <View style={modalStyles.handleBar} />
+            </View>
+            
+            <TouchableOpacity style={modalStyles.modalCloseButton} onPress={closeDetail}>
+              <Ionicons name="close" size={24} color="#374151" />
+            </TouchableOpacity>
+
+            {selectedWork && (
+              <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+                <Image 
+                  source={{ uri: selectedWork.image_url }} 
+                  style={modalStyles.modalImage} 
+                  resizeMode="cover"
+                />
+
+                <View style={modalStyles.modalBody}>
+                  <Text style={modalStyles.modalTitle}>{selectedWork.title || 'Portfolio Work'}</Text>
+                  
+                  {selectedWork.category && (
+                    <View style={modalStyles.modalCategoryBadge}>
+                      <Ionicons name="pricetag" size={12} color="#6b7280" />
+                      <Text style={modalStyles.modalCategoryText}>{selectedWork.category}</Text>
+                    </View>
+                  )}
+
+                  {selectedWork.description && (
+                    <View style={modalStyles.descriptionContainer}>
+                      <Text style={modalStyles.descriptionText}>{selectedWork.description}</Text>
+                    </View>
+                  )}
+
+                  {selectedWork.price_estimate && (
+                    <View style={modalStyles.priceContainer}>
+                      <Text style={{fontSize: 16}}>💰</Text>
+                      <Text style={modalStyles.priceText}>Estimated Price: ₱{Number(selectedWork.price_estimate).toLocaleString()}</Text>
+                    </View>
+                  )}
+
+                  <TouchableOpacity style={modalStyles.bookSimilarButtonAction} onPress={handleBookSimilar}>
+                    <LinearGradient
+                      colors={['#000000', '#daa520']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={modalStyles.bookButtonGradient}
+                    >
+                      <Ionicons name="calendar" size={20} color="#ffffff" />
+                      <Text style={modalStyles.bookButtonText}>Book Similar Tattoo</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -243,18 +331,33 @@ const styles = StyleSheet.create({
   portfolioGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 12,
   },
-  portfolioItem: {
-    width: (SCREEN_WIDTH - 60) / 3,
-    height: (SCREEN_WIDTH - 60) / 3,
-    borderRadius: 12,
+  portfolioCard: {
+    width: '48%',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
     overflow: 'hidden',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   portfolioImage: {
     width: '100%',
-    height: '100%',
+    height: 150,
     resizeMode: 'cover',
+  },
+  portfolioDetails: {
+    padding: 10,
+  },
+  portfolioTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1f2937',
   },
   emptyText: {
     color: '#9ca3af',
@@ -281,5 +384,108 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '700',
+  },
+});
+
+const modalStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    maxHeight: '85%',
+  },
+  modalHandle: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  handleBar: {
+    width: 40,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#e5e7eb',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 20,
+    padding: 4,
+  },
+  modalImage: {
+    width: '100%',
+    height: 350,
+  },
+  modalBody: {
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  modalCategoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginBottom: 20,
+  },
+  modalCategoryText: {
+    fontSize: 14,
+    color: '#4b5563',
+    fontWeight: '600',
+  },
+  descriptionContainer: {
+    marginBottom: 24,
+  },
+  descriptionText: {
+    fontSize: 16,
+    color: '#4b5563',
+    lineHeight: 24,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 16,
+    backgroundColor: '#fef9ee',
+    borderRadius: 14,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#f5deb3',
+  },
+  priceText: {
+    fontWeight: '700',
+    color: '#92400e',
+    fontSize: 16,
+  },
+  bookSimilarButtonAction: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  bookButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 12,
+  },
+  bookButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });
