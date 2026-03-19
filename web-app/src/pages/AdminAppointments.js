@@ -35,7 +35,7 @@ function AdminAppointments() {
         time: '',
         status: 'confirmed',
         notes: '',
-        price: 0
+        price: 1
     });
 
     // Modal animation handlers
@@ -211,7 +211,7 @@ function AdminAppointments() {
             time: '',
             status: 'confirmed',
             notes: '',
-            price: 0
+            price: 1
         });
         openModal();
     };
@@ -222,6 +222,10 @@ function AdminAppointments() {
             return;
         }
 
+        // Enforce minimum price of 1 if 0 or empty is provided
+        // This prevents payment gateway errors
+        const finalPrice = (!formData.price || parseFloat(formData.price) <= 0) ? 1 : formData.price;
+
         try {
             const payload = {
                 customerId: formData.clientId,
@@ -231,7 +235,7 @@ function AdminAppointments() {
                 startTime: formData.time,
                 status: formData.status,
                 notes: formData.notes,
-                price: formData.price
+                price: finalPrice
             };
 
             if (selectedAppointment) {
