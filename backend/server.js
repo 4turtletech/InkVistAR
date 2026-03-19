@@ -406,6 +406,14 @@ db.connect(err => {
           }
         });
 
+        // MIGRATION: Add 'payment_status' column if it doesn't exist
+        db.query("SHOW COLUMNS FROM appointments LIKE 'payment_status'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments table: Adding payment_status column...');
+            db.query("ALTER TABLE appointments ADD COLUMN payment_status VARCHAR(20) DEFAULT 'unpaid'");
+          }
+        });
+
         // MIGRATION: Ensure status is VARCHAR(50) to avoid truncation if it was ENUM
         db.query("ALTER TABLE appointments MODIFY COLUMN status VARCHAR(50) DEFAULT 'pending'", (err) => {
           if (!err) console.log('✅ Ensured appointments status is VARCHAR(50)');
@@ -660,10 +668,21 @@ function createDefaultUsers() {
 
 // ========== GENERATIVE AI CHATBOT SETUP (Groq) ==========
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const groq = new Groq({ apiKey: GROQ_API_KEY });
+let groq = null;
+if (GROQ_API_KEY) {
+  try {
+    groq = new Groq({ apiKey: GROQ_API_KEY });
+  } catch (e) {
+    console.error('❌ Failed to initialize Groq:', e.message);
+  }
+}
 
 // Verify API Key on startup
 async function verifyGroq() {
+  if (!groq) {
+    console.log('⚠️ Chatbot will run in OFFLINE MODE (No API Key).');
+    return;
+  }
   try {
     console.log('🤖 Verifying Groq API Key...');
     const chatCompletion = await groq.chat.completions.create({
@@ -2200,15 +2219,21 @@ app.post('/api/payments/webhook', (req, res) => {
 
   // If paid, update appointment and notify
   if (status === 'paid' && appointmentId) {
-    db.query("UPDATE appointments SET status = 'paid' WHERE id = ?", [appointmentId], (updateErr) => {
+    db.query("UPDATE appointments SET payment_status = 'paid' WHERE id = ?", [appointmentId], (updateErr) => {
       if (updateErr) {
         console.error('❌ Error marking appointment paid:', updateErr.message);
+      } else {
+        console.log('✅ Appointment', appointmentId, 'marked as PAID');
       }
     });
 
-    db.query('SELECT customer_id, artist_id FROM appointments WHERE id = ?', [appointmentId], (fetchErr, rows) => {
+    db.query('SELECT customer_id, artist_id, status FROM appointments WHERE id = ?', [appointmentId], (fetchErr, rows) => {
       if (!fetchErr && rows.length) {
         const appt = rows[0];
+        
+        // If it was confirmed, maybe we want to notify or change something, 
+        // but we leave 'status' alone as it might be 'in_progress' or 'completed' already.
+        
         createNotification(appt.customer_id, 'Payment Received', `Your payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
         createNotification(appt.artist_id, 'Payment Received', `Payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
       }
