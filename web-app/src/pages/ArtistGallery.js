@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Trash2, Plus, X, Eye, Lock, Globe } from 'lucide-react';
+import { Trash2, Plus, X, Eye, Lock, Globe, Edit } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import './PortalStyles.css';
 import { API_URL } from '../config';
@@ -9,6 +9,7 @@ function ArtistGallery() {
     const [works, setWorks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedWork, setSelectedWork] = useState(null);
+    const [editingId, setEditingId] = useState(null);
 
     // Modal states for animations
     const [addWorkModal, setAddWorkModal] = useState({ mounted: false, visible: false });
@@ -32,7 +33,10 @@ function ArtistGallery() {
 
     // Modal animation handlers
     const openModal = (setter, item = null) => {
-        if (item) setSelectedWork(item);
+        if (item) {
+            setSelectedWork(item);
+            setEditingId(null); // Ensure we aren't in edit mode when just viewing
+        }
         setter({ mounted: true, visible: false });
         setTimeout(() => setter({ mounted: true, visible: true }), 10);
     };
@@ -43,6 +47,39 @@ function ArtistGallery() {
             setter({ mounted: false, visible: false });
             setSelectedWork(null);
         }, 400); // Match CSS transition duration
+    };
+
+    const openAddModal = () => {
+        setEditingId(null);
+        setFormData({ 
+            title: '', 
+            description: '', 
+            imageUrl: '',
+            category: 'Realism',
+            isPublic: true,
+            priceEstimate: ''
+        });
+        openModal(setAddWorkModal);
+    };
+
+    const handleEditClick = (work) => {
+        setEditingId(work.id);
+        setFormData({
+            title: work.title,
+            description: work.description || '',
+            imageUrl: work.image_url,
+            category: work.category || 'Realism',
+            isPublic: work.is_public === 1 || work.is_public === true,
+            priceEstimate: work.price_estimate || ''
+        });
+        
+        // Close view modal if it's open
+        if (viewWorkModal.visible) {
+            setViewWorkModal(prev => ({ ...prev, visible: false }));
+            setTimeout(() => setViewWorkModal({ mounted: false, visible: false }), 400);
+        }
+        
+        openModal(setAddWorkModal);
     };
 
     useEffect(() => {
@@ -74,10 +111,17 @@ function ArtistGallery() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await Axios.post(`${API_URL}/api/artist/portfolio`, {
-                artistId,
-                ...formData
-            });
+            if (editingId) {
+                await Axios.put(`${API_URL}/api/artist/portfolio/${editingId}`, {
+                    artistId,
+                    ...formData
+                });
+            } else {
+                await Axios.post(`${API_URL}/api/artist/portfolio`, {
+                    artistId,
+                    ...formData
+                });
+            }
             closeModal(setAddWorkModal);
             // Reset form correctly (preserving defaults)
             setFormData({ 
@@ -88,11 +132,12 @@ function ArtistGallery() {
                 isPublic: true,
                 priceEstimate: ''
             });
+            setEditingId(null);
             fetchPortfolio();
         } catch (error) {
             console.error("Error adding work:", error);
             // Show the actual error message from the server
-            alert(error.response?.data?.message || "Failed to add work");
+            alert(error.response?.data?.message || "Failed to save work");
         }
     };
 
@@ -108,13 +153,29 @@ function ArtistGallery() {
         }
     };
 
+    const toggleVisibility = async (work) => {
+        try {
+            const newStatus = !work.is_public;
+            await Axios.put(`${API_URL}/api/artist/portfolio/${work.id}/visibility`, {
+                isPublic: newStatus
+            });
+            
+            // Update local state immediately for responsiveness
+            const updatedWork = { ...work, is_public: newStatus };
+            if (selectedWork && selectedWork.id === work.id) setSelectedWork(updatedWork);
+            setWorks(prev => prev.map(w => w.id === work.id ? updatedWork : w));
+        } catch (error) {
+            console.error("Error updating visibility:", error);
+        }
+    };
+
   return (
     <div className="portal-layout">
         <ArtistSideNav />
         <div className="portal-container artist-portal page-container-enter">
             <header className="portal-header">
                 <h1>My Portfolio</h1>
-                <button className="btn btn-primary" onClick={() => openModal(setAddWorkModal)}>
+                <button className="btn btn-primary" onClick={openAddModal}>
                     <Plus size={18} /> Add Work
                 </button>
             </header>
@@ -150,7 +211,7 @@ function ArtistGallery() {
                 <div className={`modal-overlay ${viewWorkModal.visible ? 'open' : ''}`} onClick={() => closeModal(setViewWorkModal)}>
                     <div className="modal-content" style={{maxWidth: '900px', width: '90%', maxHeight: '90vh', overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>{selectedWork.title}</h2>
+                            <h2 style={{display: 'flex', alignItems: 'center', gap: '10px'}}>{selectedWork.title} <button onClick={() => handleEditClick(selectedWork)} className="action-btn edit-btn" style={{padding: '4px'}}><Edit size={16}/></button></h2>
                             <button className="close-btn" onClick={() => closeModal(setViewWorkModal)}><X size={20}/></button>
                         </div>
                         <div className="modal-body" style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
@@ -160,9 +221,21 @@ function ArtistGallery() {
                             <div className="work-details">
                                 <div style={{display: 'flex', gap: '15px', marginBottom: '10px'}}>
                                     <span className="badge" style={{backgroundColor: '#e0e7ff', color: '#4338ca'}}>{selectedWork.category || 'Uncategorized'}</span>
-                                    <span className="badge" style={{display: 'flex', alignItems: 'center', gap: '5px', backgroundColor: selectedWork.is_public ? '#dcfce7' : '#f3f4f6', color: selectedWork.is_public ? '#166534' : '#4b5563'}}>
-                                        {selectedWork.is_public ? <><Globe size={14}/> Public</> : <><Lock size={14}/> Private</>}
-                                    </span>
+                                    
+                                    {/* Toggle Switch for Visibility */}
+                                    <div 
+                                        className="badge" 
+                                        style={{display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: selectedWork.is_public ? '#dcfce7' : '#f3f4f6', color: selectedWork.is_public ? '#166534' : '#4b5563', cursor: 'pointer', userSelect: 'none'}}
+                                        onClick={() => toggleVisibility(selectedWork)}
+                                    >
+                                        {selectedWork.is_public ? <Globe size={14}/> : <Lock size={14}/>}
+                                        <span>{selectedWork.is_public ? 'Public' : 'Private'}</span>
+                                        <div style={{
+                                            width: '24px', height: '14px', backgroundColor: selectedWork.is_public ? '#16a34a' : '#cbd5e1', borderRadius: '7px', position: 'relative', transition: 'background 0.3s'
+                                        }}>
+                                            <div style={{width: '10px', height: '10px', backgroundColor: 'white', borderRadius: '50%', position: 'absolute', top: '2px', left: selectedWork.is_public ? '12px' : '2px', transition: 'left 0.3s'}} />
+                                        </div>
+                                    </div>
                                 </div>
                                 <p style={{lineHeight: '1.6', color: '#374151'}}>{selectedWork.description}</p>
                                 {selectedWork.price_estimate && (
@@ -182,7 +255,7 @@ function ArtistGallery() {
                 <div className={`modal-overlay ${addWorkModal.visible ? 'open' : ''}`} onClick={() => closeModal(setAddWorkModal)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>Add New Work</h2>
+                            <h2>{editingId ? 'Edit Work' : 'Add New Work'}</h2>
                             <button className="close-btn" onClick={() => closeModal(setAddWorkModal)}><X size={20}/></button>
                         </div>
                         <form onSubmit={handleSubmit}>
@@ -251,7 +324,7 @@ function ArtistGallery() {
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-secondary" onClick={() => closeModal(setAddWorkModal)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Upload</button>
+                                <button type="submit" className="btn btn-primary">{editingId ? 'Update' : 'Upload'}</button>
                             </div>
                         </form>
                     </div>

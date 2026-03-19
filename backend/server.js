@@ -1475,6 +1475,33 @@ app.post('/api/artist/portfolio', (req, res) => {
   });
 });
 
+// Update portfolio work
+app.put('/api/artist/portfolio/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, description, category, priceEstimate, imageUrl, isPublic } = req.body;
+  
+  let query = 'UPDATE portfolio_works SET title=?, description=?, category=?, price_estimate=?';
+  const params = [title, description, category, priceEstimate || null];
+
+  if (imageUrl) {
+      query += ', image_url=?';
+      params.push(imageUrl);
+  }
+  
+  if (isPublic !== undefined) {
+      query += ', is_public=?';
+      params.push(isPublic ? 1 : 0);
+  }
+
+  query += ' WHERE id=?';
+  params.push(id);
+
+  db.query(query, params, (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+    res.json({ success: true, message: 'Work updated successfully' });
+  });
+});
+
 // Delete portfolio work
 app.delete('/api/artist/portfolio/:id', (req, res) => {
   const { id } = req.params;
