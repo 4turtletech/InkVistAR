@@ -222,9 +222,13 @@ function AdminAppointments() {
             return;
         }
 
-        // Enforce minimum price of 1 if 0 or empty is provided
-        // This prevents payment gateway errors
-        const finalPrice = (!formData.price || parseFloat(formData.price) <= 0) ? 1 : formData.price;
+        // Sanitize input: remove commas, currency symbols, spaces, keep numbers and decimal point
+        // This matches the functionality of the "OK" button in the status popup
+        let priceInput = formData.price ? String(formData.price).replace(/[^0-9.]/g, '') : '0';
+        let priceValue = parseFloat(priceInput);
+
+        // Enforce minimum price of 1 if 0 or empty is provided to prevent payment errors
+        const finalPrice = (!priceValue || priceValue <= 0) ? 1 : priceValue;
 
         try {
             const payload = {
