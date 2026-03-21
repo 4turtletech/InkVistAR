@@ -75,7 +75,8 @@ const PublicRoute = ({ children }) => {
 };
 
 function ScrollToTop() {
-  const { pathname, hash } = useLocation();
+  const location = useLocation();
+  const { hash } = location;
   
   React.useLayoutEffect(() => {
     if ('scrollRestoration' in window.history) {
