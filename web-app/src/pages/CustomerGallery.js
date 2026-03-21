@@ -89,16 +89,16 @@ function CustomerGallery(){
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Inspiration Gallery</h1>
-                        <p className="header-subtitle">Discover your next masterpiece</p>
+                        <p className="header-subtitle">Explore verified artwork and save your favorites</p>
                     </div>
                     
                     <div className="header-actions">
-                        <div className="search-box">
-                            <Search size={18} className="search-icon" />
+                        <div className="header-search glass-card" style={{padding: '0.6rem 1rem', background: '#fff', display: 'flex', alignItems: 'center', borderRadius: '12px', border: '1px solid #e2e8f0'}}>
+                            <Search size={18} style={{color: 'var(--text-muted)', marginRight: '8px'}} />
                             <input 
                                 type="text" 
-                                placeholder="Search tattoos..." 
-                                className="search-input"
+                                placeholder="Search styles, artists..." 
+                                style={{border: 'none', outline: 'none', width: '200px', fontSize: '0.9rem'}}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />

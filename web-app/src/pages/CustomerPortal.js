@@ -73,111 +73,135 @@ function CustomerPortal() {
             <div className="portal-container customer-portal">
             <header className="portal-header">
                 <div className="header-title">
-                    <h1>My Tattoo Portal</h1>
+                    <h1>Customer Dashboard</h1>
                     <p className="header-subtitle">Welcome back, {customer.name || 'Inker'}!</p>
                 </div>
-                <button className="logout-btn" onClick={() => navigate('/login')}>
-                    <LogOut size={20} />
-                    Logout
-                </button>
+                <div className="header-actions">
+                    <button className="logout-btn" onClick={() => navigate('/login')}>
+                        <LogOut size={20} />
+                        Logout
+                    </button>
+                </div>
             </header>
 
             <div className="portal-content">
                 {loading ? (
-                    <div className="no-data">Loading customer portal...</div>
+                    <div className="dashboard-loader-container">
+                        <div className="premium-loader"></div>
+                        <p>Loading your profile...</p>
+                    </div>
                 ) : (
                     <>
                         {/* Stats Grid */}
                         <div className="stats-grid">
-                            <div className="stat-card" onClick={() => navigate('/customer/bookings')} style={{cursor: 'pointer'}}>
-                                <Calendar className="stat-icon" size={32} />
-                                <div className="stat-info">
-                                    <p className="stat-label">Upcoming</p>
-                                    <p className="stat-value">{customer.appointments}</p>
+                            <div className="stat-card-v2" onClick={() => navigate('/customer/bookings')} style={{cursor: 'pointer'}}>
+                                <div className="stat-icon-wrapper blue">
+                                    <Calendar size={24} />
+                                </div>
+                                <div className="stat-content">
+                                    <span className="stat-label-v2">Upcoming Sessions</span>
+                                    <h2 className="stat-value-v2">{customer.appointments}</h2>
                                 </div>
                             </div>
 
-                            <div className="stat-card" onClick={() => navigate('/customer/gallery')} style={{cursor: 'pointer'}}>
-                                <Heart className="stat-icon" size={32} style={{background: 'linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)'}} />
-                                <div className="stat-info">
-                                    <p className="stat-label">Favorites</p>
-                                    <p className="stat-value">{customer.savedDesigns}</p>
+                            <div className="stat-card-v2" onClick={() => navigate('/customer/gallery')} style={{cursor: 'pointer'}}>
+                                <div className="stat-icon-wrapper rose">
+                                    <Heart size={24} />
+                                </div>
+                                <div className="stat-content">
+                                    <span className="stat-label-v2">Saved Designs</span>
+                                    <h2 className="stat-value-v2">{customer.savedDesigns}</h2>
                                 </div>
                             </div>
 
-                            <div className="stat-card" onClick={() => navigate('/customer/gallery')} style={{cursor: 'pointer'}}>
-                                <Award className="stat-icon" size={32} style={{background: 'linear-gradient(135deg, #C19A6B 0%, #8B4513 100%)'}} />
-                                <div className="stat-info">
-                                    <p className="stat-label">My Tattoos</p>
-                                    <p className="stat-value">{customer.totalTattoos}</p>
+                            <div className="stat-card-v2" onClick={() => navigate('/customer/gallery')} style={{cursor: 'pointer'}}>
+                                <div className="stat-icon-wrapper gold">
+                                    <Award size={24} />
+                                </div>
+                                <div className="stat-content">
+                                    <span className="stat-label-v2">My Tattoos</span>
+                                    <h2 className="stat-value-v2">{customer.totalTattoos}</h2>
                                 </div>
                             </div>
                         </div>
 
                         {/* Upcoming Appointments */}
-                        <div className="data-card">
-                            <div className="card-header">
+                        <div className="data-card-v2">
+                            <div className="card-header-v2">
                                 <h2>Upcoming Sessions</h2>
                                 <button className="action-btn" onClick={() => navigate('/customer/book')}>Book New Session</button>
                             </div>
-                            <div className="table-responsive">
+                            <div className="modern-table-wrapper">
                                 {appointments.length > 0 ? (
-                                    <table className="portal-table">
+                                    <table className="premium-table">
                                         <thead>
                                             <tr>
                                                 <th>Artist</th>
                                                 <th>Service</th>
-                                                <th>Date</th>
-                                                <th>Time</th>
+                                                <th>Date & Time</th>
                                                 <th>Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {appointments.map((apt) => (
                                                 <tr key={apt.id}>
-                                                    <td>{apt.artist}</td>
+                                                    <td>
+                                                        <div className="client-cell">
+                                                            <div className="avatar-placeholder">{apt.artist.charAt(0)}</div>
+                                                            <span>{apt.artist}</span>
+                                                        </div>
+                                                    </td>
                                                     <td>{apt.service}</td>
-                                                    <td>{apt.date}</td>
-                                                    <td>{apt.time}</td>
-                                                    <td><span className={`status-badge ${apt.status.toLowerCase()}`}>{apt.status}</span></td>
+                                                    <td>
+                                                        <div className="date-time-cell">
+                                                            <div className="primary-date">{apt.date}</div>
+                                                            <div className="secondary-time">{apt.time}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td><span className={`status-badge-v2 ${apt.status.toLowerCase()}`}>{apt.status}</span></td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 ) : (
-                                    <div className="empty-state-simple">
-                                        <p>No upcoming appointments scheduled.</p>
+                                    <div className="empty-state-simple" style={{padding: '3rem', textAlign: 'center', color: 'var(--text-muted)'}}>
+                                        <p>No upcoming appointments found.</p>
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         <div className="quick-actions-grid">
-                            <div className="action-card" onClick={() => navigate('/customer/gallery')}>
+                            <div className="action-card glass-card" onClick={() => navigate('/customer/gallery')}>
                                 <Heart size={24} />
                                 <span>View Saved Designs</span>
                             </div>
-                            <div className="action-card" onClick={() => navigate('/customer/gallery')}>
+                            <div className="action-card glass-card" onClick={() => navigate('/customer/gallery')}>
                                 <Award size={24} />
                                 <span>My Tattoo History</span>
                             </div>
-                            <div className="action-card" onClick={() => navigate('/customer/book')}>
+                            <div className="action-card glass-card" onClick={() => navigate('/customer/book')}>
                                 <Calendar size={24} />
                                 <span>Schedule Session</span>
                             </div>
                         </div>
 
                         {/* Favorite Artists */}
-                        <div className="data-card">
-                            <h2>Recommended Artists</h2>
-                            <div className="artists-grid">
+                        <div className="data-card-v2">
+                            <div className="card-header-v2">
+                                <h2>Recommended Artists</h2>
+                                <button className="view-more-btn" onClick={() => navigate('/artists')}>Meet the Team</button>
+                            </div>
+                            <div className="artists-grid" style={{padding: '1.5rem'}}>
                                 {artists.length > 0 ? (
                                     artists.slice(0, 4).map((artist) => (
-                                        <div key={artist.id} className="artist-card">
-                                            <h3>{artist.name}</h3>
-                                            <p className="specialty">{artist.specialization || 'Professional Artist'}</p>
-                                            <p className="rating">⭐ {artist.rating || 5.0}/5.0</p>
-                                            <button className="action-btn" onClick={() => navigate('/customer/book')}>Book Now</button>
+                                        <div key={artist.id} className="artist-card-v2 glass-card" style={{padding: '1.5rem', borderRadius: '16px'}}>
+                                            <h3 style={{margin: '0 0 5px 0', fontSize: '1.1rem'}}>{artist.name}</h3>
+                                            <p className="specialty" style={{margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)'}}>{artist.specialization || 'Professional Artist'}</p>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                                <span className="rating" style={{fontWeight: '700', color: '#f59e0b'}}>⭐ {artist.rating || 5.0}</span>
+                                                <button className="action-btn-small" onClick={() => navigate('/customer/book')} style={{background: 'var(--text-main)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem'}}>Book</button>
+                                            </div>
                                         </div>
                                     ))
                                 ) : (

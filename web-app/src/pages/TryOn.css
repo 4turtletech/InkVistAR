@@ -1,36 +1,19 @@
+/* Minimalist WIP Page */
 .tryon-portal {
-    background: #0a0a0b !important;
+    background: var(--bg-main) !important;
     position: relative;
     overflow: hidden;
-    color: #fff;
-}
-
-.tryon-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 50% 50%, rgba(193, 154, 107, 0.15) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 1;
-}
-
-.tryon-header {
-    background: transparent !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-    position: relative;
-    z-index: 10;
+    color: var(--text-main);
 }
 
 .tryon-header h1 {
-    color: #fff !important;
+    color: var(--text-main) !important;
 }
 
 .back-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #fff;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    color: var(--text-main);
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -95,8 +78,9 @@
     font-size: 3rem;
     font-family: 'Playfair Display', serif;
     margin-bottom: 20px;
-    background: linear-gradient(to right, #fff, #C19A6B);
+    background: linear-gradient(to right, var(--text-main), #C19A6B);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 

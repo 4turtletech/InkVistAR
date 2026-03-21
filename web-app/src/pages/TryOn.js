@@ -64,7 +64,6 @@ function TryOn() {
                                 <Bell size={18} />
                                 Notify Me on Launch
                             </button>
-                            <p className="privacy-note">Join 1,240+ users on the early-access list.</p>
                         </div>
 
                         <div className="progress-bar-container">
