@@ -75,10 +75,34 @@ const PublicRoute = ({ children }) => {
 };
 
 function ScrollToTop() {
-  const { pathname } = useLocation();
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+  const { pathname, hash } = useLocation();
+  
+  React.useLayoutEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    
+    // If there is no hash, we absolutely want to be at the top
+    if (!hash) {
+      const forceScroll = () => {
+        window.scrollTo(0, 0);
+      };
+
+      forceScroll();
+      // Use multiple frames to ensure we win against browser-level adjustments
+      const frame1 = requestAnimationFrame(forceScroll);
+      const frame2 = requestAnimationFrame(() => requestAnimationFrame(forceScroll));
+      
+      const timeout = setTimeout(forceScroll, 50);
+
+      return () => {
+        cancelAnimationFrame(frame1);
+        cancelAnimationFrame(frame2);
+        clearTimeout(timeout);
+      };
+    }
+  }, [location.key, hash]);
+  
   return null;
 }
 
