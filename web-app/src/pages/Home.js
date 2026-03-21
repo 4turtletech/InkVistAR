@@ -69,7 +69,7 @@ function Home() {
     }, [location]);
 
     return (
-        <div className="home-container">
+        <div className="home-container page-transition-wrapper">
             <Navbar />
 
             {/* Section 1: Hero Screen */}

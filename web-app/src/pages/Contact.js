@@ -26,7 +26,7 @@ const Contact = () => {
     <>
       <Navbar />
 
-      <div className="contact-page">
+      <div className="contact-page page-transition-wrapper">
       {/* Header Section */}
       <header className="contact-header">
         <h1>Get In Touch</h1>

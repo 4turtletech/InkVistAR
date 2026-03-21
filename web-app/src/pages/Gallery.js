@@ -109,7 +109,7 @@ const Gallery = () => {
     <>
       <Navbar />
 
-      <div className="gallery-page">
+      <div className="gallery-page page-transition-wrapper">
       {/* Header Section */}
       <header className="gallery-header">
         <h1>{selectedArtist ? `PORTFOLIO: ${selectedArtist.name.toUpperCase()}` : 'OUR ARTWORK SPEAKS VOLUMES'}</h1>
@@ -204,7 +204,7 @@ const Gallery = () => {
       {/* Centered Modal */}
       {selectedImage && (
         <div className="gallery-modal-overlay" onClick={() => setSelectedImage(null)}>
-          <div className="gallery-modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="gallery-modal-content modal-animate-in" onClick={(e) => e.stopPropagation()}>
             <button className="gallery-modal-close" onClick={() => setSelectedImage(null)}>&times;</button>
             <div className="gallery-modal-image-container">
               <img src={selectedImage.image_url} alt={selectedImage.title || 'Tattoo artwork'} />

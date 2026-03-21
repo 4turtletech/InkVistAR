@@ -1,71 +1,69 @@
 /* --- Premium Modal / Popup Styles --- */
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(17, 24, 39, 0.4); /* Using a slightly tinted dark background */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-
-  /* Initial state: hidden */
-  opacity: 0;
-  visibility: hidden;
-  backdrop-filter: blur(0px);
-
-  /* Smooth transition for enter/exit */
-  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
-              backdrop-filter 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 0.4s;
+.modal-animate-in {
+  animation: premiumModalIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.modal-overlay.open {
-  opacity: 1;
-  visibility: visible;
-  backdrop-filter: blur(8px); /* Premium frosted glass effect */
-}
-
-.modal-content {
-  /* Initial state: small and faded out */
-  opacity: 0;
-  transform: scale(0.96) translateY(10px);
-  
-  /* Smooth, spring-like transition */
-  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
-              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* When the overlay is open, the content animates in */
-.modal-overlay.open .modal-content {
-  opacity: 1;
-  transform: scale(1) translateY(0);
+@keyframes premiumModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    backdrop-filter: blur(10px);
+  }
 }
 
 /* --- Premium Page Transition --- */
 /* Apply this to the root container of each page */
-.page-container-enter {
-  animation: premiumFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.page-transition-wrapper {
+  animation: premiumPageReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
-@keyframes premiumFadeInUp {
-  from {
+@keyframes premiumPageReveal {
+  0% {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
+    filter: blur(5px);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
+}
+
+/* Specific section reveal for scroll animations */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Hover lift effect for cards */
+.premium-hover-lift {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.premium-hover-lift:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
 @media print {
-  .page-container-enter {
+  .page-transition-wrapper {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
   }
 }

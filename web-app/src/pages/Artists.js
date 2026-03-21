@@ -43,7 +43,7 @@ function Artists() {
     }, []);
 
     return (
-        <div className="artists-page">
+        <div className="artists-page page-transition-wrapper">
             <Navbar />
 
             {/* Hero Section */}

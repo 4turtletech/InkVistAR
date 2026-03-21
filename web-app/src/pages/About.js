@@ -29,7 +29,7 @@ const About = () => {
     }, []);
 
     return (
-        <div className="home-container" style={{ paddingTop: '80px' }}>
+        <div className="home-container page-transition-wrapper" style={{ paddingTop: '80px' }}>
             <Navbar />
             
             <header className="about-header-v2" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
