@@ -8,7 +8,8 @@ import {
     ChevronLeft,
     ChevronRight,
     LogOut,
-    PlusCircle
+    PlusCircle,
+    Sparkles
 } from 'lucide-react';
 import '../styles/CustomerSideNav.css';
 
@@ -40,6 +41,7 @@ function CustomerSideNav() {
         { label: 'Book Appointment', icon: PlusCircle, path: '/customer/book' },
         { label: 'My Bookings', icon: Calendar, path: '/customer/bookings' },
         { label: 'Gallery', icon: Image, path: '/customer/gallery' },
+        { label: 'Try-On Tattoo', icon: Sparkles, path: '/customer/try-on' },
         { label: 'Profile', icon: User, path: '/customer/profile' },
     ];
 
