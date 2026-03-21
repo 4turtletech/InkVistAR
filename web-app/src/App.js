@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import './App.css';
 import './styles/premium-transitions.css';
 import Home from './pages/Home';
