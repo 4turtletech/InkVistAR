@@ -152,7 +152,9 @@ const PayMongoPayment = () => {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ color: '#64748b' }}>Amount:</span>
-                                <span style={{ fontWeight: 700, fontSize: '1.2rem', color: '#0f172a' }}>₱{(paymentType === 'deposit' ? depositPrice : paymentType === 'balance' ? price : price).toLocaleString()}</span>
+                                <span style={{ fontWeight: 700, fontSize: '1.2rem', color: '#0f172a' }}>
+                                    ₱{(paymentType === 'deposit' ? depositPrice : location.state?.remainingBalance || price).toLocaleString()}
+                                </span>
                             </div>
                         </div>
                         <button onClick={handlePayment} style={{ ...btnBase, backgroundColor: '#10b981', color: 'white' }}>
@@ -168,7 +170,12 @@ const PayMongoPayment = () => {
                 ) : (
                     <div style={{ textAlign: 'center', padding: '20px' }}>
                         <p style={{ color: '#ef4444' }}>Payment failed to initialize.</p>
-                        <button onClick={() => setStatus('selection')} style={{ ...btnBase, backgroundColor: '#3b82f6', color: 'white' }}>Try Again</button>
+                        <button 
+                            onClick={() => paymentType === 'balance' ? initializeSession('balance') : setStatus('selection')} 
+                            style={{ ...btnBase, backgroundColor: '#3b82f6', color: 'white' }}
+                        >
+                            Try Again
+                        </button>
                     </div>
                 )}
                 

@@ -2115,21 +2115,28 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         ? `Tattoo Service - Balance payment (Appt #${appointmentId})`
         : (appointment.design_title || 'Tattoo Service') + (paymentType === 'deposit' ? ' (Deposit)' : '');
 
-      if (paymentType === 'deposit') {
-          const depositPesos = Math.max(100, Math.round(priceNumber * 0.3));
-          proceedWithSession(Math.round(depositPesos * 100), itemName, description);
-      } else if (paymentType === 'balance') {
-          const totalPaidCentavos = Number(appointment.total_paid_centavos) || 0;
-          const totalAmountCentavos = Math.round(priceNumber * 100);
-          const remainingCentavos = totalAmountCentavos - totalPaidCentavos;
-          
-          if (remainingCentavos <= 0) {
-              return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
-          }
+      try {
+          if (paymentType === 'deposit') {
+              const depositPesos = Math.max(100, Math.round(priceNumber * 0.3));
+              await proceedWithSession(Math.round(depositPesos * 100), itemName, description);
+          } else if (paymentType === 'balance') {
+              const totalPaidCentavos = Number(appointment.total_paid_centavos) || 0;
+              const totalAmountCentavos = Math.round(priceNumber * 100);
+              const remainingCentavos = totalAmountCentavos - totalPaidCentavos;
+              
+              if (remainingCentavos <= 0) {
+                  return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
+              }
 
-          proceedWithSession(remainingCentavos, 'Balance Payment', `Final balance payment for Appointment #${appointmentId}`);
-      } else {
-          proceedWithSession(Math.round(priceNumber * 100), itemName, description);
+              await proceedWithSession(remainingCentavos, 'Balance Payment', `Final balance payment for Appointment #${appointmentId}`);
+          } else {
+              await proceedWithSession(Math.round(priceNumber * 100), itemName, description);
+          }
+      } catch (innerError) {
+          console.error('❌ Error in proceedWithSession flow:', innerError.message);
+          if (!res.headersSent) {
+              res.status(500).json({ success: false, message: 'Process error: ' + innerError.message });
+          }
       }
 
       async function proceedWithSession(sessionAmount, sessionName, sessionDesc) {
