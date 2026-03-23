@@ -1884,7 +1884,9 @@ app.post('/api/customer/appointments', (req, res) => {
 app.get('/api/customer/:customerId/appointments', (req, res) => {
   const { customerId } = req.params;
   const query = `
-    SELECT ap.*, ap.price, u.name as artist_name, u.email as artist_email, COALESCE(a.studio_name, 'Independent Artist') as studio_name
+    SELECT ap.*, ap.price, u.name as artist_name, u.email as artist_email, 
+           COALESCE(a.studio_name, 'Independent Artist') as studio_name,
+           (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100 as total_paid
     FROM appointments ap
     JOIN users u ON ap.artist_id = u.id
     LEFT JOIN artists a ON u.id = a.user_id

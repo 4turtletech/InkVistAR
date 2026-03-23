@@ -135,9 +135,10 @@ function CustomerBookings(){
                             <>
                             <div className="table-responsive">
                                 <table className="portal-table">
-                                    <thead><tr><th>Artist</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Price</th><th>Action</th></tr></thead>
+                                    <thead><tr><th>Appt ID</th><th>Artist</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Price</th><th>Action</th></tr></thead>
                                     <tbody>{displayedAppointments.map(a=> (
                                         <tr key={a.id}>
+                                            <td style={{ fontWeight: '600', color: '#64748b' }}>#{a.id}</td>
                                             <td>{a.artist_name}</td>
                                             <td>{a.design_title}</td>
                                             <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
@@ -158,11 +159,11 @@ function CustomerBookings(){
                                                         </button>
                                                     ) : a.payment_status === 'paid' ? (
                                                         <span className="status-badge completed" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                                            <CheckCircle size={12}/> Paid
+                                                            <CheckCircle size={12}/> Fully Paid
                                                         </span>
                                                     ) : a.payment_status === 'downpayment_paid' ? (
                                                         <span className="status-badge confirmed" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '3px', border: '1px solid #bfdbfe' }}>
-                                                            <CheckCircle size={12}/> Deposit Paid
+                                                            <CheckCircle size={12}/> Balance: ₱{(Number(a.price) - Number(a.total_paid || 0)).toLocaleString()}
                                                         </span>
                                                     ) : (
                                                         <span style={{color: '#9ca3af', fontSize: '0.9rem'}}>-</span>
