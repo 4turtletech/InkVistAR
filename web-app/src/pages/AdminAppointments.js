@@ -274,7 +274,7 @@ function AdminAppointments() {
     };
 
     const handleExport = () => {
-        const headers = ['ID', 'Client Name', 'Artist', 'Service Type', 'Date', 'Time', 'Status', 'Price'];
+        const headers = ['Appointment ID', 'Client Name', 'Artist', 'Service Type', 'Date', 'Time', 'Status', 'Price'];
         const csvContent = [
             headers.join(','),
             ...filteredAppointments.map(a => 
@@ -471,7 +471,7 @@ function AdminAppointments() {
                             <table className="data-table">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
+                                        <th>Appointment ID</th>
                                         <th>Client Name</th>
                                         <th>Artist</th>
                                         <th>Service</th>
