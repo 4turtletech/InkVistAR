@@ -11,10 +11,15 @@ require('dotenv').config();
 const app = express();
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-console.log(`[CONFIG] Redirects will point to: ${FRONTEND_URL}`);
-
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
-console.log(`[CONFIG] Verification links will use base: ${BACKEND_URL}`);
+
+// Helper to get safe protocol (prioritize https for production)
+const getProtocol = (req) => {
+  return req.headers['x-forwarded-proto'] || (req.get('host') && req.get('host').includes('render.com') ? 'https' : req.protocol);
+};
+
+console.log(`[CONFIG] Redirects will point to: ${FRONTEND_URL}`);
+console.log(`[CONFIG] Verification logic updated for dynamic host detection.`);
 
 // PayMongo configuration
 const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY;
@@ -1175,7 +1180,9 @@ app.post('/api/register', async (req, res) => {
 
         const newUserId = result.insertId;
         // Send Verification Email
-        const verifyUrl = `${BACKEND_URL}/api/verify?token=${verification_token}&email=${email}`;
+        const protocol = getProtocol(req);
+        const host = req.get('host');
+        const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${email}`;
 
         // LOG VERIFICATION LINK (Fix for development/Gmail issues)
         console.log('🔑 [DEBUG] Verification Link:', verifyUrl);
@@ -3359,7 +3366,9 @@ app.post('/api/resend-verification', (req, res) => {
       if (updateErr) return res.status(500).json({ success: false, message: 'Database error' });
 
       // Send Email
-      const verifyUrl = `${BACKEND_URL}/api/verify?token=${verification_token}&email=${email}`;
+      const protocol = getProtocol(req);
+      const host = req.get('host');
+      const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${email}`;
 
       console.log('🔑 [DEBUG] NEW Verification Link:', verifyUrl);
 
