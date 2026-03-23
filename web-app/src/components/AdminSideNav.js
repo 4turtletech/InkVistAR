@@ -17,7 +17,8 @@ import {
     Receipt,
     ChevronDown,
     ChevronUp,
-    AppWindow
+    AppWindow,
+    Bell
 } from 'lucide-react';
 import '../styles/AdminSideNav.css';
 
