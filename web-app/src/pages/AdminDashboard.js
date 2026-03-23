@@ -52,6 +52,8 @@ function AdminDashboard() {
     const [appointmentSearch, setAppointmentSearch] = useState('');
     const [appointmentPage, setAppointmentPage] = useState(1);
     const appointmentsPerPage = 10;
+    const [sortType, setSortType] = useState('upcoming');
+    const [statusFilter, setStatusFilter] = useState('all');
 
     // Modal States
     const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -245,10 +247,22 @@ function AdminDashboard() {
     const displayedLogs = filteredLogs.slice((auditPage - 1) * itemsPerPage, auditPage * itemsPerPage);
 
     // Filter and paginate appointments
-    const filteredAppointments = appointments.filter(apt =>
-        (apt.client_name || '').toLowerCase().includes(appointmentSearch.toLowerCase()) ||
-        (apt.artist_name || '').toLowerCase().includes(appointmentSearch.toLowerCase())
-    );
+    const filteredAppointments = appointments
+        .filter(apt => {
+            const matchesSearch = 
+                (apt.client_name || '').toLowerCase().includes(appointmentSearch.toLowerCase()) ||
+                (apt.artist_name || '').toLowerCase().includes(appointmentSearch.toLowerCase());
+            const matchesStatus = statusFilter === 'all' || apt.status.toLowerCase() === statusFilter.toLowerCase();
+            return matchesSearch && matchesStatus;
+        })
+        .sort((a, b) => {
+            if (sortType === 'upcoming') {
+                return new Date(a.appointment_date) - new Date(b.appointment_date);
+            }
+            // latest_added sorting (newest first)
+            return b.id - a.id; // Using ID as proxy for latest added if created_at is not parsed correctly
+        });
+
     const appointmentTotalPages = Math.ceil(filteredAppointments.length / appointmentsPerPage);
     const displayedAppointments = filteredAppointments.slice((appointmentPage - 1) * appointmentsPerPage, appointmentPage * appointmentsPerPage);
 
@@ -342,6 +356,40 @@ function AdminDashboard() {
                                             <h2>Upcoming Appointments</h2>
                                         </div>
                                         <div className="card-actions">
+                                            <div className="filter-group-v2">
+                                                <input 
+                                                    type="radio" 
+                                                    id="sort-upcoming" 
+                                                    name="sortType" 
+                                                    className="filter-radio-btn" 
+                                                    checked={sortType === 'upcoming'} 
+                                                    onChange={() => setSortType('upcoming')}
+                                                />
+                                                <label htmlFor="sort-upcoming" className="filter-label-v2">Upcoming</label>
+                                                
+                                                <input 
+                                                    type="radio" 
+                                                    id="sort-latest" 
+                                                    name="sortType" 
+                                                    className="filter-radio-btn" 
+                                                    checked={sortType === 'latest_added'} 
+                                                    onChange={() => setSortType('latest_added')}
+                                                />
+                                                <label htmlFor="sort-latest" className="filter-label-v2">Latest Added</label>
+                                            </div>
+
+                                            <select 
+                                                className="status-select-v2" 
+                                                value={statusFilter} 
+                                                onChange={(e) => setStatusFilter(e.target.value)}
+                                            >
+                                                <option value="all">All Status</option>
+                                                <option value="pending">Pending</option>
+                                                <option value="confirmed">Confirmed</option>
+                                                <option value="completed">Completed</option>
+                                                <option value="cancelled">Cancelled</option>
+                                            </select>
+
                                             <div className="search-box-v2">
                                                 <Search size={16} />
                                                 <input 
@@ -514,12 +562,16 @@ function AdminDashboard() {
                                         <p>{selectedAppointment.artist_name}</p>
                                     </div>
                                     <div className="detail-item-v2">
+                                        <label>Appointment Type</label>
+                                        <p>{selectedAppointment.design_title || 'General Session'}</p>
+                                    </div>
+                                    <div className="detail-item-v2">
                                         <label>Execution Schedule</label>
                                         <p>{new Date(selectedAppointment.appointment_date).toLocaleDateString()} at {selectedAppointment.start_time}</p>
                                     </div>
                                     <div className="detail-item-v2 full-width">
                                         <label>The Vision / Description</label>
-                                        <p className="description-box">{selectedAppointment.description || "No vision documented for this request."}</p>
+                                        <p className="description-box">{selectedAppointment.notes || "No specific vision documented for this request."}</p>
                                     </div>
                                     <div className="detail-item-v2">
                                         <label>Current Status</label>
