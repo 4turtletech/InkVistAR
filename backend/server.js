@@ -2991,7 +2991,7 @@ app.post('/api/admin/appointments', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  db.query(query, [customerId, artistId, date, startTime, endTime || startTime, designTitle, notes, status || 'scheduled', (price && price > 0) ? price : 1], (err, result) => {
+  db.query(query, [customerId, artistId, date, startTime, endTime || startTime, designTitle, notes, status || 'scheduled', (price !== undefined) ? price : 0], (err, result) => {
     if (err) {
       console.error('❌ Error creating appointment:', err);
       return res.status(500).json({ success: false, message: err.message });

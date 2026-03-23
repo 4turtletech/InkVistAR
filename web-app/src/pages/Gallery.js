@@ -215,14 +215,13 @@ const Gallery = () => {
               {selectedImage.artist_name && <p className="modal-artist">Artist: <strong>{selectedImage.artist_name}</strong></p>}
               {selectedImage.category && <p className="modal-category">Category: <strong>{selectedImage.category}</strong></p>}
               {selectedImage.description && <p className="modal-description">{selectedImage.description}</p>}
-              {selectedImage.price_estimate && <p className="modal-category" style={{color: '#daa520'}}>Estimated Price: <strong>₱{Number(selectedImage.price_estimate).toLocaleString()}</strong></p>}
               
               <button 
                 className="filter-btn" 
                 style={{ marginTop: '30px', width: '100%', padding: '15px', fontWeight: 'bold', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}
-                onClick={() => navigate('/book', { state: { artistId: selectedImage.artist_id, designTitle: selectedImage.title } })}
+                onClick={() => navigate('/book', { state: { designTitle: selectedImage.title } })}
               >
-                Book Similar Tattoo
+                Consult About This Design
               </button>
             </div>
           </div>

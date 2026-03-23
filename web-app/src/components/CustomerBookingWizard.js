@@ -25,6 +25,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [bookedDates, setBookedDates] = useState({});
 
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authView, setAuthView] = useState('login'); // 'login' or 'register'
+    const [authData, setAuthData] = useState({ email: '', password: '', firstName: '', lastName: '', phone: '' });
+    const [authError, setAuthError] = useState('');
+
     useEffect(() => {
         // Fetch global availability for the studio (Artist 1 / Admin)
         fetchAvailability(1);
@@ -57,27 +62,65 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         }
     };
 
+    const handleAuthAction = async (e) => {
+        e.preventDefault();
+        setAuthError('');
+        setLoading(true);
+
+        try {
+            if (authView === 'login') {
+                const res = await Axios.post(`${API_URL}/api/login`, {
+                    email: authData.email,
+                    password: authData.password
+                });
+                if (res.data.success) {
+                    localStorage.setItem('user', JSON.stringify(res.data.user));
+                    setShowAuthModal(false);
+                    // Continue to submit booking with the new user ID
+                    finalizeBooking(res.data.user.id);
+                }
+            } else {
+                const res = await Axios.post(`${API_URL}/api/register`, {
+                    firstName: authData.firstName,
+                    lastName: authData.lastName,
+                    email: authData.email,
+                    phone: authData.phone || formData.phone,
+                    password: authData.password,
+                    type: 'customer'
+                });
+                if (res.data.success) {
+                    alert('Registration successful! Please login to finalize your booking.');
+                    setAuthView('login');
+                }
+            }
+        } catch (err) {
+            setAuthError(err.response?.data?.message || 'Authentication failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSubmit = async () => {
         if (!formData.date || !formData.designTitle || !formData.name || !formData.email) {
             alert('Please fill in all required fields.');
             return;
         }
 
-        // Handle unauthenticated leading
-        if (!customerId && !isPublic) {
-            sessionStorage.setItem('pendingBooking', JSON.stringify({
-                ...formData,
-                artistId: 1, // Default Studio Account
-                serviceType: 'Consultation'
-            }));
-            navigate('/login?redirect=booking');
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        if (!currentUser) {
+            setAuthData(prev => ({ ...prev, email: formData.email }));
+            setShowAuthModal(true);
             return;
         }
 
+        finalizeBooking(currentUser.id);
+    };
+
+    const finalizeBooking = async (uid) => {
         setLoading(true);
         try {
             const response = await Axios.post(`${API_URL}/api/admin/appointments`, {
-                customerId: customerId || 0, // 0 for public leads if not logged in
+                customerId: uid,
                 artistId: 1, // Default Studio Account
                 date: formData.date,
                 startTime: formData.time,
@@ -89,17 +132,13 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             });
 
             if (response.data.success) {
-                if (customerId) {
-                    navigate('/booking-confirmation', { state: { appointmentId: response.data.id, isConsultation: true } });
-                } else {
-                    setStep(4); // Show success message
-                }
+                setStep(4); // Show success message
             } else {
                 alert('Request Failed: ' + (response.data.message || 'An unknown error occurred.'));
             }
         } catch (error) {
             console.error('Booking error:', error);
-            alert('Request Failed. Please try again or contact us directly.');
+            alert('Request Failed. Please check your connection and try again.');
         } finally {
             setLoading(false);
         }
@@ -232,7 +271,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 <div>
                      <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '12px', display: 'block'}}>Preferred Time</label>
                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
-                        {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'].map(t => (
+                        {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => (
                             <button
                                 key={t}
                                 onClick={() => setFormData({...formData, time: t})}
@@ -247,7 +286,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                {t.replace(':00', t.startsWith('12') ? ' PM' : ' PM')}
+                                {t === '12:00' ? '12:00 PM' : 
+                                 parseInt(t) > 12 ? `${parseInt(t) - 12}:00 PM` : `${t} PM`}
                             </button>
                         ))}
                      </div>
@@ -323,7 +363,78 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     if (step === 4) return renderSuccess();
 
     return (
-        <div className="data-card" style={{border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', borderRadius: '24px'}}>
+        <div className="data-card" style={{border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', borderRadius: '24px', position: 'relative'}}>
+            
+            {/* Auth Modal Overlay */}
+            {showAuthModal && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                    backgroundColor: 'rgba(255, 255, 255, 0.98)', zIndex: 100,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    padding: '40px', borderRadius: '24px', textAlign: 'center'
+                }} className="fade-in">
+                    <button 
+                        onClick={() => setShowAuthModal(false)}
+                        style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}
+                    >
+                        &times;
+                    </button>
+                    
+                    <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>
+                        {authView === 'login' ? 'Welcome Back' : 'Join Inkvictus'}
+                    </h2>
+                    <p style={{ color: '#64748b', marginBottom: '32px' }}>
+                        {authView === 'login' 
+                            ? 'Please log in to finalize your consultation request.' 
+                            : 'Create an account to complete your booking.'}
+                    </p>
+
+                    {authError && <div style={{ color: '#ef4444', marginBottom: '20px', fontSize: '0.9rem', fontWeight: '600' }}>{authError}</div>}
+
+                    <form onSubmit={handleAuthAction} style={{ width: '100%', maxWidth: '320px' }}>
+                        {authView === 'register' && (
+                            <>
+                                <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+                                    <input 
+                                        type="text" className="form-input" placeholder="First Name" required
+                                        value={authData.firstName} onChange={e => setAuthData({...authData, firstName: e.target.value})}
+                                    />
+                                    <input 
+                                        type="text" className="form-input" placeholder="Last Name" required
+                                        value={authData.lastName} onChange={e => setAuthData({...authData, lastName: e.target.value})}
+                                    />
+                                </div>
+                            </>
+                        )}
+                        <div style={{ marginBottom: '12px' }}>
+                            <input 
+                                type="email" className="form-input" placeholder="Email Address" required
+                                value={authData.email} onChange={e => setAuthData({...authData, email: e.target.value})}
+                            />
+                        </div>
+                        <div style={{ marginBottom: '24px' }}>
+                            <input 
+                                type="password" className="form-input" placeholder="Password" required
+                                value={authData.password} onChange={e => setAuthData({...authData, password: e.target.value})}
+                            />
+                        </div>
+                        
+                        <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }} disabled={loading}>
+                            {loading ? 'Processing...' : (authView === 'login' ? 'Log In & Finalize' : 'Create Account')}
+                        </button>
+                    </form>
+
+                    <p style={{ marginTop: '24px', fontSize: '0.9rem', color: '#64748b' }}>
+                        {authView === 'login' ? "Don't have an account?" : "Already have an account?"}
+                        <button 
+                            onClick={() => { setAuthView(authView === 'login' ? 'register' : 'login'); setAuthError(''); }}
+                            style={{ background: 'none', border: 'none', color: '#C19A6B', fontWeight: '700', cursor: 'pointer', marginLeft: '5px' }}
+                        >
+                            {authView === 'login' ? 'Register Now' : 'Log In Instead'}
+                        </button>
+                    </p>
+                </div>
+            )}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', borderBottom: '1px solid #f1f5f9', paddingBottom: '32px'}}>
                 <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
                     <h2 style={{margin: 0, fontSize: '1.4rem', fontWeight: '800', color: '#1e293b'}}>Request Consultation</h2>
