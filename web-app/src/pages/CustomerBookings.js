@@ -68,10 +68,12 @@ function CustomerBookings(){
             alert("Price has not been set by the studio yet. Please wait for confirmation.");
             return;
         }
+        const remainingBalance = appointment.price - (appointment.total_paid || 0);
         navigate(`/payment?appointmentId=${appointment.id}&price=${appointment.price}`, { 
             state: { 
                 appointmentId: appointment.id, 
-                price: appointment.price, 
+                price: appointment.price,
+                remainingBalance: remainingBalance,
                 type: type 
             } 
         });
@@ -162,9 +164,18 @@ function CustomerBookings(){
                                                             <CheckCircle size={12}/> Fully Paid
                                                         </span>
                                                     ) : a.payment_status === 'downpayment_paid' ? (
-                                                        <span className="status-badge confirmed" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '3px', border: '1px solid #bfdbfe' }}>
-                                                            <CheckCircle size={12}/> Remaining Balance
-                                                        </span>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                                            <span className="status-badge confirmed" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '3px', border: '1px solid #bfdbfe', width: 'fit-content' }}>
+                                                                <CheckCircle size={12}/> Remaining Balance
+                                                            </span>
+                                                            <button 
+                                                                className="btn btn-primary" 
+                                                                style={{padding: '5px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px', backgroundColor: '#3b82f6', border: 'none'}}
+                                                                onClick={() => handlePay(a, 'balance')}
+                                                            >
+                                                                <CreditCard size={14}/> Pay Remaining Balance
+                                                            </button>
+                                                        </div>
                                                     ) : (
                                                         <span style={{color: '#9ca3af', fontSize: '0.9rem'}}>-</span>
                                                     )}

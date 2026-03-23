@@ -2214,8 +2214,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
               }
             );
 
-            // Also update the appointment's payment_status to 'pending'
-            db.query("UPDATE appointments SET payment_status = 'pending' WHERE id = ?", [appointmentId]);
+
 
             res.json({ success: true, checkoutUrl, sessionId });
           } catch (err) {
