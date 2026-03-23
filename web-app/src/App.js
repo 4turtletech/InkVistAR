@@ -1,9 +1,7 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import './App.css';
 import './styles/premium-transitions.css';
 import Home from './pages/Home';
-import About from './pages/About';
 import Login from './pages/Login';
 import Artists from './pages/Artists';
 import Register from './pages/Register';
@@ -38,11 +36,8 @@ import CustomerBookings from './pages/CustomerBookings';
 import CustomerGallery from './pages/CustomerGallery';
 import CustomerProfile from './pages/CustomerProfile';
 import CustomerBookingCreate from './pages/CustomerBookingCreate';
-import PayMongoPayment from './pages/PayMongoPayment';
-import CustomerTransactions from './pages/CustomerTransactions';
+import PaymentSimulation from './pages/PaymentSimulation';
 import BookingConfirmation from './pages/BookingConfirmation';
-import TryOn from './pages/TryOn';
-import AdminNotifications from './pages/AdminNotifications';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const user = JSON.parse(localStorage.getItem('user'));
@@ -76,47 +71,12 @@ const PublicRoute = ({ children }) => {
     return children;
 };
 
-function ScrollToTop() {
-  const location = useLocation();
-  const { hash } = location;
-  
-  React.useLayoutEffect(() => {
-    if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual';
-    }
-    
-    // If there is no hash, we absolutely want to be at the top
-    if (!hash) {
-      const forceScroll = () => {
-        window.scrollTo(0, 0);
-      };
-
-      forceScroll();
-      // Use multiple frames to ensure we win against browser-level adjustments
-      const frame1 = requestAnimationFrame(forceScroll);
-      const frame2 = requestAnimationFrame(() => requestAnimationFrame(forceScroll));
-      
-      const timeout = setTimeout(forceScroll, 50);
-
-      return () => {
-        cancelAnimationFrame(frame1);
-        cancelAnimationFrame(frame2);
-        clearTimeout(timeout);
-      };
-    }
-  }, [location.key, hash]);
-  
-  return null;
-}
-
 function App() {
   return (
     <div className="App">
       <Router>
-        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
           <Route path="/artists" element={<Artists />} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/contact" element={<Contact />} />
@@ -131,6 +91,7 @@ function App() {
           <Route path="/admin/studio" element={<ProtectedRoute allowedRoles={['admin']}><AdminStudio /></ProtectedRoute>} />
           <Route path="/admin/clients" element={<ProtectedRoute allowedRoles={['admin']}><AdminClients /></ProtectedRoute>} />
           <Route path="/admin/billing" element={<ProtectedRoute allowedRoles={['admin']}><AdminBilling /></ProtectedRoute>} />
+          <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={['admin']}><AdminChat /></ProtectedRoute>} />
           <Route path="/artist" element={<ProtectedRoute allowedRoles={['artist']}><ArtistPortal /></ProtectedRoute>} />
           <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']}><CustomerPortal /></ProtectedRoute>} />
           <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><ManagerPortal /></ProtectedRoute>} />
@@ -150,14 +111,12 @@ function App() {
           <Route path="/customer/gallery" element={<ProtectedRoute allowedRoles={['customer']}><CustomerGallery /></ProtectedRoute>} />
           <Route path="/customer/book" element={<ProtectedRoute allowedRoles={['customer']}><CustomerBookingCreate /></ProtectedRoute>} />
           <Route path="/customer/profile" element={<ProtectedRoute allowedRoles={['customer']}><CustomerProfile /></ProtectedRoute>} />
-          <Route path="/customer/transactions" element={<ProtectedRoute allowedRoles={['customer']}><CustomerTransactions /></ProtectedRoute>} />
-          <Route path="/payment" element={<ProtectedRoute allowedRoles={['customer']}><PayMongoPayment /></ProtectedRoute>} />
-          <Route path="/customer/try-on" element={<ProtectedRoute allowedRoles={['customer']}><TryOn /></ProtectedRoute>} />
+          <Route path="/payment" element={<ProtectedRoute allowedRoles={['customer']}><PaymentSimulation /></ProtectedRoute>} />
+          <Route path="/pay-mongo" element={<PayMongoPayment />} />
           <Route path="/booking-confirmation" element={<ProtectedRoute allowedRoles={['customer']}><BookingConfirmation /></ProtectedRoute>} />
           <Route path="/admin/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminInventory /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>} />
-          <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['admin']}><AdminNotifications /></ProtectedRoute>} />
         </Routes>
       </Router>
     </div>
