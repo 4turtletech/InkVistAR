@@ -87,11 +87,6 @@ function Artists() {
                                         <div className="name-underline"></div>
                                     </div>
                                     <p className="artist-specialty">{artist.specialization || 'Tattoo Artist'}</p>
-                                    <div className="artist-stats">
-                                        <span>{artist.experience_years || 0} Years Exp.</span>
-                                        <span className="stat-divider">|</span>
-                                        <span>★ {artist.rating || '5.0'}</span>
-                                    </div>
                                     <button 
                                         className="view-portfolio-btn" 
                                         onClick={() => navigate(`/gallery?artistId=${artist.id}&artistName=${encodeURIComponent(artist.name)}`)}

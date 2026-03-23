@@ -1,5 +1,4 @@
-import React from 'react';
-import { Mail, Phone, MapPin, Instagram, Facebook, Twitter } from 'lucide-react';
+import { Mail, Phone, MapPin, Instagram, Facebook } from 'lucide-react';
 import './Footer.css';
 
 const Footer = () => {
@@ -38,21 +37,20 @@ const Footer = () => {
                     </div>
                     <div className="contact-item">
                         <Mail size={18} />
-                        <span>hello@inkvictus.com</span>
+                        <span>inkvictustattoo03@gmail.com</span>
                     </div>
                 </div>
 
                 <div className="footer-section">
                     <h3>Follow Us</h3>
                     <div className="social-links">
-                        <a href="#"><Instagram size={24} /></a>
-                        <a href="#"><Facebook size={24} /></a>
-                        <a href="#"><Twitter size={24} /></a>
+                        <a href="https://www.instagram.com/inkvictustattoo.ph?igsh=dnV3NnE5ZnNnYzFo" target="_blank" rel="noopener noreferrer"><Instagram size={24} /></a>
+                        <a href="https://www.facebook.com/share/1KHRA3cY6P/" target="_blank" rel="noopener noreferrer"><Facebook size={24} /></a>
                     </div>
                     <div className="footer-hours">
                         <h4>Studio Hours</h4>
-                        <p>Mon - Sat: 11:00 AM - 9:00 PM</p>
-                        <p>Sun: By Appointment Only</p>
+                        <p>Monday - Saturday: 1:00 PM - 8:00 PM</p>
+                        <p>Sunday: Closed</p>
                     </div>
                 </div>
             </div>
