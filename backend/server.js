@@ -2109,83 +2109,108 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       let finalPrice = priceNumber || 0;
       if (paymentType === 'deposit') {
           finalPrice = Math.max(100, Math.round(finalPrice * 0.3)); // 30% deposit, min 100 pesos for PayMongo
-      }
-
-      const amount = Math.round(finalPrice * 100); // centavos
-      if (!amount || amount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Appointment has no price set. Please set a price before taking payment.'
-        });
-      }
-
-      const redirectBaseSuccess = `${FRONTEND_URL}/booking-confirmation`;
-      const redirectBaseFailed = `${FRONTEND_URL}/customer/bookings`;
-
-      const payload = {
-        data: {
-          attributes: {
-            line_items: [
-              {
-                amount,
-                currency: 'PHP',
-                name: itemName,
-                description: description,
-                quantity: 1
+          proceedWithSession(Math.round(finalPrice * 100), itemName, description);
+      } else if (paymentType === 'balance') {
+          // Calculate remaining balance by checking previous payments
+          db.query('SELECT SUM(amount) as totalPaid FROM payments WHERE appointment_id = ? AND status = "paid"', [appointmentId], (sumErr, sumResults) => {
+              if (sumErr) {
+                  console.error('❌ Error calculating balance:', sumErr.message);
+                  return res.status(500).json({ success: false, message: 'Balance calculation error' });
               }
-            ],
-            description,
-            payment_method_types: ['card', 'gcash', 'paymaya', 'grab_pay'],
-            statement_descriptor: 'InkVistAR',
-            metadata: {
-              appointmentId: String(appointmentId),
-              customerId: String(appointment.customer_id),
-              artistId: String(appointment.artist_id),
-              mode: PAYMONGO_MODE,
-              paymentType: paymentType || 'full',
-              isLatePayment: String(isLatePayment)
-            },
-            success_url: `${redirectBaseSuccess}?appointmentId=${appointmentId}`,
-            cancel_url: `${redirectBaseFailed}?payment=failed&appointmentId=${appointmentId}`
-          }
-        }
-      };
+              const totalPaidCentavos = sumResults[0].totalPaid || 0;
+              const totalAmountCentavos = Math.round(priceNumber * 100);
+              const remainingCentavos = totalAmountCentavos - totalPaidCentavos;
+              
+              if (remainingCentavos <= 0) {
+                  return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
+              }
 
-      const response = await fetch(`${PAYMONGO_API_BASE}/checkout_sessions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': paymongoAuthHeader(),
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('❌ PayMongo error:', data);
-        return res.status(502).json({ success: false, message: 'Failed to create checkout session', error: data });
+              // Proceed with PayMongo session for the remaining amount
+              proceedWithSession(remainingCentavos, 'Balance Payment', `Final balance payment for Appointment #${appointmentId}`);
+          });
+      } else {
+          proceedWithSession(Math.round(finalPrice * 100), itemName, description);
       }
 
-      const sessionId = data?.data?.id;
-      const checkoutUrl = data?.data?.attributes?.checkout_url;
+      async function proceedWithSession(sessionAmount, sessionName, sessionDesc) {
+          if (!sessionAmount || sessionAmount <= 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'Appointment has no price set. Please set a price before taking payment.'
+            });
+          }
 
-      // Save pending record for tracking
-      // Save pending record for tracking
-      db.query(
-        `INSERT INTO payments (appointment_id, session_id, amount, currency, status, raw_event)
-         VALUES (?, ?, ?, ?, 'pending', ?)
-         ON DUPLICATE KEY UPDATE session_id = VALUES(session_id), amount = VALUES(amount), currency = VALUES(currency), status = 'pending', raw_event = VALUES(raw_event)`,
-        [appointmentId, sessionId, amount, 'PHP', JSON.stringify(data?.data || {})],
-        (payErr) => {
-          if (payErr) console.error('⚠️ Could not log pending payment:', payErr.message);
-        }
-      );
+          const redirectBaseSuccess = `${FRONTEND_URL}/booking-confirmation`;
+          const redirectBaseFailed = `${FRONTEND_URL}/customer/bookings`;
 
-      // Also update the appointment's payment_status to 'pending'
-      db.query("UPDATE appointments SET payment_status = 'pending' WHERE id = ?", [appointmentId]);
+          const payload = {
+            data: {
+              attributes: {
+                line_items: [
+                  {
+                    amount: sessionAmount,
+                    currency: 'PHP',
+                    name: sessionName,
+                    description: sessionDesc,
+                    quantity: 1
+                  }
+                ],
+                description: sessionDesc,
+                payment_method_types: ['card', 'gcash', 'paymaya', 'grab_pay'],
+                statement_descriptor: 'InkVistAR',
+                metadata: {
+                  appointmentId: String(appointmentId),
+                  customerId: String(appointment.customer_id),
+                  artistId: String(appointment.artist_id),
+                  mode: PAYMONGO_MODE,
+                  paymentType: paymentType || 'full',
+                  isLatePayment: String(isLatePayment)
+                },
+                success_url: `${redirectBaseSuccess}?appointmentId=${appointmentId}`,
+                cancel_url: `${redirectBaseFailed}?payment=failed&appointmentId=${appointmentId}`
+              }
+            }
+          };
 
-      return res.json({ success: true, checkoutUrl, sessionId });
+          try {
+            const response = await fetch(`${PAYMONGO_API_BASE}/checkout_sessions`, {
+              method: 'POST',
+              headers: {
+                'Authorization': paymongoAuthHeader(),
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+              console.error('❌ PayMongo error:', data);
+              return res.status(502).json({ success: false, message: 'Failed to create checkout session', error: data });
+            }
+
+            const checkoutUrl = data?.data?.attributes?.checkout_url;
+            const sessionId = data?.data?.id;
+
+            // Save pending record for tracking
+            db.query(
+              `INSERT INTO payments (appointment_id, session_id, amount, currency, status, raw_event)
+               VALUES (?, ?, ?, ?, 'pending', ?)
+               ON DUPLICATE KEY UPDATE session_id = VALUES(session_id), amount = VALUES(amount), currency = VALUES(currency), status = 'pending', raw_event = VALUES(raw_event)`,
+              [appointmentId, sessionId, sessionAmount, 'PHP', JSON.stringify(data?.data || {})],
+              (payErr) => {
+                if (payErr) console.error('⚠️ Could not log pending payment:', payErr.message);
+              }
+            );
+
+            // Also update the appointment's payment_status to 'pending'
+            db.query("UPDATE appointments SET payment_status = 'pending' WHERE id = ?", [appointmentId]);
+
+            res.json({ success: true, checkoutUrl, sessionId });
+          } catch (err) {
+            console.error('❌ PayMongo API Error:', err.message);
+            res.status(500).json({ success: false, message: 'Payment gateway error' });
+          }
+      }
     });
   } catch (error) {
     console.error('🔥 Unexpected error creating checkout session:', error);
@@ -2392,6 +2417,26 @@ app.get('/api/payments/status', (req, res) => {
 });
 
 // Get Customer Transaction History
+// Get transactions for a specific appointment
+app.get('/api/appointments/:id/transactions', (req, res) => {
+  const appointmentId = req.params.id;
+  const query = `
+    SELECT id, amount, status, created_at, session_id 
+    FROM payments 
+    WHERE appointment_id = ? 
+    ORDER BY created_at DESC
+  `;
+
+  db.query(query, [appointmentId], (err, results) => {
+    if (err) {
+      console.error('❌ Error fetching appointment transactions:', err.message);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    res.json({ success: true, transactions: results });
+  });
+});
+
+// Update the transaction history endpoint for customers to include design_title
 app.get('/api/customer/:customerId/transactions', (req, res) => {
   const { customerId } = req.params;
   const query = `

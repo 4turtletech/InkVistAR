@@ -9,11 +9,19 @@ const PayMongoPayment = () => {
     const [checkoutUrl, setCheckoutUrl] = useState(null);
     const navigate = useNavigate();
     const location = useLocation();
-    const { appointmentId, price } = location.state || { appointmentId: null, price: 0 };
+    const { appointmentId, price, type } = location.state || { appointmentId: null, price: 0, type: null };
 
     const depositPrice = Math.max(100, Math.round(price * 0.3));
 
-    const initializeSession = async () => {
+    useEffect(() => {
+        if (type === 'balance') {
+            setPaymentType('balance');
+            initializeSession('balance');
+        }
+    }, [type]);
+
+    const initializeSession = async (overrideType) => {
+        const finalType = overrideType || paymentType;
         if (!appointmentId) {
             alert('Error: No appointment ID found. Cannot proceed with payment.');
             navigate('/customer/bookings');
@@ -25,7 +33,7 @@ const PayMongoPayment = () => {
             const response = await axios.post(`${API_URL}/api/payments/create-checkout-session`, {
                 appointmentId: appointmentId,
                 price: price,
-                paymentType: paymentType
+                paymentType: finalType
             });
 
             if (response.data.success && response.data.checkoutUrl) {
@@ -135,11 +143,11 @@ const PayMongoPayment = () => {
                         <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '24px', border: '1px solid #e2e8f0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                 <span style={{ color: '#64748b' }}>Type:</span>
-                                <span style={{ fontWeight: 600 }}>{paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}</span>
+                                <span style={{ fontWeight: 600 }}>{paymentType === 'deposit' ? 'Downpayment' : paymentType === 'balance' ? 'Remaining Balance' : 'Full Payment'}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ color: '#64748b' }}>Amount:</span>
-                                <span style={{ fontWeight: 700, fontSize: '1.2rem', color: '#0f172a' }}>₱{(paymentType === 'deposit' ? depositPrice : price).toLocaleString()}</span>
+                                <span style={{ fontWeight: 700, fontSize: '1.2rem', color: '#0f172a' }}>₱{(paymentType === 'deposit' ? depositPrice : paymentType === 'balance' ? price : price).toLocaleString()}</span>
                             </div>
                         </div>
                         <button onClick={handlePayment} style={{ ...btnBase, backgroundColor: '#10b981', color: 'white' }}>
