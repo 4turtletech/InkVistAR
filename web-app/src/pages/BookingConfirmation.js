@@ -7,6 +7,7 @@ import { CheckCircle, Clock, AlertCircle, ArrowRight, Home } from 'lucide-react'
 const BookingConfirmation = () => {
     const location = useLocation();
     const [appointmentId, setAppointmentId] = useState(null);
+    const [expectedType, setExpectedType] = useState(null);
     const [verificationStatus, setVerificationStatus] = useState('verifying'); // verifying, success, timeout, failed, idle
 
     useEffect(() => {
@@ -20,13 +21,15 @@ const BookingConfirmation = () => {
 
         if (id) {
             setAppointmentId(id);
-            verifyPayment(id);
+            const type = params.get('paymentType');
+            setExpectedType(type);
+            verifyPayment(id, type);
         } else {
             setVerificationStatus('idle');
         }
     }, [location]);
 
-    const verifyPayment = async (id) => {
+    const verifyPayment = async (id, expectedType) => {
         setVerificationStatus('verifying');
         let attempts = 0;
         const maxAttempts = 6;
@@ -34,7 +37,20 @@ const BookingConfirmation = () => {
         const poll = async () => {
             try {
                 const res = await axios.get(`${API_URL}/api/appointments/${id}/payment-status`);
-                if (res.data.success && (res.data.payment_status === 'paid' || res.data.payment_status === 'downpayment_paid')) {
+                const currentStatus = res.data.payment_status;
+                
+                let isSuccess = false;
+                if (res.data.success) {
+                    if (expectedType === 'balance' || expectedType === 'full') {
+                        // Must be fully paid
+                        isSuccess = (currentStatus === 'paid');
+                    } else {
+                        // Deposit is enough
+                        isSuccess = (currentStatus === 'paid' || currentStatus === 'downpayment_paid');
+                    }
+                }
+
+                if (isSuccess) {
                     setVerificationStatus('success');
                 } else if (attempts < maxAttempts) {
                     attempts++;

@@ -246,6 +246,18 @@ function CustomerBookings(){
                                         ₱{(selectedApt.price - modalTransactions.reduce((sum, t) => t.status === 'paid' ? sum + (t.amount / 100) : sum, 0)).toLocaleString()}
                                     </span>
                                 </div>
+                                {(selectedApt.price - modalTransactions.reduce((sum, t) => t.status === 'paid' ? sum + (t.amount / 100) : sum, 0)) > 0 && (
+                                    <button 
+                                        className="btn btn-primary" 
+                                        style={{ width: '100%', marginTop: '20px', padding: '12px', borderRadius: '10px', backgroundColor: '#3b82f6', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold' }}
+                                        onClick={() => {
+                                            setIsModalOpen(false);
+                                            handlePay(selectedApt, selectedApt.payment_status === 'downpayment_paid' ? 'balance' : 'deposit');
+                                        }}
+                                    >
+                                        <CreditCard size={18} /> Pay {selectedApt.payment_status === 'downpayment_paid' ? 'Remaining Balance' : 'Deposit Now'}
+                                    </button>
+                                )}
                             </div>
 
                             <h4 style={{ marginBottom: '12px', color: '#475569', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Transaction History</h4>
