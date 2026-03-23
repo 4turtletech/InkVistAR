@@ -30,11 +30,15 @@ const PayMongoPayment = () => {
 
         setStatus('initializing');
         try {
-            const response = await axios.post(`${API_URL}/api/payments/create-checkout-session`, {
-                appointmentId: appointmentId,
-                price: price,
-                paymentType: finalType
-            });
+            // Defensively cast all values to scalar types to avoid circular references (like React events)
+            const payload = {
+                appointmentId: appointmentId ? String(appointmentId) : null,
+                price: price ? Number(price) : 0,
+                paymentType: (typeof finalType === 'string') ? finalType : 'deposit'
+            };
+            
+            console.log('[Checkout] Payload:', payload);
+            const response = await axios.post(`${API_URL}/api/payments/create-checkout-session`, payload);
 
             if (response.data.success && response.data.checkoutUrl) {
                 setCheckoutUrl(response.data.checkoutUrl);
