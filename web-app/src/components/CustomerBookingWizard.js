@@ -26,7 +26,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [bookedDates, setBookedDates] = useState({});
 
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [authView, setAuthView] = useState('login'); // 'login' or 'register'
+    const [authView, setAuthView] = useState('register'); // 'login' or 'register'
     const [authData, setAuthData] = useState({ email: '', password: '', firstName: '', lastName: '', phone: '' });
     const [authError, setAuthError] = useState('');
 
@@ -383,10 +383,13 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>
                         {authView === 'login' ? 'Welcome Back' : 'Join Inkvictus'}
                     </h2>
-                    <p style={{ color: '#64748b', marginBottom: '32px' }}>
+                    <p style={{ color: '#64748b', marginBottom: '8px' }}>
                         {authView === 'login' 
                             ? 'Please log in to finalize your consultation request.' 
                             : 'Create an account to complete your booking.'}
+                    </p>
+                    <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', marginBottom: '24px' }}>
+                        Verified accounts help us prevent spam and prioritize serious inquiries.
                     </p>
 
                     {authError && <div style={{ color: '#ef4444', marginBottom: '20px', fontSize: '0.9rem', fontWeight: '600' }}>{authError}</div>}

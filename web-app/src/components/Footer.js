@@ -21,7 +21,7 @@ const Footer = () => {
                         <li><a href="/about">About Us</a></li>
                         <li><a href="/artists">Artists</a></li>
                         <li><a href="/gallery">Gallery</a></li>
-                        <li><a href="/book">Book Session</a></li>
+                        <li><a href="/book">Book Consultation</a></li>
                     </ul>
                 </div>
 
@@ -33,7 +33,7 @@ const Footer = () => {
                     </div>
                     <div className="contact-item">
                         <Phone size={18} />
-                        <span>+63 917 123 4567</span>
+                        <span>+63 915 758 5949</span>
                     </div>
                     <div className="contact-item">
                         <Mail size={18} />
