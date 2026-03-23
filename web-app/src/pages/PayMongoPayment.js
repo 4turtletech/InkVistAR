@@ -9,15 +9,15 @@ const PayMongoPayment = () => {
     const stateData = location.state || { appointmentId: null, price: 0, type: null, remainingBalance: 0 };
     const { appointmentId, price, type } = stateData;
 
-    const [status, setStatus] = useState(type ? 'initializing' : 'selection'); // selection, initializing, ready, processing, failed
-    const [paymentType, setPaymentType] = useState(type || 'deposit');
+    const [status, setStatus] = useState(type === 'balance' ? 'initializing' : 'selection'); // selection, initializing, ready, processing, failed
+    const [paymentType, setPaymentType] = useState(type === 'balance' ? 'balance' : 'deposit');
     const [checkoutUrl, setCheckoutUrl] = useState(null);
 
     const depositPrice = Math.max(100, Math.round(price * 0.3));
 
     useEffect(() => {
-        if (type) {
-            initializeSession(type);
+        if (type === 'balance') {
+            initializeSession('balance');
         }
     }, [type, appointmentId]);
 
