@@ -36,10 +36,7 @@ function AdminInventory() {
         name: '',
         category: 'ink',
         currentStock: 0,
-        minStock: 0,
-        maxStock: 0,
         unit: 'pcs',
-        supplier: '',
         cost: 0
     });
     const [transactionData, setTransactionData] = useState({
@@ -79,8 +76,6 @@ function AdminInventory() {
                 const mapped = res.data.data.map(i => ({
                     ...i,
                     currentStock: i.current_stock,
-                    minStock: i.min_stock,
-                    maxStock: i.max_stock,
                     lastRestocked: i.last_restocked
                 }));
                 setInventory(mapped);
@@ -94,8 +89,7 @@ function AdminInventory() {
 
     const filterAndSortInventory = () => {
         let filtered = inventory.filter(item => {
-            const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.supplier.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
             
             const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
             
@@ -136,15 +130,12 @@ function AdminInventory() {
     };
 
     const handleExportCSV = () => {
-        const headers = ['Item Name', 'Category', 'Current Stock', 'Min Stock', 'Max Stock', 'Unit', 'Supplier', 'Cost', 'Status'];
+        const headers = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Cost', 'Status'];
         const csvData = filteredInventory.map(item => [
             item.name,
             item.category,
             item.currentStock,
-            item.minStock,
-            item.maxStock,
             item.unit,
-            item.supplier || '',
             item.cost,
             getStockStatus(item.currentStock, item.minStock, item.maxStock)
         ]);
@@ -165,8 +156,8 @@ function AdminInventory() {
 
     const getStockStatus = (current, min, max) => {
         if (current === 0) return 'out_of_stock';
-        if (current <= min) return 'low';
-        if (current > max) return 'overstock';
+        if (min && current <= min) return 'low';
+        if (max && current > max) return 'overstock';
         return 'optimal';
     };
 
@@ -176,10 +167,7 @@ function AdminInventory() {
             name: item.name,
             category: item.category,
             currentStock: item.currentStock,
-            minStock: item.minStock,
-            maxStock: item.maxStock,
             unit: item.unit,
-            supplier: item.supplier,
             cost: item.cost
         });
         openModal(setAddEditModal);
@@ -222,10 +210,7 @@ function AdminInventory() {
             name: '',
             category: 'ink',
             currentStock: 0,
-            minStock: 0,
-            maxStock: 0,
             unit: 'pcs',
-            supplier: '',
             cost: 0
         });
         openModal(setAddEditModal);
@@ -241,7 +226,7 @@ function AdminInventory() {
         }
 
         // Validate for negative numbers
-        if (Number(formData.currentStock) < 0 || Number(formData.minStock) < 0 || Number(formData.maxStock) < 0 || Number(formData.cost) < 0) {
+        if (Number(formData.currentStock) < 0 || Number(formData.cost) < 0) {
             alert("Stock and cost values cannot be negative.");
             return;
         }
@@ -252,8 +237,6 @@ function AdminInventory() {
             const payload = {
                 ...formData,
                 currentStock: Number(formData.currentStock) || 0,
-                minStock: Number(formData.minStock) || 0,
-                maxStock: Number(formData.maxStock) || 0,
                 cost: Number(formData.cost) || 0
             };
 
@@ -368,7 +351,7 @@ function AdminInventory() {
                     <Search size={18} className="text-muted" />
                     <input
                         type="text"
-                        placeholder="Search items or suppliers..."
+                        placeholder="Search items..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -456,9 +439,7 @@ function AdminInventory() {
                                 <th>Item Name</th>
                                 <th>Category</th>
                                 <th>Current Stock</th>
-                                <th>Min/Max</th>
                                 <th>Unit</th>
-                                <th>Supplier</th>
                                 <th>Cost</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -466,7 +447,7 @@ function AdminInventory() {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="9" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading inventory...</td></tr>
+                                <tr><td colSpan="7" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading inventory...</td></tr>
                             ) : paginatedInventory.length > 0 ? (
                                 paginatedInventory.map((item) => (
                                     <tr key={item.id} className={`status-${getStockStatus(item.currentStock, item.minStock, item.maxStock)}`}>
@@ -477,9 +458,7 @@ function AdminInventory() {
                                             </span>
                                         </td>
                                         <td className="text-center">{item.currentStock}</td>
-                                        <td className="text-center">{item.minStock}/{item.maxStock}</td>
                                         <td>{item.unit}</td>
-                                        <td>{item.supplier || '-'}</td>
                                         <td>₱{item.cost}</td>
                                         <td>
                                             <span className={`badge stock-${getStockStatus(item.currentStock, item.minStock, item.maxStock)}`}>
@@ -513,7 +492,7 @@ function AdminInventory() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="9" className="no-data">No items found</td>
+                                    <td colSpan="7" className="no-data">No items found</td>
                                 </tr>
                             )}
                         </tbody>
@@ -593,37 +572,6 @@ function AdminInventory() {
                                         min="0"
                                         value={formData.currentStock}
                                         onChange={(e) => setFormData({...formData, currentStock: e.target.value})}
-                                        className="form-input"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Min Stock *</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={formData.minStock}
-                                        onChange={(e) => setFormData({...formData, minStock: e.target.value})}
-                                        className="form-input"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Max Stock *</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={formData.maxStock}
-                                        onChange={(e) => setFormData({...formData, maxStock: e.target.value})}
-                                        className="form-input"
-                                    />
-                                </div>
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Supplier</label>
-                                    <input
-                                        type="text"
-                                        value={formData.supplier}
-                                        onChange={(e) => setFormData({...formData, supplier: e.target.value})}
                                         className="form-input"
                                     />
                                 </div>

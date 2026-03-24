@@ -41,7 +41,6 @@ function ArtistSideNav() {
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/artist' },
         { label: 'Schedule', icon: Calendar, path: '/artist/appointments' },
-        { label: 'Clients', icon: Users2, path: '/artist/clients' },
         { label: 'Tattoo Session', icon: PenTool, path: '/artist/sessions' },
         { label: 'Portfolio', icon: Image, path: '/artist/gallery' },
         { label: 'Earnings', icon: CreditCard, path: '/artist/earnings' },

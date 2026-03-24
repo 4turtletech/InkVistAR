@@ -30,7 +30,6 @@ import ManagerUsers from './pages/ManagerUsers';
 import ArtistAppointments from './pages/ArtistAppointments';
 import ArtistEarnings from './pages/ArtistEarnings';
 import ArtistProfile from './pages/ArtistProfile';
-import ArtistClients from './pages/ArtistClients';
 import ArtistSessions from './pages/ArtistSessions';
 import ArtistNotifications from './pages/ArtistNotifications';
 import ArtistGallery from './pages/ArtistGallery';
@@ -141,7 +140,6 @@ function App() {
           <Route path="/manager/inventory" element={<ProtectedRoute allowedRoles={['manager']}><AdminInventory /></ProtectedRoute>} />
           <Route path="/artist/appointments" element={<ProtectedRoute allowedRoles={['artist']}><ArtistAppointments /></ProtectedRoute>} />
           <Route path="/artist/earnings" element={<ProtectedRoute allowedRoles={['artist']}><ArtistEarnings /></ProtectedRoute>} />
-          <Route path="/artist/clients" element={<ProtectedRoute allowedRoles={['artist']}><ArtistClients /></ProtectedRoute>} />
           <Route path="/artist/sessions" element={<ProtectedRoute allowedRoles={['artist']}><ArtistSessions /></ProtectedRoute>} />
           <Route path="/artist/notifications" element={<ProtectedRoute allowedRoles={['artist']}><ArtistNotifications /></ProtectedRoute>} />
           <Route path="/artist/profile" element={<ProtectedRoute allowedRoles={['artist']}><ArtistProfile /></ProtectedRoute>} />
