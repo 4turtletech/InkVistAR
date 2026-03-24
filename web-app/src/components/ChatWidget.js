@@ -11,9 +11,10 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
   // Initialize state from sessionStorage or defaults
   const [isOpen, setIsOpen] = useState(isAdminMode ? true : false);
   
-  // Operating Hours Check: Shop is open 1 PM (13) to 8 PM (20)
+  // Operating Hours Check: Uncomment ONE of the two lines below
   const currentHour = new Date().getHours();
-  const isShopOpen = currentHour >= 13 && currentHour < 20;
+  // const isShopOpen = true; // Always available (for testing)
+  const isShopOpen = currentHour >= 13 && currentHour < 20; // Shop hours: 1 PM - 8 PM
 
   // Track unique session ID for customers
   const [sessionId] = useState(() => {
