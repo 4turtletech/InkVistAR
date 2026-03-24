@@ -35,6 +35,7 @@ function AdminDashboard() {
     const appointmentsPerPage = 10;
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [confirmModal, setConfirmModal] = useState({ open: false, message: '', onConfirm: null });
 
     const navigate = useNavigate();
 
@@ -182,15 +183,22 @@ function AdminDashboard() {
         }
     };
 
+    const showConfirm = (message, onConfirm) => {
+        setConfirmModal({ open: true, message, onConfirm });
+    };
+
     const handleStatusUpdate = async (id, status) => {
-        if (!window.confirm(`Are you sure you want to ${status} this appointment?`)) return;
-        try {
-            await Axios.put(`${API_URL}/api/appointments/${id}/status`, { status });
-            fetchDashboardData();
-        } catch (error) {
-            alert('Failed to update status.');
-            console.error(error);
-        }
+        showConfirm(
+            `Are you sure you want to mark this appointment as "${status}"?`,
+            async () => {
+                try {
+                    await Axios.put(`${API_URL}/api/appointments/${id}/status`, { status });
+                    fetchDashboardData();
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+        );
     };
 
     const handleLogout = () => {
@@ -360,6 +368,7 @@ function AdminDashboard() {
                                                         <th>Time</th>
                                                         <th>Client</th>
                                                         <th>Artist</th>
+                                                        <th>Service</th>
                                                         <th>Status</th>
                                                     </tr>
                                                 </thead>
@@ -371,6 +380,11 @@ function AdminDashboard() {
                                                             </td>
                                                             <td>{apt.client_name || 'Unknown'}</td>
                                                             <td>{apt.artist_name}</td>
+                                                            <td>
+                                                                <span className="badge-v2 pending" style={{ fontSize: '0.72rem' }}>
+                                                                    {apt.service_type || 'Tattoo Session'}
+                                                                </span>
+                                                            </td>
                                                             <td><span className={`badge-v2 ${apt.status}`}>{apt.status}</span></td>
                                                         </tr>
                                                     ))}
@@ -420,6 +434,7 @@ function AdminDashboard() {
                                                 <tr>
                                                     <th>Client</th>
                                                     <th>Artist</th>
+                                                    <th>Service</th>
                                                     <th>Date</th>
                                                     <th>Status</th>
                                                     <th style={{ textAlign: 'right' }}>Actions</th>
@@ -430,6 +445,11 @@ function AdminDashboard() {
                                                     <tr key={appointment.id}>
                                                         <td>{appointment.client_name}</td>
                                                         <td>{appointment.artist_name}</td>
+                                                        <td>
+                                                            <span className="badge-v2 pending" style={{ fontSize: '0.72rem' }}>
+                                                                {appointment.service_type || 'Tattoo Session'}
+                                                            </span>
+                                                        </td>
                                                         <td className="date-time-cell">
                                                             <div className="primary-date">{new Date(appointment.appointment_date).toLocaleDateString()}</div>
                                                             <div className="secondary-time">{appointment.start_time}</div>
@@ -441,7 +461,7 @@ function AdminDashboard() {
                                                         </td>
                                                         <td>
                                                             <div className="table-actions-v2">
-                                                                {appointment.status === 'pending' && (
+                                                                {appointment.status === 'pending' && appointment.service_type?.toLowerCase() === 'consultation' && (
                                                                     <>
                                                                         <button className="icon-btn-v2 check" title="Approve" onClick={() => handleStatusUpdate(appointment.id, 'confirmed')}>
                                                                             <CheckCircle size={16} />
@@ -462,7 +482,7 @@ function AdminDashboard() {
                                                         </td>
                                                     </tr>
                                                 )) : (
-                                                    <tr><td colSpan="5" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>No appointments found</td></tr>
+                                                    <tr><td colSpan="6" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>No appointments found</td></tr>
                                                 )}
                                             </tbody>
                                         </table>
@@ -627,6 +647,42 @@ function AdminDashboard() {
                         <div className="dashboard-modal-footer">
                             <button className="logout-btn" onClick={() => setIsDetailModalOpen(false)} style={{ background: '#f1f5f9', color: '#64748b' }}>
                                 Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {confirmModal.open && (
+                <div className="dashboard-modal-overlay" onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}>
+                    <div className="dashboard-modal-content" style={{ maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
+                        <div className="dashboard-modal-header">
+                            <h2 style={{ fontSize: '1.1rem' }}>Confirm Action</h2>
+                            <button className="modal-close-btn" onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="dashboard-modal-body" style={{ padding: '1.5rem 2rem' }}>
+                            <p style={{ margin: 0, color: '#475569', lineHeight: 1.6 }}>{confirmModal.message}</p>
+                        </div>
+                        <div className="dashboard-modal-footer" style={{ gap: '0.75rem' }}>
+                            <button
+                                className="logout-btn"
+                                style={{ background: '#f1f5f9', color: '#64748b' }}
+                                onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="logout-btn"
+                                style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white' }}
+                                onClick={() => {
+                                    confirmModal.onConfirm?.();
+                                    setConfirmModal({ open: false, message: '', onConfirm: null });
+                                }}
+                            >
+                                Confirm
                             </button>
                         </div>
                     </div>
