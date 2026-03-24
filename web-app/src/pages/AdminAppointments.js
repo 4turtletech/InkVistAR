@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import ManagerSideNav from '../components/ManagerSideNav';
 import './AdminAppointments.css';
@@ -30,6 +30,7 @@ function AdminAppointments() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
     const [appointmentModal, setAppointmentModal] = useState({ mounted: false, visible: false });
+    const [confirmModal, setConfirmModal] = useState({ open: false, message: '', onConfirm: null });
     const [formData, setFormData] = useState({
         clientId: '',
         artistId: '',
@@ -164,32 +165,24 @@ function AdminAppointments() {
         });
     };
 
-    const handleStatusUpdate = async (id, status) => {
-        let price = null;
-        if (status === 'confirmed') {
-            const currentApt = appointments.find(a => a.id === id);
-            const input = window.prompt(`Enter final price for this appointment (current: ₱${currentApt?.price || 0}):`, currentApt?.price || '');
-            
-            if (input === null) return; // User cancelled
-            
-            // Sanitize input: remove commas, currency symbols, spaces, keep numbers and decimal point
-            price = parseFloat(input.replace(/[^0-9.]/g, ''));
-            
-            if (isNaN(price) || price < 0) {
-                alert("Please enter a valid positive number for the price.");
-                return;
-            }
-        } else {
-            if (!window.confirm(`Are you sure you want to ${status} this appointment?`)) return;
-        }
+    const showConfirm = (message, onConfirm) => {
+        setConfirmModal({ open: true, message, onConfirm });
+    };
 
-        try {
-            await Axios.put(`${API_URL}/api/appointments/${id}/status`, { status, price });
-            fetchAppointments();
-        } catch (error) {
-            console.error("Error updating status:", error);
-            alert("Failed to update status");
-        }
+    const closeConfirm = () => setConfirmModal({ open: false, message: '', onConfirm: null });
+
+    const handleStatusUpdate = async (id, status) => {
+        showConfirm(
+            `Are you sure you want to mark this appointment as "${status}"?`,
+            async () => {
+                try {
+                    await Axios.put(`${API_URL}/api/appointments/${id}/status`, { status });
+                    fetchAppointments();
+                } catch (error) {
+                    console.error('Error updating status:', error);
+                }
+            }
+        );
     };
 
     const handleEdit = (appointment) => {
@@ -210,12 +203,12 @@ function AdminAppointments() {
     };
 
     const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this appointment?')) {
+        showConfirm('Are you sure you want to delete this appointment? This cannot be undone.', () => {
             setAppointments(appointments.filter(a => a.id !== id));
             Axios.delete(`${API_URL}/api/admin/appointments/${id}`)
                 .then(() => fetchAppointments())
                 .catch(err => console.error(err));
-        }
+        });
     };
 
     const handleAddNew = (prefilledDate = null) => {
@@ -236,45 +229,44 @@ function AdminAppointments() {
 
     const handleSave = async () => {
         if (!formData.clientId || !formData.artistId || !formData.date || !formData.time) {
-            alert("Please fill in all required fields (Client, Artist, Date, Time)");
+            showConfirm('Please fill in all required fields (Client, Artist, Date, Time).', null);
             return;
         }
 
-        // Sanitize input: remove commas, currency symbols, spaces, keep numbers and decimal point
-        // This matches the functionality of the "OK" button in the status popup
         let priceInput = formData.price ? String(formData.price).replace(/[^0-9.]/g, '') : '0';
         let priceValue = parseFloat(priceInput);
-
-        // Accept 0 or positive values; 1-peso forced minimum is removed as per request for free consultations
         const finalPrice = (!priceValue || priceValue < 0) ? 0 : priceValue;
 
-        try {
-            const payload = {
-                customerId: formData.clientId,
-                artistId: formData.artistId,
-                serviceType: formData.serviceType,
-                designTitle: formData.designTitle,
-                date: formData.date,
-                startTime: formData.time,
-                status: formData.status,
-                notes: formData.notes,
-                price: finalPrice
-            };
+        const doSave = async () => {
+            try {
+                const payload = {
+                    customerId: formData.clientId,
+                    artistId: formData.artistId,
+                    serviceType: formData.serviceType,
+                    designTitle: formData.designTitle,
+                    date: formData.date,
+                    startTime: formData.time,
+                    status: formData.status,
+                    notes: formData.notes,
+                    price: finalPrice
+                };
 
-            if (selectedAppointment) {
-                await Axios.put(`${API_URL}/api/admin/appointments/${selectedAppointment.id}`, payload);
-                alert('Appointment updated successfully');
-            } else {
-                // Walk-in / New Booking
-                await Axios.post(`${API_URL}/api/admin/appointments`, payload);
-                alert('Appointment created successfully');
+                if (selectedAppointment) {
+                    await Axios.put(`${API_URL}/api/admin/appointments/${selectedAppointment.id}`, payload);
+                } else {
+                    await Axios.post(`${API_URL}/api/admin/appointments`, payload);
+                }
+                closeModal();
+                fetchAppointments();
+            } catch (error) {
+                console.error('Error saving appointment:', error);
             }
-            closeModal();
-            fetchAppointments();
-        } catch (error) {
-            console.error("Error saving appointment:", error);
-            alert("Failed to save appointment: " + (error.response?.data?.message || error.message));
-        }
+        };
+
+        showConfirm(
+            selectedAppointment ? 'Save changes to this appointment?' : 'Create this new appointment?',
+            doSave
+        );
     };
 
     const handleMultiSession = () => {
@@ -890,6 +882,38 @@ function AdminAppointments() {
                 </div>
             )}
             </div>
+
+            {/* Confirmation Modal */}
+            {confirmModal.open && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(8px)',
+                    zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem'
+                }} onClick={closeConfirm}>
+                    <div style={{
+                        background: 'white', borderRadius: '20px', width: '100%', maxWidth: '420px',
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>Confirm Action</h2>
+                            <button onClick={closeConfirm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '0.25rem', borderRadius: '50%' }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div style={{ padding: '1.5rem 2rem' }}>
+                            <p style={{ margin: 0, color: '#475569', lineHeight: 1.6 }}>{confirmModal.message}</p>
+                        </div>
+                        <div style={{ padding: '1.25rem 2rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                            <button className="btn btn-secondary" onClick={closeConfirm}>Cancel</button>
+                            {confirmModal.onConfirm && (
+                                <button className="btn btn-primary" onClick={() => { confirmModal.onConfirm(); closeConfirm(); }}>
+                                    Confirm
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
