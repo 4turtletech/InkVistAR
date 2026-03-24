@@ -7,24 +7,38 @@ import './ChatWidget.css';
 // Establish socket connection outside the component
 const socket = io(API_URL);
 
-export default function ChatWidget({ room = 'public_room', currentUser = 'Guest' }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isHumanMode, setIsHumanMode] = useState(false);
+export default function ChatWidget({ room = 'public_room', currentUser = 'Guest', isAdminMode = false }) {
+  // Initialize state from sessionStorage or defaults
+  const [isOpen, setIsOpen] = useState(isAdminMode ? true : false);
+  
+  const [isHumanMode, setIsHumanMode] = useState(() => {
+    if (isAdminMode) return true;
+    const saved = sessionStorage.getItem('chat_isHumanMode');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
   
   // AI Bot Messages State
-  const [botMessages, setBotMessages] = useState([
-    {
-      id: 1,
-      text: "Hi! I'm your tattoo design assistant. I can help you with design ideas, placement suggestions, aftercare tips, and more. How can I help you today?",
-      sender: 'bot',
-      timestamp: new Date(),
-    },
-  ]);
+  const [botMessages, setBotMessages] = useState(() => {
+    if (isAdminMode) return [];
+    const saved = sessionStorage.getItem('chat_botMessages');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 1,
+        text: "Hi! I'm your tattoo design assistant. I can help you with design ideas, placement suggestions, aftercare tips, and more. How can I help you today?",
+        sender: 'bot',
+        timestamp: new Date(),
+      }
+    ];
+  });
   
   // Live Chat (Human) Messages State
-  const [humanMessages, setHumanMessages] = useState([
-    { id: 'system-1', sender: 'system', text: "Connected to live chat.", timestamp: new Date() }
-  ]);
+  const [humanMessages, setHumanMessages] = useState(() => {
+    if (isAdminMode) return [];
+    const saved = sessionStorage.getItem('chat_humanMessages');
+    return saved ? JSON.parse(saved) : [
+      { id: 'system-1', sender: 'system', text: "Connected to live chat.", timestamp: new Date() }
+    ];
+  });
 
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +47,15 @@ export default function ChatWidget({ room = 'public_room', currentUser = 'Guest'
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Persist state to sessionStorage whenever it changes
+  useEffect(() => {
+    if (!isAdminMode) {
+      sessionStorage.setItem('chat_botMessages', JSON.stringify(botMessages));
+      sessionStorage.setItem('chat_humanMessages', JSON.stringify(humanMessages));
+      sessionStorage.setItem('chat_isHumanMode', JSON.stringify(isHumanMode));
+    }
+  }, [botMessages, humanMessages, isHumanMode, isAdminMode]);
 
   useEffect(() => {
     scrollToBottom();
@@ -128,29 +151,41 @@ export default function ChatWidget({ room = 'public_room', currentUser = 'Guest'
 
   return (
     <>
-      <div className={`chat-widget-container ${isOpen ? 'open' : ''}`}>
+      <div 
+        className={`chat-widget-container ${isOpen ? 'open' : ''} ${isAdminMode ? 'admin-mode' : ''}`}
+        style={isAdminMode ? { 
+            position: 'relative', bottom: 0, right: 0, 
+            width: '100%', height: '100%', maxHeight: '100%', 
+            transform: 'none', opacity: 1, visibility: 'visible',
+            boxShadow: 'none', borderRadius: '10px'
+        } : {}}
+      >
           <div className="chat-header">
             <div className="chat-header-info">
               <span className="chat-title">{isHumanMode ? 'Live Chat support' : 'Tattoo AI Assistant'}</span>
               <span className="chat-subtitle">{isHumanMode ? 'Talking to an artist' : 'Always here to help'}</span>
             </div>
             <div className="chat-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <button 
-                    className={`human-toggle-btn ${isHumanMode ? 'active' : ''}`}
-                    onClick={() => setIsHumanMode(!isHumanMode)}
-                    title={isHumanMode ? "Switch to AI" : "Talk to a person"}
-                    style={{ 
-                        background: isHumanMode ? 'rgba(255,255,255,0.2)' : 'transparent',
-                        border: 'none', borderRadius: '50%', width: '32px', height: '32px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', color: 'white'
-                    }}
-                >
-                    {isHumanMode ? <UserSquare size={18} /> : <Bot size={18} />}
-                </button>
-                <button className="close-btn" onClick={() => setIsOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}>
-                    <X size={20} />
-                </button>
+                {!isAdminMode && (
+                  <button 
+                      className={`human-toggle-btn ${isHumanMode ? 'active' : ''}`}
+                      onClick={() => setIsHumanMode(!isHumanMode)}
+                      title={isHumanMode ? "Switch to AI" : "Talk to a person"}
+                      style={{ 
+                          background: isHumanMode ? 'rgba(255,255,255,0.2)' : 'transparent',
+                          border: 'none', borderRadius: '50%', width: '32px', height: '32px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer', color: 'white'
+                      }}
+                  >
+                      {isHumanMode ? <UserSquare size={18} /> : <Bot size={18} />}
+                  </button>
+                )}
+                {!isAdminMode && (
+                  <button className="close-btn" onClick={() => setIsOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}>
+                      <X size={20} />
+                  </button>
+                )}
             </div>
           </div>
 
@@ -215,9 +250,11 @@ export default function ChatWidget({ room = 'public_room', currentUser = 'Guest'
           </form>
       </div>
 
-      <button className="chat-fab" onClick={() => setIsOpen(!isOpen)}>
-        {isOpen ? <X size={24} color="white" /> : <MessageSquare size={24} color="white" />}
-      </button>
+      {!isAdminMode && (
+          <button className="chat-fab" onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? <X size={24} color="white" /> : <MessageSquare size={24} color="white" />}
+          </button>
+      )}
     </>
   );
 }

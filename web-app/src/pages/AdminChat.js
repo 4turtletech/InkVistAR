@@ -32,9 +32,10 @@ function AdminChat() {
     };
 
     return (
-        <div className="portal-layout">
+        <div className="admin-dashboard">
             <AdminSideNav />
-            <div className="admin-chat-layout">
+            <div className="admin-main-content" style={{ padding: 0 }}>
+                <div className="admin-chat-layout">
                 <div className="appointment-list-container">
                     <h2 className="chat-list-header">Live Chats & Consultations</h2>
                     
@@ -64,12 +65,13 @@ function AdminChat() {
                         </ul>
                     )}
                 </div>
-                <div className="chat-window-container">
+                <div className="chat-window-container" style={{ flex: 1, position: 'relative' }}>
                     {selectedAppointment ? (
-                        <div className="chat-widget-wrapper">
+                        <div className="chat-widget-wrapper" style={{ height: '100%', width: '100%' }}>
                             <ChatWidget 
                                 room={selectedAppointment.id} 
                                 currentUser={`Admin`} 
+                                isAdminMode={true}
                             />
                         </div>
                     ) : (
@@ -78,6 +80,7 @@ function AdminChat() {
                         </div>
                     )}
                 </div>
+            </div>
             </div>
         </div>
     );
