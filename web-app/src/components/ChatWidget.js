@@ -127,15 +127,9 @@ export default function ChatWidget({ room = 'public_room', currentUser = 'Guest'
   const activeMessages = isHumanMode ? humanMessages : botMessages;
 
   return (
-    <div className="chat-widget-container">
-      {!isOpen && (
-        <button className="chat-fab" onClick={() => setIsOpen(true)}>
-          <MessageSquare size={24} color="white" />
-        </button>
-      )}
-
-      {isOpen && (
-        <div className="chat-window" style={{ display: 'flex', flexDirection: 'column' }}>
+    <>
+      <div className={`chat-widget-container ${isOpen ? 'open' : ''}`}>
+        <div className="chat-window" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="chat-header">
             <div className="chat-header-info">
               <span className="chat-title">{isHumanMode ? 'Live Chat support' : 'Tattoo AI Assistant'}</span>
@@ -221,7 +215,11 @@ export default function ChatWidget({ room = 'public_room', currentUser = 'Guest'
             </button>
           </form>
         </div>
-      )}
-    </div>
+      </div>
+
+      <button className="chat-fab" onClick={() => setIsOpen(!isOpen)}>
+        {isOpen ? <X size={24} color="white" /> : <MessageSquare size={24} color="white" />}
+      </button>
+    </>
   );
 }
