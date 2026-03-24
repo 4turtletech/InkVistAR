@@ -519,6 +519,14 @@ db.connect(err => {
       }
     });
 
+    // Check appointments table for before_photo
+    db.query("SHOW COLUMNS FROM appointments LIKE 'before_photo'", (err, results) => {
+      if (!err && results.length === 0) {
+        db.query("ALTER TABLE appointments ADD COLUMN before_photo LONGTEXT, ADD COLUMN after_photo LONGTEXT");
+        console.log('✅ Added before_photo and after_photo columns to appointments');
+      }
+    });
+
     // Check portfolio_works table for is_deleted
     db.query("SHOW COLUMNS FROM portfolio_works LIKE 'is_deleted'", (err, results) => {
       if (!err && results.length === 0) {
@@ -2207,19 +2215,26 @@ app.put('/api/appointments/:id/details', (req, res) => {
   const { id } = req.params;
   const { notes, beforePhoto, afterPhoto } = req.body;
 
-  // In a real app, we would save photos to disk/S3 and store URLs in DB
-  // For this prototype, we'll just update the notes field which now includes supply logs
+  let query = 'UPDATE appointments SET notes = ?';
+  let params = [notes];
 
-  const query = 'UPDATE appointments SET notes = ? WHERE id = ?';
+  if (beforePhoto !== undefined) {
+    query += ', before_photo = ?';
+    params.push(beforePhoto);
+  }
+  
+  if (afterPhoto !== undefined) {
+    query += ', after_photo = ?';
+    params.push(afterPhoto);
+  }
 
-  db.query(query, [notes, id], (err, result) => {
+  query += ' WHERE id = ?';
+  params.push(id);
+
+  db.query(query, params, (err, result) => {
     if (err) {
       console.error('Error updating appointment details:', err);
       return res.status(500).json({ success: false, message: 'Database error' });
-    }
-
-    if (beforePhoto || afterPhoto) {
-      console.log(`📸 Photos received for appointment ${id} (Storage not implemented in prototype)`);
     }
 
     res.json({ success: true, message: 'Details updated successfully' });
@@ -3248,6 +3263,8 @@ app.get('/api/admin/appointments', (req, res) => {
       ap.design_title,
       ap.notes,
       ap.reference_image,
+      ap.before_photo,
+      ap.after_photo,
       ap.price,
       c.name as client_name,
       c.email as client_email,

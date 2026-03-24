@@ -355,7 +355,7 @@ export function CustomerBooking({ customerId, onBack }) {
           <View style={styles.infoBox}>
             <Ionicons name="information-circle" size={20} color="#b8860b" />
             <Text style={styles.infoBoxText}>
-              Time will be scheduled after artist reviews your booking request.
+              For Tattoos, the exact duration and start time will be coordinated directly with the artist after your date is approved.
             </Text>
           </View>
         ) : null}

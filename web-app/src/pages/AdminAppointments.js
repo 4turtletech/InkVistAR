@@ -90,6 +90,8 @@ function AdminAppointments() {
                     time: apt.start_time,
                     status: apt.status,
                     notes: apt.notes,
+                    beforePhoto: apt.before_photo,
+                    afterPhoto: apt.after_photo,
                     price: apt.price || 0,
                     totalPaid: apt.total_paid || 0
                 }));
@@ -853,6 +855,35 @@ function AdminAppointments() {
                                     + Mark as Multi-Session
                                 </button>
                             </div>
+
+                            {/* Session Photos Gallery */}
+                            {selectedAppointment && (selectedAppointment.beforePhoto || selectedAppointment.afterPhoto) && (
+                                <div className="form-group" style={{ marginTop: '20px' }}>
+                                    <label>Session Photos</label>
+                                    <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+                                        {selectedAppointment.beforePhoto && (
+                                            <div style={{ flex: 1 }}>
+                                                <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Before</p>
+                                                <img 
+                                                    src={selectedAppointment.beforePhoto} 
+                                                    alt="Before Session" 
+                                                    style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }} 
+                                                />
+                                            </div>
+                                        )}
+                                        {selectedAppointment.afterPhoto && (
+                                            <div style={{ flex: 1 }}>
+                                                <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>After / Final</p>
+                                                <img 
+                                                    src={selectedAppointment.afterPhoto} 
+                                                    alt="After Session" 
+                                                    style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }} 
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
                             <div className="footer-left">

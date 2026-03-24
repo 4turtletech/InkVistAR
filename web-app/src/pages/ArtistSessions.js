@@ -11,11 +11,14 @@ function ArtistSessions() {
     const [activeSession, setActiveSession] = useState(null);
     const [sessionData, setSessionData] = useState({
         notes: '',
-        inkUsed: '',
-        needlesUsed: '',
         beforePhoto: null,
         afterPhoto: null
     });
+
+    const [sessionMaterials, setSessionMaterials] = useState([]);
+    const [sessionCost, setSessionCost] = useState(0);
+    const [inventoryItems, setInventoryItems] = useState([]);
+    const [addingMaterial, setAddingMaterial] = useState(false);
 
     const [sessionModal, setSessionModal] = useState({ mounted: false, visible: false });
 
@@ -44,6 +47,53 @@ function ArtistSessions() {
         fetchSessions();
     }, [artistId]);
 
+    useEffect(() => {
+        if (activeSession) {
+            fetchInventory();
+            if (activeSession.status === 'in_progress') {
+                fetchSessionMaterials(activeSession.id);
+            }
+        }
+    }, [activeSession?.id, activeSession?.status]);
+
+    const fetchInventory = async () => {
+        try {
+            const res = await Axios.get(`${API_URL}/api/admin/inventory`);
+            if (res.data.success && res.data.inventory) {
+                setInventoryItems(res.data.inventory.filter(item => item.current_stock > 0));
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const fetchSessionMaterials = async (id) => {
+        try {
+            const res = await Axios.get(`${API_URL}/api/appointments/${id}/materials`);
+            if (res.data.success) {
+                setSessionMaterials(res.data.materials || []);
+                setSessionCost(res.data.totalCost || 0);
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const handleQuickAdd = async (inventoryId, quantity = 1) => {
+        if (!activeSession) return;
+        setAddingMaterial(true);
+        try {
+            const res = await Axios.post(`${API_URL}/api/appointments/${activeSession.id}/materials`, {
+                inventory_id: inventoryId, quantity
+            });
+            if (res.data.success) {
+                fetchSessionMaterials(activeSession.id);
+            } else {
+                alert(res.data.message || 'Failed to add material. Check stock.');
+            }
+        } catch (e) {
+            alert('Connection failed');
+        } finally {
+            setAddingMaterial(false);
+        }
+    };
+
     const openSessionModal = () => {
         setSessionModal({ mounted: true, visible: false });
         setTimeout(() => setSessionModal({ mounted: true, visible: true }), 10);
@@ -61,8 +111,6 @@ function ArtistSessions() {
         setActiveSession(session);
         setSessionData({
             notes: session.notes || '',
-            inkUsed: '',
-            needlesUsed: '',
             beforePhoto: null,
             afterPhoto: null
         });
@@ -87,9 +135,11 @@ function ArtistSessions() {
 
             // If completing, close modal and refresh
             if (newStatus === 'completed') {
-                alert('Session marked as completed!');
+                alert(`Session marked as completed!\nTotal material cost: ₱${sessionCost.toLocaleString()}.\nThis cost has been recorded and items consumed.`);
                 closeSessionModal();
                 fetchSessions();
+            } else if (newStatus === 'in_progress') {
+                setTimeout(() => fetchSessionMaterials(activeSession.id), 1000);
             }
         } catch (error) {
             console.error("Error updating status:", error);
@@ -100,11 +150,8 @@ function ArtistSessions() {
     const handleSaveDetails = async () => {
         if (!activeSession) return;
         try {
-            // Combine notes and supplies for storage
-            const combinedNotes = `${sessionData.notes}\n\n[Supplies Log]\nInk: ${sessionData.inkUsed}\nNeedles: ${sessionData.needlesUsed}`;
-
             await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/details`, {
-                notes: combinedNotes,
+                notes: sessionData.notes,
                 beforePhoto: sessionData.beforePhoto,
                 afterPhoto: sessionData.afterPhoto
             });
@@ -225,34 +272,70 @@ function ArtistSessions() {
                             </div>
 
                             {/* Notes & Supplies */}
-                            <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px'}}>
+                            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
                                 <div className="form-group">
                                     <label><FileText size={16} style={{verticalAlign: 'middle'}}/> Session Notes</label>
                                     <textarea 
                                         className="form-input" 
-                                        rows="5"
+                                        rows="10"
                                         value={sessionData.notes}
                                         onChange={(e) => setSessionData({...sessionData, notes: e.target.value})}
                                         placeholder="Record session details, skin reaction, etc..."
+                                        style={{height: '100%'}}
                                     />
                                 </div>
-                                <div className="form-group">
-                                    <label><Package size={16} style={{verticalAlign: 'middle'}}/> Supply Log</label>
-                                    <input 
-                                        type="text" 
-                                        className="form-input" 
-                                        placeholder="Ink (e.g. Dynamic Blk)"
-                                        value={sessionData.inkUsed}
-                                        onChange={(e) => setSessionData({...sessionData, inkUsed: e.target.value})}
-                                        style={{marginBottom: '10px'}}
-                                    />
-                                    <input 
-                                        type="text" 
-                                        className="form-input" 
-                                        placeholder="Needles (e.g. 1209RL)"
-                                        value={sessionData.needlesUsed}
-                                        onChange={(e) => setSessionData({...sessionData, needlesUsed: e.target.value})}
-                                    />
+                                
+                                {/* Dynamic Session Materials */}
+                                <div className="form-group" style={{display: 'flex', flexDirection: 'column'}}>
+                                    <label><Package size={16} style={{verticalAlign: 'middle'}}/> Dynamic Supply Log</label>
+                                    
+                                    {activeSession.status === 'in_progress' ? (
+                                        <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc'}}>
+                                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px'}}>
+                                                <strong>Items Held/Consumed</strong>
+                                                <span style={{color: '#10b981', fontWeight: 'bold'}}>₱{sessionCost.toLocaleString()}</span>
+                                            </div>
+                                            
+                                            <div style={{flex: 1, overflowY: 'auto', maxHeight: '150px'}}>
+                                                {sessionMaterials.length === 0 ? (
+                                                    <p style={{color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic', margin: 0}}>No materials logged yet.</p>
+                                                ) : (
+                                                    <ul style={{listStyle: 'none', padding: 0, margin: 0}}>
+                                                        {sessionMaterials.map((mat, idx) => (
+                                                            <li key={idx} style={{display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #e2e8f0'}}>
+                                                                <span style={{fontSize: '0.9rem'}}>{mat.quantity}x {mat.item_name}</span>
+                                                                <span style={{fontSize: '0.8rem', color: '#64748b'}}>{mat.status}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
+                                            
+                                            <div style={{marginTop: '15px', borderTop: '1px dashed #cbd5e1', paddingTop: '10px'}}>
+                                                <strong style={{display: 'block', fontSize: '0.85rem', marginBottom: '8px', color: '#475569'}}>Quick Add (+1):</strong>
+                                                <div style={{display: 'flex', gap: '5px', flexWrap: 'wrap'}}>
+                                                    {inventoryItems.slice(0, 5).map(item => (
+                                                        <button 
+                                                            key={item.id}
+                                                            disabled={addingMaterial}
+                                                            onClick={() => handleQuickAdd(item.id, 1)}
+                                                            style={{
+                                                                padding: '6px 10px', borderRadius: '15px', background: '#e2e8f0', 
+                                                                border: 'none', fontSize: '0.8rem', cursor: addingMaterial ? 'not-allowed' : 'pointer',
+                                                                color: '#333'
+                                                            }}
+                                                        >
+                                                            {item.name.split(' ')[0]} {/* Show short name */}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center', background: '#f8fafc', color: '#64748b', fontStyle: 'italic'}}>
+                                            {activeSession.status === 'confirmed' ? 'Start session to begin logging materials.' : 'Session ended. Supplies finalized.'}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

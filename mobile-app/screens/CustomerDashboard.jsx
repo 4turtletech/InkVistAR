@@ -82,9 +82,9 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
     },
     { 
       id: 3, 
-      title: 'AI Chat', 
-      subtitle: 'Get tattoo advice', 
-      icon: 'chatbubble', 
+      title: 'Chat with Studio', 
+      subtitle: 'Contact our admins', 
+      icon: 'chatbubbles', 
       screen: 'Chat',
       gradient: ['#1e40af', '#3b82f6']
     },

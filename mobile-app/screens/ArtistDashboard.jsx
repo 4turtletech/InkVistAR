@@ -321,9 +321,9 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
                   colors={['#b91c1c', '#dc2626']}
                   style={styles.quickActionIcon}
                 >
-                  <Ionicons name="people" size={24} color="#ffffff" />
+                  <Ionicons name="list" size={24} color="#ffffff" />
                 </LinearGradient>
-                <Text style={styles.quickActionText}>Clients</Text>
+                <Text style={styles.quickActionText}>Sessions</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 

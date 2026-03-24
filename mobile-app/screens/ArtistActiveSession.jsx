@@ -245,51 +245,65 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
               )}
             </TouchableOpacity>
           </View>
-
           {/* Advanced Session Materials */}
           {status === 'in_progress' && (
             <>
-              <Text style={styles.sectionTitle}>Session Materials (Cost: ₱{sessionCost.toLocaleString()})</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                <Text style={styles.sectionTitle}>Session Materials</Text>
+                <View style={styles.costBadge}>
+                  <Text style={styles.costBadgeText}>₱{sessionCost.toLocaleString()}</Text>
+                </View>
+              </View>
               
               {/* Used Materials List */}
-              <View style={styles.inputCard}>
+              <View style={styles.materialsContainer}>
                 {sessionMaterials.length === 0 ? (
-                  <Text style={{ color: '#6b7280', fontStyle: 'italic', marginBottom: 15 }}>No materials logged for this session.</Text>
+                  <View style={styles.emptyStateContainer}>
+                    <Ionicons name="cube-outline" size={32} color="#9ca3af" />
+                    <Text style={styles.emptyStateText}>No materials logged.</Text>
+                  </View>
                 ) : (
-                  <View style={{ marginBottom: 15 }}>
+                  <View style={styles.materialsList}>
                     {sessionMaterials.map((mat) => (
-                      <View key={mat.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}>
-                        <Text style={{ color: '#1f2937', fontWeight: '500' }}>{mat.item_name}</Text>
-                        <Text style={{ color: '#6b7280' }}>{mat.quantity} {mat.unit}</Text>
+                      <View key={mat.id} style={styles.materialCard}>
+                        <View style={styles.materialIconBg}>
+                          <Ionicons name="color-palette-outline" size={18} color="#b8860b" />
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <Text style={styles.materialName}>{mat.item_name}</Text>
+                          <Text style={styles.materialUnit}>{mat.unit}</Text>
+                        </View>
+                        <View style={styles.materialQtyBadge}>
+                          <Text style={styles.materialQtyText}>{mat.quantity}</Text>
+                        </View>
                       </View>
                     ))}
                   </View>
                 )}
                 
                 {/* Quick Add Buttons */}
-                <Text style={{ color: '#1f2937', fontWeight: 'bold', marginBottom: 10 }}>Quick Add Item (+1)</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row' }}>
-                  {inventoryItems.slice(0, 8).map(item => (
-                    <TouchableOpacity 
-                      key={item.id}
-                      style={{ 
-                        backgroundColor: '#f3f4f6', 
-                        paddingHorizontal: 16, 
-                        paddingVertical: 10, 
-                        borderRadius: 20, 
-                        marginRight: 10,
-                        borderWidth: 1,
-                        borderColor: '#d1d5db'
-                      }}
-                      onPress={() => handleQuickAdd(item.id, 1)}
-                      disabled={addingMaterial}
-                    >
-                      <Text style={{ color: '#374151', fontSize: 13, fontWeight: '600' }}>{item.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                  {inventoryItems.length === 0 && <Text style={{ color: '#9ca3af' }}>No stock available</Text>}
-                </ScrollView>
-                {addingMaterial && <ActivityIndicator size="small" color="#daa520" style={{ marginTop: 10 }} />}
+                <View style={styles.quickAddSection}>
+                  <Text style={styles.quickAddTitle}>
+                    <Ionicons name="flash" size={16} color="#daa520" /> Quick Add Item (+1)
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickAddScroll}>
+                    {inventoryItems.slice(0, 8).map(item => (
+                      <TouchableOpacity 
+                        key={item.id}
+                        style={styles.quickAddChip}
+                        onPress={() => handleQuickAdd(item.id, 1)}
+                        disabled={addingMaterial}
+                      >
+                        <Text style={styles.quickAddChipText}>{item.name}</Text>
+                        <View style={styles.quickAddPlusIcon}>
+                          <Ionicons name="add" size={14} color="#ffffff" />
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                    {inventoryItems.length === 0 && <Text style={{ color: '#9ca3af', padding: 10 }}>No stock available</Text>}
+                  </ScrollView>
+                  {addingMaterial && <ActivityIndicator size="small" color="#daa520" style={{ marginTop: 10 }} />}
+                </View>
               </View>
             </>
           )}
@@ -417,7 +431,131 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#1f2937',
+    marginBottom: 0,
+  },
+  costBadge: {
+    backgroundColor: '#fffbeb',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  costBadgeText: {
+    color: '#b45309',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  materialsContainer: {
+    marginBottom: 30,
+  },
+  emptyStateContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 30,
+    alignItems: 'center',
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+  },
+  emptyStateText: {
+    color: '#9ca3af',
+    marginTop: 8,
+    fontSize: 14,
+  },
+  materialsList: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  materialCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+  materialIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fef3c7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  materialName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  materialUnit: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  materialQtyBadge: {
+    backgroundColor: '#1f2937',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  materialQtyText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  quickAddSection: {
+    marginTop: 5,
+  },
+  quickAddTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 10,
+  },
+  quickAddScroll: {
+    paddingRight: 20, // Add padding to end of scroll
+  },
+  quickAddChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingLeft: 16,
+    paddingRight: 6,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickAddChipText: {
+    color: '#111827',
+    fontSize: 13,
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  quickAddPlusIcon: {
+    backgroundColor: '#10b981',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   photoGrid: {
     flexDirection: 'row',
