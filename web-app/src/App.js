@@ -19,6 +19,8 @@ import AdminSettings from './pages/AdminSettings';
 import AdminStudio from './pages/AdminStudio';
 import AdminClients from './pages/AdminClients';
 import AdminBilling from './pages/AdminBilling';
+import AdminChat from './pages/AdminChat';
+
 import ArtistPortal from './pages/ArtistPortal';
 import CustomerPortal from './pages/CustomerPortal';
 import ManagerPortal from './pages/ManagerPortal';
@@ -37,6 +39,8 @@ import CustomerProfile from './pages/CustomerProfile';
 import CustomerBookingCreate from './pages/CustomerBookingCreate';
 import PaymentSimulation from './pages/PaymentSimulation';
 import BookingConfirmation from './pages/BookingConfirmation';
+import PayMongoPayment from './pages/PayMongoPayment';
+
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const user = JSON.parse(localStorage.getItem('user'));
