@@ -602,19 +602,32 @@ function AdminAppointments() {
                                                 </td>
                                                 <td>₱{Number(appointment.price).toLocaleString()}</td>
                                                 <td className="actions-cell">
-                                                    {appointment.status === 'pending' && (
-                                                        <button className="action-btn delete-btn" style={{marginRight: '5px'}} onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}>
-                                                            Reject
-                                                        </button>
+                                                    {/* Consultation-specific pending: Approve + Reject */}
+                                                    {appointment.serviceType?.toLowerCase() === 'consultation' && appointment.status === 'pending' && (
+                                                        <>
+                                                            <button className="action-btn view-btn" style={{backgroundColor: '#10b981', marginRight: '5px'}} onClick={() => handleStatusUpdate(appointment.id, 'confirmed')} title="Approve Consultation">
+                                                                Approve
+                                                            </button>
+                                                            <button className="action-btn delete-btn" style={{marginRight: '5px'}} onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}>
+                                                                Reject
+                                                            </button>
+                                                        </>
                                                     )}
-                                                    {appointment.serviceType?.toLowerCase() === 'consultation' && appointment.status?.toLowerCase() !== 'completed' && appointment.status?.toLowerCase() !== 'cancelled' && (
-                                                        <button 
-                                                            className="action-btn view-btn" 
+                                                    {/* Consultation confirmed: Done button */}
+                                                    {appointment.serviceType?.toLowerCase() === 'consultation' && appointment.status?.toLowerCase() === 'confirmed' && (
+                                                        <button
+                                                            className="action-btn view-btn"
                                                             style={{backgroundColor: '#8b5cf6', marginRight: '5px'}}
                                                             onClick={() => handleStatusUpdate(appointment.id, 'completed')}
                                                             title="Mark Consultation as Done"
                                                         >
                                                             <Check size={14} /> Done
+                                                        </button>
+                                                    )}
+                                                    {/* Non-consultation pending: only Reject */}
+                                                    {appointment.serviceType?.toLowerCase() !== 'consultation' && appointment.status === 'pending' && (
+                                                        <button className="action-btn delete-btn" style={{marginRight: '5px'}} onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}>
+                                                            Reject
                                                         </button>
                                                     )}
                                                     <button className="action-btn edit-btn" onClick={() => handleEdit(appointment)}>
