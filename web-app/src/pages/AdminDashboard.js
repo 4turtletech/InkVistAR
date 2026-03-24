@@ -218,301 +218,307 @@ function AdminDashboard() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page admin-dashboard page-container-enter">
-                <header className="dashboard-header">
-                    <h1>Admin Dashboard</h1>
-                    <button onClick={handleLogout} className="logout-btn">Logout</button>
+            <div className="admin-dashboard-container page-container-enter">
+                <header className="dashboard-top-nav">
+                    <div className="top-nav-left">
+                        <h1>Admin Dashboard</h1>
+                        <p className="subtitle">System Overview & Management</p>
+                    </div>
+                    <div className="top-nav-right">
+                        <div className="header-search">
+                            <Search size={18} />
+                            <input type="text" placeholder="Search things..." />
+                        </div>
+                        <div className="notification-bell">
+                            <Bell size={20} />
+                            <div className="notification-dot"></div>
+                        </div>
+                        <button onClick={handleLogout} className="logout-btn">Logout</button>
+                    </div>
                 </header>
 
                 {loading ? (
-                    <div className="dashboard-loading" style={{ height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', color: '#6b7280' }}>
-                        Loading dashboard...
+                    <div className="dashboard-loader-container">
+                        <div className="premium-loader"></div>
+                        <p>Loading premium dashboard...</p>
                     </div>
                 ) : (
                     <div className="dashboard-content">
-                        {/* Stats Grid */}
-                        <div className="stats-grid">
-                            <div className="stat-card">
-                                <div className="stat-icon users">
-                                    <Users className="icon" size={32} />
+                        {/* Stats Section */}
+                        <div className="stats-section">
+                            <div className="stat-card-v2 glass-card">
+                                <div className="stat-icon-wrapper blue">
+                                    <Users size={24} />
                                 </div>
-                                <div className="stat-info">
-                                    <p className="stat-label">Total Users</p>
-                                    <p className="stat-value">{stats.totalUsers}</p>
-                                </div>
-                            </div>
-
-                            <div className="stat-card">
-                                <div className="stat-icon appointments">
-                                    <Calendar className="icon" size={32} />
-                                </div>
-                                <div className="stat-info">
-                                    <p className="stat-label">Total Appointments</p>
-                                    <p className="stat-value">{stats.totalAppointments}</p>
+                                <div className="stat-info-v2">
+                                    <span className="stat-label-v2">Total Users</span>
+                                    <h3 className="stat-value-v2">{stats.totalUsers}</h3>
+                                    <div className="stat-trend-v2">Platform Wide</div>
                                 </div>
                             </div>
 
-                            <div className="stat-card">
-                                <div className="stat-icon revenue">
-                                    <DollarSign className="icon" size={32} />
+                            <div className="stat-card-v2 glass-card">
+                                <div className="stat-icon-wrapper purple">
+                                    <Calendar size={24} />
                                 </div>
-                                <div className="stat-info">
-                                    <p className="stat-label">Revenue (Month)</p>
-                                    <p className="stat-value">₱{revenueData.monthly.toLocaleString()}</p>
-                                    <small style={{ color: '#10b981', fontSize: '0.8rem' }}>
+                                <div className="stat-info-v2">
+                                    <span className="stat-label-v2">Total Appointments</span>
+                                    <h3 className="stat-value-v2">{stats.totalAppointments}</h3>
+                                    <div className="stat-trend-v2">All Time</div>
+                                </div>
+                            </div>
+
+                            <div className="stat-card-v2 glass-card">
+                                <div className="stat-icon-wrapper green">
+                                    <DollarSign size={24} />
+                                </div>
+                                <div className="stat-info-v2">
+                                    <span className="stat-label-v2">Revenue (Month)</span>
+                                    <h3 className="stat-value-v2">₱{revenueData.monthly.toLocaleString()}</h3>
+                                    <div className="stat-trend-v2">
                                         +₱{revenueData.daily.toLocaleString()} today
-                                    </small>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="stat-card">
-                                <div className="stat-icon artists">
-                                    <Palette className="icon" size={32} />
+                            <div className="stat-card-v2 glass-card">
+                                <div className="stat-icon-wrapper orange">
+                                    <Palette size={24} />
                                 </div>
-                                <div className="stat-info">
-                                    <p className="stat-label">Active Artists</p>
-                                    <p className="stat-value">{stats.activeArtists}</p>
+                                <div className="stat-info-v2">
+                                    <span className="stat-label-v2">Active Artists</span>
+                                    <h3 className="stat-value-v2">{stats.activeArtists}</h3>
+                                    <div className="stat-trend-v2">Studio Staff</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="dashboard-grid-row">
-                            {/* Weekly Activity Chart */}
-                            <div className="data-card chart-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-                                    <BarChart3 size={20} />
-                                    <h2 style={{ margin: 0 }}>Weekly Appointments</h2>
-                                </div>
-                                <div className="chart-container">
-                                    {chartData.map((item, index) => (
-                                        <div key={index} className="chart-bar-group">
-                                            <div className="chart-bar-wrapper">
-                                                <div 
-                                                    className="chart-bar" 
-                                                    style={{ height: `${Math.min(item.count * 15, 100)}%` }}
-                                                    title={`${item.count} appointments`}
-                                                ></div>
+                        <div className="dashboard-layout-grid">
+                            <div className="layout-column">
+                                {/* Weekly Activity Chart */}
+                                <div className="glass-card">
+                                    <div className="card-header-v2">
+                                        <div className="header-title">
+                                            <BarChart3 size={20} />
+                                            <h2>Weekly Appointments</h2>
+                                        </div>
+                                    </div>
+                                    <div className="premium-chart">
+                                        {chartData.map((item, index) => (
+                                            <div key={index} className="modern-bar-group">
+                                                <div className="bar-rail">
+                                                    <div 
+                                                        className="bar-fill" 
+                                                        style={{ height: `${Math.min(item.count * 15, 100)}%` }}
+                                                    >
+                                                        <div className="bar-tooltip">{item.count}</div>
+                                                    </div>
+                                                </div>
+                                                <span className="bar-label">{item.day}</span>
                                             </div>
-                                            <span className="chart-label">{item.day}</span>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Artist Availability */}
-                            <div className="data-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-                                    <Palette size={20} />
-                                    <h2 style={{ margin: 0 }}>Artist Status (Today)</h2>
-                                </div>
-                                <div className="artist-status-list">
-                                    {artistStatus.length > 0 ? artistStatus.map(artist => (
-                                        <div key={artist.id} className="artist-status-item">
-                                            <span className="artist-name">{artist.name}</span>
-                                            <span className={`status-badge ${artist.status.toLowerCase() === 'available' ? 'completed' : 'scheduled'}`}>
-                                                {artist.status}
-                                            </span>
+                                {/* Today's Appointments */}
+                                <div className="glass-card">
+                                    <div className="card-header-v2">
+                                        <div className="header-title">
+                                            <Clock size={20} />
+                                            <h2>Today's Schedule</h2>
                                         </div>
-                                    )) : <p className="no-data">No artists found</p>}
+                                    </div>
+                                    <div className="modern-table-wrapper">
+                                        {todaysAppointments.length > 0 ? (
+                                            <table className="premium-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Time</th>
+                                                        <th>Client</th>
+                                                        <th>Artist</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {todaysAppointments.map(apt => (
+                                                        <tr key={apt.id}>
+                                                            <td className="date-time-cell">
+                                                                <span className="primary-date">{apt.start_time}</span>
+                                                            </td>
+                                                            <td>{apt.client_name || 'Unknown'}</td>
+                                                            <td>{apt.artist_name}</td>
+                                                            <td><span className={`badge-v2 ${apt.status}`}>{apt.status}</span></td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        ) : <p className="no-data" style={{padding: '2rem', textAlign: 'center'}}>No appointments for today.</p>}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div className="dashboard-grid-row">
-                            {/* Today's Appointments */}
-                            <div className="data-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-                                    <Clock size={20} />
-                                    <h2 style={{ margin: 0 }}>Today's Schedule</h2>
-                                </div>
-                                <div className="table-responsive">
-                                    {todaysAppointments.length > 0 ? (
-                                        <table className="admin-table">
+                                {/* Appointments Overview */}
+                                <div className="glass-card">
+                                    <div className="card-header-v2">
+                                        <div className="header-title">
+                                            <Calendar size={20} />
+                                            <h2>Appointments Overview</h2>
+                                        </div>
+                                        <div className="card-actions">
+                                            <div className="header-search" style={{ height: '36px', width: '200px' }}>
+                                                <Search size={14} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search..."
+                                                    value={appointmentSearch}
+                                                    onChange={(e) => { setAppointmentSearch(e.target.value); setAppointmentPage(1); }}
+                                                    style={{ fontSize: '0.8rem' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="modern-table-wrapper">
+                                        <table className="premium-table">
                                             <thead>
                                                 <tr>
-                                                    <th>Time</th>
                                                     <th>Client</th>
                                                     <th>Artist</th>
+                                                    <th>Date</th>
                                                     <th>Status</th>
+                                                    <th style={{ textAlign: 'right' }}>Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {todaysAppointments.map(apt => (
-                                                    <tr key={apt.id}>
-                                                        <td>{apt.start_time}</td>
-                                                        <td>{apt.client_name || 'Unknown'}</td>
-                                                        <td>{apt.artist_name}</td>
-                                                        <td><span className={`status-badge ${apt.status}`}>{apt.status}</span></td>
+                                                {displayedAppointments.length > 0 ? displayedAppointments.map((appointment) => (
+                                                    <tr key={appointment.id}>
+                                                        <td>{appointment.client_name}</td>
+                                                        <td>{appointment.artist_name}</td>
+                                                        <td className="date-time-cell">
+                                                            <div className="primary-date">{new Date(appointment.appointment_date).toLocaleDateString()}</div>
+                                                            <div className="secondary-time">{appointment.start_time}</div>
+                                                        </td>
+                                                        <td>
+                                                            <span className={`badge-v2 ${appointment.status.toLowerCase()}`}>
+                                                                {appointment.status}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <div className="table-actions-v2">
+                                                                {appointment.status === 'pending' && (
+                                                                    <>
+                                                                        <button className="icon-btn-v2 check" title="Approve" onClick={() => handleStatusUpdate(appointment.id, 'confirmed')}>
+                                                                            <CheckCircle size={16} />
+                                                                        </button>
+                                                                        <button className="icon-btn-v2 cross" title="Reject" onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}>
+                                                                            <AlertTriangle size={16} />
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                                <button className="icon-btn-v2" title="Details">
+                                                                    <FileText size={16} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
                                                     </tr>
-                                                ))}
+                                                )) : (
+                                                    <tr><td colSpan="5" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>No appointments found</td></tr>
+                                                )}
                                             </tbody>
                                         </table>
-                                    ) : <p className="no-data">No appointments for today.</p>}
-                                </div>
-                            </div>
+                                    </div>
 
-                            {/* Alerts Section */}
-                            <div className="data-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-                                    <Bell size={20} />
-                                    <h2 style={{ margin: 0 }}>System Alerts</h2>
-                                </div>
-                                <div className="alerts-list">
-                                    {alerts.length > 0 ? alerts.map(alert => (
-                                        <div key={alert.id} className={`alert-item ${alert.severity}`}>
-                                            <AlertTriangle size={16} />
-                                            <span>{alert.message}</span>
+                                    {appointmentTotalPages > 1 && (
+                                        <div className="card-footer-v2" style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem', gap: '10px', alignItems: 'center' }}>
+                                            <button
+                                                className="icon-btn-v2"
+                                                disabled={appointmentPage === 1}
+                                                onClick={() => setAppointmentPage(p => p - 1)}
+                                            ><ChevronLeft size={16} /></button>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{appointmentPage} / {appointmentTotalPages}</span>
+                                            <button
+                                                className="icon-btn-v2"
+                                                disabled={appointmentPage === appointmentTotalPages}
+                                                onClick={() => setAppointmentPage(p => p + 1)}
+                                            ><ChevronRight size={16} /></button>
                                         </div>
-                                    )) : (
-                                        <p className="no-data">No new alerts.</p>
                                     )}
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Appointments Overview */}
-                        <div className="data-card">
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                <h2 style={{ margin: 0 }}>Appointments Overview</h2>
-                                <div style={{ position: 'relative', maxWidth: '200px' }}>
-                                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-                                    <input
-                                        type="text"
-                                        placeholder="Search appointments..."
-                                        value={appointmentSearch}
-                                        onChange={(e) => { setAppointmentSearch(e.target.value); setAppointmentPage(1); }}
-                                        style={{ width: '100%', padding: '6px 10px 6px 30px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '0.9rem' }}
-                                    />
+                            <div className="layout-column">
+                                {/* Artist Status */}
+                                <div className="glass-card">
+                                    <div className="card-header-v2">
+                                        <div className="header-title">
+                                            <Palette size={20} />
+                                            <h2>Artist Status</h2>
+                                        </div>
+                                    </div>
+                                    <div className="artist-occupancy-list">
+                                        {artistStatus.length > 0 ? artistStatus.map(artist => (
+                                            <div key={artist.id} className="occupancy-item">
+                                                <div className="occupancy-info">
+                                                    <div className={`occupancy-dot ${artist.status.toLowerCase() === 'available' ? 'available' : 'booked'}`}></div>
+                                                    <span className="artist-name-v2">{artist.name}</span>
+                                                </div>
+                                                <span className={`occupancy-tag ${artist.status.toLowerCase() === 'available' ? 'available' : 'booked'}`}>
+                                                    {artist.status}
+                                                </span>
+                                            </div>
+                                        )) : <p className="no-data">No artists found</p>}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="table-responsive">
-                                <table className="admin-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Client Name</th>
-                                            <th>Artist</th>
-                                            <th>Date</th>
-                                            <th>Time</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {displayedAppointments.length > 0 ? displayedAppointments.map((appointment) => (
-                                            <tr key={appointment.id}>
-                                                <td>{appointment.client_name}</td>
-                                                <td>{appointment.artist_name}</td>
-                                                <td>{new Date(appointment.appointment_date).toLocaleDateString()}</td>
-                                                <td>{appointment.start_time}</td>
-                                                <td>
-                                                    <span className={`status-badge ${appointment.status.toLowerCase()}`}>
-                                                        {appointment.status}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <div className="actions-cell">
-                                                        {appointment.status === 'pending' && (
-                                                            <>
-                                                                <button className="action-btn approve-btn" onClick={() => handleStatusUpdate(appointment.id, 'confirmed')}>Approve</button>
-                                                                <button className="action-btn reject-btn" onClick={() => handleStatusUpdate(appointment.id, 'cancelled')}>Reject</button>
-                                                            </>
-                                                        )}
-                                                        <button className="action-btn details-btn">Details</button>
+
+                                {/* System Alerts */}
+                                <div className="glass-card">
+                                    <div className="card-header-v2">
+                                        <div className="header-title">
+                                            <Bell size={20} />
+                                            <h2>Priority Alerts</h2>
+                                        </div>
+                                    </div>
+                                    <div className="alerts-stack">
+                                        {alerts.length > 0 ? alerts.map(alert => (
+                                            <div key={alert.id} className={`priority-alert-item ${alert.severity}`}>
+                                                <div className="alert-content-v2">
+                                                    <span className="alert-type-v2">{alert.type}</span>
+                                                    <p>{alert.message}</p>
+                                                </div>
+                                            </div>
+                                        )) : (
+                                            <div className="all-clear">
+                                                <CheckCircle size={32} />
+                                                <p>All systems operational</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* System Audit Logs */}
+                                <div className="glass-card">
+                                    <div className="card-header-v2">
+                                        <div className="header-title">
+                                            <FileText size={20} />
+                                            <h2>Audit Stream</h2>
+                                        </div>
+                                    </div>
+                                    <div className="audit-stream">
+                                        {displayedLogs.map((log) => (
+                                            <div key={log.id} className="audit-entry">
+                                                <div className="entry-marker"></div>
+                                                <div className="entry-content">
+                                                    <div className="entry-time">{new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                    <div className="entry-desc">
+                                                        <strong>{log.user_name || 'System'}</strong> {log.action.toLowerCase()}: {log.details}
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        )) : (
-                                            <tr><td colSpan="6" className="no-data" style={{textAlign: 'center', padding: '1rem'}}>No appointments found</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {appointmentTotalPages > 1 && (
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '1rem', gap: '10px' }}>
-                                    <button
-                                        className="btn btn-secondary"
-                                        disabled={appointmentPage === 1}
-                                        onClick={() => setAppointmentPage(p => p - 1)}
-                                        style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}
-                                    ><ChevronLeft size={16} /></button>
-                                    <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>Page {appointmentPage} of {appointmentTotalPages}</span>
-                                    <button
-                                        className="btn btn-secondary"
-                                        disabled={appointmentPage === appointmentTotalPages}
-                                        onClick={() => setAppointmentPage(p => p + 1)}
-                                        style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}
-                                    ><ChevronRight size={16} /></button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* System Audit Logs */}
-                        <div className="data-card">
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <FileText size={20} />
-                                    <h2 style={{ margin: 0 }}>System Audit Logs</h2>
-                                </div>
-                                <div style={{ position: 'relative', maxWidth: '200px' }}>
-                                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search logs..." 
-                                        value={auditSearch}
-                                        onChange={(e) => { setAuditSearch(e.target.value); setAuditPage(1); }}
-                                        style={{ width: '100%', padding: '6px 10px 6px 30px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '0.9rem' }}
-                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button className="full-logs-btn" onClick={() => navigate('/admin/logs')}>
+                                        View Full Audit Trail
+                                    </button>
                                 </div>
                             </div>
-                            <div className="table-responsive">
-                                <table className="admin-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Time</th>
-                                            <th>User</th>
-                                            <th>Action</th>
-                                            <th>Details</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {displayedLogs.length > 0 ? displayedLogs.map((log) => (
-                                            <tr key={log.id}>
-                                                <td>{new Date(log.created_at).toLocaleString()}</td>
-                                                <td>
-                                                    <div style={{fontWeight: '500'}}>{log.user_name || 'System'}</div>
-                                                    <div style={{fontSize: '0.8rem', color: '#64748b'}}>{log.user_email}</div>
-                                                </td>
-                                                <td><span className="status-badge scheduled" style={{fontSize: '0.75rem'}}>{log.action}</span></td>
-                                                <td>
-                                                    <div>{log.details}</div>
-                                                    {log.ip_address && <div style={{fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px'}}>IP: {log.ip_address}</div>}
-                                                </td>
-                                            </tr>
-                                        )) : (
-                                            <tr><td colSpan="4" className="no-data" style={{textAlign: 'center', padding: '1rem'}}>No logs found</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            {auditTotalPages > 1 && (
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '1rem', gap: '10px' }}>
-                                    <button
-                                        className="btn btn-secondary"
-                                        disabled={auditPage === 1}
-                                        onClick={() => setAuditPage(p => p - 1)}
-                                        style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}
-                                    ><ChevronLeft size={16} /></button>
-                                    <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>Page {auditPage} of {auditTotalPages}</span>
-                                    <button
-                                        className="btn btn-secondary"
-                                        disabled={auditPage === auditTotalPages}
-                                        onClick={() => setAuditPage(p => p + 1)}
-                                        style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}
-                                    ><ChevronRight size={16} /></button>
-                                </div>
-                            )}
                         </div>
                     </div>
                 )}

@@ -7,6 +7,15 @@ import './AdminInventory.css';
 import ManagerSideNav from '../components/ManagerSideNav';
 import { API_URL } from '../config';
 
+const INVENTORY_CATEGORIES = [
+    { value: 'ink', label: 'Ink' },
+    { value: 'needles', label: 'Needles' },
+    { value: 'jewelry', label: 'Jewelry' },
+    { value: 'supplies', label: 'Supplies' },
+    { value: 'aftercare', label: 'Aftercare' },
+    { value: 'machinery', label: 'Machinery' }
+];
+
 function AdminInventory() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -37,7 +46,10 @@ function AdminInventory() {
         category: 'ink',
         currentStock: 0,
         unit: 'pcs',
-        cost: 0
+        cost: 0,
+        minStock: 5,
+        maxStock: 100,
+        supplier: ''
     });
     const [transactionData, setTransactionData] = useState({
         type: 'in',
@@ -76,7 +88,9 @@ function AdminInventory() {
                 const mapped = res.data.data.map(i => ({
                     ...i,
                     currentStock: i.current_stock,
-                    lastRestocked: i.last_restocked
+                    lastRestocked: i.last_restocked,
+                    minStock: i.min_stock,
+                    maxStock: i.max_stock
                 }));
                 setInventory(mapped);
             }
@@ -168,7 +182,10 @@ function AdminInventory() {
             category: item.category,
             currentStock: item.currentStock,
             unit: item.unit,
-            cost: item.cost
+            cost: item.cost,
+            minStock: item.minStock || 0,
+            maxStock: item.maxStock || 0,
+            supplier: item.supplier || ''
         });
         openModal(setAddEditModal);
     };
@@ -211,7 +228,10 @@ function AdminInventory() {
             category: 'ink',
             currentStock: 0,
             unit: 'pcs',
-            cost: 0
+            cost: 0,
+            minStock: 5,
+            maxStock: 100,
+            supplier: ''
         });
         openModal(setAddEditModal);
     };
@@ -237,7 +257,10 @@ function AdminInventory() {
             const payload = {
                 ...formData,
                 currentStock: Number(formData.currentStock) || 0,
-                cost: Number(formData.cost) || 0
+                cost: Number(formData.cost) || 0,
+                minStock: Number(formData.minStock) || 0,
+                maxStock: Number(formData.maxStock) || 0,
+                supplier: formData.supplier || ''
             };
 
             if (selectedItem) {
@@ -377,11 +400,9 @@ function AdminInventory() {
                         className="premium-select-v2"
                     >
                         <option value="all">All Categories</option>
-                        <option value="ink">Ink</option>
-                        <option value="needles">Needles</option>
-                        <option value="jewelry">Jewelry</option>
-                        <option value="supplies">Supplies</option>
-                        <option value="aftercare">Aftercare</option>
+                        {INVENTORY_CATEGORIES.map(cat => (
+                            <option key={cat.value} value={cat.value}>{cat.label}</option>
+                        ))}
                     </select>
 
                     <select
@@ -439,6 +460,7 @@ function AdminInventory() {
                                 <th>Item Name</th>
                                 <th>Category</th>
                                 <th>Current Stock</th>
+                                <th>Min Stock</th>
                                 <th>Unit</th>
                                 <th>Cost</th>
                                 <th>Status</th>
@@ -457,9 +479,12 @@ function AdminInventory() {
                                                 {item.category}
                                             </span>
                                         </td>
-                                        <td className="text-center">{item.currentStock}</td>
+                                        <td className="text-center">
+                                            <span style={{ fontWeight: '600' }}>{item.currentStock}</span>
+                                        </td>
+                                        <td className="text-muted text-center" style={{ fontSize: '0.85rem' }}>{item.minStock}</td>
                                         <td>{item.unit}</td>
-                                        <td>₱{item.cost}</td>
+                                        <td>₱{item.cost.toLocaleString()}</td>
                                         <td>
                                             <span className={`badge stock-${getStockStatus(item.currentStock, item.minStock, item.maxStock)}`}>
                                                 {getStockStatus(item.currentStock, item.minStock, item.maxStock)}
@@ -547,11 +572,9 @@ function AdminInventory() {
                                         onChange={(e) => setFormData({...formData, category: e.target.value})}
                                         className="form-input"
                                     >
-                                        <option value="ink">Ink</option>
-                                        <option value="needles">Needles</option>
-                                        <option value="jewelry">Jewelry</option>
-                                        <option value="supplies">Supplies</option>
-                                        <option value="aftercare">Aftercare</option>
+                                        {INVENTORY_CATEGORIES.map(cat => (
+                                            <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="form-group">
@@ -584,6 +607,40 @@ function AdminInventory() {
                                         value={formData.cost}
                                         onChange={(e) => setFormData({...formData, cost: e.target.value})}
                                         className="form-input"
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Min Stock Threshold</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={formData.minStock}
+                                        onChange={(e) => setFormData({...formData, minStock: e.target.value})}
+                                        className="form-input"
+                                        placeholder="Alert when stock hits this level"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Max Stock Capacity</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={formData.maxStock}
+                                        onChange={(e) => setFormData({...formData, maxStock: e.target.value})}
+                                        className="form-input"
+                                        placeholder="Target maximum stock level"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Supplier</label>
+                                    <input
+                                        type="text"
+                                        value={formData.supplier}
+                                        onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+                                        className="form-input"
+                                        placeholder="Name of supplier"
                                     />
                                 </div>
                             </div>
