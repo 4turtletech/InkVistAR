@@ -218,7 +218,7 @@ function AdminDashboard() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-dashboard-container page-container-enter">
+            <div className="admin-page admin-dashboard-container page-container-enter">
                 <header className="dashboard-top-nav">
                     <div className="top-nav-left">
                         <h1>Admin Dashboard</h1>
