@@ -96,6 +96,22 @@ function ArtistSessions() {
         } catch (e) { console.error(e); }
     };
 
+    const handleReleaseMaterial = async (materialId) => {
+        if (!activeSession) return;
+        try {
+            const res = await Axios.post(`${API_URL}/api/appointments/${activeSession.id}/release-material`, {
+                materialId
+            });
+            if (res.data.success) {
+                fetchSessionMaterials(activeSession.id);
+            } else {
+                showAlert("Error", res.data.message || 'Failed to release material.', "warning");
+            }
+        } catch (e) {
+            showAlert("Connection Error", "Failed to connect to the server.", "danger");
+        }
+    };
+
     const handleQuickAdd = async (inventoryId, quantity = 1) => {
         if (!activeSession) return;
         setAddingMaterial(true);
@@ -373,9 +389,20 @@ function ArtistSessions() {
                                                 ) : (
                                                     <ul style={{listStyle: 'none', padding: 0, margin: 0}}>
                                                         {sessionMaterials.map((mat, idx) => (
-                                                            <li key={idx} style={{display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #e2e8f0'}}>
-                                                                <span style={{fontSize: '0.9rem'}}>{mat.quantity}x {mat.item_name}</span>
-                                                                <span style={{fontSize: '0.8rem', color: '#64748b'}}>{mat.status}</span>
+                                                            <li key={idx} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #e2e8f0'}}>
+                                                                <div style={{display: 'flex', flexDirection: 'column'}}>
+                                                                    <span style={{fontSize: '0.9rem', fontWeight: '500'}}>{mat.quantity}x {mat.item_name}</span>
+                                                                    <span style={{fontSize: '0.75rem', color: mat.status === 'hold' ? '#f59e0b' : '#64748b'}}>{mat.status.toUpperCase()}</span>
+                                                                </div>
+                                                                {mat.status === 'hold' && (
+                                                                    <button 
+                                                                        onClick={() => handleReleaseMaterial(mat.id)}
+                                                                        title="Return to Inventory"
+                                                                        style={{background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px'}}
+                                                                    >
+                                                                        <X size={14} />
+                                                                    </button>
+                                                                )}
                                                             </li>
                                                         ))}
                                                     </ul>

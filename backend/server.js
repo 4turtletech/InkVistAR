@@ -513,6 +513,21 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(invoicesTableQuery, (err) => { if (err) console.error('⚠️ Error checking invoices table:', err.message); });
+    
+    // Create Payouts Table (Artist Payments)
+    const payoutsTableQuery = `
+      CREATE TABLE IF NOT EXISTS payouts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        artist_id INT NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        payout_method VARCHAR(50) DEFAULT 'Bank Transfer',
+        reference_no VARCHAR(100),
+        status VARCHAR(20) DEFAULT 'Paid',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `;
+    db.query(payoutsTableQuery, (err) => { if (err) console.error('⚠️ Error checking payouts table:', err.message); else console.log('💵 Payouts table ready'); });
 
     // Check appointments table for is_deleted
     db.query("SHOW COLUMNS FROM appointments LIKE 'is_deleted'", (err, results) => {
@@ -1660,45 +1675,9 @@ app.put('/api/artist/portfolio/:id/visibility', (req, res) => {
   });
 });
 
-// Artist: Create Appointment
+// Artist: Create Appointment (DISABLED per business rules: Only Admins/Managers can book)
 app.post('/api/artist/appointments', (req, res) => {
-  const { artistId, clientEmail, date, startTime, designTitle } = req.body;
-
-  console.log('📅 Request to schedule:', { artistId, clientEmail, date, startTime });
-
-  // Find client by email
-  db.query('SELECT id FROM users WHERE email = ?', [clientEmail], (err, results) => {
-    if (err) {
-      console.error('❌ Error finding client:', err);
-      return res.status(500).json({ success: false, message: 'DB Error (Find Client): ' + err.message });
-    }
-
-    if (results.length === 0) {
-      return res.status(404).json({ success: false, message: 'Client email not found. Please add client first.' });
-    }
-
-    const customerId = results[0].id;
-
-    // Insert appointment
-    const query = `
-      INSERT INTO appointments 
-      (customer_id, artist_id, appointment_date, start_time, end_time, design_title, status, price)
-      VALUES (?, ?, ?, ?, ?, ?, 'confirmed', 0)
-    `;
-
-    // Simple end time (same as start for now)
-    db.query(query, [customerId, artistId, date, startTime, startTime, designTitle], (err, result) => {
-      if (err) {
-        console.error('❌ Error creating appointment:', err);
-        return res.status(500).json({ success: false, message: 'DB Error (Insert Appt): ' + err.message });
-      }
-
-      // Notify Client
-      createNotification(customerId, 'New Appointment', `Artist scheduled: ${designTitle} on ${date}`, 'appointment_new', result.insertId);
-
-      res.json({ success: true, message: 'Appointment scheduled successfully' });
-    });
-  });
+  res.status(403).json({ success: false, message: 'Artists are not authorized to create appointments. Please contact the studio manager.' });
 });
 
 // Artist: Add New Client
@@ -1906,11 +1885,11 @@ app.post('/api/customer/appointments', (req, res) => {
 
   const query = `
     INSERT INTO appointments 
-    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_consultation', 0, 'Consultation')
   `;
 
-  db.query(query, [customerId, artistId, date, finalStartTime, finalEndTime, designTitle, notes, referenceImage, bookingStatus, price || 0], (err, result) => {
+  db.query(query, [customerId, artistId, date, finalStartTime, finalEndTime, designTitle || 'Consultation Request', notes, referenceImage], (err, result) => {
     if (err) {
       console.error('❌ Error booking appointment:', err);
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -2206,9 +2185,129 @@ app.put('/api/appointments/:id/status', (req, res) => {
         createNotification(appointment.artist_id, 'Appointment Cancelled', 'An appointment has been cancelled.', 'appointment_cancelled', id);
       } else if (status === 'completed') {
         createNotification(appointment.customer_id, 'Appointment Completed', 'Thanks for visiting! Please leave a review.', 'appointment_completed', id);
+        
+        // 🚀 SYNC: Automatically create a manual invoice for Admin Billing
+        db.query('SELECT name FROM users WHERE id = ?', [appointment.customer_id], (uErr, uRes) => {
+          const clientName = (!uErr && uRes.length) ? uRes[0].name : `Client #${appointment.customer_id}`;
+          const invoiceQuery = 'INSERT INTO invoices (client_name, service_type, amount, status, created_at) VALUES (?, ?, ?, "Paid", NOW())';
+          db.query(invoiceQuery, [clientName, appointment.service_type || 'Tattoo Session', appointment.price || 0], (invErr) => {
+            if (invErr) console.error('❌ Failed to auto-generate invoice:', invErr.message);
+            else console.log(`✅ Auto-generated invoice for Client: ${clientName}`);
+          });
+        });
       }
 
       res.json({ success: true, message: 'Appointment status updated' });
+    });
+  });
+});
+
+// GET Artist Earnings Ledger (Secure calculation)
+app.get('/api/artist/:id/earnings-ledger', (req, res) => {
+  const { id } = req.params;
+  
+  // 1. Get Commission Rate
+  db.query('SELECT commission_rate FROM artists WHERE user_id = ?', [id], (err, rateRes) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    const rate = rateRes.length > 0 ? rateRes[0].commission_rate : 0.6;
+
+    // 2. Get Completed Appointments
+    const apptsQuery = `
+      SELECT id, appointment_date, design_title, price, payment_status, status
+      FROM appointments 
+      WHERE artist_id = ? AND status = 'completed' AND is_deleted = 0
+    `;
+    db.query(apptsQuery, [id], (apptsErr, appts) => {
+      if (apptsErr) return res.status(500).json({ success: false, message: 'Database error fetching appointments' });
+
+      // 3. Get Payout History
+      db.query('SELECT * FROM payouts WHERE artist_id = ? ORDER BY created_at DESC', [id], (payErr, payouts) => {
+        if (payErr) return res.status(500).json({ success: false, message: 'Database error fetching payouts' });
+
+        // Calculate Totals
+        const calculations = appts.map(a => ({
+          ...a,
+          artistShare: a.price * rate,
+          studioShare: a.price * (1 - rate)
+        }));
+
+        const totalEarned = calculations
+          .filter(a => a.payment_status === 'paid')
+          .reduce((sum, a) => sum + a.artistShare, 0);
+
+        const pendingFromUnpaid = calculations
+          .filter(a => a.payment_status !== 'paid')
+          .reduce((sum, a) => sum + a.artistShare, 0);
+
+        const totalPaidOut = payouts.reduce((sum, p) => sum + Number(p.amount), 0);
+
+        res.json({
+          success: true,
+          commissionRate: rate,
+          stats: {
+            totalEarned,
+            pendingFromUnpaid,
+            totalPaidOut,
+            balanceToPay: totalEarned - totalPaidOut
+          },
+          sessions: calculations,
+          payouts: payouts
+        });
+      });
+    });
+  });
+});
+
+// GET All Payouts (Admin Only)
+app.get('/api/admin/payouts', (req, res) => {
+  const query = `
+    SELECT p.*, u.name as artist_name 
+    FROM payouts p
+    JOIN users u ON p.artist_id = u.id
+    ORDER BY p.created_at DESC
+  `;
+  db.query(query, (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    res.json({ success: true, data: results });
+  });
+});
+
+// POST Record a Payout (Admin Only)
+app.post('/api/admin/payouts', (req, res) => {
+  const { artistId, amount, method, reference } = req.body;
+  
+  if (!artistId || !amount) return res.status(400).json({ success: false, message: 'Missing required fields' });
+
+  const query = 'INSERT INTO payouts (artist_id, amount, payout_method, reference_no) VALUES (?, ?, ?, ?)';
+  db.query(query, [artistId, amount, method || 'Bank Transfer', reference || 'N/A'], (err) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+    res.json({ success: true, message: 'Payout recorded successfully' });
+  });
+});
+
+// POST Release/Return individual material to inventory
+app.post('/api/appointments/:id/release-material', (req, res) => {
+  const { id } = req.params; // Appointment ID
+  const { materialId } = req.body; // session_materials.id
+
+  if (!materialId) return res.status(400).json({ success: false, message: 'Material record ID required' });
+
+  // 1. Get material info
+  db.query('SELECT * FROM session_materials WHERE id = ? AND appointment_id = ? AND status = "hold"', [materialId, id], (err, results) => {
+    if (err || results.length === 0) return res.status(404).json({ success: false, message: 'Held material record not found' });
+
+    const material = results[0];
+
+    // 2. Return to stock
+    db.query('UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [material.quantity, material.inventory_id], (updErr) => {
+      if (updErr) return res.status(500).json({ success: false, message: 'Failed to update stock' });
+
+      // 3. Mark as released
+      db.query('UPDATE session_materials SET status = "released" WHERE id = ?', [materialId], (relErr) => {
+        if (relErr) return res.status(500).json({ success: false, message: 'Failed to update record status' });
+        
+        res.json({ success: true, message: 'Material returned to inventory successfully' });
+      });
     });
   });
 });

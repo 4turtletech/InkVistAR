@@ -22,66 +22,32 @@ function ArtistEarnings(){
     const artistId = user ? user.id : 1;
 
     useEffect(() => {
-        const fetch = async () => {
+        const fetchLedger = async () => {
             try {
                 setLoading(true);
-                // Fetch appointments to calculate earnings
-                const res = await Axios.get(`${API_URL}/api/artist/${artistId}/appointments?status=completed`);
+                const res = await Axios.get(`${API_URL}/api/artist/${artistId}/earnings-ledger`);
                 
                 if (res.data.success) {
-                    const commissionRate = res.data.appointments.length > 0 ? (res.data.appointments[0].commission_rate || 0.6) : 0.6;
-                    const completedAppts = res.data.appointments.map(appt => {
-                        const basePrice = appt.price || 0; 
-                        const artistShare = basePrice * commissionRate;
-                        const studioShare = basePrice * (1 - commissionRate);
-                        
-                        return {
-                            ...appt,
-                            basePrice,
-                            artistShare,
-                            studioShare
-                        };
-                    });
-
-                    setSessionEarnings(completedAppts);
-
-                    // Calculate Stats
-                    const totalEarnings = completedAppts
-                        .filter(a => a.payment_status === 'paid')
-                        .reduce((sum, a) => sum + a.artistShare, 0);
-                    
-                    // Calculate current month's earnings (only paid)
-                    const currentMonth = new Date().getMonth();
-                    const currentYear = new Date().getFullYear();
-                    const monthlyPayout = completedAppts
-                        .filter(a => a.payment_status === 'paid' && new Date(a.appointment_date).getMonth() === currentMonth && new Date(a.appointment_date).getFullYear() === currentYear)
-                        .reduce((sum, a) => sum + a.artistShare, 0);
-
                     setStats({
-                        totalEarnings,
-                        totalCommission: commissionRate * 100, // Display as percentage
-                        pendingPayout: monthlyPayout
+                        totalEarnings: res.data.stats.totalEarned,
+                        totalCommission: (res.data.commissionRate * 100).toFixed(0),
+                        pendingPayout: res.data.stats.balanceToPay
                     });
-
-                    // Generate Payout History (Group by Month)
-                    const monthlyGroups = completedAppts.reduce((acc, appt) => {
-                        const date = new Date(appt.appointment_date);
-                        const monthKey = date.toLocaleString('default', { month: 'long', year: 'numeric' });
-                        
-                        if (!acc[monthKey]) {
-                            acc[monthKey] = { month: monthKey, amount: 0, status: 'Paid', date: date };
-                        }
-                        acc[monthKey].amount += appt.artistShare;
-                        return acc;
-                    }, {});
-
-                    const history = Object.values(monthlyGroups).sort((a, b) => b.date - a.date);
-                    setPayoutHistory(history);
+                    setSessionEarnings(res.data.sessions);
+                    setPayoutHistory(res.data.payouts.map(p => ({
+                        month: new Date(p.created_at).toLocaleString('default', { month: 'long', year: 'numeric' }),
+                        amount: Number(p.amount),
+                        status: p.status,
+                        date: new Date(p.created_at)
+                    })));
                 }
                 setLoading(false);
-            } catch(e){ console.error(e); setLoading(false); }
+            } catch(e) { 
+                console.error(e); 
+                setLoading(false); 
+            }
         };
-        fetch();
+        fetchLedger();
     }, [artistId]);
 
     return (

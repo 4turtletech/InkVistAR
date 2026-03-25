@@ -39,7 +39,7 @@ function CustomerSideNav() {
 
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/customer' },
-        { label: 'Book Appointment', icon: PlusCircle, path: '/customer/book' },
+        // { label: 'Book Appointment', icon: PlusCircle, path: '/customer/book' }, // Hidden per business rules
         { label: 'My Bookings', icon: Calendar, path: '/customer/bookings' },
         { label: 'Gallery', icon: Image, path: '/customer/gallery' },
         { label: 'Try-On Tattoo', icon: Sparkles, path: '/customer/try-on' },
