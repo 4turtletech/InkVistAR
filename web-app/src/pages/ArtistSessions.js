@@ -55,14 +55,18 @@ function ArtistSessions() {
         try {
             // Fetch all appointments for the artist, then filter by today locally
             const res = await Axios.get(`${API_URL}/api/artist/${artistId}/appointments`);
+            console.log('📋 All appointments from API:', res.data.appointments);
             if (res.data.success) {
                 const today = new Date().toISOString().split('T')[0];
+                console.log('📅 Today\'s date:', today);
                 const todaySessions = res.data.appointments.filter(a => {
                     const appointmentDate = typeof a.appointment_date === 'string'
                         ? a.appointment_date.split('T')[0]
                         : new Date(a.appointment_date).toISOString().split('T')[0];
+                    console.log(`🔍 Appointment ${a.id}: date=${appointmentDate}, status=${a.status}, start_time=${a.start_time}`);
                     return appointmentDate === today && a.status !== 'cancelled';
                 });
+                console.log('✅ Filtered for today:', todaySessions);
                 setSessions(todaySessions);
             }
             setLoading(false);

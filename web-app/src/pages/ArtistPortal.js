@@ -176,7 +176,7 @@ function ArtistPortal() {
                                                 <tr key={apt.id}>
                                                     <td>{apt.client_name || apt.client || 'N/A'}</td>
                                                     <td>{apt.appointment_date || apt.date || 'N/A'}</td>
-                                                    <td>{apt.appointment_time || apt.time || 'N/A'}</td>
+                                                    <td>{apt.start_time || apt.appointment_time || apt.time || 'N/A'}</td>
                                                     <td><span className={`status-badge ${(apt.status || 'pending').toLowerCase()}`}>{apt.status || 'Pending'}</span></td>
                                                     <td>
                                                         <button className="action-btn">View</button>
