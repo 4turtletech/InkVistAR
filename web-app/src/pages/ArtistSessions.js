@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock } from 'lucide-react';
+import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Calendar } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import './PortalStyles.css';
