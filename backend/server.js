@@ -434,7 +434,16 @@ db.getConnection((err, connection) => {
             console.log('✅ Added after_photo column to appointments');
           }
         });
-        
+
+        // MIGRATION: Add 'before_photo' column if it doesn't exist
+        db.query("SHOW COLUMNS FROM appointments LIKE 'before_photo'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding before_photo column...');
+            db.query("ALTER TABLE appointments ADD COLUMN before_photo LONGTEXT NULL");
+            console.log('✅ Added before_photo column to appointments');
+          }
+        });
+
         // MIGRATION: Add 'price' column if it doesn't exist to prevent errors.
         db.query("SHOW COLUMNS FROM appointments LIKE 'price'", (err, results) => {
           if (!err && results.length === 0) {
@@ -2434,28 +2443,23 @@ app.put('/api/appointments/:id/details', (req, res) => {
   let query = 'UPDATE appointments SET notes = ?';
   let params = [notes];
 
-  /* 
-    Temporarily disabled before/after photos because the columns 
-    do not exist in the production database yet, causing 500 errors.
-  
-  if (beforePhoto !== undefined) {
+  if (beforePhoto !== undefined && beforePhoto !== null) {
     query += ', before_photo = ?';
     params.push(beforePhoto);
   }
-  
-  if (afterPhoto !== undefined) {
+
+  if (afterPhoto !== undefined && afterPhoto !== null) {
     query += ', after_photo = ?';
     params.push(afterPhoto);
   }
-  */
 
   query += ' WHERE id = ?';
   params.push(id);
 
   db.query(query, params, (err, result) => {
     if (err) {
-      console.error('Error updating appointment details:', err);
-      return res.status(500).json({ success: false, message: 'Database error' });
+      console.error('❌ Error updating appointment details:', err);
+      return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
     }
 
     res.json({ success: true, message: 'Details updated successfully' });
