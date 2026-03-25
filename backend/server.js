@@ -2205,6 +2205,8 @@ app.post('/api/appointments/:id/materials', (req, res) => {
   const { id } = req.params;
   const { inventory_id, quantity } = req.body;
 
+  console.log(`📦 Adding material to appointment ${id}: inventory_id=${inventory_id}, quantity=${quantity}`);
+
   // Deduct from inventory immediately and add to session_materials as hold
   db.query('UPDATE inventory SET current_stock = current_stock - ? WHERE id = ? AND current_stock >= ?',
     [quantity, inventory_id, quantity], (err, result) => {
@@ -2213,7 +2215,12 @@ app.post('/api/appointments/:id/materials', (req, res) => {
       console.error('❌ Error deducting inventory:', err);
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
     }
-    if (result.affectedRows === 0) return res.status(400).json({ success: false, message: 'Insufficient stock or invalid item' });
+    if (result.affectedRows === 0) {
+      console.warn(`⚠️ Inventory update failed: Item ${inventory_id} may not exist or insufficient stock`);
+      return res.status(400).json({ success: false, message: 'Insufficient stock or invalid item' });
+    }
+
+    console.log(`✅ Deducted ${quantity} from inventory ${inventory_id}`);
 
     db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
       [id, inventory_id, quantity, 'hold'], (insErr) => {
@@ -2223,6 +2230,7 @@ app.post('/api/appointments/:id/materials', (req, res) => {
           db.query('UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [quantity, inventory_id]);
           return res.status(500).json({ success: false, message: 'Failed to record material usage: ' + insErr.message });
         }
+        console.log(`✅ Added session material as HOLD status`);
         res.json({ success: true, message: 'Material added to session' });
     });
   });
