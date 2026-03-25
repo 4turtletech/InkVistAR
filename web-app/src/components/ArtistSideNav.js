@@ -6,12 +6,12 @@ import {
     Users,
     Image,
     CreditCard,
-    Users2,
-    ChevronLeft,
-    ChevronRight,
     LogOut,
     PenTool,
-    Bell
+    Bell,
+    ChevronLeft,
+    ChevronRight,
+    Building2
 } from 'lucide-react';
 import '../styles/ArtistSideNav.css';
 
@@ -56,7 +56,12 @@ function ArtistSideNav() {
     return (
         <aside className={`artist-sidenav ${collapsed ? 'collapsed' : ''}`}>
             <div className="sidenav-header">
-                <span>Artist Portal</span>
+                <div className="logo-container">
+                    <div className="logo-box">
+                        <Building2 size={24} />
+                    </div>
+                    <span className="logo-text">InkVistAR</span>
+                </div>
                 <button className="sidenav-toggle" onClick={toggleCollapsed} title={collapsed ? 'Expand' : 'Collapse'}>
                     {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                 </button>
@@ -77,6 +82,7 @@ function ArtistSideNav() {
                                     >
                                         <Icon size={20} />
                                         <span className="menu-text">{item.label}</span>
+                                        {isActive && <div className="active-indicator" />}
                                     </button>
                                 </li>
                             );
@@ -88,6 +94,7 @@ function ArtistSideNav() {
                     <button className="menu-item logout-item" onClick={handleLogout}>
                         <LogOut size={20} />
                         <span className="menu-text">Logout</span>
+                        <div className="active-indicator" style={{ display: 'none' }} />
                     </button>
                 </div>
             </nav>
@@ -95,4 +102,4 @@ function ArtistSideNav() {
     );
 }
 
-export default ArtistSideNav;
+export default ArtistSideNav;

@@ -21,6 +21,8 @@ import {
     AppWindow,
     Bell
 } from 'lucide-react';
+import io from 'socket.io-client';
+import { API_URL } from '../config';
 import '../styles/AdminSideNav.css';
 
 function AdminSideNav() {
@@ -34,6 +36,7 @@ function AdminSideNav() {
         const stored = localStorage.getItem('userManagementOpen');
         return stored === 'true';
     });
+    const [unreadChatCount, setUnreadChatCount] = useState(0);
 
     useEffect(() => {
         if (collapsed) {
@@ -50,7 +53,37 @@ function AdminSideNav() {
         localStorage.setItem('adminSidenavCollapsed', next ? 'true' : 'false');
     };
 
+    // Socket.io for Real-time Chat Notifications
+    useEffect(() => {
+        const socket = io(API_URL);
+        
+        socket.on('connect', () => {
+            socket.emit('join_admin_tracking');
+        });
+
+        socket.on('support_sessions_update', (sessions) => {
+            // Count sessions where last message is not from admin
+            // (Assuming 'Admin' is the sender name for all admins)
+            const waiting = sessions.filter(s => s.lastMessage && s.messages.length > 0 && s.messages[s.messages.length - 1].sender !== 'System Admin').length;
+            // Wait, the sender name in server.js for emergency login is 'System Admin'. 
+            // Better to check if sender doesn't contain 'Admin' or 'Agent'.
+            const waitingCount = sessions.filter(s => {
+                const lastMsg = s.messages[s.messages.length - 1];
+                return lastMsg && !lastMsg.sender.toLowerCase().includes('admin') && !lastMsg.sender.toLowerCase().includes('agent');
+            }).length;
+            
+            setUnreadChatCount(waitingCount);
+        });
+
+        return () => socket.disconnect();
+    }, []);
+
     const toggleUserManagement = () => {
+        // Fix: If collapsed, expand first before opening dropdown
+        if (collapsed) {
+            setCollapsed(false);
+            localStorage.setItem('adminSidenavCollapsed', 'false');
+        }
         const next = !userManagementOpen;
         setUserManagementOpen(next);
         localStorage.setItem('userManagementOpen', next ? 'true' : 'false');
@@ -213,6 +246,9 @@ function AdminSideNav() {
                                     >
                                         <IconComponent size={20} />
                                         <span className="menu-text">{action.label}</span>
+                                        {action.label === 'Chat' && unreadChatCount > 0 && (
+                                            <span className="notification-dot"></span>
+                                        )}
                                         {active && <div className="active-indicator" />}
                                     </button>
                                 </li>

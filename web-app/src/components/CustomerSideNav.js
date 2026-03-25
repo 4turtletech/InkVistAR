@@ -8,9 +8,9 @@ import {
     ChevronLeft,
     ChevronRight,
     LogOut,
-    PlusCircle,
     Sparkles,
-    Receipt
+    Bell,
+    Building2
 } from 'lucide-react';
 import '../styles/CustomerSideNav.css';
 
@@ -39,10 +39,10 @@ function CustomerSideNav() {
 
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/customer' },
-        // { label: 'Book Appointment', icon: PlusCircle, path: '/customer/book' }, // Hidden per business rules
         { label: 'My Bookings', icon: Calendar, path: '/customer/bookings' },
         { label: 'Gallery', icon: Image, path: '/customer/gallery' },
         { label: 'Try-On Tattoo', icon: Sparkles, path: '/customer/try-on' },
+        { label: 'Notifications', icon: Bell, path: '/customer/notifications' },
         { label: 'Profile', icon: User, path: '/customer/profile' },
     ];
 
@@ -54,9 +54,14 @@ function CustomerSideNav() {
     return (
         <aside className={`customer-sidenav ${collapsed ? 'collapsed' : ''}`}>
             <div className="sidenav-header">
-                <span>Customer Portal</span>
-                <button className="close-nav" onClick={toggleCollapsed}>
-                    {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                <div className="logo-container">
+                    <div className="logo-box">
+                        <Building2 size={24} />
+                    </div>
+                    <span className="logo-text">InkVistAR</span>
+                </div>
+                <button className="sidenav-toggle" onClick={toggleCollapsed} title={collapsed ? 'Expand' : 'Collapse'}>
+                    {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                 </button>
             </div>
 
@@ -75,6 +80,7 @@ function CustomerSideNav() {
                                     >
                                         <Icon size={20} />
                                         <span className="menu-text">{item.label}</span>
+                                        {isActive && <div className="active-indicator" />}
                                     </button>
                                 </li>
                             );
@@ -86,6 +92,7 @@ function CustomerSideNav() {
                     <button className="menu-item logout-item" onClick={handleLogout}>
                         <LogOut size={20} />
                         <span className="menu-text">Logout</span>
+                        <div className="active-indicator" style={{ display: 'none' }} />
                     </button>
                 </div>
             </nav>
@@ -93,4 +100,4 @@ function CustomerSideNav() {
     );
 }
 
-export default CustomerSideNav;
+export default CustomerSideNav;

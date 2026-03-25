@@ -11,7 +11,9 @@ import {
     ArrowRight,
     Search,
     Filter,
-    Check
+    Check,
+    Trash2,
+    CheckCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminSideNav from '../components/AdminSideNav';
@@ -134,6 +136,33 @@ function AdminNotifications() {
                     <div className="top-nav-left">
                         <h1>Notification Center</h1>
                         <p className="subtitle">System alerts and direct updates</p>
+                    </div>
+                    <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
+                        <button 
+                            className="premium-btn secondary" 
+                            onClick={async () => {
+                                // Clear computed alerts (Inventory/Bookings)
+                                setNotifications(notifications.filter(n => !n.id.toString().startsWith('inv-') && n.id !== 'apt-pending'));
+                            }}
+                            title="Clear system alerts"
+                        >
+                            <Trash2 size={16} /> Clear Alerts
+                        </button>
+                        <button 
+                            className="premium-btn primary"
+                            onClick={async () => {
+                                // Mark all direct notifs as read
+                                try {
+                                    const unreadIds = notifications.filter(n => !n.is_read && !n.id.toString().startsWith('inv-') && n.id !== 'apt-pending').map(n => n.id);
+                                    if (unreadIds.length > 0) {
+                                        await Promise.all(unreadIds.map(id => Axios.put(`${API_URL}/api/notifications/${id}/read`)));
+                                        setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+                                    }
+                                } catch (e) { console.error(e); }
+                            }}
+                        >
+                            <CheckCheck size={16} /> Mark all read
+                        </button>
                     </div>
                 </header>
 

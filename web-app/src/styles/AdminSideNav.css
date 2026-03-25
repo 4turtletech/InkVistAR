@@ -403,3 +403,39 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
 .parent-active {
     color: #f1f5f9;
 }
+
+/* Notification Dot */
+.notification-dot {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    background-color: #ef4444;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+    animation: pulse-dot 2s infinite ease-in-out;
+}
+
+.admin-sidenav.collapsed .notification-dot {
+    top: 10px;
+    right: 10px;
+    transform: none;
+}
+
+@keyframes pulse-dot {
+    0% { transform: scale(1) translateY(-50%); opacity: 1; }
+    50% { transform: scale(1.4) translateY(-50%); opacity: 0.7; }
+    100% { transform: scale(1) translateY(-50%); opacity: 1; }
+}
+
+.admin-sidenav.collapsed .notification-dot {
+    animation: pulse-dot-collapsed 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot-collapsed {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
