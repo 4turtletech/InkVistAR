@@ -122,7 +122,7 @@ db.getConnection((err, connection) => {
             db.query("ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL AFTER email");
           }
         });
-        
+
         console.log('👤 Users table ready');
       }
     });
@@ -522,7 +522,7 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(invoicesTableQuery, (err) => { if (err) console.error('⚠️ Error checking invoices table:', err.message); });
-    
+
     // Create Payouts Table (Artist Payments)
     const payoutsTableQuery = `
       CREATE TABLE IF NOT EXISTS payouts (
@@ -2043,14 +2043,14 @@ app.get('/api/admin/service-kits', (req, res) => {
   `;
   db.query(query, (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    
+
     // Group by service type
     const kits = {};
     results.forEach(row => {
       if (!kits[row.service_type]) kits[row.service_type] = [];
       kits[row.service_type].push(row);
     });
-    
+
     res.json({ success: true, data: kits });
   });
 });
@@ -2134,7 +2134,7 @@ app.post('/api/admin/appointments', (req, res) => {
 // PUT update an appointment (Admin)
 app.put('/api/admin/appointments/:id', (req, res) => {
   const { id } = req.params;
-  const { customerId, artistId, serviceType, designTitle, date, startTime, status, notes, price } = req.body;
+  const { customerId, artistId, serviceType, designTitle, date, startTime, status, paymentStatus, notes, price } = req.body;
 
   const combinedTitle = serviceType && designTitle ? `${serviceType}: ${designTitle}` : (designTitle || serviceType || null);
 
@@ -2149,6 +2149,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (combinedTitle) { updates.push('design_title = ?'); params.push(combinedTitle); }
   if (serviceType !== undefined) { updates.push('service_type = ?'); params.push(serviceType); }
   if (status !== undefined) { updates.push('status = ?'); params.push(status); }
+  if (paymentStatus !== undefined) { updates.push('payment_status = ?'); params.push(paymentStatus); }
   if (notes !== undefined) { updates.push('notes = ?'); params.push(notes); }
   if (price !== undefined) { updates.push('price = ?'); params.push(price); }
 
@@ -2197,10 +2198,10 @@ app.get('/api/appointments/:id/materials', (req, res) => {
   `;
   db.query(query, [id], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    
+
     // Calculate total cost
     const totalCost = results.reduce((sum, item) => sum + (item.quantity * item.cost), 0);
-    
+
     res.json({ success: true, materials: results, totalCost });
   });
 });
@@ -2216,29 +2217,29 @@ app.post('/api/appointments/:id/materials', (req, res) => {
   db.query('UPDATE inventory SET current_stock = current_stock - ? WHERE id = ? AND current_stock >= ?',
     [quantity, inventory_id, quantity], (err, result) => {
 
-    if (err) {
-      console.error('❌ Error deducting inventory:', err);
-      return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
-    }
-    if (result.affectedRows === 0) {
-      console.warn(`⚠️ Inventory update failed: Item ${inventory_id} may not exist or insufficient stock`);
-      return res.status(400).json({ success: false, message: 'Insufficient stock or invalid item' });
-    }
+      if (err) {
+        console.error('❌ Error deducting inventory:', err);
+        return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+      }
+      if (result.affectedRows === 0) {
+        console.warn(`⚠️ Inventory update failed: Item ${inventory_id} may not exist or insufficient stock`);
+        return res.status(400).json({ success: false, message: 'Insufficient stock or invalid item' });
+      }
 
-    console.log(`✅ Deducted ${quantity} from inventory ${inventory_id}`);
+      console.log(`✅ Deducted ${quantity} from inventory ${inventory_id}`);
 
-    db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
-      [id, inventory_id, quantity, 'hold'], (insErr) => {
-        if (insErr) {
-          console.error('❌ Error inserting session material:', insErr);
-          // Rollback stock
-          db.query('UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [quantity, inventory_id]);
-          return res.status(500).json({ success: false, message: 'Failed to record material usage: ' + insErr.message });
-        }
-        console.log(`✅ Added session material as HOLD status`);
-        res.json({ success: true, message: 'Material added to session' });
+      db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
+        [id, inventory_id, quantity, 'hold'], (insErr) => {
+          if (insErr) {
+            console.error('❌ Error inserting session material:', insErr);
+            // Rollback stock
+            db.query('UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [quantity, inventory_id]);
+            return res.status(500).json({ success: false, message: 'Failed to record material usage: ' + insErr.message });
+          }
+          console.log(`✅ Added session material as HOLD status`);
+          res.json({ success: true, message: 'Material added to session' });
+        });
     });
-  });
 });
 
 // Update appointment status (Modified with Inventory Logic)
@@ -2259,19 +2260,19 @@ app.put('/api/appointments/:id/status', (req, res) => {
     if (status === 'in_progress' && appointment.status !== 'in_progress') {
       // 1. Session Started: Load kit and HOLD inventory
       const serviceType = appointment.service_type || 'General Session';
-      
+
       db.query('SELECT inventory_id, default_quantity FROM service_kits WHERE service_type = ?', [serviceType], (kitErr, kitItems) => {
         if (!kitErr && kitItems.length > 0) {
           kitItems.forEach(item => {
             // Deduct stock
-            db.query('UPDATE inventory SET current_stock = current_stock - ? WHERE id = ? AND current_stock >= ?', 
+            db.query('UPDATE inventory SET current_stock = current_stock - ? WHERE id = ? AND current_stock >= ?',
               [item.default_quantity, item.inventory_id, item.default_quantity], (updErr, updRes) => {
-              if (!updErr && updRes.affectedRows > 0) {
-                // Record hold
-                db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
-                  [id, item.inventory_id, item.default_quantity, 'hold']);
-              }
-            });
+                if (!updErr && updRes.affectedRows > 0) {
+                  // Record hold
+                  db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
+                    [id, item.inventory_id, item.default_quantity, 'hold']);
+                }
+              });
           });
         }
       });
@@ -2321,7 +2322,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
         createNotification(appointment.artist_id, 'Appointment Cancelled', 'An appointment has been cancelled.', 'appointment_cancelled', id);
       } else if (status === 'completed') {
         createNotification(appointment.customer_id, 'Appointment Completed', 'Thanks for visiting! Please leave a review.', 'appointment_completed', id);
-        
+
         // 🚀 SYNC: Automatically create a manual invoice for Admin Billing
         db.query('SELECT name FROM users WHERE id = ?', [appointment.customer_id], (uErr, uRes) => {
           const clientName = (!uErr && uRes.length) ? uRes[0].name : `Client #${appointment.customer_id}`;
@@ -2341,7 +2342,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
 // GET Artist Earnings Ledger (Secure calculation)
 app.get('/api/artist/:id/earnings-ledger', (req, res) => {
   const { id } = req.params;
-  
+
   // 1. Get Commission Rate
   db.query('SELECT commission_rate FROM artists WHERE user_id = ?', [id], (err, rateRes) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
@@ -2411,7 +2412,7 @@ app.get('/api/admin/payouts', (req, res) => {
 // POST Record a Payout (Admin Only)
 app.post('/api/admin/payouts', (req, res) => {
   const { artistId, amount, method, reference } = req.body;
-  
+
   if (!artistId || !amount) return res.status(400).json({ success: false, message: 'Missing required fields' });
 
   const query = 'INSERT INTO payouts (artist_id, amount, payout_method, reference_no) VALUES (?, ?, ?, ?)';
@@ -2441,7 +2442,7 @@ app.post('/api/appointments/:id/release-material', (req, res) => {
       // 3. Mark as released
       db.query('UPDATE session_materials SET status = "released" WHERE id = ?', [materialId], (relErr) => {
         if (relErr) return res.status(500).json({ success: false, message: 'Failed to update record status' });
-        
+
         res.json({ success: true, message: 'Material returned to inventory successfully' });
       });
     });
@@ -2531,117 +2532,117 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       const description = isLatePayment
         ? `Late payment for Appointment #${appointmentId}`
         : `${paymentType === 'deposit' ? 'Deposit' : 'Booking'} payment for Appointment #${appointmentId}`;
-      
+
       const itemName = isLatePayment
         ? `Tattoo Service - Balance payment (Appt #${appointmentId})`
         : (appointment.design_title || 'Tattoo Service') + (paymentType === 'deposit' ? ' (Deposit)' : '');
 
       try {
-          if (paymentType === 'deposit') {
-              const depositPesos = Math.max(100, Math.round(priceNumber * 0.3));
-              await proceedWithSession(Math.round(depositPesos * 100), itemName, description);
-          } else if (paymentType === 'balance') {
-              const totalPaidCentavos = Number(appointment.total_paid_centavos) || 0;
-              const totalAmountCentavos = Math.round(priceNumber * 100);
-              const remainingCentavos = totalAmountCentavos - totalPaidCentavos;
-              
-              if (remainingCentavos <= 0) {
-                  return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
-              }
+        if (paymentType === 'deposit') {
+          const depositPesos = Math.max(100, Math.round(priceNumber * 0.3));
+          await proceedWithSession(Math.round(depositPesos * 100), itemName, description);
+        } else if (paymentType === 'balance') {
+          const totalPaidCentavos = Number(appointment.total_paid_centavos) || 0;
+          const totalAmountCentavos = Math.round(priceNumber * 100);
+          const remainingCentavos = totalAmountCentavos - totalPaidCentavos;
 
-              await proceedWithSession(remainingCentavos, 'Balance Payment', `Final balance payment for Appointment #${appointmentId}`);
-          } else {
-              await proceedWithSession(Math.round(priceNumber * 100), itemName, description);
+          if (remainingCentavos <= 0) {
+            return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
           }
+
+          await proceedWithSession(remainingCentavos, 'Balance Payment', `Final balance payment for Appointment #${appointmentId}`);
+        } else {
+          await proceedWithSession(Math.round(priceNumber * 100), itemName, description);
+        }
       } catch (innerError) {
-          console.error('❌ Error in proceedWithSession flow:', innerError.message);
-          if (!res.headersSent) {
-              res.status(500).json({ success: false, message: 'Process error: ' + innerError.message });
-          }
+        console.error('❌ Error in proceedWithSession flow:', innerError.message);
+        if (!res.headersSent) {
+          res.status(500).json({ success: false, message: 'Process error: ' + innerError.message });
+        }
       }
 
       async function proceedWithSession(sessionAmount, sessionName, sessionDesc) {
-          if (!sessionAmount || sessionAmount <= 0) {
-            return res.status(400).json({
+        if (!sessionAmount || sessionAmount <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Appointment has no price set. Please set a price before taking payment.'
+          });
+        }
+
+        const redirectBaseSuccess = `${FRONTEND_URL}/booking-confirmation`;
+        const redirectBaseFailed = `${FRONTEND_URL}/customer/bookings`;
+
+        const payload = {
+          data: {
+            attributes: {
+              line_items: [
+                {
+                  amount: sessionAmount,
+                  currency: 'PHP',
+                  name: sessionName,
+                  description: sessionDesc,
+                  quantity: 1
+                }
+              ],
+              description: sessionDesc,
+              payment_method_types: ['card', 'gcash', 'paymaya', 'grab_pay'],
+              statement_descriptor: 'InkVistAR',
+              metadata: {
+                appointmentId: String(appointmentId),
+                customerId: String(appointment.customer_id),
+                artistId: String(appointment.artist_id),
+                mode: PAYMONGO_MODE,
+                paymentType: paymentType || 'full',
+                isLatePayment: String(isLatePayment)
+              },
+              success_url: `${redirectBaseSuccess}?appointmentId=${appointmentId}`,
+              cancel_url: `${redirectBaseFailed}?payment=failed&appointmentId=${appointmentId}`
+            }
+          }
+        };
+
+        try {
+          console.log(`[PayMongo] Creating session for Appt #${appointmentId}, Amount: ${sessionAmount}c, Type: ${paymentType || 'full'}`);
+          const response = await fetch(`${PAYMONGO_API_BASE}/checkout_sessions`, {
+            method: 'POST',
+            headers: {
+              'Authorization': paymongoAuthHeader(),
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          const data = await response.json();
+
+          if (!response.ok) {
+            console.error('❌ PayMongo API Error:', JSON.stringify(data, null, 2));
+            return res.status(502).json({
               success: false,
-              message: 'Appointment has no price set. Please set a price before taking payment.'
+              message: `PayMongo Error: ${data.errors?.[0]?.detail || 'Unknown error'}`,
+              error: data
             });
           }
 
-          const redirectBaseSuccess = `${FRONTEND_URL}/booking-confirmation`;
-          const redirectBaseFailed = `${FRONTEND_URL}/customer/bookings`;
+          const checkoutUrl = data?.data?.attributes?.checkout_url;
+          const sessionId = data?.data?.id;
 
-          const payload = {
-            data: {
-              attributes: {
-                line_items: [
-                  {
-                    amount: sessionAmount,
-                    currency: 'PHP',
-                    name: sessionName,
-                    description: sessionDesc,
-                    quantity: 1
-                  }
-                ],
-                description: sessionDesc,
-                payment_method_types: ['card', 'gcash', 'paymaya', 'grab_pay'],
-                statement_descriptor: 'InkVistAR',
-                metadata: {
-                  appointmentId: String(appointmentId),
-                  customerId: String(appointment.customer_id),
-                  artistId: String(appointment.artist_id),
-                  mode: PAYMONGO_MODE,
-                  paymentType: paymentType || 'full',
-                  isLatePayment: String(isLatePayment)
-                },
-                success_url: `${redirectBaseSuccess}?appointmentId=${appointmentId}`,
-                cancel_url: `${redirectBaseFailed}?payment=failed&appointmentId=${appointmentId}`
-              }
-            }
-          };
-
-          try {
-            console.log(`[PayMongo] Creating session for Appt #${appointmentId}, Amount: ${sessionAmount}c, Type: ${paymentType || 'full'}`);
-            const response = await fetch(`${PAYMONGO_API_BASE}/checkout_sessions`, {
-              method: 'POST',
-              headers: {
-                'Authorization': paymongoAuthHeader(),
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(payload)
-            });
-            const data = await response.json();
-
-            if (!response.ok) {
-              console.error('❌ PayMongo API Error:', JSON.stringify(data, null, 2));
-              return res.status(502).json({ 
-                  success: false, 
-                  message: `PayMongo Error: ${data.errors?.[0]?.detail || 'Unknown error'}`,
-                  error: data 
-              });
-            }
-
-            const checkoutUrl = data?.data?.attributes?.checkout_url;
-            const sessionId = data?.data?.id;
-
-            // Save pending record for tracking
-            db.query(
-              `INSERT INTO payments (appointment_id, session_id, amount, currency, status, raw_event)
+          // Save pending record for tracking
+          db.query(
+            `INSERT INTO payments (appointment_id, session_id, amount, currency, status, raw_event)
                VALUES (?, ?, ?, ?, 'pending', ?)
                ON DUPLICATE KEY UPDATE session_id = VALUES(session_id), amount = VALUES(amount), currency = VALUES(currency), status = 'pending', raw_event = VALUES(raw_event)`,
-              [appointmentId, sessionId, sessionAmount, 'PHP', JSON.stringify(data?.data || {})],
-              (payErr) => {
-                if (payErr) console.error('⚠️ Could not log pending payment:', payErr.message);
-              }
-            );
+            [appointmentId, sessionId, sessionAmount, 'PHP', JSON.stringify(data?.data || {})],
+            (payErr) => {
+              if (payErr) console.error('⚠️ Could not log pending payment:', payErr.message);
+            }
+          );
 
 
 
-            res.json({ success: true, checkoutUrl, sessionId });
-          } catch (err) {
-            console.error('❌ PayMongo API Error:', err.message);
-            res.status(500).json({ success: false, message: 'Payment gateway error' });
-          }
+          res.json({ success: true, checkoutUrl, sessionId });
+        } catch (err) {
+          console.error('❌ PayMongo API Error:', err.message);
+          res.status(500).json({ success: false, message: 'Payment gateway error' });
+        }
       }
     });
   } catch (error) {
@@ -2798,7 +2799,7 @@ app.post('/api/payments/webhook', (req, res) => {
   if (status === 'paid' && appointmentId) {
     const paymentType = metadata.paymentType || 'full';
     const newPaymentStatus = paymentType === 'deposit' ? 'downpayment_paid' : 'paid';
-    
+
     // Get current status first to determine new status
     db.query('SELECT status, customer_id, artist_id FROM appointments WHERE id = ?', [appointmentId], (fetchErr, rows) => {
       if (!fetchErr && rows.length) {
@@ -2810,7 +2811,7 @@ app.post('/api/payments/webhook', (req, res) => {
             console.error('❌ Error marking appointment paid:', updateErr.message);
           } else {
             console.log('✅ Appointment', appointmentId, 'marked as', newPaymentStatus);
-            
+
             createNotification(appt.customer_id, 'Payment Received', `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
             createNotification(appt.artist_id, 'Payment Received', `Payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
           }
@@ -2880,7 +2881,7 @@ app.get('/api/customer/:customerId/transactions', (req, res) => {
     WHERE ap.customer_id = ?
     ORDER BY p.created_at DESC
   `;
-  
+
   db.query(query, [customerId], (err, results) => {
     if (err) {
       console.error('❌ Error fetching transactions:', err.message);
@@ -3034,13 +3035,13 @@ app.get('/api/customer/:userId/my-tattoos', (req, res) => {
   `;
   db.query(query, [userId], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    
+
     // Fallback to reference image if after_photo is missing
     const tattoos = results.map(t => ({
       ...t,
       image_url: t.after_photo || t.reference_image
     }));
-    
+
     res.json({ success: true, tattoos });
   });
 });
@@ -3049,7 +3050,7 @@ app.get('/api/customer/:userId/my-tattoos', (req, res) => {
 app.put('/api/appointments/:id/after-photo', (req, res) => {
   const { id } = req.params;
   const { afterPhoto } = req.body;
-  
+
   db.query('UPDATE appointments SET after_photo = ? WHERE id = ?', [afterPhoto, id], (err) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
     res.json({ success: true, message: 'After photo updated successfully' });
@@ -3187,14 +3188,14 @@ app.get('/api/admin/users', (req, res) => {
 
 // Admin: Create User
 app.post('/api/admin/users', async (req, res) => {
-    const { name, email, password, type, phone, status } = req.body;
-    try {
-        const password_hash = await bcrypt.hash(password, 10);
-        const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
-        const query = 'INSERT INTO users (name, email, password_hash, user_type, phone, is_deleted, is_verified) VALUES (?, ?, ?, ?, ?, ?, 1)';
+  const { name, email, password, type, phone, status } = req.body;
+  try {
+    const password_hash = await bcrypt.hash(password, 10);
+    const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
+    const query = 'INSERT INTO users (name, email, password_hash, user_type, phone, is_deleted, is_verified) VALUES (?, ?, ?, ?, ?, ?, 1)';
 
-        db.query(query, [name, email, password_hash, type, phone, isDeleted], (err, result) => {
-            if (err) return res.status(500).json({ success: false, message: err.message });
+    db.query(query, [name, email, password_hash, type, phone, isDeleted], (err, result) => {
+      if (err) return res.status(500).json({ success: false, message: err.message });
 
       // If artist, create profile
       if (type === 'artist') {
@@ -3542,15 +3543,15 @@ app.post('/api/admin/appointments', (req, res) => {
   `;
 
   db.query(query, [
-    customerId, 
-    artistId, 
-    date, 
-    startTime, 
-    endTime || startTime, 
-    serviceType || 'Tattoo Session', 
-    designTitle || '', 
-    notes, 
-    status || 'scheduled', 
+    customerId,
+    artistId,
+    date,
+    startTime,
+    endTime || startTime,
+    serviceType || 'Tattoo Session',
+    designTitle || '',
+    notes,
+    status || 'scheduled',
     (price !== undefined) ? price : 0
   ], (err, result) => {
     if (err) {
@@ -3565,7 +3566,7 @@ app.post('/api/admin/appointments', (req, res) => {
 // Admin: Update Appointment (Status or Reschedule)
 app.put('/api/admin/appointments/:id', (req, res) => {
   const { id } = req.params;
-  const { status, date, startTime, endTime, artistId, serviceType, designTitle, notes, price } = req.body;
+  const { status, paymentStatus, date, startTime, endTime, artistId, serviceType, designTitle, notes, price } = req.body;
 
   let query = 'UPDATE appointments SET ';
   const params = [];
@@ -3574,6 +3575,10 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (status) {
     updates.push('status = ?');
     params.push(status);
+  }
+  if (paymentStatus) {
+    updates.push('payment_status = ?');
+    params.push(paymentStatus);
   }
   if (date) {
     updates.push('appointment_date = ?');
@@ -4042,74 +4047,74 @@ app.use((err, req, res, next) => {
 const activeSupportSessions = {};
 
 io.on('connection', (socket) => {
-    console.log('✅ A user connected to chat:', socket.id);
+  console.log('✅ A user connected to chat:', socket.id);
 
-    // Join a room based on a unique identifier
-    socket.on('join_room', (room) => {
-        socket.join(room);
-        console.log(`User ${socket.id} joined room: ${room}`);
-    });
+  // Join a room based on a unique identifier
+  socket.on('join_room', (room) => {
+    socket.join(room);
+    console.log(`User ${socket.id} joined room: ${room}`);
+  });
 
-    // Customer initiates a live support session
-    socket.on('start_support_session', (data) => {
-        const { room, name } = data;
-        if (!activeSupportSessions[room]) {
-            activeSupportSessions[room] = {
-                id: room,
-                name: name || 'Guest Visitor',
-                lastMessage: 'Started a live chat.',
-                timestamp: new Date(),
-                messages: []
-            };
-            // Broadcast new session to all admins listening to 'admin_room'
-            io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
-        }
-    });
+  // Customer initiates a live support session
+  socket.on('start_support_session', (data) => {
+    const { room, name } = data;
+    if (!activeSupportSessions[room]) {
+      activeSupportSessions[room] = {
+        id: room,
+        name: name || 'Guest Visitor',
+        lastMessage: 'Started a live chat.',
+        timestamp: new Date(),
+        messages: []
+      };
+      // Broadcast new session to all admins listening to 'admin_room'
+      io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
+    }
+  });
 
-    // Admin joins the global admin tracking room to get session lists
-    socket.on('join_admin_tracking', () => {
-        socket.join('admin_room');
-        // Instantly send current sessions to the newly connected admin
-        socket.emit('support_sessions_update', Object.values(activeSupportSessions));
-    });
+  // Admin joins the global admin tracking room to get session lists
+  socket.on('join_admin_tracking', () => {
+    socket.join('admin_room');
+    // Instantly send current sessions to the newly connected admin
+    socket.emit('support_sessions_update', Object.values(activeSupportSessions));
+  });
 
-    // Listen for new messages
-    socket.on('send_message', (data) => {
-        console.log('Message received:', data);
-        
-        // Save message memory to active sessions log
-        if (activeSupportSessions[data.room]) {
-            activeSupportSessions[data.room].messages.push({
-                sender: data.sender,
-                text: data.text,
-                timestamp: new Date()
-            });
-            activeSupportSessions[data.room].lastMessage = data.text;
-            activeSupportSessions[data.room].timestamp = new Date();
-            
-            // Broadcast the fresh stats to all admins
-            io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
-        }
+  // Listen for new messages
+  socket.on('send_message', (data) => {
+    console.log('Message received:', data);
 
-        // Broadcast the message to the other user in the room
-        socket.to(data.room).emit('receive_message', data);
-    });
+    // Save message memory to active sessions log
+    if (activeSupportSessions[data.room]) {
+      activeSupportSessions[data.room].messages.push({
+        sender: data.sender,
+        text: data.text,
+        timestamp: new Date()
+      });
+      activeSupportSessions[data.room].lastMessage = data.text;
+      activeSupportSessions[data.room].timestamp = new Date();
 
-    // End support session (from either customer or admin)
-    socket.on('end_support_session', (room) => {
-        if (activeSupportSessions[room]) {
-            delete activeSupportSessions[room];
-            // Tell the room it was closed
-            io.to(room).emit('session_closed');
-            // Tell the admins
-            io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
-        }
-    });
+      // Broadcast the fresh stats to all admins
+      io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
+    }
 
-    // Handle disconnection
-    socket.on('disconnect', () => {
-        console.log('❌ User disconnected:', socket.id);
-    });
+    // Broadcast the message to the other user in the room
+    socket.to(data.room).emit('receive_message', data);
+  });
+
+  // End support session (from either customer or admin)
+  socket.on('end_support_session', (room) => {
+    if (activeSupportSessions[room]) {
+      delete activeSupportSessions[room];
+      // Tell the room it was closed
+      io.to(room).emit('session_closed');
+      // Tell the admins
+      io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
+    }
+  });
+
+  // Handle disconnection
+  socket.on('disconnect', () => {
+    console.log('❌ User disconnected:', socket.id);
+  });
 });
 
 // ========== START SERVER ==========
