@@ -6,6 +6,7 @@ import './AdminUsers.css';
 import './AdminSettings.css'; // Reusing form styles
 import './AdminBilling.css';
 import ConfirmModal from '../components/ConfirmModal';
+import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
 
 function AdminBilling() {
@@ -238,7 +239,7 @@ function AdminBilling() {
                             </div>
                         </div>
 
-                        <div className="table-card">
+                        <div className="table-card-container">
                             <div className="table-responsive">
                                 <table className="data-table">
                                     <thead>
@@ -285,27 +286,20 @@ function AdminBilling() {
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
 
-                        {/* Pagination Controls */}
-                        {filteredInvoices.length > 0 && (
-                            <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', padding: '1rem', background: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <label>Items per page:</label>
-                                    <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="select-input" style={{ width: '80px', padding: '4px', borderRadius: '4px', border: '1px solid #ddd' }}>
-                                        <option value={5}>5</option>
-                                        <option value={10}>10</option>
-                                        <option value={20}>20</option>
-                                        <option value={50}>50</option>
-                                    </select>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Page {currentPage} of {totalPages} ({filteredInvoices.length} items)</span>
-                                    <button className="btn btn-secondary" style={{ padding: '5px 15px' }} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</button>
-                                    <button className="btn btn-secondary" style={{ padding: '5px 15px' }} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</button>
-                                </div>
-                            </div>
-                        )}
+                            <Pagination 
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={setCurrentPage}
+                                itemsPerPage={itemsPerPage}
+                                onItemsPerPageChange={(newVal) => {
+                                    setItemsPerPage(newVal);
+                                    setCurrentPage(1);
+                                }}
+                                totalItems={filteredInvoices.length}
+                                unit="invoices"
+                            />
+                        </div>
                     </>
                 ) : !loading && (
                     <div className="settings-container" style={{display: 'block', margin: '2rem'}}>

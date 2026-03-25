@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, 
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminInventory.css';
 import ConfirmModal from '../components/ConfirmModal';
+import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
 
 const INVENTORY_CATEGORIES = [
@@ -511,7 +512,7 @@ function AdminInventory() {
                 </div>
             </div>
 
-            <div className="table-card">
+            <div className="table-card-container">
                 <div className="table-responsive">
                     <table className="data-table">
                         <thead>
@@ -528,7 +529,7 @@ function AdminInventory() {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="7" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading inventory...</td></tr>
+                                <tr><td colSpan="8" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading inventory...</td></tr>
                             ) : paginatedInventory.length > 0 ? (
                                 paginatedInventory.map((item) => (
                                     <tr key={item.id} className={`status-${getStockStatus(item.currentStock, item.minStock, item.maxStock)}`}>
@@ -573,33 +574,26 @@ function AdminInventory() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="no-data">No items found</td>
+                                    <td colSpan="8" className="no-data">No items found</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
-            </div>
 
-            {/* Pagination Controls */}
-            {filteredInventory.length > 0 && (
-                <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', padding: '1rem', background: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <label>Items per page:</label>
-                        <select value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }} className="select-input" style={{ width: '80px' }}>
-                            <option value={5}>5</option>
-                            <option value={10}>10</option>
-                            <option value={20}>20</option>
-                            <option value={50}>50</option>
-                        </select>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <span>Page {currentPage} of {totalPages} ({filteredInventory.length} items)</span>
-                        <button className="btn btn-secondary" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</button>
-                        <button className="btn btn-secondary" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</button>
-                    </div>
-                </div>
-            )}
+                <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    itemsPerPage={itemsPerPage}
+                    onItemsPerPageChange={(newVal) => {
+                        setItemsPerPage(newVal);
+                        setCurrentPage(1);
+                    }}
+                    totalItems={filteredInventory.length}
+                    unit="items"
+                />
+            </div>
 
             {/* Add/Edit Modal */}
             {addEditModal.mounted && (

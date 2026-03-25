@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
+import Pagination from '../components/Pagination';
 import './AdminAppointments.css';
 import { API_URL } from '../config';
 
@@ -26,7 +27,7 @@ function AdminAppointments() {
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [appointmentModal, setAppointmentModal] = useState({ mounted: false, visible: false });
     const [confirmModal, setConfirmModal] = useState({ open: false, message: '', onConfirm: null });
     const [formData, setFormData] = useState({
@@ -545,7 +546,7 @@ function AdminAppointments() {
                         </div>
                     </div>
 
-                    <div className="table-card">
+                    <div className="table-card-container">
                         <div className="table-responsive">
                             <table className="data-table">
                                 <thead>
@@ -564,7 +565,7 @@ function AdminAppointments() {
                                 </thead>
                                 <tbody>
                                     {loading ? (
-                                        <tr><td colSpan="8" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading appointments...</td></tr>
+                                        <tr><td colSpan="10" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading appointments...</td></tr>
                                     ) : currentItems.length > 0 ? (
                                         currentItems.map((appointment) => (
                                             <tr key={appointment.id}>
@@ -633,23 +634,25 @@ function AdminAppointments() {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="9" className="no-data">No appointments found</td>
+                                            <td colSpan="10" className="no-data">No appointments found</td>
                                         </tr>
                                     )}
                                 </tbody>
                             </table>
                         </div>
-                        {totalPages > 1 && (
-                            <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1rem', gap: '1rem' }}>
-                                <button className="btn btn-secondary" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
-                                    Previous
-                                </button>
-                                <span>Page {currentPage} of {totalPages}</span>
-                                <button className="btn btn-secondary" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
-                                    Next
-                                </button>
-                            </div>
-                        )}
+
+                        <Pagination 
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            itemsPerPage={itemsPerPage}
+                            onItemsPerPageChange={(newVal) => {
+                                setItemsPerPage(newVal);
+                                setCurrentPage(1);
+                            }}
+                            totalItems={filteredAppointments.length}
+                            unit="appointments"
+                        />
                     </div>
                 </>
             )}
