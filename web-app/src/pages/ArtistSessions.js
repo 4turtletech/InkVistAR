@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Calendar } from 'lucide-react';
+import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import './PortalStyles.css';
@@ -20,10 +20,11 @@ function ArtistSessions() {
     const [sessionCost, setSessionCost] = useState(0);
     const [inventoryItems, setInventoryItems] = useState([]);
     const [addingMaterial, setAddingMaterial] = useState(false);
+    const [inventorySearch, setInventorySearch] = useState('');
 
     const [sessionModal, setSessionModal] = useState({ mounted: false, visible: false });
+    const [inventoryModal, setInventoryModal] = useState({ mounted: false, visible: false });
     const [isSaving, setIsSaving] = useState(false);
-    const [searchTermInventory, setSearchTermInventory] = useState('');
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
         title: '',
@@ -72,7 +73,7 @@ function ArtistSessions() {
     useEffect(() => {
         if (activeSession) {
             fetchInventory();
-            if (activeSession.status === 'in_progress') {
+            if (activeSession.status === 'in_progress' || activeSession.status === 'completed') {
                 fetchSessionMaterials(activeSession.id);
             }
         }
@@ -81,9 +82,8 @@ function ArtistSessions() {
     const fetchInventory = async () => {
         try {
             const res = await Axios.get(`${API_URL}/api/admin/inventory`);
-            if (res.data.success && res.data.inventory) {
-                // Show all items so artists can see what's available, even if stock is low
-                setInventoryItems(res.data.inventory);
+            if (res.data.success && res.data.data) {
+                setInventoryItems(res.data.data.filter(item => item.current_stock > 0 && !item.is_deleted));
             }
         } catch (e) { console.error(e); }
     };
@@ -133,6 +133,18 @@ function ArtistSessions() {
         }
     };
 
+    const openInventoryModal = () => {
+        setInventoryModal({ mounted: true, visible: false });
+        setTimeout(() => setInventoryModal({ mounted: true, visible: true }), 10);
+    };
+
+    const closeInventoryModal = () => {
+        setInventoryModal(prev => ({ ...prev, visible: false }));
+        setTimeout(() => {
+            setInventoryModal({ mounted: false, visible: false });
+        }, 400);
+    };
+
     const openSessionModal = () => {
         setSessionModal({ mounted: true, visible: false });
         setTimeout(() => setSessionModal({ mounted: true, visible: true }), 10);
@@ -168,14 +180,6 @@ function ArtistSessions() {
     };
 
     const handleUpdateStatus = async (newStatus) => {
-        if (newStatus === 'in_progress') {
-            const hasActiveSession = sessions.some(s => s.status === 'in_progress' && s.id !== activeSession.id);
-            if (hasActiveSession) {
-                showAlert("Action Denied", "You already have a session in progress. Please complete it first.", "warning");
-                return;
-            }
-        }
-
         if (newStatus === 'completed') {
             setConfirmModal({
                 isOpen: true,
@@ -195,18 +199,13 @@ function ArtistSessions() {
 
     const processStatusUpdate = async (newStatus) => {
         try {
-            // Auto-save details when starting the session
-            if (newStatus === 'in_progress') {
-                try {
-                    await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/details`, {
-                        notes: sessionData.notes,
-                        beforePhoto: sessionData.beforePhoto,
-                        afterPhoto: sessionData.afterPhoto
-                    });
-                } catch (saveErr) {
-                    console.warn("Auto-save failed during session start:", saveErr);
-                    // We continue anyway so the session can at least start
-                }
+            // Save session details (notes, photos) before completing
+            if (newStatus === 'completed' && (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto)) {
+                await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/details`, {
+                    notes: sessionData.notes,
+                    beforePhoto: sessionData.beforePhoto,
+                    afterPhoto: sessionData.afterPhoto
+                });
             }
 
             const res = await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/status`, { status: newStatus });
@@ -217,9 +216,7 @@ function ArtistSessions() {
                     closeSessionModal();
                     fetchSessions();
                 } else if (newStatus === 'in_progress') {
-                    showAlert("Session Started", "Session details saved. You can now log supplies.", "success");
-                    fetchSessions(); // update the list
-                    setTimeout(() => fetchSessionMaterials(activeSession.id), 500);
+                    setTimeout(() => fetchSessionMaterials(activeSession.id), 1000);
                 }
             } else {
                 showAlert("Update Failed", "Failed to update session status. Please try again.", "warning");
@@ -294,8 +291,8 @@ function ArtistSessions() {
                                                     <td>{session.design_title}</td>
                                                     <td><span className={`status-badge ${session.status}`}>{session.status}</span></td>
                                                     <td>
-                                                        <button className="btn btn-primary" onClick={() => handleManageSession(session)} style={{padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                                                            <Play size={14}/> Manage Session
+                                                        <button className="btn btn-primary" onClick={() => handleManageSession(session)} style={{ padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <Play size={14} /> Manage Session
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -328,56 +325,56 @@ function ArtistSessions() {
             {/* Active Session Modal */}
             {sessionModal.mounted && activeSession && (
                 <div className={`modal-overlay ${sessionModal.visible ? 'open' : ''}`} onClick={closeSessionModal}>
-                    <div className="modal-content session-modal" style={{maxWidth: '800px', width: '90%'}} onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content session-modal" style={{ maxWidth: '800px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <div>
                                 <h2>Session: {activeSession.client_name}</h2>
-                                <p style={{margin: 0, color: '#666'}}>{activeSession.design_title}</p>
+                                <p style={{ margin: 0, color: '#666' }}>{activeSession.design_title}</p>
                             </div>
-                            <button className="close-btn" onClick={closeSessionModal}><X size={20}/></button>
+                            <button className="close-btn" onClick={closeSessionModal}><X size={20} /></button>
                         </div>
-                        
+
                         <div className="modal-body">
                             {/* Status Control */}
-                            <div className="data-card" style={{marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc'}}>
-                                <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                            <div className="data-card" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <span className={`status-badge ${activeSession.status}`}>{activeSession.status.toUpperCase()}</span>
-                                    {activeSession.status === 'confirmed' && <span style={{color: '#666', fontSize: '0.9rem'}}>Ready to start</span>}
+                                    {activeSession.status === 'confirmed' && <span style={{ color: '#666', fontSize: '0.9rem' }}>Ready to start</span>}
                                 </div>
-                                <div style={{display: 'flex', gap: '10px'}}>
+                                <div style={{ display: 'flex', gap: '10px' }}>
                                     {activeSession.status === 'confirmed' && (
                                         <button className="btn btn-primary" onClick={() => handleUpdateStatus('in_progress')}>
-                                            <Play size={16} style={{marginRight: '5px'}}/> Start Session
+                                            <Play size={16} style={{ marginRight: '5px' }} /> Start Session
                                         </button>
                                     )}
                                     {activeSession.status === 'in_progress' && (
-                                        <button className="btn btn-primary" style={{backgroundColor: '#10b981'}} onClick={() => handleUpdateStatus('completed')}>
-                                            <CheckCircle size={16} style={{marginRight: '5px'}}/> Complete Session
+                                        <button className="btn btn-primary" style={{ backgroundColor: '#10b981' }} onClick={() => handleUpdateStatus('completed')}>
+                                            <CheckCircle size={16} style={{ marginRight: '5px' }} /> Complete Session
                                         </button>
                                     )}
                                 </div>
                             </div>
 
                             {/* Photos */}
-                            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
-                                <div className="photo-upload-box" style={{border: '2px dashed #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center'}}>
-                                    <label style={{display: 'block', marginBottom: '10px', fontWeight: '600'}}>Before Photo</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                <div className="photo-upload-box" style={{ border: '2px dashed #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center' }}>
+                                    <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600' }}>Before Photo</label>
                                     {sessionData.beforePhoto ? (
-                                        <img src={sessionData.beforePhoto} alt="Before" style={{width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '4px'}} />
+                                        <img src={sessionData.beforePhoto} alt="Before" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '4px' }} />
                                     ) : (
-                                        <label className="btn btn-secondary" style={{cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px'}}>
-                                            <Upload size={16}/> Upload
+                                        <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                            <Upload size={16} /> Upload
                                             <input type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(e, 'beforePhoto')} />
                                         </label>
                                     )}
                                 </div>
-                                <div className="photo-upload-box" style={{border: '2px dashed #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center'}}>
-                                    <label style={{display: 'block', marginBottom: '10px', fontWeight: '600'}}>After Photo</label>
+                                <div className="photo-upload-box" style={{ border: '2px dashed #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center' }}>
+                                    <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600' }}>After Photo</label>
                                     {sessionData.afterPhoto ? (
-                                        <img src={sessionData.afterPhoto} alt="After" style={{width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '4px'}} />
+                                        <img src={sessionData.afterPhoto} alt="After" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '4px' }} />
                                     ) : (
-                                        <label className="btn btn-secondary" style={{cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px'}}>
-                                            <Upload size={16}/> Upload
+                                        <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                            <Upload size={16} /> Upload
                                             <input type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(e, 'afterPhoto')} />
                                         </label>
                                     )}
@@ -385,46 +382,46 @@ function ArtistSessions() {
                             </div>
 
                             {/* Notes & Supplies */}
-                            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div className="form-group">
-                                    <label><FileText size={16} style={{verticalAlign: 'middle'}}/> Session Notes</label>
-                                    <textarea 
-                                        className="form-input" 
+                                    <label><FileText size={16} style={{ verticalAlign: 'middle' }} /> Session Notes</label>
+                                    <textarea
+                                        className="form-input"
                                         rows="10"
                                         value={sessionData.notes}
-                                        onChange={(e) => setSessionData({...sessionData, notes: e.target.value})}
+                                        onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
                                         placeholder="Record session details, skin reaction, etc..."
-                                        style={{height: '100%'}}
+                                        style={{ height: '100%' }}
                                     />
                                 </div>
-                                
+
                                 {/* Dynamic Session Materials */}
-                                <div className="form-group" style={{display: 'flex', flexDirection: 'column'}}>
-                                    <label><Package size={16} style={{verticalAlign: 'middle'}}/> Dynamic Supply Log</label>
-                                    
+                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <label><Package size={16} style={{ verticalAlign: 'middle' }} /> Dynamic Supply Log</label>
+
                                     {activeSession.status === 'in_progress' ? (
-                                        <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc'}}>
-                                            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px'}}>
+                                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                                                 <strong>Items Held/Consumed</strong>
-                                                <span style={{color: '#10b981', fontWeight: 'bold'}}>₱{sessionCost.toLocaleString()}</span>
+                                                <span style={{ color: '#10b981', fontWeight: 'bold' }}>₱{sessionCost.toLocaleString()}</span>
                                             </div>
-                                            
-                                            <div style={{flex: 1, overflowY: 'auto', maxHeight: '150px'}}>
+
+                                            <div style={{ flex: 1, overflowY: 'auto', maxHeight: '150px' }}>
                                                 {sessionMaterials.length === 0 ? (
-                                                    <p style={{color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic', margin: 0}}>No materials logged yet.</p>
+                                                    <p style={{ color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>No materials logged yet.</p>
                                                 ) : (
-                                                    <ul style={{listStyle: 'none', padding: 0, margin: 0}}>
+                                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                                                         {sessionMaterials.map((mat, idx) => (
-                                                            <li key={idx} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #e2e8f0'}}>
-                                                                <div style={{display: 'flex', flexDirection: 'column'}}>
-                                                                    <span style={{fontSize: '0.9rem', fontWeight: '500'}}>{mat.quantity}x {mat.item_name}</span>
-                                                                    <span style={{fontSize: '0.75rem', color: mat.status === 'hold' ? '#f59e0b' : '#64748b'}}>{mat.status.toUpperCase()}</span>
+                                                            <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>{mat.quantity}x {mat.item_name}</span>
+                                                                    <span style={{ fontSize: '0.75rem', color: mat.status === 'hold' ? '#f59e0b' : '#64748b' }}>{mat.status.toUpperCase()}</span>
                                                                 </div>
                                                                 {mat.status === 'hold' && (
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => handleReleaseMaterial(mat.id)}
                                                                         title="Return to Inventory"
-                                                                        style={{background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px'}}
+                                                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
                                                                     >
                                                                         <X size={14} />
                                                                     </button>
@@ -434,79 +431,117 @@ function ArtistSessions() {
                                                     </ul>
                                                 )}
                                             </div>
-                                            
-                                            <div style={{marginTop: '15px', borderTop: '1px dashed #cbd5e1', paddingTop: '10px'}}>
-                                                <strong style={{display: 'block', fontSize: '0.85rem', marginBottom: '8px', color: '#475569'}}>Search Supplies:</strong>
-                                                <div style={{position: 'relative', marginBottom: '10px'}}>
-                                                    <input 
-                                                        type="text" 
-                                                        className="form-input" 
-                                                        placeholder="Search items..." 
-                                                        value={searchTermInventory}
-                                                        onChange={(e) => setSearchTermInventory(e.target.value)}
-                                                        style={{padding: '6px 10px', fontSize: '0.85rem'}}
-                                                    />
-                                                    {searchTermInventory && (
-                                                        <div style={{
-                                                            position: 'absolute', top: '100%', left: 0, right: 0, 
-                                                            zIndex: 100, background: 'white', border: '1px solid #e2e8f0', 
-                                                            maxHeight: '150px', overflowY: 'auto', borderRadius: '4px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                                                        }}>
-                                                            {inventoryItems
-                                                                .filter(item => item.name.toLowerCase().includes(searchTermInventory.toLowerCase()))
-                                                                .map(item => (
-                                                                    <div 
-                                                                        key={item.id} 
-                                                                        onClick={() => {
-                                                                            handleQuickAdd(item.id, 1);
-                                                                            setSearchTermInventory('');
-                                                                        }}
-                                                                        style={{padding: '8px 12px', cursor: 'pointer', fontSize: '0.85rem', borderBottom: '1px solid #f1f5f9'}}
-                                                                        onMouseOver={(e) => e.target.style.background = '#f8fafc'}
-                                                                        onMouseOut={(e) => e.target.style.background = 'white'}
-                                                                    >
-                                                                        {item.name} ({item.current_stock} remaining)
-                                                                    </div>
-                                                                ))}
-                                                        </div>
-                                                    )}
-                                                </div>
 
-                                                <strong style={{display: 'block', fontSize: '0.85rem', marginBottom: '8px', color: '#475569'}}>Quick Add (+1):</strong>
-                                                <div style={{display: 'flex', gap: '5px', flexWrap: 'wrap'}}>
-                                                    {inventoryItems.slice(0, 8).map(item => (
-                                                        <button 
-                                                            key={item.id}
-                                                            disabled={addingMaterial}
-                                                            onClick={() => handleQuickAdd(item.id, 1)}
-                                                            style={{
-                                                                padding: '6px 12px', borderRadius: '15px', background: '#e2e8f0', 
-                                                                border: 'none', fontSize: '0.8rem', cursor: addingMaterial ? 'not-allowed' : 'pointer',
-                                                                color: '#333', transition: 'all 0.2s', fontWeight: '500'
-                                                            }}
-                                                            onMouseOver={(e) => e.target.style.background = '#cbd5e1'}
-                                                            onMouseOut={(e) => e.target.style.background = '#e2e8f0'}
-                                                        >
-                                                            {item.name.length > 15 ? item.name.substring(0, 12) + '...' : item.name}
-                                                        </button>
-                                                    ))}
+                                            <div style={{ marginTop: '15px', borderTop: '1px dashed #cbd5e1', paddingTop: '10px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                    <strong style={{ fontSize: '0.85rem', color: '#475569' }}>Add Supplies:</strong>
+                                                    <button
+                                                        onClick={openInventoryModal}
+                                                        disabled={addingMaterial}
+                                                        style={{
+                                                            padding: '6px 12px', borderRadius: '6px', background: '#3b82f6',
+                                                            border: 'none', fontSize: '0.8rem', cursor: addingMaterial ? 'not-allowed' : 'pointer',
+                                                            color: '#fff', display: 'flex', alignItems: 'center', gap: '6px'
+                                                        }}
+                                                    >
+                                                        <Package size={14} /> Add Item
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center', background: '#f8fafc', color: '#64748b', fontStyle: 'italic'}}>
+                                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center', background: '#f8fafc', color: '#64748b', fontStyle: 'italic' }}>
                                             {activeSession.status === 'confirmed' ? 'Start session to begin logging materials.' : 'Session ended. Supplies finalized.'}
                                         </div>
                                     )}
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="modal-footer">
                             <button className="btn btn-secondary" onClick={closeSessionModal}>Close</button>
                             <button className="btn btn-primary" onClick={handleSaveDetails}>
-                                <Save size={16} style={{marginRight: '5px'}}/> Save Details
+                                <Save size={16} style={{ marginRight: '5px' }} /> Save Details
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Inventory Selection Modal */}
+            {inventoryModal.mounted && (
+                <div className={`modal-overlay ${inventoryModal.visible ? 'open' : ''}`} onClick={closeInventoryModal}>
+                    <div className="modal-content" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Select Item to Add</h2>
+                            <button className="close-btn" onClick={closeInventoryModal}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label><Search size={16} style={{ verticalAlign: 'middle' }} /> Search Inventory</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="Search by name or category..."
+                                    value={inventorySearch}
+                                    onChange={(e) => setInventorySearch(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+                            <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '15px' }}>
+                                {inventoryItems.length === 0 ? (
+                                    <p style={{ color: '#64748b', fontStyle: 'italic' }}>No inventory items available.</p>
+                                ) : (
+                                    (() => {
+                                        const filtered = inventoryItems.filter(item =>
+                                            !inventorySearch ||
+                                            (item.name && item.name.toLowerCase().includes(inventorySearch.toLowerCase())) ||
+                                            (item.category && item.category.toLowerCase().includes(inventorySearch.toLowerCase()))
+                                        );
+                                        return filtered.map(item => (
+                                            <div
+                                                key={item.id}
+                                                onClick={() => {
+                                                    handleQuickAdd(item.id, 1);
+                                                    closeInventoryModal();
+                                                }}
+                                                style={{
+                                                    padding: '12px',
+                                                    borderBottom: '1px solid #e2e8f0',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    borderRadius: '6px',
+                                                    marginBottom: '8px',
+                                                    background: '#f8fafc',
+                                                    transition: 'background 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.target.style.background = '#e2e8f0'}
+                                                onMouseLeave={(e) => e.target.style.background = '#f8fafc'}
+                                            >
+                                                <div>
+                                                    <div style={{ fontWeight: '600' }}>{item.name}</div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                                                        {item.category} • Stock: {item.current_stock} {item.unit}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    disabled={addingMaterial || item.current_stock < 1}
+                                                    style={{
+                                                        padding: '6px 12px', borderRadius: '6px',
+                                                        background: item.current_stock < 1 ? '#cbd5e1' : '#10b981',
+                                                        border: 'none', color: '#fff', cursor: item.current_stock < 1 ? 'not-allowed' : 'pointer',
+                                                        fontSize: '0.8rem'
+                                                    }}
+                                                >
+                                                    {item.current_stock < 1 ? 'Out of Stock' : 'Add'}
+                                                </button>
+                                            </div>
+                                        ));
+                                    })()
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -35,6 +35,7 @@ import ArtistEarnings from './pages/ArtistEarnings';
 import ArtistProfile from './pages/ArtistProfile';
 import ArtistSessions from './pages/ArtistSessions';
 import ArtistNotifications from './pages/ArtistNotifications';
+import AdminCompletedSessions from './pages/AdminCompletedSessions';
 import ArtistGallery from './pages/ArtistGallery';
 import CustomerBookings from './pages/CustomerBookings';
 import CustomerGallery from './pages/CustomerGallery';
@@ -125,6 +126,7 @@ function App() {
           <Route path="/admin/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminInventory /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>} />
+          <Route path="/admin/completed-sessions" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminCompletedSessions /></ProtectedRoute>} />
         </Routes>
       </Router>
     </div>

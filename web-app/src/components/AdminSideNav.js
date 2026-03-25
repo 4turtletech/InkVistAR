@@ -19,7 +19,8 @@ import {
     ChevronDown,
     ChevronUp,
     AppWindow,
-    Bell
+    Bell,
+    CheckCircle
 } from 'lucide-react';
 import io from 'socket.io-client';
 import { API_URL } from '../config';
@@ -142,6 +143,12 @@ function AdminSideNav() {
             icon: Calendar,
             path: '/admin/appointments',
             description: 'View appointments'
+        },
+        {
+            label: 'Completed Sessions',
+            icon: CheckCircle,
+            path: '/admin/completed-sessions',
+            description: 'View completed sessions'
         },
         {
             label: 'Chat',
