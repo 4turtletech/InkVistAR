@@ -2206,8 +2206,8 @@ app.post('/api/appointments/:id/materials', (req, res) => {
     }
     if (result.affectedRows === 0) return res.status(400).json({ success: false, message: 'Insufficient stock or invalid item' });
 
-    db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, "hold")',
-      [id, inventory_id, quantity], (insErr) => {
+    db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
+      [id, inventory_id, quantity, 'hold'], (insErr) => {
         if (insErr) {
           console.error('❌ Error inserting session material:', insErr);
           // Rollback stock
@@ -2246,8 +2246,8 @@ app.put('/api/appointments/:id/status', (req, res) => {
               [item.default_quantity, item.inventory_id, item.default_quantity], (updErr, updRes) => {
               if (!updErr && updRes.affectedRows > 0) {
                 // Record hold
-                db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, "hold")',
-                  [id, item.inventory_id, item.default_quantity]);
+                db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
+                  [id, item.inventory_id, item.default_quantity, 'hold']);
               }
             });
           });
@@ -2258,9 +2258,9 @@ app.put('/api/appointments/:id/status', (req, res) => {
       db.query('SELECT sm.id, sm.inventory_id, sm.quantity, i.cost, i.name FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ? AND sm.status = "hold"', [id], (matErr, mats) => {
         if (!matErr && mats.length > 0) {
           mats.forEach(mat => {
-            db.query('UPDATE session_materials SET status = "consumed" WHERE id = ?', [mat.id]);
-            db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason) VALUES (?, "out", ?, ?)', 
-              [mat.inventory_id, mat.quantity, `Consumed in session #${id}`]);
+            db.query('UPDATE session_materials SET status = ? WHERE id = ?', ['consumed', mat.id]);
+            db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason) VALUES (?, ?, ?, ?)',
+              [mat.inventory_id, 'out', mat.quantity, `Consumed in session #${id}`]);
           });
         }
       });
@@ -2269,7 +2269,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
       db.query('SELECT id, inventory_id, quantity FROM session_materials WHERE appointment_id = ? AND status = "hold"', [id], (matErr, mats) => {
         if (!matErr && mats.length > 0) {
           mats.forEach(mat => {
-            db.query('UPDATE session_materials SET status = "released" WHERE id = ?', [mat.id]);
+            db.query('UPDATE session_materials SET status = ? WHERE id = ?', ['released', mat.id]);
             db.query('UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [mat.quantity, mat.inventory_id]);
           });
         }
