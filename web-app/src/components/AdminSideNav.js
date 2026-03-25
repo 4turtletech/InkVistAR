@@ -23,11 +23,13 @@ import {
 } from 'lucide-react';
 import io from 'socket.io-client';
 import { API_URL } from '../config';
+import ConfirmModal from './ConfirmModal';
 import '../styles/AdminSideNav.css';
 
 function AdminSideNav() {
     const navigate = useNavigate();
     const location = useLocation();
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [collapsed, setCollapsed] = useState(() => {
         const stored = localStorage.getItem('adminSidenavCollapsed');
         return stored === 'true';
