@@ -50,10 +50,13 @@ function ArtistPortal() {
             if (appointmentsResponse.data.success) {
                 const allAppointments = appointmentsResponse.data.appointments || [];
                 setAppointments(allAppointments);
-                
-                // Filter today's appointments
-                const today = new Date().toISOString().split('T')[0];
-                const todayAppts = allAppointments.filter(apt => 
+
+                // Filter today's appointments using local date instead of UTC
+                const now = new Date();
+                const today = now.getFullYear() + '-' +
+                              String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                              String(now.getDate()).padStart(2, '0');
+                const todayAppts = allAppointments.filter(apt =>
                     apt.appointment_date && apt.appointment_date.startsWith(today) && apt.status !== 'cancelled'
                 );
                 setTodaysAppointments(todayAppts);
