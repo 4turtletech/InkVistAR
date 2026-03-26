@@ -269,7 +269,7 @@ function CustomerPortal() {
                         `}</style>
 
                         {/* Favorite Artists */}
-                        <div className="data-card-v2">
+                        <div className="data-card-v2" style={{ marginTop: '2rem' }}> {/* Added margin-top for spacing */}
                             <div className="card-header-v2">
                                 <h2>Recommended Artists</h2>
                                 <button className="view-more-btn" onClick={() => navigate('/artists')}>Meet the Team</button>
