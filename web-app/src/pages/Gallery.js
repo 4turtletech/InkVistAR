@@ -15,7 +15,7 @@ const Gallery = () => {
   const [works, setWorks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 20000 });
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 500000 });
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -60,6 +60,17 @@ const Gallery = () => {
       })
       .catch(err => console.error('Error fetching categories:', err));
   }, []);
+
+  // Update categories list if works contain categories not in the style filter
+  useEffect(() => {
+    if (works.length > 0) {
+      const uniqueCategories = [...new Set(works.map(item => item.category).filter(Boolean))];
+      setCategories(prev => {
+        const combined = [...new Set([...prev, ...uniqueCategories])];
+        return combined;
+      });
+    }
+  }, [works]);
 
   // Fetch works from backend (re-fetch when category or artist changes)
   useEffect(() => {
@@ -171,32 +182,41 @@ const Gallery = () => {
         </div>
 
         {/* Price Slider Filter */}
-        <div className="price-filter-wrapper" style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+        <div className="price-filter-wrapper" style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
           <div className="glass-price-container" style={{
             background: 'rgba(255, 255, 255, 0.05)',
             backdropFilter: 'blur(12px) saturate(180%)',
             WebkitBackdropFilter: 'blur(12px) saturate(180%)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-            padding: '20px 30px',
-            borderRadius: '20px',
+            padding: '12px 20px',
+            borderRadius: '16px',
             width: '100%',
-            maxWidth: '500px'
+            maxWidth: '420px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-              <span style={{ color: '#DAA520', fontWeight: 'bold', fontSize: '0.8rem', letterSpacing: '1px' }}>ESTIMATED PRICE RANGE</span>
-              <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: '600' }}>
-                ₱{priceRange.min.toLocaleString()} - ₱{priceRange.max.toLocaleString()}{priceRange.max >= 20000 ? '+' : ''}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span style={{ color: '#DAA520', fontWeight: 'bold', fontSize: '0.75rem', letterSpacing: '1px' }}>PRICE RANGE</span>
+              <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: '600' }}>
+                ₱{priceRange.min.toLocaleString()} - ₱{priceRange.max.toLocaleString()}{priceRange.max >= 500000 ? '+' : ''}
               </span>
             </div>
-            <div style={{ position: 'relative', height: '30px', display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <input
                 type="range"
                 min="0"
-                max="20000"
-                step="500"
+                max="500000"
+                step="5000"
+                value={priceRange.min}
+                onChange={(e) => setPriceRange({ ...priceRange, min: Math.min(parseInt(e.target.value), priceRange.max) })}
+                style={{ width: '100%', accentColor: '#C19A6B', cursor: 'pointer', height: '14px' }}
+              />
+              <input
+                type="range"
+                min="0"
+                max="500000"
+                step="5000"
                 value={priceRange.max}
-                onChange={(e) => setPriceRange({ ...priceRange, max: parseInt(e.target.value) })}
+                onChange={(e) => setPriceRange({ ...priceRange, max: Math.max(parseInt(e.target.value), priceRange.min) })}
                 style={{
                   width: '100%',
                   accentColor: '#DAA520',
@@ -209,7 +229,7 @@ const Gallery = () => {
                 }}
               />
             </div>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', marginTop: '10px', textAlign: 'center' }}>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', marginTop: '8px', textAlign: 'center' }}>
               Slide to filter designs based on artist's starting price estimates
             </p>
           </div>
