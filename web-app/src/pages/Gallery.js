@@ -178,62 +178,67 @@ const Gallery = () => {
                 {cat}
               </button>
             ))}
+            <button
+              className={`filter-btn price-toggle-btn ${showPriceFilter ? 'active' : ''}`}
+              onClick={() => setShowPriceFilter(!showPriceFilter)}
+            >
+              PRICE RANGE
+            </button>
           </div>
         </div>
 
         {/* Price Slider Filter */}
-        <div className="price-filter-wrapper" style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
-          <div className="glass-price-container" style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(12px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-            padding: '12px 20px',
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '420px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <span style={{ color: '#DAA520', fontWeight: 'bold', fontSize: '0.75rem', letterSpacing: '1px' }}>PRICE RANGE</span>
-              <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: '600' }}>
-                ₱{priceRange.min.toLocaleString()} - ₱{priceRange.max.toLocaleString()}{priceRange.max >= 500000 ? '+' : ''}
-              </span>
+        {showPriceFilter && (
+          <div className="price-filter-wrapper fade-in" style={{ marginTop: '15px', display: 'flex', justifyContent: 'center' }}>
+            <div className="glass-price-container">
+              <div className="price-info">
+                <span className="price-label">ESTIMATED PRICE RANGE</span>
+                <span className="price-values">
+                  ₱{priceRange.min.toLocaleString()} - ₱{priceRange.max.toLocaleString()}{priceRange.max >= 500000 ? '+' : ''}
+                </span>
+              </div>
+              
+              <div className="multi-range-slider">
+                <input
+                  type="range"
+                  min="0"
+                  max="500000"
+                  step="5000"
+                  value={priceRange.min}
+                  onChange={(e) => {
+                    const val = Math.min(parseInt(e.target.value), priceRange.max - 5000);
+                    setPriceRange({ ...priceRange, min: val });
+                  }}
+                  className="thumb thumb-left"
+                  style={{ zIndex: priceRange.min > 400000 ? '5' : '3' }}
+                />
+                <input
+                  type="range"
+                  min="0"
+                  max="500000"
+                  step="5000"
+                  value={priceRange.max}
+                  onChange={(e) => {
+                    const val = Math.max(parseInt(e.target.value), priceRange.min + 5000);
+                    setPriceRange({ ...priceRange, max: val });
+                  }}
+                  className="thumb thumb-right"
+                />
+                <div className="slider-track" />
+                <div 
+                  className="slider-range" 
+                  style={{
+                    left: `${(priceRange.min / 500000) * 100}%`,
+                    width: `${((priceRange.max - priceRange.min) / 500000) * 100}%`
+                  }}
+                />
+              </div>
+              <p className="price-hint">
+                Adjust both ends to filter by budget
+              </p>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input
-                type="range"
-                min="0"
-                max="500000"
-                step="5000"
-                value={priceRange.min}
-                onChange={(e) => setPriceRange({ ...priceRange, min: Math.min(parseInt(e.target.value), priceRange.max) })}
-                style={{ width: '100%', accentColor: '#C19A6B', cursor: 'pointer', height: '14px' }}
-              />
-              <input
-                type="range"
-                min="0"
-                max="500000"
-                step="5000"
-                value={priceRange.max}
-                onChange={(e) => setPriceRange({ ...priceRange, max: Math.max(parseInt(e.target.value), priceRange.min) })}
-                style={{
-                  width: '100%',
-                  accentColor: '#DAA520',
-                  cursor: 'pointer',
-                  background: 'rgba(218, 165, 32, 0.2)',
-                  height: '6px',
-                  borderRadius: '3px',
-                  appearance: 'none',
-                  outline: 'none'
-                }}
-              />
-            </div>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', marginTop: '8px', textAlign: 'center' }}>
-              Slide to filter designs based on artist's starting price estimates
-            </p>
           </div>
-        </div>
+        )}
       </header>
 
       {/* Portfolio Grid */}
