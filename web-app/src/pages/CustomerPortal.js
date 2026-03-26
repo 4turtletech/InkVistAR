@@ -31,7 +31,7 @@ function CustomerPortal() {
     const fetchCustomerData = async () => {
         try {
             setLoading(true);
-            
+
             // Fetch customer dashboard data
             const dashboardResponse = await Axios.get(`${API_URL}/api/customer/dashboard/${customerId}`);
             if (dashboardResponse.data.success) {
@@ -80,222 +80,152 @@ function CustomerPortal() {
         <div className="portal-layout">
             <CustomerSideNav />
             <div className="portal-container customer-portal">
-            <header className="portal-header">
-                <div className="header-title">
-                    <h1>Customer Dashboard</h1>
-                    <p className="header-subtitle">Welcome back, {customer.name || 'Inker'}!</p>
-                </div>
-                <div className="header-actions">
-                    <button className="logout-btn" onClick={() => navigate('/login')}>
-                        <LogOut size={20} />
-                        Logout
-                    </button>
-                </div>
-            </header>
-
-            <div className="portal-content">
-                {loading ? (
-                    <div className="dashboard-loader-container">
-                        <div className="premium-loader"></div>
-                        <p>Loading your profile...</p>
+                <header className="portal-header">
+                    <div className="header-title">
+                        <h1>Customer Dashboard</h1>
+                        <p className="header-subtitle">Welcome back, {customer.name || 'Inker'}!</p>
                     </div>
-                ) : (
-                    <>
-                        {/* Stats Grid */}
-                        <div className="stats-grid">
-                            <div className="stat-card-v2" onClick={() => navigate('/customer/bookings')} style={{cursor: 'pointer'}}>
-                                <div className="stat-icon-wrapper blue">
-                                    <Calendar size={24} />
-                                </div>
-                                <div className="stat-content">
-                                    <span className="stat-label-v2">Upcoming Sessions</span>
-                                    <h2 className="stat-value-v2">{customer.appointments}</h2>
-                                </div>
-                            </div>
+                    <div className="header-actions">
+                        <button className="logout-btn" onClick={() => navigate('/login')}>
+                            <LogOut size={20} />
+                            Logout
+                        </button>
+                    </div>
+                </header>
 
-                            <div className="stat-card-v2" onClick={() => navigate('/customer/gallery')} style={{cursor: 'pointer'}}>
-                                <div className="stat-icon-wrapper rose">
-                                    <Heart size={24} />
-                                </div>
-                                <div className="stat-content">
-                                    <span className="stat-label-v2">Saved Designs</span>
-                                    <h2 className="stat-value-v2">{customer.savedDesigns}</h2>
-                                </div>
-                            </div>
-
-                            <div className="stat-card-v2" onClick={() => navigate('/customer/gallery')} style={{cursor: 'pointer'}}>
-                                <div className="stat-icon-wrapper gold">
-                                    <Award size={24} />
-                                </div>
-                                <div className="stat-content">
-                                    <span className="stat-label-v2">My Tattoos</span>
-                                    <h2 className="stat-value-v2">{customer.totalTattoos}</h2>
-                                </div>
-                            </div>
+                <div className="portal-content">
+                    {loading ? (
+                        <div className="dashboard-loader-container">
+                            <div className="premium-loader"></div>
+                            <p>Loading your profile...</p>
                         </div>
-
-                        {/* Upcoming Appointments */}
-                        <div className="data-card-v2">
-                            <div className="card-header-v2">
-                                <h2>Upcoming Sessions</h2>
-                                <button className="action-btn" onClick={() => navigate('/customer/book')}>Book New Session</button>
-                            </div>
-                            <div className="modern-table-wrapper">
-                                {appointments.length > 0 ? (
-                                    <table className="premium-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Artist</th>
-                                                <th>Service</th>
-                                                <th>Date & Time</th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {appointments.map((apt) => (
-                                                <tr key={apt.id}>
-                                                    <td>
-                                                        <div className="client-cell">
-                                                            <div className="avatar-placeholder">{apt.artist.charAt(0)}</div>
-                                                            <span>{apt.artist}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td>{apt.service}</td>
-                                                    <td>
-                                                        <div className="date-time-cell">
-                                                            <div className="primary-date">{apt.date}</div>
-                                                            <div className="secondary-time">{apt.time}</div>
-                                                        </div>
-                                                    </td>
-                                                    <td><span className={`status-badge-v2 ${apt.status.toLowerCase()}`}>{apt.status}</span></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                ) : (
-                                    <div className="empty-state-simple" style={{padding: '3rem', textAlign: 'center', color: 'var(--text-muted)'}}>
-                                        <p>No upcoming appointments found.</p>
+                    ) : (
+                        <>
+                            {/* Stats Grid */}
+                            <div className="stats-grid">
+                                <div className="stat-card-v2" onClick={() => navigate('/customer/bookings')} style={{ cursor: 'pointer' }}>
+                                    <div className="stat-icon-wrapper blue">
+                                        <Calendar size={24} />
                                     </div>
-                                )}
+                                    <div className="stat-content">
+                                        <span className="stat-label-v2">Upcoming Sessions</span>
+                                        <h2 className="stat-value-v2">{customer.appointments}</h2>
+                                    </div>
+                                </div>
+
+                                <div className="stat-card-v2" onClick={() => navigate('/customer/gallery')} style={{ cursor: 'pointer' }}>
+                                    <div className="stat-icon-wrapper rose">
+                                        <Heart size={24} />
+                                    </div>
+                                    <div className="stat-content">
+                                        <span className="stat-label-v2">Saved Designs</span>
+                                        <h2 className="stat-value-v2">{customer.savedDesigns}</h2>
+                                    </div>
+                                </div>
+
+                                <div className="stat-card-v2" onClick={() => navigate('/customer/gallery')} style={{ cursor: 'pointer' }}>
+                                    <div className="stat-icon-wrapper gold">
+                                        <Award size={24} />
+                                    </div>
+                                    <div className="stat-content">
+                                        <span className="stat-label-v2">My Tattoos</span>
+                                        <h2 className="stat-value-v2">{customer.totalTattoos}</h2>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="quick-actions-grid">
-                            <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/gallery')}>
-                                <div className="action-icon-wrapper blue">
-                                    <Heart size={20} />
+                            {/* Upcoming Appointments */}
+                            <div className="data-card-v2">
+                                <div className="card-header-v2">
+                                    <h2>Upcoming Sessions</h2>
+                                    <button className="action-btn" onClick={() => navigate('/customer/book')}>Book New Session</button>
                                 </div>
-                                <div className="action-content-v2">
-                                    <span className="action-title-v2">Saved Designs</span>
-                                    <span className="action-subtitle-v2">Explore your inspirations</span>
-                                </div>
-                            </button>
-
-                            <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/gallery')}>
-                                <div className="action-icon-wrapper gold">
-                                    <Award size={20} />
-                                </div>
-                                <div className="action-content-v2">
-                                    <span className="action-title-v2">My Tattoo History</span>
-                                    <span className="action-subtitle-v2">View your completed works</span>
-                                </div>
-                            </button>
-
-                            <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/book')}>
-                                <div className="action-icon-wrapper purple">
-                                    <Calendar size={20} />
-                                </div>
-                                <div className="action-content-v2">
-                                    <span className="action-title-v2">Schedule Session</span>
-                                    <span className="action-subtitle-v2">Book your next masterpiece</span>
-                                </div>
-                            </button>
-                        </div>
-
-                        {/* New styles for quick-actions-grid and action-card-v2 */}
-                        <style jsx>{`
-                            .quick-actions-grid {
-                                display: grid;
-                                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                                gap: 1.5rem; /* Spacing between cards */
-                                margin-top: 2rem;
-                            }
-                            .action-card-v2 {
-                                display: flex;
-                                align-items: center;
-                                padding: 1.25rem;
-                                border-radius: 16px;
-                                background: rgba(255, 255, 255, 0.05);
-                                backdrop-filter: blur(10px);
-                                border: 1px solid rgba(255, 255, 255, 0.1);
-                                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                                cursor: pointer;
-                                transition: all 0.3s ease;
-                                text-align: left;
-                                width: 100%;
-                            }
-                            .action-card-v2:hover {
-                                transform: translateY(-5px);
-                                box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
-                                border-color: #C19A6B;
-                            }
-                            .action-icon-wrapper {
-                                width: 48px;
-                                height: 48px;
-                                border-radius: 12px;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                margin-right: 1rem;
-                                flex-shrink: 0;
-                            }
-                            .action-icon-wrapper.blue { background-color: rgba(59, 130, 246, 0.2); color: #3b82f6; }
-                            .action-icon-wrapper.gold { background-color: rgba(218, 165, 32, 0.2); color: #DAA520; }
-                            .action-icon-wrapper.purple { background-color: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
-                            .action-content-v2 {
-                                display: flex;
-                                flex-direction: column;
-                            }
-                            .action-title-v2 {
-                                font-size: 1.1rem;
-                                font-weight: 600;
-                                color: #ffffff;
-                                margin-bottom: 4px;
-                            }
-                            .action-subtitle-v2 {
-                                font-size: 0.85rem;
-                                color: #a0a0a0;
-                            }
-                        `}</style>
-
-                        {/* Favorite Artists */}
-                        <div className="data-card-v2" style={{ marginTop: '2rem' }}> {/* Added margin-top for spacing */}
-                            <div className="card-header-v2">
-                                <h2>Recommended Artists</h2>
-                                <button className="view-more-btn" onClick={() => navigate('/artists')}>Meet the Team</button>
-                            </div>
-                            <div className="artists-grid" style={{padding: '1.5rem'}}>
-                                {artists.length > 0 ? (
-                                    artists.slice(0, 4).map((artist) => (
-                                        <div key={artist.id} className="artist-card-v2 glass-card" style={{padding: '1.5rem', borderRadius: '16px'}}>
-                                            <h3 style={{margin: '0 0 5px 0', fontSize: '1.1rem'}}>{artist.name}</h3>
-                                            <p className="specialty" style={{margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)'}}>{artist.specialization || 'Professional Artist'}</p>
-                                            <button className="action-btn-small" onClick={() => navigate('/customer/book')} style={{background: 'var(--text-main)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem'}}>Book</button>
+                                <div className="modern-table-wrapper">
+                                    {appointments.length > 0 ? (
+                                        <table className="premium-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Artist</th>
+                                                    <th>Service</th>
+                                                    <th>Date & Time</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {appointments.map((apt) => (
+                                                    <tr key={apt.id}>
+                                                        <td>
+                                                            <div className="client-cell">
+                                                                <div className="avatar-placeholder">{apt.artist.charAt(0)}</div>
+                                                                <span>{apt.artist}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>{apt.service}</td>
+                                                        <td>
+                                                            <div className="date-time-cell">
+                                                                <div className="primary-date">{apt.date}</div>
+                                                                <div className="secondary-time">{apt.time}</div>
+                                                            </div>
+                                                        </td>
+                                                        <td><span className={`status-badge-v2 ${apt.status.toLowerCase()}`}>{apt.status}</span></td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    ) : (
+                                        <div className="empty-state-simple" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                            <p>No upcoming appointments found.</p>
                                         </div>
-                                    ))
-                                ) : (
-                                    <p className="no-data">No artists found</p>
-                                )}
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    </>
-                )}
-            </div>
+
+                            <div className="quick-actions-grid">
+                                <div className="action-card glass-card" onClick={() => navigate('/customer/gallery')}>
+                                    <Heart size={24} />
+                                    <span className="action-card-text">View Saved Designs</span>
+                                </div>
+                                <div className="action-card glass-card" onClick={() => navigate('/customer/gallery')}>
+                                    <Award size={24} />
+                                    <span className="action-card-text">My Tattoo History</span>
+                                </div>
+                                <div className="action-card glass-card" onClick={() => navigate('/customer/book')}>
+                                    <Calendar size={24} />
+                                    <span className="action-card-text">Schedule Session</span>
+                                </div>
+                            </div>
+
+                            {/* Favorite Artists */}
+                            <div className="data-card-v2">
+                                <div className="card-header-v2">
+                                    <h2>Recommended Artists</h2>
+                                    <button className="view-more-btn" onClick={() => navigate('/artists')}>Meet the Team</button>
+                                </div>
+                                <div className="artists-grid" style={{ padding: '1.5rem' }}>
+                                    {artists.length > 0 ? (
+                                        artists.slice(0, 4).map((artist) => (
+                                            <div key={artist.id} className="artist-card-v2 glass-card" style={{ padding: '1.5rem', borderRadius: '16px' }}>
+                                                <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem' }}>{artist.name}</h3>
+                                                <p className="specialty" style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{artist.specialization || 'Professional Artist'}</p>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span className="rating" style={{ fontWeight: '700', color: '#f59e0b' }}>⭐ {artist.rating || 5.0}</span>
+                                                    <button className="action-btn-small" onClick={() => navigate('/customer/book')} style={{ background: 'var(--text-main)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem' }}>Book</button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="no-data">No artists found</p>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
             {activeAppointment && (
-                <ChatWidget 
-                    room={activeAppointment.id} 
-                    currentUser={`customer_${customerId}`} 
+                <ChatWidget
+                    room={activeAppointment.id}
+                    currentUser={`customer_${customerId}`}
                 />
             )}
         </div>
