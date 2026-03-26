@@ -173,6 +173,10 @@ export function CustomerBooking({ customerId, onBack }) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    const maxDate = new Date();
+    maxDate.setMonth(today.getMonth() + 3);
+    maxDate.setHours(23, 59, 59, 999);
+    
     const days = [];
     
     // Empty slots
@@ -186,6 +190,7 @@ export function CustomerBooking({ customerId, onBack }) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       const isSelected = selectedDate === dateStr;
       const isPast = dateObj < today;
+      const isTooFar = dateObj > maxDate;
 
       const dateData = bookedDates[dateStr] || { count: 0 };
       const isFull = dateData.count >= 3; // Assume 3 slots max per day for now
@@ -201,17 +206,17 @@ export function CustomerBooking({ customerId, onBack }) {
           style={[
             styles.dayCell, 
             isSelected && styles.selectedDayCell,
-            (isPast || isFull) && styles.disabledDayCell
+            (isPast || isFull || isTooFar) && styles.disabledDayCell
           ]}
-          disabled={isPast || isFull}
+          disabled={isPast || isFull || isTooFar}
           onPress={() => setSelectedDate(dateStr)}
         >
           <Text style={[
             styles.dayText, 
             isSelected && styles.selectedDayText,
-            (isPast || isFull) && styles.disabledDayText
+            (isPast || isFull || isTooFar) && styles.disabledDayText
           ]}>{i}</Text>
-          {!isPast && (
+          {!isPast && !isTooFar && (
             <View style={[styles.availabilityDot, { backgroundColor: statusColor }]} />
           )}
         </TouchableOpacity>

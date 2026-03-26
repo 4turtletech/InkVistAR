@@ -1892,6 +1892,12 @@ app.post('/api/customer/appointments', (req, res) => {
   if (appointmentDate <= today) {
     return res.status(400).json({ success: false, message: 'Appointments cannot be booked for the same day or past dates.' });
   }
+
+  const maxBookingDate = new Date();
+  maxBookingDate.setMonth(today.getMonth() + 3);
+  if (appointmentDate > maxBookingDate) {
+    return res.status(400).json({ success: false, message: 'Appointments can only be booked up to 3 months in advance.' });
+  }
   // --- End Validation ---
 
   // Ensure endTime has a value (default to startTime if missing)
