@@ -181,22 +181,95 @@ function CustomerPortal() {
                             </div>
 
                             <div className="quick-actions-grid">
-                                <div className="action-card glass-card" onClick={() => navigate('/customer/gallery')}>
-                                    <Heart size={24} />
-                                    <span className="action-card-text">View Saved Designs</span>
-                                </div>
-                                <div className="action-card glass-card" onClick={() => navigate('/customer/gallery')}>
-                                    <Award size={24} />
-                                    <span className="action-card-text">My Tattoo History</span>
-                                </div>
-                                <div className="action-card glass-card" onClick={() => navigate('/customer/book')}>
-                                    <Calendar size={24} />
-                                    <span className="action-card-text">Schedule Session</span>
-                                </div>
+                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/gallery')}>
+                                    <div className="action-icon-wrapper blue">
+                                        <Heart size={20} />
+                                    </div>
+                                    <div className="action-content-v2">
+                                        <span className="action-title-v2">Saved Designs</span>
+                                        <span className="action-subtitle-v2">Explore your inspirations</span>
+                                    </div>
+                                </button>
+
+                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/gallery')}>
+                                    <div className="action-icon-wrapper gold">
+                                        <Award size={20} />
+                                    </div>
+                                    <div className="action-content-v2">
+                                        <span className="action-title-v2">My Tattoo History</span>
+                                        <span className="action-subtitle-v2">View your completed works</span>
+                                    </div>
+                                </button>
+
+                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/book')}>
+                                    <div className="action-icon-wrapper purple">
+                                        <Calendar size={20} />
+                                    </div>
+                                    <div className="action-content-v2">
+                                        <span className="action-title-v2">Schedule Session</span>
+                                        <span className="action-subtitle-v2">Book your next masterpiece</span>
+                                    </div>
+                                </button>
                             </div>
 
+                            {/* New styles for quick-actions-grid and action-card-v2 */}
+                            <style jsx>{`
+                            .quick-actions-grid {
+                                display: grid;
+                                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                                gap: 1.5rem; /* Spacing between cards */
+                                margin-top: 2rem;
+                            }
+                            .action-card-v2 {
+                                display: flex;
+                                align-items: center;
+                                padding: 1.25rem;
+                                border-radius: 16px;
+                                background: rgba(255, 255, 255, 0.05);
+                                backdrop-filter: blur(10px);
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                text-align: left;
+                                width: 100%;
+                            }
+                            .action-card-v2:hover {
+                                transform: translateY(-5px);
+                                box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+                                border-color: #C19A6B;
+                            }
+                            .action-icon-wrapper {
+                                width: 48px;
+                                height: 48px;
+                                border-radius: 12px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                margin-right: 1rem;
+                                flex-shrink: 0;
+                            }
+                            .action-icon-wrapper.blue { background-color: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+                            .action-icon-wrapper.gold { background-color: rgba(218, 165, 32, 0.2); color: #DAA520; }
+                            .action-icon-wrapper.purple { background-color: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+                            .action-content-v2 {
+                                display: flex;
+                                flex-direction: column;
+                            }
+                            .action-title-v2 {
+                                font-size: 1.1rem;
+                                font-weight: 600;
+                                color: #0e0e0eff;
+                                margin-bottom: 4px;
+                            }
+                            .action-subtitle-v2 {
+                                font-size: 0.85rem;
+                                color: #a0a0a0;
+                            }
+                        `}</style>
+
                             {/* Favorite Artists */}
-                            <div className="data-card-v2">
+                            <div className="data-card-v2" style={{ marginTop: '2rem' }}> {/* Added margin-top for spacing */}
                                 <div className="card-header-v2">
                                     <h2>Recommended Artists</h2>
                                     <button className="view-more-btn" onClick={() => navigate('/artists')}>Meet the Team</button>
@@ -207,10 +280,7 @@ function CustomerPortal() {
                                             <div key={artist.id} className="artist-card-v2 glass-card" style={{ padding: '1.5rem', borderRadius: '16px' }}>
                                                 <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem' }}>{artist.name}</h3>
                                                 <p className="specialty" style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{artist.specialization || 'Professional Artist'}</p>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span className="rating" style={{ fontWeight: '700', color: '#f59e0b' }}>⭐ {artist.rating || 5.0}</span>
-                                                    <button className="action-btn-small" onClick={() => navigate('/customer/book')} style={{ background: 'var(--text-main)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem' }}>Book</button>
-                                                </div>
+                                                <button className="action-btn-small" onClick={() => navigate('/customer/book')} style={{ background: 'var(--text-main)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem' }}>Book</button>
                                             </div>
                                         ))
                                     ) : (
