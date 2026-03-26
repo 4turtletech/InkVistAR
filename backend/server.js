@@ -638,6 +638,20 @@ db.getConnection((err, connection) => {
     `;
     db.query(sessionMaterialsTableQuery, (err) => { if (err) console.error('⚠️ Error checking session_materials table:', err.message); else console.log('💉 Session Materials table ready'); });
 
+    // Create Favorites table
+    const favoritesTableQuery = `
+      CREATE TABLE IF NOT EXISTS favorites (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        work_id INT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_favorite (user_id, work_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (work_id) REFERENCES portfolio_works(id) ON DELETE CASCADE
+      )
+    `;
+    db.query(favoritesTableQuery, (err) => { if (err) console.error('⚠️ Error checking favorites table:', err.message); else console.log('❤️ Favorites table ready'); });
+
   }
 });
 

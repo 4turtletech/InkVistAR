@@ -699,6 +699,11 @@ body.sidenav-collapsed .portal-layout .portal-container {
     background: #fff;
 }
 
+.favorite-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .favorite-btn.active {
     background: #fff;
 }
@@ -754,24 +759,31 @@ body.sidenav-collapsed .portal-layout .portal-container {
 
 /* --- Premium Modal Enhancements --- */
 .gallery-modal {
-    max-width: 1000px !important;
-    width: 95% !important;
+    max-width: 1100px !important;
+    width: 95vw !important;
     padding: 0 !important;
     background: #fff !important;
     border-radius: 20px !important;
     overflow: hidden !important;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    max-height: 90vh;
+    display: flex !important;
 }
 
 .modal-inner {
     display: flex;
-    min-height: 80vh;
+    min-height: 100%;
+    width: 100%;
 }
 
 @media (max-width: 968px) {
     .modal-inner {
         flex-direction: column;
         min-height: auto;
+    }
+    
+    .gallery-modal {
+        max-height: auto !important;
     }
 }
 
@@ -782,12 +794,15 @@ body.sidenav-collapsed .portal-layout .portal-container {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    position: relative;
+    min-height: 400px;
 }
 
 .modal-image-side img {
     max-width: 100%;
-    max-height: 80vh;
+    max-height: 100%;
     object-fit: contain;
+    padding: 20px;
 }
 
 .modal-info-side {
@@ -797,6 +812,19 @@ body.sidenav-collapsed .portal-layout .portal-container {
     flex-direction: column;
     background: #fff;
     overflow-y: auto;
+    max-height: 90vh;
+}
+
+@media (max-width: 768px) {
+    .modal-image-side {
+        min-height: 300px;
+        max-height: 400px;
+    }
+    
+    .modal-info-side {
+        padding: 24px;
+        max-height: auto;
+    }
 }
 
 .modal-header {
@@ -804,6 +832,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 30px;
+    gap: 16px;
 }
 
 .title-group h2 {
@@ -811,6 +840,13 @@ body.sidenav-collapsed .portal-layout .portal-container {
     font-size: 2rem;
     color: #111;
     font-family: 'Playfair Display', serif;
+    line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+    .title-group h2 {
+        font-size: 1.5rem;
+    }
 }
 
 .artist-by {
@@ -830,12 +866,14 @@ body.sidenav-collapsed .portal-layout .portal-container {
     border-radius: 50%;
     width: 40px;
     height: 40px;
+    min-width: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
     color: #64748b;
+    flex-shrink: 0;
 }
 
 .close-modal:hover {
@@ -846,6 +884,8 @@ body.sidenav-collapsed .portal-layout .portal-container {
 
 .modal-body {
     flex: 1;
+    overflow-y: auto;
+    padding-right: 16px;
 }
 
 .category-badge {

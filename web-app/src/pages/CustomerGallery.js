@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { X, Calendar, Heart, Award, Search, Filter } from 'lucide-react';
+import { X, Calendar, Heart, Award, Search, Filter, Loader } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
@@ -14,6 +14,7 @@ function CustomerGallery(){
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedWork, setSelectedWork] = useState(null);
+    const [toggling, setToggling] = useState(false);
     const navigate = useNavigate();
     
     const user = JSON.parse(localStorage.getItem('user'));
@@ -28,28 +29,44 @@ function CustomerGallery(){
             setLoading(true);
             if (viewMode === 'All') {
                 const res = await Axios.get(`${API_URL}/api/gallery/works`);
-                if (res.data.success) setWorks(res.data.works || []);
+                if (res.data.success) {
+                    const worksData = res.data.works || [];
+                    setWorks(worksData);
+                }
                 
                 // Also fetch user's favorites to show heart status
                 if (userId) {
-                    const favRes = await Axios.get(`${API_URL}/api/customer/${userId}/favorites`);
-                    if (favRes.data.success) {
-                        setFavorites(favRes.data.favorites.map(f => f.id));
+                    try {
+                        const favRes = await Axios.get(`${API_URL}/api/customer/${userId}/favorites`);
+                        if (favRes.data.success) {
+                            setFavorites(favRes.data.favorites.map(f => f.id));
+                        }
+                    } catch (favErr) {
+                        console.error('Error fetching favorites:', favErr);
                     }
                 }
             } else if (viewMode === 'Favorites') {
-                const res = await Axios.get(`${API_URL}/api/customer/${userId}/favorites`);
-                if (res.data.success) {
-                    setWorks(res.data.favorites || []);
-                    setFavorites(res.data.favorites.map(f => f.id));
+                if (!userId) {
+                    setWorks([]);
+                    setFavorites([]);
+                } else {
+                    const res = await Axios.get(`${API_URL}/api/customer/${userId}/favorites`);
+                    if (res.data.success) {
+                        setWorks(res.data.favorites || []);
+                        setFavorites(res.data.favorites.map(f => f.id) || []);
+                    }
                 }
             } else if (viewMode === 'My Tattoos') {
-                const res = await Axios.get(`${API_URL}/api/customer/${userId}/my-tattoos`);
-                if (res.data.success) setMyTattoos(res.data.tattoos || []);
+                if (!userId) {
+                    setMyTattoos([]);
+                } else {
+                    const res = await Axios.get(`${API_URL}/api/customer/${userId}/my-tattoos`);
+                    if (res.data.success) setMyTattoos(res.data.tattoos || []);
+                }
             }
             setLoading(false);
         } catch (e) {
-            console.error(e);
+            console.error('Error fetching initial data:', e);
             setLoading(false);
         }
     };
@@ -58,20 +75,30 @@ function CustomerGallery(){
         e.stopPropagation();
         if (!userId) return navigate('/login');
         
+        setToggling(true);
         try {
             const res = await Axios.post(`${API_URL}/api/customer/favorites`, { userId, workId });
             if (res.data.success) {
                 if (res.data.favorited) {
+                    // Adding to favorites
                     setFavorites(prev => [...prev, workId]);
                 } else {
+                    // Removing from favorites
                     setFavorites(prev => prev.filter(id => id !== workId));
                     if (viewMode === 'Favorites') {
+                        // Remove from displayed works when in favorites view
                         setWorks(prev => prev.filter(w => w.id !== workId));
+                        // Also update selected work if it's currently displayed
+                        if (selectedWork && selectedWork.id === workId) {
+                            setSelectedWork(null);
+                        }
                     }
                 }
             }
         } catch (error) {
             console.error("Error toggling favorite:", error);
+        } finally {
+            setToggling(false);
         }
     };
 
@@ -120,7 +147,7 @@ function CustomerGallery(){
                             onClick={() => setViewMode('Favorites')}
                         >
                             <Heart size={16} fill={viewMode === 'Favorites' ? "#C19A6B" : "none"} />
-                            My Favorites
+                            My Favorites ({favorites.length})
                         </button>
                         <button 
                             className={`tab-btn ${viewMode === 'My Tattoos' ? 'active' : ''}`}
@@ -133,7 +160,7 @@ function CustomerGallery(){
 
                     {loading ? (
                         <div className="no-data">
-                            <div className="spinner"></div>
+                            <Loader size={40} style={{animation: 'spin 1s linear infinite'}} />
                             <p>Curating your gallery...</p>
                         </div>
                     ) : (
@@ -148,6 +175,8 @@ function CustomerGallery(){
                                             <button 
                                                 className={`favorite-btn ${favorites.includes(item.id) ? 'active' : ''}`}
                                                 onClick={(e) => toggleFavorite(e, item.id)}
+                                                disabled={toggling}
+                                                title={favorites.includes(item.id) ? 'Remove from favorites' : 'Add to favorites'}
                                             >
                                                 <Heart size={20} fill={favorites.includes(item.id) ? "#ff4d4d" : "rgba(0,0,0,0.3)"} color={favorites.includes(item.id) ? "#ff4d4d" : "white"} />
                                             </button>
@@ -247,13 +276,14 @@ function CustomerGallery(){
                                             <button 
                                                 className={`fav-toggle-btn ${favorites.includes(selectedWork.id) ? 'active' : ''}`}
                                                 onClick={(e) => toggleFavorite(e, selectedWork.id)}
+                                                disabled={toggling}
                                             >
-                                                <Heart size={18} fill={favorites.includes(selectedWork.id) ? "#ff4d4d" : "none"} />
+                                                <Heart size={18} fill={favorites.includes(selectedWork.id) ? "#ff4d4d" : "none"} color={favorites.includes(selectedWork.id) ? "#ff4d4d" : "white"} />
                                                 {favorites.includes(selectedWork.id) ? 'Saved to Favorites' : 'Save to Favorites'}
                                             </button>
                                         </>
                                     ) : (
-                                        <button className="booking-btn" onClick={() => navigate('/customer/book')}>
+                                        <button className="booking-btn" onClick={() => navigate('/book')}>
                                             <Calendar size={18} />
                                             Book New Session
                                         </button>
@@ -264,6 +294,15 @@ function CustomerGallery(){
                     </div>
                 </div>
             )}
+
+            <style>
+                {`
+                    @keyframes spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                    }
+                `}
+            </style>
         </div>
     );
 }
