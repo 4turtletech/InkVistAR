@@ -162,6 +162,14 @@ db.getConnection((err, connection) => {
         }
       });
 
+      // MIGRATION: Check if 'studio_name' column exists
+      db.query("SHOW COLUMNS FROM artists LIKE 'studio_name'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('🔄 Migrating artists table: Adding studio_name column...');
+          db.query("ALTER TABLE artists ADD COLUMN studio_name VARCHAR(255) NULL");
+        }
+      });
+
       // MIGRATION: Check if 'profile_image' column exists
       db.query("SHOW COLUMNS FROM artists LIKE 'profile_image'", (err, results) => {
         if (!err && results.length === 0) {
@@ -1091,6 +1099,58 @@ app.post('/api/reset-password', async (req, res) => {
   });
 });
 
+// ========== ARTIST CHANGE PASSWORD ENDPOINT ==========
+app.post('/api/artist/change-password', async (req, res) => {
+  const { artistId, currentPassword, newPassword } = req.body;
+  console.log('🔐 Artist change password requested for ID:', artistId);
+
+  // Validation
+  if (!artistId || !currentPassword || !newPassword) {
+    return res.status(400).json({ success: false, message: 'All password fields are required' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+  }
+
+  // Find user
+  db.query('SELECT * FROM users WHERE id = ?', [artistId], async (err, results) => {
+    if (err) {
+      console.error('❌ DB error:', err.message);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const user = results[0];
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    // Check if new password is same as old
+    const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+    if (isSamePassword) {
+      return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password' });
+    }
+
+    // Hash and update
+    const password_hash = await bcrypt.hash(newPassword, 10);
+
+    db.query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, artistId], (updateErr) => {
+      if (updateErr) {
+        console.error('❌ Error updating password:', updateErr);
+        return res.status(500).json({ success: false, message: 'Failed to update password' });
+      }
+      logAction(artistId, 'PASSWORD_CHANGED', 'Artist changed their password', req.ip || '::1');
+      res.json({ success: true, message: 'Password changed successfully' });
+    });
+  });
+});
+
 // ========== OTP ENDPOINTS ==========
 
 app.post('/api/send-otp', (req, res) => {
@@ -1362,10 +1422,11 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
 
   // SIMPLE query that works with current DB structure
   const query = `
-    SELECT 
+    SELECT
       u.id,
       u.name,
       u.email,
+      u.phone,
       u.user_type,
       COALESCE(a.studio_name, 'My Studio') as studio_name,
       COALESCE(a.experience_years, 0) as experience_years,
@@ -1461,6 +1522,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
             id: artist.id,
             name: artist.name,
             email: artist.email,
+            phone: artist.phone,
             studio_name: artist.studio_name,
             experience_years: artist.experience_years,
             specialization: artist.specialization,
@@ -1556,10 +1618,10 @@ app.get('/api/artist/:artistId/clients', (req, res) => {
 // Update Artist Profile
 app.put('/api/artist/profile/:id', (req, res) => {
   const { id } = req.params;
-  const { name, specialization, hourly_rate, experience_years, commission_rate, phone, profileImage } = req.body;
+  const { name, specialization, hourly_rate, experience_years, commission_rate, phone, studio_name, profileImage } = req.body;
 
-  // Update users table (name)
-  db.query('UPDATE users SET name = ? WHERE id = ?', [name, id], (err) => {
+  // Update users table (name and phone)
+  db.query('UPDATE users SET name = ?, phone = ? WHERE id = ?', [name, phone || null, id], (err) => {
     if (err) return res.status(500).json({ success: false, message: 'DB Error (User)' });
 
     // Update artists table
@@ -1578,9 +1640,9 @@ app.put('/api/artist/profile/:id', (req, res) => {
       artistQuery += ', commission_rate = ?';
       params.push(commission_rate);
     }
-    if (phone !== undefined) {
-      artistQuery += ', phone = ?';
-      params.push(phone);
+    if (studio_name !== undefined) {
+      artistQuery += ', studio_name = ?';
+      params.push(studio_name);
     }
     if (profileImage !== undefined) {
       artistQuery += ', profile_image = ?';
