@@ -126,13 +126,17 @@ function ArtistSessions() {
                 materialId
             });
             if (res.data.success) {
-                fetchSessionMaterials(activeSession.id);
+                // Refresh will happen in the finally block
             } else {
                 showAlert("Error", res.data.message || 'Failed to release material.', "warning");
             }
         } catch (e) {
             const errorMsg = e.response?.data?.message || "Failed to connect to the server.";
             showAlert("Release Error", errorMsg, "danger");
+        } finally {
+            // Always refetch materials to ensure UI is in sync with DB
+            // This helps if the status changed unexpectedly or due to a race condition.
+            fetchSessionMaterials(activeSession.id);
         }
     };
 
