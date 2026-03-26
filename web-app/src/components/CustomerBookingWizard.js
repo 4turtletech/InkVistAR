@@ -162,6 +162,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
+        const maxDate = new Date();
+        maxDate.setMonth(today.getMonth() + 3);
+        maxDate.setHours(23, 59, 59, 999);
+
         for (let i = 0; i < firstDay; i++) {
             days.push(<div key={`empty-${i}`} />);
         }
@@ -171,16 +175,17 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             const checkDate = new Date(year, month, i);
             const isSelected = formData.date === dateStr;
             const isPast = checkDate <= today;
+            const isTooFar = checkDate > maxDate;
             
             const dateData = bookedDates[dateStr] || { count: 0 };
             const isFull = dateData.count >= 5; // Studios have more capacity than individual artists
             const isBusy = dateData.count > 2;
 
             let statusColor = '#10b981'; 
-            if (isFull) statusColor = '#ef4444';
+            if (isFull || isTooFar) statusColor = '#ef4444';
             else if (isBusy) statusColor = '#f59e0b';
 
-            days.push(
+            days.push(            
                 <button
                     key={i}
                     onClick={() => !isPast && !isFull && setFormData({ ...formData, date: dateStr })}
@@ -229,6 +234,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             </div>
         );
     };
+
 
     const renderStep1 = () => (
         <div className="fade-in">
