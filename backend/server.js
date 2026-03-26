@@ -1151,6 +1151,110 @@ app.post('/api/artist/change-password', async (req, res) => {
   });
 });
 
+// ========== CUSTOMER CHANGE PASSWORD ENDPOINT ==========
+app.post('/api/customer/change-password', async (req, res) => {
+  const { customerId, currentPassword, newPassword } = req.body;
+  console.log('🔐 Customer change password requested for ID:', customerId);
+
+  // Validation
+  if (!customerId || !currentPassword || !newPassword) {
+    return res.status(400).json({ success: false, message: 'All password fields are required' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+  }
+
+  // Find user
+  db.query('SELECT * FROM users WHERE id = ?', [customerId], async (err, results) => {
+    if (err) {
+      console.error('❌ DB error:', err.message);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const user = results[0];
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    // Check if new password is same as old
+    const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+    if (isSamePassword) {
+      return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password' });
+    }
+
+    // Hash and update
+    const password_hash = await bcrypt.hash(newPassword, 10);
+
+    db.query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, customerId], (updateErr) => {
+      if (updateErr) {
+        console.error('❌ Error updating password:', updateErr);
+        return res.status(500).json({ success: false, message: 'Failed to update password' });
+      }
+      logAction(customerId, 'PASSWORD_CHANGED', 'Customer changed their password', req.ip || '::1');
+      res.json({ success: true, message: 'Password changed successfully' });
+    });
+  });
+});
+
+// ========== ARTIST CHANGE PASSWORD ENDPOINT ==========
+app.post('/api/artist/change-password', async (req, res) => {
+  const { artistId, currentPassword, newPassword } = req.body;
+  console.log('🔐 Artist change password requested for ID:', artistId);
+
+  // Validation
+  if (!artistId || !currentPassword || !newPassword) {
+    return res.status(400).json({ success: false, message: 'All password fields are required' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+  }
+
+  // Find user
+  db.query('SELECT * FROM users WHERE id = ?', [artistId], async (err, results) => {
+    if (err) {
+      console.error('❌ DB error:', err.message);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const user = results[0];
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    // Check if new password is same as old
+    const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+    if (isSamePassword) {
+      return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password' });
+    }
+
+    // Hash and update
+    const password_hash = await bcrypt.hash(newPassword, 10);
+
+    db.query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, artistId], (updateErr) => {
+      if (updateErr) {
+        console.error('❌ Error updating password:', updateErr);
+        return res.status(500).json({ success: false, message: 'Failed to update password' });
+      }
+      logAction(artistId, 'PASSWORD_CHANGED', 'Artist changed their password', req.ip || '::1');
+      res.json({ success: true, message: 'Password changed successfully' });
+    });
+  });
+});
+
 // ========== OTP ENDPOINTS ==========
 
 app.post('/api/send-otp', (req, res) => {
