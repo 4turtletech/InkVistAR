@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { User, Mail, Palette, Save, Lock, DollarSign, Clock } from 'lucide-react';
+import { User, Mail, Palette, Save, Lock, DollarSign, Clock, Camera } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 
-function ArtistProfile(){
+function ArtistProfile() {
     const [profile, setProfile] = useState({
         name: '',
         email: '',
         specialization: '',
         hourly_rate: 0,
-        experience_years: 0
+        experience_years: 0,
+        profile_image: ''
     });
     const [passwords, setPasswords] = useState({
         newPassword: '',
@@ -19,7 +20,7 @@ function ArtistProfile(){
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    
+
     // Get the real logged-in user ID
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
@@ -29,7 +30,7 @@ function ArtistProfile(){
 
     useEffect(() => {
         const fetch = async () => {
-            try{
+            try {
                 setLoading(true);
                 const res = await Axios.get(`${API_URL}/api/artist/dashboard/${artistId}`);
                 if (res.data.success) {
@@ -39,14 +40,26 @@ function ArtistProfile(){
                         email: data.email,
                         specialization: data.specialization,
                         hourly_rate: data.hourly_rate || 0,
-                        experience_years: data.experience_years || 0
+                        experience_years: data.experience_years || 0,
+                        profile_image: data.profile_image || ''
                     });
                 }
                 setLoading(false);
-            } catch(e){ console.error(e); setLoading(false); }
+            } catch (e) { console.error(e); setLoading(false); }
         };
         fetch();
     }, [artistId]);
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfile({ ...profile, profile_image: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSave = async (e) => {
         e.preventDefault();
@@ -72,17 +85,18 @@ function ArtistProfile(){
                 name: profile.name,
                 specialization: profile.specialization,
                 hourly_rate: profile.hourly_rate,
-                experience_years: profile.experience_years
+                experience_years: profile.experience_years,
+                profileImage: profile.profile_image
             });
 
             // If password provided, call reset-password endpoint
             if (passwords.newPassword) {
-                 await Axios.post(`${API_URL}/api/reset-password`, {
+                await Axios.post(`${API_URL}/api/reset-password`, {
                     email: profile.email,
                     newPassword: passwords.newPassword
                 });
             }
-            
+
             alert("Profile settings updated successfully!");
             setPasswords({ newPassword: '', confirmPassword: '' });
         } catch (error) {
@@ -103,21 +117,49 @@ function ArtistProfile(){
                     {loading ? <div className="no-data">Loading...</div> : (
                         <div className="data-card" style={{ maxWidth: '600px', margin: '0 auto' }}>
                             <form onSubmit={handleSave}>
+                                {/* Profile Picture Section */}
+                                <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+                                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                                        <div style={{
+                                            width: '120px',
+                                            height: '120px',
+                                            borderRadius: '50%',
+                                            backgroundColor: '#f1f5f9',
+                                            overflow: 'hidden',
+                                            border: '4px solid white',
+                                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                                        }}>
+                                            {profile.profile_image ? (
+                                                <img src={profile.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>
+                                                    <User size={48} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <label style={{ position: 'absolute', bottom: '0', right: '0', backgroundColor: '#daa520', color: 'white', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white' }}>
+                                            <Camera size={18} />
+                                            <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
+                                        </label>
+                                    </div>
+                                    <p style={{ marginTop: '10px', fontSize: '0.85rem', color: '#64748b' }}>Public profile picture</p>
+                                </div>
+
                                 {/* 1. Personal Details */}
                                 <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px' }}>Personal Details</h3>
                                 <div className="form-group">
-                                    <label><User size={16}/> Artist Name</label>
-                                    <input 
-                                        type="text" 
+                                    <label><User size={16} /> Artist Name</label>
+                                    <input
+                                        type="text"
                                         className="form-input"
                                         value={profile.name}
-                                        onChange={e => setProfile({...profile, name: e.target.value})}
+                                        onChange={e => setProfile({ ...profile, name: e.target.value })}
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label><Mail size={16}/> Email</label>
-                                    <input 
-                                        type="email" 
+                                    <label><Mail size={16} /> Email</label>
+                                    <input
+                                        type="email"
                                         className="form-input"
                                         value={profile.email}
                                         disabled
@@ -128,22 +170,22 @@ function ArtistProfile(){
                                 {/* 2. Preferred Styles */}
                                 <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px', marginTop: '30px' }}>Preferred Styles</h3>
                                 <div className="form-group">
-                                    <label><Palette size={16}/> Preferred Styles / Specialization</label>
-                                    <input 
-                                        type="text" 
+                                    <label><Palette size={16} /> Preferred Styles / Specialization</label>
+                                    <input
+                                        type="text"
                                         className="form-input"
                                         value={profile.specialization}
-                                        onChange={e => setProfile({...profile, specialization: e.target.value})}
+                                        onChange={e => setProfile({ ...profile, specialization: e.target.value })}
                                         placeholder="e.g. Realism, Traditional, Japanese"
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label><Clock size={16}/> Experience (Years)</label>
-                                    <input 
-                                        type="number" 
-                                        className="form-input" 
+                                    <label><Clock size={16} /> Experience (Years)</label>
+                                    <input
+                                        type="number"
+                                        className="form-input"
                                         value={profile.experience_years}
-                                        onChange={e => setProfile({...profile, experience_years: e.target.value})}
+                                        onChange={e => setProfile({ ...profile, experience_years: e.target.value })}
                                     />
                                 </div>
 
@@ -151,28 +193,28 @@ function ArtistProfile(){
                                 {/* 3. Password Management */}
                                 <h3 style={{ borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px', marginTop: '30px' }}>Password Management</h3>
                                 <div className="form-group">
-                                    <label><Lock size={16}/> New Password</label>
-                                    <input 
-                                        type="password" 
+                                    <label><Lock size={16} /> New Password</label>
+                                    <input
+                                        type="password"
                                         className="form-input"
                                         value={passwords.newPassword}
-                                        onChange={e => setPasswords({...passwords, newPassword: e.target.value})}
+                                        onChange={e => setPasswords({ ...passwords, newPassword: e.target.value })}
                                         placeholder="Leave blank to keep current"
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label><Lock size={16}/> Confirm Password</label>
-                                    <input 
-                                        type="password" 
+                                    <label><Lock size={16} /> Confirm Password</label>
+                                    <input
+                                        type="password"
                                         className="form-input"
                                         value={passwords.confirmPassword}
-                                        onChange={e => setPasswords({...passwords, confirmPassword: e.target.value})}
+                                        onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
                                         placeholder="Confirm new password"
                                     />
                                 </div>
-                                
+
                                 <button type="submit" className="btn btn-primary" disabled={saving} style={{ width: '100%', marginTop: '20px' }}>
-                                    {saving ? 'Saving...' : <><Save size={18} style={{ marginRight: '8px' }}/> Save Changes</>}
+                                    {saving ? 'Saving...' : <><Save size={18} style={{ marginRight: '8px' }} /> Save Changes</>}
                                 </button>
                             </form>
                         </div>

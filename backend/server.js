@@ -161,6 +161,14 @@ db.getConnection((err, connection) => {
           db.query("ALTER TABLE artists ADD COLUMN phone VARCHAR(20)");
         }
       });
+
+      // MIGRATION: Check if 'profile_image' column exists
+      db.query("SHOW COLUMNS FROM artists LIKE 'profile_image'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('🔄 Migrating artists table: Adding profile_image column...');
+          db.query("ALTER TABLE artists ADD COLUMN profile_image LONGTEXT NULL");
+        }
+      });
     });
 
     // Create Notifications Table if not exists
@@ -1365,7 +1373,8 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
       COALESCE(a.hourly_rate, 0) as hourly_rate,
       COALESCE(a.commission_rate, 0.60) as commission_rate,
       COALESCE(a.rating, 0) as rating,
-      COALESCE(a.total_reviews, 0) as total_reviews
+      COALESCE(a.total_reviews, 0) as total_reviews,
+      a.profile_image
     FROM users u
     LEFT JOIN artists a ON u.id = a.user_id
     WHERE u.id = ? AND u.user_type = 'artist'
@@ -1546,7 +1555,7 @@ app.get('/api/artist/:artistId/clients', (req, res) => {
 // Update Artist Profile
 app.put('/api/artist/profile/:id', (req, res) => {
   const { id } = req.params;
-  const { name, specialization, hourly_rate, experience_years, commission_rate, phone } = req.body;
+  const { name, specialization, hourly_rate, experience_years, commission_rate, phone, profileImage } = req.body;
 
   // Update users table (name)
   db.query('UPDATE users SET name = ? WHERE id = ?', [name, id], (err) => {
@@ -1571,6 +1580,10 @@ app.put('/api/artist/profile/:id', (req, res) => {
     if (phone !== undefined) {
       artistQuery += ', phone = ?';
       params.push(phone);
+    }
+    if (profileImage !== undefined) {
+      artistQuery += ', profile_image = ?';
+      params.push(profileImage);
     }
 
     artistQuery += ' WHERE user_id = ?';
@@ -1826,6 +1839,7 @@ app.get('/api/customer/artists', (req, res) => {
       COALESCE(a.hourly_rate, 50.00) as hourly_rate,
       COALESCE(a.rating, 0) as rating,
       COALESCE(a.total_reviews, 0) as total_reviews,
+      a.profile_image,
       COUNT(pw.id) as portfolio_count
     FROM users u
     LEFT JOIN artists a ON u.id = a.user_id
