@@ -11,7 +11,8 @@ function CustomerProfile() {
         email: '',
         phone: '',
         location: '',
-        preferences: ''
+        preferences: '',
+        profile_image: ''
     });
     const [isEditing, setIsEditing] = useState(false);
     const [passwords, setPasswords] = useState({
@@ -39,7 +40,8 @@ function CustomerProfile() {
                         email: res.data.profile.email || '',
                         phone: res.data.profile.phone || '',
                         location: res.data.profile.location || '',
-                        preferences: res.data.profile.notes || ''
+                        preferences: res.data.profile.notes || '',
+                        profile_image: res.data.profile.profile_image || ''
                     });
                 }
                 setLoading(false);
@@ -50,6 +52,17 @@ function CustomerProfile() {
         };
         fetch();
     }, [customerId]);
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfile({ ...profile, profile_image: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSave = async (e) => {
         e.preventDefault();
@@ -83,7 +96,8 @@ function CustomerProfile() {
             // Update profile details
             await Axios.put(`${API_URL}/api/customer/profile/${customerId}`, {
                 ...profile,
-                notes: profile.preferences
+                notes: profile.preferences,
+                profileImage: profile.profile_image
             });
 
             // Change password if requested and new password is provided
@@ -137,12 +151,16 @@ function CustomerProfile() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
                                         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                                             <div style={{
-                                                width: '80px', height: '80px', borderRadius: '50%',
-                                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                                color: 'white', fontSize: '2.5rem', fontWeight: 'bold',
+                                                width: '100px', height: '100px', borderRadius: '50%',
+                                                backgroundColor: '#f1f5f9', overflow: 'hidden',
+                                                border: '3px solid white', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center'
                                             }}>
-                                                {profile.name.charAt(0)}
+                                                {profile.profile_image ? (
+                                                    <img src={profile.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#64748b' }}>{profile.name.charAt(0)}</span>
+                                                )}
                                             </div>
                                             <div>
                                                 <h2 style={{ margin: '0 0 5px 0', fontSize: '1.8rem' }}>{profile.name}</h2>
@@ -173,6 +191,35 @@ function CustomerProfile() {
                                 </div>
                             ) : (
                                 <form onSubmit={handleSave}>
+                                    {/* Profile Picture Upload Section */}
+                                    <div style={{ textAlign: 'center', marginBottom: '30px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px' }}>
+                                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                                            <div style={{
+                                                width: '120px', height: '120px', borderRadius: '50%',
+                                                backgroundColor: '#e2e8f0', overflow: 'hidden',
+                                                border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}>
+                                                {profile.profile_image ? (
+                                                    <img src={profile.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <User size={48} color="#94a3b8" />
+                                                )}
+                                            </div>
+                                            <label style={{
+                                                position: 'absolute', bottom: '0', right: '0',
+                                                backgroundColor: '#daa520', color: 'white',
+                                                padding: '8px', borderRadius: '50%', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                            }}>
+                                                <Camera size={18} />
+                                                <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
+                                            </label>
+                                        </div>
+                                        <p style={{ marginTop: '10px', fontSize: '0.85rem', color: '#64748b' }}>Update profile picture</p>
+                                    </div>
+
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                                         <h2 style={{ margin: 0 }}>Edit Profile</h2>
                                         <button type="button" className="close-btn" onClick={() => setIsEditing(false)}><X size={24} /></button>

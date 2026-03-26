@@ -41,7 +41,7 @@ function CustomerPortal() {
                     appointments: stats?.upcoming || 0,
                     favoriteArtists: stats?.artists || 0,
                     totalTattoos: stats?.total_tattoos || 0,
-                    savedDesigns: stats?.saved_designs || 0
+                    savedDesigns: stats?.saved_designs || 0,
                 });
 
                 // Map appointments
@@ -86,6 +86,15 @@ function CustomerPortal() {
                         <p className="header-subtitle">Welcome back, {customer.name || 'Inker'}!</p>
                     </div>
                     <div className="header-actions">
+                        {customer.profile_image && (
+                            <div style={{
+                                width: '40px', height: '40px', borderRadius: '50%',
+                                overflow: 'hidden', border: '2px solid white',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginRight: '15px'
+                            }}>
+                                <img src={customer.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                        )}
                         <button className="logout-btn" onClick={() => navigate('/login')}>
                             <LogOut size={20} />
                             Logout

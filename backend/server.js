@@ -205,6 +205,7 @@ db.getConnection((err, connection) => {
         phone VARCHAR(20),
         location VARCHAR(255),
         notes TEXT,
+        profile_image LONGTEXT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `;
@@ -220,12 +221,13 @@ db.getConnection((err, connection) => {
           console.log('✅ Added is_deleted column for soft delete support');
         }
 
-        db.query("SHOW COLUMNS FROM users LIKE 'push_token'", (err, results) => {
-          if (!err && results.length === 0) {
-            db.query("ALTER TABLE users ADD COLUMN push_token VARCHAR(255) NULL");
-            console.log('✅ Added push_token column for notifications');
-          }
-        });
+         // MIGRATION: Check if 'profile_image' column exists in customers
+      db.query("SHOW COLUMNS FROM customers LIKE 'profile_image'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('🔄 Migrating customers table: Adding profile_image column...');
+          db.query("ALTER TABLE customers ADD COLUMN profile_image LONGTEXT NULL");
+        }
+      });
       });
     });
 
@@ -1938,7 +1940,7 @@ app.get('/api/customer/profile/:id', (req, res) => {
 // Update Customer Profile
 app.put('/api/customer/profile/:id', (req, res) => {
   const { id } = req.params;
-  const { name, phone, location, notes } = req.body;
+  const { name, phone, location, notes, profileImage } = req.body;
 
   // This logic is improved to handle partial updates correctly and prevent data loss.
   // It also fixes the bug where updating only the name would incorrectly show an error.
@@ -1951,21 +1953,22 @@ app.put('/api/customer/profile/:id', (req, res) => {
   });
 
   const updateCustomerPromise = new Promise((resolve, reject) => {
-    const hasCustomerFields = phone !== undefined || location !== undefined || notes !== undefined;
+    const hasCustomerFields = phone !== undefined || location !== undefined || notes !== undefined || profileImage !== undefined;
     if (!hasCustomerFields) return resolve();
 
-    const customerQuery = 'INSERT INTO customers (user_id, phone, location, notes) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE phone = VALUES(phone), location = VALUES(location), notes = VALUES(notes)';
+    const customerQuery = 'INSERT INTO customers (user_id, phone, location, notes, profile_image) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE phone = VALUES(phone), location = VALUES(location), notes = VALUES(notes), profile_image = VALUES(profile_image)';
 
     // Fetch existing data to avoid overwriting fields with null if they aren't provided.
-    db.query('SELECT phone, location, notes FROM customers WHERE user_id = ?', [id], (selectErr, results) => {
+    db.query('SELECT phone, location, notes, profile_image FROM customers WHERE user_id = ?', [id], (selectErr, results) => {
       if (selectErr) return reject({ message: 'DB Error (Customer Select)' });
 
       const existing = results[0] || {};
       const finalPhone = phone !== undefined ? phone : existing.phone;
       const finalLocation = location !== undefined ? location : existing.location;
       const finalNotes = notes !== undefined ? notes : existing.notes;
+      const finalProfileImage = profileImage !== undefined ? profileImage : existing.profile_image;
 
-      db.query(customerQuery, [id, finalPhone, finalLocation, finalNotes], (upsertErr) => {
+      db.query(customerQuery, [id, finalPhone, finalLocation, finalNotes, finalProfileImage], (upsertErr) => {
         if (upsertErr) return reject({ message: 'DB Error (Customer Upsert)' });
         resolve();
       });
