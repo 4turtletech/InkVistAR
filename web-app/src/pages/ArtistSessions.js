@@ -60,8 +60,8 @@ function ArtistSessions() {
                 // Use local date instead of UTC to avoid timezone issues
                 const now = new Date();
                 const today = now.getFullYear() + '-' +
-                              String(now.getMonth() + 1).padStart(2, '0') + '-' +
-                              String(now.getDate()).padStart(2, '0');
+                    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(now.getDate()).padStart(2, '0');
                 const todaySessions = res.data.appointments.filter(a => {
                     const appointmentDate = typeof a.appointment_date === 'string'
                         ? a.appointment_date.split('T')[0]
@@ -131,7 +131,8 @@ function ArtistSessions() {
                 showAlert("Error", res.data.message || 'Failed to release material.', "warning");
             }
         } catch (e) {
-            showAlert("Connection Error", "Failed to connect to the server.", "danger");
+            const errorMsg = e.response?.data?.message || "Failed to connect to the server.";
+            showAlert("Release Error", errorMsg, "danger");
         }
     };
 
@@ -148,7 +149,8 @@ function ArtistSessions() {
                 showAlert("Inventory Error", res.data.message || 'Failed to add material. Check stock.', "warning");
             }
         } catch (e) {
-            showAlert("Connection Error", "Failed to connect to the server while adding material.", "danger");
+            const errorMsg = e.response?.data?.message || "Failed to connect to the server while adding material.";
+            showAlert("Inventory Error", errorMsg, "danger");
         } finally {
             setAddingMaterial(false);
         }
@@ -184,7 +186,8 @@ function ArtistSessions() {
                 showAlert("Error", "Failed to add kit items. Check inventory levels.", "danger");
             }
         } catch (e) {
-            showAlert("Connection Error", "Failed to connect to the server while adding kit.", "danger");
+            const errorMsg = e.response?.data?.message || "Failed to connect to the server while adding kit.";
+            showAlert("Connection Error", errorMsg, "danger");
         } finally {
             setAddingMaterial(false);
         }
@@ -212,6 +215,7 @@ function ArtistSessions() {
         setTimeout(() => {
             setSessionModal({ mounted: false, visible: false });
             setActiveSession(null);
+            fetchSessions(); // Refresh today's queue to reflect status changes (e.g. In Progress)
         }, 400);
     };
 

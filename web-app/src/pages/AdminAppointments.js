@@ -854,7 +854,14 @@ function AdminAppointments() {
                                         <label>Payment Status *</label>
                                         <select
                                             value={formData.paymentStatus}
-                                            onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setFormData({
+                                                    ...formData,
+                                                    paymentStatus: val,
+                                                    manualPaidAmount: val === 'paid' ? formData.price : formData.manualPaidAmount
+                                                });
+                                            }}
                                             className="premium-select-v2"
                                             style={{ width: '100%' }}
                                         >
