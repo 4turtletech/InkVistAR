@@ -119,7 +119,7 @@ function ArtistProfile() {
                             <form onSubmit={handleSave}>
                                 {/* Profile Picture Section */}
                                 <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                                    <div style={{ position: 'relative', display: 'inline-block', zIndex: '10 !important' }}>
                                         <div style={{
                                             width: '120px',
                                             height: '120px',
@@ -137,7 +137,7 @@ function ArtistProfile() {
                                                 </div>
                                             )}
                                         </div>
-                                        <label style={{ position: 'absolute', bottom: '0', right: '0', backgroundColor: '#daa520', color: 'white', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white' }}>
+                                        <label style={{ position: 'absolute', bottom: '0', right: '0', backgroundColor: '#daa520', color: 'white', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex !important', alignItems: 'center', justifyContent: 'center', border: '2px solid white', zIndex: '100 !important' }}>
                                             <Camera size={18} />
                                             <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
                                         </label>
