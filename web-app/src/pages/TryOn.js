@@ -1,6 +1,7 @@
 import React from 'react';
-import { Sparkles, Camera, Layers, Zap, Bell, ArrowLeft } from 'lucide-react';
+import { Sparkles, Camera, Layers, Zap, Bell, ArrowLeft, Smartphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import './PortalStyles.css';
 import './TryOn.css';
 import CustomerSideNav from '../components/CustomerSideNav';
 
@@ -10,11 +11,9 @@ function TryOn() {
     return (
         <div className="portal-layout">
             <CustomerSideNav />
-            <div className="portal-container tryon-portal">
-                <div className="tryon-overlay"></div>
-                
-                <header className="portal-header tryon-header">
-                    <div className="header-title">
+            <div className="portal-container customer-portal tryon-portal">
+                <header className="portal-header">
+                    <div className="header-title" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                         <button className="back-btn" onClick={() => navigate('/customer')}>
                             <ArrowLeft size={20} />
                         </button>
@@ -22,18 +21,23 @@ function TryOn() {
                     </div>
                 </header>
 
-                <main className="tryon-content">
+                <div className="portal-content tryon-content">
                     <div className="wip-container">
                         <div className="wip-badge">
                             <Sparkles size={16} />
                             <span>Beta Feature in Development</span>
                         </div>
                         
-                        <h2 className="wip-title">The Future of InVistAR is Coming</h2>
+                        <h2 className="wip-title">The Future of InkVistAR is Coming</h2>
                         <p className="wip-description">
-                            We're crafting a revolutionary Augmented Reality experience that lets you 
-                            visualize any tattoo on your body with precision lighting and 3D skin mapping.
+                            We're crafting a revolutionary Augmented Reality experience designed specifically for mobile hardware. 
+                            Visualize any tattoo on your skin with precision 3D mapping and dynamic lighting.
                         </p>
+
+                        <div className="mobile-notice">
+                            <Smartphone size={20} />
+                            <span>Launching soon on App Store & Google Play</span>
+                        </div>
 
                         <div className="feature-teasers">
                             <div className="teaser-card">
@@ -76,7 +80,7 @@ function TryOn() {
                             </div>
                         </div>
                     </div>
-                </main>
+                </div>
             </div>
         </div>
     );
