@@ -6,13 +6,16 @@ import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
 
 function CustomerProfile() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const customerId = user ? user.id : null;
+
     const [profile, setProfile] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        location: '',
-        preferences: '',
-        profile_image: ''
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        location: user.location || '',
+        preferences: user.notes || '',
+        profile_image: user.profile_image || ''
     });
     const [isEditing, setIsEditing] = useState(false);
     const [passwords, setPasswords] = useState({
@@ -25,8 +28,6 @@ function CustomerProfile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
-    const user = JSON.parse(localStorage.getItem('user'));
-    const customerId = user ? user.id : null;
 
     useEffect(() => {
         const fetch = async () => {

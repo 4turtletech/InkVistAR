@@ -9,9 +9,13 @@ import { API_URL } from '../config';
 
 function CustomerPortal() {
     const navigate = useNavigate();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const customerId = user ? user.id : null;
+
     const [customer, setCustomer] = useState({
-        name: '',
-        email: '',
+        name: user.name || '',
+        email: user.email || '',
+        profile_image: user.profile_image || '',
         appointments: 0,
         favoriteArtists: 0,
         totalTattoos: 0,
@@ -21,8 +25,6 @@ function CustomerPortal() {
     const [artists, setArtists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeAppointment, setActiveAppointment] = useState(null);
-    const user = JSON.parse(localStorage.getItem('user'));
-    const customerId = user ? user.id : null;
 
     useEffect(() => {
         if (customerId) fetchCustomerData();

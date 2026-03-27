@@ -1939,7 +1939,7 @@ app.delete('/api/artist/clients/:id', (req, res) => {
 app.get('/api/customer/profile/:id', (req, res) => {
   const { id } = req.params;
   const query = `
-    SELECT u.name, u.email, u.profile_image, c.phone, c.location, c.notes
+    SELECT u.name, u.email, c.profile_image, c.phone, c.location, c.notes
     FROM users u
     LEFT JOIN customers c ON u.id = c.user_id
     WHERE u.id = ?
@@ -3121,7 +3121,7 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
 
   // 1. Get Customer Info
   const userQuery = `
-    SELECT u.id, u.name, u.email, c.phone, c.location
+    SELECT u.id, u.name, u.email, c.phone, c.location, c.profile_image
     FROM users u
     LEFT JOIN customers c ON u.id = c.user_id
     WHERE u.id = ?
