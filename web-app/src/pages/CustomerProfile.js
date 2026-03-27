@@ -109,6 +109,10 @@ function CustomerProfile() {
                 });
             }
 
+            // Update localStorage with new profile image
+            const updatedUser = { ...user, profile_image: profile.profile_image };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
             setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
             setShowChangePassword(false);

@@ -5,11 +5,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { getCustomerDashboard } from '../src/utils/api';
+import { getCustomerFavoriteWorks, getCustomerMyTattoos } from '../src/api/customerAPI';
 
 export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
+  const [favoritesCount, setFavoritesCount] = useState(0);
+  const [myTattoosCount, setMyTattoosCount] = useState(0);
 
   const loadDashboard = async () => {
     if (!userId) return;
@@ -17,6 +20,17 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
       const result = await getCustomerDashboard(userId);
       if (result.success) {
         setDashboardData(result);
+      }
+
+      // supplemental counts for favorites and my tattoos
+      const favResult = await getCustomerFavoriteWorks(userId);
+      if (favResult.success) {
+        setFavoritesCount((favResult.favorites || []).length);
+      }
+
+      const tattoosResult = await getCustomerMyTattoos(userId);
+      if (tattoosResult.success) {
+        setMyTattoosCount((tattoosResult.tattoos || []).length);
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -96,13 +110,31 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
       screen: 'Gallery', // Navigate to Tab
       gradient: ['#7c3aed', '#a78bfa']
     },
+    { 
+      id: 5,
+      title: 'Favorites',
+      subtitle: `${favoritesCount} saved designs`,
+      icon: 'heart',
+      screen: 'Gallery',
+      params: { initialViewMode: 'Favorites' },
+      gradient: ['#f43f5e', '#fb7185']
+    },
+    { 
+      id: 6,
+      title: 'My Tattoos',
+      subtitle: `${myTattoosCount} completed sessions`,
+      icon: 'body',
+      screen: 'Gallery',
+      params: { initialViewMode: 'My Tattoos' },
+      gradient: ['#10b981', '#34d399']
+    },
   ];
 
-  const stats = dashboardData?.stats || {
-    total_tattoos: 0,
-    upcoming: 0,
-    saved_designs: 0,
-    artists: 0
+  const stats = {
+    total_tattoos: dashboardData?.stats?.total_tattoos ?? myTattoosCount,
+    upcoming: dashboardData?.stats?.upcoming ?? 0,
+    saved_designs: dashboardData?.stats?.saved_designs ?? favoritesCount,
+    artists: dashboardData?.stats?.artists ?? 0
   };
 
   return (
@@ -187,7 +219,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
                 <TouchableOpacity
                   key={action.id}
                   style={styles.actionCard}
-                  onPress={() => onNavigate(action.screen)}
+                  onPress={() => onNavigate(action.screen, action.params || {})}
                 >
                   <LinearGradient
                     colors={action.gradient}

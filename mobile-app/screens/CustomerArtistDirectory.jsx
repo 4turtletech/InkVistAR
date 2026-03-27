@@ -10,17 +10,31 @@ import { getCustomerArtists } from '../src/utils/api';
 
 export function CustomerArtistDirectory({ onBack, onNavigate }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [specializationFilter, setSpecializationFilter] = useState('');
+  const [minRateFilter, setMinRateFilter] = useState('');
+  const [maxRateFilter, setMaxRateFilter] = useState('');
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadArtists();
-  }, []);
+  }, [specializationFilter, minRateFilter, maxRateFilter]);
 
   const loadArtists = async () => {
     try {
       setLoading(true);
-      const result = await getCustomerArtists();
+      const filters = {};
+      if (specializationFilter.trim()) {
+        filters.specialization = specializationFilter.trim();
+      }
+      if (!isNaN(Number(minRateFilter)) && minRateFilter.trim() !== '') {
+        filters.min_rate = Number(minRateFilter);
+      }
+      if (!isNaN(Number(maxRateFilter)) && maxRateFilter.trim() !== '') {
+        filters.max_rate = Number(maxRateFilter);
+      }
+
+      const result = await getCustomerArtists(filters);
       if (result.success) {
         setArtists(result.artists || []);
       }
@@ -62,6 +76,32 @@ export function CustomerArtistDirectory({ onBack, onNavigate }) {
             placeholderTextColor="#9ca3af"
             value={searchQuery}
             onChangeText={setSearchQuery}
+          />
+        </View>
+
+        <View style={styles.filterRow}>
+          <TextInput
+            style={styles.filterInput}
+            placeholder="Specialization"
+            placeholderTextColor="#9ca3af"
+            value={specializationFilter}
+            onChangeText={setSpecializationFilter}
+          />
+          <TextInput
+            style={styles.filterInput}
+            placeholder="Min Rate"
+            placeholderTextColor="#9ca3af"
+            keyboardType="numeric"
+            value={minRateFilter}
+            onChangeText={setMinRateFilter}
+          />
+          <TextInput
+            style={styles.filterInput}
+            placeholder="Max Rate"
+            placeholderTextColor="#9ca3af"
+            keyboardType="numeric"
+            value={maxRateFilter}
+            onChangeText={setMaxRateFilter}
           />
         </View>
 
@@ -252,5 +292,21 @@ const styles = StyleSheet.create({
   emptyStateText: {
     color: '#9ca3af',
     textAlign: 'center',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  filterInput: {
+    flex: 1,
+    height: 44,
+    marginRight: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    color: '#111827',
   },
 });

@@ -8,62 +8,131 @@ import { LinearGradient } from 'expo-linear-gradient'; // Fixed: Added missing i
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { getGalleryWorks } from '../src/utils/api';
+import { getCustomerFavoriteWorks, getCustomerMyTattoos, toggleFavoriteWork } from '../src/api/customerAPI';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export function CustomerGallery({ onBack }) {
+export function CustomerGallery({ onBack, userId }) {
   const navigation = useNavigation();
   const route = useRoute();
   
-  // Accept initial search query from route params
+  // Accept initial search query and view mode from route params
   const initialQuery = route.params?.searchQuery || '';
+  const initialViewMode = route.params?.initialViewMode || 'All';
   
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortOrder, setSortOrder] = useState('desc'); // desc = newest first
   const [works, setWorks] = useState([]);
+  const [viewMode, setViewMode] = useState(initialViewMode); // All, Favorites, My Tattoos
+  const [favorites, setFavorites] = useState([]);
+  const [myTattoos, setMyTattoos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedWork, setSelectedWork] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [togglingFavorite, setTogglingFavorite] = useState(false);
 
   useEffect(() => {
-    loadWorks();
-  }, []);
+    if (!userId && viewMode !== 'All') {
+      // If not logged in, restrict to All mode only.
+      setViewMode('All');
+      return;
+    }
+    fetchWorks();
+  }, [viewMode, userId]);
 
   useEffect(() => {
     if (route.params?.searchQuery) {
       setSearchQuery(route.params.searchQuery);
     }
-  }, [route.params?.searchQuery]);
+    if (route.params?.initialViewMode && route.params.initialViewMode !== viewMode) {
+      setViewMode(route.params.initialViewMode);
+    }
+  }, [route.params?.searchQuery, route.params?.initialViewMode]);
 
-  const loadWorks = async () => {
+  const fetchWorks = async () => {
     setLoading(true);
     try {
-      const result = await getGalleryWorks();
-      if (result.success) {
-        setWorks(result.works || []);
+      if (viewMode === 'All') {
+        const result = await getGalleryWorks();
+        if (result.success) setWorks(result.works || []);
+
+        if (userId) {
+          const favResult = await getCustomerFavoriteWorks(userId);
+          if (favResult.success) setFavorites((favResult.favorites || []).map((item)=>item.id));
+        }
+      } else if (viewMode === 'Favorites') {
+        if (!userId) {
+          setWorks([]);
+          setFavorites([]);
+          return;
+        }
+        const favResult = await getCustomerFavoriteWorks(userId);
+        if (favResult.success) {
+          setWorks(favResult.favorites || []);
+          setFavorites((favResult.favorites || []).map((item)=>item.id));
+        }
+      } else if (viewMode === 'My Tattoos') {
+        if (!userId) {
+          setMyTattoos([]);
+          return;
+        }
+        const tattooResult = await getCustomerMyTattoos(userId);
+        if (tattooResult.success) {
+          setMyTattoos(tattooResult.tattoos || []);
+        }
       }
     } catch (error) {
-      console.error("Failed to load gallery:", error);
+      console.error('Failed to load gallery:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredWorks = works.filter(work => {
+  const handleToggleFavorite = async (workId) => {
+    if (!userId) {
+      navigation.navigate('login');
+      return;
+    }
+
+    setTogglingFavorite(true);
+    try {
+      const result = await toggleFavoriteWork(userId, workId);
+      if (result.success) {
+        if (result.favorited) {
+          setFavorites((prev) => [...new Set([...prev, workId])]);
+          if (viewMode === 'Favorites') {
+            const updated = await getCustomerFavoriteWorks(userId);
+            if (updated.success) setWorks(updated.favorites || []);
+          }
+        } else {
+          setFavorites((prev) => prev.filter((id) => id !== workId));
+          if (viewMode === 'Favorites') setWorks((prev) => prev.filter((item) => item.id !== workId));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    } finally {
+      setTogglingFavorite(false);
+    }
+  };
+
+  const displayItems = viewMode === 'My Tattoos' ? myTattoos : works;
+
+  const filteredWorks = displayItems.filter((work) => {
     const searchLower = searchQuery.toLowerCase();
     const titleMatch = (work.title || '').toLowerCase().includes(searchLower);
     const artistMatch = (work.artist_name || '').toLowerCase().includes(searchLower);
     const descriptionMatch = (work.description || '').toLowerCase().includes(searchLower);
     const categoryMatch = (work.category || '').toLowerCase().includes(searchLower);
-    
+
     const matchesSearch = titleMatch || artistMatch || descriptionMatch || categoryMatch;
     const matchesCategory = selectedCategory === 'All' || (work.category || '').toLowerCase() === selectedCategory.toLowerCase();
 
     return matchesSearch && matchesCategory;
   }).sort((a, b) => {
-    const dateA = new Date(a.created_at);
-    const dateB = new Date(b.created_at);
+    const dateA = new Date(a.created_at || a.appointment_date || 0);
+    const dateB = new Date(b.created_at || b.appointment_date || 0);
     return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
@@ -123,6 +192,20 @@ export function CustomerGallery({ onBack }) {
             </TouchableOpacity>
           </View>
 
+          <View style={styles.viewModeRow}>
+            {['All', 'Favorites', 'My Tattoos'].map((mode) => (
+              <TouchableOpacity
+                key={mode}
+                style={[styles.viewModeBtn, viewMode === mode && styles.viewModeBtnActive]}
+                onPress={() => setViewMode(mode)}
+              >
+                <Text style={[styles.viewModeText, viewMode === mode && styles.viewModeTextActive]}>
+                  {mode}{mode === 'Favorites' ? ` (${favorites.length})` : ''}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           {/* Style Filters (Checkboxes/Chips) */}
           <ScrollView 
             horizontal 
@@ -162,6 +245,22 @@ export function CustomerGallery({ onBack }) {
                     activeOpacity={0.8}
                   >
                     <Image source={{ uri: work.image_url }} style={styles.workImage} />
+
+                    <TouchableOpacity
+                      style={styles.favoriteToggle}
+                      onPress={(e) => {
+                        e.stopPropagation && e.stopPropagation();
+                        handleToggleFavorite(work.id);
+                      }}
+                      disabled={togglingFavorite}
+                    >
+                      <Ionicons
+                        name={favorites.includes(work.id) ? 'heart' : 'heart-outline'}
+                        size={20}
+                        color={favorites.includes(work.id) ? '#ff4d4d' : '#f1f5f9'}
+                      />
+                    </TouchableOpacity>
+
                     <View style={styles.workDetails}>
                       <Text style={styles.workTitle} numberOfLines={1}>{work.title}</Text>
                       <Text style={styles.workArtist} numberOfLines={1}>by {work.artist_name}</Text>
@@ -239,18 +338,40 @@ export function CustomerGallery({ onBack }) {
                     </View>
                   ) : null}
 
-                  {/* Book Similar CTA */}
-                  <TouchableOpacity style={styles.bookSimilarButton} onPress={handleBookSimilar}>
-                    <LinearGradient
-                      colors={['#000000', '#b8860b']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.bookSimilarGradient}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                    <TouchableOpacity
+                      style={[styles.bookSimilarButton, { flex: 1 }]}
+                      onPress={handleBookSimilar}
                     >
-                      <Ionicons name="calendar" size={20} color="#ffffff" />
-                      <Text style={styles.bookSimilarText}>Book Similar</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                      <LinearGradient
+                        colors={['#000000', '#b8860b']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.bookSimilarGradient}
+                      >
+                        <Ionicons name="calendar" size={20} color="#ffffff" />
+                        <Text style={styles.bookSimilarText}>Book Similar</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.bookSimilarButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' }]}
+                      onPress={() => handleToggleFavorite(selectedWork.id)}
+                      disabled={togglingFavorite}
+                    >
+                      <Ionicons name={favorites.includes(selectedWork.id) ? 'heart' : 'heart-outline'} size={20} color={favorites.includes(selectedWork.id) ? '#ff4d4d' : '#374151'} />
+                      <Text style={[styles.bookSimilarText, { color: '#374151' }]}>
+                        {favorites.includes(selectedWork.id) ? 'Unfavorite' : 'Favorite'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {viewMode === 'My Tattoos' && selectedWork.appointment_date && (
+                    <View style={{padding: 12, borderColor: '#e5e7eb', borderWidth: 1, borderRadius: 10, marginBottom: 16}}>
+                      <Text style={{fontWeight: '700', marginBottom: 8}}>Tattoo session</Text>
+                      <Text>Date: {new Date(selectedWork.appointment_date).toLocaleDateString()}</Text>
+                      <Text>Artist: {selectedWork.artist_name || 'N/A'}</Text>
+                    </View>
+                  )}
                 </View>
               </ScrollView>
             )}
@@ -336,7 +457,36 @@ const styles = StyleSheet.create({
   },
   categoryText: { fontSize: 14, color: '#374151', fontWeight: '500' },
   categoryTextSelected: { color: 'white' },
-  
+
+  viewModeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    marginTop: 12,
+  },
+  viewModeBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  viewModeBtnActive: {
+    backgroundColor: '#111827',
+    borderColor: '#111827',
+  },
+  viewModeText: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  viewModeTextActive: {
+    color: '#fcd34d',
+  },
+
   worksGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -354,6 +504,23 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     position: 'relative',
+  },
+  favoriteToggle: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   workImage: {
     width: '100%',

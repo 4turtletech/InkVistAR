@@ -108,3 +108,21 @@ export const updateCustomerPreferences = async (customerId, preferences) => {
     body: JSON.stringify({ preferences }),
   });
 };
+
+// Get customer gallery favorite works
+export const getCustomerFavoriteWorks = async (customerId) => {
+  return fetchAPI(`/customer/${customerId}/favorites`);
+};
+
+// Get customer's tattoo history
+export const getCustomerMyTattoos = async (customerId) => {
+  return fetchAPI(`/customer/${customerId}/my-tattoos`);
+};
+
+// Toggle favorite work
+export const toggleFavoriteWork = async (customerId, workId) => {
+  return fetchAPI('/customer/favorites', {
+    method: 'POST',
+    body: JSON.stringify({ userId: customerId, workId })
+  });
+};

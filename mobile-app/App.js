@@ -389,7 +389,7 @@ export default function App() {
         {(props) => <CustomerDashboard {...props} userName={user.name} userId={user.id} onNavigate={props.navigation.navigate} onLogout={() => setUser(null)} />}
       </Tab.Screen>
       <Tab.Screen name="Gallery">
-        {(props) => <CustomerGallery {...props} onBack={() => props.navigation.navigate('Home')} />}
+        {(props) => <CustomerGallery {...props} userId={user?.id} onBack={() => props.navigation.navigate('Home')} />}
       </Tab.Screen>
       <Tab.Screen name="AR">
         {(props) => <SimpleARPreview {...props} selectedDesign={{ name: 'Sample', type: 'Preview' }} onBack={() => props.navigation.navigate('Home')} />}
