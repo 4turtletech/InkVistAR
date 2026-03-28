@@ -18,6 +18,7 @@ function CustomerNotifications() {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     
+
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
         return saved ? JSON.parse(saved) : null;
@@ -75,6 +76,9 @@ function CustomerNotifications() {
                 return { icon: Check, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Payment' };
             case 'system':
                 return { icon: Info, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'System' };
+            case 'pos_invoice':
+                return { icon: Check, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Invoice' };
+
             default:
                 return { icon: Bell, color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', label: 'Notification' };
         }
@@ -135,6 +139,16 @@ function CustomerNotifications() {
                                                             <button className="notif-btn ghost" onClick={() => markRead(n.id)}>
                                                                 <Check size={14}/> Acknowledge
                                                             </button>
+                                                        )}
+                                                          {n.type === 'pos_invoice' && (
+                                                            <a
+                                                                href={`${API_URL}/api/invoices/${n.related_id}`}
+                                                                target="_blank" // Open in new tab
+                                                                rel="noopener noreferrer"
+                                                                className="notif-btn primary"
+                                                            >
+                                                                View Invoice
+                                                            </a>
                                                         )}
                                                     </div>
                                                 </div>

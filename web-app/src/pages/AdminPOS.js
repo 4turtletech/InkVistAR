@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Axios from 'axios';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag, Send } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import { API_URL } from '../config';
 import './AdminPOS.css';
@@ -11,6 +11,7 @@ function AdminPOS() {
     const [cart, setCart] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const [showReceipt, setShowReceipt] = useState(false);
     const [lastOrder, setLastOrder] = useState(null);
     const [activeCategory, setActiveCategory] = useState('All');
@@ -126,6 +127,31 @@ function AdminPOS() {
             setIsCheckingOut(false);
         }
     };
+
+    const handleSendReceipt = async () => {
+        setIsSending(true);
+        try {
+            // Assuming lastOrder is available and valid
+            if (!lastOrder) throw new Error("No recent order found.");
+    
+            await Axios.post(`${API_URL}/api/admin/send-pos-invoice`, {
+                orderId: lastOrder.orderId,
+                items: lastOrder.items,
+                total: lastOrder.total,
+                date: lastOrder.date
+            });
+            
+            alert("Receipt sent to customer via notification!");
+        } catch (error) {
+            console.error("Failed to send receipt:", error);
+            alert("Failed to send receipt. Please try again.");
+        } finally {
+            setIsSending(false);
+            setShowReceipt(false);
+        }
+    };
+    
+
 
     const categories = useMemo(() => {
         const cats = new Set((inventory || []).map(item => item?.category).filter(Boolean));
@@ -284,34 +310,54 @@ function AdminPOS() {
                 {showReceipt && lastOrder && (
                     <div className="pos-modal-overlay">
                         <div className="receipt-modal">
-                            <div className="receipt-header">
-                                <div className="receipt-success-icon">
-                                    <CheckCircle size={32} />
-                                </div>
-                                <h2>Transaction Complete</h2>
-                                <p>Order Ref: #{lastOrder.orderId}</p>
-                            </div>
-                            <div className="receipt-body">
-                                <div className="receipt-date">{lastOrder.date}</div>
-                                <div className="receipt-divider"></div>
-                                {lastOrder.items.map(item => (
-                                    <div key={item.id} className="receipt-row">
-                                        <div className="receipt-item-desc">
-                                            <span className="qty">{item.quantity}x</span>
-                                            <span className="name">{item.name}</span>
-                                        </div>
-                                        <span>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString()}</span>
+                            <div className="invoice-paper">
+                                <div className="invoice-header">
+                                    <div className="invoice-biz-info">
+                                        <h1>InkVistAR Studio</h1>
+                                        <p>123 Art Street, New York, NY 10001</p>
+                                        <p>Tel: 555-123-4567</p>
                                     </div>
-                                ))}
-                                <div className="receipt-divider"></div>
-                                <div className="receipt-total">
-                                    <span>Total Paid</span>
-                                    <span>₱{lastOrder.total.toLocaleString()}</span>
+                                    <div className="invoice-meta">
+                                        <h2>Invoice</h2>
+                                        <p>#INV-{lastOrder.orderId}</p>
+                                        <p>Date: {lastOrder.date}</p>
+                                    </div>
                                 </div>
+
+                                <div className="invoice-divider"></div>
+
+                                <div className="invoice-bill-to">
+                                    <h3>Billed To</h3>
+                                    <p>Walk-in Customer</p>
+                                    <p>No address provided</p>
+                                </div>
+
+                                <table className="invoice-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Quantity</th>
+                                            <th>Price</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {lastOrder.items.map(item => (
+                                            <tr key={item.id}>
+                                                <td>{item.name}</td>
+                                                <td>{item.quantity}</td>
+                                                <td>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString()}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colSpan="2"></td>
+                                            <td>Total: ₱{lastOrder.total.toLocaleString()}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
-                            <button className="close-receipt-btn" onClick={() => setShowReceipt(false)}>
-                                Print & Done
-                            </button>
+                            <button className="close-receipt-btn" onClick={handleSendReceipt} disabled={isSending}>{isSending ? 'Sending...' : 'Send to Customer'}</button>
                         </div>
                     </div>
                 )}

@@ -717,6 +717,7 @@ function createNotification(userId, title, message, type, relatedId = null) {
   db.query(insertQuery, [userId, title, message, type, relatedId], (err, result) => {
     if (err) {
       console.error('❌ Error creating DB notification:', err.message);
+      return;
     } else {
       console.log(`🔔 DB Notification created for user ${userId}: ${title}`);
       // Now, send the push notification
@@ -3930,6 +3931,70 @@ app.get('/api/manager/dashboard', (req, res) => {
     res.json({ success: true, stats: results[0] });
   });
 });
+
+// Send POS Invoice to Customer (Creates Notification)
+app.post('/api/admin/send-pos-invoice', async (req, res) => {
+  const { orderId, items, total, date } = req.body;
+
+  try {
+    // Basic validation
+    if (!orderId || !items || !Array.isArray(items) || !total || !date) {
+      return res.status(400).json({ success: false, message: 'Invalid data provided' });
+    }
+
+    // TODO: Fetch customer ID from the database based on any customer identifier you have (e.g., phone, recent appointments, etc.)
+    const customerId = 4; // Replace 4 with the actual customer ID or lookup logic
+    
+    // Construct invoice message
+    let invoiceMessage = `Thank you for your purchase! Here's your invoice:\n\n`;
+    invoiceMessage += `Order ID: #${orderId}\n`;
+    invoiceMessage += `Date: ${date}\n\n`;
+    invoiceMessage += "Items:\n";
+    items.forEach(item => {
+      invoiceMessage += `- ${item.quantity}x ${item.name} - ₱${((item.retail_price || item.cost) * item.quantity).toLocaleString()}\n`;
+    });
+    invoiceMessage += `\nTotal: ₱${total.toLocaleString()}\n\n`;
+    invoiceMessage += "Thank you for shopping with InkVistAR Studio!";
+
+    // Add download Link
+    const fileUrl = `${FRONTEND_URL}/api/invoices/${orderId}`;
+
+    // Create notification for the customer
+    createNotification(
+      customerId,
+      'New Invoice',
+      invoiceMessage,
+      'pos_invoice',
+      orderId
+    );
+
+    res.json({ success: true, message: 'Invoice notification sent to customer' });
+  } catch (err) {
+    console.error('Failed to send POS invoice notification', err);
+    res.status(500).json({ success: false, message: 'Failed to send notification' });
+  }
+});
+
+// Serve Invoices to the app. 
+// TODO: Secure this by validating user, IP and orderId.
+app.get('/api/invoices/:orderId', (req, res) => {
+  const { orderId } = req.params;
+
+  // Security check
+  console.log(`🧾 Invoice requested (UNSECURED): Order #${orderId}`);
+
+  // Mock Data (TODO: Pull real data from DB)
+  const mockInvoice = `
+    <center><h2>InkVistAR Invoice #${orderId}</h2><p>This is just a MOCK invoice.</p></center>
+    <p>Contact InkVistAR if there are any discrepancies.  This service is currently in development.</p>
+  `;
+
+  res.setHeader('Content-Type', 'text/html');
+  res.send(`
+    <html style="font-family: sans-serif; padding: 20px;"><body>${mockInvoice}</body></html>
+  `);
+});
+
 
 // Helper: Simple Rule-based Chatbot (Fallback)
 function getFallbackResponse(message) {
