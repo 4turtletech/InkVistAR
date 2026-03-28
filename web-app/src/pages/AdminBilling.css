@@ -1,4 +1,23 @@
 
+/* Layout and Page Spacing */
+.admin-page.page-container-enter {
+    padding: 1.5rem 2.5rem; /* Adds breathing room to left and right edges */
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-header {
+    margin-bottom: 2.5rem; /* Prevents collision with the header bar */
+}
+
+.stats-row {
+    margin-bottom: 2rem;
+}
+
+.premium-filter-bar {
+    margin-bottom: 1.5rem; /* Spacing between search bar and the data table */
+}
+
 /* Print Styles for Invoices */
 @media print {
     /* Hide everything except the invoice paper */

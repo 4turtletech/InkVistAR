@@ -348,7 +348,7 @@ function AdminBilling() {
                     </>
                 ) : activeTab === 'config' ? (
                     !loading && (
-                        <div className="settings-container" style={{display: 'block', margin: '2rem'}}>
+                        <div className="settings-container">
                             <div className="settings-panel glass-card">
                                 <h2>General Pricing Rules</h2>
                                 <div className="settings-section">
@@ -412,7 +412,7 @@ function AdminBilling() {
                             <button className="btn btn-primary" style={{marginTop: '2rem', width: '160px'}} onClick={saveConfig}>Save Configuration</button>
                         </div>
                     )) : activeTab === 'payouts' ? (
-                    <div className="payouts-container" style={{padding: '2rem'}}>
+                    <div className="payouts-container">
                         <div className="stats-row" style={{marginBottom: '2rem'}}>
                             <div className="stat-item glass-card">
                                 <span className="stat-label" >Total Paid to Artists</span>
