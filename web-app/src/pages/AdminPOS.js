@@ -104,6 +104,8 @@ function AdminPOS() {
 
     const handleCheckout = async () => {
         if (cart.length === 0) return;
+        const customer = customers.find(c => c.id === parseInt(selectedCustomerId));
+        const clientLabel = customer ? customer.name : 'Walk-in Customer';
         
         setIsCheckingOut(true);
         try {
@@ -119,7 +121,7 @@ function AdminPOS() {
 
             // Create financial record (Invoice) for the POS sale
             await Axios.post(`${API_URL}/api/admin/invoices`, {
-                client: 'Walk-in Customer',
+                client: clientLabel,
                 type: 'Retail POS Sale',
                 amount: cartTotal,
                 status: 'Paid'
@@ -129,10 +131,11 @@ function AdminPOS() {
                 items: [...cart],
                 total: cartTotal,
                 date: new Date().toLocaleString(),
-                orderId: Math.floor(Math.random() * 1000000)
+                orderId: Math.floor(Math.random() * 1000000),
+                customerName: clientLabel,
+                customerId: selectedCustomerId
             });
             
-            setSelectedCustomerId('');
             setCart([]);
             setShowReceipt(true);
             fetchInventory(); // Refresh stock
@@ -307,6 +310,21 @@ function AdminPOS() {
 
                             <div className="cart-footer">
                                 <div className="cart-summary">
+                                    <div className="customer-selection-sidebar">
+                                        <label><User size={14} /> Assign Customer</label>
+                                        <select 
+                                            value={selectedCustomerId} 
+                                            onChange={(e) => setSelectedCustomerId(e.target.value)}
+                                            className="pos-customer-select"
+                                        >
+                                            <option value="">Walk-in Customer</option>
+                                            {customers.map(c => (
+                                                <option key={c.id} value={c.id}>
+                                                    {c.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                     <div className="summary-row">
                                         <span>Subtotal</span>
                                         <span>₱{cartTotal.toLocaleString()}</span>
@@ -350,8 +368,8 @@ function AdminPOS() {
 
                                 <div className="invoice-bill-to">
                                     <h3>Billed To</h3>
-                                    <p>Walk-in Customer</p>
-                                    <p>No address provided</p>
+                                    <p>{lastOrder.customerName}</p>
+                                    <p>{customers.find(c => c.id === parseInt(lastOrder.customerId))?.email || 'Guest Session'}</p>
                                 </div>
 
                                 <table className="invoice-table">
@@ -380,21 +398,18 @@ function AdminPOS() {
                                 </table>
                             </div>
 
-                            <div className="invoice-send-section">
-                                <label><User size={16} /> Send Digital Copy</label>
-                                <select 
-                                    value={selectedCustomerId} 
-                                    onChange={(e) => setSelectedCustomerId(e.target.value)}
-                                    className="customer-select-v2"
+                            <div className="invoice-modal-actions">
+                                <button 
+                                    className="send-invoice-btn" 
+                                    onClick={handleSendReceipt} 
+                                    disabled={isSending || !lastOrder.customerId}
                                 >
-                                    <option value="">-- Select Customer to Notify --</option>
-                                    {customers.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
-                                    ))}
-                                </select>
+                                    <Send size={18} /> {isSending ? 'Sending...' : 'Send to Customer Account'}
+                                </button>
+                                <button className="close-invoice-btn" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
+                                    Close
+                                </button>
                             </div>
-
-                            <button className="close-receipt-btn" onClick={handleSendReceipt} disabled={isSending}>{isSending ? 'Sending...' : 'Send to Customer'}</button>
                         </div>
                     </div>
                 )}
