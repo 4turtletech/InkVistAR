@@ -1,6 +1,6 @@
 .pos-container {
-    background: #f1f5f9;
-    height: 100vh;
+    background: #f8fafc;
+    min-height: 100vh;
     padding: 0 !important;
 }
 
@@ -14,7 +14,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 2rem;
+    padding: 1.5rem 2.5rem;
     overflow-y: auto;
 }
 
@@ -24,6 +24,9 @@
     align-items: center;
     margin-bottom: 2rem;
 }
+
+.pos-title-area h1 { font-size: 1.85rem; font-weight: 800; margin: 0; color: #1e293b; letter-spacing: -0.02em; }
+.pos-title-area p { margin: 2px 0 0 0; color: #94a3b8; font-size: 0.95rem; font-weight: 500; }
 
 .pos-search {
     display: flex;
@@ -44,8 +47,8 @@
 }
 
 .pos-search:focus-within {
-    border-color: #6366f1;
-    background: white;
+    outline: 2px solid #6366f1;
+    outline-offset: -1px;
 }
 
 .pos-grid {
@@ -58,16 +61,17 @@
     background: white;
     padding: 1.5rem;
     border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     cursor: cell;
     transition: all 0.2s;
-    border: 2px solid transparent;
+    border: 1px solid #f1f5f9;
+    position: relative;
 }
 
 .pos-card:hover {
     transform: translateY(-4px);
-    border-color: #cbd5e1;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    border-color: #6366f1;
+    box-shadow: 0 12px 20px -8px rgba(99, 102, 241, 0.15);
 }
 
 .pos-card-icon {
@@ -79,7 +83,7 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 1rem;
-    color: #6366f1;
+    color: #475569;
 }
 
 .pos-card-info h3 {
@@ -107,15 +111,31 @@
 
 .pos-stock {
     font-size: 0.75rem;
-    padding: 2px 8px;
-    background: #f1f5f9;
-    border-radius: 12px;
-    color: #475569;
+    padding: 4px 10px;
+    background: #f8fafc;
+    border-radius: 20px;
+    color: #64748b;
+    font-weight: 600;
 }
 
 .pos-stock.low {
     background: #fee2e2;
     color: #ef4444;
+}
+
+.low-stock-indicator {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #ef4444;
+    background: #fef2f2;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
 }
 
 .pos-sidebar {
@@ -124,7 +144,7 @@
     border-left: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
-    box-shadow: -10px 0 30px rgba(0,0,0,0.02);
+    box-shadow: -4px 0 6px -1px rgba(0,0,0,0.05);
 }
 
 .cart-container {
@@ -138,6 +158,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    padding-bottom: 1.25rem;
+    border-bottom: 2px solid #f1f5f9;
 }
 
 .cart-items {
@@ -162,35 +184,24 @@
 
 .cart-item-info span {
     font-weight: 700;
-    color: #6366f1;
+    color: #4f46e5;
     font-size: 0.9rem;
 }
 
 .cart-footer {
-    background: #f8fafc;
+    background: #ffffff;
     margin: 0 -1.5rem -1.5rem -1.5rem;
     padding: 1.5rem;
     border-top: 1px solid #e2e8f0;
 }
 
-.cart-summary {
-    margin-bottom: 1.25rem;
-}
-
-.summary-row {
-    display: flex;
-    justify-content: space-between;
-    color: #64748b;
-    margin-bottom: 8px;
-}
-
 .summary-row.total {
-    color: #0f172a;
+    color: #1e293b;
     font-weight: 800;
-    font-size: 1.25rem;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px dashed #cbd5e1;
+    font-size: 1.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid #f1f5f9;
 }
 
 .qty-controls {
@@ -234,30 +245,19 @@
     transform: translateY(-2px);
 }
 
-.checkout-btn:disabled {
-    background: #cbd5e1;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
 .clear-order-btn {
     margin-left: auto;
     width: 36px;
     height: 36px;
     border-radius: 10px;
     border: 1px solid #fee2e2;
-    background: #fff;
-    color: #ef4444;
+    background: #ef4444;
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-}
-
-.clear-order-btn:hover {
-    background: #ef4444;
-    color: white;
 }
 
 .receipt-modal {
@@ -287,9 +287,6 @@
     margin-bottom: 1.5rem;
 }
 
-.receipt-header h2 { margin: 0; font-size: 1.25rem; }
-.receipt-header p { color: #64748b; margin: 4px 0 0 0; font-size: 0.85rem; }
-
 .receipt-divider { border-top: 1px dashed #e2e8f0; margin: 1rem 0; }
 
 .receipt-row {
@@ -302,25 +299,34 @@
 .receipt-item-desc { display: flex; gap: 10px; }
 .receipt-item-desc .qty { color: #64748b; font-weight: 600; min-width: 25px; }
 
-.receipt-total {
+.cat-pill-v2 {
+    padding: 0.6rem 1.25rem;
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
     display: flex;
-    justify-content: space-between;
-    font-weight: 800;
-    font-size: 1.1rem;
-    color: #0f172a;
-    margin-top: 0.5rem;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
 }
 
-.close-receipt-btn {
-    width: 100%;
-    margin-top: 2rem;
-    padding: 12px;
-    border-radius: 12px;
-    border: none;
-    background: #0f172a;
+.cat-pill-v2.active {
+    background: #6366f1;
     color: white;
-    font-weight: 600;
-    cursor: pointer;
+    border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.cat-count-badge {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.75rem;
 }
 
 .pos-modal-overlay {
@@ -344,8 +350,8 @@
     display: flex;
     gap: 0.75rem;
     margin-bottom: 1.5rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
+    padding: 4px 0 12px;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .cat-pill {
@@ -410,4 +416,28 @@
 
 .spinning {
     animation: spin 1s linear infinite;
+}
+
+.pos-loader-container {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem;
+    gap: 1.5rem;
+    color: #94a3b8;
+}
+
+.pos-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f1f5f9;
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }

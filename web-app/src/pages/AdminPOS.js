@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Axios from 'axios';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Receipt, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import { API_URL } from '../config';
 import './AdminPOS.css';
@@ -22,14 +22,16 @@ function AdminPOS() {
         fetchInventory();
     }, []);
 
-    const fetchInventory = async () => {
+    const fetchInventory = useCallback(async () => {
         if (!API_URL) return setError("Configuration Error: API_URL is missing.");
         try {
             setLoading(true);
             setError(null);
             const response = await Axios.get(`${API_URL}/api/admin/inventory?status=active`);
             if (response.data.success) {
-                setInventory(response.data.data);
+                // Sort by name by default
+                const sorted = (response.data.data || []).sort((a, b) => a.name.localeCompare(b.name));
+                setInventory(sorted);
             }
             setLoading(false);
         } catch (error) {
@@ -37,7 +39,7 @@ function AdminPOS() {
             setError("Failed to load inventory. Please check your connection.");
             setLoading(false);
         }
-    };
+    }, []);
 
     const addToCart = (item) => {
         const existing = cart.find(c => c.id === item.id);
@@ -118,7 +120,8 @@ function AdminPOS() {
     };
 
     const categories = useMemo(() => {
-        return ['All', ...new Set((inventory || []).map(item => item?.category).filter(Boolean))];
+        const cats = new Set((inventory || []).map(item => item?.category).filter(Boolean));
+        return ['All', ...Array.from(cats).sort()];
     }, [inventory]);
 
     const categoryCounts = useMemo(() => {
@@ -146,8 +149,8 @@ function AdminPOS() {
                     <div className="pos-main">
                         <header className="pos-header">
                             <div className="pos-title-area">
-                                <h1>Point of Sale</h1>
-                                <p>Manage inventory sales and retail transactions</p>
+                                <h1>Studio POS</h1>
+                                <p>Retail & Inventory Transactions</p>
                             </div>
                             <div className="pos-search">
                                 <Search size={18} className="search-icon" />
@@ -181,7 +184,7 @@ function AdminPOS() {
 
                         <div className="pos-grid">
                             {loading ? (
-                                <div className="pos-loader">Loading products...</div>
+                                <div className="pos-loader-container"><div className="pos-spinner"></div><p>Syncing Inventory...</p></div>
                             ) : filteredInventory.length > 0 ? filteredInventory.map(item => (
                                 <div 
                                     key={item.id} 
@@ -189,9 +192,10 @@ function AdminPOS() {
                                     onClick={() => item.current_stock > 0 && addToCart(item)}
                                 >
                                     <div className="pos-card-icon">
-                                        <Package size={20} />
+                                        {item.category?.toLowerCase() === 'ink' ? <Tag size={20} /> : <Package size={20} />}
                                     </div>
                                     <div className="pos-card-info">
+                                        {item.current_stock <= item.min_stock && item.current_stock > 0 && <span className="low-stock-indicator"><AlertCircle size={10} /> Low Stock</span>}
                                         <h3>{item.name}</h3>
                                         <span className="pos-category">{item.category}</span>
                                         <div className="pos-card-footer">
