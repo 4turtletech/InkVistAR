@@ -7,6 +7,7 @@ import {
     Calendar,
     MessageSquare,
     Package,
+    ShoppingCart,
     BarChart3,
     Settings,
     Users2,
@@ -161,6 +162,12 @@ function AdminSideNav() {
             icon: Package,
             path: '/admin/inventory',
             description: 'Manage inventory'
+        },
+        {
+            label: 'POS System',
+            icon: ShoppingCart,
+            path: '/admin/pos',
+            description: 'Point of Sale'
         },
         {
             label: 'Analytics',

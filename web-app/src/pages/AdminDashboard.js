@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, DollarSign, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Users, Calendar, DollarSign, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart } from 'lucide-react';
 import './AdminDashboard.css';
 import AdminSideNav from '../components/AdminSideNav';
 import { API_URL } from '../config';
@@ -350,6 +350,17 @@ function AdminDashboard() {
                                     <span className="stat-label-v2">Active Artists</span>
                                     <h3 className="stat-value-v2">{stats.activeArtists}</h3>
                                     <div className="stat-trend-v2">Studio Staff</div>
+                                </div>
+                            </div>
+
+                            <div className="stat-card-v2 glass-card clickable" onClick={() => navigate('/admin/pos')}>
+                                <div className="stat-icon-wrapper blue" style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}>
+                                    <ShoppingCart size={24} />
+                                </div>
+                                <div className="stat-info-v2">
+                                    <span className="stat-label-v2">POS System</span>
+                                    <h3 className="stat-value-v2">Launch</h3>
+                                    <div className="stat-trend-v2">Inventory Sales</div>
                                 </div>
                             </div>
                         </div>
