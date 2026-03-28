@@ -5,6 +5,7 @@ import {
     User, Mail, Phone, Calendar, Image, DollarSign,
     BarChart3, Clock, Trash2, X, Save, Shield, Briefcase,
     Search, Filter, SlidersHorizontal, Globe, Lock
+    Search, Filter, SlidersHorizontal, Globe, Lock, Users, Palette, UserCircle, Users2
 } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import ConfirmModal from '../components/ConfirmModal';
@@ -422,8 +423,11 @@ function AdminStaff() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                    <h1>Staff Management</h1>
+                <header className="admin-staff-header">
+                    <div className="header-title-area">
+                        <h1>Staff Management</h1>
+                        <p>Manage studio artists, managers, and administrative personnel</p>
+                    </div>
                 </header>
 
                 <div className="premium-filter-bar">
@@ -467,7 +471,50 @@ function AdminStaff() {
                     </div>
                 </div>
 
-                <div className="table-card-container">
+                <div className="staff-stats-grid">
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper blue">
+                            <Users size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Total Staff</span>
+                            <h3 className="stat-value-v2">{staff.length}</h3>
+                            <div className="stat-trend-v2">Active Personnel</div>
+                        </div>
+                    </div>
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper purple">
+                            <Palette size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Artists</span>
+                            <h3 className="stat-value-v2">{staff.filter(s => s.user_type === 'artist').length}</h3>
+                            <div className="stat-trend-v2">Creative Team</div>
+                        </div>
+                    </div>
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper orange">
+                            <UserCircle size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Managers</span>
+                            <h3 className="stat-value-v2">{staff.filter(s => s.user_type === 'manager').length}</h3>
+                            <div className="stat-trend-v2">Operations</div>
+                        </div>
+                    </div>
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper green">
+                            <Shield size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Administrators</span>
+                            <h3 className="stat-value-v2">{staff.filter(s => s.user_type === 'admin').length}</h3>
+                            <div className="stat-trend-v2">System Control</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="table-card-container glass-card">
                     <div className="table-responsive">
                         <table className="data-table">
                             <thead>
@@ -491,7 +538,7 @@ function AdminStaff() {
                                             <td><span className="badge status-active">Active</span></td>
                                             <td>
                                                 {member.user_type === 'artist' && (
-                                                    <button className="action-btn view-btn" onClick={() => openArtistManager(member)}>
+                                                    <button className="btn-indigo-sm" onClick={() => openArtistManager(member)}>
                                                         Manage Artist
                                                     </button>
                                                 )}
@@ -524,13 +571,13 @@ function AdminStaff() {
                 {/* Detailed Artist Manager Overlay */}
                 {artistManagerModal.mounted && selectedArtist && (
                     <div className={`modal-overlay ${artistManagerModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                        <div className="modal-content" style={{ maxWidth: '900px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
-                            <div className="modal-header">
+                        <div className="modal-content glass-modal" style={{ maxWidth: '1000px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header-v2">
                                 <div>
                                     <h2>{selectedArtist.name}</h2>
                                     <p style={{ margin: 0, color: '#666' }}>Artist Management Portal</p>
                                 </div>
-                                <button className="close-btn" onClick={closeModal}><X size={24} /></button>
+                                <button className="modal-close-btn" onClick={closeModal}><X size={24} /></button>
                             </div>
 
                             <div className="settings-tabs" style={{ padding: '0 20px', borderBottom: '1px solid #eee' }}>

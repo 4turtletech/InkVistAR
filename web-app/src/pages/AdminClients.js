@@ -5,7 +5,7 @@ import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import './AdminUsers.css';
-import { User, Calendar, FileText, Edit2, Trash2, Save, X, RotateCcw, Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { User, Calendar, FileText, Edit2, Trash2, Save, X, RotateCcw, Search, Filter, SlidersHorizontal, Users, UserCheck, UserMinus, Clock } from 'lucide-react';
 
 function AdminClients() {
     const [clients, setClients] = useState([]);
@@ -161,8 +161,11 @@ function AdminClients() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
-                    <h1>Client Management</h1>
+                <header className="admin-clients-header">
+                    <div className="header-title-area">
+                        <h1>Client Management</h1>
+                        <p>Maintain client relationships and session history</p>
+                    </div>
                 </header>
 
                 <div className="premium-filter-bar">
@@ -200,7 +203,50 @@ function AdminClients() {
                     </div>
                 </div>
 
-                <div className="table-card-container">
+                <div className="users-stats-grid">
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper blue">
+                            <Users size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Total Clients</span>
+                            <h3 className="stat-value-v2">{clients.length}</h3>
+                            <div className="stat-trend-v2">All-time Base</div>
+                        </div>
+                    </div>
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper green">
+                            <UserCheck size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Active Members</span>
+                            <h3 className="stat-value-v2">{clients.filter(c => !c.is_deleted).length}</h3>
+                            <div className="stat-trend-v2">Verified Status</div>
+                        </div>
+                    </div>
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper purple">
+                            <Clock size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Total Visits</span>
+                            <h3 className="stat-value-v2">{clients.reduce((acc, c) => acc + (c.appointment_count || 0), 0)}</h3>
+                            <div className="stat-trend-v2">Studio Sessions</div>
+                        </div>
+                    </div>
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper orange">
+                            <UserMinus size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Deactivated</span>
+                            <h3 className="stat-value-v2">{clients.filter(c => c.is_deleted).length}</h3>
+                            <div className="stat-trend-v2">Inactive Profiles</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="table-card-container glass-card">
                     <div className="table-responsive">
                         <table className="data-table">
                             <thead>
@@ -221,7 +267,7 @@ function AdminClients() {
                                         <td>{client.email}</td>
                                         <td>
                                             {filterStatus === 'active' ? (
-                                                <button className="action-btn view-btn" onClick={() => openManageModal(client)}>
+                                                <button className="btn-indigo-sm" onClick={() => openManageModal(client)}>
                                                     Manage
                                                 </button>
                                             ) : (
@@ -253,10 +299,10 @@ function AdminClients() {
 
                 {clientModal.mounted && selectedClient && (
                     <div className={`modal-overlay ${clientModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                        <div className="modal-content" style={{maxWidth: '700px'}} onClick={e => e.stopPropagation()}>
-                            <div className="modal-header">
+                        <div className="modal-content glass-modal" style={{maxWidth: '750px', height: '85vh', display: 'flex', flexDirection: 'column'}} onClick={e => e.stopPropagation()}>
+                            <div className="modal-header-v2">
                                 <h2>Manage Client: {selectedClient.name}</h2>
-                                <button className="close-btn" onClick={closeModal}><X/></button>
+                                <button className="modal-close-btn" onClick={closeModal}><X/></button>
                             </div>
                             <div className="settings-tabs" style={{padding: '0 1.5rem'}}>
                                 <button className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}><User size={16}/> Profile</button>
