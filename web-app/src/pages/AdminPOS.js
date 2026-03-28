@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Receipt, Package, CheckCircle, X } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Receipt, Package, CheckCircle, X, RefreshCw, Filter } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import { API_URL } from '../config';
 import './AdminPOS.css';
@@ -13,6 +13,8 @@ function AdminPOS() {
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [showReceipt, setShowReceipt] = useState(false);
     const [lastOrder, setLastOrder] = useState(null);
+    const [activeCategory, setActiveCategory] = useState('All');
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         fetchInventory();
@@ -21,6 +23,7 @@ function AdminPOS() {
     const fetchInventory = async () => {
         try {
             setLoading(true);
+            setError(null);
             const response = await Axios.get(`${API_URL}/api/admin/inventory?status=active`);
             if (response.data.success) {
                 setInventory(response.data.data);
@@ -28,6 +31,7 @@ function AdminPOS() {
             setLoading(false);
         } catch (error) {
             console.error("Error fetching inventory:", error);
+            setError("Failed to load inventory. Please check your connection.");
             setLoading(false);
         }
     };
@@ -103,10 +107,15 @@ function AdminPOS() {
         }
     };
 
-    const filteredInventory = inventory.filter(item => 
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const categories = ['All', ...new Set(inventory.map(item => item.category).filter(Boolean))];
+
+    const filteredInventory = Array.isArray(inventory) ? inventory.filter(item => {
+        const matchesSearch = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             (item.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
+        
+        return matchesSearch && matchesCategory;
+    }) : [];
 
     return (
         <div className="admin-page-with-sidenav">
@@ -125,13 +134,34 @@ function AdminPOS() {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
+                            <button className="refresh-pos-btn" onClick={fetchInventory} title="Refresh Inventory">
+                                <RefreshCw size={20} className={loading ? 'spinning' : ''} />
+                            </button>
                         </header>
+
+                        <div className="pos-categories">
+                            {categories.map(cat => (
+                                <button 
+                                    key={cat} 
+                                    className={`cat-pill ${activeCategory === cat ? 'active' : ''}`}
+                                    onClick={() => setActiveCategory(cat)}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+
+                        {error && <div className="pos-error-msg">{error}</div>}
 
                         <div className="pos-grid">
                             {loading ? (
                                 <div className="pos-loader">Loading products...</div>
-                            ) : filteredInventory.map(item => (
-                                <div key={item.id} className={`pos-card ${item.current_stock <= 0 ? 'out-of-stock' : ''}`} onClick={() => addToCart(item)}>
+                            ) : filteredInventory.length > 0 ? filteredInventory.map(item => (
+                                <div 
+                                    key={item.id} 
+                                    className={`pos-card ${item.current_stock <= 0 ? 'out-of-stock' : ''}`} 
+                                    onClick={() => item.current_stock > 0 && addToCart(item)}
+                                >
                                     <div className="pos-card-icon">
                                         <Package size={24} />
                                     </div>
@@ -146,7 +176,12 @@ function AdminPOS() {
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                            )) : (
+                                <div className="pos-no-items">
+                                    <Filter size={48} />
+                                    <p>No products found matching your search</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
