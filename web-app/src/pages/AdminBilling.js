@@ -210,7 +210,7 @@ function AdminBilling() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
+                <header className="admin-header">
                     <h1>Billing & Payments</h1>
                     <div style={{display: 'flex', gap: '10px'}}>
                          <button className={`btn ${activeTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('invoices')}>
@@ -244,7 +244,7 @@ function AdminBilling() {
 
                         <div className="premium-filter-bar">
                             <div className="premium-search-box">
-                                <Search size={18} className="text-muted" />
+                                <Search size={18} className="premium-search-icon" />
                                 <input
                                     type="text"
                                     placeholder="Search invoices by client or ID..."
@@ -254,7 +254,7 @@ function AdminBilling() {
                             </div>
 
                             <div className="premium-filters-group">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>
+                                <div className="filter-label-group">
                                     <Filter size={16} />
                                     <span>Status:</span>
                                 </div>
@@ -269,7 +269,7 @@ function AdminBilling() {
                                     <option value="cancelled">Cancelled</option>
                                 </select>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600', marginLeft: '0.5rem' }}>
+                                <div className="filter-label-group">
                                     <SlidersHorizontal size={16} />
                                     <span>Sort:</span>
                                 </div>
@@ -278,7 +278,7 @@ function AdminBilling() {
                                     <option value="amount">Amount</option>
                                 </select>
 
-                                <button className="btn btn-primary" onClick={openModal} style={{ marginLeft: '1rem' }}>
+                                <button className="btn btn-primary" onClick={openModal}>
                                     <Plus size={18} style={{ marginRight: '5px' }} /> Create Invoice
                                 </button>
                             </div>
@@ -349,7 +349,7 @@ function AdminBilling() {
                 ) : activeTab === 'config' ? (
                     !loading && (
                         <div className="settings-container" style={{display: 'block', margin: '2rem'}}>
-                            <div className="settings-panel">
+                            <div className="settings-panel glass-card">
                                 <h2>General Pricing Rules</h2>
                                 <div className="settings-section">
                                     <div className="form-row">
@@ -369,7 +369,7 @@ function AdminBilling() {
                                 </div>
                             </div>
 
-                            <div className="settings-panel" style={{marginTop: '2rem'}}>
+                            <div className="settings-panel glass-card" style={{marginTop: '2rem'}}>
                                 <h2>Complexity Multipliers</h2>
                                 <div className="settings-section">
                                     <div className="form-row">
@@ -389,7 +389,7 @@ function AdminBilling() {
                                 </div>
                             </div>
 
-                            <div className="settings-panel" style={{marginTop: '2rem'}}>
+                            <div className="settings-panel glass-card" style={{marginTop: '2rem'}}>
                                 <h2>Style Multipliers</h2>
                                 <div className="settings-section">
                                     <div className="form-row">
@@ -409,13 +409,13 @@ function AdminBilling() {
                                 </div>
                             </div>
                             
-                            <button className="btn btn-primary" style={{marginTop: '2rem'}} onClick={saveConfig}>Save Configuration</button>
+                            <button className="btn btn-primary" style={{marginTop: '2rem', width: '160px'}} onClick={saveConfig}>Save Configuration</button>
                         </div>
                     )) : activeTab === 'payouts' ? (
                     <div className="payouts-container" style={{padding: '2rem'}}>
                         <div className="stats-row" style={{marginBottom: '2rem'}}>
-                            <div className="stat-item">
-                                <span className="stat-label">Total Paid to Artists</span>
+                            <div className="stat-item glass-card">
+                                <span className="stat-label" >Total Paid to Artists</span>
                                 <span className="stat-count">₱{payouts.reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString()}</span>
                             </div>
                             <div className="stat-item">
@@ -505,7 +505,7 @@ function AdminBilling() {
             {/* Invoice Preview Modal */}
             {previewModal.mounted && (
                 <div className={`modal-overlay preview-modal-overlay ${previewModal.visible ? 'open' : ''}`} onClick={closePreview}>
-                    <div className="preview-modal-content" onClick={e => e.stopPropagation()}>
+                    <div id="printable-invoice" className="preview-modal-content" onClick={e => e.stopPropagation()}>
                         <div className="preview-modal-header no-print">
                             <h2>Invoice Preview</h2>
                             <div style={{display: 'flex', gap: '10px'}}>
@@ -575,7 +575,7 @@ function AdminBilling() {
                 {/* Record Payout Modal */}
                 {payoutModal.mounted && (
                     <div className="modal-overlay open" onClick={() => setPayoutModal({ mounted: false, visible: false })}>
-                        <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-content glass-card" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h2>Record Artist Payout</h2>
                                 <button className="close-btn" onClick={() => setPayoutModal({ mounted: false, visible: false })}><X size={20}/></button>
