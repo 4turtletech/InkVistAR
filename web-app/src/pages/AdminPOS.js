@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Axios from 'axios';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Receipt, Package, CheckCircle, X, RefreshCw, Filter } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Receipt, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import { API_URL } from '../config';
 import './AdminPOS.css';
@@ -15,6 +15,7 @@ function AdminPOS() {
     const [lastOrder, setLastOrder] = useState(null);
     const [activeCategory, setActiveCategory] = useState('All');
     const [error, setError] = useState(null);
+    const searchInputRef = useRef(null);
 
     useEffect(() => {
         console.log("🛒 POS System Mounting...");
@@ -74,6 +75,13 @@ function AdminPOS() {
         setCart(cart.filter(c => c.id !== id));
     };
 
+    const clearCart = () => {
+        if (cart.length === 0) return;
+        if (window.confirm("Are you sure you want to clear the current order?")) {
+            setCart([]);
+        }
+    };
+
     const cartTotal = cart.reduce((sum, item) => sum + (item.cost * item.quantity), 0);
 
     const handleCheckout = async () => {
@@ -113,6 +121,13 @@ function AdminPOS() {
         return ['All', ...new Set((inventory || []).map(item => item?.category).filter(Boolean))];
     }, [inventory]);
 
+    const categoryCounts = useMemo(() => {
+        return (inventory || []).reduce((acc, item) => {
+            if (item?.category) acc[item.category] = (acc[item.category] || 0) + 1;
+            return acc;
+        }, {});
+    }, [inventory]);
+
     const filteredInventory = useMemo(() => {
         return Array.isArray(inventory) ? inventory.filter(item => {
             if (!item) return false;
@@ -130,10 +145,14 @@ function AdminPOS() {
                 <div className="pos-layout">
                     <div className="pos-main">
                         <header className="pos-header">
-                            <h1>POS System</h1>
+                            <div className="pos-title-area">
+                                <h1>Point of Sale</h1>
+                                <p>Manage inventory sales and retail transactions</p>
+                            </div>
                             <div className="pos-search">
-                                <Search size={20} />
+                                <Search size={18} className="search-icon" />
                                 <input 
+                                    ref={searchInputRef}
                                     type="text" 
                                     placeholder="Search products..." 
                                     value={searchTerm}
@@ -149,10 +168,11 @@ function AdminPOS() {
                             {categories.map(cat => (
                                 <button 
                                     key={cat} 
-                                    className={`cat-pill ${activeCategory === cat ? 'active' : ''}`}
+                                    className={`cat-pill-v2 ${activeCategory === cat ? 'active' : ''}`}
                                     onClick={() => setActiveCategory(cat)}
                                 >
                                     {cat}
+                                    {cat !== 'All' && <span className="cat-count-badge">{categoryCounts[cat]}</span>}
                                 </button>
                             ))}
                         </div>
@@ -169,7 +189,7 @@ function AdminPOS() {
                                     onClick={() => item.current_stock > 0 && addToCart(item)}
                                 >
                                     <div className="pos-card-icon">
-                                        <Package size={24} />
+                                        <Package size={20} />
                                     </div>
                                     <div className="pos-card-info">
                                         <h3>{item.name}</h3>
@@ -196,7 +216,9 @@ function AdminPOS() {
                             <div className="cart-header">
                                 <ShoppingCart size={20} />
                                 <h2>Current Order</h2>
-                                <span className="cart-count">{cart.length} items</span>
+                                <button className="clear-order-btn" onClick={clearCart} title="Clear all">
+                                    <Trash size={16} />
+                                </button>
                             </div>
 
                             <div className="cart-items">
@@ -217,7 +239,7 @@ function AdminPOS() {
                                                 <span>{item.quantity}</span>
                                                 <button onClick={() => updateQuantity(item.id, 1)}><Plus size={14} /></button>
                                             </div>
-                                            <button className="remove-btn" onClick={() => removeFromCart(item.id)}><Trash2 size={16} /></button>
+                                            <button className="remove-item-btn" onClick={() => removeFromCart(item.id)}><Trash2 size={16} /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -240,6 +262,7 @@ function AdminPOS() {
                                     onClick={handleCheckout}
                                 >
                                     {isCheckingOut ? 'Processing...' : 'Complete Sale'}
+                                    {!isCheckingOut && <ArrowRight size={18} />}
                                 </button>
                             </div>
                         </div>
@@ -250,23 +273,33 @@ function AdminPOS() {
                     <div className="pos-modal-overlay">
                         <div className="receipt-modal">
                             <div className="receipt-header">
-                                <CheckCircle size={48} color="#10b981" />
-                                <h2>Sale Successful!</h2>
-                                <span>Order #{lastOrder.orderId}</span>
+                                <div className="receipt-success-icon">
+                                    <CheckCircle size={32} />
+                                </div>
+                                <h2>Transaction Complete</h2>
+                                <p>Order Ref: #{lastOrder.orderId}</p>
                             </div>
                             <div className="receipt-body">
+                                <div className="receipt-date">{lastOrder.date}</div>
+                                <div className="receipt-divider"></div>
                                 {lastOrder.items.map(item => (
                                     <div key={item.id} className="receipt-row">
-                                        <span>{item.name} x {item.quantity}</span>
+                                        <div className="receipt-item-desc">
+                                            <span className="qty">{item.quantity}x</span>
+                                            <span className="name">{item.name}</span>
+                                        </div>
                                         <span>₱{(item.cost * item.quantity).toLocaleString()}</span>
                                     </div>
                                 ))}
+                                <div className="receipt-divider"></div>
                                 <div className="receipt-total">
-                                    <span>Total Amount</span>
+                                    <span>Total Paid</span>
                                     <span>₱{lastOrder.total.toLocaleString()}</span>
                                 </div>
                             </div>
-                            <button className="close-receipt-btn" onClick={() => setShowReceipt(false)}>Close</button>
+                            <button className="close-receipt-btn" onClick={() => setShowReceipt(false)}>
+                                Print & Done
+                            </button>
                         </div>
                     </div>
                 )}

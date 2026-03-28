@@ -1,6 +1,6 @@
 .pos-container {
-    background: #f8fafc;
-    min-height: 100vh;
+    background: #f1f5f9;
+    height: 100vh;
     padding: 0 !important;
 }
 
@@ -43,10 +43,15 @@
     font-size: 0.95rem;
 }
 
+.pos-search:focus-within {
+    border-color: #6366f1;
+    background: white;
+}
+
 .pos-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.25rem;
 }
 
 .pos-card {
@@ -54,14 +59,14 @@
     padding: 1.5rem;
     border-radius: 16px;
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
-    cursor: pointer;
+    cursor: cell;
     transition: all 0.2s;
     border: 2px solid transparent;
 }
 
 .pos-card:hover {
     transform: translateY(-4px);
-    border-color: #6366f1;
+    border-color: #cbd5e1;
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 }
 
@@ -115,10 +120,11 @@
 
 .pos-sidebar {
     width: 400px;
-    background: white;
+    background: #ffffff;
     border-left: 1px solid #e2e8f0;
     display: flex;
     flex-direction: column;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.02);
 }
 
 .cart-container {
@@ -126,6 +132,12 @@
     flex-direction: column;
     height: 100%;
     padding: 1.5rem;
+}
+
+.cart-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .cart-items {
@@ -140,6 +152,45 @@
     align-items: center;
     padding: 1rem 0;
     border-bottom: 1px solid #f1f5f9;
+}
+
+.cart-item-info h4 {
+    font-size: 0.95rem;
+    margin: 0 0 4px 0;
+    color: #1e293b;
+}
+
+.cart-item-info span {
+    font-weight: 700;
+    color: #6366f1;
+    font-size: 0.9rem;
+}
+
+.cart-footer {
+    background: #f8fafc;
+    margin: 0 -1.5rem -1.5rem -1.5rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.cart-summary {
+    margin-bottom: 1.25rem;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.summary-row.total {
+    color: #0f172a;
+    font-weight: 800;
+    font-size: 1.25rem;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #cbd5e1;
 }
 
 .qty-controls {
@@ -162,15 +213,114 @@
 
 .checkout-btn {
     width: 100%;
-    padding: 1rem;
+    height: 56px;
     background: #6366f1;
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: 14px;
     font-weight: 600;
     font-size: 1.1rem;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.checkout-btn:hover:not(:disabled) {
+    background: #4f46e5;
+    transform: translateY(-2px);
+}
+
+.checkout-btn:disabled {
+    background: #cbd5e1;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.clear-order-btn {
+    margin-left: auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid #fee2e2;
+    background: #fff;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.clear-order-btn:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.receipt-modal {
+    background: white;
+    width: 380px;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+.receipt-success-icon {
+    width: 64px;
+    height: 64px;
+    background: #dcfce7;
+    color: #10b981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+}
+
+.receipt-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.receipt-header h2 { margin: 0; font-size: 1.25rem; }
+.receipt-header p { color: #64748b; margin: 4px 0 0 0; font-size: 0.85rem; }
+
+.receipt-divider { border-top: 1px dashed #e2e8f0; margin: 1rem 0; }
+
+.receipt-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.receipt-item-desc { display: flex; gap: 10px; }
+.receipt-item-desc .qty { color: #64748b; font-weight: 600; min-width: 25px; }
+
+.receipt-total {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #0f172a;
+    margin-top: 0.5rem;
+}
+
+.close-receipt-btn {
+    width: 100%;
+    margin-top: 2rem;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    background: #0f172a;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
 }
 
 .pos-modal-overlay {
