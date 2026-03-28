@@ -107,11 +107,12 @@ function AdminPOS() {
         }
     };
 
-    const categories = ['All', ...new Set(inventory.map(item => item.category).filter(Boolean))];
+    const categories = ['All', ...new Set((inventory || []).map(item => item?.category).filter(Boolean))];
 
     const filteredInventory = Array.isArray(inventory) ? inventory.filter(item => {
-        const matchesSearch = (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             (item.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+        if (!item) return false;
+        const matchesSearch = (item.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+                             (item.category || '').toLowerCase().includes((searchTerm || '').toLowerCase());
         const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
         
         return matchesSearch && matchesCategory;
@@ -120,7 +121,7 @@ function AdminPOS() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page pos-container">
+            <div className="admin-page pos-container page-container-enter">
                 <div className="pos-layout">
                     <div className="pos-main">
                         <header className="pos-header">
