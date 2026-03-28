@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, X, RotateCcw, Printer, Download, Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, X, RotateCcw, Printer, Download, Search, Filter, SlidersHorizontal, DollarSign, AlertTriangle, Layers } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminInventory.css';
 import ConfirmModal from '../components/ConfirmModal';
@@ -426,23 +426,26 @@ function AdminInventory() {
                     </div>
                 </div>
             </div>
-            <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none', color: '#1f2937' }}>
-                <h1>Inventory Management</h1>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button className="btn btn-secondary" onClick={handlePrint} style={{display:'flex', alignItems:'center', gap:'5px'}}>
+            <header className="admin-inventory-header">
+                <div className="header-title-area">
+                    <h1>Inventory Management</h1>
+                    <p>Track, manage, and audit studio supplies</p>
+                </div>
+                <div className="header-actions-group">
+                    <button className="btn-glass" onClick={handlePrint} title="Print Report">
                         <Printer size={18}/> Print
                     </button>
-                    <button className="btn btn-secondary" onClick={handleExportCSV} style={{display:'flex', alignItems:'center', gap:'5px'}}>
-                        <Download size={18}/> Export CSV
+                    <button className="btn-glass" onClick={handleExportCSV} title="Download CSV">
+                        <Download size={18}/> Export
                     </button>
-                    <button className="btn btn-secondary" onClick={handleManageKits} style={{display:'flex', alignItems:'center', gap:'5px'}}>
-                        <Package size={18}/> Manage Kits
+                    <button className="btn-glass" onClick={handleManageKits}>
+                        <Package size={18}/> Kits
                     </button>
-                    <button className="btn btn-secondary" onClick={fetchHistory} style={{display:'flex', alignItems:'center', gap:'5px'}}>
+                    <button className="btn-glass" onClick={fetchHistory}>
                         <History size={18}/> History
                     </button>
-                    <button className="btn btn-primary" onClick={handleAddNew}>
-                        + Add Item
+                    <button className="btn-indigo" onClick={handleAddNew}>
+                        <Plus size={18}/> Add Item
                     </button>
                 </div>
             </header>
@@ -511,26 +514,50 @@ function AdminInventory() {
                 </div>
             </div>
 
-            <div className="stats-row">
-                <div className="stat-item">
-                    <span className="stat-label">Total Items</span>
-                    <span className="stat-count">{inventory.length}</span>
+            <div className="inventory-stats-grid">
+                <div className="stat-card-v2 glass-card">
+                    <div className="stat-icon-wrapper blue">
+                        <Package size={24} />
+                    </div>
+                    <div className="stat-info-v2">
+                        <span className="stat-label-v2">Total Items</span>
+                        <h3 className="stat-value-v2">{inventory.length}</h3>
+                        <div className="stat-trend-v2">Across all categories</div>
+                    </div>
                 </div>
-                <div className="stat-item">
-                    <span className="stat-label">Low Stock</span>
-                    <span className="stat-count warning">{lowStockItems}</span>
+                <div className="stat-card-v2 glass-card">
+                    <div className="stat-icon-wrapper orange">
+                        <AlertTriangle size={24} />
+                    </div>
+                    <div className="stat-info-v2">
+                        <span className="stat-label-v2">Low Stock</span>
+                        <h3 className="stat-value-v2" style={{color: '#f59e0b'}}>{lowStockItems}</h3>
+                        <div className="stat-trend-v2" style={{color: '#f59e0b'}}>Needs attention</div>
+                    </div>
                 </div>
-                <div className="stat-item">
-                    <span className="stat-label">Total Value</span>
-                    <span className="stat-count">₱{totalValue.toLocaleString()}</span>
+                <div className="stat-card-v2 glass-card">
+                    <div className="stat-icon-wrapper green">
+                        <DollarSign size={24} />
+                    </div>
+                    <div className="stat-info-v2">
+                        <span className="stat-label-v2">Inventory Value</span>
+                        <h3 className="stat-value-v2">₱{totalValue.toLocaleString()}</h3>
+                        <div className="stat-trend-v2">Current market cost</div>
+                    </div>
                 </div>
-                <div className="stat-item">
-                    <span className="stat-label">Categories</span>
-                    <span className="stat-count">{new Set(inventory.map(i => i.category)).size}</span>
+                <div className="stat-card-v2 glass-card">
+                    <div className="stat-icon-wrapper purple">
+                        <Layers size={24} />
+                    </div>
+                    <div className="stat-info-v2">
+                        <span className="stat-label-v2">Categories</span>
+                        <h3 className="stat-value-v2">{new Set(inventory.map(i => i.category)).size}</h3>
+                        <div className="stat-trend-v2">Product groups</div>
+                    </div>
                 </div>
             </div>
 
-            <div className="table-card-container">
+            <div className="table-card-container glass-card">
                 <div className="table-responsive">
                     <table className="data-table">
                         <thead>
