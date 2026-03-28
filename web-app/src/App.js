@@ -15,6 +15,7 @@ import AdminUsers from './pages/AdminUsers';
 import AdminAppointments from './pages/AdminAppointments';
 import AdminStaff from './pages/AdminStaff';
 import AdminInventory from './pages/AdminInventory';
+import AdminPOS from './pages/AdminPOS';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminSettings from './pages/AdminSettings';
 import AdminStudio from './pages/AdminStudio';
@@ -123,6 +124,7 @@ function App() {
           <Route path="/payment" element={<ProtectedRoute allowedRoles={['customer']}><PaymentSimulation /></ProtectedRoute>} />
           <Route path="/pay-mongo" element={<PayMongoPayment />} />
           <Route path="/booking-confirmation" element={<ProtectedRoute allowedRoles={['customer']}><BookingConfirmation /></ProtectedRoute>} />
+          <Route path="/admin/pos" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminPOS /></ProtectedRoute>} />
           <Route path="/admin/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminInventory /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>} />
