@@ -84,7 +84,7 @@ function AdminPOS() {
         }
     };
 
-    const cartTotal = cart.reduce((sum, item) => sum + (item.cost * item.quantity), 0);
+    const cartTotal = cart.reduce((sum, item) => sum + ((item.retail_price || item.cost) * item.quantity), 0);
 
     const handleCheckout = async () => {
         if (cart.length === 0) return;
@@ -100,6 +100,14 @@ function AdminPOS() {
             );
             
             await Promise.all(promises);
+
+            // Create financial record (Invoice) for the POS sale
+            await Axios.post(`${API_URL}/api/admin/invoices`, {
+                client: 'Walk-in Customer',
+                type: 'Retail POS Sale',
+                amount: cartTotal,
+                status: 'Paid'
+            });
             
             setLastOrder({
                 items: [...cart],
@@ -199,7 +207,7 @@ function AdminPOS() {
                                         <h3>{item.name}</h3>
                                         <span className="pos-category">{item.category}</span>
                                         <div className="pos-card-footer">
-                                            <span className="pos-price">₱{Number(item.cost).toLocaleString()}</span>
+                                            <span className="pos-price">₱{Number(item.retail_price || item.cost).toLocaleString()}</span>
                                             <span className={`pos-stock ${item.current_stock <= item.min_stock ? 'low' : ''}`}>
                                                 {item.current_stock} {item.unit}
                                             </span>
@@ -235,7 +243,7 @@ function AdminPOS() {
                                     <div key={item.id} className="cart-item">
                                         <div className="cart-item-info">
                                             <h4>{item.name}</h4>
-                                            <span>₱{Number(item.cost).toLocaleString()}</span>
+                                            <span>₱{Number(item.retail_price || item.cost).toLocaleString()}</span>
                                         </div>
                                         <div className="cart-item-actions">
                                             <div className="qty-controls">
@@ -292,7 +300,7 @@ function AdminPOS() {
                                             <span className="qty">{item.quantity}x</span>
                                             <span className="name">{item.name}</span>
                                         </div>
-                                        <span>₱{(item.cost * item.quantity).toLocaleString()}</span>
+                                        <span>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString()}</span>
                                     </div>
                                 ))}
                                 <div className="receipt-divider"></div>

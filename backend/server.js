@@ -327,6 +327,7 @@ db.getConnection((err, connection) => {
         unit VARCHAR(20) DEFAULT 'pcs',
         supplier VARCHAR(255),
         cost DECIMAL(10, 2) DEFAULT 0.00,
+        retail_price DECIMAL(10, 2) DEFAULT 0.00,
         last_restocked DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -389,6 +390,14 @@ db.getConnection((err, connection) => {
           if (!err && results.length === 0) {
             console.log('🔄 Migrating inventory: Adding last_restocked column...');
             db.query("ALTER TABLE inventory ADD COLUMN last_restocked DATETIME");
+          }
+        });
+
+        // MIGRATION: Check for retail_price column
+        db.query("SHOW COLUMNS FROM inventory LIKE 'retail_price'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating inventory: Adding retail_price column...');
+            db.query("ALTER TABLE inventory ADD COLUMN retail_price DECIMAL(10, 2) DEFAULT 0.00 AFTER cost");
           }
         });
 
@@ -3610,9 +3619,9 @@ app.get('/api/admin/inventory', (req, res) => {
 
 // Admin: Add Inventory Item
 app.post('/api/admin/inventory', (req, res) => {
-  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost } = req.body;
-  const query = 'INSERT INTO inventory (name, category, current_stock, min_stock, max_stock, unit, supplier, cost, last_restocked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
-  db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, cost], (err, result) => {
+  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice } = req.body;
+  const query = 'INSERT INTO inventory (name, category, current_stock, min_stock, max_stock, unit, supplier, cost, retail_price, last_restocked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+  db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice || 0], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     logAction(null, 'CREATE_INVENTORY', `Added item: ${name}`, req.ip);
     res.json({ success: true, message: 'Item added', id: result.insertId });
@@ -3622,9 +3631,9 @@ app.post('/api/admin/inventory', (req, res) => {
 // Admin: Update Inventory Item
 app.put('/api/admin/inventory/:id', (req, res) => {
   const { id } = req.params;
-  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost } = req.body;
-  const query = 'UPDATE inventory SET name=?, category=?, current_stock=?, min_stock=?, max_stock=?, unit=?, supplier=?, cost=? WHERE id=?';
-  db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, cost, id], (err) => {
+  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice } = req.body;
+  const query = 'UPDATE inventory SET name=?, category=?, current_stock=?, min_stock=?, max_stock=?, unit=?, supplier=?, cost=?, retail_price=? WHERE id=?';
+  db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice || 0, id], (err) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     logAction(null, 'UPDATE_INVENTORY', `Updated item ID ${id} (${name})`, req.ip);
     res.json({ success: true, message: 'Item updated' });

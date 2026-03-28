@@ -59,6 +59,7 @@ function AdminInventory() {
         currentStock: 0,
         unit: 'pcs',
         cost: 0,
+        retailPrice: 0,
         minStock: 5,
         maxStock: 100,
         supplier: ''
@@ -113,7 +114,8 @@ function AdminInventory() {
                     currentStock: i.current_stock,
                     lastRestocked: i.last_restocked,
                     minStock: i.min_stock,
-                    maxStock: i.max_stock
+                    maxStock: i.max_stock,
+                    retailPrice: i.retail_price
                 }));
                 setInventory(mapped);
             }
@@ -245,6 +247,7 @@ function AdminInventory() {
             currentStock: item.currentStock,
             unit: item.unit,
             cost: item.cost,
+            retailPrice: item.retailPrice || 0,
             minStock: item.minStock || 0,
             maxStock: item.maxStock || 0,
             supplier: item.supplier || ''
@@ -304,6 +307,7 @@ function AdminInventory() {
             currentStock: 0,
             unit: 'pcs',
             cost: 0,
+            retailPrice: 0,
             minStock: 5,
             maxStock: 100,
             supplier: ''
@@ -333,6 +337,7 @@ function AdminInventory() {
                 ...formData,
                 currentStock: Number(formData.currentStock) || 0,
                 cost: Number(formData.cost) || 0,
+                retailPrice: Number(formData.retailPrice) || 0,
                 minStock: Number(formData.minStock) || 0,
                 maxStock: Number(formData.maxStock) || 0,
                 supplier: formData.supplier || ''
@@ -589,7 +594,7 @@ function AdminInventory() {
                                         </td>
                                         <td className="text-muted text-center" style={{ fontSize: '0.85rem' }}>{item.minStock}</td>
                                         <td>{item.unit}</td>
-                                        <td>₱{item.cost.toLocaleString()}</td>
+                                <td>₱{item.retailPrice ? item.retailPrice.toLocaleString() : item.cost.toLocaleString()}</td>
                                         <td>
                                             <span className={`badge stock-${getStockStatus(item.currentStock, item.minStock, item.maxStock)}`}>
                                                 {getStockStatus(item.currentStock, item.minStock, item.maxStock)}
@@ -694,7 +699,7 @@ function AdminInventory() {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Cost per Unit</label>
+                                    <label>Acquisition Cost</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -702,6 +707,18 @@ function AdminInventory() {
                                         value={formData.cost}
                                         onChange={(e) => setFormData({...formData, cost: e.target.value})}
                                         className="form-input"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Retail Selling Price *</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={formData.retailPrice}
+                                        onChange={(e) => setFormData({...formData, retailPrice: e.target.value})}
+                                        className="form-input"
+                                        style={{ borderColor: '#6366f1', borderWidth: '2px' }}
                                     />
                                 </div>
                             </div>
