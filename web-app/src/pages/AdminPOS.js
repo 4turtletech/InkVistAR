@@ -350,6 +350,12 @@ function AdminPOS() {
                 {showReceipt && lastOrder && (
                     <div className="pos-modal-overlay">
                         <div className="receipt-modal">
+                            <div className="receipt-success-header">
+                                <CheckCircle size={40} className="success-icon-anim" />
+                                <h2>Transaction Complete</h2>
+                                <p>Digital invoice generated successfully</p>
+                            </div>
+
                             <div className="invoice-paper">
                                 <div className="invoice-header">
                                     <div className="invoice-biz-info">
@@ -367,7 +373,7 @@ function AdminPOS() {
                                 <div className="invoice-divider"></div>
 
                                 <div className="invoice-bill-to">
-                                    <h3>Billed To</h3>
+                                    <label className="invoice-label">Billed To</label>
                                     <p>{lastOrder.customerName}</p>
                                     <p>{customers.find(c => c.id === parseInt(lastOrder.customerId))?.email || 'Guest Session'}</p>
                                 </div>
