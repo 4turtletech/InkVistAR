@@ -179,7 +179,7 @@ function AdminPOS() {
                                 </div>
                             )) : (
                                 <div className="pos-no-items">
-                                    <Filter size={48} />
+                                    {!loading && <Filter size={48} />}
                                     <p>No products found matching your search</p>
                                 </div>
                             )}
