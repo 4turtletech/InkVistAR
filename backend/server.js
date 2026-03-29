@@ -2236,15 +2236,25 @@ app.get('/api/admin/service-kits', (req, res) => {
 
 // Add/Update a service kit
 app.post('/api/admin/service-kits', (req, res) => {
-  const { service_type, materials } = req.body; // materials: [{inventory_id, default_quantity}]
+  const { service_type, old_service_type, materials } = req.body; // materials: [{inventory_id, default_quantity}]
   if (!service_type || !materials || !Array.isArray(materials)) {
     return res.status(400).json({ success: false, message: 'Invalid data' });
   }
 
-  // Clear existing kit for this service to rebuild it
-  db.query('DELETE FROM service_kits WHERE service_type = ?', [service_type], (err) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+  const serviceTypesToDelete = new Set();
+  if (old_service_type) serviceTypesToDelete.add(old_service_type);
+  if (service_type) serviceTypesToDelete.add(service_type);
 
+  const deleteAllExisting = (next) => {
+    if (serviceTypesToDelete.size === 0) return next();
+    const placeholders = Array.from(serviceTypesToDelete).map(() => '?').join(',');
+    db.query(`DELETE FROM service_kits WHERE service_type IN (${placeholders})`, Array.from(serviceTypesToDelete), (err) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error' });
+      next();
+    });
+  };
+
+  deleteAllExisting(() => {
     if (materials.length === 0) return res.json({ success: true, message: 'Kit cleared' });
 
     const values = materials.map(m => [service_type, m.inventory_id, m.default_quantity]);
@@ -2255,33 +2265,15 @@ app.post('/api/admin/service-kits', (req, res) => {
   });
 });
 
-// ========== ADMIN APPOINTMENTS CRUD ==========
+// Delete a service kit by service type
+app.delete('/api/admin/service-kits/:service_type', (req, res) => {
+  const serviceType = req.params.service_type;
+  if (!serviceType) return res.status(400).json({ success: false, message: 'Service type required' });
 
-// GET all appointments (Admin view)
-app.get('/api/admin/appointments', (req, res) => {
-  const query = `
-    SELECT 
-      ap.id, ap.customer_id, ap.artist_id,
-      ap.appointment_date, ap.start_time, ap.end_time,
-      ap.design_title, ap.status, ap.payment_status,
-      ap.notes,
-      ap.before_photo, ap.after_photo,
-      ap.price, ap.service_type, ap.manual_paid_amount,
-      COALESCE(cu.name, 'Unknown Client') AS client_name,
-      COALESCE(ar.name, 'Unknown Artist') AS artist_name,
-      (COALESCE(ap.manual_paid_amount, 0) + COALESCE((SELECT SUM(amount)/100 FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid'), 0)) AS total_paid
-    FROM appointments ap
-    LEFT JOIN users cu ON ap.customer_id = cu.id
-    LEFT JOIN users ar ON ap.artist_id = ar.id
-    WHERE COALESCE(ap.is_deleted, 0) = 0
-    ORDER BY ap.appointment_date DESC, ap.start_time DESC
-  `;
-  db.query(query, (err, results) => {
-    if (err) {
-      console.error('❌ Error fetching admin appointments:', err);
-      return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
-    }
-    res.json({ success: true, data: results });
+  db.query('DELETE FROM service_kits WHERE service_type = ?', [serviceType], (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Service kit not found' });
+    res.json({ success: true, message: 'Service kit deleted' });
   });
 });
 

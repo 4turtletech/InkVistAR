@@ -49,6 +49,7 @@ function AdminInventory() {
     const [transactions, setTransactions] = useState([]);
     const [serviceKits, setServiceKits] = useState({});
     const [editingKitServiceType, setEditingKitServiceType] = useState('');
+    const [editingKitOriginalType, setEditingKitOriginalType] = useState('');
     const [editingKitMaterials, setEditingKitMaterials] = useState([]);
     const [transactionError, setTransactionError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -92,6 +93,36 @@ function AdminInventory() {
             type,
             isAlert: true,
             onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
+        });
+    };
+
+    const confirmDeleteKit = async (serviceType) => {
+        try {
+            const res = await Axios.delete(`${API_URL}/api/admin/service-kits/${encodeURIComponent(serviceType)}`);
+            if (res.data.success) {
+                showAlert('Deleted', `Service kit '${serviceType}' has been removed.`, 'success');
+                fetchServiceKits();
+            } else {
+                showAlert('Error', res.data.message || 'Failed to delete service kit.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error deleting service kit', error);
+            showAlert('Error', error.response?.data?.message || 'Failed to delete service kit.', 'danger');
+        } finally {
+            setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        }
+    };
+
+    const handleDeleteKit = (serviceType) => {
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Confirm Delete',
+            message: `Delete service kit '${serviceType}'? This cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger',
+            isAlert: false,
+            onConfirm: () => confirmDeleteKit(serviceType)
         });
     };
 
@@ -151,11 +182,13 @@ function AdminInventory() {
         try {
             await Axios.post(`${API_URL}/api/admin/service-kits`, {
                 service_type: editingKitServiceType,
+                old_service_type: editingKitOriginalType || editingKitServiceType,
                 materials: editingKitMaterials.map(m => ({ inventory_id: m.inventory_id, default_quantity: m.default_quantity }))
             });
             showAlert("Success", "Service Kit saved successfully!", "success");
             fetchServiceKits();
             setEditingKitServiceType('');
+            setEditingKitOriginalType('');
             setEditingKitMaterials([]);
         } catch (error) {
             console.error("Error saving service kit", error);
@@ -934,22 +967,31 @@ function AdminInventory() {
                             ) : (
                                 Object.entries(serviceKits).map(([type, materials]) => (
                                     <div key={type} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                            <h4 style={{ margin: 0, color: '#1f2937' }}>{type}</h4>
-                                            <button 
-                                                className="action-btn edit-btn" 
-                                                onClick={() => {
-                                                    setEditingKitServiceType(type);
-                                                    setEditingKitMaterials(materials.map(m => ({ 
-                                                        inventory_id: m.inventory_id, 
-                                                        item_name: m.item_name, 
-                                                        default_quantity: m.default_quantity,
-                                                        unit: m.unit
-                                                    })));
-                                                }}
-                                            >
-                                                <Edit2 size={16}/> Edit
-                                            </button>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '0.5rem' }}>
+                                            <h4 style={{ margin: 0, color: '#1f2937', flex: 1 }}>{type}</h4>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button 
+                                                    className="action-btn edit-btn" 
+                                                    onClick={() => {
+                                                        setEditingKitServiceType(type);
+                                                        setEditingKitOriginalType(type);
+                                                        setEditingKitMaterials(materials.map(m => ({ 
+                                                            inventory_id: m.inventory_id, 
+                                                            item_name: m.item_name, 
+                                                            default_quantity: m.default_quantity,
+                                                            unit: m.unit
+                                                        }))); 
+                                                    }}
+                                                >
+                                                    <Edit2 size={16}/> Edit
+                                                </button>
+                                                <button 
+                                                    className="action-btn delete-btn" 
+                                                    onClick={() => handleDeleteKit(type)}
+                                                >
+                                                    <Trash2 size={16}/> Delete
+                                                </button>
+                                            </div>
                                         </div>
                                         <ul style={{ margin: 0, paddingLeft: '20px', color: '#4b5563' }}>
                                             {materials.map((mat, i) => (
