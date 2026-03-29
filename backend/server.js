@@ -2641,7 +2641,7 @@ app.post('/api/appointments/:id/release-material', (req, res) => {
         }
       });
 
-      return res.json({ success: false, message: `Held material #${materialId} not found for appointment #${appointmentId}. Ensure the item is still on hold.` });
+      return res.json({ success: false, message: `This item has already been returned to inventory or the session has been completed. Please refresh the page if you think this is an error.` });
     }
 
     const material = results[0];

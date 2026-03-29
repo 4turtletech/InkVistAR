@@ -126,7 +126,7 @@ function ArtistSessions() {
                 materialId: Number(materialId) // Ensure materialId is a number
             });
             if (res.data.success) {
-                // Refresh will happen in the finally block
+                showAlert("Success", "Item returned to inventory successfully", "success");
             } else {
                 showAlert("Error", res.data.message || 'Failed to release material.', "warning");
             }

@@ -122,9 +122,17 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
                 body: JSON.stringify({ materialId: Number(materialId) })
               });
               const data = await res.json();
-              if (data.success) fetchSessionMaterials();
-              else Alert.alert('Error', data.message);
-            } catch (e) { Alert.alert('Error', 'Connection failed'); }
+              if (data.success) {
+                Alert.alert('Success', 'Item returned to inventory successfully');
+              } else {
+                Alert.alert('Error', data.message || 'Failed to return item to inventory');
+              }
+            } catch (e) { 
+              Alert.alert('Error', 'Connection failed'); 
+            } finally {
+              // Always refetch to ensure UI is in sync
+              fetchSessionMaterials();
+            }
           }
         }
       ]
