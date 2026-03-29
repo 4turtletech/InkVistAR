@@ -968,31 +968,111 @@ function AdminInventory() {
                                 <p className="text-muted">No service kits configured yet.</p>
                             ) : (
                                 Object.entries(serviceKits).map(([type, materials]) => (
-                                    <div key={type} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '0.5rem' }}>
-                                            <h4 style={{ margin: 0, color: '#1f2937', flex: 1 }}>{type}</h4>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button
-                                                    className="action-btn edit-btn service-kit-action-btn" 
-                                                    onClick={() => {
-                                                        setEditingKitServiceType(type);
-                                                        setEditingKitOriginalType(type);
-                                                        setEditingKitMaterials(materials.map(m => ({ 
-                                                            inventory_id: m.inventory_id, 
-                                                            item_name: m.item_name, 
-                                                            default_quantity: m.default_quantity,
-                                                            unit: m.unit
-                                                        }))); 
-                                                    }} style={{ backgroundColor: '#10b981', padding: '8px' }}
-                                                >
-                                                    <Edit2 size={16}/>
-                                                </button>
-                                                <button 
-                                                    className="action-btn delete-btn service-kit-action-btn" 
-                                                    onClick={() => handleDeleteKit(type)}
-                                                >
-                                                    <Trash2 size={16}/> Delete
-                                                </button>
+                                    <div key={type} style={{ 
+                                        border: '1px solid #e5e7eb', 
+                                        borderRadius: '8px', 
+                                        padding: '1rem', 
+                                        marginBottom: '1rem',
+                                        backgroundColor: editingKitOriginalType === type ? '#f0f9ff' : 'white',
+                                        borderColor: editingKitOriginalType === type ? '#7dd3fc' : '#e5e7eb'
+                                    }}>
+                                        {editingKitOriginalType === type ? (
+                                            <div className="inline-edit-form fade-in">
+                                                <div className="form-group">
+                                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Update Service Type Name</label>
+                                                    <input 
+                                                        type="text" 
+                                                        className="form-input" 
+                                                        value={editingKitServiceType}
+                                                        onChange={e => setEditingKitServiceType(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="form-group" style={{marginTop: '1rem'}}>
+                                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Add Supplies to Kit</label>
+                                                    <select 
+                                                        className="form-input" 
+                                                        onChange={(e) => {
+                                                            const itemId = Number(e.target.value);
+                                                            if (!itemId) return;
+                                                            const item = inventory.find(i => i.id === itemId);
+                                                            if (item && !editingKitMaterials.find(m => m.inventory_id === itemId)) {
+                                                                setEditingKitMaterials([...editingKitMaterials, { inventory_id: item.id, item_name: item.name, default_quantity: 1, unit: item.unit }]);
+                                                            }
+                                                            e.target.value = "";
+                                                        }}
+                                                    >
+                                                        <option value="">-- Select Inventory Item --</option>
+                                                        {inventory.map(item => (
+                                                            <option key={item.id} value={item.id}>{item.name} ({item.unit})</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div style={{ marginTop: '1rem', background: '#fff', borderRadius: '6px', padding: '8px' }}>
+                                                    {editingKitMaterials.map((mat, idx) => (
+                                                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0', borderBottom: idx === editingKitMaterials.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
+                                                            <input 
+                                                                type="number" 
+                                                                min="1"
+                                                                value={mat.default_quantity}
+                                                                onChange={e => {
+                                                                    const newVal = [...editingKitMaterials];
+                                                                    newVal[idx].default_quantity = Number(e.target.value);
+                                                                    setEditingKitMaterials(newVal);
+                                                                }}
+                                                                style={{ width: '50px', padding: '4px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '0.85rem' }}
+                                                            />
+                                                            <span style={{flex: 1, fontSize: '0.85rem'}}>{mat.item_name}</span>
+                                                            <button 
+                                                                className="action-btn delete-btn" 
+                                                                style={{ padding: '2px', background: 'none', border: 'none', color: '#ef4444' }}
+                                                                onClick={() => setEditingKitMaterials(editingKitMaterials.filter((_, i) => i !== idx))}
+                                                            >
+                                                                <X size={14}/>
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                                    <button type="button" className="btn btn-secondary" onClick={() => { setEditingKitServiceType(''); setEditingKitOriginalType(''); setEditingKitMaterials([]); }} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Cancel</button>
+                                                    <button type="button" className="btn btn-secondary" style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 12px' }} onClick={() => handleDeleteKit(type)}><Trash2 size={16}/></button>
+                                                    <button className="btn btn-primary" onClick={handleSaveKit} disabled={isSaving || editingKitMaterials.length === 0} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>{isSaving ? '...' : 'Save Changes'}</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '0.5rem' }}>
+                                                    <h4 style={{ margin: 0, color: '#1f2937', flex: 1 }}>{type}</h4>
+                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                        <button
+                                                            className="action-btn edit-btn service-kit-action-btn" 
+                                                            onClick={() => {
+                                                                setEditingKitServiceType(type);
+                                                                setEditingKitOriginalType(type);
+                                                                setEditingKitMaterials(materials.map(m => ({ 
+                                                                    inventory_id: m.inventory_id, 
+                                                                    item_name: m.item_name, 
+                                                                    default_quantity: m.default_quantity,
+                                                                    unit: m.unit
+                                                                }))); 
+                                                            }} style={{ backgroundColor: '#10b981', padding: '8px' }}
+                                                        >
+                                                            <Edit2 size={16}/>
+                                                        </button>
+                                                        <button 
+                                                            className="action-btn delete-btn service-kit-action-btn" 
+                                                            onClick={() => handleDeleteKit(type)}
+                                                        >
+                                                            <Trash2 size={16}/>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <ul style={{ margin: 0, paddingLeft: '20px', color: '#4b5563' }}>
+                                                    {materials.map((mat, i) => (
+                                                      <li key={i}>{mat.default_quantity}x {mat.item_name}</li>
+                                                    ))}
+                                                </ul>
+                                            </>
+                                        )}
                                             </div>
                                         </div>
                                         <ul style={{ margin: 0, paddingLeft: '20px', color: '#4b5563' }}>
