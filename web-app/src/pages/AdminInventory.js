@@ -990,7 +990,7 @@ function AdminInventory() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '0.5rem' }}>
                                             <h4 style={{ margin: 0, color: '#1f2937', flex: 1 }}>{type}</h4>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button 
+                                                <button
                                                     className="action-btn edit-btn service-kit-action-btn" 
                                                     onClick={() => {
                                                         setEditingKitServiceType(type);
@@ -1001,7 +1001,7 @@ function AdminInventory() {
                                                             default_quantity: m.default_quantity,
                                                             unit: m.unit
                                                         }))); 
-                                                    }}
+                                                    }} style={{ backgroundColor: '#10b981' }}
                                                 >
                                                     <Edit2 size={16}/> Edit
                                                 </button>
