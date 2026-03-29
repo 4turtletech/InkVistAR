@@ -2468,7 +2468,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
       });
     } else if (status === 'completed' && appointment.status === 'in_progress') {
       // 2. Session Completed: Finalize tracking and log material transaction out
-      db.query('SELECT sm.id, sm.inventory_id, sm.quantity, i.cost, i.name FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ? AND sm.status = "hold"', [id], (matErr, mats) => {
+      db.query('SELECT sm.id, sm.inventory_id, sm.quantity, i.cost, i.name FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ? AND sm.status = \'hold\'', [id], (matErr, mats) => {
         if (!matErr && mats.length > 0) {
           mats.forEach(mat => {
             db.query('UPDATE session_materials SET status = ? WHERE id = ?', ['consumed', mat.id]);
@@ -2479,7 +2479,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
       });
     } else if (status === 'cancelled' && appointment.status === 'in_progress') {
       // 3. Session Cancelled mid-way: Release hold and return to stock
-      db.query('SELECT id, inventory_id, quantity FROM session_materials WHERE appointment_id = ? AND status = "hold"', [id], (matErr, mats) => {
+      db.query('SELECT id, inventory_id, quantity FROM session_materials WHERE appointment_id = ? AND status = \'hold\'', [id], (matErr, mats) => {
         if (!matErr && mats.length > 0) {
           mats.forEach(mat => {
             db.query('UPDATE session_materials SET status = ? WHERE id = ?', ['released', mat.id]);
@@ -2623,7 +2623,7 @@ app.post('/api/appointments/:id/release-material', (req, res) => {
   if (isNaN(materialId)) return res.status(400).json({ success: false, message: 'Material record ID required' });
 
   // 1. Get material info
-  const selectQuery = 'SELECT * FROM session_materials WHERE id = ? AND appointment_id = ? AND status = "hold"';
+  const selectQuery = 'SELECT * FROM session_materials WHERE id = ? AND appointment_id = ? AND status = \'hold\'';
   const selectParams = [materialId, appointmentId];
   console.log(`DEBUG: Executing SELECT query: ${selectQuery} with params: ${selectParams}`);
   db.query(selectQuery, selectParams, (err, results) => {
@@ -2656,7 +2656,7 @@ app.post('/api/appointments/:id/release-material', (req, res) => {
       console.log(`DEBUG: Updated inventory for item ${material.inventory_id} by adding ${material.quantity}`);
 
       // 3. Mark as released
-      db.query('UPDATE session_materials SET status = "released" WHERE id = ?', [materialId], (relErr) => {
+      db.query('UPDATE session_materials SET status = \'released\' WHERE id = ?', [materialId], (relErr) => {
         if (relErr) {
           console.error('ERROR: Failed to update session_materials status:', relErr.message);
           return res.status(500).json({ success: false, message: 'Failed to update record status' });
