@@ -971,7 +971,7 @@ function AdminInventory() {
                                             <h4 style={{ margin: 0, color: '#1f2937', flex: 1 }}>{type}</h4>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <button 
-                                                    className="action-btn edit-btn" 
+                                                    className="action-btn edit-btn service-kit-action-btn" 
                                                     onClick={() => {
                                                         setEditingKitServiceType(type);
                                                         setEditingKitOriginalType(type);
@@ -986,7 +986,7 @@ function AdminInventory() {
                                                     <Edit2 size={16}/> Edit
                                                 </button>
                                                 <button 
-                                                    className="action-btn delete-btn" 
+                                                    className="action-btn delete-btn service-kit-action-btn" 
                                                     onClick={() => handleDeleteKit(type)}
                                                 >
                                                     <Trash2 size={16}/> Delete
