@@ -954,6 +954,26 @@ function AdminInventory() {
                                     </div>
                                 )}
                                 <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+                                    {editingKitOriginalType && (
+                                        <>
+                                            <button 
+                                                type="button" 
+                                                className="btn btn-secondary" 
+                                                style={{ marginRight: '10px' }}
+                                                onClick={() => { setEditingKitServiceType(''); setEditingKitOriginalType(''); setEditingKitMaterials([]); }}
+                                            >
+                                                Cancel Edit
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className="btn btn-secondary" 
+                                                style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', marginRight: '10px' }}
+                                                onClick={() => handleDeleteKit(editingKitOriginalType)}
+                                            >
+                                                <Trash2 size={16} style={{marginRight: '5px', verticalAlign: 'middle'}} /> Delete Kit
+                                            </button>
+                                        </>
+                                    )}
                                      <button className="btn btn-primary" onClick={handleSaveKit} disabled={isSaving || editingKitMaterials.length === 0}>
                                         {isSaving ? 'Saving...' : 'Save Kit'}
                                      </button>
