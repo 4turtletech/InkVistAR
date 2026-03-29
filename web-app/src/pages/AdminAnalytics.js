@@ -143,7 +143,7 @@ function AdminAnalytics() {
                     <Package className="metric-icon" size={32} />
                     <div className="metric-content">
                         <p className="metric-label">Inventory Used</p>
-                        <p className="metric-value">{analytics.inventory.reduce((sum, i) => sum + i.used, 0)}</p>
+                        <p className="metric-value">{analytics.inventory.reduce((sum, i) => sum + Number(i.used || 0), 0).toLocaleString()}</p>
                         <p className="metric-info">
                             Items consumed
                         </p>
