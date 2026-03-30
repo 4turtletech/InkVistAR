@@ -280,8 +280,22 @@ function AdminClients() {
                                                 </button>
                                             ) : (
                                                 <div style={{display: 'flex', gap: '5px'}}>
-                                                    <button className="action-btn view-btn" onClick={() => handleRestoreClient(client.id)} style={{backgroundColor: '#10b981'}} title="Restore"><RotateCcw size={16}/></button>
-                                                    <button className="action-btn delete-btn" onClick={() => handlePermanentDelete(client.id)} title="Permanent Delete"><Trash2 size={16}/></button>
+                                                    <button 
+                                                        className="action-btn view-btn" 
+                                                        onClick={() => handleRestoreClient(client.id)} 
+                                                        style={{backgroundColor: '#10b981', display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px'}} 
+                                                        title="Restore Client"
+                                                    >
+                                                        <RotateCcw size={14}/> Restore
+                                                    </button>
+                                                    <button 
+                                                        className="action-btn delete-btn" 
+                                                        onClick={() => handlePermanentDelete(client.id)} 
+                                                        style={{backgroundColor: '#991b1b', display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px'}} 
+                                                        title="Permanently Delete Client"
+                                                    >
+                                                        <Trash2 size={14}/> Delete
+                                                    </button>
                                                 </div>
                                             )}
                                         </td>
