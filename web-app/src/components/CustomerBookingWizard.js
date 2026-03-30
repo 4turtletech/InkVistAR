@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, Lock, UserPlus, LogIn } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
 
@@ -27,7 +27,6 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [bookedDates, setBookedDates] = useState({});
 
-    const [showAuthModal, setShowAuthModal] = useState(false);
     const [authView, setAuthView] = useState('register'); // 'login' or 'register'
     const [authData, setAuthData] = useState({ email: '', password: '', firstName: '', lastName: '', phone: '' });
     const [authError, setAuthError] = useState('');
@@ -77,9 +76,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 });
                 if (res.data.success) {
                     localStorage.setItem('user', JSON.stringify(res.data.user));
-                    setShowAuthModal(false);
-                    // Continue to submit booking with the new user ID
-                    finalizeBooking(res.data.user.id);
+                    setAuthError('');
+                    setStep(4); // Move to scheduling
                 }
             } else {
                 const res = await Axios.post(`${API_URL}/api/register`, {
@@ -121,11 +119,9 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
         const currentUser = JSON.parse(localStorage.getItem('user'));
         if (!currentUser) {
-            setAuthData(prev => ({ ...prev, email: formData.email }));
-            setShowAuthModal(true);
+            alert('Please complete the account step before submitting.');
             return;
         }
-
         finalizeBooking(currentUser.id);
     };
 
@@ -149,7 +145,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             });
 
             if (response.data.success) {
-                setStep(4); // Show success screen
+                setStep(5); // Show success screen
             } else {
                 alert('Request Failed: ' + (response.data.message || 'An unknown error occurred.'));
             }
@@ -337,10 +333,82 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         </div>
     );
 
+    const renderStepAccount = () => {
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+
+        if (currentUser) {
+            return (
+                <div className="fade-in" style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <div style={{ width: '80px', height: '80px', backgroundColor: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                        <User size={40} color="#16a34a" />
+                    </div>
+                    <h3 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>Profile Verified</h3>
+                    <p style={{ color: '#64748b', marginBottom: '24px' }}>You are logged in as <strong>{currentUser.name}</strong>.</p>
+                    <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Proceed to the next step to select your consultation date.</p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="fade-in">
+                <h3 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Lock className="text-bronze" size={24} /> 3. Account Information
+                </h3>
+                <p style={{ color: '#64748b', marginBottom: '32px' }}>
+                    {authView === 'register' ? 'Create an account to track your requests and communicate with artists.' : 'Welcome back! Log in to continue with your booking.'}
+                </p>
+
+                {authError && <div style={{ color: '#ef4444', marginBottom: '20px', fontSize: '0.9rem', fontWeight: '600', padding: '12px', background: '#fef2f2', borderRadius: '8px' }}>{authError}</div>}
+
+                <form onSubmit={handleAuthAction} style={{ maxWidth: '400px', margin: '0 auto' }}>
+                    {authView === 'register' && (
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+                            <input 
+                                type="text" className="form-input" placeholder="First Name" required
+                                value={authData.firstName} onChange={e => setAuthData({...authData, firstName: e.target.value})}
+                            />
+                            <input 
+                                type="text" className="form-input" placeholder="Last Name" required
+                                value={authData.lastName} onChange={e => setAuthData({...authData, lastName: e.target.value})}
+                            />
+                        </div>
+                    )}
+                    <div style={{ marginBottom: '12px' }}>
+                        <input 
+                            type="email" className="form-input" placeholder="Email Address" required
+                            value={authData.email} onChange={e => setAuthData({...authData, email: e.target.value})}
+                        />
+                    </div>
+                    <div style={{ marginBottom: '24px' }}>
+                        <input 
+                            type="password" className="form-input" placeholder="Password" required
+                            value={authData.password} onChange={e => setAuthData({...authData, password: e.target.value})}
+                        />
+                    </div>
+                    
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '14px', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }} disabled={loading}>
+                        {loading ? 'Processing...' : (authView === 'login' ? <><LogIn size={18}/> Log In</> : <><UserPlus size={18}/> Create Account</>)}
+                    </button>
+
+                    <p style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.9rem', color: '#64748b' }}>
+                        {authView === 'login' ? "Don't have an account?" : "Already have an account?"}
+                        <button 
+                            type="button"
+                            onClick={() => { setAuthView(authView === 'login' ? 'register' : 'login'); setAuthError(''); }}
+                            style={{ background: 'none', border: 'none', color: '#C19A6B', fontWeight: '700', cursor: 'pointer', marginLeft: '5px' }}
+                        >
+                            {authView === 'login' ? 'Register Now' : 'Log In Instead'}
+                        </button>
+                    </p>
+                </form>
+            </div>
+        );
+    };
+
     const renderStepScheduling = () => (
         <div className="fade-in">
             <h3 style={{fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <Calendar className="text-bronze" size={24} /> 3. Schedule Consultation
+                <Calendar className="text-bronze" size={24} /> 4. Schedule Consultation
             </h3>
             <p style={{color: '#64748b', marginBottom: '32px'}}>Consultations are free. Select a date to meet in-studio and discuss your design.</p>
             
@@ -388,93 +456,20 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         </div>
     );
 
-    if (step === 4) return renderSuccess();
+    if (step === 5) return renderSuccess();
 
     return (
         <div className="data-card" style={{border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', borderRadius: '24px', position: 'relative'}}>
             
-            {/* Auth Modal Overlay */}
-            {showAuthModal && (
-                <div style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                    backgroundColor: 'rgba(255, 255, 255, 0.98)', zIndex: 100,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    padding: '40px', borderRadius: '24px', textAlign: 'center'
-                }} className="fade-in">
-                    <button 
-                        onClick={() => setShowAuthModal(false)}
-                        style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}
-                    >
-                        &times;
-                    </button>
-                    
-                    <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>
-                        {authView === 'login' ? 'Welcome Back' : 'Join Inkvictus'}
-                    </h2>
-                    <p style={{ color: '#64748b', marginBottom: '8px' }}>
-                        {authView === 'login' 
-                            ? 'Please log in to finalize your consultation request.' 
-                            : 'Create an account to complete your booking.'}
-                    </p>
-                    <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', marginBottom: '24px' }}>
-                        Verified accounts help us prevent spam and prioritize serious inquiries.
-                    </p>
-
-                    {authError && <div style={{ color: '#ef4444', marginBottom: '20px', fontSize: '0.9rem', fontWeight: '600' }}>{authError}</div>}
-
-                    <form onSubmit={handleAuthAction} style={{ width: '100%', maxWidth: '320px' }}>
-                        {authView === 'register' && (
-                            <>
-                                <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
-                                    <input 
-                                        type="text" className="form-input" placeholder="First Name" required
-                                        value={authData.firstName} onChange={e => setAuthData({...authData, firstName: e.target.value})}
-                                    />
-                                    <input 
-                                        type="text" className="form-input" placeholder="Last Name" required
-                                        value={authData.lastName} onChange={e => setAuthData({...authData, lastName: e.target.value})}
-                                    />
-                                </div>
-                            </>
-                        )}
-                        <div style={{ marginBottom: '12px' }}>
-                            <input 
-                                type="email" className="form-input" placeholder="Email Address" required
-                                value={authData.email} onChange={e => setAuthData({...authData, email: e.target.value})}
-                            />
-                        </div>
-                        <div style={{ marginBottom: '24px' }}>
-                            <input 
-                                type="password" className="form-input" placeholder="Password" required
-                                value={authData.password} onChange={e => setAuthData({...authData, password: e.target.value})}
-                            />
-                        </div>
-                        
-                        <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px' }} disabled={loading}>
-                            {loading ? 'Processing...' : (authView === 'login' ? 'Log In & Finalize' : 'Create Account')}
-                        </button>
-                    </form>
-
-                    <p style={{ marginTop: '24px', fontSize: '0.9rem', color: '#64748b' }}>
-                        {authView === 'login' ? "Don't have an account?" : "Already have an account?"}
-                        <button 
-                            onClick={() => { setAuthView(authView === 'login' ? 'register' : 'login'); setAuthError(''); }}
-                            style={{ background: 'none', border: 'none', color: '#C19A6B', fontWeight: '700', cursor: 'pointer', marginLeft: '5px' }}
-                        >
-                            {authView === 'login' ? 'Register Now' : 'Log In Instead'}
-                        </button>
-                    </p>
-                </div>
-            )}
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', borderBottom: '1px solid #f1f5f9', paddingBottom: '32px'}}>
                 <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
                     <h2 style={{margin: 0, fontSize: '1.4rem', fontWeight: '800', color: '#1e293b'}}>Request Consultation</h2>
                     <span style={{backgroundColor: '#fef3c7', color: '#92400e', fontSize: '0.75rem', fontWeight: '700', padding: '4px 10px', borderRadius: '20px', textTransform: 'uppercase'}}>Studio-Lead Flow</span>
                 </div>
                 <div style={{display: 'flex', gap: '12px'}}>
-                    {[1, 2, 3].map(s => (
+                    {[1, 2, 3, 4].map(s => (
                         <div key={s} style={{
-                            width: '40px', height: '4px', borderRadius: '2px', 
+                            width: '30px', height: '4px', borderRadius: '2px', 
                             backgroundColor: step >= s ? '#C19A6B' : '#e2e8f0',
                             transition: 'all 0.4s ease'
                         }} />
@@ -485,7 +480,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             <div style={{minHeight: '400px'}}>
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStepPlacement()}
-                {step === 3 && renderStepScheduling()}
+                {step === 3 && renderStepAccount()}
+                {step === 4 && renderStepScheduling()}
             </div>
 
             <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '48px', paddingTop: '32px', borderTop: '1px solid #f1f5f9'}}>
@@ -498,13 +494,14 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     <ChevronLeft size={20} /> Previous
                 </button>
                 
-                {step < 3 ? (
+                {step < 4 ? (
                     <button 
                         onClick={() => { 
                             if (step === 1 && !formData.designTitle) return alert('Please tell us about your tattoo idea'); 
                             if (step === 2 && !formData.placement) return alert('Please select a placement area');
-                            if (step === 3 && !formData.date) return alert('Please select a preferred date'); 
-                            setStep(step + 1); 
+                            if (step === 3 && !localStorage.getItem('user')) return alert('Please log in or register to continue');
+                            
+                            setStep(step + 1);
                         }} 
                         className="btn btn-primary" 
                         style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 28px'}}
