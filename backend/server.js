@@ -2048,7 +2048,7 @@ app.get('/api/artist/:artistId/availability', (req, res) => {
 // Customer book appointment
 app.post('/api/customer/appointments', (req, res) => {
   console.log('📅 Customer booking request:', req.body);
-  let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price } = req.body;
+  let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price, serviceType } = req.body;
 
   // If the admin decides, the customer might not send an artistId.
   // We need to find a default admin/manager to hold the appointment.
@@ -2104,10 +2104,10 @@ app.post('/api/customer/appointments', (req, res) => {
   const query = `
     INSERT INTO appointments 
     (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_consultation', 0, 'Consultation')
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?)
   `;
 
-  db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || 'Consultation Request', notes, referenceImage], (err, result) => {
+  db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation'], (err, result) => {
     if (err) {
       console.error('❌ Error booking appointment:', err);
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
