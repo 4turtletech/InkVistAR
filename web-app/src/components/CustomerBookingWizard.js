@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
 
@@ -19,7 +19,9 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         date: '',
         time: '13:00',
         designTitle: '',
-        notes: ''
+        notes: '',
+        placement: '',
+        referenceImage: null
     });
 
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -100,8 +102,19 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         }
     };
 
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData({ ...formData, referenceImage: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSubmit = async () => {
-        if (!formData.date || !formData.designTitle || !formData.name || !formData.email) {
+        if (!formData.date || !formData.designTitle || !formData.placement) {
             alert('Please fill in all required fields.');
             return;
         }
@@ -119,6 +132,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const finalizeBooking = async (uid) => {
         setLoading(true);
         try {
+            const currentUser = JSON.parse(localStorage.getItem('user'));
+
             const response = await Axios.post(`${API_URL}/api/admin/appointments`, {
                 customerId: uid,
                 artistId: 1, // Default Studio Account
@@ -127,13 +142,14 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 endTime: formData.time,
                 serviceType: 'Consultation',
                 designTitle: formData.designTitle,
-                notes: `CLIENT INFORMATION\nName: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\n\nDESIGN DETAILS\nIdea: ${formData.designTitle}\nNotes: ${formData.notes || 'No additional notes'}`,
+                notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nPlacement: ${formData.placement}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || formData.name}\nEmail: ${currentUser?.email || formData.email}`,
+                referenceImage: formData.referenceImage,
                 status: 'pending',
                 price: 0 // Free consultation
             });
 
             if (response.data.success) {
-                setStep(4); // Show success message
+                setStep(4); // Show success screen
             } else {
                 alert('Request Failed: ' + (response.data.message || 'An unknown error occurred.'));
             }
@@ -259,6 +275,29 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })}
                 />
             </div>
+            
+            <div className="form-group" style={{marginBottom: '24px'}}>
+                <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Reference Image (Optional)</label>
+                <div 
+                    onClick={() => document.getElementById('wizard-ref-img').click()}
+                    style={{ 
+                        height: '140px', border: '2px dashed #e2e8f0', borderRadius: '12px', 
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+                        cursor: 'pointer', background: formData.referenceImage ? '#f8fafc' : 'transparent', overflow: 'hidden'
+                    }}
+                >
+                    {formData.referenceImage ? (
+                        <img src={formData.referenceImage} alt="Ref" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    ) : (
+                        <>
+                            <ImageIcon size={32} color="#94a3b8" />
+                            <span style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '10px' }}>Upload inspiration or sketches</span>
+                        </>
+                    )}
+                    <input type="file" id="wizard-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
+                </div>
+            </div>
+
             <div className="form-group">
                 <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Additional Details (Placement, Size, etc.)</label>
                 <textarea
@@ -309,56 +348,6 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         </div>
     );
 
-    const renderStep3 = () => (
-        <div className="fade-in">
-            <h3 style={{fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <User className="text-bronze" size={24} /> 3. Contact Information
-            </h3>
-            <p style={{color: '#64748b', marginBottom: '32px'}}>How can we reach you to confirm your consultation?</p>
-            
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px'}}>
-                <div className="form-group">
-                    <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Full Name *</label>
-                    <input
-                        type="text"
-                        className="form-input"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        disabled={!!user}
-                    />
-                </div>
-                <div className="form-group">
-                    <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Email Address *</label>
-                    <input
-                        type="email"
-                        className="form-input"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        disabled={!!user}
-                    />
-                </div>
-                <div className="form-group" style={{gridColumn: 'span 2'}}>
-                    <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Phone Number *</label>
-                    <input
-                        type="tel"
-                        className="form-input"
-                        placeholder="e.g. +63 9xx xxx xxxx"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                </div>
-            </div>
-
-            <div style={{marginTop: '40px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', gap: '15px', alignItems: 'flex-start'}}>
-                <Info className="text-bronze" size={20} style={{marginTop: '2px'}} />
-                <div style={{fontSize: '0.9rem', color: '#475569', lineHeight: '1.6'}}>
-                    <strong>What happens next?</strong><br />
-                    Once submitted, our studio manager will review your request and confirm the consultation time via email or phone. During the consultation, we'll finalize the design, quote the full price, and assign the best artist for your project.
-                </div>
-            </div>
-        </div>
-    );
-
     const renderSuccess = () => (
         <div style={{textAlign: 'center', padding: '60px 40px'}}>
             <div style={{width: '100px', height: '100px', backgroundColor: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px'}}>
@@ -366,8 +355,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             </div>
             <h2 style={{fontSize: '2rem', fontWeight: '800', color: '#1e293b', marginBottom: '16px'}}>Consultation Request Sent</h2>
             <p style={{color: '#64748b', maxWidth: '500px', margin: '0 auto 40px', fontSize: '1.1rem', lineHeight: '1.6'}}>
-                Thank you, {formData.name}. We've received your request for a {formData.designTitle} consultation. 
-                Keep an eye on your email ({formData.email}) for confirmation!
+                Thank you. We've received your request for a {formData.designTitle} consultation. 
+                Please check your email for confirmation and next steps!
             </p>
             <button onClick={() => navigate('/')} className="btn btn-primary" style={{padding: '12px 32px', fontSize: '1rem'}}>Return Home</button>
         </div>
@@ -469,8 +458,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
             <div style={{minHeight: '400px'}}>
                 {step === 1 && renderStep1()}
-                {step === 2 && renderStep2()}
-                {step === 3 && renderStep3()}
+                {step === 2 && renderStepPlacement()}
+                {step === 3 && renderStepScheduling()}
             </div>
 
             <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '48px', paddingTop: '32px', borderTop: '1px solid #f1f5f9'}}>
@@ -487,7 +476,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     <button 
                         onClick={() => { 
                             if (step === 1 && !formData.designTitle) return alert('Please tell us about your tattoo idea'); 
-                            if (step === 2 && !formData.date) return alert('Please select a preferred date'); 
+                            if (step === 2 && !formData.placement) return alert('Please select a placement area');
+                            if (step === 3 && !formData.date) return alert('Please select a preferred date'); 
                             setStep(step + 1); 
                         }} 
                         className="btn btn-primary" 
