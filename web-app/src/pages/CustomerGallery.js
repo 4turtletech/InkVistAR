@@ -268,7 +268,7 @@ function CustomerGallery(){
                                         <>
                                             <button 
                                                 className="booking-btn"
-                                                onClick={() => navigate('/book', { state: { artistId: selectedWork.artist_id, designTitle: selectedWork.title } })}
+                                                onClick={() => navigate('/customer/bookings', { state: { artistId: selectedWork.artist_id, designTitle: selectedWork.title, autoOpenBooking: true } })}
                                             >
                                                 <Calendar size={18} />
                                                 Book This Tattoo
@@ -283,7 +283,7 @@ function CustomerGallery(){
                                             </button>
                                         </>
                                     ) : (
-                                        <button className="booking-btn" onClick={() => navigate('/book')}>
+                                        <button className="booking-btn" onClick={() => navigate('/customer/bookings', { state: { autoOpenBooking: true } })}>
                                             <Calendar size={18} />
                                             Book New Session
                                         </button>
