@@ -11,16 +11,13 @@ function Register() {
     lastName: '',
     email: '',
     phone: '',
-    preferences: '',
     password: '',
     confirmPassword: ''
   });
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const navigate = useNavigate();
-  const preferencesRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,29 +30,6 @@ function Register() {
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-        if (preferencesRef.current && !preferencesRef.current.contains(event.target)) {
-            setIsPreferencesOpen(false);
-        }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const togglePreference = (style) => {
-    const current = formData.preferences ? formData.preferences.split(', ').filter(s => s.trim() !== '') : [];
-    let updated;
-    if (current.includes(style)) {
-        updated = current.filter(s => s !== style);
-    } else {
-        updated = [...current, style];
-    }
-    setFormData({ ...formData, preferences: updated.join(', ') });
   };
 
   const validate = () => {
@@ -85,7 +59,6 @@ function Register() {
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim(),
-        preferences: formData.preferences.trim(),
         password: formData.password,
         type: 'customer' // Defaulting to customer for public registration
       });
@@ -135,59 +108,6 @@ function Register() {
             </div>
             <div className="form-group">
                 <input type="tel" name="phone" className="form-input" value={formData.phone} onChange={handleChange} placeholder="Phone Number" />
-            </div>
-            <div className="form-group" ref={preferencesRef} style={{ position: 'relative' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#666', fontSize: '0.9rem' }}>Tattoo Preferences</label>
-                <div 
-                    className="form-input" 
-                    onClick={() => setIsPreferencesOpen(!isPreferencesOpen)} 
-                    style={{ cursor: 'pointer', minHeight: '48px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '5px', padding: '5px 10px' }}
-                >
-                    {formData.preferences.split(', ').filter(p => p).length > 0 ? (
-                        formData.preferences.split(', ').filter(p => p).map(pref => (
-                            <span key={pref} style={{ backgroundColor: '#C19A6B', color: 'white', padding: '3px 8px', borderRadius: '12px', fontSize: '0.8rem' }}>
-                                {pref}
-                            </span>
-                        ))
-                    ) : (
-                        <span style={{ color: '#9ca3af' }}>Select preferred styles...</span>
-                    )}
-                </div>
-                {isPreferencesOpen && (
-                    <div style={{
-                        position: 'absolute',
-                        width: '100%',
-                        backgroundColor: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        marginTop: '5px',
-                        maxHeight: '200px',
-                        overflowY: 'auto',
-                        zIndex: 10,
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                    }}>
-                        {["Realism", "Traditional", "Neo-Traditional", "Japanese", "Blackwork", "Dotwork", "Watercolor", "Minimalist", "Script", "Tribal"].map(style => {
-                            const isSelected = formData.preferences.split(', ').includes(style);
-                            return (
-                                <label key={style} style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    padding: '12px 15px',
-                                    cursor: 'pointer',
-                                    borderBottom: '1px solid #f3f4f6'
-                                }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={() => togglePreference(style)}
-                                        style={{ marginRight: '10px', height: '16px', width: '16px' }}
-                                    />
-                                    {style}
-                                </label>
-                            );
-                        })}
-                    </div>
-                )}
             </div>
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
                 <div className="form-group" style={{ flex: 1 }}>

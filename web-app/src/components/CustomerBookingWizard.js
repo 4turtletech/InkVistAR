@@ -77,9 +77,13 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 if (res.data.success) {
                     localStorage.setItem('user', JSON.stringify(res.data.user));
                     setAuthError('');
-                    setStep(4); // Move to scheduling
                 }
             } else {
+                if (!authData.phone) {
+                    setAuthError('Phone number is required');
+                    setLoading(false);
+                    return;
+                }
                 const res = await Axios.post(`${API_URL}/api/register`, {
                     firstName: authData.firstName,
                     lastName: authData.lastName,
@@ -352,7 +356,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         return (
             <div className="fade-in">
                 <h3 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Lock className="text-bronze" size={24} /> 3. Account Information
+                    <Lock className="text-bronze" size={24} /> 4. Account Information
                 </h3>
                 <p style={{ color: '#64748b', marginBottom: '32px' }}>
                     {authView === 'register' ? 'Create an account to track your requests and communicate with artists.' : 'Welcome back! Log in to continue with your booking.'}
@@ -379,6 +383,14 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             value={authData.email} onChange={e => setAuthData({...authData, email: e.target.value})}
                         />
                     </div>
+                    {authView === 'register' && (
+                        <div style={{ marginBottom: '12px' }}>
+                            <input 
+                                type="tel" className="form-input" placeholder="Phone Number (Required)" required
+                                value={authData.phone} onChange={e => setAuthData({...authData, phone: e.target.value})}
+                            />
+                        </div>
+                    )}
                     <div style={{ marginBottom: '24px' }}>
                         <input 
                             type="password" className="form-input" placeholder="Password" required
@@ -408,7 +420,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const renderStepScheduling = () => (
         <div className="fade-in">
             <h3 style={{fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <Calendar className="text-bronze" size={24} /> 4. Schedule Consultation
+                <Calendar className="text-bronze" size={24} /> 3. Schedule Consultation
             </h3>
             <p style={{color: '#64748b', marginBottom: '32px'}}>Consultations are free. Select a date to meet in-studio and discuss your design.</p>
             
@@ -480,8 +492,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             <div style={{minHeight: '400px'}}>
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStepPlacement()}
-                {step === 3 && renderStepAccount()}
-                {step === 4 && renderStepScheduling()}
+                {step === 3 && renderStepScheduling()}
+                {step === 4 && renderStepAccount()}
             </div>
 
             <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '48px', paddingTop: '32px', borderTop: '1px solid #f1f5f9'}}>
@@ -499,7 +511,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         onClick={() => { 
                             if (step === 1 && !formData.designTitle) return alert('Please tell us about your tattoo idea'); 
                             if (step === 2 && !formData.placement) return alert('Please select a placement area');
-                            if (step === 3 && !localStorage.getItem('user')) return alert('Please log in or register to continue');
+                            if (step === 3 && !formData.date) return alert('Please select a preferred date');
                             
                             setStep(step + 1);
                         }} 
