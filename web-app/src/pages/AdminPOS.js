@@ -356,6 +356,7 @@ function AdminPOS() {
                                 <h2>Transaction Complete</h2>
                                 <p>Digital invoice generated successfully</p>
                             </div>
+                            <button className="close-btn" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}><X size={20} /></button>
 
                             <div className="invoice-paper">
                                 <div className="invoice-header">

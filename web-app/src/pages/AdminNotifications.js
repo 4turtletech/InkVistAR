@@ -12,6 +12,7 @@ import {
     Search,
     Filter,
     Check,
+    Bell, // Import Bell icon for mark as unread
     Trash2,
     CheckCheck
 } from 'lucide-react';
@@ -120,6 +121,26 @@ function AdminNotifications() {
             console.error(e);
         }
     };
+
+    const markAsUnread = async (id) => {
+        // Computed alerts (inv- or apt-pending) don't have a backend state to mark as unread.
+        // They are transient and are re-generated on page load if conditions are met.
+        // For these, we will simply not perform any action.
+        if (id.toString().startsWith('inv-') || id === 'apt-pending') {
+            console.log(`Attempted to mark computed alert ${id} as unread. Not applicable as it's a client-side generated notification.`);
+            return;
+        }
+        try {
+            // The backend endpoint `/api/notifications/:id/read` supports a body with `is_read`.
+            // Sending `is_read: 0` will mark it as unread.
+            await Axios.put(`${API_URL}/api/notifications/${id}/read`, { is_read: 0 });
+            setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: 0 } : n));
+        } catch (e) {
+            console.error("Error marking notification as unread:", e);
+            // Optionally, show a user-friendly error message
+        }
+    };
+
 
     const filteredNotifs = notifications.filter(n => {
         const matchesSearch = n.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -233,10 +254,19 @@ function AdminNotifications() {
                                                 )}
                                                 {!n.is_read && (
                                                     <button 
-                                                        className="notif-btn ghost" 
+                                                        className="notif-btn ghost"
                                                         onClick={() => markAsRead(n.id)}
                                                     >
-                                                        <Check size={14} /> Mark as Ready
+                                                        <Check size={14} /> Mark as Read
+                                                    </button>
+                                                )}
+                                                {n.is_read && ( // Only show "Mark as Unread" for read notifications
+                                                    <button 
+                                                        className="notif-btn ghost"
+                                                        onClick={() => markAsUnread(n.id)}
+                                                        title="Mark as Unread"
+                                                    >
+                                                        <Bell size={14} /> Mark as Unread
                                                     </button>
                                                 )}
                                             </div>
@@ -334,7 +364,7 @@ function AdminNotifications() {
                     gap: 5px;
                 }
                 .notif-body {
-                    color: rgba(44, 38, 38, 0.7);
+                    color: rgba(255, 255, 255, 0.7);
                     font-size: 0.95rem;
                     line-height: 1.5;
                     margin-bottom: 15px;
@@ -365,7 +395,7 @@ function AdminNotifications() {
                 }
                 .notif-btn.ghost {
                     background: transparent;
-                    color: rgba(112, 96, 96, 0.6);
+                    color: rgba(255, 255, 255, 0.6);
                     border: 1px solid rgba(255, 255, 255, 0.1);
                 }
                 .notif-btn.ghost:hover {
