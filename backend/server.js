@@ -2048,7 +2048,24 @@ app.get('/api/artist/:artistId/availability', (req, res) => {
 // Customer book appointment
 app.post('/api/customer/appointments', (req, res) => {
   console.log('📅 Customer booking request:', req.body);
-  const { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price } = req.body;
+  let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price } = req.body;
+
+  // If the admin decides, the customer might not send an artistId.
+  // We need to find a default admin/manager to hold the appointment.
+  if (!artistId) {
+    db.query("SELECT id FROM users WHERE user_type = 'admin' LIMIT 1", (adminErr, adminRes) => {
+      if (!adminErr && adminRes.length > 0) {
+        processBooking(adminRes[0].id);
+      } else {
+        return res.status(500).json({ success: false, message: 'Studio management is currently unavailable for bookings.' });
+      }
+    });
+  } else {
+    processBooking(artistId);
+  }
+
+  function processBooking(finalArtistId) {
+    const currentArtistId = finalArtistId;
 
   // Validation for time and date
   // If startTime is provided (not a Tattoo Session), validate it
@@ -2090,7 +2107,7 @@ app.post('/api/customer/appointments', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_consultation', 0, 'Consultation')
   `;
 
-  db.query(query, [customerId, artistId, date, finalStartTime, finalEndTime, designTitle || 'Consultation Request', notes, referenceImage], (err, result) => {
+  db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || 'Consultation Request', notes, referenceImage], (err, result) => {
     if (err) {
       console.error('❌ Error booking appointment:', err);
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -2098,7 +2115,7 @@ app.post('/api/customer/appointments', (req, res) => {
 
     // Notify Artist
     const notifDate = date || 'an upcoming date';
-    createNotification(artistId, 'New Booking Request', `New request from client for ${notifDate}`, 'appointment_request', result.insertId);
+    createNotification(currentArtistId, 'New Booking Request', `New request from client for ${notifDate}. Please assign an artist.`, 'appointment_request', result.insertId);
 
     res.json({
       success: true,
@@ -2106,6 +2123,7 @@ app.post('/api/customer/appointments', (req, res) => {
       appointmentId: result.insertId
     });
   });
+  }
 });
 
 // Get customer's appointments

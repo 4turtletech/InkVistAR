@@ -29,7 +29,7 @@ function CustomerBookings(){
     const serviceOptions = ['Tattoo Session', 'Consultation', 'Piercing', 'Follow-up', 'Touch-up'];
     
     const [bookingData, setBookingData] = useState({
-        artistId: '',
+        artistId: null, // Artist selection is now optional for the customer
         serviceType: '',
         date: '',
         startTime: '',
@@ -74,7 +74,7 @@ function CustomerBookings(){
 
         // Handle auto-open from Gallery
         if (location.state?.autoOpenBooking) {
-            setBookingData(prev => ({ ...prev, artistId: location.state.artistId || '', designTitle: location.state.designTitle || '' }));
+            setBookingData(prev => ({ ...prev, designTitle: location.state.designTitle || '' }));
             setIsBookingModalOpen(true);
         }
     }, [location.state]);
@@ -493,28 +493,11 @@ function CustomerBookings(){
                                             </div>
                                         </div>
 
-                                        <div className="form-group" style={{ marginTop: '24px' }}>
-                                            <label style={{ fontWeight: '600', marginBottom: '12px', display: 'block' }}>Select your preferred Artist</label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                                {artists.map(a => (
-                                                    <div 
-                                                        key={a.id}
-                                                        onClick={() => setBookingData({...bookingData, artistId: a.id})}
-                                                        style={{
-                                                            padding: '12px', borderRadius: '12px', border: `2px solid ${bookingData.artistId == a.id ? '#daa520' : '#e2e8f0'}`,
-                                                            background: bookingData.artistId == a.id ? '#fffdf5' : 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px'
-                                                        }}
-                                                    >
-                                                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                            <User size={20} color="#64748b" />
-                                                        </div>
-                                                        <div>
-                                                            <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{a.name}</div>
-                                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{a.specialization}</div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                        <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                            <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', fontStyle: 'italic' }}>
+                                                <Info size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+                                                <strong>Artist Assignment:</strong> Our studio management will review your design and assign the best-suited resident artist for your specific style and complexity.
+                                            </p>
                                         </div>
                                     </div>
                                 )}
@@ -652,7 +635,7 @@ function CustomerBookings(){
                                         type="button" className="btn btn-primary" 
                                         onClick={() => setBookingStep(bookingStep + 1)}
                                         style={{ backgroundColor: '#1e293b', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                        disabled={(bookingStep === 1 && (!bookingData.serviceType || !bookingData.artistId)) || (bookingStep === 2 && !bookingData.designTitle)}
+                                        disabled={(bookingStep === 1 && !bookingData.serviceType) || (bookingStep === 2 && !bookingData.designTitle)}
                                     >
                                         Next Step <ArrowRight size={16}/>
                                     </button>
