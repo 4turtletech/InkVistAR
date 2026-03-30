@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
-import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
@@ -22,16 +22,21 @@ function CustomerBookings(){
 
     // New Booking Form States
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+    const [bookingStep, setBookingStep] = useState(1);
     const [artists, setArtists] = useState([]);
+    const [serviceTypes, setServiceTypes] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+    
     const [bookingData, setBookingData] = useState({
         artistId: '',
+        serviceType: '',
         date: '',
         startTime: '',
         designTitle: '',
         placement: '',
         notes: '',
-        referenceImage: null
+        referenceImage: null,
     });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,6 +71,14 @@ function CustomerBookings(){
             } catch (e) { console.error("Error fetching artists:", e); }
         };
         fetchArtists();
+
+        const fetchServices = async () => {
+            try {
+                const res = await Axios.get(`${API_URL}/api/admin/service-kits`);
+                if (res.data.success) setServiceTypes(Object.keys(res.data.data));
+            } catch (e) { console.error("Error fetching services:", e); }
+        };
+        fetchServices();
 
         // Handle auto-open from Gallery
         if (location.state?.autoOpenBooking) {
@@ -158,10 +171,41 @@ function CustomerBookings(){
         }
     };
 
+    // Calendar Logic
+    const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+    const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    const renderCalendarDays = () => {
+        const days = [];
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        for (let i = 0; i < firstDayOfMonth; i++) days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+        
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            const dateObj = new Date(dateStr);
+            const isPast = dateObj < today;
+            const isSelected = bookingData.date === dateStr;
+
+            days.push(
+                <div 
+                    key={i} 
+                    className={`calendar-day ${isPast ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
+                    onClick={() => !isPast && setBookingData({...bookingData, date: dateStr})}
+                >
+                    {i}
+                </div>
+            );
+        }
+        return days;
+    };
+
     const handleSubmitBooking = async (e) => {
         e.preventDefault();
-        if (!bookingData.artistId || !bookingData.date || !bookingData.startTime) {
-            showAlert("Missing Info", "Please select an artist, date, and preferred time.", "warning");
+        if (!bookingData.artistId || !bookingData.date || !bookingData.startTime || !bookingData.serviceType || !bookingData.placement) {
+            showAlert("Missing Info", "Please select an artist, service, placement, date, and time.", "warning");
             return;
         }
 
@@ -172,15 +216,16 @@ function CustomerBookings(){
                 artistId: bookingData.artistId,
                 date: bookingData.date,
                 startTime: bookingData.startTime,
+                serviceType: bookingData.serviceType,
                 designTitle: bookingData.designTitle,
                 notes: `Placement: ${bookingData.placement}\n\nDetails: ${bookingData.notes}`,
                 referenceImage: bookingData.referenceImage
             });
 
             if (res.data.success) {
-                showAlert("Booking Requested", "Your consultation request has been sent! Check your notifications for updates.", "success");
+                showAlert("Booking Requested", "Your session request has been sent! Check your notifications for updates.", "success");
                 setIsBookingModalOpen(false);
-                setBookingData({ artistId: '', date: '', startTime: '', designTitle: '', placement: '', notes: '', referenceImage: null });
+                setBookingData({ artistId: '', serviceType: '', date: '', startTime: '', designTitle: '', placement: '', notes: '', referenceImage: null });
                 // Refresh list
                 const fetchRes = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
                 if (fetchRes.data.success) setAppointments(fetchRes.data.appointments);
@@ -192,6 +237,10 @@ function CustomerBookings(){
         }
     };
 
+    const bodyParts = [
+        "Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Hand", "Neck", "Wrist", "Ankle"
+    ];
+
     return (
         <div className="portal-layout">
             <CustomerSideNav />
@@ -201,7 +250,7 @@ function CustomerBookings(){
                     <h1>My Bookings</h1>
                 </div>
                 <div className="header-actions">
-                    <button className="action-btn" onClick={() => setIsBookingModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                    <button className="action-btn" onClick={() => { setBookingStep(1); setIsBookingModalOpen(true); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
                         <Plus size={16} /> Book New Session
                     </button>
                 </div>
@@ -411,72 +460,244 @@ function CustomerBookings(){
             {/* Custom New Booking Modal */}
             {isBookingModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '700px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="modal-content" style={{ maxWidth: '800px', width: '95%', maxHeight: '90vh', overflowY: 'auto', padding: 0 }}>
                         <div className="modal-header">
-                            <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><Plus size={24} color="#daa520" /> New Tattoo Consultation</h2>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}><Sparkles size={24} color="#daa520" /> Book Your Next Masterpiece</h2>
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                    {[1, 2, 3, 4].map(step => (
+                                        <div key={step} style={{ 
+                                            height: '4px', flex: 1, borderRadius: '2px',
+                                            background: bookingStep >= step ? '#daa520' : '#e2e8f0',
+                                            transition: 'all 0.3s'
+                                        }} />
+                                    ))}
+                                </div>
+                            </div>
                             <button className="close-btn" onClick={() => setIsBookingModalOpen(false)}><X size={24} /></button>
                         </div>
+                        
                         <form onSubmit={handleSubmitBooking}>
-                            <div className="modal-body">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                    <div className="form-group">
-                                        <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Choose Your Artist</label>
-                                        <select 
-                                            className="form-input" 
-                                            required 
-                                            value={bookingData.artistId}
-                                            onChange={e => setBookingData({...bookingData, artistId: e.target.value})}
-                                        >
-                                            <option value="">Select an Artist</option>
-                                            {artists.map(a => <option key={a.id} value={a.id}>{a.name} ({a.specialization})</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Tattoo Idea / Title</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-input" 
-                                            placeholder="e.g. Traditional Dagger" 
-                                            value={bookingData.designTitle}
-                                            onChange={e => setBookingData({...bookingData, designTitle: e.target.value})}
-                                        />
-                                    </div>
-                                </div>
+                            <div className="modal-body" style={{ padding: '24px' }}>
+                                
+                                {bookingStep === 1 && (
+                                    <div className="fade-in">
+                                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>1. Service & Artist</h3>
+                                        <div className="form-group">
+                                            <label style={{ fontWeight: '600', marginBottom: '12px', display: 'block' }}>What type of service are you looking for?</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+                                                {serviceTypes.map(type => (
+                                                    <div 
+                                                        key={type}
+                                                        onClick={() => setBookingData({...bookingData, serviceType: type})}
+                                                        style={{
+                                                            padding: '16px', borderRadius: '12px', border: `2px solid ${bookingData.serviceType === type ? '#daa520' : '#e2e8f0'}`,
+                                                            background: bookingData.serviceType === type ? '#fffdf5' : 'white', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'
+                                                        }}
+                                                    >
+                                                        <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>{type}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
-                                    <div className="form-group">
-                                        <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Placement on Body</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-input" 
-                                            placeholder="e.g. Outer Forearm" 
-                                            value={bookingData.placement}
-                                            onChange={e => setBookingData({...bookingData, placement: e.target.value})}
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Reference Image</label>
-                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                            <label className="btn btn-secondary" style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.85rem' }}>
-                                                <Upload size={16} /> {bookingData.referenceImage ? 'Change Image' : 'Upload Reference'}
-                                                <input type="file" hidden accept="image/*" onChange={handleImageUpload} />
-                                            </label>
-                                            {bookingData.referenceImage && <div style={{ width: '40px', height: '40px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #e2e8f0' }}><img src={bookingData.referenceImage} alt="ref" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>}
+                                        <div className="form-group" style={{ marginTop: '24px' }}>
+                                            <label style={{ fontWeight: '600', marginBottom: '12px', display: 'block' }}>Select your preferred Artist</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                {artists.map(a => (
+                                                    <div 
+                                                        key={a.id}
+                                                        onClick={() => setBookingData({...bookingData, artistId: a.id})}
+                                                        style={{
+                                                            padding: '12px', borderRadius: '12px', border: `2px solid ${bookingData.artistId == a.id ? '#daa520' : '#e2e8f0'}`,
+                                                            background: bookingData.artistId == a.id ? '#fffdf5' : 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px'
+                                                        }}
+                                                    >
+                                                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <User size={20} color="#64748b" />
+                                                        </div>
+                                                        <div>
+                                                            <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{a.name}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{a.specialization}</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
-                                    <div className="form-group">
-                                        <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Preferred Date</label>
-                                        <input type="date" className="form-input" required value={bookingData.date} onChange={e => setBookingData({...bookingData, date: e.target.value})} min={new Date().toISOString().split('T')[0]} />
+                                {bookingStep === 2 && (
+                                    <div className="fade-in">
+                                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>2. Design Details</h3>
+                                        <div className="form-group">
+                                            <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Tattoo Idea / Title</label>
+                                            <input 
+                                                type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
+                                                value={bookingData.designTitle} onChange={e => setBookingData({...bookingData, designTitle: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="form-group" style={{ marginTop: '16px' }}>
+                                            <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Tell us your story (Optional)</label>
+                                            <textarea 
+                                                className="form-input" rows="4" placeholder="Describe the size, color preferences, and any meaningful details..."
+                                                value={bookingData.notes} onChange={e => setBookingData({...bookingData, notes: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="form-group" style={{ marginTop: '16px' }}>
+                                            <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Reference Image</label>
+                                            <div 
+                                                onClick={() => document.getElementById('modal-ref-img').click()}
+                                                style={{ 
+                                                    height: '120px', border: '2px dashed #e2e8f0', borderRadius: '12px', 
+                                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+                                                    cursor: 'pointer', background: bookingData.referenceImage ? '#f8fafc' : 'transparent', overflow: 'hidden'
+                                                }}
+                                            >
+                                                {bookingData.referenceImage ? (
+                                                    <img src={bookingData.referenceImage} alt="Ref" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                ) : (
+                                                    <>
+                                                        <ImageIcon size={24} color="#94a3b8" />
+                                                        <span style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '8px' }}>Upload a photo or sketch</span>
+                                                    </>
+                                                )}
+                                                <input type="file" id="modal-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="form-group">
-                                        <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Preferred Time</label>
-                                        <select className="form-input" required value={bookingData.startTime} onChange={e => setBookingData({...bookingData, startTime: e.target.value})}>
-                                            <option value="">Select Time Slot</option>
-                                            {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'].map(t => (
-                                                <option key={t} value={t}>{t === '13:00' ? '1:00 PM' : t === '20:00' ? '8:00 PM' : (parseInt(t)-12) + ':00 PM'}</option>
+                                )}
+
+                                {bookingStep === 3 && (
+                                    <div className="fade-in">
+                                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>3. Placement</h3>
+                                        <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '16px' }}>Where would you like your tattoo?</p>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                                            {["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"].map(part => (
+                                                <button
+                                                    key={part} type="button"
+                                                    onClick={() => setBookingData({...bookingData, placement: part})}
+                                                    style={{
+                                                        padding: '12px', borderRadius: '10px', border: `1px solid ${bookingData.placement === part ? '#daa520' : '#e2e8f0'}`,
+                                                        background: bookingData.placement === part ? '#daa520' : 'white',
+                                                        color: bookingData.placement === part ? 'white' : '#1e293b',
+                                                        fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    {part}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="form-group" style={{ marginTop: '20px' }}>
+                                            <label style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '8px' }}>Specific location notes</label>
+                                            <input 
+                                                type="text" className="form-input" placeholder="e.g. Left inner forearm, near elbow" 
+                                                value={bookingData.placementNotes} onChange={e => setBookingData({...bookingData, placementNotes: e.target.value})} 
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {bookingStep === 4 && (
+                                    <div className="fade-in">
+                                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>4. Schedule Your Session</h3>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
+                                            <div className="calendar-container" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                    <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><ChevronLeft size={20}/></button>
+                                                    <span style={{ fontWeight: 'bold' }}>{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
+                                                    <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><ChevronRight size={20}/></button>
+                                                </div>
+                                                <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem' }}>
+                                                    {['S','M','T','W','T','F','S'].map(d => <div key={d} style={{ color: '#94a3b8', fontWeight: 'bold', padding: '8px 0' }}>{d}</div>)}
+                                                    {renderCalendarDays()}
+                                                </div>
+                                            </div>
+                                            <div className="time-slots">
+                                                <label style={{ fontWeight: '600', marginBottom: '12px', display: 'block' }}>Preferred Time Slot</label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                                                    {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => (
+                                                        <div 
+                                                            key={t}
+                                                            onClick={() => setBookingData({...bookingData, startTime: t})}
+                                                            style={{
+                                                                padding: '12px', borderRadius: '8px', border: `1px solid ${bookingData.startTime === t ? '#daa520' : '#e2e8f0'}`,
+                                                                background: bookingData.startTime === t ? '#daa520' : 'white',
+                                                                color: bookingData.startTime === t ? 'white' : '#1e293b',
+                                                                textAlign: 'center', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem'
+                                                            }}
+                                                        >
+                                                            {parseInt(t) > 12 ? (parseInt(t)-12) + ':00 PM' : t + ':00 PM'}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {bookingData.date && bookingData.startTime && (
+                                            <div style={{ marginTop: '24px', padding: '16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <CheckCircle size={20} color="#16a34a" />
+                                                <span style={{ fontSize: '0.9rem', color: '#166534', fontWeight: '500' }}>
+                                                    Selected: {new Date(bookingData.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} at {bookingData.startTime}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="modal-footer" style={{ background: '#f8fafc', padding: '16px 24px', display: 'flex', justifyContent: 'space-between' }}>
+                                <button 
+                                    type="button" className="btn btn-secondary" 
+                                    onClick={() => bookingStep === 1 ? setIsBookingModalOpen(false) : setBookingStep(bookingStep - 1)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                                >
+                                    {bookingStep === 1 ? 'Cancel' : <><ArrowLeft size={16}/> Previous</>}
+                                </button>
+                                
+                                {bookingStep < 4 ? (
+                                    <button 
+                                        type="button" className="btn btn-primary" 
+                                        onClick={() => setBookingStep(bookingStep + 1)}
+                                        style={{ backgroundColor: '#1e293b', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        disabled={(bookingStep === 1 && (!bookingData.serviceType || !bookingData.artistId)) || (bookingStep === 2 && !bookingData.designTitle)}
+                                    >
+                                        Next Step <ArrowRight size={16}/>
+                                    </button>
+                                ) : (
+                                    <button 
+                                        type="submit" className="btn btn-primary" 
+                                        disabled={isSubmitting || !bookingData.date || !bookingData.startTime} 
+                                        style={{ backgroundColor: '#daa520', border: 'none', minWidth: '180px' }}
+                                    >
+                                        {isSubmitting ? 'Submitting...' : 'Request Session'}
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                .calendar-day {
+                    aspect-ratio: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    border-radius: 8px;
+                    transition: all 0.2s;
+                }
+                .calendar-day:hover:not(.disabled) { background: #f1f5f9; }
+                .calendar-day.selected { background: #daa520 !important; color: white !important; font-weight: bold; }
+                .calendar-day.disabled { opacity: 0.2; cursor: not-allowed; }
+                .fade-in { animation: fadeIn 0.3s ease-in-out; }
+                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+            `}</style>
+
+            <ConfirmModal 
+                isOpen={confirmModal.isOpen}
                                             ))}
                                         </select>
                                     </div>
