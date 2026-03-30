@@ -127,8 +127,9 @@ function AdminClients() {
             isOpen: true,
             title: 'Deactivate Client',
             message: `Are you sure you want to deactivate ${selectedClient.name}?`,
+            type: 'danger',
             onConfirm: async () => {
-                setConfirmDialog({ isOpen: false });
+                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
                 await Axios.delete(`${API_URL}/api/admin/users/${selectedClient.id}`);
                 closeModal();
                 fetchClients();
@@ -151,8 +152,9 @@ function AdminClients() {
             title: 'Permanent Deletion',
             message: 'This will PERMANENTLY delete the client. Continue?',
             confirmText: 'Permanently Delete',
+            type: 'danger',
             onConfirm: async () => {
-                setConfirmDialog({ isOpen: false });
+                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
                 try {
                     await Axios.delete(`${API_URL}/api/admin/users/${id}/permanent`);
                     fetchClients();
@@ -378,7 +380,7 @@ function AdminClients() {
 
                 <ConfirmModal 
                     {...confirmDialog} 
-                    onCancel={() => setConfirmDialog({ isOpen: false })} 
+                    onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} 
                 />
             </div>
         </div>
