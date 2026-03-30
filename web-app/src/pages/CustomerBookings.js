@@ -196,8 +196,8 @@ function CustomerBookings(){
 
     const handleSubmitBooking = async (e) => {
         e.preventDefault();
-        if (!bookingData.artistId || !bookingData.date || !bookingData.startTime || !bookingData.serviceType || !bookingData.placement) {
-            showAlert("Missing Info", "Please select an artist, service, placement, date, and time.", "warning");
+        if (!bookingData.date || !bookingData.startTime || !bookingData.serviceType || !bookingData.placement) {
+            showAlert("Missing Info", "Please select a service, placement, date, and time.", "warning");
             return;
         }
 
@@ -474,7 +474,7 @@ function CustomerBookings(){
                                 
                                 {bookingStep === 1 && (
                                     <div className="fade-in">
-                                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>1. Service & Artist</h3>
+                                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>1. Service Type</h3>
                                         <div className="form-group">
                                             <label style={{ fontWeight: '600', marginBottom: '12px', display: 'block' }}>What type of service are you looking for?</label>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
