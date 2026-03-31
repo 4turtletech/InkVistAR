@@ -2132,7 +2132,7 @@ app.get('/api/customer/:customerId/appointments', (req, res) => {
   const query = `
     SELECT ap.*, ap.price, u.name as artist_name, u.email as artist_email, 
            COALESCE(a.studio_name, 'Independent Artist') as studio_name,
-           (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100 as total_paid
+           ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid
     FROM appointments ap
     JOIN users u ON ap.artist_id = u.id
     LEFT JOIN artists a ON u.id = a.user_id
@@ -2329,7 +2329,7 @@ app.get('/api/admin/appointments', (req, res) => {
       u_cust.email as client_email,
       u_art.name as artist_name,
       ar.commission_rate,
-      (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100 as total_paid
+      ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid
     FROM appointments ap
     JOIN users u_cust ON ap.customer_id = u_cust.id
     JOIN users u_art ON ap.artist_id = u_art.id
@@ -2789,7 +2789,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
     const checkoutQuery = `
       SELECT 
         ap.id, ap.price, ap.customer_id, ap.artist_id, ap.status, ap.design_title,
-        (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') as total_paid_centavos
+        (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') + (COALESCE(ap.manual_paid_amount, 0) * 100) as total_paid_centavos
       FROM appointments ap
       WHERE ap.id = ? AND ap.is_deleted = 0
     `;

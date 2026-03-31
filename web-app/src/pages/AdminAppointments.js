@@ -900,21 +900,24 @@ function AdminAppointments() {
                                             type="number"
                                             value={formData.price}
                                             onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                            className="premium-select-v2"
+                                            className="premium-input-v2"
                                             style={{ width: '100%', backgroundImage: 'none' }}
                                             placeholder="e.g. 35000"
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label>Paid Amount (Manual Adjustment) (₱)</label>
+                                        <label>Manual Paid Adjustment (Cash/Direct) (₱)</label>
                                         <input
                                             type="number"
                                             value={formData.manualPaidAmount}
                                             onChange={(e) => setFormData({ ...formData, manualPaidAmount: e.target.value })}
-                                            className="premium-select-v2"
+                                            className="premium-input-v2"
                                             style={{ width: '100%', backgroundImage: 'none' }}
                                             placeholder="e.g. 5000"
                                         />
+                                        <div style={{ marginTop: '5px', fontSize: '0.72rem', color: '#64748b' }}>
+                                            Online Payments: ₱{(selectedAppointment?.totalPaid - selectedAppointment?.manualPaidAmount || 0).toLocaleString()}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="form-group">
