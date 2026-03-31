@@ -2446,29 +2446,14 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
 
   // Fetch current balance to prevent overpayment
   const checkQuery = `
-    SELECT price, 
+    SELECT price,
     ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) as total_paid
     FROM appointments ap WHERE id = ?
   `;
 
   db.query(checkQuery, [id], (checkErr, results) => {
     if (checkErr || !results.length) return res.status(500).json({ success: false, message: 'Database error' });
-    
-    const remaining = results[0].price - results[0].total_paid;
-    if (amount > remaining + 0.01) { // Adding small epsilon for float precision
-      return res.status(400).json({ success: false, message: `Amount exceeds remaining balance of ₱${remaining.toLocaleString()}` });
-    }
 
-  // Fetch current balance to prevent overpayment
-  const checkQuery = `
-    SELECT price, 
-    ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) as total_paid
-    FROM appointments ap WHERE id = ?
-  `;
-
-  db.query(checkQuery, [id], (checkErr, results) => {
-    if (checkErr || !results.length) return res.status(500).json({ success: false, message: 'Database error' });
-    
     const remaining = results[0].price - results[0].total_paid;
     if (amount > remaining + 0.01) { // Adding small epsilon for float precision
       return res.status(400).json({ success: false, message: `Amount exceeds remaining balance of ₱${remaining.toLocaleString()}` });
@@ -2476,18 +2461,18 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
 
     const amountCentavos = Math.round(parseFloat(amount) * 100);
     const paymentId = `MANUAL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const rawEvent = JSON.stringify({ 
-      type: 'manual_adjustment', 
-      method: method || 'Cash', 
-      timestamp: new Date().toISOString() 
+    const rawEvent = JSON.stringify({
+      type: 'manual_adjustment',
+      method: method || 'Cash',
+      timestamp: new Date().toISOString()
     });
 
-    db.query(`INSERT INTO payments (appointment_id, paymongo_payment_id, amount, status, raw_event) VALUES (?, ?, ?, 'paid', ?)`, 
+    db.query(`INSERT INTO payments (appointment_id, paymongo_payment_id, amount, status, raw_event) VALUES (?, ?, ?, 'paid', ?)`,
     [id, paymentId, amountCentavos, rawEvent], (err) => {
       if (err) return res.status(500).json({ success: false, message: 'Database error' });
 
       const updateStatusQuery = `
-        UPDATE appointments SET payment_status = CASE 
+        UPDATE appointments SET payment_status = CASE
           WHEN ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount >= price THEN 'paid'
           ELSE 'downpayment_paid'
         END WHERE id = ?
@@ -4412,3 +4397,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   GET  http://localhost:${PORT}/api/customer/dashboard/1`);
   console.log('='.repeat(50) + '\n');
 });
+
+// Export for testing
+module.exports = { app, server, io };
