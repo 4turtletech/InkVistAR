@@ -2444,36 +2444,57 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
     return res.status(400).json({ success: false, message: 'Please enter a valid positive amount.' });
   }
 
-  const amountCentavos = Math.round(parseFloat(amount) * 100);
-  const paymentId = `MANUAL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  const rawEvent = JSON.stringify({ 
-    type: 'manual_adjustment', 
-    method: method || 'Cash', 
-    timestamp: new Date().toISOString() 
-  });
-
-  // 1. Record in payments table for history
-  const query = `
-    INSERT INTO payments (appointment_id, paymongo_payment_id, amount, status, raw_event)
-    VALUES (?, ?, ?, 'paid', ?)
+  // Fetch current balance to prevent overpayment
+  const checkQuery = `
+    SELECT price, 
+    ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) as total_paid
+    FROM appointments ap WHERE id = ?
   `;
 
-  db.query(query, [id, paymentId, amountCentavos, rawEvent], (err) => {
-    if (err) {
-      console.error('❌ Error recording manual payment:', err);
-      return res.status(500).json({ success: false, message: 'Database error' });
+  db.query(checkQuery, [id], (checkErr, results) => {
+    if (checkErr || !results.length) return res.status(500).json({ success: false, message: 'Database error' });
+    
+    const remaining = results[0].price - results[0].total_paid;
+    if (amount > remaining + 0.01) { // Adding small epsilon for float precision
+      return res.status(400).json({ success: false, message: `Amount exceeds remaining balance of ₱${remaining.toLocaleString()}` });
     }
 
-    // 2. Auto-update payment status based on new totals
-    const updateStatusQuery = `
-      UPDATE appointments SET payment_status = CASE 
-        WHEN ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount >= price THEN 'paid'
-        ELSE 'downpayment_paid'
-      END WHERE id = ?
-    `;
-    db.query(updateStatusQuery, [id, id]);
+  // Fetch current balance to prevent overpayment
+  const checkQuery = `
+    SELECT price, 
+    ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) as total_paid
+    FROM appointments ap WHERE id = ?
+  `;
 
-    res.json({ success: true, message: 'Payment recorded successfully' });
+  db.query(checkQuery, [id], (checkErr, results) => {
+    if (checkErr || !results.length) return res.status(500).json({ success: false, message: 'Database error' });
+    
+    const remaining = results[0].price - results[0].total_paid;
+    if (amount > remaining + 0.01) { // Adding small epsilon for float precision
+      return res.status(400).json({ success: false, message: `Amount exceeds remaining balance of ₱${remaining.toLocaleString()}` });
+    }
+
+    const amountCentavos = Math.round(parseFloat(amount) * 100);
+    const paymentId = `MANUAL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const rawEvent = JSON.stringify({ 
+      type: 'manual_adjustment', 
+      method: method || 'Cash', 
+      timestamp: new Date().toISOString() 
+    });
+
+    db.query(`INSERT INTO payments (appointment_id, paymongo_payment_id, amount, status, raw_event) VALUES (?, ?, ?, 'paid', ?)`, 
+    [id, paymentId, amountCentavos, rawEvent], (err) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error' });
+
+      const updateStatusQuery = `
+        UPDATE appointments SET payment_status = CASE 
+          WHEN ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount >= price THEN 'paid'
+          ELSE 'downpayment_paid'
+        END WHERE id = ?
+      `;
+      db.query(updateStatusQuery, [id, id]);
+      res.json({ success: true, message: 'Payment recorded successfully' });
+    });
   });
 });
 

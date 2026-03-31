@@ -9,7 +9,7 @@ const PayMongoPayment = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const stateData = location.state || { appointmentId: null, price: 0, type: null, remainingBalance: 0 };
-    const { appointmentId, price, type } = stateData;
+    const { appointmentId, price, type, remainingBalance } = stateData;
 
     const [status, setStatus] = useState(type === 'balance' ? 'initializing' : 'selection'); // selection, initializing, ready, processing, failed
     const [paymentType, setPaymentType] = useState(type === 'balance' ? 'balance' : 'deposit');
@@ -40,6 +40,13 @@ const PayMongoPayment = () => {
                 setStatus('selection');
                 return;
             }
+
+            if (paymentType === 'custom' && Number(customAmount) > remainingBalance) {
+                alert(`Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString()}. Please enter a lower amount.`);
+                setStatus('selection');
+                return;
+            }
+
             // Defensively cast all values to scalar types to avoid circular references (like React events)
             const payload = {
                 appointmentId: appointmentId ? String(appointmentId) : null,

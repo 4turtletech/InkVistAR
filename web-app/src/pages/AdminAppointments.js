@@ -288,7 +288,15 @@ function AdminAppointments() {
     };
 
     const handleApplyManualPayment = async () => {
-        if (!manualPaymentModal.amount || manualPaymentModal.amount <= 0) return;
+        const remainingBalance = Math.max(0, formData.price - (selectedAppointment?.totalPaid || 0));
+        const inputAmount = parseFloat(manualPaymentModal.amount);
+
+        if (!inputAmount || inputAmount <= 0) return;
+
+        if (inputAmount > remainingBalance) {
+            alert(`Error: Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString()}`);
+            return;
+        }
         
         try {
             const res = await Axios.post(`${API_URL}/api/admin/appointments/${selectedAppointment.id}/manual-payment`, {
@@ -841,7 +849,17 @@ function AdminAppointments() {
                                         <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', marginTop: '15px', border: '1px solid #e2e8f0' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                                 <label style={{ margin: 0 }}>Financial Summary</label>
-                                                <button type="button" className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '5px' }} onClick={() => setManualPaymentModal({ ...manualPaymentModal, isOpen: true, amount: '' })}>
+                                                <button 
+                                                    type="button" 
+                                                    className="btn btn-secondary" 
+                                                    style={{ 
+                                                        padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '5px',
+                                                        opacity: (!selectedAppointment || (selectedAppointment.totalPaid >= formData.price)) ? 0.5 : 1,
+                                                        cursor: (!selectedAppointment || (selectedAppointment.totalPaid >= formData.price)) ? 'not-allowed' : 'pointer'
+                                                    }} 
+                                                    onClick={() => selectedAppointment && (selectedAppointment.totalPaid < formData.price) && setManualPaymentModal({ ...manualPaymentModal, isOpen: true, amount: '' })}
+                                                    disabled={!selectedAppointment || (selectedAppointment.totalPaid >= formData.price)}
+                                                >
                                                     <Plus size={14} /> Adjust Manually
                                                 </button>
                                             </div>
