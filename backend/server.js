@@ -4398,5 +4398,3 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('='.repeat(50) + '\n');
 });
 
-// Export for testing
-module.exports = { app, server, io };

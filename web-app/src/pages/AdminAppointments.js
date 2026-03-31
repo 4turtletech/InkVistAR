@@ -103,6 +103,7 @@ function AdminAppointments() {
                 }));
                 setAppointments(mappedAppointments);
                 setFilteredAppointments(mappedAppointments);
+                setLoading(false);
                 return mappedAppointments;
             }
             setLoading(false);
