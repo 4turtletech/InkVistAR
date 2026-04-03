@@ -88,7 +88,6 @@ function ArtistNotifications() {
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Notification Center</h1>
-                        <p className="header-subtitle">Stay updated with your latest sessions and requests</p>
                     </div>
                     <div className="header-actions">
                         <button className="premium-btn primary" onClick={markAllRead}>
@@ -97,6 +96,8 @@ function ArtistNotifications() {
                         </button>
                     </div>
                 </header>
+
+                <p className="header-subtitle" style={{ marginTop: '-3.5rem', marginBottom: '2.5rem', marginRight: '-5.5rem', textAlign: 'left' }}>Stay updated with your latest sessions and requests</p>
 
                 <div className="portal-content">
                     {loading ? (
@@ -156,4 +157,4 @@ function ArtistNotifications() {
     );
 }
 
-export default ArtistNotifications;
+export default ArtistNotifications;

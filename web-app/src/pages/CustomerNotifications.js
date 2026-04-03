@@ -120,7 +120,6 @@ function CustomerNotifications() {
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Updates & Alerts</h1>
-                        <p className="header-subtitle">Stay informed about your tattoo journey</p>
                     </div>
                     <div className="header-actions">
                         <button className="premium-btn primary" onClick={markAllRead}>
@@ -129,6 +128,8 @@ function CustomerNotifications() {
                         </button>
                     </div>
                 </header>
+
+                <p className="header-subtitle" style={{ marginTop: '-3.5rem', marginBottom: '2.5rem', marginRight: '-5.5rem', textAlign: 'left' }}>Stay informed about your tattoo journey</p>
 
                 <div className="portal-stats-row" style={{ display: 'flex', gap: '20px', marginBottom: '25px' }}>
                     <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center' }}>

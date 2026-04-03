@@ -116,7 +116,6 @@ function CustomerGallery(){
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Inspiration Gallery</h1>
-                        <p className="header-subtitle">Explore verified artwork and save your favorites</p>
                     </div>
                     
                     <div className="header-actions">
@@ -132,6 +131,8 @@ function CustomerGallery(){
                         </div>
                     </div>
                 </header>
+
+                <p className="header-subtitle" style={{ marginTop: '-3.5rem', marginBottom: '2.5rem', marginRight: '-5.5rem', textAlign: 'left' }}>Explore verified artwork and save your favorites</p>
 
                 <div className="portal-content">
                     {/* View Tabs */}
