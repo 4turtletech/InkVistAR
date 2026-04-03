@@ -52,7 +52,7 @@ function CustomerPortal() {
             const res = await Axios.get(`${API_URL}/api/notifications/${customerId}`);
             if (res.data.success) {
                 const sortedNotifs = res.data.notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                setNotifications(sortedNotifs.slice(0, 10));
+                setNotifications(sortedNotifs.slice(0, 5));
                 setUnreadCount(sortedNotifs.filter(n => !n.is_read).length);
             }
         } catch (error) {
@@ -150,10 +150,11 @@ function CustomerPortal() {
                             )}
                         </div>
                         {customer.profile_image && (
-                            <div style={{
+                            <div onClick={() => navigate('/customer/profile')} style={{
                                 width: '40px', height: '40px', borderRadius: '50%',
                                 overflow: 'hidden', border: '2px solid white',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginRight: '15px'
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginRight: '15px',
+                                cursor: 'pointer'
                             }}>
                                 <img src={customer.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             </div>
@@ -355,8 +356,8 @@ function CustomerPortal() {
                             .notif-trigger-btn:hover { background: rgba(0,0,0,0.05); color: #1e293b; }
                             .notif-badge-dot {
                                 position: absolute;
-                                top: 8px;
-                                right: 8px;
+                                top: 5px;
+                                right: 5px;
                                 width: 10px;
                                 height: 10px;
                                 background-color: #ef4444;
