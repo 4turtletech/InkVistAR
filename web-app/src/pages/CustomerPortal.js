@@ -85,7 +85,6 @@ function CustomerPortal() {
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Customer Dashboard</h1>
-                        <p className="header-subtitle">Welcome back, {customer.name || 'Inker'}!</p>
                     </div>
                     <div className="header-actions">
                         {customer.profile_image && (
@@ -103,6 +102,8 @@ function CustomerPortal() {
                         </button>
                     </div>
                 </header>
+
+                <p className="header-subtitle" style={{ marginTop: '-2rem', marginBottom: '2.5rem' }}>Welcome back, {customer.name || 'Inker'}!</p>
 
                 <div className="portal-content">
                     {loading ? (
