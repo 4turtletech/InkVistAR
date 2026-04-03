@@ -4114,24 +4114,24 @@ app.get('/api/invoices/:orderId', (req, res) => {
 function getFallbackResponse(message) {
   const msg = message.toLowerCase();
   if (msg.includes('price') || msg.includes('cost') || msg.includes('rate')) {
-    return "Our artists usually charge between $100 - $150 per hour. It varies by design size and complexity.";
+    return "Our tattoo's can usually charge between as low as Php 5,000.00 for minimalist tattoo designs up to Php 400,000.00 for a detailed full back tattoos. It varies by design, size, and complexity.";
   }
-  if (msg.includes('book') || msg.includes('appointment') || msg.includes('schedule')) {
-    return "You can book an appointment by going to the 'Artists' tab and selecting 'Book Now'.";
+  if (msg.includes('book') || msg.includes('appointment') || msg.includes('schedule') || msg.includes('consultation') || msg.includes('session')) {
+    return "You can book an appointment by going to the 'Book Consultation' tab on our landing page and go from there or you can log in to your account and book from there as well!";
   }
   if (msg.includes('location') || msg.includes('where') || msg.includes('address')) {
-    return "We are located at 123 Art Street, New York, NY 10001.";
+    return "We are located at the Ground Floor, W Tower, 32nd Street, corner 9th Ave, Taguig, 1634 Metro Manila, Philippines";
   }
-  if (msg.includes('style') || msg.includes('design')) {
-    return "We specialize in Realism, Traditional, Japanese, and Fine Line tattoos.";
+  if (msg.includes('style') || msg.includes('design') ) {
+    return "We specialize in any tattoo design you desire. From traditional to modern, we can bring your vision to life. Check out our 'Portfolio' on our landing page to see examples of our work!";
   }
-  if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey')) {
+  if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey') || msg.includes('help') || msg.includes('question') || msg.includes('info') || msg.includes('assist') || msg.includes('support') || msg.includes('inquire') || msg.includes('ask') || msg.includes('greet') || msg.includes('sup') || msg.includes('yo') || msg.includes('what\'s up') || msg.includes('how are you')) {
     return "Hi there! I'm InkVistAR's assistant. How can I help you today?";
   }
-  if (msg.includes('care') || msg.includes('heal')) {
-    return "Keep your new tattoo clean, moisturize with unscented lotion, and avoid sun/swimming for 2 weeks.";
+  if (msg.includes('care') || msg.includes('heal') || msg.includes('clean') || msg.includes('after')) {
+    return "Keep your fresh ink clean, moisturized, and healing perfectly by following these daily steps:\n\n1. Unwrap: Remove the plastic wrap exactly 3 hours after your session.\n2. Wash Gently: Clean the area using warm water and a mild liquid soap, like Dove or Cetaphil.\n3. Pat Dry: Use only a clean paper towel or tissue to avoid bacteria or fuzz from bath towels.\n4. Apply Ointment: Wash your hands, then apply a very thin layer of tattoo aftercare ointment.\n5. Repeat Daily: Do this routine 2 to 3 times a day for 7 to 10 days until the peeling stops.\n6. Switch to Lotion: Once completely peeled, switch to a daily moisturizer to keep it vibrant.";
   }
-  return "I'm currently in offline mode. Please contact us at (555) 123-4567 for more details, or try asking about prices, booking, or styles.";
+  return "I am currently unavailable due to token response limitations. Please try again later.";
 }
 
 // ========== AR FEATURES ==========
