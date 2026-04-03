@@ -117,7 +117,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             });
 
             if (response.data.success) {
-                setStep(4); // Show new consultation completed screen
+                setStep(5); // Show consultation completed screen on step 5
             } else {
                 alert('Request Failed: ' + (response.data.message || 'An unknown error occurred.'));
             }
@@ -233,39 +233,6 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             </h3>
             <p style={{color: '#64748b', marginBottom: '32px'}}>Tell us roughly what you're looking for so we can match you with the right artist. All fields are required.</p>
 
-            {/* Customer Contact Information (if not logged in) */}
-            {!user && (
-                <div style={{ marginBottom: '32px', padding: '20px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                    <h4 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#1e293b', marginBottom: '15px' }}>Your Contact Information</h4>
-                    <div className="form-group" style={{ marginBottom: '15px' }}>
-                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Your Full Name *</label>
-                        <input
-                            type="text"
-                            className="form-input"
-                            placeholder="John Doe"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: '15px' }}>
-                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Your Email *</label>
-                        <input
-                            type="email"
-                            className="form-input"
-                            placeholder="john.doe@example.com"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Your Phone Number *</label>
-                        <input type="tel" className="form-input" placeholder="+639171234567" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required />
-                    </div>
-                </div>
-            )}
-            
             <div className="form-group" style={{marginBottom: '24px'}}>
                 <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Tattoo Idea / Style *</label>
                 <input
@@ -375,6 +342,50 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         </div>
     );
 
+    const renderStepContact = () => (
+        <div className="fade-in">
+            <h3 style={{fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <User className="text-bronze" size={24} /> 4. Contact Information
+            </h3>
+            <p style={{color: '#64748b', marginBottom: '32px'}}>How should we reach out to you regarding your request?</p>
+
+            <div style={{ padding: '32px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                    <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Full Name *</label>
+                    <input
+                        type="text"
+                        className="form-input"
+                        placeholder="John Doe"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        disabled={!!user}
+                    />
+                </div>
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                    <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Email Address *</label>
+                    <input
+                        type="email"
+                        className="form-input"
+                        placeholder="john.doe@example.com"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        disabled={!!user}
+                    />
+                </div>
+                <div className="form-group">
+                    <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Phone Number *</label>
+                    <input 
+                        type="tel" 
+                        className="form-input" 
+                        placeholder="+639171234567" 
+                        value={formData.phone} 
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+                    />
+                </div>
+            </div>
+        </div>
+    );
+
     const renderConsultationCompletedPage = () => (
         <div className="fade-in" style={{
             textAlign: 'center',
@@ -434,7 +445,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         </div>
     );
 
-    if (step === 4) return renderConsultationCompletedPage();
+    if (step === 5) return renderConsultationCompletedPage();
 
     return (
         <div className="data-card" style={{border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', borderRadius: '24px', position: 'relative'}}>
@@ -444,8 +455,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     <h2 style={{margin: 0, fontSize: '1.4rem', fontWeight: '800', color: '#1e293b'}}>Request Consultation</h2>
                     <span style={{backgroundColor: '#fef3c7', color: '#92400e', fontSize: '0.75rem', fontWeight: '700', padding: '4px 10px', borderRadius: '20px', textTransform: 'uppercase'}}>Studio-Lead Flow</span>
                 </div>
-                <div style={{display: 'flex', gap: '12px'}}> {/* Progress bar for 3 steps */}
-                    {[1, 2, 3].map(s => (
+                <div style={{display: 'flex', gap: '12px'}}> {/* Progress bar for 4 steps */}
+                    {[1, 2, 3, 4].map(s => (
                         <div key={s} style={{
                             width: '30px', height: '4px', borderRadius: '2px', 
                             backgroundColor: step >= s ? '#C19A6B' : '#e2e8f0',
@@ -459,6 +470,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStepPlacement()} {/* Step 2: Placement */}
                 {step === 3 && renderStepScheduling()} {/* Step 3: Scheduling */}
+                {step === 4 && renderStepContact()} {/* Step 4: Contact Info */}
             </div>
             
             <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '48px', paddingTop: '32px', borderTop: '1px solid #f1f5f9'}}>
@@ -471,7 +483,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     <ChevronLeft size={20} /> Previous
                 </button>
                 
-                {step < 3 ? ( // Changed from step < 4 to step < 3
+                {step < 4 ? (
                     <button 
                         onClick={() => { 
                             if (step === 1 && !formData.designTitle) return alert('Please tell us about your tattoo idea'); 
