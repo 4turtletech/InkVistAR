@@ -88,10 +88,6 @@ function CustomerPortal() {
                         <p className="header-subtitle">Welcome back, {customer.name || 'Inker'}!</p>
                     </div>
                     <div className="header-actions">
-                        <button className="action-btn" onClick={() => navigate('/customer/book')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                            <Plus size={16} /> 
-                            <span>Book Consultation</span>
-                        </button>
                         {customer.profile_image && (
                             <div style={{
                                 width: '40px', height: '40px', borderRadius: '50%',
@@ -216,7 +212,7 @@ function CustomerPortal() {
                                     </div>
                                 </button>
 
-                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/book')}>
+                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/bookings')}>
                                     <div className="action-icon-wrapper purple">
                                         <Calendar size={20} />
                                     </div>
@@ -286,7 +282,7 @@ function CustomerPortal() {
                             {/* Favorite Artists */}
                             <div className="data-card-v2" style={{ marginTop: '2rem' }}> {/* Added margin-top for spacing */}
                                 <div className="card-header-v2">
-                                    <h2>Recommended Artists</h2>
+                                    <h2>Our Artists</h2>
                                     <button className="view-more-btn" onClick={() => navigate('/artists')}>Meet the Team</button>
                                 </div>
                                 <div className="artists-grid" style={{ padding: '1.5rem' }}>
@@ -295,7 +291,6 @@ function CustomerPortal() {
                                             <div key={artist.id} className="artist-card-v2 glass-card" style={{ padding: '1.5rem', borderRadius: '16px' }}>
                                                 <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem' }}>{artist.name}</h3>
                                                 <p className="specialty" style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{artist.specialization || 'Professional Artist'}</p>
-                                                <button className="action-btn-small" onClick={() => navigate('/customer/book')} style={{ background: 'var(--text-main)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem' }}>Book</button>
                                             </div>
                                         ))
                                     ) : (
