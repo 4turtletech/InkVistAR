@@ -8,7 +8,9 @@ import {
     CheckCircle, 
     Info, 
     Clock,
-    CheckCheck
+    CheckCheck,
+    RotateCcw,
+    Mail
 } from 'lucide-react';
 import CustomerSideNav from '../components/CustomerSideNav';
 import './PortalStyles.css';
@@ -17,6 +19,7 @@ import { API_URL } from '../config';
 function CustomerNotifications() {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeFilter, setActiveFilter] = useState('all');
     
 
     const [user] = useState(() => {
@@ -47,6 +50,15 @@ function CustomerNotifications() {
         try {
             await Axios.put(`${API_URL}/api/notifications/${id}/read`);
             setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: 1 } : n));
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const markUnread = async (id) => {
+        try {
+            await Axios.put(`${API_URL}/api/notifications/${id}/read`, { is_read: 0 });
+            setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: 0 } : n));
         } catch (e) {
             console.error(e);
         }
@@ -84,6 +96,13 @@ function CustomerNotifications() {
         }
     };
 
+    const filteredNotifs = notifications.filter(n => {
+        if (activeFilter === 'unread') return !n.is_read;
+        return true;
+    });
+
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+
     if (!customerId) return <div className="portal-layout"><CustomerSideNav /><div className="portal-container">Please login to view notifications</div></div>;
 
     return (
@@ -103,6 +122,34 @@ function CustomerNotifications() {
                     </div>
                 </header>
 
+                <div className="portal-stats-row" style={{ display: 'flex', gap: '20px', marginBottom: '25px' }}>
+                    <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '5px' }}>Total Updates</span>
+                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{notifications.length}</span>
+                    </div>
+                    <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center', borderLeft: unreadCount > 0 ? '4px solid #f59e0b' : 'none' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '5px' }}>Unread Alerts</span>
+                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#f59e0b' : 'inherit' }}>{unreadCount}</span>
+                    </div>
+                </div>
+
+                <div className="filter-bar" style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                    <button 
+                        className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
+                        onClick={() => setActiveFilter('all')}
+                        style={filterButtonStyle(activeFilter === 'all')}
+                    >
+                        All
+                    </button>
+                    <button 
+                        className={`filter-btn ${activeFilter === 'unread' ? 'active' : ''}`}
+                        onClick={() => setActiveFilter('unread')}
+                        style={filterButtonStyle(activeFilter === 'unread')}
+                    >
+                        Unread
+                    </button>
+                </div>
+
                 <div className="portal-content">
                     {loading ? (
                         <div className="dashboard-loader-container">
@@ -110,15 +157,15 @@ function CustomerNotifications() {
                             <p>Fetching your updates...</p>
                         </div>
                     ) : (
-                        <div className="glass-card full-width" style={{ padding: '0', overflow: 'hidden' }}>
-                            {notifications.length > 0 ? (
-                                <div className="notifications-stream">
-                                    {notifications.map(n => {
+                        <div className="full-width" style={{ padding: '0', overflow: 'hidden' }}>
+                            {filteredNotifs.length > 0 ? (
+                                <div className="notifications-stream" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    {filteredNotifs.map(n => {
                                         const style = getNotificationStyle(n.type);
                                         const Icon = style.icon;
                                         
                                         return (
-                                            <div key={n.id} className={`notification-record ${n.is_read ? 'read' : 'unread'}`}>
+                                            <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)' }}>
                                                 <div className="notif-id-marker"></div>
                                                 <div className="notif-main">
                                                     <div className="notif-header">
@@ -138,6 +185,11 @@ function CustomerNotifications() {
                                                         {!n.is_read && (
                                                             <button className="notif-btn ghost" onClick={() => markRead(n.id)}>
                                                                 <Check size={14}/> Acknowledge
+                                                            </button>
+                                                        )}
+                                                        {n.is_read === 1 && (
+                                                            <button className="notif-btn ghost" onClick={() => markUnread(n.id)} title="Mark as Unread">
+                                                                <RotateCcw size={14}/> Read Later
                                                             </button>
                                                         )}
                                                           {n.type === 'pos_invoice' && (
@@ -170,5 +222,18 @@ function CustomerNotifications() {
         </div>
     );
 }
+
+const filterButtonStyle = (isActive) => ({
+    padding: '8px 20px',
+    borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.1)',
+    background: isActive ? '#daa520' : 'rgba(255,255,255,0.05)',
+    color: isActive ? 'white' : 'rgba(255,255,255,0.7)',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    transition: 'all 0.3s ease',
+    backdropFilter: 'blur(10px)'
+});
 
 export default CustomerNotifications;
