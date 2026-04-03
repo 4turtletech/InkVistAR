@@ -8,11 +8,13 @@ import {
     CheckCircle, 
     Info, 
     Clock,
-    CheckCheck,
+    CheckCheck, 
     RotateCcw,
-    Mail
+    Mail,
+    Trash2
 } from 'lucide-react';
 import CustomerSideNav from '../components/CustomerSideNav';
+import Pagination from '../components/Pagination';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 
@@ -20,6 +22,8 @@ function CustomerNotifications() {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     
 
     const [user] = useState(() => {
@@ -103,6 +107,10 @@ function CustomerNotifications() {
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
+    // Pagination logic
+    const totalPages = Math.ceil(filteredNotifs.length / itemsPerPage);
+    const currentItems = filteredNotifs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     if (!customerId) return <div className="portal-layout"><CustomerSideNav /><div className="portal-container">Please login to view notifications</div></div>;
 
     return (
@@ -157,51 +165,53 @@ function CustomerNotifications() {
                             <p>Fetching your updates...</p>
                         </div>
                     ) : (
-                        <div className="full-width" style={{ padding: '0', overflow: 'hidden' }}>
-                            {filteredNotifs.length > 0 ? (
-                                <div className="notifications-stream" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                    {filteredNotifs.map(n => {
+                        <div className="full-width" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '500px' }}>
+                            {currentItems.length > 0 ? (
+                                <div className="notifications-stream" style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                                    {currentItems.map(n => {
                                         const style = getNotificationStyle(n.type);
                                         const Icon = style.icon;
                                         
                                         return (
-                                            <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)' }}>
+                                            <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600' }}>
                                                 <div className="notif-id-marker"></div>
-                                                <div className="notif-main">
-                                                    <div className="notif-header">
-                                                        <div className="notif-subject">
-                                                            <div className="icon-badge" style={{ background: style.bg, padding: '8px', borderRadius: '8px' }}>
-                                                                <Icon size={18} color={style.color}/>
-                                                            </div>
-                                                            <span className="subject-text">{n.title}</span>
-                                                            {!n.is_read && <span className="unread-dot"></span>}
-                                                        </div>
-                                                        <span className="notif-time">
-                                                            <Clock size={12}/> {new Date(n.created_at).toLocaleString()}
-                                                        </span>
+                                                <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                    <div className="icon-badge" style={{ background: style.bg, padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
+                                                        <Icon size={16} color={style.color}/>
                                                     </div>
-                                                    <p className="notif-body">{n.message}</p>
-                                                    <div className="notif-actions">
-                                                        {!n.is_read && (
-                                                            <button className="notif-btn ghost" onClick={() => markRead(n.id)}>
-                                                                <Check size={14}/> Acknowledge
-                                                            </button>
-                                                        )}
-                                                        {n.is_read === 1 && (
-                                                            <button className="notif-btn ghost" onClick={() => markUnread(n.id)} title="Mark as Unread">
-                                                                <RotateCcw size={14}/> Read Later
-                                                            </button>
-                                                        )}
-                                                          {n.type === 'pos_invoice' && (
-                                                            <a
-                                                                href={`${API_URL}/api/invoices/${n.related_id}`}
-                                                                target="_blank" // Open in new tab
-                                                                rel="noopener noreferrer"
-                                                                className="notif-btn primary"
-                                                            >
-                                                                View Invoice
-                                                            </a>
-                                                        )}
+                                                    
+                                                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '20px', overflow: 'hidden' }}>
+                                                        <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? 'rgba(255,255,255,0.8)' : '#fff' }}>{n.title}</span>
+                                                        <p className="notif-body" style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</p>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexShrink: 0 }}>
+                                                        <span className="notif-time" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', minWidth: '80px', textAlign: 'right' }}>
+                                                            {new Date(n.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                                        </span>
+                                                        
+                                                        <div className="notif-actions" style={{ display: 'flex', gap: '8px' }}>
+                                                            {!n.is_read ? (
+                                                                <button className="notif-btn ghost" onClick={() => markRead(n.id)} style={{ padding: '4px' }} title="Mark as Read">
+                                                                    <Check size={14}/>
+                                                                </button>
+                                                            ) : (
+                                                                <button className="notif-btn ghost" onClick={() => markUnread(n.id)} style={{ padding: '4px' }} title="Mark as Unread">
+                                                                    <RotateCcw size={14}/>
+                                                                </button>
+                                                            )}
+                                                            {n.type === 'pos_invoice' && (
+                                                                <a
+                                                                    href={`${API_URL}/api/invoices/${n.related_id}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="notif-btn primary"
+                                                                    style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                                                                >
+                                                                    Invoice
+                                                                </a>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -213,6 +223,20 @@ function CustomerNotifications() {
                                     <CheckCircle size={48} color="#10b981" />
                                     <h3>Everything Up to Date</h3>
                                     <p>You have no new notifications at this time.</p>
+                                </div>
+                            )}
+
+                            {filteredNotifs.length > itemsPerPage && (
+                                <div style={{ marginTop: '20px' }}>
+                                    <Pagination 
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        onPageChange={setCurrentPage}
+                                        itemsPerPage={itemsPerPage}
+                                        onItemsPerPageChange={setItemsPerPage}
+                                        totalItems={filteredNotifs.length}
+                                        unit="notifications"
+                                    />
                                 </div>
                             )}
                         </div>
