@@ -116,8 +116,8 @@ function CustomerPortal() {
                     <div className="header-title">
                         <h1>Customer Dashboard</h1>
                     </div>
-                    <div className="header-actions">
-                        <div className="notif-btn-wrapper" ref={notifRef} style={{ position: 'relative', marginRight: '15px' }}>
+                    <div className="header-actions" style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className="notif-btn-wrapper" ref={notifRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                             <button className="notif-trigger-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
                                 <Bell size={22} />
                                 {unreadCount > 0 && <span className="notif-badge-dot"></span>}
@@ -153,20 +153,16 @@ function CustomerPortal() {
                             <div onClick={() => navigate('/customer/profile')} style={{
                                 width: '40px', height: '40px', borderRadius: '50%',
                                 overflow: 'hidden', border: '2px solid white',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginRight: '15px',
-                                cursor: 'pointer'
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer',
+                                marginLeft: '10px'
                             }}>
                                 <img src={customer.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             </div>
                         )}
-                        <button className="logout-btn" onClick={() => navigate('/login')}>
-                            <LogOut size={20} />
-                            Logout
-                        </button>
                     </div>
                 </header>
 
-                <p className="header-subtitle" style={{ marginTop: '-3.5rem', marginBottom: '2.5rem', marginRight: '-5.5rem', textAlign: 'left' }}>Welcome back, {customer.name || 'Inker'}!</p>
+                <p className="header-subtitle" style={{ marginTop: '-4rem', marginBottom: '2.5rem', marginRight: '-5.5rem', textAlign: 'left' }}>Welcome back, {customer.name || 'Inker'}!</p>
 
                 <div className="portal-content">  
                     {loading ? (
