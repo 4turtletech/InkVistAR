@@ -37,3 +37,5 @@
     transform: rotate(360deg);
   }
 }
+
+.form-input.error { border-color: #ef4444 !important; background-color: rgba(239, 68, 68, 0.05) !important; }

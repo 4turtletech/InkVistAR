@@ -11,6 +11,7 @@ function Login() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
+    const [errors, setErrors] = useState({}); // Field-specific inline errors
     const [showResend, setShowResend] = useState(false);
     const [resendMessage, setResendMessage] = useState({ text: '', type: 'error' });
     const [loading, setLoading] = useState(false);
@@ -23,6 +24,42 @@ function Login() {
     const [confirmPassword, setConfirmPassword] = useState("");
     
     const navigate = useNavigate();
+
+    const validateField = (name, value) => {
+        let errorMsg = "";
+        if ((name === 'email' || name === 'resetEmail') && value) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) errorMsg = "Please enter a valid email format";
+        }
+        if (name === 'password' && !value) {
+            errorMsg = "Password is required";
+        }
+        if (name === 'newPassword' && value) {
+            const strongRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
+            if (value.length < 8) errorMsg = "Password must be at least 8 characters";
+            else if (!strongRegex.test(value)) errorMsg = "Requires at least 1 letter and 1 number";
+        }
+        if (name === 'confirmPassword' && value) {
+            if (value !== newPassword) errorMsg = "Passwords do not match";
+        }
+        setErrors(prev => ({ ...prev, [name]: errorMsg }));
+        return errorMsg === "";
+    };
+
+    const handleBlur = (e) => {
+        validateField(e.target.name, e.target.value);
+    };
+
+    const handleChange = (setter, fieldName) => (e) => {
+        let val = e.target.value;
+        if (fieldName === 'email' || fieldName === 'resetEmail') {
+            val = val.replace(/\s/g, ''); // Strip spaces in email
+        }
+        setter(val);
+        if (errors[fieldName]) {
+            setErrors(prev => ({ ...prev, [fieldName]: "" }));
+        }
+    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -188,28 +225,34 @@ function Login() {
                     )}
                     
                     <form onSubmit={handleLogin} className="login-form">
-                        <div className="form-group">
+                        <div className="form-group" style={{ position: 'relative' }}>
                             <input 
                                 type="email" 
-                                className="form-input" 
-                                placeholder="Username or Email"
+                                name="email"
+                                className={`form-input ${errors.email ? 'error' : ''}`} 
+                                placeholder="Email Address"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)} 
+                                onChange={handleChange(setEmail, 'email')}
+                                onBlur={handleBlur}
                                 required 
                             />
+                            {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.email}</small>}
                         </div>
-                        <div className="form-group">
+                        <div className="form-group" style={{ position: 'relative' }}>
                             <input 
                                 type={showPassword ? 'text' : 'password'} 
-                                className="form-input" 
+                                name="password"
+                                className={`form-input ${errors.password ? 'error' : ''}`} 
                                 placeholder="Password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)} 
+                                onChange={handleChange(setPassword, 'password')}
+                                onBlur={handleBlur}
                                 required 
                             />
                             <div className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </div>
+                            {errors.password && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.password}</small>}
                         </div>
                         <button type="submit" className="login-btn" disabled={loading}>
                             {loading ? 'Logging in...' : 'Login'}
@@ -232,8 +275,9 @@ function Login() {
                     <h2 className="login-title" style={{ fontSize: '1.1rem', marginTop: '1.5rem' }}>Reset Password</h2>
                     {error && <p className="error-message">{error}</p>}
                     <form onSubmit={sendResetOTP} className="login-form">
-                        <div className="form-group">
-                            <input type="email" className="form-input" placeholder="Enter your email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
+                        <div className="form-group" style={{ position: 'relative' }}>
+                            <input type="email" name="resetEmail" className={`form-input ${errors.resetEmail ? 'error' : ''}`} placeholder="Enter your email" value={resetEmail} onChange={handleChange(setResetEmail, 'resetEmail')} onBlur={handleBlur} required />
+                            {errors.resetEmail && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.resetEmail}</small>}
                         </div>
                         <button type="submit" className="login-btn" disabled={loading}>{loading ? 'Sending...' : 'Send OTP'}</button>
                         <div className="login-footer">
@@ -264,11 +308,13 @@ function Login() {
                     <h2 className="login-title" style={{ fontSize: '1.1rem', marginTop: '1.5rem' }}>New Password</h2>
                     {error && <p className="error-message">{error}</p>}
                     <form onSubmit={handlePasswordReset} className="login-form">
-                        <div className="form-group">
-                            <input type="password" className="form-input" placeholder="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                        <div className="form-group" style={{ position: 'relative' }}>
+                            <input type="password" name="newPassword" className={`form-input ${errors.newPassword ? 'error' : ''}`} placeholder="New Password" value={newPassword} onChange={handleChange(setNewPassword, 'newPassword')} onBlur={handleBlur} required />
+                            {errors.newPassword && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.newPassword}</small>}
                         </div>
-                        <div className="form-group">
-                            <input type="password" className="form-input" placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+                        <div className="form-group" style={{ position: 'relative' }}>
+                            <input type="password" name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={confirmPassword} onChange={handleChange(setConfirmPassword, 'confirmPassword')} onBlur={handleBlur} required />
+                            {errors.confirmPassword && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.confirmPassword}</small>}
                         </div>
                         <button type="submit" className="login-btn" disabled={loading}>
                             {loading ? 'Resetting...' : 'Reset Password'}

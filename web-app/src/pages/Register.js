@@ -22,30 +22,65 @@ function Register() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // Inline sanitization: prevent starting with space
-    const sanitizedValue = value.replace(/^\s+/, '');
+    let sanitizedValue = value;
+
+    // Hard sanitization for names (letters, spaces, hyphens only)
+    if (name === 'firstName' || name === 'lastName') {
+      sanitizedValue = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '');
+    } else if (name === 'email') {
+      sanitizedValue = value.replace(/\s/g, ''); // No spaces in email
+    } else {
+      sanitizedValue = value.replace(/^\s+/, '');
+    }
+
     setFormData({ ...formData, [name]: sanitizedValue });
     setApiError(''); // Clear API error on change
     
-    // Clear error when user types
+    // Auto-clear specific error as user types
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
   };
 
-  const validate = () => {
-    const newErrors = {};
-    if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
-    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
+  const validateField = (name, value) => {
+    let errorMsg = "";
+    if (name === 'firstName' && !value.trim()) errorMsg = "First name is required";
+    if (name === 'lastName' && !value.trim()) errorMsg = "Last name is required";
     
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) newErrors.email = "Invalid email format";
-    
-    if (formData.password.length < 6) newErrors.password = "Password must be at least 6 characters";
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
+    if (name === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!value) errorMsg = "Email is required";
+      else if (!emailRegex.test(value)) errorMsg = "Invalid email format";
+    }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (name === 'password') {
+      const strongRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
+      if (!value) errorMsg = "Password is required";
+      else if (value.length < 8) errorMsg = "Password must be at least 8 characters";
+      else if (!strongRegex.test(value)) errorMsg = "Password needs at least 1 letter and 1 number";
+    }
+
+    if (name === 'confirmPassword') {
+      if (value !== formData.password) errorMsg = "Passwords do not match";
+    }
+
+    setErrors(prev => ({ ...prev, [name]: errorMsg }));
+    return errorMsg === "";
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    validateField(name, value);
+  };
+
+  const validate = () => {
+    const isFirstNameValid = validateField('firstName', formData.firstName);
+    const isLastNameValid = validateField('lastName', formData.lastName);
+    const isEmailValid = validateField('email', formData.email);
+    const isPasswordValid = validateField('password', formData.password);
+    const isConfirmValid = validateField('confirmPassword', formData.confirmPassword);
+    
+    return isFirstNameValid && isLastNameValid && isEmailValid && isPasswordValid && isConfirmValid;
   };
 
   const registerUser = async (e) => {
@@ -94,18 +129,18 @@ function Register() {
 
         <form onSubmit={registerUser} className="login-form">
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                    <input type="text" name="firstName" className={`form-input ${errors.firstName ? 'error' : ''}`} placeholder="First Name" value={formData.firstName} onChange={handleChange} />
-                    {errors.firstName && <small style={{color: 'red'}}>{errors.firstName}</small>}
+                <div className="form-group" style={{ flex: 1, position: 'relative' }}>
+                    <input type="text" name="firstName" className={`form-input ${errors.firstName ? 'error' : ''}`} placeholder="First Name" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} />
+                    {errors.firstName && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.firstName}</small>}
                 </div>
-                <div className="form-group" style={{ flex: 1 }}>
-                    <input type="text" name="lastName" className={`form-input ${errors.lastName ? 'error' : ''}`} placeholder="Last Name" value={formData.lastName} onChange={handleChange} />
-                    {errors.lastName && <small style={{color: 'red'}}>{errors.lastName}</small>}
+                <div className="form-group" style={{ flex: 1, position: 'relative' }}>
+                    <input type="text" name="lastName" className={`form-input ${errors.lastName ? 'error' : ''}`} placeholder="Last Name" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} />
+                    {errors.lastName && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.lastName}</small>}
                 </div>
             </div>
-            <div className="form-group">
-                <input type="email" name="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="Email Address" value={formData.email} onChange={handleChange} />
-                {errors.email && <small style={{color: 'red'}}>{errors.email}</small>}
+            <div className="form-group" style={{ position: 'relative' }}>
+                <input type="email" name="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="Email Address" value={formData.email} onChange={handleChange} onBlur={handleBlur} />
+                {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.email}</small>}
             </div>
             <div className="form-group" style={{ display: 'flex', gap: '10px' }}>
                 <select 
@@ -122,13 +157,13 @@ function Register() {
                 <input type="tel" name="phone" className="form-input" style={{ flex: 1 }} value={formData.phone} onChange={handleChange} placeholder="Phone Number" />
             </div>
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
-                <div className="form-group" style={{ flex: 1 }}>
-                    <input type="password" name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Password" value={formData.password} onChange={handleChange} />
-                    {errors.password && <small style={{color: 'red'}}>{errors.password}</small>}
+                <div className="form-group" style={{ flex: 1, position: 'relative' }}>
+                    <input type="password" name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Password" value={formData.password} onChange={handleChange} onBlur={handleBlur} />
+                    {errors.password && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.password}</small>}
                 </div>
-                <div className="form-group" style={{ flex: 1 }}>
-                    <input type="password" name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} />
-                    {errors.confirmPassword && <small style={{color: 'red'}}>{errors.confirmPassword}</small>}
+                <div className="form-group" style={{ flex: 1, position: 'relative' }}>
+                    <input type="password" name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} />
+                    {errors.confirmPassword && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.confirmPassword}</small>}
                 </div>
             </div>
             <button type="submit" className="login-btn">Register</button>

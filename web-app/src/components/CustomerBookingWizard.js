@@ -9,6 +9,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const location = useLocation();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false); // For API calls
+    const [errors, setErrors] = useState({}); // Field-level inline errors
     const [activeFeature, setActiveFeature] = useState(0);
     const [showExitModal, setShowExitModal] = useState(false);
     
@@ -105,6 +106,22 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         }
     };
 
+    const handleInputChange = (field, value) => {
+        let val = value;
+        if (field === 'name') {
+            val = val.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '');
+        } else if (field === 'email') {
+            val = val.replace(/\s/g, '');
+        } else if (typeof val === 'string') {
+            val = val.replace(/^\s+/, '');
+        }
+        
+        setFormData(prev => ({ ...prev, [field]: val }));
+        if (errors[field]) {
+            setErrors(prev => ({ ...prev, [field]: '' }));
+        }
+    };
+
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -117,19 +134,6 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     };
 
     const handleSubmit = async () => {
-        if (!formData.date || !formData.designTitle || !formData.placement || !formData.name || !formData.email || !formData.phone) {
-            alert('Please fill in all required fields: Name, Email, Phone, Date, Tattoo Idea, and Placement.');
-            return;
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            alert('Please enter a valid email address.');
-            return;
-        }
-        if (!/^\+?\d{10,15}$/.test(formData.phone)) { // Basic phone number validation
-            alert('Please enter a valid phone number.');
-            return;
-        }
-
         let finalCustomerId;
         const currentUser = JSON.parse(localStorage.getItem('user'));
 
@@ -278,15 +282,16 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             </h3>
             <p style={{color: '#64748b', marginBottom: '32px'}}>Tell us roughly what you're looking for so we can match you with the right artist. All fields are required.</p>
 
-            <div className="form-group" style={{marginBottom: '24px'}}>
+            <div className="form-group" style={{marginBottom: '24px', position: 'relative'}}>
                 <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Tattoo Idea / Style *</label>
                 <input
                     type="text"
-                    className="form-input"
+                    className={`form-input ${errors.designTitle ? 'error' : ''}`}
                     placeholder="e.g. Fine-line Floral, Traditional Blackwork, Realistic Portrait"
                     value={formData.designTitle}
-                    onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })}
+                    onChange={(e) => handleInputChange('designTitle', e.target.value)}
                 />
+                {errors.designTitle && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.designTitle}</small>}
             </div>
             
             <div className="form-group" style={{marginBottom: '24px'}}>
@@ -318,7 +323,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     className="form-input"
                     placeholder="Where on your body? How large? Any specific details or meaning?"
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) => handleInputChange('notes', e.target.value)}
                 />
             </div>
         </div>
@@ -335,9 +340,12 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 {["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"].map(part => (
                     <button
                         key={part} type="button"
-                        onClick={() => setFormData({...formData, placement: part})}
+                        onClick={() => {
+                            setFormData({...formData, placement: part});
+                            if (errors.placement) setErrors(prev => ({...prev, placement: ''}));
+                        }}
                         style={{
-                            padding: '16px', borderRadius: '12px', border: `2px solid ${formData.placement === part ? '#C19A6B' : '#e2e8f0'}`,
+                            padding: '16px', borderRadius: '12px', border: `2px solid ${formData.placement === part ? '#C19A6B' : (errors.placement ? '#ef4444' : '#e2e8f0')}`,
                             background: formData.placement === part ? '#C19A6B' : 'white',
                             color: formData.placement === part ? 'white' : '#1e293b',
                             fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s'
@@ -347,6 +355,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     </button>
                 ))}
             </div>
+            {errors.placement && <small style={{color: '#ef4444', display: 'block', marginTop: '12px', fontSize: '0.9rem', textAlign: 'center'}}>{errors.placement}</small>}
         </div>
     );
 
@@ -365,7 +374,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => (
                             <button
                                 key={t}
-                                onClick={() => setFormData({...formData, time: t})}
+                                onClick={() => {
+                                    setFormData({...formData, time: t});
+                                    if (errors.date) setErrors(prev => ({...prev, date: ''}));
+                                }}
                                 style={{
                                     padding: '12px',
                                     borderRadius: '8px',
@@ -384,6 +396,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                      </div>
                 </div>
             </div>
+            {errors.date && <small style={{color: '#ef4444', display: 'block', marginTop: '16px', fontSize: '0.9rem', textAlign: 'center'}}>{errors.date}</small>}
         </div>
     );
 
@@ -395,37 +408,40 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             <p style={{color: '#64748b', marginBottom: '32px'}}>How should we reach out to you regarding your request?</p>
 
             <div style={{ padding: '32px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div className="form-group" style={{ marginBottom: '20px' }}>
+                <div className="form-group" style={{ marginBottom: '20px', position: 'relative' }}>
                     <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Full Name *</label>
                     <input
                         type="text"
-                        className="form-input"
+                        className={`form-input ${errors.name ? 'error' : ''}`}
                         placeholder="John Doe"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
                         disabled={!!user}
                     />
+                    {errors.name && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.name}</small>}
                 </div>
-                <div className="form-group" style={{ marginBottom: '20px' }}>
+                <div className="form-group" style={{ marginBottom: '20px', position: 'relative' }}>
                     <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Email Address *</label>
                     <input
                         type="email"
-                        className="form-input"
+                        className={`form-input ${errors.email ? 'error' : ''}`}
                         placeholder="john.doe@example.com"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
                         disabled={!!user}
                     />
+                    {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.email}</small>}
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ position: 'relative' }}>
                     <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Phone Number *</label>
                     <input 
                         type="tel" 
-                        className="form-input" 
+                        className={`form-input ${errors.phone ? 'error' : ''}`} 
                         placeholder="+639171234567" 
                         value={formData.phone} 
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+                        onChange={(e) => handleInputChange('phone', e.target.value)} 
                     />
+                    {errors.phone && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.phone}</small>}
                 </div>
             </div>
         </div>
@@ -656,10 +672,15 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 {step < 4 ? (
                     <button 
                         onClick={() => { 
-                            if (step === 1 && !formData.designTitle) return alert('Please tell us about your tattoo idea'); 
-                            if (step === 2 && !formData.placement) return alert('Please select a placement area');
-                            if (step === 3 && (!formData.date || !formData.time)) return alert('Please select a preferred date and time');
+                            const newErrors = {};
+                            if (step === 1 && !formData.designTitle) newErrors.designTitle = 'Please tell us about your tattoo idea'; 
+                            if (step === 2 && !formData.placement) newErrors.placement = 'Please select a placement area';
+                            if (step === 3 && (!formData.date || !formData.time)) newErrors.date = 'Please select a preferred date and time';
                             
+                            if (Object.keys(newErrors).length > 0) {
+                                setErrors(newErrors);
+                                return;
+                            }
                             setStep(step + 1);
                         }} 
                         className="btn btn-primary" 
@@ -669,7 +690,21 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     </button>
                 ) : (
                     <button 
-                        onClick={handleSubmit} 
+                        onClick={() => {
+                            const newErrors = {};
+                            if (!formData.name) newErrors.name = 'Full Name is required';
+                            if (!formData.email) newErrors.email = 'Email Address is required';
+                            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Please enter a valid email format';
+                            
+                            if (!formData.phone) newErrors.phone = 'Phone Number is required';
+                            else if (!/^\+?\d{10,15}$/.test(formData.phone)) newErrors.phone = 'Please enter a valid phone number';
+                            
+                            if (Object.keys(newErrors).length > 0) {
+                                setErrors(newErrors);
+                                return;
+                            }
+                            handleSubmit();
+                        }} 
                         disabled={loading} 
                         className="btn btn-primary" 
                         style={{display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#1e293b', borderColor: '#1e293b', padding: '12px 32px'}}

@@ -210,3 +210,4 @@ body {
 .home-auth-buttons .signup-btn:hover {
     background-color: #d4af87;
 }
+.form-input.error { border-color: #ef4444; background-color: rgba(239, 68, 68, 0.05); }
