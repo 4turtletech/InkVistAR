@@ -12,7 +12,11 @@ function AdminStudio() {
     const [branches, setBranches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [branchModal, setBranchModal] = useState({ mounted: false, visible: false });
-    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
+
+    const showAlert = (title, message, type = 'info') => {
+        setConfirmDialog({ isOpen: true, title, message, type, isAlert: true, onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false })) });
+    };
     const [formData, setFormData] = useState({
         name: '',
         address: '',
@@ -69,9 +73,10 @@ function AdminStudio() {
             setEditingId(null);
             setFormData({ name: '', address: '', phone: '', operating_hours: '09:00 - 20:00', capacity: 50 });
             fetchBranches();
+            showAlert("Success", "Branch saved successfully", "success");
         } catch (error) {
             console.error("Error saving branch:", error);
-            alert("Failed to save branch");
+            showAlert("Error", "Failed to save branch", "danger");
         }
     };
 
@@ -321,7 +326,7 @@ function AdminStudio() {
 
                 <ConfirmModal 
                     {...confirmDialog} 
-                    onCancel={() => setConfirmDialog({ isOpen: false })} 
+                    onClose={() => setConfirmDialog({ isOpen: false })} 
                 />
             </div>
         </div>

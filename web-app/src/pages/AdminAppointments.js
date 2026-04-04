@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, Palette, Clock, CreditCard, DollarSign } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
+import ConfirmModal from '../components/ConfirmModal';
 import './AdminAppointments.css';
 import { API_URL } from '../config';
 
@@ -15,7 +16,7 @@ function AdminAppointments() {
     const [clients, setClients] = useState([]);
 
     const [filteredAppointments, setFilteredAppointments] = useState(appointments);
-    const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
+    const [viewMode, setViewMode] = useState('calendar'); // Defaults to calendar
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchTerm, setSearchTerm] = useState('');
     const [clientSearch, setClientSearch] = useState('');
@@ -30,7 +31,7 @@ function AdminAppointments() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [appointmentModal, setAppointmentModal] = useState({ mounted: false, visible: false });
     const [manualPaymentModal, setManualPaymentModal] = useState({ isOpen: false, amount: '', method: 'Cash' });
-    const [confirmModal, setConfirmModal] = useState({ open: false, message: '', onConfirm: null });
+    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger', isAlert: false });
     const [formData, setFormData] = useState({
         clientId: '',
         artistId: '',
@@ -176,10 +177,12 @@ function AdminAppointments() {
     };
 
     const showConfirm = (message, onConfirm) => {
-        setConfirmModal({ open: true, message, onConfirm });
+        setConfirmDialog({ isOpen: true, title: 'Confirm Action', message, onConfirm, type: 'info', isAlert: !onConfirm });
     };
 
-    const closeConfirm = () => setConfirmModal({ open: false, message: '', onConfirm: null });
+    const showAlert = (title, message, type = 'info') => {
+        setConfirmDialog({ isOpen: true, title, message, type, isAlert: true, onConfirm: () => setConfirmDialog(prev => ({...prev, isOpen: false})) });
+    };
 
     const handleStatusUpdate = async (id, status) => {
         showConfirm(
@@ -295,7 +298,7 @@ function AdminAppointments() {
         if (!inputAmount || inputAmount <= 0) return;
 
         if (inputAmount > remainingBalance) {
-            alert(`Error: Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString()}`);
+            showAlert('Invalid Amount', `Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString()}`, 'warning');
             return;
         }
         
@@ -312,7 +315,7 @@ function AdminAppointments() {
                 if (freshData) setSelectedAppointment(freshData);
             }
         } catch (error) {
-            alert(error.response?.data?.message || "Failed to record payment");
+            showAlert("Payment Failed", error.response?.data?.message || "Failed to record payment", "danger");
         }
     };
 
@@ -947,36 +950,10 @@ function AdminAppointments() {
             </div>
 
             {/* Confirmation Modal */}
-            {confirmModal.open && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(8px)',
-                    zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem'
-                }} onClick={closeConfirm}>
-                    <div style={{
-                        background: 'white', borderRadius: '20px', width: '100%', maxWidth: '420px',
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden'
-                    }} onClick={e => e.stopPropagation()}>
-                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>Confirm Action</h2>
-                            <button onClick={closeConfirm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '0.25rem', borderRadius: '50%' }}>
-                                <X size={18} />
-                            </button>
-                        </div>
-                        <div style={{ padding: '1.5rem 2rem' }}>
-                            <p style={{ margin: 0, color: '#475569', lineHeight: 1.6 }}>{confirmModal.message}</p>
-                        </div>
-                        <div style={{ padding: '1.25rem 2rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                            <button className="btn btn-secondary" onClick={closeConfirm}>Cancel</button>
-                            {confirmModal.onConfirm && (
-                                <button className="btn btn-primary" onClick={() => { confirmModal.onConfirm(); closeConfirm(); }}>
-                                    Confirm
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal 
+                {...confirmDialog} 
+                onClose={() => setConfirmDialog(prev => ({...prev, isOpen: false}))} 
+            />
         </div>
     );
 }

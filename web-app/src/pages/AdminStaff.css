@@ -97,7 +97,7 @@
 }
 
 .btn-indigo-sm {
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 8px;
@@ -163,7 +163,7 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     color: white;
     display: flex;
     align-items: center;

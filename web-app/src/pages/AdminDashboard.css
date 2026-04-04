@@ -1,6 +1,6 @@
 /* --- MODERN ADMIN DASHBOARD STYLES --- */
 :root {
-    --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    --primary-gradient: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     --surface-glass: rgba(255, 255, 255, 0.7);
     --glass-border: rgba(255, 255, 255, 0.3);
     --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);

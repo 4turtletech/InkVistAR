@@ -7,6 +7,7 @@ import { API_URL } from '../config';
 function AdminLogin() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [errorMsg, setErrorMsg] = useState("");
     
     const navigate = useNavigate();
 
@@ -14,21 +15,21 @@ function AdminLogin() {
         e.preventDefault();
         
         try {
+            setErrorMsg(""); // clear previous error
             const response = await Axios.post(`${API_URL}/api/login`, {
                 email: email,
                 password: password,
                 type: 'admin' // Hardcoded type ensures only admins can log in here
             });
             if (response.data.success) {
-                alert("Welcome Administrator: " + response.data.user.name);
                 console.log("Admin Data:", response.data.user);
                 navigate('/admin/dashboard', { replace: true });
             }
         } catch (error) {
             if (error.response) {
-                alert(error.response.data.message);
+                setErrorMsg(error.response.data.message);
             } else {
-                alert("Connection Error");
+                setErrorMsg("Connection Error");
             }
         }
     };
@@ -38,6 +39,7 @@ function AdminLogin() {
             <div className="admin-login-box">
                 <h2>Admin Portal</h2>
                 <p>Please sign in to manage the system</p>
+                {errorMsg && <div className="error-alert" style={{ background: '#fee2e2', color: '#991b1b', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}>{errorMsg}</div>}
                 <form onSubmit={handleLogin}>
                     <div className="input-group">
                         <label>Email Address</label>

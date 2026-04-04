@@ -54,7 +54,11 @@ function AdminStaff() {
 
     // Modal state for animations
     const [artistManagerModal, setArtistManagerModal] = useState({ mounted: false, visible: false });
-    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
+
+    const showAlert = (title, message, type = 'info') => {
+        setConfirmDialog({ isOpen: true, title, message, type, isAlert: true, onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false })) });
+    };
 
     useEffect(() => {
         fetchStaff();
@@ -168,7 +172,7 @@ function AdminStaff() {
         } catch (error) {
             console.error("Error fetching artist details:", error);
             const errorMessage = error.response?.data?.message || error.message || "An unknown error occurred.";
-            alert(`Could not load artist details: ${errorMessage}`);
+            showAlert("Load Failed", `Could not load artist details: ${errorMessage}`, "danger");
             closeModal();
         } finally {
             setLoadingDetails(false);
@@ -178,7 +182,7 @@ function AdminStaff() {
     const handleUpdateProfile = async () => {
         try {
             await Axios.put(`${API_URL}/api/artist/profile/${selectedArtist.id}`, formData);
-            alert('Profile updated successfully');
+            showAlert("Success", "Profile updated successfully", "success");
             // Refresh local data
             setArtistDetails(prev => ({
                 ...prev,
@@ -187,7 +191,7 @@ function AdminStaff() {
             fetchStaff(); // Refresh main list name if changed
         } catch (error) {
             console.error("Error updating profile:", error);
-            alert("Failed to update profile");
+            showAlert("Error", "Failed to update profile", "danger");
         }
     };
 
@@ -216,9 +220,10 @@ function AdminStaff() {
                 )
             }));
             closeEditWork();
+            showAlert("Success", "Portfolio item updated", "success");
         } catch (error) {
             console.error("Error updating portfolio work:", error);
-            alert("Failed to update portfolio item");
+            showAlert("Error", "Failed to update portfolio item", "danger");
         }
     };
 
@@ -243,7 +248,9 @@ function AdminStaff() {
     };
 
     const handleBlockDate = async () => {
-        const date = prompt("Enter date to block (YYYY-MM-DD):");
+        // Since we can't easily prompt with our custom modal right now, we can show an alert or open a different modal
+        // For now, let's keep it simple or remove it. Let's do a simple prompt for text, then success custom alert.
+        const date = prompt("Enter date to block (YYYY-MM-DD):"); // Prompt returns text, so it's slightly ok, but ideally replaced with a custom modal in future.
         if (date) {
             try {
                 await Axios.post(`${API_URL}/api/admin/appointments`, {
@@ -256,10 +263,11 @@ function AdminStaff() {
                     status: 'cancelled', // Using cancelled/blocked status
                     notes: 'Day off / Unavailable'
                 });
-                alert("Date blocked successfully");
+                showAlert("Success", "Date blocked successfully", "success");
                 // Refresh would be ideal here
             } catch (error) {
                 console.error("Error blocking date:", error);
+                showAlert("Error", "Failed to block date", "danger");
             }
         }
     };
@@ -687,7 +695,7 @@ function AdminStaff() {
 
                 <ConfirmModal
                     {...confirmDialog}
-                    onCancel={() => setConfirmDialog({ isOpen: false })}
+                    onClose={() => setConfirmDialog({ isOpen: false })}
                 />
             </div>
         </div>

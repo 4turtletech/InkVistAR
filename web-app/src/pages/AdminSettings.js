@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Save, Download, Upload, RefreshCw, FileText, Bell, Database, Info, Shield } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
+import ConfirmModal from '../components/ConfirmModal';
 import './AdminSettings.css';
 import { API_URL } from '../config';
 
@@ -50,6 +51,11 @@ function AdminSettings() {
 
     const [activeTab, setActiveTab] = useState('studio');
     const [isSaved, setIsSaved] = useState(false);
+    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
+
+    const showAlert = (title, message, type = 'info') => {
+        setConfirmDialog({ isOpen: true, title, message, type, isAlert: true, onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false })) });
+    };
 
     useEffect(() => {
         fetchSettings();
@@ -90,12 +96,12 @@ function AdminSettings() {
             setTimeout(() => setIsSaved(false), 3000);
         } catch (error) {
             console.error("Error saving settings:", error);
-            alert("Failed to save settings");
+            showAlert("Error", "Failed to save settings", "danger");
         }
     };
 
     const handleBackup = () => {
-        alert("Backup started... System will notify when complete.");
+        showAlert("Backup Initiated", "Backup started... System will notify when complete.", "info");
     };
 
     const handleRestore = () => {
@@ -395,7 +401,10 @@ function AdminSettings() {
                                     <button className="btn btn-secondary" onClick={handleRestore} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                                         <Upload size={18}/> Restore from File
                                     </button>
-                                    <input type="file" id="restore-input" style={{display: 'none'}} onChange={() => alert("Restore file selected (Mock)")} />
+                                    <input type="file" id="restore-input" style={{display: 'none'}} onChange={(e) => {
+                                        e.target.value = null; // reset
+                                        showAlert("Feature In Development", "System point-in-time restoration is currently being built and is not yet available.", "warning");
+                                    }} />
                                 </div>
                             </div>
                         </div>
@@ -403,6 +412,7 @@ function AdminSettings() {
                 </div>
             </div>
             </div>
+            <ConfirmModal {...confirmDialog} onClose={() => setConfirmDialog(prev => ({...prev, isOpen: false}))} />
         </div>
     );
 }

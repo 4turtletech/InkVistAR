@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Axios from 'axios';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag, Send, User } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
+import ConfirmModal from '../components/ConfirmModal';
 import { API_URL } from '../config';
 import './AdminPOS.css';
 
@@ -19,6 +20,15 @@ function AdminPOS() {
     const [activeCategory, setActiveCategory] = useState('All');
     const [error, setError] = useState(null);
     const searchInputRef = useRef(null);
+    const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
+
+    const showAlert = (title, message, type = 'info') => {
+        setConfirmDialog({ isOpen: true, title, message, type, isAlert: true, onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false })) });
+    };
+
+    const showConfirm = (title, message, onConfirm) => {
+        setConfirmDialog({ isOpen: true, title, message, onConfirm, type: 'warning', isAlert: !onConfirm });
+    };
 
     useEffect(() => {
         console.log("🛒 POS System Mounting...");
@@ -61,13 +71,13 @@ function AdminPOS() {
         const existing = cart.find(c => c.id === item.id);
         if (existing) {
             if (existing.quantity >= item.current_stock) {
-                alert("Cannot add more. Insufficient stock.");
+                showAlert("Out of Stock", "Cannot add more. Insufficient stock.", "warning");
                 return;
             }
             setCart(cart.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c));
         } else {
             if (item.current_stock <= 0) {
-                alert("Item out of stock.");
+                showAlert("Out of Stock", "Item is completely out of stock.", "warning");
                 return;
             }
             setCart([...cart, { ...item, quantity: 1 }]);
@@ -80,7 +90,7 @@ function AdminPOS() {
                 const newQty = c.quantity + delta;
                 if (newQty <= 0) return c;
                 if (newQty > c.current_stock) {
-                    alert("Insufficient stock.");
+                    showAlert("Out of Stock", "Insufficient stock.", "warning");
                     return c;
                 }
                 return { ...c, quantity: newQty };
@@ -95,9 +105,7 @@ function AdminPOS() {
 
     const clearCart = () => {
         if (cart.length === 0) return;
-        if (window.confirm("Are you sure you want to clear the current order?")) {
-            setCart([]);
-        }
+        showConfirm("Clear Order", "Are you sure you want to clear the current order?", () => setCart([]));
     };
 
     const cartTotal = cart.reduce((sum, item) => sum + ((item.retail_price || item.cost) * item.quantity), 0);
@@ -142,7 +150,7 @@ function AdminPOS() {
             fetchInventory(); // Refresh stock
         } catch (error) {
             console.error("Checkout failed:", error);
-            alert("Checkout failed. Please try again.");
+            showAlert("Transaction Failed", "Checkout failed. Please try again.", "danger");
         } finally {
             setIsCheckingOut(false);
         }
@@ -150,7 +158,7 @@ function AdminPOS() {
 
     const handleSendReceipt = async () => {
         if (!selectedCustomerId) {
-            alert("Please select a customer to send the receipt to.");
+            showAlert("Required", "Please select a customer to send the receipt to.", "info");
             return;
         }
 
@@ -167,10 +175,10 @@ function AdminPOS() {
                 customerId: selectedCustomerId
             });
             
-            alert("Receipt sent to customer via notification!");
+            showAlert("Success", "Receipt sent to customer via notification!", "success");
         } catch (error) {
             console.error("Failed to send receipt:", error);
-            alert("Failed to send receipt. Please try again.");
+            showAlert("Error", "Failed to send receipt. Please try again.", "danger");
         } finally {
             setIsSending(false);
             setShowReceipt(false);
@@ -422,6 +430,7 @@ function AdminPOS() {
                     </div>
                 )}
             </div>
+            <ConfirmModal {...confirmDialog} onClose={() => setConfirmDialog(prev => ({...prev, isOpen: false}))} />
         </div>
     );
 }
