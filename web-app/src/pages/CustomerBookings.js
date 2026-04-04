@@ -215,7 +215,7 @@ function CustomerBookings(){
             });
 
             if (res.data.success) {
-                showAlert("Booking Requested", "Your session request has been sent! Check your notifications for updates.", "success");
+                showAlert("Booking Requested", "Your session request has been sent! A confirmation notification with details has been added to your account.", "success");
                 setIsBookingModalOpen(false);
                 setBookingData({ artistId: '', serviceType: '', date: '', startTime: '', designTitle: '', placement: '', notes: '', referenceImage: null });
                 // Refresh list

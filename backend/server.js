@@ -2141,6 +2141,11 @@ app.post('/api/customer/appointments', (req, res) => {
     createNotification(currentArtistId, 'New Booking Request', `New request from client for ${notifDate}. Please assign an artist.`, 'appointment_request', result.insertId);
 
     res.json({
+      // NEW: Notify Customer
+      const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const appointmentTime = finalStartTime ? new Date(`2000-01-01T${finalStartTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'a time to be determined';
+      createNotification(customerId, 'Booking Request Received', `Your request for a ${designTitle || serviceType} session on ${appointmentDate} at ${appointmentTime} has been received. We will review it shortly!`, 'appointment_request', result.insertId);
+
       success: true,
       message: 'Appointment booked successfully',
       appointmentId: result.insertId
@@ -4483,4 +4488,3 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   GET  http://localhost:${PORT}/api/customer/dashboard/1`);
   console.log('='.repeat(50) + '\n');
 });
-
