@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
 import './AdminDashboard.css';
+import './PortalStyles.css';
 import { API_URL } from '../config';
 
 function AdminNotifications() {
@@ -106,6 +107,29 @@ function AdminNotifications() {
             setLoading(false);
             setNotifications([]);
             setUnreadCount(0);
+        }
+    };
+
+    const getNotificationStyle = (type) => {
+        switch (type) {
+            case 'inventory': 
+                return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Inventory' };
+            case 'appointment': 
+                return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Booking' };
+            case 'system': 
+                return { color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)', label: 'System' };
+            case 'appointment_confirmed': 
+                return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Confirmed' };
+            case 'appointment_cancelled': 
+                return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', label: 'Cancelled' };
+            case 'appointment_completed':
+                return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Completed' };
+            case 'payment_success':
+                return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Payment' };
+            case 'pos_invoice':
+                return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Invoice' };
+            default:
+                return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', label: 'Update' };
         }
     };
 
@@ -300,11 +324,12 @@ function AdminNotifications() {
                                     <div className="notifications-stream" style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
                                         {currentItems.map((n) => {
                                             const Icon = getIcon(n.type);
+                                            const style = getNotificationStyle(n.type);
                                             return (
-                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${getNotificationStyle(n.type).color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600' }}>
+                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600' }}>
                                                     <div className="notif-id-marker"></div>
                                                     <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                        <div className="icon-badge" style={{ background: getNotificationStyle(n.type).bg, padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
+                                                        <div className="icon-badge" style={{ background: style.bg, padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
                                                             {Icon}
                                                         </div>
                                                         
@@ -344,7 +369,7 @@ function AdminNotifications() {
                                             );
                                         })}
                                     </div>
-                                )) : (
+                                ) : (
                                     <div className="all-clear" style={{ padding: '100px 0' }}>
                                         <CheckCircle size={48} color="#10b981" />
                                         <h3>Notification Inbox Clear</h3>
