@@ -3174,7 +3174,12 @@ app.post('/api/payments/webhook', (req, res) => {
     const newPaymentStatus = (paymentType === 'deposit' || paymentType === 'custom') ? 'downpayment_paid' : 'paid';
 
     // Get current status first to determine new status
-    db.query('SELECT status, customer_id, artist_id FROM appointments WHERE id = ?', [appointmentId], (fetchErr, rows) => {
+    db.query(`
+      SELECT ap.status, ap.customer_id, ap.artist_id, u.name as customer_name 
+      FROM appointments ap 
+      JOIN users u ON ap.customer_id = u.id 
+      WHERE ap.id = ?
+    `, [appointmentId], (fetchErr, rows) => {
       if (!fetchErr && rows.length) {
         const appt = rows[0];
         const newAptStatus = (appt.status?.toLowerCase() === 'pending') ? 'confirmed' : appt.status;
@@ -3187,6 +3192,16 @@ app.post('/api/payments/webhook', (req, res) => {
 
             createNotification(appt.customer_id, 'Payment Received', `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
             createNotification(appt.artist_id, 'Payment Received', `Payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
+
+            // Notify Admins and Managers
+            db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
+              if (!adminErr && admins.length > 0) {
+                const adminMsg = `Payment of ₱${(amount / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
+                admins.forEach(admin => {
+                  createNotification(admin.id, 'Payment Received', adminMsg, 'payment_success', appointmentId);
+                });
+              }
+            });
           }
         });
       }
