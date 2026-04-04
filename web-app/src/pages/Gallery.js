@@ -18,6 +18,7 @@ const Gallery = () => {
   const [priceRange, setPriceRange] = useState({ min: 0, max: 500000 });
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [debouncedPriceRange, setDebouncedPriceRange] = useState({ min: 0, max: 500000 });
 
   // Parse query params for artist filter
   useEffect(() => {
@@ -61,6 +62,14 @@ const Gallery = () => {
       .catch(err => console.error('Error fetching categories:', err));
   }, []);
 
+  // Debounce price filter
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedPriceRange(priceRange);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [priceRange]);
+
   // Update categories list if works contain categories not in the style filter
   useEffect(() => {
     if (works.length > 0) {
@@ -92,8 +101,8 @@ const Gallery = () => {
     if (selectedArtist) {
       queryParams.append('artistId', selectedArtist.id);
     }
-    queryParams.append('minPrice', priceRange.min);
-    queryParams.append('maxPrice', priceRange.max);
+    queryParams.append('minPrice', debouncedPriceRange.min);
+    queryParams.append('maxPrice', debouncedPriceRange.max);
     
     url += queryParams.toString();
     console.log(`[GALLERY] Fetching from URL: ${url}`);
@@ -110,12 +119,12 @@ const Gallery = () => {
         console.error('Error fetching works:', err);
         setLoading(false);
       });
-  }, [activeCategory, selectedArtist, location.search, priceRange]);
+  }, [activeCategory, selectedArtist, location.search, debouncedPriceRange]);
 
   // Reset page when category or artist changes
   useEffect(() => {
      setCurrentPage(1);
-  }, [activeCategory, selectedArtist, priceRange]);
+  }, [activeCategory, selectedArtist, debouncedPriceRange]);
 
   // Pagination logic
   const totalPages = Math.ceil(works.length / itemsPerPage);

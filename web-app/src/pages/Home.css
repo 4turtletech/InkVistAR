@@ -314,3 +314,23 @@
     font-weight: 300;
     letter-spacing: 0.5px;
 }
+
+/* Custom SVG Animations */
+.spin-slow {
+    transform-origin: center;
+    animation: spin 20s linear infinite;
+}
+
+.fade-pulse {
+    animation: fadePulse 4s ease-in-out infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadePulse {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; stroke-width: 1.5; }
+}
