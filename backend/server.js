@@ -4129,7 +4129,7 @@ app.get('/api/invoices/:orderId', (req, res) => {
 function getFallbackResponse(message) {
   const msg = message.toLowerCase();
   if (msg.includes('price') || msg.includes('cost') || msg.includes('rate') || msg.includes('charge') || msg.includes('fee') || msg.includes('how much') || msg.includes('quote') || msg.includes('estimate') || msg.includes('pricing') || msg.includes('cost') || msg.includes('price range') || msg.includes('how much') || msg.includes('charge')) {
-    return "Our tattoo's can usually charge between as low as Php 5,000.00 for minimalist tattoo designs up to Php 400,000.00 for a detailed full back tattoos. It varies by design, size, and complexity.";
+    return "To help you plan for your upcoming session, here is a general guide to our starting rates for large-scale work. Please keep in mind that these are baseline estimates; your final quote will be tailored during your consultation based on the exact design, size, and technical complexity of the piece.\n\n1. 5-Panel Piece: 40k\n2. Full Sleeve (Left/Right): 200k\n3. Full Back: 350k\n4. Full Leg: 350k";
   }
   if (msg.includes('book') || msg.includes('appointment') || msg.includes('schedule') || msg.includes('consultation') || msg.includes('session')) {
     return "You can book an appointment by going to the 'Book Consultation' tab on our landing page and go from there or you can log in to your account and book from there as well!";
