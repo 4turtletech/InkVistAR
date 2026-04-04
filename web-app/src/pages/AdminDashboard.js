@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, DollarSign, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Info } from 'lucide-react';
+.import { Users, Calendar, DollarSign, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Info } from 'lucide-react';
 import './AdminDashboard.css';
 import AdminSideNav from '../components/AdminSideNav';
 import { API_URL } from '../config';
@@ -23,6 +23,9 @@ function AdminDashboard() {
     const [auditLogs, setAuditLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
+    const [notifications, setNotifications] = useState([]);
+    const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+    const notifRef = useRef(null);
     
     // Audit Logs State
     const [auditSearch, setAuditSearch] = useState('');
@@ -42,6 +45,16 @@ function AdminDashboard() {
 
     useEffect(() => {
         fetchDashboardData();
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (notifRef.current && !notifRef.current.contains(event.target)) {
+                setShowNotifDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const fetchDashboardData = async () => {
@@ -181,6 +194,7 @@ function AdminDashboard() {
             }
 
             if (notificationsResponse.data.success) {
+                setNotifications(notificationsResponse.data.notifications || []);
                 setUnreadNotifications(notificationsResponse.data.unreadCount);
             }
             setLoading(false);
@@ -268,32 +282,40 @@ function AdminDashboard() {
                             <Search size={18} />
                             <input type="text" placeholder="Search things..." />
                         </div> {/* This search is for the overall dashboard, not specific tables */}
-                        <div className="notification-bell" style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigate('/admin/notifications')}>
-                            <Bell size={20} />
-                            {unreadNotifications > 0 && (
-                                <div 
-                                    className="notification-dot" 
-                                    style={{ 
-                                        position: 'absolute', 
-                                        top: '-5px', 
-                                        right: '-5px', 
-                                        background: '#ef4444', 
-                                        color: 'white', 
-                                        borderRadius: '50%', 
-                                        width: '18px', 
-                                        height: '18px', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        justifyContent: 'center', 
-                                        fontSize: '10px', 
-                                        fontWeight: 'bold',
-                                        border: '2px solid white'
-                                    }}
-                                >
-                                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                        
+                        <div className="notif-btn-wrapper" ref={notifRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <button className="notif-trigger-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
+                                <Bell size={20} />
+                                {unreadNotifications > 0 && <span className="notif-badge-dot"></span>}
+                            </button>
+                            
+                            {showNotifDropdown && (
+                                <div className="notif-dropdown-v2 glass-card">
+                                    <div className="notif-dropdown-header">
+                                        <h3>Notifications</h3>
+                                    </div>
+                                    <div className="notif-dropdown-list">
+                                        {notifications.length > 0 ? (
+                                            notifications.map(n => (
+                                                <div key={n.id} className={`notif-dropdown-item ${!n.is_read ? 'unread' : ''}`} onClick={() => { setShowNotifDropdown(false); navigate('/admin/notifications'); }}>
+                                                    <div className="notif-item-content">
+                                                        <span className="notif-item-title">{n.title}</span>
+                                                        <span className="notif-item-msg">{n.message}</span>
+                                                        <span className="notif-item-time">{new Date(n.created_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="notif-empty">No notifications yet</div>
+                                        )}
+                                    </div>
+                                    <div className="notif-dropdown-footer">
+                                        <button onClick={() => { setShowNotifDropdown(false); navigate('/admin/notifications'); }}>See All Updates</button>
+                                    </div>
                                 </div>
                             )}
                         </div>
+
                         <button onClick={handleLogout} className="logout-btn">Logout</button>
                     </div>
                 </header>
