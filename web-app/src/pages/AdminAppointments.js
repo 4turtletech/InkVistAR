@@ -672,7 +672,7 @@ function AdminAppointments() {
                                         <tr>
                                             <th>Appointment ID</th>
                                             <th>Client Name</th>
-                                            <th>Artist</th>
+                                            <th>Staff</th>
                                             <th>Service</th>
                                             <th>Date</th>
                                             <th>Time</th>

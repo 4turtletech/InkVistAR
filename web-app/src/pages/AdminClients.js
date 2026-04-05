@@ -360,7 +360,7 @@ function AdminClients() {
                                                 <thead>
                                                     <tr>
                                                         <th>Date</th>
-                                                        <th>Artist</th>
+                                                        <th>Staff</th>
                                                         <th>Service</th>
                                                         <th>Status</th>
                                                     </tr>

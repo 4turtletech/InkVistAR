@@ -176,7 +176,7 @@ function ManagerPortal() {
                                         <thead>
                                             <tr>
                                                 <th>Client</th>
-                                                <th>Artist</th>
+                                                <th>Staff</th>
                                                 <th>Date</th>
                                                 <th>Status</th>
                                                 <th>Actions</th>

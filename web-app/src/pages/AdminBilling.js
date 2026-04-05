@@ -436,7 +436,7 @@ function AdminBilling() {
                                 <thead>
                                     <tr>
                                         <th>Date</th>
-                                        <th>Artist</th>
+                                        <th>Staff</th>
                                         <th>Amount</th>
                                         <th>Method</th>
                                         <th>Reference</th>

@@ -431,7 +431,7 @@ function AdminDashboard() {
                                                     <tr>
                                                         <th>Time</th>
                                                         <th>Client</th>
-                                                        <th>Artist</th>
+                                                        <th>Staff</th>
                                                         <th>Service</th>
                                                         <th>Status</th>
                                                     </tr>
@@ -497,7 +497,7 @@ function AdminDashboard() {
                                             <thead>
                                                 <tr>
                                                     <th>Client</th>
-                                                    <th>Artist</th>
+                                                    <th>Staff</th>
                                                     <th>Service</th>
                                                     <th>Date</th>
                                                     <th>Status</th>

@@ -176,7 +176,7 @@ function AdminCompletedSessions() {
                                             <tr>
                                                 <th>Date</th>
                                                 <th>Client</th>
-                                                <th>Artist</th>
+                                                <th>Staff</th>
                                                 <th>Design</th>
                                                 <th>Materials Cost</th>
                                                 <th>Price</th>
