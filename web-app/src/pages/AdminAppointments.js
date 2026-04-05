@@ -718,32 +718,24 @@ function AdminAppointments() {
                                                     </td>
                                                     <td>₱{Number(appointment.price).toLocaleString()}</td>
                                                     <td className="actions-cell">
-                                                        {/* Consultation-specific pending: Approve + Reject */}
-                                                        {appointment.serviceType?.toLowerCase() === 'consultation' && appointment.status === 'pending' && (
+                                                        { appointment.status === 'pending' && (
                                                             <>
-                                                                <button className="action-btn view-btn" style={{ backgroundColor: '#10b981', marginRight: '5px' }} onClick={() => handleStatusUpdate(appointment.id, 'confirmed', appointment.clientName)} title="Approve Consultation">
-                                                                    Approve
+                                                                <button className="action-btn view-btn" style={{ backgroundColor: '#10b981', marginRight: '5px', padding: '4px 8px' }} onClick={() => handleStatusUpdate(appointment.id, 'confirmed', appointment.clientName)} title="Approve">
+                                                                    <Check size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px' }} />
                                                                 </button>
-                                                                <button className="action-btn delete-btn" style={{ marginRight: '5px' }} onClick={() => handleStatusUpdate(appointment.id, 'cancelled', appointment.clientName)}>
-                                                                    Reject
+                                                                <button className="action-btn delete-btn" style={{ marginRight: '5px', padding: '4px 8px' }} onClick={() => handleStatusUpdate(appointment.id, 'cancelled', appointment.clientName)} title="Reject">
+                                                                    <X size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
                                                                 </button>
                                                             </>
                                                         )}
-                                                        {/* Consultation confirmed: Done button */}
-                                                        {appointment.serviceType?.toLowerCase() === 'consultation' && appointment.status?.toLowerCase() === 'confirmed' && (
+                                                        {appointment.status?.toLowerCase() === 'confirmed' && (
                                                             <button
                                                                 className="action-btn view-btn"
-                                                                style={{ backgroundColor: '#8b5cf6', marginRight: '5px' }}
+                                                                style={{ backgroundColor: '#8b5cf6', marginRight: '5px', padding: '4px 8px' }}
                                                                 onClick={() => handleStatusUpdate(appointment.id, 'completed', appointment.clientName)}
-                                                                title="Mark Consultation as Done"
+                                                                title="Mark as Done"
                                                             >
-                                                                <Check size={14} /> Done
-                                                            </button>
-                                                        )}
-                                                        {/* Non-consultation pending: only Reject */}
-                                                        {appointment.serviceType?.toLowerCase() !== 'consultation' && appointment.status === 'pending' && (
-                                                            <button className="action-btn delete-btn" style={{ marginRight: '5px' }} onClick={() => handleStatusUpdate(appointment.id, 'cancelled', appointment.clientName)}>
-                                                                Reject
+                                                                <Check size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px' }} />
                                                             </button>
                                                         )}
                                                         <button className="action-btn edit-btn" onClick={() => handleEdit(appointment)}>
@@ -970,18 +962,18 @@ function AdminAppointments() {
                                     <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="premium-select-v2" style={{ width: '100%', height: 'auto', backgroundImage: 'none' }} rows="3" />
                                 </div>
                             </div>
-                            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '15px 20px', borderTop: '1px solid #e2e8f0' }}>
                                 <div className="footer-left">
                                     {selectedAppointment && (
                                         <button
                                             className="btn btn-secondary"
-                                            style={{ backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}
+                                            style={{ backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '5px' }}
                                             onClick={() => {
                                                 handleDelete(selectedAppointment.id);
                                                 closeModal();
                                             }}
                                         >
-                                            Delete Appointment
+                                            <X size={16} /> Delete Appointment
                                         </button>
                                     )}
                                 </div>
