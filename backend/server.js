@@ -2043,14 +2043,30 @@ app.put('/api/customer/profile/:id', (req, res) => {
 
 // Get all available portfolio categories
 app.get('/api/gallery/categories', (req, res) => {
-  const query = 'SELECT DISTINCT category FROM portfolio_works WHERE category IS NOT NULL AND category != "" AND is_deleted = 0 AND is_public = 1 ORDER BY category ASC';
-  db.query(query, (err, results) => {
-    if (err) {
-      console.error('❌ Error fetching categories:', err);
-      return res.status(500).json({ success: false, message: 'Database error' });
+  db.query("SELECT data FROM app_settings WHERE section = 'gallery'", (settingsErr, settingsResults) => {
+    if (!settingsErr && settingsResults.length > 0) {
+      try {
+        const data = typeof settingsResults[0].data === 'string' ? JSON.parse(settingsResults[0].data) : settingsResults[0].data;
+        if (data && data.categories) {
+          const catArray = data.categories.split(',').map(c => c.trim()).filter(c => c);
+          if (catArray.length > 0) {
+            return res.json({ success: true, categories: catArray });
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing gallery categories from app_settings:', e);
+      }
     }
-    const categories = results.map(r => r.category);
-    res.json({ success: true, categories: ['All', ...categories] });
+
+    const query = 'SELECT DISTINCT category FROM portfolio_works WHERE category IS NOT NULL AND category != "" AND is_deleted = 0 AND is_public = 1 ORDER BY category ASC';
+    db.query(query, (err, results) => {
+      if (err) {
+        console.error('Error fetching categories:', err);
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+      const categories = results.map(r => r.category);
+      res.json({ success: true, categories: ['All', ...categories] });
+    });
   });
 });
 

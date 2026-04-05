@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Save, Download, Upload, RefreshCw, FileText, Bell, Database, Info, Shield } from 'lucide-react';
+import { Save, Download, Upload, RefreshCw, FileText, Bell, Database, Info, Shield, Image } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import './AdminSettings.css';
 import { API_URL } from '../config';
@@ -43,6 +43,9 @@ function AdminSettings() {
             lastBackup: '2024-02-24 03:00 AM',
             autoBackup: true,
             frequency: 'daily'
+        },
+        gallery: {
+            categories: 'All, Traditional, Realism, Watercolor, Tribal, New School, Neo Traditional, Japanese, Blackwork, Minimalist'
         }
     });
 
@@ -150,6 +153,12 @@ function AdminSettings() {
                         onClick={() => setActiveTab('backup')}
                     >
                         <Database size={16} style={{marginRight:'8px'}}/> Backup & Restore
+                    </button>
+                    <button 
+                        className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('gallery')}
+                    >
+                        <Image size={16} style={{marginRight:'8px'}}/> Gallery Menu
                     </button>
                 </div>
 
@@ -397,6 +406,26 @@ function AdminSettings() {
                                         e.target.value = null; // reset
                                         showAlert("Feature In Development", "System point-in-time restoration is currently being built and is not yet available.", "warning");
                                     }} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Gallery Menu Settings */}
+                    {activeTab === 'gallery' && (
+                        <div className="settings-panel fade-in">
+                            <h2>Gallery Category Filters</h2>
+                            <p style={{marginBottom: '1rem', color: '#666'}}>Define the style categories available in the customer and public galleries. Separate each category with a comma.</p>
+                            <div className="settings-section">
+                                <div className="form-group">
+                                    <label>Categories</label>
+                                    <textarea
+                                        value={settings.gallery?.categories || ''}
+                                        onChange={(e) => handleChange('gallery', 'categories', e.target.value)}
+                                        className="form-input"
+                                        rows="4"
+                                        placeholder="All, Traditional, Realism, Watercolor..."
+                                    />
                                 </div>
                             </div>
                         </div>

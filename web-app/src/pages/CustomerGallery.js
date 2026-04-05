@@ -15,10 +15,31 @@ function CustomerGallery(){
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedWork, setSelectedWork] = useState(null);
     const [toggling, setToggling] = useState(false);
+    const [activeCategory, setActiveCategory] = useState('All');
+    const [categories, setCategories] = useState(['All']);
     const navigate = useNavigate();
     
     const user = JSON.parse(localStorage.getItem('user'));
     const userId = user ? user.id : null;
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await Axios.get(`${API_URL}/api/gallery/categories`);
+                if (res.data.success && res.data.categories) {
+                    setCategories(['All', ...res.data.categories]);
+                }
+            } catch (e) { console.error(e); }
+        };
+        fetchCategories();
+    }, []);
+
+    useEffect(() => {
+        if (works.length > 0) {
+            const uniqueCategories = [...new Set(works.map(item => item.category).filter(Boolean))];
+            setCategories(prev => [...new Set([...prev, ...uniqueCategories])]);
+        }
+    }, [works]);
 
     useEffect(() => {
         fetchInitialData();
@@ -104,10 +125,12 @@ function CustomerGallery(){
 
     const displayItems = viewMode === 'My Tattoos' ? myTattoos : works;
 
-    const filteredItems = displayItems.filter(w => 
-        (w.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (w.artist_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredItems = displayItems.filter(w => {
+        const matchesSearch = (w.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              (w.artist_name || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = activeCategory === 'All' || w.category === activeCategory;
+        return matchesSearch && matchesCategory;
+    });
 
     return (
         <div className="portal-layout">
@@ -158,6 +181,32 @@ function CustomerGallery(){
                             My Tattoos
                         </button>
                     </div>
+
+                    {/* Category Filters */}
+                    {viewMode === 'All' && categories.length > 1 && (
+                        <div style={{ marginBottom: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {categories.map(cat => (
+                                <button 
+                                    key={cat}
+                                    onClick={() => setActiveCategory(cat)}
+                                    style={{
+                                        padding: '6px 16px',
+                                        borderRadius: '20px',
+                                        border: '1px solid rgba(0,0,0,0.1)',
+                                        background: activeCategory === cat ? '#1e293b' : 'white',
+                                        color: activeCategory === cat ? 'white' : '#64748b',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        boxShadow: activeCategory === cat ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                                    }}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
                     {loading ? (
                         <div className="no-data">

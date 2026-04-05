@@ -119,12 +119,22 @@ function Artists() {
                                             <div className="name-underline"></div>
                                         </div>
                                         <p className="artist-specialty">{artist.specialization || 'Tattoo Artist'}</p>
-                                        <button 
-                                            className="view-portfolio-btn" 
-                                            onClick={() => navigate(`/artist/${artist.id || artist.user_id}`)}
-                                        >
-                                            View Profile
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '15px' }}>
+                                            <button 
+                                                className="view-portfolio-btn" 
+                                                onClick={() => navigate(`/artist/${artist.id || artist.user_id}`)}
+                                                style={{ margin: 0 }}
+                                            >
+                                                View Profile
+                                            </button>
+                                            <button 
+                                                className="view-portfolio-btn" 
+                                                style={{ margin: 0, background: 'transparent', color: '#111', border: '1px solid #111' }}
+                                                onClick={() => navigate(`/gallery?artistId=${artist.id || artist.user_id}&artistName=${encodeURIComponent(artist.name)}`)}
+                                            >
+                                                See Works
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))
