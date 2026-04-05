@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { getNotifications, markNotificationAsRead, markNotificationAsUnread } from '../src/utils/api';
+import { API_URL } from '../src/config';
 
 const timeAgo = (dateString) => {
   const date = new Date(dateString);
@@ -104,6 +105,21 @@ export function ArtistNotifications({ onBack, userId }) {
     ));
   };
 
+  const handleAssignmentAction = async (notifId, appointmentId, action) => {
+    try {
+      const response = await fetch(`${API_URL}/api/artist/appointments/${appointmentId}/${action}`, {
+        method: 'PUT'
+      });
+      const data = await response.json();
+      if (data.success) {
+        await markNotificationAsRead(notifId);
+        loadNotifications(1);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const getIcon = (type) => {
     switch (type) {
       case 'appointment_request': return { name: 'calendar', color: '#3b82f6' };
@@ -111,6 +127,7 @@ export function ArtistNotifications({ onBack, userId }) {
       case 'appointment_confirmed': return { name: 'checkmark-circle', color: '#10b981' };
       case 'appointment_cancelled': return { name: 'close-circle', color: '#ef4444' };
       case 'appointment_completed': return { name: 'star', color: '#8b5cf6' };
+      case 'action_required': return { name: 'warning', color: '#f59e0b' };
       default: return { name: 'notifications', color: '#6b7280' };
     }
   };
@@ -134,6 +151,23 @@ export function ArtistNotifications({ onBack, userId }) {
             <Text style={styles.time}>{timeAgo(item.created_at)}</Text>
           </View>
           <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
+          
+          {item.type === 'action_required' && !item.is_read && (
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+              <TouchableOpacity 
+                style={{ backgroundColor: '#10b981', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 }}
+                onPress={() => handleAssignmentAction(item.id, item.related_id, 'accept')}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Accept</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ backgroundColor: '#ef4444', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 }}
+                onPress={() => handleAssignmentAction(item.id, item.related_id, 'reject')}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Decline</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         {item.is_read && (
           <TouchableOpacity 

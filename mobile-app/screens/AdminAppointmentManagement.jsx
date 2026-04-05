@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, TextInput, Modal, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, TextInput, Modal, ScrollView, SafeAreaView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getAllAppointmentsForAdmin, updateAppointmentByAdmin, deleteAppointmentByAdmin } from '../src/utils/api';
+import { getAllAppointmentsForAdmin, updateAppointmentByAdmin, deleteAppointmentByAdmin, API_URL } from '../src/utils/api';
 
 export const AdminAppointmentManagement = () => {
   const [appointments, setAppointments] = useState([]);
@@ -54,7 +54,11 @@ export const AdminAppointmentManagement = () => {
       setModalVisible(false);
       loadData();
     } else {
-      Alert.alert('Error', result.message || 'Failed to update');
+      if (result.status === 409 || result.message?.toLowerCase().includes('conflict')) {
+        Alert.alert('Scheduling Conflict', 'This artist already has an appointment booked at this time. Please select a different time or artist.');
+      } else {
+        Alert.alert('Error', result.message || 'Failed to update');
+      }
     }
   };
 
@@ -183,6 +187,17 @@ export const AdminAppointmentManagement = () => {
 
                   <Text style={styles.label}>Notes</Text>
                   <Text style={styles.value}>{selectedAppt.notes || 'No notes'}</Text>
+
+                  {selectedAppt.before_photo && (
+                    <View style={{ marginBottom: 15 }}>
+                      <Text style={styles.label}>Reference Image</Text>
+                      <Image 
+                        source={{ uri: selectedAppt.before_photo.startsWith('http') ? selectedAppt.before_photo : `${API_URL.replace('/api', '')}${selectedAppt.before_photo}` }}
+                        style={{ width: '100%', height: 200, borderRadius: 8, marginTop: 5, backgroundColor: '#111827' }}
+                        resizeMode="contain"
+                      />
+                    </View>
+                  )}
                 </View>
 
                 <Text style={styles.sectionHeader}>Edit Details</Text>

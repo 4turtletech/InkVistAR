@@ -189,7 +189,7 @@ export function CustomerBooking({ customerId, onBack }) {
       const dateObj = new Date(year, month, i);
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       const isSelected = selectedDate === dateStr;
-      const isPast = dateObj < today;
+      const isPast = dateObj <= today;
       const isTooFar = dateObj > maxDate;
 
       const dateData = bookedDates[dateStr] || { count: 0 };

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🔥 VALIDATORS
 const isEmailValid = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -177,7 +178,10 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
 
     try {
       setSubmitted(true);
-      const result = await onRegister(name.trim(), email.toLowerCase().trim(), password, phone.trim(), 'customer');
+      const orphanIdStr = await AsyncStorage.getItem('orphanAppointmentId');
+      const orphanAppointmentId = orphanIdStr ? parseInt(orphanIdStr, 10) : null;
+      
+      const result = await onRegister(name.trim(), email.toLowerCase().trim(), password, phone.trim(), 'customer', orphanAppointmentId);
       
       if (result && !result.success) {
         setSubmitted(false);

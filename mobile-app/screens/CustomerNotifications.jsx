@@ -111,6 +111,8 @@ export function CustomerNotifications({ onBack, userId }) {
       case 'appointment_cancelled': return { name: 'close-circle', color: '#ef4444' };
       case 'appointment_completed': return { name: 'star', color: '#8b5cf6' };
       case 'payment_success': return { name: 'card', color: '#059669' };
+      case 'aftercare_reminder': return { name: 'information-circle', color: '#06b6d4' };
+      case 'review_prompt': return { name: 'chatbubbles', color: '#f59e0b' };
       default: return { name: 'notifications', color: '#6b7280' };
     }
   };

@@ -1,13 +1,68 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getNotifications, markNotificationAsRead } from '../src/utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const timeAgo = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.round((now - date) / 1000);
+  const minutes = Math.round(seconds / 60);
+  const hours = Math.round(minutes / 60);
+  const days = Math.round(hours / 24);
+
+  if (seconds < 60) return `${seconds}s ago`;
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+};
 
 export const AdminNotifications = ({ navigation }) => {
-  const notifications = [
-    { id: 1, title: 'System Update', message: 'Server maintenance scheduled for tonight at 2 AM.', time: '2h ago', type: 'system' },
-    { id: 2, title: 'New Artist Application', message: 'John Doe has applied to join the studio.', time: '5h ago', type: 'user' },
-    { id: 3, title: 'Low Stock Alert', message: 'Black Ink is running low (3 bottles left).', time: '1d ago', type: 'alert' },
-  ];
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const userStr = await AsyncStorage.getItem('user');
+      const userId = userStr ? JSON.parse(userStr).id : 1;
+      
+      const result = await getNotifications(userId, { limit: 50 });
+      if (result.success) {
+        setNotifications(result.notifications || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePress = async (notif) => {
+    if (!notif.is_read) {
+      await markNotificationAsRead(notif.id);
+      setNotifications(notifications.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+    }
+    // If it's a payment success, nav to billing/pos
+    if (notif.type === 'payment_success' || notif.path === '/admin/billing') {
+        // Just mock nav to Dashboard if Billing is missing, or do nothing gracefully
+        // navigation.navigate('AdminPOS');
+    }
+  };
+
+  const getNotifStyle = (type) => {
+    switch(type) {
+      case 'payment_success': return { icon: 'cash', color: '#10b981', bg: 'rgba(16, 185, 129, 0.2)' };
+      case 'appointment_request': return { icon: 'calendar', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.2)' };
+      default: return { icon: 'information-circle', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.2)' };
+    }
+  };
 
   return (
   <View style={styles.container}>
@@ -21,20 +76,29 @@ export const AdminNotifications = ({ navigation }) => {
       </View>
     </View>
     <ScrollView contentContainerStyle={styles.content}>
-      {notifications.map(notif => (
-        <View key={notif.id} style={styles.card}>
-          <View style={[styles.iconContainer, { backgroundColor: notif.type === 'alert' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)' }]}>
-            <Ionicons name={notif.type === 'alert' ? 'warning' : 'information-circle'} size={24} color={notif.type === 'alert' ? '#ef4444' : '#3b82f6'} />
-          </View>
-          <View style={styles.cardContent}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{notif.title}</Text>
-              <Text style={styles.cardTime}>{notif.time}</Text>
-            </View>
-            <Text style={styles.cardMessage}>{notif.message}</Text>
-          </View>
-        </View>
-      ))}
+      {loading ? (
+        <ActivityIndicator size="large" color="#f59e0b" style={{ marginTop: 50 }} />
+      ) : notifications.length === 0 ? (
+        <Text style={{ color: '#9ca3af', textAlign: 'center', marginTop: 50 }}>No new notifications.</Text>
+      ) : (
+        notifications.map(notif => {
+          const style = getNotifStyle(notif.type);
+          return (
+            <TouchableOpacity key={notif.id} style={[styles.card, !notif.is_read && { borderLeftWidth: 4, borderLeftColor: style.color }]} onPress={() => handlePress(notif)}>
+              <View style={[styles.iconContainer, { backgroundColor: style.bg }]}>
+                <Ionicons name={style.icon} size={24} color={style.color} />
+              </View>
+              <View style={styles.cardContent}>
+                <View style={styles.cardHeader}>
+                  <Text style={[styles.cardTitle, !notif.is_read && { fontWeight: '900', color: '#f59e0b' }]}>{notif.title}</Text>
+                  <Text style={styles.cardTime}>{timeAgo(notif.created_at)}</Text>
+                </View>
+                <Text style={styles.cardMessage}>{notif.message}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })
+      )}
     </ScrollView>
   </View>
   );

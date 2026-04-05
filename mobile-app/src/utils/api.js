@@ -180,7 +180,7 @@ export const resetUserPassword = async (email, newPassword) => {
 };
 
 // Register user
-export const registerUser = async (name, email, password, userType) => {
+export const registerUser = async (name, email, password, userType, phone, orphanAppointmentId) => {
   if (!name || !email || !password) {
     return { success: false, message: 'All fields are required' };
   }
@@ -197,7 +197,9 @@ export const registerUser = async (name, email, password, userType) => {
       name: sanitizeInput(name),
       email: sanitizeInput(email),
       password,
-      type: userType
+      type: userType,
+      phone: phone ? sanitizeInput(phone) : undefined,
+      orphanAppointmentId
     })
   });
   

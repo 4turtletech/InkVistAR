@@ -395,10 +395,10 @@ export default function App() {
     }
   };
 
-  const handleRegister = async (name, email, password, phone, userType, navigation) => {
+  const handleRegister = async (name, email, password, phone, userType, orphanAppointmentId, navigation) => {
     console.log('📝 Register attempt:', { name, email, phone, userType });
     
-    const registerResult = await registerUser(name, email, password, userType, phone);
+    const registerResult = await registerUser(name, email, password, userType, phone, orphanAppointmentId);
     console.log('📝 Register result:', registerResult);
     
     if (registerResult.success && registerResult.message) {
@@ -706,8 +706,8 @@ export default function App() {
                 {(props) => (
                   <RegisterPage
                     {...props}
-                    onRegister={(name, email, password, phone, userType) => 
-                      handleRegister(name, email, password, phone, userType, props.navigation)
+                    onRegister={(name, email, password, phone, userType, orphanAppointmentId) => 
+                      handleRegister(name, email, password, phone, userType, orphanAppointmentId, props.navigation)
                     }
                     onSwitchToLogin={() => props.navigation.navigate('login')}
                   />
