@@ -44,8 +44,11 @@ function AdminNotifications() {
     const fetchNotifications = async () => {
         try {
             setLoading(true);
+            const user = JSON.parse(localStorage.getItem('user'));
+            const adminId = user ? user.id : 1;
+            
             const [notifsResponse, appointmentsResponse, inventoryResponse] = await Promise.all([
-                Axios.get(`${API_URL}/api/notifications/1`), // Admin notifications
+                Axios.get(`${API_URL}/api/notifications/${adminId}`), // Admin notifications
                 Axios.get(`${API_URL}/api/admin/appointments`),
                 Axios.get(`${API_URL}/api/admin/inventory?status=active`)
             ]);

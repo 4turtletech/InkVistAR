@@ -204,6 +204,7 @@ function AdminAppointments() {
                 try {
                     await Axios.put(`${API_URL}/api/appointments/${id}/status`, { status });
                     fetchAppointments();
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
                 } catch (error) {
                     console.error('Error updating status:', error);
                 }
@@ -214,14 +215,16 @@ function AdminAppointments() {
     const handleEdit = (appointment) => {
         setSelectedAppointment(appointment);
         setFormData({
-            clientId: appointment.clientId,
-            artistId: appointment.artistId,
-            serviceType: appointment.serviceType,
-            designTitle: appointment.designTitle,
-            date: appointment.date,
-            time: appointment.time,
+            clientId: appointment.clientId || appointment.customer_id,
+            artistId: appointment.artistId || appointment.artist_id,
+            secondaryArtistId: appointment.secondary_artist_id || '',
+            commissionSplit: appointment.commission_split || 50,
+            serviceType: appointment.serviceType || appointment.service_type,
+            designTitle: appointment.designTitle || appointment.design_title,
+            date: appointment.date || appointment.appointment_date,
+            time: appointment.time || appointment.start_time,
             status: appointment.status,
-            paymentStatus: appointment.paymentStatus,
+            paymentStatus: appointment.paymentStatus || appointment.payment_status,
             notes: appointment.notes,
             price: appointment.price,
             manualPaidAmount: appointment.manualPaidAmount || 0,
@@ -245,6 +248,8 @@ function AdminAppointments() {
         setFormData({
             clientId: '',
             artistId: '',
+            secondaryArtistId: '',
+            commissionSplit: 50,
             serviceType: '',
             date: prefilledDate || new Date().toISOString().split('T')[0],
             time: '13:00',
@@ -274,6 +279,8 @@ function AdminAppointments() {
                 const payload = {
                     customerId: formData.clientId,
                     artistId: formData.artistId,
+                    secondaryArtistId: formData.secondaryArtistId || null,
+                    commissionSplit: formData.commissionSplit || 50,
                     serviceType: formData.serviceType,
                     designTitle: formData.designTitle,
                     date: formData.date,
@@ -293,6 +300,7 @@ function AdminAppointments() {
                 }
                 closeModal();
                 fetchAppointments();
+                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
             } catch (error) {
                 console.error('Error saving appointment:', error);
             }
@@ -805,11 +813,37 @@ function AdminAppointments() {
                                             {formData.clientId && <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '4px' }}>✓ Selected: {clients.find(c => c.id === formData.clientId)?.name}</div>}
                                         </div>
                                         <div className="form-group" style={{ marginTop: '15px' }}>
-                                            <label>Assign Artist *</label>
+                                            <label>Assign Primary Artist *</label>
                                             <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2" style={{ width: '100%' }}>
                                                 <option value="">Select Artist</option>
                                                 {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                             </select>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
+                                            <div className="form-group">
+                                                <label>Secondary Artist</label>
+                                                <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2" style={{ width: '100%' }}>
+                                                    <option value="">None (Solo)</option>
+                                                    {artists.filter(a => a.id !== formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                                </select>
+                                            </div>
+                                            {formData.secondaryArtistId && (
+                                                <div className="form-group">
+                                                    <label>Split % (Primary/Sec)</label>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                        <input 
+                                                            type="number" 
+                                                            min="1" 
+                                                            max="99" 
+                                                            value={formData.commissionSplit} 
+                                                            onChange={(e) => setFormData({ ...formData, commissionSplit: parseInt(e.target.value) })}
+                                                            className="premium-input-v2" 
+                                                            style={{ width: '60px', textAlign: 'center' }} 
+                                                        />
+                                                        <span style={{ fontSize: '0.85rem', color: '#64748b' }}>/ {100 - (formData.commissionSplit || 0)}</span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '30px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>

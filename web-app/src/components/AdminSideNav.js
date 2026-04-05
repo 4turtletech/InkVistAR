@@ -211,7 +211,7 @@ function AdminSideNav() {
     const handleLogout = () => {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
-        navigate('/admin');
+        navigate('/login');
     };
 
     return (
@@ -310,7 +310,7 @@ function AdminSideNav() {
                 message="Are you sure you want to sign out of your account?"
                 confirmText="Yes, Logout"
                 cancelText="Cancel"
-                type="danger"
+                type="warning"
                 onConfirm={handleLogout}
                 onClose={() => setShowLogoutConfirm(false)}
             />

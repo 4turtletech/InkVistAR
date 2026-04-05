@@ -2379,7 +2379,7 @@ app.get('/api/admin/appointments', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', (req, res) => {
-  const { customerId, artistId, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount } = req.body;
+  const { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount } = req.body;
 
   if (!customerId || !artistId || !date) {
     return res.status(400).json({ success: false, message: 'customerId, artistId, and date are required.' });
@@ -2390,10 +2390,10 @@ app.post('/api/admin/appointments', (req, res) => {
 
   const query = `
     INSERT INTO appointments 
-      (customer_id, artist_id, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0)
+      (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0)
   `;
-  db.query(query, [customerId, artistId, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0], (err, result) => {
+  db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0], (err, result) => {
     if (err) {
       console.error('❌ Error creating admin appointment:', err);
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -2406,7 +2406,7 @@ app.post('/api/admin/appointments', (req, res) => {
 // PUT update an appointment (Admin)
 app.put('/api/admin/appointments/:id', (req, res) => {
   const { id } = req.params;
-  const { customerId, artistId, serviceType, designTitle, date, startTime, status, paymentStatus, notes, price, manualPaidAmount, manualPaymentMethod } = req.body;
+  const { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, paymentStatus, notes, price, manualPaidAmount, manualPaymentMethod } = req.body;
 
   const combinedTitle = serviceType && designTitle ? `${serviceType}: ${designTitle}` : (designTitle || serviceType || null);
 
@@ -2416,6 +2416,8 @@ app.put('/api/admin/appointments/:id', (req, res) => {
 
   if (customerId !== undefined) { updates.push('customer_id = ?'); params.push(customerId); }
   if (artistId !== undefined) { updates.push('artist_id = ?'); params.push(artistId); }
+  if (secondaryArtistId !== undefined) { updates.push('secondary_artist_id = ?'); params.push(secondaryArtistId); }
+  if (commissionSplit !== undefined) { updates.push('commission_split = ?'); params.push(commissionSplit); }
   if (date !== undefined) { updates.push('appointment_date = ?'); params.push(date); }
   if (startTime !== undefined) { updates.push('start_time = ?'); params.push(startTime); }
   if (combinedTitle) { updates.push('design_title = ?'); params.push(combinedTitle); }
@@ -2577,7 +2579,7 @@ app.post('/api/appointments/:id/materials', (req, res) => {
 // Update appointment status
 app.put('/api/appointments/:id/status', (req, res) => {
   const { id } = req.params;
-  const { status, price } = req.body;
+  const { status, price, isFullyComplete } = req.body;
 
   // Fetch appointment first to get user IDs and service_type for inventory logic
   db.query('SELECT * FROM appointments WHERE id = ?', [id], (err, results) => {
@@ -2655,7 +2657,11 @@ app.put('/api/appointments/:id/status', (req, res) => {
         createNotification(appointment.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment scheduled for ${dateStr} has been cancelled. Please contact the studio if you have any questions.`, 'appointment_cancelled', id);
         createNotification(appointment.artist_id, 'Appointment Cancelled', `Appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
       } else if (status === 'completed') {
-        createNotification(appointment.customer_id, 'Tattoo Journey Complete! ✨', `Your session for "${designTitle}" is finished! We hope you love your new ink. Don't forget to follow your aftercare instructions!`, 'appointment_completed', id);
+        if (isFullyComplete || isFullyComplete === undefined) {
+          createNotification(appointment.customer_id, 'Tattoo Journey Complete! ✨', `Your session for "${designTitle}" is finished! We hope you love your new ink. Don't forget to follow your aftercare instructions!`, 'appointment_completed', id);
+        } else {
+          createNotification(appointment.customer_id, 'Session Complete! ⏳', `Your session for "${designTitle}" today is finished. We will coordinate with you soon for your next session to continue your piece!`, 'appointment_partial_complete', id);
+        }
 
         // 🚀 SYNC: Automatically create a manual invoice for Admin Billing
         db.query('SELECT name FROM users WHERE id = ?', [appointment.customer_id], (uErr, uRes) => {
@@ -2684,11 +2690,11 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
 
     // 2. Get Completed Appointments
     const apptsQuery = `
-      SELECT id, appointment_date, design_title, price, payment_status, status
+      SELECT id, appointment_date, design_title, price, payment_status, status, artist_id, secondary_artist_id, commission_split
       FROM appointments 
-      WHERE artist_id = ? AND status = 'completed' AND is_deleted = 0
+      WHERE (artist_id = ? OR secondary_artist_id = ?) AND status = 'completed' AND is_deleted = 0
     `;
-    db.query(apptsQuery, [id], (apptsErr, appts) => {
+    db.query(apptsQuery, [id, id], (apptsErr, appts) => {
       if (apptsErr) return res.status(500).json({ success: false, message: 'Database error fetching appointments' });
 
       // 3. Get Payout History
@@ -2696,11 +2702,21 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
         if (payErr) return res.status(500).json({ success: false, message: 'Database error fetching payouts' });
 
         // Calculate Totals
-        const calculations = appts.map(a => ({
-          ...a,
-          artistShare: a.price * rate,
-          studioShare: a.price * (1 - rate)
-        }));
+        const calculations = appts.map(a => {
+          let effectivePrice = a.price;
+          if (a.secondary_artist_id) {
+            if (Number(a.artist_id) === Number(id)) {
+              effectivePrice = a.price * (a.commission_split / 100);
+            } else if (Number(a.secondary_artist_id) === Number(id)) {
+              effectivePrice = a.price * ((100 - a.commission_split) / 100);
+            }
+          }
+          return {
+            ...a,
+            artistShare: effectivePrice * rate,
+            studioShare: effectivePrice * (1 - rate)
+          };
+        });
 
         const totalEarned = calculations
           .filter(a => a.payment_status === 'paid')
@@ -4526,6 +4542,38 @@ app.delete('/api/admin/testimonials/:id', (req, res) => {
   });
 });
 
+// ========== APPOINTMENT REMINDERS ==========
+function startAppointmentReminders() {
+  // Check every minute if it's 9:00 AM
+  setInterval(() => {
+    const now = new Date();
+    if (now.getHours() === 9 && now.getMinutes() === 0) {
+      const timezoneOffsetMs = now.getTimezoneOffset() * 60000;
+      const localTomorrow = new Date(now.getTime() - timezoneOffsetMs + 86400000);
+      const tomorrowStr = localTomorrow.toISOString().split('T')[0];
+      
+      const query = `
+        SELECT id, customer_id, artist_id, appointment_date, start_time, design_title 
+        FROM appointments 
+        WHERE is_deleted = 0 AND status = 'confirmed' 
+        AND appointment_date LIKE ?
+      `;
+      db.query(query, [`${tomorrowStr}%`], (err, appointments) => {
+        if (err) return console.error('Error finding reminders:', err);
+        
+        appointments.forEach(appt => {
+          const title = "Upcoming Session Reminder ⏰";
+          const message = `Reminder: Your tattoo session for "${appt.design_title}" is coming up tomorrow at ${appt.start_time}! Get plenty of rest and stay hydrated.`;
+          createNotification(appt.customer_id, title, message, 'appointment_reminder', appt.id);
+          
+          const artistMsg = `Reminder: You have a scheduled session tomorrow at ${appt.start_time} for "${appt.design_title}".`;
+          createNotification(appt.artist_id, title, artistMsg, 'appointment_reminder', appt.id);
+        });
+      });
+    }
+  }, 1000 * 60);
+}
+
 // ========== START SERVER ==========
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
@@ -4544,4 +4592,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   GET  http://localhost:${PORT}/api/artist/dashboard/1`);
   console.log(`   GET  http://localhost:${PORT}/api/customer/dashboard/1`);
   console.log('='.repeat(50) + '\n');
+  
+  startAppointmentReminders();
 });

@@ -238,7 +238,23 @@ function ArtistSessions() {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setSessionData(prev => ({ ...prev, [type]: reader.result }));
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // Resize to max 800px width
+                    const scaleSize = MAX_WIDTH / img.width;
+                    const finalWidth = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
+                    const finalHeight = img.width > MAX_WIDTH ? img.height * scaleSize : img.height;
+                    
+                    canvas.width = finalWidth;
+                    canvas.height = finalHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const resizedBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% quality jpeg
+                    setSessionData(prev => ({ ...prev, [type]: resizedBase64 }));
+                };
+                img.src = reader.result;
             };
             reader.readAsDataURL(file);
         }
@@ -248,12 +264,18 @@ function ArtistSessions() {
         if (newStatus === 'completed') {
             setConfirmModal({
                 isOpen: true,
-                title: 'Complete Session?',
-                message: `Are you sure you want to mark this session as completed? Total material cost: ₱${sessionCost.toLocaleString()} will be recorded.`,
-                confirmText: 'Yes, Complete',
+                title: 'Session Completion Status',
+                message: `Does this piece need another session, or is the tattoo fully complete? (Total material cost: ₱${sessionCost.toLocaleString()} will be recorded).`,
+                confirmText: 'Fully Complete ✨',
+                cancelText: 'Needs Another Session',
                 type: 'info',
                 onConfirm: async () => {
-                    await processStatusUpdate(newStatus);
+                    await processStatusUpdate(newStatus, true);
+                    setConfirmModal({ ...confirmModal, isOpen: false });
+                },
+                onClose: async () => {
+                    // Custom mapping for cancel button to mean "Needs Another Session"
+                    await processStatusUpdate(newStatus, false);
                     setConfirmModal({ ...confirmModal, isOpen: false });
                 }
             });
@@ -262,7 +284,7 @@ function ArtistSessions() {
         }
     };
 
-    const processStatusUpdate = async (newStatus) => {
+    const processStatusUpdate = async (newStatus, isFullyComplete = true) => {
         try {
             // Save session details (notes, photos) before completing
             if (newStatus === 'completed' && (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto)) {
@@ -273,7 +295,10 @@ function ArtistSessions() {
                 });
             }
 
-            const res = await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/status`, { status: newStatus });
+            const res = await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/status`, { 
+                status: newStatus,
+                isFullyComplete 
+            });
             if (res.data.success) {
                 setActiveSession(prev => ({ ...prev, status: newStatus }));
 

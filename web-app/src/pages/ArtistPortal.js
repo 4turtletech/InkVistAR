@@ -226,7 +226,13 @@ function ArtistPortal() {
                             <div className="data-card">
                                 <h2>Upcoming Sessions</h2>
                                 <div className="table-responsive">
-                                    {appointments.length > 0 ? (
+                                    {appointments.filter(apt => {
+                                        const aptDate = apt.appointment_date || apt.date || '';
+                                        const dateStr = typeof aptDate === 'string' ? aptDate.split('T')[0] : '';
+                                        const now = new Date();
+                                        const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+                                        return dateStr >= today && apt.status !== 'cancelled';
+                                    }).sort((a,b) => new Date(a.appointment_date || a.date) - new Date(b.appointment_date || b.date)).length > 0 ? (
                                         <table className="portal-table">
                                             <thead>
                                                 <tr>
@@ -238,21 +244,27 @@ function ArtistPortal() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {appointments.slice(0, 5).map((apt) => (
+                                                {appointments.filter(apt => {
+                                                    const aptDate = apt.appointment_date || apt.date || '';
+                                                    const dateStr = typeof aptDate === 'string' ? aptDate.split('T')[0] : '';
+                                                    const now = new Date();
+                                                    const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+                                                    return dateStr >= today && apt.status !== 'cancelled';
+                                                }).sort((a,b) => new Date(a.appointment_date || a.date) - new Date(b.appointment_date || b.date)).slice(0, 5).map((apt) => (
                                                     <tr key={apt.id}>
                                                         <td>{apt.client_name || apt.client || 'N/A'}</td>
                                                         <td>{apt.appointment_date || apt.date || 'N/A'}</td>
                                                         <td>{apt.start_time || apt.appointment_time || apt.time || 'N/A'}</td>
                                                         <td><span className={`status-badge ${(apt.status || 'pending').toLowerCase()}`}>{apt.status || 'Pending'}</span></td>
                                                         <td>
-                                                            <button className="action-btn">View</button>
+                                                            <button className="action-btn" onClick={() => navigate('/artist/appointments')}>View</button>
                                                         </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                     ) : (
-                                        <p className="no-data">No appointments found</p>
+                                        <p className="no-data">No upcoming appointments found</p>
                                     )}
                                 </div>
                             </div>
