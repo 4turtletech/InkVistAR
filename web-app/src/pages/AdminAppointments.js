@@ -20,6 +20,7 @@ function AdminAppointments() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchTerm, setSearchTerm] = useState('');
     const [clientSearch, setClientSearch] = useState('');
+    const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState('all');
     const [serviceFilter, setServiceFilter] = useState('all');
     const [quickFilter, setQuickFilter] = useState('all'); // 'upcoming', 'latest', 'all'
@@ -83,26 +84,36 @@ function AdminAppointments() {
             setLoading(true);
             const response = await Axios.get(`${API_URL}/api/admin/appointments`);
             if (response.data.success) {
-                const mappedAppointments = response.data.data.map(apt => ({
-                    id: apt.id,
-                    clientName: apt.client_name,
-                    clientId: apt.customer_id,
-                    artistName: apt.artist_name,
-                    artistId: apt.artist_id,
-                    serviceType: apt.service_type || (apt.design_title?.includes(':') ? apt.design_title.split(':')[0] : (apt.notes?.toLowerCase().includes('consultation') ? 'Consultation' : 'Tattoo Session')),
-                    designTitle: apt.design_title?.includes(':') ? apt.design_title.split(':')[1]?.trim() : apt.design_title,
-                    date: apt.appointment_date ? (apt.appointment_date.includes('T') ? apt.appointment_date.split('T')[0] : apt.appointment_date.substring(0, 10)) : '',
-                    time: apt.start_time,
-                    status: apt.status,
-                    paymentStatus: apt.payment_status,
-                    notes: apt.notes,
-                    beforePhoto: apt.before_photo,
-                    afterPhoto: apt.after_photo,
-                    price: apt.price || 0,
-                    totalPaid: apt.total_paid || 0,
-                    manualPaidAmount: apt.manual_paid_amount || 0,
-                    manualPaymentMethod: apt.manual_payment_method || 'Cash'
-                }));
+                const mappedAppointments = response.data.data.map(apt => {
+                    let finalClientName = apt.client_name;
+                    if (apt.customer_id === 1 && apt.notes?.includes('CLIENT CONTEXT')) {
+                        const nameMatch = apt.notes.match(/Name:\s*([^\n]+)/);
+                        if (nameMatch && nameMatch[1]) {
+                            finalClientName = `${nameMatch[1].trim()} (Guest)`;
+                        }
+                    }
+                    
+                    return {
+                        id: apt.id,
+                        clientName: finalClientName,
+                        clientId: apt.customer_id,
+                        artistName: apt.artist_name,
+                        artistId: apt.artist_id,
+                        serviceType: apt.service_type || (apt.design_title?.includes(':') ? apt.design_title.split(':')[0] : (apt.notes?.toLowerCase().includes('consultation') ? 'Consultation' : 'Tattoo Session')),
+                        designTitle: apt.design_title?.includes(':') ? apt.design_title.split(':')[1]?.trim() : apt.design_title,
+                        date: apt.appointment_date ? (apt.appointment_date.includes('T') ? apt.appointment_date.split('T')[0] : apt.appointment_date.substring(0, 10)) : '',
+                        time: apt.start_time,
+                        status: apt.status,
+                        paymentStatus: apt.payment_status,
+                        notes: apt.notes,
+                        beforePhoto: apt.before_photo,
+                        afterPhoto: apt.after_photo,
+                        price: apt.price || 0,
+                        totalPaid: apt.total_paid || 0,
+                        manualPaidAmount: apt.manual_paid_amount || 0,
+                        manualPaymentMethod: apt.manual_payment_method || 'Cash'
+                    };
+                });
                 setAppointments(mappedAppointments);
                 setFilteredAppointments(mappedAppointments);
                 setLoading(false);
@@ -239,7 +250,8 @@ function AdminAppointments() {
             setAppointments(appointments.filter(a => a.id !== id));
             Axios.delete(`${API_URL}/api/admin/appointments/${id}`)
                 .then(() => fetchAppointments())
-                .catch(err => console.error(err));
+                .catch(err => console.error(err))
+                .finally(() => setConfirmDialog(prev => ({ ...prev, isOpen: false })));
         });
     };
 
@@ -823,9 +835,11 @@ function AdminAppointments() {
                                                             placeholder="Search clients..."
                                                             value={clientSearch}
                                                             onChange={(e) => setClientSearch(e.target.value)}
+                                                            onFocus={() => setClientDropdownOpen(true)}
+                                                            onBlur={() => setTimeout(() => setClientDropdownOpen(false), 200)}
                                                         />
                                                     </div>
-                                                    {clientSearch && (
+                                                    {(clientDropdownOpen || clientSearch) && (
                                                         <div className="glass-card" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, maxHeight: '150px', overflowY: 'auto', background: 'white' }}>
                                                             {clients.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
                                                                 <div key={c.id} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => { setFormData({ ...formData, clientId: c.id }); setClientSearch(c.name); }}>
