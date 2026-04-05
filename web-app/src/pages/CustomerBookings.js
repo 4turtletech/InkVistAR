@@ -204,7 +204,7 @@ function CustomerBookings(){
         
         for (let i = 1; i <= daysInMonth; i++) {
             const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const dateObj = new Date(dateStr);
+            const dateObj = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i);
             const isSelected = bookingData.date === dateStr;
             const isPast = dateObj <= today;
             const isTooFar = dateObj > maxDate;

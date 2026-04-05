@@ -179,14 +179,13 @@ function CustomerNotifications() {
                     </button>
                 </div>
 
-                <div className="portal-content">
-                    {loading ? (
-                        <div className="dashboard-loader-container">
-                            <div className="premium-loader"></div>
-                            <p>Fetching your updates...</p>
-                        </div>
-                    ) : (
-                        <div className="notifications-wrapper" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '500px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+                {loading ? (
+                    <div className="dashboard-loader-container">
+                        <div className="premium-loader"></div>
+                        <p>Fetching your updates...</p>
+                    </div>
+                ) : (
+                    <div className="notifications-wrapper" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '500px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                             {currentItems.length > 0 ? (
                                 <div className="notifications-stream" style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, maxWidth: '100%' }}>
                                     {currentItems.map(n => {
@@ -280,7 +279,6 @@ function CustomerNotifications() {
                             )}
                         </div>
                     )}
-                </div>
             </div>
         </div>
     );
