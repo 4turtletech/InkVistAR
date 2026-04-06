@@ -1435,10 +1435,12 @@ app.post('/api/register', async (req, res) => {
     console.log('\n📝 ========== REGISTER REQUEST ==========');
     console.log('📤 Request body:', req.body);
 
-    const { firstName, lastName, name, email, password, type, phone, preferences, orphanAppointmentId } = req.body;
+    const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId } = req.body;
 
     // Handle combined name if firstName/lastName not provided (backward compatibility)
-    const fullName = (firstName && lastName) ? `${firstName} ${lastName}` : (name || 'Unknown User');
+    const fullName = (firstName && lastName)
+      ? `${firstName} ${lastName}${suffix ? ' ' + suffix : ''}`
+      : (name || 'Unknown User');
 
     // Validation
     if (!fullName || !email || !password || !type) {

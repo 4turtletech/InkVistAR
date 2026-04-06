@@ -35,7 +35,8 @@ export function SimpleARPreview({ onBack }) {
   const [isTracking, setIsTracking] = useState(false);
 
   const cameraRef = useRef(null);
-  const meshRef = useRef(null);
+  const rightMeshRef = useRef(null);  // Right arm cylinder
+  const leftMeshRef = useRef(null);   // Left arm cylinder
   const materialRef = useRef(null);
   const renderReqRef = useRef(null);
   const detectorRef = useRef(null);
@@ -91,40 +92,69 @@ export function SimpleARPreview({ onBack }) {
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     camera.position.z = 5;
 
-    const geometry = new THREE.CylinderGeometry(0.5, 0.4, 3, 32);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xdaa520, wireframe: true, transparent: true, opacity: 0.5,
-    });
-    const armMesh = new THREE.Mesh(geometry, material);
-    scene.add(armMesh);
-    meshRef.current = armMesh;
-    materialRef.current = material;
+    // Build a reusable arm cylinder factory
+    const makeArmMesh = () => {
+      const geo = new THREE.CylinderGeometry(0.5, 0.4, 3, 32);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xdaa520, wireframe: true, transparent: true, opacity: 0.5,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.visible = false;
+      scene.add(mesh);
+      return mesh;
+    };
+
+    const rightMesh = makeArmMesh();
+    const leftMesh  = makeArmMesh();
+    rightMeshRef.current = rightMesh;
+    leftMeshRef.current  = leftMesh;
+    materialRef.current  = rightMesh.material; // For texture apply
+
+    // Convert MoveNet pixel coords (0-256) → Three.js world space
+    const mapTo3D = (kp) => {
+      const ndcX = (kp.x / 256) * 2 - 1;
+      const ndcY = -((kp.y / 256) * 2 - 1);
+      return new THREE.Vector3(ndcX * 2 * (width / height), ndcY * 2, 0);
+    };
+
+    // Helper: place a cylinder from pointA to pointB
+    const positionArm = (mesh, a, b) => {
+      if (!a || !b) { mesh.visible = false; return; }
+      const vA = mapTo3D(a);
+      const vB = mapTo3D(b);
+      const dir = new THREE.Vector3().subVectors(vB, vA);
+      const len = dir.length();
+      const lerpF = 0.2;
+      const mid = new THREE.Vector3().lerpVectors(vA, vB, 0.5);
+      mesh.position.lerp(mid, lerpF);
+      const q = new THREE.Quaternion().setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0), dir.clone().normalize()
+      );
+      mesh.quaternion.slerp(q, lerpF);
+      mesh.scale.y = THREE.MathUtils.lerp(mesh.scale.y, len / 3, lerpF);
+      mesh.visible = true;
+    };
 
     const render = () => {
       renderReqRef.current = requestAnimationFrame(render);
       const arm = lastPoseRef.current;
-      if (arm && arm.active && armMesh) {
-        armMesh.visible = true;
-        const mapTo3D = (kp) => {
-          const ndcX = (kp.x / 256) * 2 - 1;
-          const ndcY = -((kp.y / 256) * 2 - 1);
-          return new THREE.Vector3(ndcX * 2 * (width / height), ndcY * 2, 0);
-        };
-        const vElbow = mapTo3D(arm.elbow);
-        const vWrist = mapTo3D(arm.wrist);
-        const direction = new THREE.Vector3().subVectors(vWrist, vElbow);
-        const length = direction.length();
-        const lerpFactor = 0.2;
-        const targetMid = new THREE.Vector3().lerpVectors(vElbow, vWrist, 0.5);
-        armMesh.position.lerp(targetMid, lerpFactor);
-        const targetQuat = new THREE.Quaternion().setFromUnitVectors(
-          new THREE.Vector3(0, 1, 0),
-          direction.clone().normalize()
-        );
-        armMesh.quaternion.slerp(targetQuat, lerpFactor);
-        armMesh.scale.y = THREE.MathUtils.lerp(armMesh.scale.y, length / 3, lerpFactor);
-      } else if (armMesh) {
-        armMesh.visible = false;
+
+      if (arm && arm.active) {
+        // Right arm: shoulder→elbow + elbow→wrist (two segments for full sleeve)
+        if (arm.right) {
+          positionArm(rightMesh, arm.right.elbow, arm.right.wrist);
+        } else {
+          rightMesh.visible = false;
+        }
+        // Left arm
+        if (arm.left) {
+          positionArm(leftMesh, arm.left.elbow, arm.left.wrist);
+        } else {
+          leftMesh.visible = false;
+        }
+      } else {
+        rightMesh.visible = false;
+        leftMesh.visible  = false;
       }
       renderer.render(scene, camera);
       gl.endFrameEXP();
@@ -163,30 +193,38 @@ export function SimpleARPreview({ onBack }) {
   };
 
   const applyTattooTextureToMesh = (uri) => {
-    if (!materialRef.current || !uri) return;
+    // Apply texture to both arm meshes
+    const meshes = [rightMeshRef.current, leftMeshRef.current].filter(Boolean);
+    if (!meshes.length || !uri) return;
     if (uri.startsWith('http') || uri.startsWith('file') || uri.startsWith('content')) {
       const loader = new THREE.TextureLoader();
       loader.load(
         uri,
         (texture) => {
-          materialRef.current.map = texture;
-          materialRef.current.wireframe = false;
-          materialRef.current.opacity = 0.85;
-          materialRef.current.transparent = true;
-          materialRef.current.color.setHex(0xffffff);
-          materialRef.current.needsUpdate = true;
-          Alert.alert('AR Texture Active', 'Tattoo design applied!');
+          meshes.forEach(m => {
+            m.material.map = texture;
+            m.material.wireframe = false;
+            m.material.opacity = 0.85;
+            m.material.transparent = true;
+            m.material.color.setHex(0xffffff);
+            m.material.needsUpdate = true;
+          });
+          Alert.alert('AR Texture Active', 'Tattoo design applied to both arms!');
         },
         undefined,
         (err) => {
           console.error('Texture loading error:', err);
-          materialRef.current.wireframe = false;
-          materialRef.current.color.setHex(0xdaa520);
+          meshes.forEach(m => {
+            m.material.wireframe = false;
+            m.material.color.setHex(0xdaa520);
+          });
         }
       );
     } else {
-      materialRef.current.wireframe = false;
-      materialRef.current.color.setHex(0xdaa520);
+      meshes.forEach(m => {
+        m.material.wireframe = false;
+        m.material.color.setHex(0xdaa520);
+      });
     }
   };
 
@@ -238,13 +276,16 @@ export function SimpleARPreview({ onBack }) {
         </View>
       )}
 
-      {/* Layer 4: Status Badge (zIndex 25) */}
       <View style={styles.statusBadge}>
         <View style={[styles.statusDot, {
           backgroundColor: !tfReady ? '#f59e0b' : (isTracking ? '#10b981' : '#ef4444')
         }]} />
         <Text style={styles.statusText}>
-          {!tfReady ? 'Loading AI Model...' : (isTracking ? 'Arm Tracked ✓' : 'Searching for Arm...')}
+          {!tfReady
+            ? 'Loading AI Model...'
+            : (isTracking
+              ? `✓ Arm${lastPoseRef.current?.right && lastPoseRef.current?.left ? 's' : ''} Tracked`
+              : 'Point camera at your arm')}
         </Text>
       </View>
 

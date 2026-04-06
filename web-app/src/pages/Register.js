@@ -5,16 +5,50 @@ import { API_URL } from '../config';
 import Navbar from '../components/Navbar';
 import './Login.css'; // Using Login styles for consistency
 
+const PasswordRequirementItem = ({ met, text }) => (
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '0.75rem',
+    color: met ? '#16a34a' : '#64748b',
+    transition: 'color 0.2s'
+  }}>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      {met ? (
+        <>
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </>
+      ) : (
+        <circle cx="12" cy="12" r="9"></circle>
+      )}
+    </svg>
+    <span>{text}</span>
+  </div>
+);
+
 function Register() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    suffix: '',
     email: '',
     phone: '',
     countryCode: '+63',
     password: '',
     confirmPassword: ''
   });
+
+  const [passwordFeedback, setPasswordFeedback] = useState({
+    hasMinLength: false,
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+    hasSymbol: false
+  });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -27,6 +61,9 @@ function Register() {
     // Hard sanitization for names (letters, spaces, hyphens only)
     if (name === 'firstName' || name === 'lastName') {
       sanitizedValue = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '');
+    } else if (name === 'suffix') {
+      // Allow letters, periods, and spaces
+      sanitizedValue = value.replace(/[^a-zA-Z.\s]/g, '').replace(/^\s+/, '');
     } else if (name === 'email') {
       sanitizedValue = value.replace(/\s/g, ''); // No spaces in email
     } else if (name === 'phone') {
@@ -37,7 +74,18 @@ function Register() {
 
     setFormData({ ...formData, [name]: sanitizedValue });
     setApiError(''); // Clear API error on change
-    
+
+    // Live password feedback
+    if (name === 'password') {
+      setPasswordFeedback({
+        hasMinLength: value.length >= 8,
+        hasUppercase: /[A-Z]/.test(value),
+        hasLowercase: /[a-z]/.test(value),
+        hasNumber: /[0-9]/.test(value),
+        hasSymbol: /[@$!%*?&#]/.test(value)
+      });
+    }
+
     // Auto-clear specific error as user types
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
@@ -66,6 +114,12 @@ function Register() {
       if (value !== formData.password) errorMsg = "Passwords do not match";
     }
 
+    if (name === 'phone') {
+      if (!value) errorMsg = "Phone number is required";
+      else if (value.length < 10) errorMsg = "Phone number must be at least 10 digits";
+      else if (value.length > 15) errorMsg = "Phone number cannot exceed 15 digits";
+    }
+
     setErrors(prev => ({ ...prev, [name]: errorMsg }));
     return errorMsg === "";
   };
@@ -79,10 +133,21 @@ function Register() {
     const isFirstNameValid = validateField('firstName', formData.firstName);
     const isLastNameValid = validateField('lastName', formData.lastName);
     const isEmailValid = validateField('email', formData.email);
+    const isPhoneValid = validateField('phone', formData.phone);
     const isPasswordValid = validateField('password', formData.password);
     const isConfirmValid = validateField('confirmPassword', formData.confirmPassword);
-    
-    return isFirstNameValid && isLastNameValid && isEmailValid && isPasswordValid && isConfirmValid;
+
+    return isFirstNameValid && isLastNameValid && isEmailValid && isPhoneValid && isPasswordValid && isConfirmValid;
+  };
+
+  const isPasswordValid = () => {
+    return (
+      passwordFeedback.hasMinLength &&
+      passwordFeedback.hasUppercase &&
+      passwordFeedback.hasLowercase &&
+      passwordFeedback.hasNumber &&
+      passwordFeedback.hasSymbol
+    );
   };
 
   const registerUser = async (e) => {
@@ -143,13 +208,16 @@ function Register() {
                 </div>
             </div>
             <div className="form-group" style={{ position: 'relative' }}>
+                <input type="text" name="suffix" className="form-input" placeholder="Suffix (Optional, e.g. Jr., Sr., III)" value={formData.suffix} onChange={handleChange} />
+            </div>
+            <div className="form-group" style={{ position: 'relative' }}>
                 <input type="email" name="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="Email Address" value={formData.email} onChange={handleChange} onBlur={handleBlur} />
                 {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.email}</small>}
             </div>
             <div className="form-group" style={{ display: 'flex', gap: '10px' }}>
-                <select 
-                    name="countryCode" 
-                    className="form-input" 
+                <select
+                    name="countryCode"
+                    className="form-input"
                     style={{ width: '110px' }}
                     value={formData.countryCode}
                     onChange={handleChange}
@@ -163,19 +231,93 @@ function Register() {
                     <option value="+65">SG (+65)</option>
                     <option value="+64">NZ (+64)</option>
                 </select>
-                <input type="tel" name="phone" className="form-input" style={{ flex: 1 }} value={formData.phone} onChange={handleChange} placeholder="Phone Number" />
+                <input type="tel" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} style={{ flex: 1 }} value={formData.phone} onChange={handleChange} placeholder="Phone Number" />
             </div>
+            {errors.phone && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.phone}</small>}
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
                 <div className="form-group" style={{ flex: 1, position: 'relative' }}>
-                    <input type="password" name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Password" value={formData.password} onChange={handleChange} onBlur={handleBlur} />
+                    <input type={showPassword ? "text" : "password"} name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Password" value={formData.password} onChange={handleChange} onBlur={handleBlur} />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                            position: 'absolute',
+                            right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            color: '#64748b'
+                        }}
+                    >
+                        {showPassword ? (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        )}
+                    </button>
                     {errors.password && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.password}</small>}
                 </div>
                 <div className="form-group" style={{ flex: 1, position: 'relative' }}>
-                    <input type="password" name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} />
+                    <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} />
+                    <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        style={{
+                            position: 'absolute',
+                            right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            color: '#64748b'
+                        }}
+                    >
+                        {showConfirmPassword ? (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        )}
+                    </button>
                     {errors.confirmPassword && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.confirmPassword}</small>}
                 </div>
             </div>
-            <button type="submit" className="login-btn">Register</button>
+
+            {/* Live Password Requirements Feedback */}
+            <div style={{
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '1rem',
+                border: '1px solid #e2e8f0'
+            }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', marginBottom: '8px' }}>Password Requirements:</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <PasswordRequirementItem met={passwordFeedback.hasMinLength} text="At least 8 characters" />
+                    <PasswordRequirementItem met={passwordFeedback.hasUppercase} text="Uppercase letter" />
+                    <PasswordRequirementItem met={passwordFeedback.hasLowercase} text="Lowercase letter" />
+                    <PasswordRequirementItem met={passwordFeedback.hasNumber} text="Number" />
+                    <PasswordRequirementItem met={passwordFeedback.hasSymbol} text="Special character (@$!%*?&#)" />
+                </div>
+            </div>
+
+            <button type="submit" className="login-btn" disabled={!isPasswordValid()}>Register</button>
         </form>
         
         <div className="login-footer">

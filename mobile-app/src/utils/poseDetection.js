@@ -22,45 +22,61 @@ export const loadPoseModel = async () => {
 // Process a single frame and return arm coordinates
 export const detectPose = async (detector, tensor) => {
   if (!detector || !tensor) return { active: false };
-  
   try {
     const poses = await detector.estimatePoses(tensor, {
       maxPoses: 1,
-      flipHorizontal: false // Mobile front camera usually handles this at the stream level
+      flipHorizontal: false,
     });
-    
-    return getArmKeypoints(poses);
+    return getAllArmKeypoints(poses);
   } catch (err) {
     console.error('Pose estimation error:', err);
     return { active: false };
   }
 };
 
-// Common constants for arm mapping
-export const getArmKeypoints = (pose) => {
+// Returns BOTH arms independently for full-sleeve support
+export const getAllArmKeypoints = (pose) => {
   if (!pose || pose.length === 0) return { active: false };
   const keypoints = pose[0].keypoints;
-  
-  // Track right arm (5, 7, 9) or left arm (6, 8, 10) depending on score
-  const rightShoulder = keypoints.find(k => k.name === 'right_shoulder');
-  const rightElbow = keypoints.find(k => k.name === 'right_elbow');
-  const rightWrist = keypoints.find(k => k.name === 'right_wrist');
-  
-  const leftShoulder = keypoints.find(k => k.name === 'left_shoulder');
-  const leftElbow = keypoints.find(k => k.name === 'left_elbow');
-  const leftWrist = keypoints.find(k => k.name === 'left_wrist');
 
-  const rightScore = (rightShoulder?.score || 0) + (rightElbow?.score || 0) + (rightWrist?.score || 0);
-  const leftScore = (leftShoulder?.score || 0) + (leftElbow?.score || 0) + (leftWrist?.score || 0);
+  // Per-keypoint minimum confidence. Lowered to 0.25 so mobile cameras can trigger.
+  const MIN_SCORE = 0.25;
 
-  // Return best detected arm based on confidence (min threshold to avoid random snapping)
-  // MoveNet scores are 0-1. Total score of 1.5 across 3 points is a reasonable starting threshold.
-  const THRESHOLD = 1.5;
-  if (rightScore > leftScore && rightScore > THRESHOLD) {
-    return { shoulder: rightShoulder, elbow: rightElbow, wrist: rightWrist, type: 'right', active: true };
-  } else if (leftScore > THRESHOLD) {
-    return { shoulder: leftShoulder, elbow: leftElbow, wrist: leftWrist, type: 'left', active: true };
-  }
-  
-  return { active: false }; // No high confidence arm detected
+  const kp = (name) => {
+    const point = keypoints.find(k => k.name === name);
+    return (point && point.score >= MIN_SCORE) ? point : null;
+  };
+
+  const rightShoulder = kp('right_shoulder');
+  const rightElbow    = kp('right_elbow');
+  const rightWrist    = kp('right_wrist');
+
+  const leftShoulder  = kp('left_shoulder');
+  const leftElbow     = kp('left_elbow');
+  const leftWrist     = kp('left_wrist');
+
+  // An arm segment is valid if we can see at least elbow + wrist
+  const rightValid = !!(rightElbow && rightWrist);
+  const leftValid  = !!(leftElbow  && leftWrist);
+
+  if (!rightValid && !leftValid) return { active: false };
+
+  return {
+    active: true,
+    // Right arm (forearm = elbow→wrist, full arm = shoulder→wrist)
+    right: rightValid ? {
+      shoulder: rightShoulder,
+      elbow: rightElbow,
+      wrist: rightWrist,
+    } : null,
+    // Left arm
+    left: leftValid ? {
+      shoulder: leftShoulder,
+      elbow: leftElbow,
+      wrist: leftWrist,
+    } : null,
+  };
 };
+
+// Legacy single-arm getter kept for backwards compatibility
+export const getArmKeypoints = getAllArmKeypoints;
