@@ -31,6 +31,38 @@
     color: #6366f1;
 }
 
+/* Modal Tab Styling */
+.modal-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: -11px; /* Align with header border */
+}
+
+.modal-tab-btn {
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: #f8fafc;
+    color: #64748b;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-tab-btn.active {
+    background: white;
+    color: #6366f1;
+    border-color: #e2e8f0;
+    position: relative;
+    z-index: 1;
+}
+
+.modal-tab-btn:hover:not(.active) {
+    background: #f1f5f9;
+}
+
 .print-only-header {
     display: none;
 }

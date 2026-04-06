@@ -30,6 +30,7 @@ function AdminAppointments() {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [modalTab, setModalTab] = useState('details'); // 'details' or 'pricing'
     const [appointmentModal, setAppointmentModal] = useState({ mounted: false, visible: false });
     const [manualPaymentModal, setManualPaymentModal] = useState({ isOpen: false, amount: '', method: 'Cash' });
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger', isAlert: false });
@@ -226,6 +227,7 @@ function AdminAppointments() {
 
     const handleEdit = (appointment) => {
         setSelectedAppointment(appointment);
+        setModalTab('details');
         setFormData({
             clientId: appointment.clientId || appointment.customer_id,
             artistId: appointment.artistId || appointment.artist_id,
@@ -258,6 +260,7 @@ function AdminAppointments() {
 
     const handleAddNew = (prefilledDate = null) => {
         setSelectedAppointment(null);
+        setModalTab('details');
         setFormData({
             clientId: '',
             artistId: '',
@@ -777,21 +780,36 @@ function AdminAppointments() {
                 {/* Modal */}
                 {appointmentModal.mounted && (
                     <div className={`modal-overlay ${appointmentModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                        <div className="modal-content" style={{ maxWidth: '800px', width: '95%', overflowX: 'hidden', boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-content" style={{ maxWidth: '1100px', width: '95%', overflowX: 'hidden', boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header" style={{ paddingBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                    <h2 style={{ margin: 0 }}>{selectedAppointment ? `Edit Appointment #${selectedAppointment.id}` : 'New Appointment'}</h2>
-                                    {selectedAppointment && (
-                                        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                                            <span className={`badge status-${getStatusColor(selectedAppointment.status)}`}>{selectedAppointment.status}</span>
-                                            {selectedAppointment.price > 0 && (
-                                                <span className="badge" style={{
-                                                    backgroundColor: selectedAppointment.totalPaid >= selectedAppointment.price ? '#ecfdf5' : '#eff6ff',
-                                                    color: selectedAppointment.totalPaid >= selectedAppointment.price ? '#059669' : '#1d4ed8',
-                                                    border: `1px solid ${selectedAppointment.totalPaid >= selectedAppointment.price ? '#10b981' : '#3b82f6'}`
-                                                }}>
-                                                    Paid: ₱{selectedAppointment.totalPaid.toLocaleString()} / ₱{selectedAppointment.price.toLocaleString()}
-                                                    {selectedAppointment.totalPaid < selectedAppointment.price && ` (Balance: ₱${(selectedAppointment.price - selectedAppointment.totalPaid).toLocaleString()})`}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                        <h2 style={{ margin: 0 }}>{selectedAppointment ? `Edit Appointment #${selectedAppointment.id}` : 'New Appointment'}</h2>
+                                        <div className="modal-tabs">
+                                            <button 
+                                                className={`modal-tab-btn ${modalTab === 'details' ? 'active' : ''}`} 
+                                                onClick={() => setModalTab('details')}
+                                            >
+                                                <Info size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                                                Details
+                                            </button>
+                                            <button 
+                                                className={`modal-tab-btn ${modalTab === 'pricing' ? 'active' : ''}`} 
+                                                onClick={() => setModalTab('pricing')}
+                                            >
+                                                <DollarSign size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                                                Pricing
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <span className={`badge status-${getStatusColor(formData.status)}`}>{formData.status}</span>
+                                        {selectedAppointment && selectedAppointment.price > 0 && (
+                                            <span className="badge" style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                                                Paid: ₱{selectedAppointment.totalPaid.toLocaleString()} / ₱{formData.price.toLocaleString()}
+                                                {selectedAppointment.totalPaid < formData.price && (
+                                                    <span style={{ marginLeft: '4px', color: '#ef4444' }}>
+                                                        (Bal: ₱{(formData.price - selectedAppointment.totalPaid).toLocaleString()})
                                                 </span>
                                             )}
                                         </div>
@@ -800,11 +818,11 @@ function AdminAppointments() {
                                 <button className="close-btn" onClick={closeModal}>×</button>
                             </div>
                             <div className="modal-body">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                                {modalTab === 'details' ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
                                     {/* Left Column: People & Service */}
                                     <div>
-                                        <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <User size={16} /> Client & Artist
+                                        <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                                         </h3>
                                         <div className="form-group" style={{ position: 'relative' }}>
                                             <label>Client Selection *</label>
@@ -883,8 +901,7 @@ function AdminAppointments() {
                                             )}
                                         </div>
 
-                                        <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '30px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Palette size={16} /> Service Information
+                                        <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '30px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                                         </h3>
                                         <div className="form-group">
                                             <label>Service Type *</label>
@@ -899,20 +916,11 @@ function AdminAppointments() {
                                             <label>Design Title / Idea</label>
                                             <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Traditional Dagger" style={{ width: '100%' }} />
                                         </div>
-                                        {formData.beforePhoto && (
-                                            <div className="form-group" style={{ marginTop: '15px' }}>
-                                                <label>Reference Image / Sketches</label>
-                                                <div style={{ marginTop: '8px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', background: '#f8fafc' }}>
-                                                    <img src={formData.beforePhoto} alt="Reference Data" style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain', borderRadius: '8px' }} />
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
 
-                                    {/* Right Column: Schedule & Pricing */}
+                                    {/* Right Column: Schedule & Notes */}
                                     <div>
-                                        <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Clock size={16} /> Schedule
+                                        <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                                         </h3>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '15px' }}>
                                             <div className="form-group">
@@ -934,43 +942,71 @@ function AdminAppointments() {
                                             </select>
                                         </div>
 
-                                        <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '30px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <DollarSign size={16} /> Pricing & Payment
-                                        </h3>
-                                        <div className="form-group">
-                                            <label>Total Quoted Price (₱)</label>
-                                            <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="premium-input-v2" style={{ width: '100%', backgroundImage: 'none' }} />
+                                        <div className="form-group" style={{ marginTop: '20px' }}>
+                                            <label><FileText size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Notes & Instructions</label>
+                                            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="premium-select-v2" style={{ width: '100%', height: '140px', backgroundImage: 'none' }} rows="5" placeholder="Client requests, medical alerts, or placement details..." />
                                         </div>
 
-                                        <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', marginTop: '15px', border: '1px solid #e2e8f0' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                <label style={{ margin: 0 }}>Financial Summary</label>
+                                        {(formData.beforePhoto || selectedAppointment?.beforePhoto) && (
+                                            <div className="form-group" style={{ marginTop: '20px' }}>
+                                                <label><ImageIcon size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Reference Image</label>
+                                                <div style={{ marginTop: '8px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '8px', background: '#f8fafc', display: 'flex', justifyContent: 'center' }}>
+                                                    <img src={formData.beforePhoto || selectedAppointment?.beforePhoto} alt="Reference" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px' }} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Pricing Tab View */
+                                    <div className="fade-in" style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
+                                        <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1e293b', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <DollarSign size={20} className="text-primary" /> Pricing & Financials
+                                        </h3>
+                                        
+                                        <div className="form-group">
+                                            <label>Total Quoted Price</label>
+                                            <div style={{ position: 'relative' }}>
+                                                <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '600', color: '#64748b' }}>₱</span>
+                                                <input 
+                                                    type="number" 
+                                                    value={formData.price} 
+                                                    onChange={(e) => setFormData({ ...formData, price: e.target.value })} 
+                                                    className="premium-input-v2" 
+                                                    style={{ width: '100%', paddingLeft: '30px', fontSize: '1.2rem', fontWeight: '700', color: '#1e293b' }} 
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', marginTop: '30px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#475569' }}>Payment Summary</h4>
                                                 <button
                                                     type="button"
-                                                    className="btn btn-secondary"
+                                                    className="btn btn-primary"
                                                     style={{
-                                                        padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '5px',
-                                                        opacity: (!selectedAppointment || (selectedAppointment.totalPaid >= formData.price)) ? 0.5 : 1,
-                                                        cursor: (!selectedAppointment || (selectedAppointment.totalPaid >= formData.price)) ? 'not-allowed' : 'pointer'
+                                                        padding: '6px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px',
+                                                        opacity: (!selectedAppointment || (selectedAppointment.totalPaid >= formData.price)) ? 0.5 : 1
                                                     }}
                                                     onClick={() => selectedAppointment && (selectedAppointment.totalPaid < formData.price) && setManualPaymentModal({ ...manualPaymentModal, isOpen: true, amount: '' })}
                                                     disabled={!selectedAppointment || (selectedAppointment.totalPaid >= formData.price)}
                                                 >
-                                                    <Plus size={14} /> Adjust Manually
+                                                    <Plus size={14} /> Record Studio Payment
                                                 </button>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                                                <span style={{ color: '#64748b' }}>Total Collected: ₱{Number(selectedAppointment?.totalPaid || 0).toLocaleString()}</span>
-                                                <span style={{ fontWeight: '600', color: '#3b82f6' }}>Balance: ₱{Math.max(0, (formData.price || 0) - (selectedAppointment?.totalPaid || 0)).toLocaleString()}</span>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px dashed #e2e8f0' }}>
+                                                    <span style={{ color: '#64748b' }}>Total Collected</span>
+                                                    <span style={{ fontWeight: '700', color: '#10b981' }}>₱{Number(selectedAppointment?.totalPaid || 0).toLocaleString()}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '4px' }}>
+                                                    <span style={{ fontWeight: '600', color: '#475569' }}>Outstanding Balance</span>
+                                                    <span style={{ fontWeight: '800', color: '#ef4444', fontSize: '1.1rem' }}>₱{Math.max(0, (formData.price || 0) - (selectedAppointment?.totalPaid || 0)).toLocaleString()}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="form-group" style={{ marginTop: '20px' }}>
-                                    <label>Notes</label>
-                                    <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="premium-select-v2" style={{ width: '100%', height: 'auto', backgroundImage: 'none' }} rows="3" />
-                                </div>
+                                )}
                             </div>
                             <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '15px 20px', borderTop: '1px solid #e2e8f0' }}>
                                 <div className="footer-left">
