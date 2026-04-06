@@ -7,8 +7,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 
 // Import main screens
 import { LoginPage } from './screens/LoginPage.jsx';
@@ -62,15 +60,6 @@ import { OTPVerification } from './components/OTPVerification';
 
 // Import API
 import { loginUser, registerUser, sendOTP, resetUserPassword, deleteArtistWork, saveAuthToken, updatePushToken } from './src/utils/api';
-
-// Configure Notifications
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -243,47 +232,6 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginUserType, setLoginUserType] = useState('customer');
   
-  useEffect(() => {
-    if (user && user.id) {
-      registerForPushNotificationsAsync().then(token => {
-        if (token) {
-          updatePushToken(user.id, token);
-        }
-      });
-    }
-  }, [user]);
-
-  async function registerForPushNotificationsAsync() {
-    let token;
-    if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== 'granted') {
-        console.log('Failed to get push token for push notification!');
-        return;
-      }
-      token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log('Push Token:', token);
-    } else {
-      console.log('Must use physical device for Push Notifications');
-    }
-
-    if (Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#daa520',
-      });
-    }
-
-    return token;
-  }
-
   useEffect(() => {
     console.log('👤 User state changed:', user ? `Logged in as ${user.name}` : 'Not logged in');
   }, [user]);
