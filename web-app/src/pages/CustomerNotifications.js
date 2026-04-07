@@ -136,7 +136,7 @@ function CustomerNotifications() {
     return (
         <div className="portal-layout">
             <CustomerSideNav />
-            <div className="portal-container customer-portal">
+            <div className="portal-container customer-portal" style={{ flex: 1, minWidth: 0 }}>
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Updates & Alerts</h1>
@@ -201,7 +201,7 @@ function CustomerNotifications() {
                                                             <Icon size={16} color={style.color}/>
                                                         </div>
                                                         
-                                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '20px', overflow: 'hidden' }}>
+                                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '20px', overflow: 'hidden', minWidth: 0 }}>
                                                             <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? '#64748b' : '#1e293b' }}>{n.title}</span>
                                                             <p className="notif-body" style={{ margin: 0, fontSize: '0.9rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</p>
                                                         </div>
