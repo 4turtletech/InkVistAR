@@ -199,15 +199,18 @@ function AdminAppointments() {
     };
 
     const showConfirm = (titleOrMessage, messageOrOnConfirm, maybeOnConfirm) => {
-        let title = titleOrMessage;
-        let message = messageOrOnConfirm;
-        let onConfirm = maybeOnConfirm;
+        let title, message, onConfirm;
 
-        if (typeof onConfirm !== 'function' && onConfirm !== null && onConfirm !== undefined) {
-            // Shift arguments: (message, onConfirm)
-            onConfirm = message;
-            message = title;
+        if (typeof messageOrOnConfirm === 'function') {
+            // Case: showConfirm(message, onConfirm)
             title = 'Confirm Action';
+            message = titleOrMessage;
+            onConfirm = messageOrOnConfirm;
+        } else {
+            // Case: showConfirm(title, message, onConfirm)
+            title = titleOrMessage;
+            message = messageOrOnConfirm;
+            onConfirm = maybeOnConfirm;
         }
 
         const confirmHandler = onConfirm || (() => setConfirmDialog(prev => ({ ...prev, isOpen: false })));
