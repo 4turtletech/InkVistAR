@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, Palette, Clock, CreditCard, DollarSign } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, Palette, Clock, CreditCard, DollarSign, Info, FileText, Image } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
@@ -198,9 +198,27 @@ function AdminAppointments() {
         });
     };
 
-    const showConfirm = (message, onConfirm) => {
+    const showConfirm = (titleOrMessage, messageOrOnConfirm, maybeOnConfirm) => {
+        let title = titleOrMessage;
+        let message = messageOrOnConfirm;
+        let onConfirm = maybeOnConfirm;
+
+        if (typeof onConfirm !== 'function' && onConfirm !== null && onConfirm !== undefined) {
+            // Shift arguments: (message, onConfirm)
+            onConfirm = message;
+            message = title;
+            title = 'Confirm Action';
+        }
+
         const confirmHandler = onConfirm || (() => setConfirmDialog(prev => ({ ...prev, isOpen: false })));
-        setConfirmDialog({ isOpen: true, title: 'Confirm Action', message, onConfirm: confirmHandler, type: 'info', isAlert: !onConfirm });
+        setConfirmDialog({ 
+            isOpen: true, 
+            title: title || 'Confirm Action', 
+            message, 
+            onConfirm: confirmHandler, 
+            type: 'info', 
+            isAlert: !onConfirm 
+        });
     };
 
     const showAlert = (title, message, type = 'info') => {
@@ -805,15 +823,16 @@ function AdminAppointments() {
                                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                         <span className={`badge status-${getStatusColor(formData.status)}`}>{formData.status}</span>
                                         {selectedAppointment && selectedAppointment.price > 0 && (
-                                            <span className="badge" style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                                            <div className="badge" style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', display: 'inline-block' }}>
                                                 Paid: ₱{selectedAppointment.totalPaid.toLocaleString()} / ₱{formData.price.toLocaleString()}
                                                 {selectedAppointment.totalPaid < formData.price && (
                                                     <span style={{ marginLeft: '4px', color: '#ef4444' }}>
                                                         (Bal: ₱{(formData.price - selectedAppointment.totalPaid).toLocaleString()})
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <button className="close-btn" onClick={closeModal}>×</button>
                             </div>
@@ -949,13 +968,14 @@ function AdminAppointments() {
 
                                         {(formData.beforePhoto || selectedAppointment?.beforePhoto) && (
                                             <div className="form-group" style={{ marginTop: '20px' }}>
-                                                <label><ImageIcon size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Reference Image</label>
+                                                <label><Image size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Reference Image</label>
                                                 <div style={{ marginTop: '8px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '8px', background: '#f8fafc', display: 'flex', justifyContent: 'center' }}>
                                                     <img src={formData.beforePhoto || selectedAppointment?.beforePhoto} alt="Reference" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px' }} />
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
+                                </div>
                                 ) : (
                                     /* Pricing Tab View */
                                     <div className="fade-in" style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
@@ -1088,7 +1108,7 @@ function AdminAppointments() {
                         <div className="modal-content glass-modal" style={{ maxWidth: '500px', border: '1px solid rgba(255,255,255,0.4)' }} onClick={e => e.stopPropagation()}>
                             <div className="modal-header-v2">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ background: '#f1f5f9', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyCenter: 'center', color: '#6366f1' }}>
+                                    <div style={{ background: '#f1f5f9', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
                                         <Calendar size={20} />
                                     </div>
                                     <div>
