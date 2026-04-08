@@ -112,9 +112,11 @@ function AdminChat() {
                         {selectedAppointment ? (
                             <div className="chat-widget-wrapper">
                                 <ChatWidget
+                                    key={selectedAppointment.id}
                                     room={selectedAppointment.id}
                                     currentUser={`Admin`}
                                     isAdminMode={true}
+                                    initialMessages={liveSessions.find(s => s.id === selectedAppointment.id)?.messages || []}
                                 />
                             </div>
                         ) : (
