@@ -10,7 +10,8 @@ import {
     Users2,
     ChevronLeft,
     ChevronRight,
-    LogOut
+    LogOut,
+    Building2
 } from 'lucide-react';
 import '../styles/ManagerSideNav.css';
 
@@ -54,7 +55,12 @@ function ManagerSideNav() {
     return (
         <aside className={`manager-sidenav ${collapsed ? 'collapsed' : ''}`}>
             <div className="sidenav-header">
-                <span>Manager Portal</span>
+                <div className="logo-container" onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className="logo-box" style={{ background: 'rgba(193, 154, 107, 0.1)', color: '#C19A6B', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                        <Building2 size={24} />
+                    </div>
+                    <span className="logo-text" style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>InkVictus</span>
+                </div>
                 <button className="close-nav" onClick={toggleCollapsed}>
                     {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
                 </button>

@@ -41,7 +41,6 @@ function CustomerSideNav() {
     };
 
     const menuItems = [
-        { label: 'Landing Page', icon: Home, path: '/' },
         { label: 'Dashboard', icon: LayoutDashboard, path: '/customer' },
         { label: 'My Bookings', icon: Calendar, path: '/customer/bookings' },
         { label: 'Gallery', icon: Image, path: '/customer/gallery' },
@@ -58,11 +57,11 @@ function CustomerSideNav() {
     return (
         <aside className={`customer-sidenav ${collapsed ? 'collapsed' : ''}`}>
             <div className="sidenav-header">
-                <div className="logo-container">
+                <div className="logo-container" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
                     <div className="logo-box">
                         <Building2 size={24} />
                     </div>
-                    <span className="logo-text">InkVistAR</span>
+                    <span className="logo-text">InkVictus</span>
                 </div>
                 <button className="sidenav-toggle" onClick={toggleCollapsed} title={collapsed ? 'Expand' : 'Collapse'}>
                     {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
