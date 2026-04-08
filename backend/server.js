@@ -505,13 +505,13 @@ db.getConnection((err, connection) => {
           }
         });
 
-      // MIGRATION: Add 'manual_payment_method' column
-      db.query("SHOW COLUMNS FROM appointments LIKE 'manual_payment_method'", (err, results) => {
-        if (!err && results.length === 0) {
-          console.log('🔄 Migrating appointments: Adding manual_payment_method column...');
-          db.query("ALTER TABLE appointments ADD COLUMN manual_payment_method VARCHAR(50) NULL AFTER manual_paid_amount");
-        }
-      });
+        // MIGRATION: Add 'manual_payment_method' column
+        db.query("SHOW COLUMNS FROM appointments LIKE 'manual_payment_method'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding manual_payment_method column...');
+            db.query("ALTER TABLE appointments ADD COLUMN manual_payment_method VARCHAR(50) NULL AFTER manual_paid_amount");
+          }
+        });
 
         // MIGRATION: Ensure status is VARCHAR(50) to avoid truncation if it was ENUM
         db.query("ALTER TABLE appointments MODIFY COLUMN status VARCHAR(50) DEFAULT 'pending'", (err) => {
@@ -1797,7 +1797,7 @@ app.put('/api/artist/profile/:id', (req, res) => {
       artistQuery += ', experience_years = ?';
       params.push(experience_years);
     }
-    
+
     // Lock commission rate to 30%
     artistQuery += ', commission_rate = ?';
     params.push(0.30);
@@ -2145,91 +2145,89 @@ app.post('/api/customer/appointments', (req, res) => {
   function processBooking(finalArtistId) {
     const currentArtistId = finalArtistId;
 
-  // Validation for time and date
-  // If startTime is provided (not a Tattoo Session), validate it
-  if (startTime) {
-    const allowedTimes = [
-      '13:00:00', '14:00:00', '15:00:00', '16:00:00', '17:00:00', '18:00:00', '19:00:00', '20:00:00',
-      '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
-    ];
-    if (!allowedTimes.includes(startTime)) {
-      return res.status(400).json({ success: false, message: 'Selected time is not available. Please choose between 1 PM - 8 PM.' });
+    // Validation for time and date
+    // If startTime is provided (not a Tattoo Session), validate it
+    if (startTime) {
+      const allowedTimes = [
+        '13:00:00', '14:00:00', '15:00:00', '16:00:00', '17:00:00', '18:00:00', '19:00:00', '20:00:00',
+        '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
+      ];
+      if (!allowedTimes.includes(startTime)) {
+        return res.status(400).json({ success: false, message: 'Selected time is not available. Please choose between 1 PM - 8 PM.' });
+      }
     }
-  }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Set to beginning of today
-  const appointmentDate = new Date(date);
-  appointmentDate.setHours(0, 0, 0, 0); // Also zero out time for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to beginning of today
+    const appointmentDate = new Date(date);
+    appointmentDate.setHours(0, 0, 0, 0); // Also zero out time for comparison
 
-  if (appointmentDate <= today) {
-    return res.status(400).json({ success: false, message: 'Appointments cannot be booked for the same day or past dates.' });
-  }
+    if (appointmentDate <= today) {
+      return res.status(400).json({ success: false, message: 'Appointments cannot be booked for the same day or past dates.' });
+    }
 
-  const maxBookingDate = new Date();
-  maxBookingDate.setMonth(today.getMonth() + 3);
-  if (appointmentDate > maxBookingDate) {
-    return res.status(400).json({ success: false, message: 'Appointments can only be booked up to 3 months in advance.' });
-  }
-  // --- End Validation ---
+    const maxBookingDate = new Date();
+    maxBookingDate.setMonth(today.getMonth() + 3);
+    if (appointmentDate > maxBookingDate) {
+      return res.status(400).json({ success: false, message: 'Appointments can only be booked up to 3 months in advance.' });
+    }
+    // --- End Validation ---
 
-  // Ensure endTime has a value (default to startTime if missing)
-  const finalStartTime = startTime || null;
-  const finalEndTime = endTime || startTime || null;
-  // If no time provided (Tattoo Session), set status to pending_schedule
-  const bookingStatus = startTime ? 'pending' : 'pending_schedule';
+    // Ensure endTime has a value (default to startTime if missing)
+    const finalStartTime = startTime || null;
+    const finalEndTime = endTime || startTime || null;
+    // If no time provided (Tattoo Session), set status to pending_schedule
+    const bookingStatus = startTime ? 'pending' : 'pending_schedule';
 
-  // Double Booking Check (only if they picked a time)
-  if (finalStartTime) {
-    const checkQuery = `
+    // Double Booking Check (only if they picked a time)
+    if (finalStartTime) {
+      const checkQuery = `
       SELECT id FROM appointments 
       WHERE appointment_date = ? AND start_time = ? AND status != 'cancelled' AND is_deleted = 0
       AND (artist_id = ? OR customer_id = ?)
     `;
 
-    db.query(checkQuery, [date, finalStartTime, currentArtistId, customerId], (checkErr, checkResults) => {
-      if (checkErr) {
-        console.error('❌ Error checking double booking:', checkErr);
-        return res.status(500).json({ success: false, message: 'Database error' });
-      }
+      db.query(checkQuery, [date, finalStartTime, currentArtistId, customerId], (checkErr, checkResults) => {
+        if (checkErr) {
+          console.error('❌ Error checking double booking:', checkErr);
+          return res.status(500).json({ success: false, message: 'Database error' });
+        }
 
-      if (checkResults.length > 0) {
-        return res.status(400).json({ success: false, message: 'Scheduling Conflict: This time slot is already taken. Please select a different time.' });
-      }
+        if (checkResults.length > 0) {
+          return res.status(400).json({ success: false, message: 'Scheduling Conflict: This time slot is already taken. Please select a different time.' });
+        }
 
+        insertAppointment();
+      });
+    } else {
       insertAppointment();
-    });
-  } else {
-    insertAppointment();
-  }
+    }
 
-  function insertAppointment() {
-  const query = `
+    function insertAppointment() {
+      const query = `
     INSERT INTO appointments 
     (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?)
   `;
 
-  db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation'], (err, result) => {
-    if (err) {
-      console.error('❌ Error booking appointment:', err);
-      return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
-    }
+      db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation'], (err, result) => {
+        if (err) {
+          console.error('❌ Error booking appointment:', err);
+          return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+        }
 
-    // Notify Artist
-    const notifDate = date || 'an upcoming date';
-    const artistNotifTitle = serviceType ? `New ${serviceType} Request` : 'New Booking Request';
-    createNotification(currentArtistId, artistNotifTitle, `New request from client for ${notifDate}. Please assign an artist.`, 'appointment_request', result.insertId);
+        // Notify Artist
+        const notifDate = date || 'an upcoming date';
+        createNotification(currentArtistId, 'New Booking Request', `New request from client for ${notifDate}. Please assign an artist.`, 'appointment_request', result.insertId);
 
-    // NEW: Notify Customer
-    const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const appointmentTime = finalStartTime ? new Date(`2000-01-01T${finalStartTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'a time to be determined';
-    const customerNotifTitle = serviceType ? `${serviceType} Request Received` : 'Booking Request Received';
-    createNotification(customerId, customerNotifTitle, `Your request for a ${designTitle || serviceType} session on ${appointmentDate} at ${appointmentTime} has been received. We will review it shortly!`, 'appointment_request', result.insertId);
+        // NEW: Notify Customer
+        const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const appointmentTime = finalStartTime ? new Date(`2000-01-01T${finalStartTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'a time to be determined';
+        createNotification(customerId, 'Booking Request Received', `Your request for a ${designTitle || serviceType} session on ${appointmentDate} at ${appointmentTime} has been received. We will review it shortly! Expect a call from our staff in the next 24 hours.`, 'appointment_request', result.insertId);
 
-    db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (err, users) => {
-      if (!err && users && users.length > 0 && users[0].email) {
-        const html = `
+        db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (err, users) => {
+          if (!err && users && users.length > 0 && users[0].email) {
+            const html = `
           <div style="font-family: Arial, sans-serif; padding: 20px;">
             <h2 style="color: #1e293b;">Booking Request Received!</h2>
             <p style="font-size: 16px;">Hello ${users[0].name},</p>
@@ -2239,17 +2237,17 @@ app.post('/api/customer/appointments', (req, res) => {
             <p style="color: #64748b; font-size: 14px;">- The InkVistAR Studio Team</p>
           </div>
         `;
-        sendResendEmail(users[0].email, 'InkVistAR: Booking Request Received', html);
-      }
-    });
+            sendResendEmail(users[0].email, 'InkVistAR: Booking Request Received', html);
+          }
+        });
 
-    res.json({
-      success: true,
-      message: 'Appointment booked successfully',
-      appointmentId: result.insertId
-    });
-  });
-  }
+        res.json({
+          success: true,
+          message: 'Appointment booked successfully',
+          appointmentId: result.insertId
+        });
+      });
+    }
   }
 });
 
@@ -2436,12 +2434,12 @@ app.delete('/api/admin/service-kits/:service_type', (req, res) => {
 
   db.query('DELETE FROM service_kits WHERE service_type = ?', [serviceType], (err, result) => {
     if (err) {
-        console.error(`[ERROR] DB error during kit delete:`, err.message);
-        return res.status(500).json({ success: false, message: 'Database error' });
+      console.error(`[ERROR] DB error during kit delete:`, err.message);
+      return res.status(500).json({ success: false, message: 'Database error' });
     }
     if (result.affectedRows === 0) {
-        console.warn(`[WARN] Delete failed: No rows matched service type "${serviceType}"`);
-        return res.status(404).json({ success: false, message: 'Service kit not found in database' });
+      console.warn(`[WARN] Delete failed: No rows matched service type "${serviceType}"`);
+      return res.status(404).json({ success: false, message: 'Service kit not found in database' });
     }
     console.log(`[SUCCESS] Deleted ${result.affectedRows} items for service kit: "${serviceType}"`);
     res.json({ success: true, message: 'Service kit deleted' });
@@ -2553,88 +2551,46 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   query += updates.join(', ') + ' WHERE id = ? AND is_deleted = 0';
   params.push(id);
 
-  // PRE-FETCH OLD APPOINTMENT STATE TO DETERMINE CHANGES
-  db.query('SELECT * FROM appointments WHERE id = ? AND is_deleted = 0', [id], (err, oldApptResults) => {
-    if (err || !oldApptResults.length) {
+  db.query(query, params, (err, result) => {
+    if (err) {
+      console.error('❌ Error updating admin appointment:', err);
+      return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+    }
+    if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, message: 'Appointment not found.' });
     }
-    const oldAppt = oldApptResults[0];
 
-    db.query(query, params, (err, result) => {
-      if (err) {
-        console.error('❌ Error updating admin appointment:', err);
-        return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
-      }
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Appointment not found.' });
-      }
+    // Auto-recalculate payment_status based on updated price and manual_paid_amount
+    const recalculateStatusQuery = `
+      UPDATE appointments 
+      SET payment_status = CASE 
+        WHEN price > 0 AND (((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = id AND status = 'paid') / 100) + manual_paid_amount) >= price THEN 'paid'
+        WHEN price = 0 OR price IS NULL THEN 'paid'
+        ELSE payment_status
+      END 
+      WHERE id = ? AND payment_status != 'paid'
+    `;
+    db.query(recalculateStatusQuery, [id]);
 
-      // Auto-recalculate payment_status based on updated price and manual_paid_amount
-      const recalculateStatusQuery = `
-        UPDATE appointments 
-        SET payment_status = CASE 
-          WHEN price > 0 AND (((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = id AND status = 'paid') / 100) + manual_paid_amount) >= price THEN 'paid'
-          WHEN price = 0 OR price IS NULL THEN 'paid'
-          ELSE payment_status
-        END 
-        WHERE id = ? AND payment_status != 'paid'
-      `;
-      db.query(recalculateStatusQuery, [id]);
-
-      // Smart Notifications Logic
-      db.query('SELECT customer_id, artist_id, status FROM appointments WHERE id = ?', [id], (e, r) => {
-        if (!e && r.length) {
-          const currentData = r[0];
-          let notificationsSent = false;
-          const oldDate = oldAppt.appointment_date ? (oldAppt.appointment_date.includes('T') ? oldAppt.appointment_date.split('T')[0] : oldAppt.appointment_date.toISOString().split('T')[0]) : null;
-          const newDate = date ? date.split('T')[0] : null;
-
-          // 1. Check for Rescheduling
-          if ((newDate && oldDate && newDate !== oldDate) || (startTime !== undefined && startTime !== oldAppt.start_time)) {
-             createNotification(currentData.customer_id, 'Appointment Rescheduled 📅', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.`, 'appointment_rescheduled', id);
-             createNotification(currentData.artist_id, 'Appointment Rescheduled', `Details for session #${id} have been updated.`, 'system', id);
-             notificationsSent = true;
-          }
-
-          // 2. Check for Approval/Rejection
-          if (status !== undefined && status !== oldAppt.status) {
-            if (status === 'confirmed' && oldAppt.status === 'pending') {
-               const priceMsg = price > 0 ? ` The quoted price is ₱${parseFloat(price).toLocaleString()}.` : '';
-               createNotification(currentData.customer_id, 'Booking Request Approved ✅', `Great news! Your booking request #${id} has been approved.${priceMsg} We look forward to seeing you.`, 'appointment_confirmed', id);
-               createNotification(currentData.artist_id, 'Appointment Confirmed', `Appointment #${id} has been accepted and confirmed.`, 'appointment_confirmed', id);
-               notificationsSent = true;
-            } else if (status === 'rejected' && oldAppt.status === 'pending') {
-               createNotification(currentData.customer_id, 'Booking Request Rejected ❌', `Notice: Your booking request #${id} was unfortunately rejected. Please contact the studio for alternatives.`, 'appointment_rejected', id);
-               createNotification(currentData.artist_id, 'Request Rejected', `Booking request #${id} has been rejected.`, 'appointment_rejected', id);
-               notificationsSent = true;
-            } else if (status === 'cancelled') {
-               createNotification(currentData.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
-               notificationsSent = true;
-            } else if (status === 'completed') {
-               createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
-               createNotification(currentData.artist_id, 'Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed', id);
-               notificationsSent = true;
-            } else {
-               createNotification(currentData.customer_id, 'Appointment Update', `Your appointment #${id} has been updated to ${status}.`, 'system', id);
-               notificationsSent = true;
-            }
-          }
-
-          // 3. Independent Price Update
-          if (price !== undefined && price > 0 && price !== oldAppt.price && !notificationsSent) {
-            createNotification(currentData.customer_id, 'Session Fee Update', `The total price for your session #${id} has been set to ₱${parseFloat(price).toLocaleString()}. Please review your balance.`, 'system', id);
-            notificationsSent = true;
-          }
-
-          // 4. Action Required for New Assignment
-          if (currentData.status === 'pending' && currentData.artist_id !== 1 && oldAppt.artist_id !== currentData.artist_id) {
-             createNotification(currentData.artist_id, 'Action Required: New Assignment', `You have been assigned a new session #${id}. Please accept or decline.`, 'action_required', id);
-          }
+    // Notify users of the update
+    db.query('SELECT customer_id, artist_id, status FROM appointments WHERE id = ?', [id], (e, r) => {
+      if (!e && r.length) {
+        if (price !== undefined) {
+          createNotification(r[0].customer_id, 'Session Fee Update', `The total price for your session #${id} has been set to ₱${parseFloat(price).toLocaleString()}. Please review your balance.`, 'system', id);
+        } else {
+          createNotification(r[0].customer_id, 'Appointment Update', `Your appointment #${id} has been updated to ${r[0].status}.`, 'system', id);
         }
-      });
 
-      res.json({ success: true, message: 'Appointment updated successfully' });
+        // If the appointment is pending or just created and assigned to an artist, require their action
+        if (r[0].status === 'pending' && r[0].artist_id !== 1) {
+          createNotification(r[0].artist_id, 'Action Required: New Assignment', `You have been assigned a new session #${id}. Please accept or decline.`, 'action_required', id);
+        } else {
+          createNotification(r[0].artist_id, 'Appointment Update', `Appointment details for your session #${id} have been updated.`, 'system', id);
+        }
+      }
     });
+
+    res.json({ success: true, message: 'Appointment updated successfully' });
   });
 });
 
@@ -2644,7 +2600,7 @@ app.put('/api/artist/appointments/:id/accept', (req, res) => {
   db.query("UPDATE appointments SET status = 'confirmed' WHERE id = ?", [id], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
     if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Not found' });
-    
+
     // Notify admin
     createNotification(1, 'Assignment Accepted', `Artist accepted the appointment #${id}.`, 'system', id);
     res.json({ success: true, message: 'Accepted successfully' });
@@ -2657,7 +2613,7 @@ app.put('/api/artist/appointments/:id/reject', (req, res) => {
   db.query("UPDATE appointments SET status = 'pending', artist_id = 1 WHERE id = ?", [id], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
     if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Not found' });
-    
+
     // Notify admin that artist rejected the assignment
     createNotification(1, 'Assignment Declined', `Artist declined the appointment #${id}. Reverted to Admin mapping.`, 'system', id);
     res.json({ success: true, message: 'Declined successfully' });
@@ -2697,27 +2653,27 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
     });
 
     db.query(`INSERT INTO payments (appointment_id, paymongo_payment_id, amount, status, raw_event) VALUES (?, ?, ?, 'paid', ?)`,
-    [id, paymentId, amountCentavos, rawEvent], (err) => {
-      if (err) return res.status(500).json({ success: false, message: 'Database error' });
+      [id, paymentId, amountCentavos, rawEvent], (err) => {
+        if (err) return res.status(500).json({ success: false, message: 'Database error' });
 
-      const updateStatusQuery = `
+        const updateStatusQuery = `
         UPDATE appointments SET payment_status = CASE
           WHEN price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount >= price THEN 'paid'
           WHEN price = 0 OR price IS NULL THEN 'paid'
           ELSE 'downpayment_paid'
         END WHERE id = ?
       `;
-      db.query(updateStatusQuery, [id, id], (upErr) => {
-        if (!upErr) {
-          db.query('SELECT customer_id FROM appointments WHERE id = ?', [id], (ce, cr) => {
-            if (!ce && cr.length) {
-              createNotification(cr[0].customer_id, 'Payment Recorded', `We have recorded a manual payment of ₱${parseFloat(amount).toLocaleString()} for your session #${id}.`, 'payment_success', id);
-            }
-          });
-        }
-        res.json({ success: true, message: 'Payment recorded successfully' });
+        db.query(updateStatusQuery, [id, id], (upErr) => {
+          if (!upErr) {
+            db.query('SELECT customer_id FROM appointments WHERE id = ?', [id], (ce, cr) => {
+              if (!ce && cr.length) {
+                createNotification(cr[0].customer_id, 'Payment Recorded', `We have recorded a manual payment of ₱${parseFloat(amount).toLocaleString()} for your session #${id}.`, 'payment_success', id);
+              }
+            });
+          }
+          res.json({ success: true, message: 'Payment recorded successfully' });
+        });
       });
-    });
   });
 });
 
@@ -2799,7 +2755,7 @@ app.post('/api/appointments/:id/release-material', (req, res) => {
   db.query('SELECT inventory_id, quantity FROM session_materials WHERE id = ? AND appointment_id = ? AND status = "hold"', [materialId, id], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
     if (results.length === 0) return res.status(400).json({ success: false, message: 'Material not found or not on hold' });
-    
+
     const mat = results[0];
     db.query('UPDATE session_materials SET status = "released" WHERE id = ?', [materialId], (updErr) => {
       if (updErr) return res.status(500).json({ success: false, message: 'Database error' });
@@ -2899,10 +2855,10 @@ app.put('/api/appointments/:id/status', (req, res) => {
       } else if (status === 'completed') {
         if (isFullyComplete || isFullyComplete === undefined) {
           createNotification(appointment.customer_id, 'Tattoo Journey Complete! ✨', `Your session for "${designTitle}" is finished! We hope you love your new ink.`, 'appointment_completed', id);
-          
+
           // Trigger Aftercare Reminder
           createNotification(appointment.customer_id, 'Don\'t forget your Aftercare! 🧼', `Proper healing is key! Review the aftercare instructions for your new "${designTitle}" tattoo to keep it looking fresh.`, 'aftercare_reminder', id);
-          
+
           // Trigger Review Prompt
           createNotification(appointment.customer_id, 'How did we do? ⭐', `Please take a moment to leave a review for your artist! We value your feedback on your latest session.`, 'review_prompt', id);
 
@@ -3754,7 +3710,7 @@ app.get('/api/notifications/:userId', (req, res) => {
       const formattedResults = results.map(n => ({
         ...n,
         // Append Z to correctly parse as UTC since dateStrings: true returns raw timestamp string
-        created_at: typeof n.created_at === 'string' && !n.created_at.includes('Z') ? 
+        created_at: typeof n.created_at === 'string' && !n.created_at.includes('Z') ?
           n.created_at.replace(' ', 'T') + 'Z' : n.created_at
       }));
 
@@ -4368,7 +4324,7 @@ app.post('/api/admin/send-pos-invoice', async (req, res) => {
     if (!orderId || !items || !Array.isArray(items) || !total || !date || !customerId) {
       return res.status(400).json({ success: false, message: 'Invalid data or customer ID missing' });
     }
-    
+
     // Construct invoice message
     let invoiceMessage = `Thank you for your purchase! Here's your invoice:\n\n`;
     invoiceMessage += `Order ID: #${orderId}\n`;
@@ -4620,7 +4576,7 @@ io.on('connection', (socket) => {
         timestamp: new Date(),
         messages: []
       };
-      
+
       // Broadcast new session to all admins listening to 'admin_room'
       io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
 
@@ -4662,24 +4618,24 @@ io.on('connection', (socket) => {
       // Push Notification Logic for Chat
       // Case A: Support (Admin/Artist) replies to Customer in customer_{id} room
       const customerRoomMatch = data.room.match(/^customer_(\d+)$/);
-      const isFromSupport = data.sender.toLowerCase().includes('admin') || 
-                           data.sender.toLowerCase().includes('artist') || 
-                           data.sender.toLowerCase().includes('agent') || 
-                           data.sender.toLowerCase().includes('staff');
+      const isFromSupport = data.sender.toLowerCase().includes('admin') ||
+        data.sender.toLowerCase().includes('artist') ||
+        data.sender.toLowerCase().includes('agent') ||
+        data.sender.toLowerCase().includes('staff');
 
       if (customerRoomMatch && isFromSupport) {
         const customerId = customerRoomMatch[1];
         createNotification(
-          customerId, 
-          'New Support Message', 
-          `Support: ${data.text.substring(0, 50)}${data.text.length > 50 ? '...' : ''}`, 
-          'chat_message', 
+          customerId,
+          'New Support Message',
+          `Support: ${data.text.substring(0, 50)}${data.text.length > 50 ? '...' : ''}`,
+          'chat_message',
           null
         );
-      } 
+      }
       // Case B: Customer sends message to Support - notify admins
       else if (customerRoomMatch && !isFromSupport) {
-         db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (err, admins) => {
+        db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (err, admins) => {
           if (!err && admins.length > 0) {
             admins.forEach(admin => {
               createNotification(admin.id, 'New Message from Client', `${data.sender}: ${data.text.substring(0, 50)}`, 'chat_message', null);
@@ -4757,7 +4713,7 @@ app.post('/api/admin/testimonials', (req, res) => {
 app.put('/api/admin/testimonials/:id', (req, res) => {
   const { id } = req.params;
   const { customer_name, content, rating, media_url, media_type, is_active } = req.body;
-  
+
   const query = 'UPDATE testimonials SET customer_name = ?, content = ?, rating = ?, media_url = ?, media_type = ?, is_active = ? WHERE id = ?';
   db.query(query, [customer_name, content, rating, media_url, media_type, is_active, id], (err, result) => {
     if (err) {
@@ -4790,8 +4746,8 @@ function startAppointmentReminders() {
       const timezoneOffsetMs = now.getTimezoneOffset() * 60000;
       const localTomorrow = new Date(now.getTime() - timezoneOffsetMs + 86400000);
       const tomorrowStr = localTomorrow.toISOString().split('T')[0];
-      
-        const query = `
+
+      const query = `
         SELECT a.id, a.customer_id, a.artist_id, a.appointment_date, a.start_time, a.design_title, u.email as customer_email, u.name as customer_name
         FROM appointments a
         LEFT JOIN users u ON a.customer_id = u.id
@@ -4800,14 +4756,14 @@ function startAppointmentReminders() {
       `;
       db.query(query, [`${tomorrowStr}%`], (err, appointments) => {
         if (err) return console.error('Error finding reminders:', err);
-        
+
         appointments.forEach(appt => {
           const title = "Upcoming Session Reminder ⏰";
           const message = `Reminder: Your tattoo session for "${appt.design_title}" is coming up tomorrow at ${appt.start_time}! Get plenty of rest and stay hydrated.`;
           createNotification(appt.customer_id, title, message, 'appointment_reminder', appt.id);
-          
+
           if (appt.customer_email) {
-             const html = `
+            const html = `
                <div style="font-family: Arial, sans-serif; padding: 20px;">
                  <h2 style="color: #1e293b;">Hello ${appt.customer_name},</h2>
                  <p style="font-size: 16px;">This is a quick reminder that your tattoo session for <strong>${appt.design_title}</strong> is scheduled for tomorrow at <strong>${appt.start_time}</strong>.</p>
@@ -4816,7 +4772,7 @@ function startAppointmentReminders() {
                  <p style="color: #64748b; font-size: 14px;">- The InkVistAR Team</p>
                </div>
              `;
-             sendResendEmail(appt.customer_email, `Reminder: Upcoming Tattoo Session Tomorrow!`, html);
+            sendResendEmail(appt.customer_email, `Reminder: Upcoming Tattoo Session Tomorrow!`, html);
           }
 
           const artistMsg = `Reminder: You have a scheduled session tomorrow at ${appt.start_time} for "${appt.design_title}".`;
@@ -4887,13 +4843,13 @@ app.post('/api/reviews', (req, res) => {
   if (!customer_id || !artist_id || !appointment_id || !rating) {
     return res.status(400).json({ success: false, message: 'Missing fields' });
   }
-  
+
   // Verify appointment belongs to customer and is completed
   db.query('SELECT status FROM appointments WHERE id = ? AND customer_id = ?', [appointment_id, customer_id], (err, results) => {
     if (err || results.length === 0 || results[0].status !== 'completed') {
       return res.status(400).json({ success: false, message: 'Invalid appointment for review' });
     }
-    
+
     // Check if review already exists
     db.query('SELECT id FROM reviews WHERE appointment_id = ?', [appointment_id], (err2, res2) => {
       if (!err2 && res2.length > 0) {
@@ -4903,10 +4859,10 @@ app.post('/api/reviews', (req, res) => {
       const q = 'INSERT INTO reviews (customer_id, artist_id, appointment_id, rating, comment, status) VALUES (?, ?, ?, ?, ?, "pending")';
       db.query(q, [customer_id, artist_id, appointment_id, rating, comment], (err3, result) => {
         if (err3) return res.status(500).json({ success: false, message: 'Database error' });
-        
+
         // Notify Admin of new review
         createNotification(1, 'New Review Submitted', `A client submitted a new review for appointment #${appointment_id}. Needs approval.`, 'system', result.insertId);
-        
+
         res.json({ success: true, message: 'Review submitted and is pending admin approval.' });
       });
     });
@@ -4934,7 +4890,7 @@ app.put('/api/admin/reviews/:id', (req, res) => {
   const { status } = req.body; // 'approved' or 'rejected'
   db.query('UPDATE reviews SET status = ? WHERE id = ?', [status, id], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    
+
     // If approved, recalculate artist average rating
     if (status === 'approved') {
       db.query('SELECT artist_id FROM reviews WHERE id = ?', [id], (e, r) => {
@@ -4950,7 +4906,7 @@ app.put('/api/admin/reviews/:id', (req, res) => {
         }
       });
     }
-    
+
     res.json({ success: true, message: 'Review status updated' });
   });
 });
@@ -4973,6 +4929,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   GET  http://localhost:${PORT}/api/artist/dashboard/1`);
   console.log(`   GET  http://localhost:${PORT}/api/customer/dashboard/1`);
   console.log('='.repeat(50) + '\n');
-  
+
   startAppointmentReminders();
 });
