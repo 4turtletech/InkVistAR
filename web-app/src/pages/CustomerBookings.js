@@ -493,7 +493,7 @@ function CustomerBookings(){
                         <div className="modal-footer" style={{ justifyContent: 'space-between', width: '100%', gap: '12px' }}>
                             <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsModalOpen(false)}>Close</button>
                             
-                            {selectedApt.status === 'pending' && selectedApt.price > 0 && selectedApt.payment_status === 'unpaid' && (
+                            {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && selectedApt.price > 0 && selectedApt.payment_status === 'unpaid' && (
                                 <button 
                                     className="btn btn-primary" 
                                     style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}

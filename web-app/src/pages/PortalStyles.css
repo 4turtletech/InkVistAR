@@ -1108,6 +1108,8 @@ body.sidenav-collapsed .portal-layout .portal-container {
     align-items: center;
     background: #fff;
     flex-shrink: 0;
+    position: relative;
+    padding-right: 5rem; /* Ensure space for close button */
 }
 
 .modal-header h2, .modal-header h3 {
@@ -1154,16 +1156,21 @@ body.sidenav-collapsed .portal-layout .portal-container {
 }
 
 .close-btn {
-    background: none;
-    border: none;
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     cursor: pointer;
     color: #64748b;
-    padding: 5px;
-    border-radius: 6px;
+    padding: 8px;
+    border-radius: 50%;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .close-btn:hover {

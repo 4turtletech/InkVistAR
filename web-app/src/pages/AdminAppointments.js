@@ -47,6 +47,7 @@ function AdminAppointments() {
         notes: '',
         price: 0,
         beforePhoto: null,
+        referenceImage: null,
         manualPaidAmount: 0,
         manualPaymentMethod: 'Cash'
     });
@@ -110,6 +111,7 @@ function AdminAppointments() {
                         paymentStatus: apt.payment_status,
                         notes: apt.notes,
                         beforePhoto: apt.before_photo,
+                        referenceImage: apt.reference_image,
                         afterPhoto: apt.after_photo,
                         price: apt.price || 0,
                         totalPaid: apt.total_paid || 0,
@@ -276,6 +278,7 @@ function AdminAppointments() {
             notes: appointment.notes,
             price: appointment.price,
             beforePhoto: appointment.beforePhoto,
+            referenceImage: appointment.referenceImage,
             manualPaidAmount: appointment.manualPaidAmount || 0,
             manualPaymentMethod: appointment.manualPaymentMethod || 'Cash'
         });
@@ -309,6 +312,7 @@ function AdminAppointments() {
             notes: '',
             price: 0,
             beforePhoto: null,
+            referenceImage: null,
             manualPaidAmount: 0,
             manualPaymentMethod: 'Cash'
         });
@@ -317,8 +321,11 @@ function AdminAppointments() {
     };
 
     const handleSave = async () => {
-        if (!formData.clientId || !formData.artistId || !formData.date || !formData.time) {
-            showConfirm('Please fill in all required fields (Client, Artist, Date, Time).', null);
+        const isConsultation = formData.serviceType === 'Consultation';
+        const isArtistRequired = !isConsultation;
+
+        if (!formData.clientId || (isArtistRequired && !formData.artistId) || !formData.date || !formData.time) {
+            showConfirm(`Please fill in all required fields (Client, ${isArtistRequired ? 'Artist, ' : ''}Date, Time).`, null);
             return;
         }
 
@@ -1065,17 +1072,32 @@ function AdminAppointments() {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                             <div>
                                                 <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Reference Assets</label>
-                                                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', minHeight: '420px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                                                    {(formData.beforePhoto || selectedAppointment?.beforePhoto) ? (
+                                                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', minHeight: '420px', display: 'flex', flexDirection: 'column', gap: '20px', justifyContent: 'center', alignItems: 'center' }}>
+                                                    {/* Reference Image (Booking Data) */}
+                                                    {(formData.referenceImage || selectedAppointment?.referenceImage) ? (
                                                         <div style={{ width: '100%' }}>
+                                                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Reference from Booking</label>
+                                                            <img 
+                                                                src={formData.referenceImage || selectedAppointment?.referenceImage} 
+                                                                alt="Reference" 
+                                                                style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} 
+                                                            />
+                                                        </div>
+                                                    ) : null}
+
+                                                    {/* Before Photo (Studio Log) */}
+                                                    {(formData.beforePhoto || selectedAppointment?.beforePhoto) ? (
+                                                        <div style={{ width: '100%', borderTop: (formData.referenceImage || selectedAppointment?.referenceImage) ? '1px dashed #e2e8f0' : 'none', paddingTop: (formData.referenceImage || selectedAppointment?.referenceImage) ? '20px' : '0' }}>
+                                                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Stage Photo (Before)</label>
                                                             <img 
                                                                 src={formData.beforePhoto || selectedAppointment?.beforePhoto} 
-                                                                alt="Reference" 
-                                                                style={{ maxWidth: '100%', maxHeight: '380px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} 
+                                                                alt="Before" 
+                                                                style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} 
                                                             />
-                                                            <p style={{ marginTop: '12px', color: '#64748b', fontSize: '0.85rem' }}>Reference Image provided by client</p>
                                                         </div>
-                                                    ) : (
+                                                    ) : null}
+
+                                                    {!(formData.referenceImage || selectedAppointment?.referenceImage || formData.beforePhoto || selectedAppointment?.beforePhoto) && (
                                                         <div style={{ color: '#94a3b8' }}>
                                                             <Image size={48} style={{ marginBottom: '15px', opacity: 0.5 }} />
                                                             <p>No reference image uploaded</p>
