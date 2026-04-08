@@ -2845,8 +2845,13 @@ app.put('/api/appointments/:id/status', (req, res) => {
         createNotification(appointment.customer_id, 'Session Confirmed! ✅', `Great news! Your appointment on ${dateStr} for "${designTitle}" is now officially confirmed. We look forward to seeing you!`, 'appointment_confirmed', id);
         createNotification(appointment.artist_id, 'Appointment Confirmed', `Appointment #${id} for ${designTitle} is now confirmed.`, 'appointment_confirmed', id);
       } else if (status === 'cancelled') {
-        createNotification(appointment.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment scheduled for ${dateStr} has been cancelled. Please contact the studio if you have any questions.`, 'appointment_cancelled', id);
-        createNotification(appointment.artist_id, 'Appointment Cancelled', `Appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
+        if (appointment.status === 'pending') {
+          createNotification(appointment.customer_id, 'Booking Request Declined ❌', `Notice: Your booking request for ${dateStr} could not be accepted at this time. Please try another date or artist.`, 'appointment_rejected', id);
+          createNotification(appointment.artist_id, 'Request Declined', `Booking request #${id} has been declined.`, 'appointment_rejected', id);
+        } else {
+          createNotification(appointment.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment scheduled for ${dateStr} has been cancelled. Please contact the studio if you have any questions.`, 'appointment_cancelled', id);
+          createNotification(appointment.artist_id, 'Appointment Cancelled', `Appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
+        }
       } else if (status === 'completed') {
         if (isFullyComplete || isFullyComplete === undefined) {
           createNotification(appointment.customer_id, 'Tattoo Journey Complete! ✨', `Your session for "${designTitle}" is finished! We hope you love your new ink.`, 'appointment_completed', id);

@@ -11,7 +11,8 @@ import {
     CheckCheck, 
     RotateCcw,
     Mail,
-    Trash2
+    Trash2,
+    CalendarPlus
 } from 'lucide-react';
 import CustomerSideNav from '../components/CustomerSideNav';
 import Pagination from '../components/Pagination';
@@ -98,6 +99,12 @@ function CustomerNotifications() {
 
     const getNotificationStyle = (type) => {
         switch (type) {
+            case 'appointment_request':
+                return { icon: CalendarPlus, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Requested' };
+            case 'appointment_rejected':
+                return { icon: XCircle, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', label: 'Declined' };
+            case 'appointment_reminder':
+                return { icon: Clock, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Upcoming' };
             case 'appointment_confirmed': 
                 return { icon: CalendarCheck, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Confirmed' };
             case 'appointment_cancelled': 
@@ -220,6 +227,15 @@ function CustomerNotifications() {
                                                                     <button className="notif-btn ghost" onClick={() => markUnread(n.id)} style={{ padding: '4px' }} title="Mark as Unread">
                                                                         <RotateCcw size={14}/>
                                                                     </button>
+                                                                )}
+                                                                {n.type === 'appointment_reminder' && (
+                                                                    <a
+                                                                        href="/customer/bookings"
+                                                                        className="notif-btn primary"
+                                                                        style={{ padding: '4px 10px', fontSize: '0.75rem', backgroundColor: '#3b82f6', textDecoration: 'none' }}
+                                                                    >
+                                                                        View Upcoming
+                                                                    </a>
                                                                 )}
                                                                 {n.type === 'pos_invoice' && (
                                                                     <a

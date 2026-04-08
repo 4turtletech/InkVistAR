@@ -109,22 +109,31 @@ InkVistAR/
 ### Frontend (web-app/src/)
 - **Routing:** `App.js`
 - **Config:** `config.js` (API_URL)
-- **Components:** `ChatWidget.js`, `CustomerBookingWizard.js`, `Pagination.js`, `*SideNav.js`
-- **Pages:**
-  - Auth: `Login.js`, `Register.js`, `ResetPassword.js`
-  - Admin: `AdminDashboard.js`, `AdminUsers.js`, `AdminAppointments.js`, `AdminInventory.js`, `AdminPayouts.js`, `AdminBranches.js` (15+ files)
-  - Artist: `ArtistPortal.js`, `ArtistAppointments.js`, `ArtistGallery.js`, `ArtistSessions.js`, `ArtistEarnings.js`, `ArtistProfile.js`, `ArtistNotifications.js`
-  - Customer: `CustomerDashboard.js`, `CustomerBookings.js`, `CustomerGallery.js`, `CustomerProfile.js`, `CustomerNotifications.js`, `CustomerARPage.jsx`
+- **Components (15 files):** `ChatWidget.js`, `ConfirmModal.js`, `CustomerBookingWizard.js`, `Footer.js`, `Navbar.js`, `Pagination.js`, `*SideNav.js` (Admin, Artist, Customer, Manager)
+- **Pages (69 files):**
+  - **Auth:** `Login.js`, `Register.js`, `ResetPassword.js`, `AdminLogin.js`
+  - **Admin:** `AdminAnalytics.js`, `AdminAppointments.js`, `AdminBilling.js`, `AdminChat.js`, `AdminClients.js`, `AdminCompletedSessions.js`, `AdminDashboard.js`, `AdminInventory.js`, `AdminNotifications.js`, `AdminPOS.js`, `AdminReviews.js`, `AdminSettings.js`, `AdminStaff.js`, `AdminStudio.js`, `AdminUsers.js`
+  - **Artist:** `ArtistAppointments.js`, `ArtistEarnings.js`, `ArtistGallery.js`, `ArtistNotifications.js`, `ArtistPortal.js`, `ArtistProfile.js`, `ArtistSessions.js`
+  - **Customer:** `CustomerBookingCreate.js`, `CustomerBookings.js`, `CustomerGallery.js`, `CustomerNotifications.js`, `CustomerPortal.js`, `CustomerProfile.js`, `CustomerReview.js`, `CustomerTransactions.js`
+  - **Public/Shared:** `Appointments.js`, `Artists.js`, `BookingConfirmation.js`, `Contact.js`, `Gallery.js`, `Home.js`, `PayMongoPayment.js`, `PaymentSimulation.js`, `PublicArtistProfile.js`, `PublicBooking.js`, `TryOn.js`
+  - **Manager:** `ManagerAnalytics.js`, `ManagerAppointments.js`, `ManagerPortal.js`, `ManagerUsers.js`
 
 ### Mobile (mobile-app/)
 - **Navigation:** `App.js`
-- **Screens:** `*Page.jsx` (auth), `*Dashboard.jsx`, `*Booking.jsx`, `*Gallery.jsx`, `*Profile.jsx`
-- **Components:** `Mobile/SimpleBooking.jsx`, `Mobile/SimpleChatbot.jsx`, `Mobile/SimpleARPreview.jsx`, `OTPVerification.jsx`
+- **Screens (41 files):**
+  - **Auth:** `LoginPage.jsx`, `RegisterPage.jsx`, `ResetPasswordPage.jsx`
+  - **Admin:** `AdminAnalytics.jsx`, `AdminAppointmentManagement.jsx`, `AdminAuditLogs.jsx`, `AdminChat.jsx`, `AdminDashboard.jsx`, `AdminFeatures.jsx`, `AdminInventory.jsx`, `AdminNotifications.jsx`, `AdminPOS.jsx`, `AdminServices.jsx`, `AdminSettings.jsx`, `AdminStaffScheduling.jsx`, `AdminStudio.jsx`, `AdminSystemHealth.jsx`, `AdminTasks.jsx`, `AdminUserManagement.jsx`
+  - **Artist:** `ArtistActiveSession.jsx`, `ArtistClientDetails.jsx`, `ArtistClients.jsx`, `ArtistDashboard.jsx`, `ArtistEarnings.jsx`, `ArtistNotifications.jsx`, `ArtistProfile.jsx`, `ArtistSchedule.jsx`, `ArtistSessions.jsx`, `ArtistWorks.jsx`
+  - **Customer:** `CustomerARPage.jsx`, `CustomerAppointments.jsx`, `CustomerArtistDirectory.jsx`, `CustomerArtistProfile.jsx`, `CustomerBooking.jsx`, `CustomerChatbotPage.jsx`, `CustomerDashboard.jsx`, `CustomerGallery.jsx`, `CustomerNotifications.jsx`, `CustomerProfilePage.jsx`
+  - **Shared:** `ChatScreen.jsx`
+- **Components:** `OTPVerification.jsx`, `PlaceholderScreen.jsx`, `Mobile/*` directory
 
 ### Backend (backend/)
-- **Main Server:** `server.js` (all-in-one, ~164KB)
+- **Main Server:** `server.js` (all-in-one, ~200KB)
 - **Config:** `.env` (DB, Email, Groq, PayMongo)
 - **AI Model:** `model.nlp`
+- **Utils:** `utils/emailService.js`
+- **Misc:** `AdminFeatures.jsx` (accidental copy from mobile-app)
 
 ---
 

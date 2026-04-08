@@ -111,6 +111,10 @@ function ArtistNotifications() {
         switch (type) {
             case 'appointment_request': 
                 return { icon: CalendarPlus, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'New Request' };
+            case 'appointment_rejected':
+                return { icon: XCircle, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', label: 'Declined' };
+            case 'appointment_reminder':
+                return { icon: Clock, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Upcoming' };
             case 'appointment_confirmed': 
                 return { icon: CheckCircle, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Confirmed' };
             case 'appointment_cancelled': 
@@ -222,6 +226,15 @@ function ArtistNotifications() {
                                                         )}
 
                                                         <div className="notif-actions" style={{ display: 'flex', gap: '8px' }}>
+                                                            {n.type === 'appointment_reminder' && (
+                                                                <a
+                                                                    href="/artist/sessions"
+                                                                    className="notif-btn primary"
+                                                                    style={{ padding: '4px 10px', fontSize: '0.75rem', backgroundColor: '#3b82f6', textDecoration: 'none' }}
+                                                                >
+                                                                    My Sessions
+                                                                </a>
+                                                            )}
                                                             {!n.is_read ? (
                                                                 <button className="notif-btn ghost" onClick={() => markRead(n.id)} style={{ padding: '4px' }} title="Mark as Read">
                                                                     <Check size={14}/>
