@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
+import Pagination from '../components/Pagination';
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
