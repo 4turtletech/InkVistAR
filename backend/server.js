@@ -5044,6 +5044,22 @@ app.get('/api/admin/reviews', (req, res) => {
   });
 });
 
+// GET approved reviews (Public)
+app.get('/api/reviews', (req, res) => {
+  const q = `
+    SELECT r.*, c.name as customer_name, a.name as artist_name 
+    FROM reviews r 
+    JOIN users c ON r.customer_id = c.id 
+    JOIN users a ON r.artist_id = a.id
+    WHERE r.status = 'approved'
+    ORDER BY r.created_at DESC
+  `;
+  db.query(q, (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    res.json({ success: true, reviews: results });
+  });
+});
+
 // PUT review status (Admin)
 app.put('/api/admin/reviews/:id', (req, res) => {
   const { id } = req.params;

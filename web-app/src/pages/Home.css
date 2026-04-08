@@ -1,5 +1,5 @@
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Cinzel:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&display=swap');
 
 /* Base Styles & Variables */
 :root {
@@ -27,7 +27,7 @@
 
 /* Base Headings */
 h1, h2, h3, h4 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cinzel', serif;
     margin: 0;
 }
 
@@ -98,12 +98,11 @@ h1, h2, h3, h4 {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: grayscale(100%) contrast(1.2);
     transition: filter 1s ease;
 }
 
 .hero-parallax-img:hover {
-    filter: grayscale(0%) contrast(1.1);
+    filter: brightness(1.2);
 }
 
 .hero-overlay {
@@ -232,13 +231,11 @@ h1, h2, h3, h4 {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), filter 0.8s ease;
-    filter: grayscale(100%);
+    transition: transform 0.8s cubic-bezier(0.25, 1, 1), filter 0.8s ease;
 }
 
 .artist-card:hover .artist-img {
     transform: scale(1.1);
-    filter: grayscale(0%);
 }
 
 .artist-overlay {
@@ -257,7 +254,7 @@ h1, h2, h3, h4 {
 }
 
 .artist-name {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Cinzel', serif;
     font-size: 1.8rem;
     color: #FFF;
     margin-bottom: 0.5rem;
@@ -346,6 +343,8 @@ h1, h2, h3, h4 {
 .service-icon {
     width: 60px;
     height: 60px;
+    min-width: 60px;
+    min-height: 60px;
     margin: 0 auto 2rem auto;
     border: 1px solid var(--accent-gold);
     border-radius: 50%;
@@ -430,11 +429,19 @@ h1, h2, h3, h4 {
     .matrix-content { padding-right: 0; text-align: center; }
     .hero-title { font-size: 4.5rem; }
     .section-title { font-size: 2.8rem; }
+    .hero-content { padding-top: 10vh; }
 }
 
 @media (max-width: 768px) {
-    .hero-title { font-size: 3rem; }
-    .cta-title { font-size: 2.8rem; }
+    .hero-title { font-size: 2.5rem; line-height: 1.2; text-shadow: 0 5px 15px rgba(0,0,0,0.8); }
+    .hero-tagline { font-size: 0.8rem; margin-bottom: 1rem; }
+    .cta-title { font-size: 2.3rem; }
+    .section-title { font-size: 2.3rem; }
     .hero-parallax-bg { grid-template-columns: 1fr; }
     .hero-parallax-img:nth-child(n+2) { display: none; }
+    .glass-card-premium { padding: 1.5rem; }
+    .matrix-images { grid-template-columns: 1fr; grid-template-rows: auto; }
+    .matrix-img-box:nth-child(1) { grid-row: auto; }
+    .services-container { flex-direction: column; }
+    .service-item { min-width: 100%; border-left: none; border-right: none; }
 }
