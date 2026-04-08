@@ -193,8 +193,7 @@ function AdminAppointments() {
             const [y, m, d] = a.date.split('-').map(Number);
             return d === day &&
                 (m - 1) === currentDate.getMonth() &&
-                y === currentDate.getFullYear() &&
-                a.status !== 'cancelled';
+                y === currentDate.getFullYear();
         });
     };
 
@@ -391,6 +390,7 @@ function AdminAppointments() {
             case 'completed': return 'completed';
             case 'pending': return 'pending';
             case 'cancelled': return 'cancelled';
+            case 'rejected': return 'cancelled';
             default: return 'scheduled';
         }
     };
@@ -524,7 +524,7 @@ function AdminAppointments() {
                                                             width: '8px', 
                                                             height: '8px', 
                                                             borderRadius: '50%',
-                                                            backgroundColor: apt.status === 'confirmed' ? '#10b981' : (apt.status === 'pending' ? '#f59e0b' : '#6366f1')
+                                                            backgroundColor: apt.status === 'confirmed' ? '#10b981' : (apt.status === 'pending' ? '#f59e0b' : (apt.status === 'cancelled' || apt.status === 'rejected' ? '#94a3b8' : '#6366f1'))
                                                         }} title={apt.status} />
                                                     ))}
                                                     {dayAppts.length > 5 && <span style={{ fontSize: '10px', color: '#94a3b8', lineHeight: '8px' }}>+</span>}
@@ -631,6 +631,7 @@ function AdminAppointments() {
                                     <option value="pending">Pending</option>
                                     <option value="completed">Completed</option>
                                     <option value="cancelled">Cancelled</option>
+                                    <option value="rejected">Rejected</option>
                                 </select>
 
                                 <select
@@ -961,6 +962,7 @@ function AdminAppointments() {
                                                 <option value="confirmed">Confirmed</option>
                                                 <option value="completed">Completed</option>
                                                 <option value="cancelled">Cancelled</option>
+                                                <option value="rejected">Rejected</option>
                                             </select>
                                         </div>
 
