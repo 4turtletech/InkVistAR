@@ -53,12 +53,21 @@ function ArtistAppointments(){
         setCurrentPage(1);
     }, [activeTab]);
 
+    const escapeCsv = (str) => {
+        if (str === null || str === undefined) return '""';
+        const stringified = String(str);
+        if (stringified.includes('"') || stringified.includes(',')) {
+            return `"${stringified.replace(/"/g, '""')}"`;
+        }
+        return `"${stringified}"`;
+    };
+
     const handleExport = () => {
         const headers = ['Client', 'Service', 'Date', 'Time', 'Status'];
         const csvContent = [
             headers.join(','),
             ...filteredAppointments.map(a => 
-                `"${a.client_name}","${a.design_title}",${new Date(a.appointment_date).toLocaleDateString()},${a.start_time},${a.status}`
+                `${escapeCsv(a.client_name)},${escapeCsv(a.design_title)},${escapeCsv(new Date(a.appointment_date).toLocaleDateString())},${escapeCsv(a.start_time)},${escapeCsv(a.status)}`
             )
         ].join('\n');
 
@@ -70,7 +79,55 @@ function ArtistAppointments(){
     };
 
     const handlePrint = () => {
-        window.print();
+        const printWindow = window.open('', '_blank');
+        const printData = filteredAppointments.map(a => 
+            `<tr>
+                <td>${a.client_name || 'N/A'}</td>
+                <td>${a.design_title || 'N/A'}</td>
+                <td>${a.appointment_date ? new Date(a.appointment_date).toLocaleDateString() : 'N/A'}</td>
+                <td>${a.start_time || 'N/A'}</td>
+                <td>${(a.status || '').toUpperCase()}</td>
+            </tr>`
+        ).join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Print Appointments - Artist</title>
+                    <style>
+                        body { font-family: sans-serif; padding: 20px; color: #333; }
+                        h1 { color: #1e293b; text-align: center; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; }
+                        th { background-color: #f1f5f9; color: #475569; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Artist Schedule: ${activeTab.toUpperCase()}</h1>
+                    <p style="text-align:center;">Generated on ${new Date().toLocaleString()}</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Client Name</th>
+                                <th>Service/Project</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${printData}
+                        </tbody>
+                    </table>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
     };
 
     const handleAccept = async (id) => {

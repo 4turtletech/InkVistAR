@@ -419,12 +419,21 @@ function AdminAppointments() {
         }
     };
 
+    const escapeCsv = (str) => {
+        if (str === null || str === undefined) return '""';
+        const stringified = String(str);
+        if (stringified.includes('"') || stringified.includes(',')) {
+            return `"${stringified.replace(/"/g, '""')}"`;
+        }
+        return `"${stringified}"`;
+    };
+
     const handleExport = () => {
         const headers = ['Appointment ID', 'Client Name', 'Artist', 'Service Type', 'Date', 'Time', 'Status', 'Price'];
         const csvContent = [
             headers.join(','),
             ...filteredAppointments.map(a =>
-                `${a.id},"${a.clientName}","${a.artistName}","${a.serviceType}",${a.date},${a.time},${a.status},${a.price}`
+                `${a.id},${escapeCsv(a.clientName)},${escapeCsv(a.artistName)},${escapeCsv(a.serviceType)},${escapeCsv(a.date)},${escapeCsv(a.time)},${escapeCsv(a.status)},${a.price || 0}`
             )
         ].join('\n');
 
@@ -436,7 +445,60 @@ function AdminAppointments() {
     };
 
     const handlePrint = () => {
-        window.print();
+        const printWindow = window.open('', '_blank');
+        const printData = filteredAppointments.map(a => 
+            `<tr>
+                <td>${a.clientName || 'N/A'}</td>
+                <td>${a.artistName || 'N/A'}</td>
+                <td>${a.serviceType || 'N/A'}</td>
+                <td>${a.date || 'N/A'}</td>
+                <td>${a.time || 'N/A'}</td>
+                <td>${(a.status || '').toUpperCase()}</td>
+                <td>₱${parseFloat(a.price || 0).toLocaleString()}</td>
+            </tr>`
+        ).join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Print Appointments</title>
+                    <style>
+                        body { font-family: sans-serif; padding: 20px; color: #333; }
+                        h1 { color: #1e293b; text-align: center; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; }
+                        th { background-color: #f1f5f9; color: #475569; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Appointments Schedule</h1>
+                    <p style="text-align:center;">Generated on ${new Date().toLocaleString()}</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Client Name</th>
+                                <th>Artist</th>
+                                <th>Service Type</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${printData}
+                        </tbody>
+                    </table>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        // Slight delay to ensure rendering before printing
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
     };
 
     const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);

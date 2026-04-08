@@ -238,7 +238,66 @@ function AdminInventory() {
     const paginatedInventory = filteredInventory.slice(startIndex, endIndex);
 
     const handlePrint = () => {
-        window.print();
+        const printWindow = window.open('', '_blank');
+        const printData = filteredInventory.map(item => 
+            `<tr>
+                <td>${item.name || 'N/A'}</td>
+                <td>${item.category || 'N/A'}</td>
+                <td>${item.currentStock || '0'}</td>
+                <td>${item.unit || 'N/A'}</td>
+                <td>₱${parseFloat(item.cost || 0).toLocaleString()}</td>
+                <td>${getStockStatus(item.currentStock, item.minStock, item.maxStock)}</td>
+            </tr>`
+        ).join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Print Inventory Status</title>
+                    <style>
+                        body { font-family: sans-serif; padding: 20px; color: #333; }
+                        h1 { color: #1e293b; text-align: center; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; }
+                        th { background-color: #f1f5f9; color: #475569; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Inventory Status Report</h1>
+                    <p style="text-align:center;">Generated on ${new Date().toLocaleString()}</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Current Stock</th>
+                                <th>Unit</th>
+                                <th>Cost</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${printData}
+                        </tbody>
+                    </table>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
+    };
+
+    const escapeCsv = (str) => {
+        if (str === null || str === undefined) return '""';
+        const stringified = String(str);
+        if (stringified.includes('"') || stringified.includes(',')) {
+            return `"${stringified.replace(/"/g, '""')}"`;
+        }
+        return `"${stringified}"`;
     };
 
     const handleExportCSV = () => {
@@ -254,7 +313,7 @@ function AdminInventory() {
 
         const csvContent = [
             headers.join(','),
-            ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
+            ...csvData.map(row => row.map(cell => escapeCsv(cell)).join(','))
         ].join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

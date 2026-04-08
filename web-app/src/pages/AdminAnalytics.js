@@ -30,6 +30,15 @@ function AdminAnalytics() {
         }
     };
 
+    const escapeCsv = (str) => {
+        if (str === null || str === undefined) return '""';
+        const stringified = String(str);
+        if (stringified.includes('"') || stringified.includes(',')) {
+            return `"${stringified.replace(/"/g, '""')}"`;
+        }
+        return `"${stringified}"`;
+    };
+
     const handleExport = () => {
         if (!analytics) return;
         
@@ -49,7 +58,7 @@ function AdminAnalytics() {
         ];
         
         let csvContent = "data:text/csv;charset=utf-8," 
-            + rows.map(e => e.join(",")).join("\n");
+            + rows.map(e => e.map(cell => escapeCsv(cell)).join(",")).join("\n");
             
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -60,7 +69,83 @@ function AdminAnalytics() {
     };
     
     const handlePrint = () => {
-        window.print();
+        if (!analytics) return;
+        const printWindow = window.open('', '_blank');
+        
+        const artistRows = analytics.artists.map(a => `
+            <tr>
+                <td>${escapeCsv(a.name).replace(/"/g, '')}</td>
+                <td>₱${(Number(a.revenue) || 0).toLocaleString()}</td>
+                <td>${a.appointments || 0}</td>
+            </tr>
+        `).join('');
+
+        const inventoryRows = analytics.inventory.map(i => `
+            <tr>
+                <td>${escapeCsv(i.name).replace(/"/g, '')}</td>
+                <td>${i.used || 0} ${i.unit || ''}</td>
+            </tr>
+        `).join('');
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Print Analytics Report</title>
+                    <style>
+                        body { font-family: sans-serif; padding: 20px; color: #333; }
+                        h1, h2 { color: #1e293b; text-align: center; }
+                        .metric-grid { display: flex; justify-content: space-around; background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+                        .metric-card { text-align: center; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; flex: 1; margin: 0 10px; background: #fff;}
+                        .metric-card p { font-size: 1.5rem; font-weight: bold; margin: 5px 0; color: #0f172a; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 30px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; }
+                        th { background-color: #f1f5f9; color: #475569; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Analytics & Performance Report - InkVistAR</h1>
+                    <p style="text-align:center;">Date Range: ${dateRange.toUpperCase()} | Generated on ${new Date().toLocaleString()}</p>
+                    
+                    <div class="metric-grid">
+                        <div class="metric-card">
+                            <small>Total Revenue</small>
+                            <p>₱${(Number(analytics.revenue.total) || 0).toLocaleString()}</p>
+                        </div>
+                        <div class="metric-card">
+                            <small>Total Appointments</small>
+                            <p>${analytics.appointments.total}</p>
+                            <small style="color: #64748b;">${analytics.appointments.completed} completed, ${analytics.appointments.cancelled} cancelled</small>
+                        </div>
+                        <div class="metric-card">
+                            <small>Completion Rate</small>
+                            <p>${analytics.appointments.completionRate || 0}%</p>
+                        </div>
+                    </div>
+
+                    <h2>Artist Performance</h2>
+                    <table>
+                        <thead>
+                            <tr><th>Artist Name</th><th>Revenue Generated</th><th>Appointments</th></tr>
+                        </thead>
+                        <tbody>${artistRows}</tbody>
+                    </table>
+
+                    <h2>Inventory Consumption</h2>
+                    <table>
+                        <thead>
+                            <tr><th>Item Name</th><th>Units Used</th></tr>
+                        </thead>
+                        <tbody>${inventoryRows}</tbody>
+                    </table>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 250);
     };
 
     return (
