@@ -458,7 +458,7 @@ function ArtistSessions() {
                 {/* Read-Only Session Details Modal */}
                 {isDetailsOpen && viewingApt && (
                     <div className="modal-overlay open" onClick={() => setIsDetailsOpen(false)}>
-                        <div className="modal-content" style={{ maxWidth: '600px', width: '95%' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h3>Session Information</h3>
                                 <button className="close-btn" onClick={() => setIsDetailsOpen(false)}><X size={20} /></button>
@@ -762,7 +762,7 @@ function ArtistSessions() {
             {/* Inventory Selection Modal */}
             {inventoryModal.mounted && (
                 <div className={`modal-overlay ${inventoryModal.visible ? 'open' : ''}`} onClick={closeInventoryModal}>
-                    <div className="modal-content" style={{ maxWidth: '550px' }} onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <div>
                                 <h2 style={{ margin: 0 }}>Add Supplies</h2>

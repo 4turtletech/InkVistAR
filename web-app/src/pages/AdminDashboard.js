@@ -730,7 +730,7 @@ function AdminDashboard() {
             {/* Confirmation Modal */}
             {confirmModal.open && (
                 <div className="modal-overlay open" onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}>
-                    <div className="modal-content" style={{ maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2 style={{ fontSize: '1.25rem' }}>System Confirmation</h2>
                             <button className="close-btn" onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}>

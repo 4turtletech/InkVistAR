@@ -426,7 +426,7 @@ function CustomerPortal() {
             {/* Appointment Details Modal */}
             {isModalOpen && selectedApt && (
                 <div className="modal-overlay open" onClick={() => setIsModalOpen(false)}>
-                    <div className="modal-content" style={{ maxWidth: '600px', width: '95%' }} onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3>Session Details</h3>
                             <button className="close-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>

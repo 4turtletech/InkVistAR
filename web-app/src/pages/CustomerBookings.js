@@ -433,7 +433,7 @@ function CustomerBookings(){
             {/* Payment Details Modal */}
             {isModalOpen && selectedApt && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '600px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="modal-content">
                         <div className="modal-header">
                             <h3>Appointment Details</h3>
                             <button className="close-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
