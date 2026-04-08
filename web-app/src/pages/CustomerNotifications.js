@@ -25,6 +25,7 @@ function CustomerNotifications() {
     const [activeFilter, setActiveFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [selectedNotification, setSelectedNotification] = useState(null);
     
 
     const [user] = useState(() => {
@@ -103,6 +104,8 @@ function CustomerNotifications() {
                 return { icon: CalendarPlus, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Requested' };
             case 'appointment_rejected':
                 return { icon: XCircle, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', label: 'Declined' };
+            case 'appointment_rescheduled':
+                return { icon: Clock, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Rescheduled' };
             case 'appointment_reminder':
                 return { icon: Clock, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Upcoming' };
             case 'appointment_confirmed': 
@@ -201,7 +204,12 @@ function CustomerNotifications() {
                                             const Icon = style.icon;
                                             
                                             return (
-                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600' }}>
+                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600', cursor: 'pointer' }} onClick={(e) => { 
+                                                    if (!e.target.closest('.notif-actions')) {
+                                                        setSelectedNotification({ ...n, style });
+                                                        if (!n.is_read) markRead(n.id);
+                                                    }
+                                                }}>
                                                     <div className="notif-id-marker"></div>
                                                     <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                                         <div className="icon-badge" style={{ background: style.bg, padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
@@ -298,6 +306,38 @@ function CustomerNotifications() {
                         )}
                 </div>
             </div>
+
+            {/* Notification View Modal */}
+            {selectedNotification && (
+                <div className="modal-overlay" onClick={() => setSelectedNotification(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', width: '90%', padding: '30px', borderRadius: '16px', background: '#fff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ background: selectedNotification.style.bg, padding: '10px', borderRadius: '12px' }}>
+                                    <selectedNotification.style.icon size={24} color={selectedNotification.style.color} />
+                                </div>
+                                <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.25rem' }}>{selectedNotification.title}</h3>
+                            </div>
+                            <button className="close-btn" onClick={() => setSelectedNotification(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><XCircle size={24} /></button>
+                        </div>
+                        <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                            <p style={{ margin: 0, color: '#334155', fontSize: '1rem', lineHeight: '1.6' }}>{selectedNotification.message}</p>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
+                            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
+                            <div className="notif-actions" style={{ display: 'flex', gap: '10px' }}>
+                                {selectedNotification.related_id && selectedNotification.type !== 'pos_invoice' && selectedNotification.type !== 'review_prompt' && selectedNotification.type !== 'aftercare_reminder' && (
+                                    <a href="/customer/bookings" className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#3b82f6', color: '#fff', borderRadius: '6px' }}>Take Action</a>
+                                )}
+                                {selectedNotification.type === 'pos_invoice' && <a href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#3b82f6', color: '#fff', borderRadius: '6px' }}>View Invoice</a>}
+                                {selectedNotification.type === 'aftercare_reminder' && <a href="/customer/aftercare" className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#06b6d4', color: '#fff', borderRadius: '6px' }}>View Guide</a>}
+                                {selectedNotification.type === 'review_prompt' && <a href={`/customer/reviews/new?appointment=${selectedNotification.related_id}`} className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#f59e0b', color: '#fff', borderRadius: '6px' }}>Leave Review</a>}
+                                <button className="notif-btn ghost" onClick={() => setSelectedNotification(null)} style={{ padding: '6px 12px', fontSize: '0.85rem', cursor: 'pointer' }}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
