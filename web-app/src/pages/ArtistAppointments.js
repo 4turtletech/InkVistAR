@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
-import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
+import Pagination from '../components/Pagination';
 import './PortalStyles.css';
+import './ArtistStyles.css';
 import { API_URL } from '../config';
 
 function ArtistAppointments(){
@@ -16,6 +17,7 @@ function ArtistAppointments(){
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', onConfirm: null });
+    const [selectedAppointment, setSelectedAppointment] = useState(null);
     
     
     const [user] = useState(() => {
@@ -150,47 +152,34 @@ function ArtistAppointments(){
                         <>
                             {viewMode === 'calendar' ? (
                                 <div className="data-card">
-                                    <div className="calendar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                            <button onClick={() => changeMonth(-1)} className="action-btn" style={{margin:0}}><ChevronLeft size={20}/></button>
-                                            <button onClick={() => setCurrentDate(new Date())} className="action-btn" style={{ margin:0, padding: '0.4rem 1rem', background: 'transparent', border: '1px solid #e2e8f0', color: '#64748b' }}>Today</button>
-                                            <button onClick={() => changeMonth(1)} className="action-btn" style={{margin:0}}><ChevronRight size={20}/></button>
+                                    <div className="artist-calendar-header">
+                                        <div className="artist-calendar-nav">
+                                            <button onClick={() => changeMonth(-1)} className="artist-calendar-nav-btn"><ChevronLeft size={20}/></button>
+                                            <button onClick={() => setCurrentDate(new Date())} className="artist-calendar-nav-btn">Today</button>
+                                            <button onClick={() => changeMonth(1)} className="artist-calendar-nav-btn"><ChevronRight size={20}/></button>
                                         </div>
                                         <h2 style={{margin:0, border: 'none'}}>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
                                         <div style={{ width: '150px' }}></div>
                                     </div>
-                                    <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }}>
+                                    <div className="artist-calendar-grid">
                                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                                            <div key={d} style={{ fontWeight: 'bold', textAlign: 'center', padding: '10px', color: '#64748b' }}>{d}</div>
+                                            <div key={d} className="artist-calendar-day-header">{d}</div>
                                         ))}
-                                        {[...Array(firstDayOfMonth)].map((_, i) => <div key={`empty-${i}`} style={{ background: '#f8fafc', borderRadius: '8px' }}></div>)}
+                                        {[...Array(firstDayOfMonth)].map((_, i) => <div key={`empty-${i}`} className="artist-calendar-cell-empty"></div>)}
                                         {[...Array(daysInMonth)].map((_, i) => {
                                             const day = i + 1;
                                             const dayAppts = getAppointmentsForDate(day);
                                             const isToday = new Date().getDate() === day && new Date().getMonth() === currentDate.getMonth() && new Date().getFullYear() === currentDate.getFullYear();
                                             
                                             return (
-                                                <div key={day} style={{ 
-                                                    border: isToday ? '2px solid #6366f1' : '1px solid #e2e8f0', 
-                                                    minHeight: '100px', 
-                                                    padding: '8px', 
-                                                    borderRadius: '8px',
-                                                    backgroundColor: 'white'
-                                                }}>
-                                                    <div style={{ fontWeight: 'bold', marginBottom: '5px', color: isToday ? '#6366f1' : '#334155' }}>{day}</div>
+                                                <div key={day} className={`artist-calendar-cell ${isToday ? 'today' : ''}`}>
+                                                    <div className="artist-calendar-date-number">{day}</div>
                                                     {dayAppts.map(apt => (
-                                                        <div key={apt.id} style={{ 
-                                                            fontSize: '0.75rem', 
-                                                            padding: '4px', 
-                                                            marginBottom: '4px', 
-                                                            borderRadius: '4px',
-                                                            backgroundColor: apt.status === 'confirmed' ? '#d1fae5' : (apt.status === 'pending' ? '#fef3c7' : '#e0e7ff'),
-                                                            color: apt.status === 'confirmed' ? '#065f46' : (apt.status === 'pending' ? '#92400e' : '#3730a3'),
-                                                            whiteSpace: 'nowrap',
-                                                            overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            cursor: 'pointer'
-                                                        }} title={`${apt.start_time || 'N/A'} - ${apt.client_name}`}>
+                                                        <div key={apt.id} 
+                                                             className={`artist-calendar-event ${apt.status === 'confirmed' ? 'confirmed' : (apt.status === 'pending' ? 'pending' : 'other')}`}
+                                                             title={`${apt.start_time || 'N/A'} - ${apt.client_name}`}
+                                                             onClick={() => setSelectedAppointment(apt)}
+                                                        >
                                                             {(apt.start_time || '').slice(0,5)} {apt.client_name}
                                                         </div>
                                                     ))}
@@ -214,7 +203,7 @@ function ArtistAppointments(){
                                                     <table className="portal-table">
                                                         <thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Time</th><th>Price</th><th>Status</th><th>Payment</th>{activeTab === 'pending' && <th>Actions</th>}</tr></thead>
                                                         <tbody>{currentItems.map(a => (
-                                                            <tr key={a.id}>
+                                                            <tr key={a.id} onClick={() => setSelectedAppointment(a)} style={{ cursor: 'pointer' }} className="clickable-row hover-bg">
                                                                 <td style={{ fontWeight: '600' }}>{a.client_name}</td>
                                                                 <td>{a.design_title}</td>
                                                                 <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
@@ -228,9 +217,9 @@ function ArtistAppointments(){
                                                                 </td>
                                                                 {activeTab === 'pending' && (
                                                                     <td>
-                                                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                                                            <button onClick={() => setConfirmModal({ visible: true, title: 'Accept Assignment', message: 'Do you want to accept this appointment?', onConfirm: () => handleAccept(a.id) })} className="action-btn" style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.85rem' }}>Accept</button>
-                                                                            <button onClick={() => setConfirmModal({ visible: true, title: 'Decline Assignment', message: 'Are you sure you want to decline this assignment? It will be reverted back to the Admin.', onConfirm: () => handleReject(a.id) })} className="action-btn" style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.85rem' }}>Decline</button>
+                                                                        <div className="artist-action-group">
+                                                                            <button onClick={() => setConfirmModal({ visible: true, title: 'Confirm Availability', message: 'Ready to take on this assignment? Confirming will notify the manager to generate a quote for the client.', onConfirm: () => handleAccept(a.id) })} className="artist-btn-accept">Confirm</button>
+                                                                            <button onClick={() => setConfirmModal({ visible: true, title: 'Decline Assignment', message: 'Are you sure you want to decline this assignment? It will be reverted back to the Admin for reassignment.', onConfirm: () => handleReject(a.id) })} className="artist-btn-decline">Decline</button>
                                                                         </div>
                                                                     </td>
                                                                 )}
@@ -263,6 +252,74 @@ function ArtistAppointments(){
                                         onConfirm={() => { confirmModal.onConfirm(); setConfirmModal({ ...confirmModal, visible: false }); }}
                                         onClose={() => setConfirmModal({ ...confirmModal, visible: false })}
                                     />
+                                    
+                                    {selectedAppointment && (
+                                        <div className="modal-overlay" onClick={() => setSelectedAppointment(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                                            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: '600px', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                                                <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <h3 style={{ margin: 0, color: '#1e293b' }}>Appointment Details</h3>
+                                                    <button onClick={() => setSelectedAppointment(null)} className="close-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+                                                </div>
+                                                <div className="artist-modal-body-scroll" style={{ padding: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
+                                                    <div className="artist-flex-between" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                                        <div>
+                                                            <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Client</p>
+                                                            <p style={{ margin: 0, fontWeight: '600', fontSize: '1.1rem', color: '#0f172a' }}>{selectedAppointment.client_name}</p>
+                                                        </div>
+                                                        <div style={{ textAlign: 'right' }}>
+                                                            <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Date & Time</p>
+                                                            <p style={{ margin: 0, fontWeight: '600', color: '#0f172a' }}>{new Date(selectedAppointment.appointment_date).toLocaleDateString()} at {selectedAppointment.start_time || 'N/A'}</p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div style={{ margin: '20px 0', padding: '15px', background: '#f8fafc', borderRadius: '12px' }}>
+                                                        <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Service Requested</p>
+                                                        <p style={{ margin: 0, fontWeight: '600', color: '#0f172a' }}>{selectedAppointment.design_title || 'Tattoo Session'}</p>
+                                                        
+                                                        <div style={{ display: 'flex', gap: '30px', marginTop: '15px' }}>
+                                                            <div>
+                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Status</span>
+                                                                <span className={`status-badge ${selectedAppointment.status}`}>{selectedAppointment.status}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Price</span>
+                                                                <span style={{ fontWeight: 'bold', color: '#0f172a' }}>₱{parseFloat(selectedAppointment.price || 0).toLocaleString()}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Payment</span>
+                                                                <span className={`status-badge ${selectedAppointment.payment_status === 'paid' ? 'completed' : selectedAppointment.payment_status === 'pending' ? 'pending' : 'cancelled'}`} style={{ backgroundColor: selectedAppointment.payment_status === 'paid' ? '#dcfce7' : selectedAppointment.payment_status === 'pending' ? '#fef3c7' : '#f3f4f6', color: selectedAppointment.payment_status === 'paid' ? '#16a34a' : selectedAppointment.payment_status === 'pending' ? '#b45309' : '#64748b' }}>
+                                                                    {selectedAppointment.payment_status ? selectedAppointment.payment_status.charAt(0).toUpperCase() + selectedAppointment.payment_status.slice(1) : 'Unpaid'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {selectedAppointment.notes && (
+                                                        <div style={{ marginBottom: '20px' }}>
+                                                            <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Notes & Description</p>
+                                                            <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px', fontSize: '0.95rem', lineHeight: '1.5', color: '#334155' }}>
+                                                                {selectedAppointment.notes}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {selectedAppointment.reference_image && (
+                                                        <div>
+                                                            <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#64748b' }}>Reference Image</p>
+                                                            <img 
+                                                                src={selectedAppointment.reference_image.startsWith('http') ? selectedAppointment.reference_image : `${API_URL}${selectedAppointment.reference_image}`} 
+                                                                alt="Reference" 
+                                                                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0' }} 
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div style={{ padding: '15px 20px', borderTop: '1px solid #e2e8f0', textAlign: 'right', background: '#f8fafc', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
+                                                    <button onClick={() => setSelectedAppointment(null)} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </>

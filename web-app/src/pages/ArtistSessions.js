@@ -5,6 +5,7 @@ import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import './PortalStyles.css';
+import './ArtistStyles.css';
 import { API_URL } from '../config';
 
 function ArtistSessions() {
@@ -538,17 +539,7 @@ function ArtistSessions() {
 
                         <div className="modal-body" style={{ maxHeight: '75vh' }}>
                             {/* Status Control Panel */}
-                            <div style={{ 
-                                background: 'rgba(255, 255, 255, 0.5)', 
-                                backdropFilter: 'blur(10px)',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '20px',
-                                padding: '20px',
-                                marginBottom: '24px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                            }}>
+                            <div className="artist-session-status-panel">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                     <span className={`badge ${activeSession.status}`} style={{ padding: '8px 16px', fontSize: '0.8rem', fontWeight: 800 }}>
                                         {activeSession.status.toUpperCase()}
@@ -578,20 +569,14 @@ function ArtistSessions() {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) 350px', gap: '30px' }}>
+                            <div className="artist-session-grid">
                                 {/* Left Column: Visual Documentation & Notes */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                <div className="artist-session-col">
                                     {/* Visual Documentation */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                        <div style={{ 
-                                            background: '#f8fafc',
-                                            borderRadius: '16px',
-                                            border: '1px solid #e2e8f0',
-                                            padding: '15px',
-                                            textAlign: 'center'
-                                        }}>
-                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Before State</label>
-                                            <div style={{ height: '180px', borderRadius: '12px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <div className="artist-session-card">
+                                            <label className="artist-session-label">Before State</label>
+                                            <div className="artist-session-photo-container">
                                                 {sessionData.beforePhoto ? (
                                                     <img src={sessionData.beforePhoto} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (

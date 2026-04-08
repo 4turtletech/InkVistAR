@@ -4,6 +4,7 @@ import { Trash2, Plus, X, Eye, Lock, Globe, Edit } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import './PortalStyles.css';
+import './ArtistStyles.css';
 import { API_URL } from '../config';
 
 function ArtistGallery() {
