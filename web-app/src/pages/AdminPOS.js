@@ -20,6 +20,8 @@ function AdminPOS() {
     const [lastOrder, setLastOrder] = useState(null);
     const [activeCategory, setActiveCategory] = useState('All');
     const [error, setError] = useState(null);
+    const [discountType, setDiscountType] = useState('none');
+    const [customDiscount, setCustomDiscount] = useState(0);
     const searchInputRef = useRef(null);
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
 
@@ -110,7 +112,11 @@ function AdminPOS() {
         showConfirm("Clear Order", "Are you sure you want to clear the current order?", () => setCart([]));
     };
 
-    const cartTotal = cart.reduce((sum, item) => sum + ((item.retail_price || item.cost) * item.quantity), 0);
+    const cartSubtotal = cart.reduce((sum, item) => sum + ((item.retail_price || item.cost) * item.quantity), 0);
+    const discountAmount = discountType === 'pwd_senior' ? (cartSubtotal * 0.20) :
+                           discountType === 'promo_10' ? (cartSubtotal * 0.10) :
+                           discountType === 'custom' ? ((cartSubtotal * customDiscount) / 100) : 0;
+    const cartTotal = cartSubtotal - discountAmount;
 
     const handleCheckout = async () => {
         if (cart.length === 0) return;
@@ -133,13 +139,17 @@ function AdminPOS() {
             await Axios.post(`${API_URL}/api/admin/invoices`, {
                 client: clientLabel,
                 type: 'Retail POS Sale',
-                amount: cartTotal,
+                amount: cartSubtotal,
+                discount_amount: discountAmount,
+                discount_type: discountType !== 'none' ? discountType : null,
                 status: 'Paid',
                 customerId: selectedCustomerId || null
             });
             
             setLastOrder({
                 items: [...cart],
+                subtotal: cartSubtotal,
+                discount_amount: discountAmount,
                 total: cartTotal,
                 date: new Date().toLocaleString(),
                 orderId: Math.floor(Math.random() * 1000000),
@@ -209,6 +219,11 @@ function AdminPOS() {
                                  (item.category || '').toLowerCase().includes((searchTerm || '').toLowerCase());
             const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
             return matchesSearch && matchesCategory;
+        }).sort((a, b) => {
+            const aOut = a.current_stock <= 0 ? 1 : 0;
+            const bOut = b.current_stock <= 0 ? 1 : 0;
+            if (aOut !== bOut) return aOut - bOut;
+            return a.name.localeCompare(b.name);
         }) : [];
     }, [inventory, searchTerm, activeCategory]);
 
@@ -352,11 +367,50 @@ function AdminPOS() {
                                     </div>
                                     <div className="summary-row">
                                         <span>Subtotal</span>
-                                        <span>₱{cartTotal.toLocaleString()}</span>
+                                        <span>₱{cartSubtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                                     </div>
+
+                                    <div className="pos-discount-section" style={{ padding: '10px 0', borderBottom: '1px solid #e2e8f0', marginBottom: '10px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Apply Discount</span>
+                                            <select 
+                                                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                                                value={discountType} 
+                                                onChange={(e) => {
+                                                    setDiscountType(e.target.value);
+                                                    if(e.target.value !== 'custom') setCustomDiscount(0);
+                                                }}
+                                            >
+                                                <option value="none">No Discount</option>
+                                                <option value="pwd_senior">PWD / Senior (20%)</option>
+                                                <option value="promo_10">Promo App (10%)</option>
+                                                <option value="custom">Custom Percentage</option>
+                                            </select>
+                                        </div>
+                                        {discountType === 'custom' && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Custom %</span>
+                                                <input 
+                                                    type="number" 
+                                                    min="0" max="100" 
+                                                    style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', textAlign: 'right' }} 
+                                                    value={customDiscount}
+                                                    onChange={e => setCustomDiscount(Number(e.target.value))}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {discountAmount > 0 && (
+                                        <div className="summary-row" style={{ color: '#ef4444' }}>
+                                            <span>Discount</span>
+                                            <span>-₱{discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                        </div>
+                                    )}
+
                                     <div className="summary-row total">
-                                        <span>Total</span>
-                                        <span>₱{cartTotal.toLocaleString()}</span>
+                                        <span>Final Total</span>
+                                        <span>₱{cartTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                                     </div>
                                 </div>
                                 <button 

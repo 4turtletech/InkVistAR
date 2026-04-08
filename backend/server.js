@@ -618,6 +618,8 @@ db.getConnection((err, connection) => {
         client_name VARCHAR(255),
         service_type VARCHAR(255),
         amount DECIMAL(10, 2),
+        discount_amount DECIMAL(10, 2) DEFAULT 0.00,
+        discount_type VARCHAR(255) DEFAULT NULL,
         status VARCHAR(50) DEFAULT 'Pending',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -629,6 +631,15 @@ db.getConnection((err, connection) => {
       if (!err && results.length === 0) {
         console.log('🔄 Migrating invoices: Adding customer_id column...');
         db.query("ALTER TABLE invoices ADD COLUMN customer_id INT NULL AFTER id");
+      }
+    });
+
+    // MIGRATION: Add discount columns to invoices table
+    db.query("SHOW COLUMNS FROM invoices LIKE 'discount_amount'", (err, results) => {
+      if (!err && results.length === 0) {
+        console.log('🔄 Migrating invoices: Adding discount columns...');
+        db.query("ALTER TABLE invoices ADD COLUMN discount_amount DECIMAL(10, 2) DEFAULT 0.00 AFTER amount");
+        db.query("ALTER TABLE invoices ADD COLUMN discount_type VARCHAR(255) DEFAULT NULL AFTER discount_amount");
       }
     });
 
@@ -4388,9 +4399,10 @@ app.get('/api/admin/invoices', (req, res) => {
 
 // Admin: Create Invoice
 app.post('/api/admin/invoices', (req, res) => {
-  const { client, type, amount, status } = req.body;
-  const query = 'INSERT INTO invoices (client_name, service_type, amount, status, created_at) VALUES (?, ?, ?, ?, NOW())';
-  db.query(query, [client, type, amount, status], (err, result) => {
+  const { client, type, amount, discount_amount, discount_type, status } = req.body;
+  const targetDiscount = discount_amount || 0;
+  const query = 'INSERT INTO invoices (client_name, service_type, amount, discount_amount, discount_type, status, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())';
+  db.query(query, [client, type, amount, targetDiscount, discount_type || null, status], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     res.json({ success: true, message: 'Invoice created', id: result.insertId });
   });
@@ -4399,10 +4411,11 @@ app.post('/api/admin/invoices', (req, res) => {
 // Admin: Update Invoice
 app.put('/api/admin/invoices/:id', (req, res) => {
   const { id } = req.params;
-  const { client, type, amount, status } = req.body;
+  const { client, type, amount, discount_amount, discount_type, status } = req.body;
   console.log(`[DEBUG] Updating invoice ${id}:`, req.body);
-  const query = 'UPDATE invoices SET client_name = ?, service_type = ?, amount = ?, status = ? WHERE id = ?';
-  db.query(query, [client, type, amount, status, id], (err) => {
+  const targetDiscount = discount_amount || 0;
+  const query = 'UPDATE invoices SET client_name = ?, service_type = ?, amount = ?, discount_amount = ?, discount_type = ?, status = ? WHERE id = ?';
+  db.query(query, [client, type, amount, targetDiscount, discount_type || null, status, id], (err) => {
     if (err) {
       console.error(`[DEBUG] Update error:`, err);
       return res.status(500).json({ success: false, message: err.message });

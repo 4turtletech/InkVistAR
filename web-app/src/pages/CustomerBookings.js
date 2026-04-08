@@ -232,7 +232,7 @@ function CustomerBookings(){
             else if (isBusy) statusColor = '#f59e0b';
 
             days.push(
-                <div className={`${`calendar-day ${isPast || isTooFar ? 'disabled' : ''} customer-st-cdfe5ca9`} key={i} ${isSelected ? 'selected' : ''}`} onClick={() => { if (isPast || isTooFar) return; if (isFull) { showAlert("Fully Booked", "This date is fully booked. Please choose another date.", "warning"); return; } setBookingData({...bookingData, date: dateStr}); }} >
+                <div className={`${`calendar-day ${isPast || isTooFar ? 'disabled' : ''} customer-st-cdfe5ca9`} key={i} ${isSelected ? 'selected' : ''}`} onClick={() => { if (isPast || isTooFar) return; if (isFull) { showAlert("Fully Booked", "This date is fully booked. Please choose another date.", "warning"); return; } setBookingData({...bookingData, date: dateStr, startTime: ''}); }} >
                     <span className="customer-st-b4dfcc0b" >{i}</span>
                     {!isPast && !isTooFar && (
                         <div style={{ width: '4px', height: '4px', borderRadius: '2px', backgroundColor: statusColor, marginTop: '2px' }} />
@@ -243,7 +243,31 @@ function CustomerBookings(){
         return days;
     };
 
+    const closeBookingModal = () => {
+        setIsBookingModalOpen(false);
+        setBookingData({ artistId: null, serviceType: '', date: '', startTime: '', designTitle: '', placement: '', notes: '', referenceImage: null });
+        setBookingStep(1);
+    };
+
+    const handleNextStep = () => {
+        if (bookingStep === 1 && !bookingData.serviceType) {
+            return showAlert("Required Field", "Please select a service type before proceeding.", "warning");
+        }
+        if (bookingStep === 2 && !bookingData.designTitle && bookingData.serviceType !== 'Consultation') {
+            return showAlert("Required Field", "Please provide a design idea or title.", "warning");
+        }
+        if (bookingStep === 3 && !bookingData.placement && !['Consultation', 'Follow-up'].includes(bookingData.serviceType)) {
+            return showAlert("Required Field", "Please select the placement for your session.", "warning");
+        }
+        setBookingStep(bookingStep + 1);
+    };
+
     const handleSubmitBooking = async (e) => {
+        e.preventDefault();
+
+        if (!bookingData.date || !bookingData.startTime) {
+            return showAlert("Required Field", "Please select an available date and time slot from the calendar.", "warning");
+        }
         e.preventDefault();
         if (!bookingData.date || !bookingData.startTime || !bookingData.serviceType || !bookingData.placement) {
             showAlert("Missing Info", "Please select a service, placement, date, and time.", "warning");
@@ -537,7 +561,7 @@ function CustomerBookings(){
                     <div className="modal-content large">
                         <div className="modal-header">
                             <h2 className="customer-st-da70abb8" ><Sparkles size={24} color="#daa520" /> New Booking Request</h2>
-                            <button className="close-btn" onClick={() => setIsBookingModalOpen(false)}><X size={24} /></button>
+                            <button className="close-btn" onClick={closeBookingModal}><X size={24} /></button>
                         </div>
                         <div className="modal-body customer-st-f182ff49" >
                             <div className="customer-st-befb1147" >
@@ -724,16 +748,16 @@ function CustomerBookings(){
                             </div>
 
                             <div className="modal-footer customer-st-a2acee48" >
-                                <button className="btn btn-secondary customer-st-929a545b" type="button" onClick={() => bookingStep === 1 ? setIsBookingModalOpen(false) : setBookingStep(bookingStep - 1)} >
+                                <button className="btn btn-secondary customer-st-929a545b" type="button" onClick={() => bookingStep === 1 ? closeBookingModal() : setBookingStep(bookingStep - 1)} >
                                     {bookingStep === 1 ? 'Cancel' : <><ArrowLeft size={16}/> Previous</>}
                                 </button>
                                 
                                 {bookingStep < 4 ? (
-                                    <button className="btn btn-primary customer-st-a412cd6b" type="button" onClick={() => setBookingStep(bookingStep + 1)} disabled={(bookingStep === 1 && !bookingData.serviceType) || (bookingStep === 2 && !bookingData.designTitle)} >
+                                    <button className="btn btn-primary customer-st-a412cd6b" type="button" onClick={handleNextStep}>
                                         Next Step <ArrowRight size={16}/>
                                     </button>
                                 ) : (
-                                    <button className="btn btn-primary customer-st-a1410f35" type="submit" disabled={isSubmitting || !bookingData.date || !bookingData.startTime} >
+                                    <button className="btn btn-primary customer-st-a1410f35" type="submit" disabled={isSubmitting}>
                                         {isSubmitting ? 'Submitting...' : 'Request Session'}
                                     </button>
                                 )}
