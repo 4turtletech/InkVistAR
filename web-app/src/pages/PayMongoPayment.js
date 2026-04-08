@@ -8,15 +8,21 @@ import './PortalStyles.css';
 const PayMongoPayment = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const stateData = location.state || { appointmentId: null, price: 0, type: null, remainingBalance: 0 };
-    const { appointmentId, price, type, remainingBalance } = stateData;
+    const stateData = location.state || { appointmentId: null, price: 0, type: null, remainingBalance: 0, serviceType: 'Tattoo Session' };
+    const { appointmentId, price, type, remainingBalance, serviceType } = stateData;
 
     const [status, setStatus] = useState(type === 'balance' ? 'initializing' : 'selection'); // selection, initializing, ready, processing, failed
     const [paymentType, setPaymentType] = useState(type === 'balance' ? 'balance' : 'deposit');
     const [customAmount, setCustomAmount] = useState('');
     const [checkoutUrl, setCheckoutUrl] = useState(null);
 
-    const depositPrice = Math.max(100, Math.round(price * 0.3));
+    const isPiercing = serviceType && String(serviceType).toLowerCase().includes('piercing');
+    let depositPrice = isPiercing ? 500 : 5000;
+    depositPrice = Math.min(depositPrice, Number(price) || depositPrice);
+    
+    const downpaymentDescription = isPiercing 
+        ? 'Secure your piercing slot with a fixed ₱500 reservation fee.'
+        : 'Secure your tattoo session slot with a fixed ₱5,000 reservation fee.';
 
     useEffect(() => {
         if (type === 'balance') {
@@ -36,7 +42,7 @@ const PayMongoPayment = () => {
         try {
             // Validation for custom amount
             if (paymentType === 'custom' && (!customAmount || Number(customAmount) < depositPrice)) {
-                alert(`Please enter a valid amount (minimum 30% deposit: ₱${depositPrice.toLocaleString()}).`);
+                alert(`Please enter a valid amount (minimum deposit: ₱${depositPrice.toLocaleString()}).`);
                 setStatus('selection');
                 return;
             }
@@ -174,7 +180,7 @@ const PayMongoPayment = () => {
                 {status === 'selection' ? (
                     <>
                         <h4 style={{ margin: '0 0 20px 0', fontSize: '1rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '1px' }}>Select Payment</h4>
-                        {optionCard('deposit', 'Downpayment', depositPrice, 'Secure your slot with a 30% initial payment.')}
+                        {optionCard('deposit', 'Downpayment', depositPrice, downpaymentDescription)}
                         {optionCard('full', 'Full Payment', price, 'Complete your payment now for a seamless session.')}
                         {optionCard('custom', 'Custom Amount', Number(customAmount) || 0, 'Enter a specific amount you wish to pay.')}
                         

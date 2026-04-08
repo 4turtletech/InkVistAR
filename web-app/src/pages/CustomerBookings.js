@@ -154,7 +154,8 @@ function CustomerBookings(){
                 appointmentId: appointment.id, 
                 price: appointment.price,
                 remainingBalance: remainingBalance,
-                type: type 
+                type: type,
+                serviceType: appointment.service_type || 'Tattoo Session'
             } 
         });
     };

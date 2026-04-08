@@ -28,11 +28,11 @@ function AdminReviews() {
         }
     };
 
-    const handleModeration = async (id, status) => {
+    const handleModeration = async (id, status, is_showcased = undefined) => {
         try {
-            const res = await Axios.put(`${API_URL}/api/admin/reviews/${id}`, { status });
+            const res = await Axios.put(`${API_URL}/api/admin/reviews/${id}`, { status, is_showcased });
             if (res.data.success) {
-                setReviews(reviews.map(r => r.id === id ? { ...r, status } : r));
+                setReviews(reviews.map(r => r.id === id ? { ...r, status, is_showcased: is_showcased !== undefined ? is_showcased : r.is_showcased } : r));
             }
         } catch (e) {
             console.error(e);
@@ -72,6 +72,7 @@ function AdminReviews() {
                                                 <th>Comment</th>
                                                 <th>Date</th>
                                                 {activeTab === 'pending' && <th>Actions</th>}
+                                                {activeTab === 'approved' && <th>Showcase</th>}
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -92,6 +93,19 @@ function AdminReviews() {
                                                                 <button onClick={() => handleModeration(r.id, 'approved')} className="action-btn" style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px' }} title="Approve"><CheckCircle size={16} /></button>
                                                                 <button onClick={() => handleModeration(r.id, 'rejected')} className="action-btn" style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px' }} title="Reject"><XCircle size={16} /></button>
                                                             </div>
+                                                        </td>
+                                                    )}
+                                                    {activeTab === 'approved' && (
+                                                        <td>
+                                                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={r.is_showcased === 1 || r.is_showcased === true} 
+                                                                    onChange={(e) => handleModeration(r.id, 'approved', e.target.checked)}
+                                                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                                                />
+                                                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Show on Info Page</span>
+                                                            </label>
                                                         </td>
                                                     )}
                                                 </tr>

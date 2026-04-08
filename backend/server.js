@@ -715,6 +715,7 @@ db.getConnection((err, connection) => {
         rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
         comment TEXT,
         status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+        is_showcased BOOLEAN DEFAULT FALSE,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -2967,11 +2968,18 @@ app.put('/api/appointments/:id/status', (req, res) => {
         // 🚀 SYNC: Automatically create a manual invoice for Admin Billing
         db.query('SELECT name FROM users WHERE id = ?', [appointment.customer_id], (uErr, uRes) => {
           const clientName = (!uErr && uRes.length) ? uRes[0].name : `Client #${appointment.customer_id}`;
+          const currentPrice = price !== undefined ? Number(price) : Number(appointment.price) || 0;
           const invoiceQuery = 'INSERT INTO invoices (client_name, service_type, amount, status, created_at) VALUES (?, ?, ?, "Paid", NOW())';
-          db.query(invoiceQuery, [clientName, appointment.service_type || 'Tattoo Session', appointment.price || 0], (invErr) => {
+          db.query(invoiceQuery, [clientName, appointment.service_type || 'Tattoo Session', currentPrice], (invErr) => {
             if (invErr) console.error('❌ Failed to auto-generate invoice:', invErr.message);
             else console.log(`✅ Auto-generated invoice for Client: ${clientName}`);
           });
+          
+          if (appointment.artist_id && appointment.artist_id > 1) {
+              const artistCommission = currentPrice * 0.70;
+              db.query('INSERT INTO payouts (artist_id, amount, payout_method, status, reference_no, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+                  [appointment.artist_id, artistCommission, 'System Default', 'Pending', `Commission Session #${id}`]);
+          }
         });
       }
 
@@ -4768,7 +4776,13 @@ io.on('connection', (socket) => {
 
 // GET /api/testimonials (Public, fetch active testimonials)
 app.get('/api/testimonials', (req, res) => {
-  const query = 'SELECT * FROM testimonials WHERE is_active = 1 ORDER BY created_at DESC';
+  const query = `
+    SELECT r.id, r.rating, r.comment as content, u.name as customer_name, 'none' as media_type
+    FROM reviews r
+    JOIN users u ON r.customer_id = u.id
+    WHERE r.is_showcased = 1 AND r.status = 'approved'
+    ORDER BY r.created_at DESC
+  `;
   db.query(query, (err, results) => {
     if (err) {
       console.error('Error fetching testimonials:', err);
@@ -4985,8 +4999,20 @@ app.get('/api/admin/reviews', (req, res) => {
 // PUT review status (Admin)
 app.put('/api/admin/reviews/:id', (req, res) => {
   const { id } = req.params;
-  const { status } = req.body; // 'approved' or 'rejected'
-  db.query('UPDATE reviews SET status = ? WHERE id = ?', [status, id], (err, result) => {
+  const { status, is_showcased } = req.body; 
+  
+  let updateQuery = 'UPDATE reviews SET status = ?';
+  let params = [status];
+  
+  if (is_showcased !== undefined) {
+    updateQuery += ', is_showcased = ?';
+    params.push(is_showcased ? 1 : 0);
+  }
+  
+  updateQuery += ' WHERE id = ?';
+  params.push(id);
+
+  db.query(updateQuery, params, (err, result) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
 
     // If approved, recalculate artist average rating

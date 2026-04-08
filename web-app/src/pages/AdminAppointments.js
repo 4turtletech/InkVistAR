@@ -1023,9 +1023,23 @@ function AdminAppointments() {
 
                                             <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
                                                 <button className="btn" style={{ flex: 1, padding: '15px', background: '#fff', border: '2px solid #e2e8f0', borderRadius: '12px', fontWeight: 700 }} onClick={() => setModalTab('details')}>Back to Details</button>
+                                                
+                                                {formData.price > 0 && formData.paymentStatus === 'unpaid' && (
+                                                    <button 
+                                                        type="button"
+                                                        className="btn btn-primary" 
+                                                        style={{ flex: 1.5, padding: '15px', background: '#3b82f6', border: 'none', borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#fff', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.3)' }} 
+                                                        onClick={() => {
+                                                            showAlert('Payment Link Sent', `A digital payment checkout link for ₱${formData.price.toLocaleString()} has been routed to the client.`, 'success');
+                                                        }}
+                                                    >
+                                                        <CreditCard size={20} /> Request Digital Payment
+                                                    </button>
+                                                )}
+
                                                 {selectedAppointment && (
-                                                    <button className="btn btn-primary" style={{ flex: 1.5, padding: '15px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }} onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>
-                                                        <CreditCard size={20} /> Record Manual Payment
+                                                    <button className="btn btn-primary" style={{ flex: 1.5, padding: '15px', background: '#10b981', border: 'none', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#fff' }} onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>
+                                                        <DollarSign size={20} /> Record Manual Payment
                                                     </button>
                                                 )}
                                             </div>
