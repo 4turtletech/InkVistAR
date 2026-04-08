@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import AdminSideNav from '../components/AdminSideNav';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -200,7 +201,7 @@ function AdminClients() {
                             <option value="deleted">Deactivated Clients</option>
                         </select>
 
-                        <div className="filter-label-group" style={{ marginLeft: '0.5rem' }}>
+                        <div className="filter-label-group admin-st-60006981">
                             <SlidersHorizontal size={16} />
                             <span>Sort:</span>
                         </div>
@@ -267,7 +268,7 @@ function AdminClients() {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="4" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading clients...</td></tr>
+                                    <tr><td colSpan="4" className="no-data admin-st-3927920f">Loading clients...</td></tr>
                                 ) : paginatedClients.map(client => (
                                     <tr key={client.id}>
                                         <td>#{client.id}</td>
@@ -280,11 +281,11 @@ function AdminClients() {
                                                     Manage
                                                 </button>
                                             ) : (
-                                                <div style={{display: 'flex', gap: '5px'}}>
+                                                <div className="admin-st-ce770332">
                                                     <button 
                                                         className="action-btn view-btn" 
                                                         onClick={() => handleRestoreClient(client.id)} 
-                                                        style={{backgroundColor: '#10b981', display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px'}} 
+                                                        className="admin-st-a1f52a0b" 
                                                         title="Restore Client"
                                                     >
                                                         <RotateCcw size={14}/> Restore
@@ -292,7 +293,7 @@ function AdminClients() {
                                                     <button 
                                                         className="action-btn delete-btn" 
                                                         onClick={() => handlePermanentDelete(client.id)} 
-                                                        style={{backgroundColor: '#991b1b', display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px'}} 
+                                                        className="admin-st-efbab0dd" 
                                                         title="Permanently Delete Client"
                                                     >
                                                         <Trash2 size={14}/> Delete
@@ -324,19 +325,19 @@ function AdminClients() {
                     <div className={`modal-overlay ${clientModal.visible ? 'open' : ''}`} onClick={closeModal}>
                         <div className="modal-content large" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    <div style={{ background: '#f8fafc', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div className="admin-flex-center admin-gap-15">
+                                    <div className="admin-st-c911153f">
                                         <User size={20} className="text-bronze" />
                                     </div>
                                     <div>
-                                        <h2 style={{ margin: 0 }}>Client Profile: {selectedClient.name}</h2>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Account ID: #CLI-{selectedClient.id.toString().padStart(5, '0')}</p>
+                                        <h2 className="admin-m-0">Client Profile: {selectedClient.name}</h2>
+                                        <p className="admin-st-925e4e02">Account ID: #CLI-{selectedClient.id.toString().padStart(5, '0')}</p>
                                     </div>
                                 </div>
                                 <button className="close-btn" onClick={closeModal}><X size={24}/></button>
                             </div>
                             
-                            <div className="settings-tabs" style={{ padding: '0 30px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                            <div className="settings-tabs admin-st-13b83aa7">
                                 <button className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
                                     <User size={16}/> Personal Information
                                 </button>
@@ -345,45 +346,45 @@ function AdminClients() {
                                 </button>
                             </div>
 
-                            <div className="modal-body" style={{ maxHeight: '60vh', padding: '30px' }}>
+                            <div className="modal-body admin-st-d6e6b0a9">
                                 {loadingDetails ? (
-                                    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+                                    <div className="admin-st-e70dab8d">
                                         <div className="loading-spinner"></div>
                                     </div>
                                 ) : (
                                     <div className="fade-in">
                                         {activeTab === 'profile' ? (
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                            <div className="admin-st-e7646dcc">
+                                                <div className="admin-st-ff43421e">
                                                     <div className="form-group">
-                                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Legal Name</label>
+                                                        <label className="admin-st-19644797">Legal Name</label>
                                                         <input type="text" className="form-input" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
                                                     </div>
                                                     <div className="form-group">
-                                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Direct Link (Email)</label>
+                                                        <label className="admin-st-19644797">Direct Link (Email)</label>
                                                         <input type="email" className="form-input" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
                                                     </div>
                                                     <div className="form-group">
-                                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Primary Contact</label>
+                                                        <label className="admin-st-19644797">Primary Contact</label>
                                                         <input type="text" className="form-input" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
                                                     </div>
                                                 </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                <div className="admin-st-ff43421e">
                                                     <div className="form-group">
-                                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Internal Confidential Notes</label>
+                                                        <label className="admin-st-19644797">Internal Confidential Notes</label>
                                                         <textarea 
                                                             className="form-input" 
                                                             rows="8" 
                                                             placeholder="Record specific sensitivities, design preferences, or billing history notes..." 
                                                             value={formData.notes || ''} 
                                                             onChange={e => setFormData({...formData, notes: e.target.value})}
-                                                            style={{ minHeight: '190px' }}
+                                                            className="admin-st-6c845e15"
                                                         ></textarea>
                                                     </div>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="table-responsive" style={{ maxHeight: '450px' }}>
+                                            <div className="table-responsive admin-st-59cb08dc">
                                                 <table className="portal-table">
                                                     <thead>
                                                         <tr>
@@ -396,7 +397,7 @@ function AdminClients() {
                                                     <tbody>
                                                     {clientDetails.appointments.length > 0 ? clientDetails.appointments.map(apt => (
                                                         <tr key={apt.id}>
-                                                            <td style={{ fontWeight: 600 }}>{new Date(apt.appointment_date).toLocaleDateString()}</td>
+                                                            <td className="admin-fw-600">{new Date(apt.appointment_date).toLocaleDateString()}</td>
                                                             <td>{apt.artist_name}</td>
                                                             <td>{apt.design_title}</td>
                                                             <td><span className={`status-badge ${apt.status}`}>{apt.status.toUpperCase()}</span></td>
@@ -412,11 +413,11 @@ function AdminClients() {
                                 )}
                             </div>
                             <div className="modal-footer">
-                                <button className="action-btn delete-btn" style={{ marginRight: 'auto', padding: '10px 16px' }} onClick={handleDeactivateClient}>
+                                <button className="action-btn delete-btn admin-st-47451e19" onClick={handleDeactivateClient}>
                                     <Trash2 size={16}/> Archive Account
                                 </button>
                                 <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-                                <button className="btn btn-primary" onClick={handleSaveClient} style={{ padding: '10px 30px' }}>
+                                <button className="btn btn-primary" onClick={handleSaveClient} className="admin-st-f9a92399">
                                     <Save size={18}/> Commit Changes
                                 </button>
                             </div>

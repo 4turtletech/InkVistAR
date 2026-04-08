@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag, Send, User } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import ConfirmModal from '../components/ConfirmModal';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 import './AdminPOS.css';
 
@@ -361,78 +362,77 @@ function AdminPOS() {
                     <div className="modal-overlay open" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
                         <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    <div style={{ background: '#dcfce7', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div className="admin-flex-center admin-gap-15">
+                                    <div className="admin-st-2188556f">
                                         <CheckCircle size={24} className="text-green-600" />
                                     </div>
                                     <div>
-                                        <h2 style={{ margin: 0 }}>Transaction Settlement Successful</h2>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Digital ledger entry committed to archive</p>
+                                        <h2 className="admin-m-0">Transaction Settlement Successful</h2>
+                                        <p className="admin-st-925e4e02">Digital ledger entry committed to archive</p>
                                     </div>
                                 </div>
                                 <button className="close-btn" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}><X size={24} /></button>
                             </div>
 
-                            <div className="modal-body" style={{ maxHeight: '70vh', padding: '30px', background: '#f8fafc' }}>
-                                <div style={{ background: '#fff', padding: '40px', borderRadius: '30px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', maxWidth: '600px', margin: '0 auto' }}>
-                                    <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                                        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.025em' }}>InkVistAR Studio</h1>
-                                        <p style={{ margin: '5px 0', fontSize: '0.85rem', color: '#64748b' }}>123 Art Street, New York, NY 10001</p>
+                            <div className="modal-body admin-st-f5190571">
+                                <div className="admin-st-85008937">
+                                    <div className="admin-st-ab172eb7">
+                                        <h1 className="admin-st-78593364">InkVistAR Studio</h1>
+                                        <p className="admin-st-20eb07f8">123 Art Street, New York, NY 10001</p>
                                     </div>
 
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px dashed #e2e8f0' }}>
+                                    <div className="admin-st-4b0a33cd">
                                         <div>
-                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Billed To</div>
-                                            <div style={{ fontSize: '1rem', fontWeight: 700 }}>{lastOrder.customerName}</div>
-                                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{customers.find(c => c.id === parseInt(lastOrder.customerId))?.email || 'Guest Session'}</div>
+                                            <div className="admin-st-df29bf0c">Billed To</div>
+                                            <div className="admin-st-18faa366">{lastOrder.customerName}</div>
+                                            <div className="admin-st-3bf8f64b">{customers.find(c => c.id === parseInt(lastOrder.customerId))?.email || 'Guest Session'}</div>
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Invoice Ref</div>
-                                            <div style={{ fontSize: '1rem', fontWeight: 700 }}>#INV-{lastOrder.orderId}</div>
-                                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{lastOrder.date}</div>
+                                        <div className="admin-st-7851dbc0">
+                                            <div className="admin-st-df29bf0c">Invoice Ref</div>
+                                            <div className="admin-st-18faa366">#INV-{lastOrder.orderId}</div>
+                                            <div className="admin-st-3bf8f64b">{lastOrder.date}</div>
                                         </div>
                                     </div>
 
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
+                                    <table className="admin-st-1c80fc18">
                                         <thead>
-                                            <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-                                                <th style={{ padding: '12px', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Item Specification</th>
-                                                <th style={{ padding: '12px', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', textAlign: 'center' }}>Unit</th>
-                                                <th style={{ padding: '12px', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', textAlign: 'right' }}>Total</th>
+                                            <tr className="admin-st-2dc1a24a">
+                                                <th className="admin-st-ed1446d8">Item Specification</th>
+                                                <th className="admin-st-2f90aa01">Unit</th>
+                                                <th className="admin-st-8fc04342">Total</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {lastOrder.items.map(item => (
-                                                <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                    <td style={{ padding: '12px', fontSize: '0.9rem', fontWeight: 600 }}>{item.name}</td>
-                                                    <td style={{ padding: '12px', fontSize: '0.9rem', textAlign: 'center' }}>{item.quantity}</td>
-                                                    <td style={{ padding: '12px', fontSize: '0.9rem', fontWeight: 700, textAlign: 'right' }}>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString()}</td>
+                                                <tr key={item.id} className="admin-st-bd4d1d67">
+                                                    <td className="admin-st-3a586b35">{item.name}</td>
+                                                    <td className="admin-st-de480dad">{item.quantity}</td>
+                                                    <td className="admin-st-923f35f1">₱{((item.retail_price || item.cost) * item.quantity).toLocaleString()}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                         <tfoot>
                                             <tr>
-                                                <td colSpan="2" style={{ padding: '30px 12px 10px', fontSize: '0.9rem', fontWeight: 700, color: '#64748b', textAlign: 'right' }}>Net Amount:</td>
-                                                <td style={{ padding: '30px 12px 10px', fontSize: '1.25rem', fontWeight: 800, color: '#10b981', textAlign: 'right' }}>₱{lastOrder.total.toLocaleString()}</td>
+                                                <td colSpan="2" className="admin-st-e6c5be46">Net Amount:</td>
+                                                <td className="admin-st-51fd2b0b">₱{lastOrder.total.toLocaleString()}</td>
                                             </tr>
                                         </tfoot>
                                     </table>
                                 </div>
                             </div>
 
-                            <div className="modal-footer" style={{ gap: '15px' }}>
-                                <button className="btn btn-secondary" style={{ marginRight: 'auto' }} onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
+                            <div className="modal-footer admin-st-651c59bd">
+                                <button className="btn btn-secondary admin-st-c6588e1a" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
                                     Skip Dispatch
                                 </button>
                                 <button 
-                                    className="btn btn-primary" 
-                                    style={{ padding: '10px 40px', background: '#6366f1' }}
+                                    className="btn btn-primary admin-st-be22555c"
                                     onClick={handleSendReceipt} 
                                     disabled={isSending || !lastOrder.customerId}
                                 >
                                     {isSending ? 'Transmitting...' : 'Dispatch to Customer Account'}
                                 </button>
-                                <button className="btn btn-primary" style={{ padding: '10px 40px' }} onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
+                                <button className="btn btn-primary admin-st-6948e5f9" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
                                     Done
                                 </button>
                             </div>

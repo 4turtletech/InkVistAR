@@ -24,6 +24,7 @@ import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
 import './AdminDashboard.css';
 import './PortalStyles.css';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 
 function AdminNotifications() {
@@ -268,20 +269,20 @@ function AdminNotifications() {
                         </button>
                     </div>
                 </header>
-                <p className="header-subtitle" style={{ marginTop: '-2.5rem', marginBottom: '2.5rem', marginRight: '-5.5rem', textAlign: 'left' }}>System alerts and direct updates</p>
+                <p className="header-subtitle admin-st-a4f2a175">System alerts and direct updates</p>
 
-                <div className="portal-stats-row" style={{ display: 'flex', gap: '20px', marginBottom: '25px' }}>
-                    <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '5px' }}>Total Updates</span>
-                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b' }}>{notifications.length}</span>
+                <div className="portal-stats-row admin-st-06856550">
+                    <div className="glass-card admin-st-e257337a">
+                        <span className="admin-st-24a5143d">Total Updates</span>
+                        <span className="admin-st-780e31e0">{notifications.length}</span>
                     </div>
                     <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center', borderLeft: unreadCount > 0 ? '4px solid #f59e0b' : 'none' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '5px' }}>Unread Alerts</span>
+                        <span className="admin-st-24a5143d">Unread Alerts</span>
                         <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#f59e0b' : 'inherit' }}>{unreadCount}</span>
                     </div>
                 </div>
 
-                <div className="filter-bar" style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                <div className="filter-bar admin-st-c9ea7af3">
                     <button
                         className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
                         onClick={() => setActiveFilter('all')}
@@ -300,33 +301,32 @@ function AdminNotifications() {
 
                 <main className="dashboard-main-content">
                     <div className="glass-card table-card-v2 full-width">
-                        <div className="premium-filter-bar" style={{ margin: '20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            <div className="premium-search-box" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                                <Search size={18} style={{ color: 'rgba(255,255,255,0.4)' }} />
+                        <div className="premium-filter-bar admin-st-64c9f606">
+                            <div className="premium-search-box admin-st-90530afc">
+                                <Search size={18} className="admin-st-80066d40" />
                                 <input
                                     type="text"
                                     placeholder="Search notifications..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{ color: 'white' }}
+                                    className="admin-st-f6234f9f"
                                 />
                             </div>
 
                             <div className="premium-filters-group">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', fontWeight: '600' }}>
+                                <div className="admin-st-0d9f88e7">
                                     <Filter size={16} />
                                     <span>Type:</span>
                                 </div>
                                 <select
                                     value={activeFilter}
                                     onChange={(e) => setActiveFilter(e.target.value)}
-                                    className="premium-select-v2"
-                                    style={{ background: 'rgba(255,255,255,0.1)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}
+                                    className="premium-select-v2 admin-st-15f46c68"
                                 >
-                                    <option value="all" style={{ color: '#1e293b' }}>All Notifications</option>
-                                    <option value="inventory" style={{ color: '#1e293b' }}>Inventory Alerts</option>
-                                    <option value="appointment" style={{ color: '#1e293b' }}>Booking Requests</option>
-                                    <option value="system" style={{ color: '#1e293b' }}>System Updates</option>
+                                    <option value="all" className="admin-st-66e41284">All Notifications</option>
+                                    <option value="inventory" className="admin-st-66e41284">Inventory Alerts</option>
+                                    <option value="appointment" className="admin-st-66e41284">Booking Requests</option>
+                                    <option value="system" className="admin-st-66e41284">System Updates</option>
                                 </select>
                             </div>
                         </div>
@@ -339,7 +339,7 @@ function AdminNotifications() {
                         ) : (
                             <div className="notifications-stream">
                                 {currentItems.length > 0 ? (
-                                    <div className="notifications-stream" style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                                    <div className="notifications-stream admin-st-15246701">
                                         {currentItems.map((n) => {
                                             const Icon = getIcon(n.type);
                                             const style = getNotificationStyle(n.type);
@@ -351,48 +351,37 @@ function AdminNotifications() {
                                                     }
                                                 }}>
                                                     <div className="notif-id-marker"></div>
-                                                    <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                        <div className="icon-badge" style={{ background: style.bg, padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
+                                                    <div className="notif-main admin-flex-center admin-gap-15">
+                                                        <div className="icon-badge admin-st-9da56724">
                                                             {Icon}
                                                         </div>
 
-                                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '20px', overflow: 'hidden' }}>
+                                                        <div className="admin-st-44920c0e">
                                                             <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? '#64748b' : '#1e293b' }}>{n.title}</span>
-                                                            <p className="notif-body" style={{ margin: 0, fontSize: '0.9rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</p>
+                                                            <p className="notif-body admin-st-b9880071">{n.message}</p>
                                                         </div>
 
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexShrink: 0 }}>
-                                                            <span className="notif-time" style={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: '100px', textAlign: 'right' }}>
+                                                        <div className="admin-st-991ea8ae">
+                                                            <span className="notif-time admin-st-94741f99">
                                                                 {formatNotificationTime(n.created_at)}
                                                             </span>
 
-                                                            <div className="notif-actions" style={{ display: 'flex', gap: '8px' }}>
+                                                            <div className="notif-actions admin-st-ade7e518">
                                                                 {n.path && (
                                                                     <button
                                                                         className="notif-btn primary"
                                                                         onClick={() => navigate(n.path)}
-                                                                        style={{ 
-                                                                            padding: '6px 14px', 
-                                                                            fontSize: '0.8rem', 
-                                                                            fontWeight: '700',
-                                                                            borderRadius: '8px',
-                                                                            background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
-                                                                            color: '#fff',
-                                                                            border: '1px solid rgba(255,255,255,0.1)',
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            gap: '6px'
-                                                                        }}
+                                                                        className="admin-st-397af07e"
                                                                     >
                                                                         Take Action <ArrowRight size={16} />
                                                                     </button>
                                                                 )}
                                                                 {!n.is_read ? (
-                                                                    <button className="notif-btn ghost" onClick={() => markAsRead(n.id)} style={{ padding: '4px' }} title="Mark as Read">
+                                                                    <button className="notif-btn ghost" onClick={() => markAsRead(n.id)} className="admin-st-69ced960" title="Mark as Read">
                                                                         <Check size={14} />
                                                                     </button>
                                                                 ) : (
-                                                                    <button className="notif-btn ghost" onClick={() => markAsUnread(n.id)} style={{ padding: '4px' }} title="Mark as Unread">
+                                                                    <button className="notif-btn ghost" onClick={() => markAsUnread(n.id)} className="admin-st-69ced960" title="Mark as Unread">
                                                                         <RotateCcw size={14} />
                                                                     </button>
                                                                 )}
@@ -404,7 +393,7 @@ function AdminNotifications() {
                                         })}
                                     </div>
                                 ) : (
-                                    <div className="all-clear" style={{ padding: '100px 0' }}>
+                                    <div className="all-clear admin-st-f933ea04">
                                         <CheckCircle size={48} color="#10b981" />
                                         <h3>Notification Inbox Clear</h3>
                                         <p>You have addressed all system alerts and updates.</p>
@@ -433,31 +422,31 @@ function AdminNotifications() {
 
             {/* Notification View Modal */}
             {selectedNotification && (
-                <div className="modal-overlay" onClick={() => setSelectedNotification(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                <div className="modal-overlay" onClick={() => setSelectedNotification(null)} className="admin-st-e20839c6">
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ background: getNotificationStyle(selectedNotification.type).bg, padding: '10px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="admin-st-0abc30a2">
+                            <div className="admin-st-b0dbc89c">
+                                <div className="admin-st-6e19c74b">
                                     {getIcon(selectedNotification.type)}
                                 </div>
-                                <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.25rem' }}>{selectedNotification.title}</h3>
+                                <h3 className="admin-st-9840f93f">{selectedNotification.title}</h3>
                             </div>
-                            <button className="close-btn" onClick={() => setSelectedNotification(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><XCircle size={24} /></button>
+                            <button className="close-btn" onClick={() => setSelectedNotification(null)} className="admin-st-f32d59a5"><XCircle size={24} /></button>
                         </div>
-                        <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                            <p style={{ margin: 0, color: '#334155', fontSize: '1rem', lineHeight: '1.6' }}>{selectedNotification.message}</p>
+                        <div className="admin-st-4085b14b">
+                            <p className="admin-st-707f7391">{selectedNotification.message}</p>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
-                            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
-                            <div className="notif-actions" style={{ display: 'flex', gap: '10px' }}>
+                        <div className="admin-st-16f41633">
+                            <span className="admin-st-00ead0ce">Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
+                            <div className="notif-actions admin-flex-center admin-gap-10">
                                 {(selectedNotification.path || selectedNotification.related_id) && (
                                     <button className="btn btn-primary" onClick={() => { 
                                         const link = selectedNotification.path || `/admin/appointments?appointment=${selectedNotification.related_id}`;
                                         navigate(link); 
                                         setSelectedNotification(null); 
-                                    }} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Take Action <ArrowRight size={14} /></button>
+                                    }} className="admin-st-45ce59e0">Take Action <ArrowRight size={14} /></button>
                                 )}
-                                <button className="btn btn-secondary" onClick={() => setSelectedNotification(null)} style={{ padding: '6px 12px', fontSize: '0.85rem', cursor: 'pointer', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'transparent' }}>Close</button>
+                                <button className="btn btn-secondary" onClick={() => setSelectedNotification(null)} className="admin-st-d0455f69">Close</button>
                             </div>
                         </div>
                     </div>

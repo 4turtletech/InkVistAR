@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { Save, Download, Upload, RefreshCw, FileText, Bell, Database, Info, Shield, Image } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import './AdminSettings.css';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 
 function AdminSettings() {
@@ -110,9 +111,9 @@ function AdminSettings() {
 
     return (
         <div>
-            <div style={{ padding: '0 2rem', display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+            <div className="admin-st-77aa706a">
                 <button className="btn btn-primary" onClick={handleSave}>
-                    <Save size={18} style={{marginRight:'8px'}}/> Save Changes
+                    <Save size={18} className="admin-st-7f4ee4f3"/> Save Changes
                 </button>
             </div>
 
@@ -128,37 +129,37 @@ function AdminSettings() {
                         className={`tab-button ${activeTab === 'studio' ? 'active' : ''}`}
                         onClick={() => setActiveTab('studio')}
                     >
-                        <Info size={16} style={{marginRight:'8px'}}/> Studio Info
+                        <Info size={16} className="admin-st-7f4ee4f3"/> Studio Info
                     </button>
                     <button 
                         className={`tab-button ${activeTab === 'policies' ? 'active' : ''}`}
                         onClick={() => setActiveTab('policies')}
                     >
-                        <Shield size={16} style={{marginRight:'8px'}}/> Terms & Policies
+                        <Shield size={16} className="admin-st-7f4ee4f3"/> Terms & Policies
                     </button>
                     <button 
                         className={`tab-button ${activeTab === 'care' ? 'active' : ''}`}
                         onClick={() => setActiveTab('care')}
                     >
-                        <FileText size={16} style={{marginRight:'8px'}}/> Care Instructions
+                        <FileText size={16} className="admin-st-7f4ee4f3"/> Care Instructions
                     </button>
                     <button 
                         className={`tab-button ${activeTab === 'templates' ? 'active' : ''}`}
                         onClick={() => setActiveTab('templates')}
                     >
-                        <Bell size={16} style={{marginRight:'8px'}}/> Templates
+                        <Bell size={16} className="admin-st-7f4ee4f3"/> Templates
                     </button>
                     <button 
                         className={`tab-button ${activeTab === 'backup' ? 'active' : ''}`}
                         onClick={() => setActiveTab('backup')}
                     >
-                        <Database size={16} style={{marginRight:'8px'}}/> Backup & Restore
+                        <Database size={16} className="admin-st-7f4ee4f3"/> Backup & Restore
                     </button>
                     <button 
                         className={`tab-button ${activeTab === 'gallery' ? 'active' : ''}`}
                         onClick={() => setActiveTab('gallery')}
                     >
-                        <Image size={16} style={{marginRight:'8px'}}/> Gallery Menu
+                        <Image size={16} className="admin-st-7f4ee4f3"/> Gallery Menu
                     </button>
                 </div>
 
@@ -308,7 +309,7 @@ function AdminSettings() {
                     {activeTab === 'care' && (
                         <div className="settings-panel">
                             <h2>Tattoo Care Instructions</h2>
-                            <p style={{marginBottom: '1rem', color: '#666'}}>These instructions will be available to clients in their portal.</p>
+                            <p className="admin-st-eee235c1">These instructions will be available to clients in their portal.</p>
                             <div className="settings-section">
                                 <div className="form-group">
                                     <label>Aftercare Guide</label>
@@ -327,7 +328,7 @@ function AdminSettings() {
                     {activeTab === 'templates' && (
                         <div className="settings-panel">
                             <h2>Notification Templates</h2>
-                            <p style={{marginBottom: '1rem', color: '#666'}}>Use placeholders like {'{client_name}'}, {'{date}'}, {'{time}'}.</p>
+                            <p className="admin-st-eee235c1">Use placeholders like {'{client_name}'}, {'{date}'}, {'{time}'}.</p>
                             <div className="settings-section">
                                 <div className="form-group">
                                     <label>Appointment Confirmation</label>
@@ -365,9 +366,9 @@ function AdminSettings() {
                         <div className="settings-panel">
                             <h2>Backup & Restore</h2>
                             <div className="settings-section">
-                                <div className="form-group" style={{background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
+                                <div className="form-group admin-st-629180a5">
                                     <label>Last Successful Backup</label>
-                                    <p style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#10b981', margin: '5px 0'}}>{settings.backup.lastBackup}</p>
+                                    <p className="admin-st-902299da">{settings.backup.lastBackup}</p>
                                 </div>
 
                                 <div className="toggle-group">
@@ -395,14 +396,14 @@ function AdminSettings() {
                                     </select>
                                 </div>
 
-                                <div style={{display: 'flex', gap: '15px', marginTop: '20px'}}>
-                                    <button className="btn btn-primary" onClick={handleBackup} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                <div className="admin-st-a00b0937">
+                                    <button className="btn btn-primary" onClick={handleBackup} className="admin-st-2609fdda">
                                         <Download size={18}/> Download Backup
                                     </button>
-                                    <button className="btn btn-secondary" onClick={handleRestore} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                    <button className="btn btn-secondary" onClick={handleRestore} className="admin-st-2609fdda">
                                         <Upload size={18}/> Restore from File
                                     </button>
-                                    <input type="file" id="restore-input" style={{display: 'none'}} onChange={(e) => {
+                                    <input type="file" id="restore-input" className="admin-st-224b51a7" onChange={(e) => {
                                         e.target.value = null; // reset
                                         showAlert("Feature In Development", "System point-in-time restoration is currently being built and is not yet available.", "warning");
                                     }} />
@@ -415,7 +416,7 @@ function AdminSettings() {
                     {activeTab === 'gallery' && (
                         <div className="settings-panel fade-in">
                             <h2>Gallery Category Filters</h2>
-                            <p style={{marginBottom: '1rem', color: '#666'}}>Define the style categories available in the customer and public galleries. Separate each category with a comma.</p>
+                            <p className="admin-st-eee235c1">Define the style categories available in the customer and public galleries. Separate each category with a comma.</p>
                             <div className="settings-section">
                                 <div className="form-group">
                                     <label>Categories</label>

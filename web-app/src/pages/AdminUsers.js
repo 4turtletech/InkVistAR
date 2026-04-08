@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminUsers.css';
 import './PortalStyles.css';
+import './AdminStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
@@ -268,7 +269,7 @@ function AdminUsers() {
                     </div>
 
                     <div className="premium-filters-group">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>
+                        <div className="admin-st-5d251045">
                             <Filter size={16} />
                             <span>Filter by:</span>
                         </div>
@@ -293,7 +294,7 @@ function AdminUsers() {
                             <option value="deleted">Deactivated Users</option>
                         </select>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600', marginLeft: '0.5rem' }}>
+                        <div className="admin-st-a8cc8c61">
                             <SlidersHorizontal size={16} />
                             <span>Sort:</span>
                         </div>
@@ -368,7 +369,7 @@ function AdminUsers() {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="7" className="no-data" style={{ textAlign: 'center', padding: '2rem' }}>Loading users...</td></tr>
+                                    <tr><td colSpan="7" className="no-data admin-st-3927920f">Loading users...</td></tr>
                                 ) : paginatedUsers.length > 0 ? (
                                     paginatedUsers.map((user) => (
                                         <tr key={user.id}>
@@ -396,8 +397,8 @@ function AdminUsers() {
                                                     </button>
                                                 ) : (
                                                     <>
-                                                        <button className="action-btn view-btn" onClick={() => handleRestore(user.id)} style={{ backgroundColor: '#10b981' }}>Restore</button>
-                                                        <button className="action-btn delete-btn" onClick={() => handlePermanentDelete(user.id)} style={{ backgroundColor: '#991b1b' }}>Delete</button>
+                                                        <button className="action-btn view-btn" onClick={() => handleRestore(user.id)} className="admin-st-f1f5ea52">Restore</button>
+                                                        <button className="action-btn delete-btn" onClick={() => handlePermanentDelete(user.id)} className="admin-st-2cf55662">Delete</button>
                                                     </>
                                                 )}
                                             </td>
@@ -483,7 +484,7 @@ function AdminUsers() {
                                             <option value="admin">System Admin</option>
                                         </select>
                                         {selectedUser?.email === 'admin@inkvistar.com' && (
-                                            <small style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Primary admin role protected</small>
+                                            <small className="admin-st-d0cf404f">Primary admin role protected</small>
                                         )}
                                     </div>
                                 </div>
@@ -516,11 +517,10 @@ function AdminUsers() {
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <div style={{ marginRight: 'auto' }}>
+                                <div className="admin-st-c6588e1a">
                                     {selectedUser && selectedUser.email !== 'admin@inkvistar.com' && (
                                         <button
-                                            className="action-btn delete-btn"
-                                            style={{ padding: '10px 16px' }}
+                                            className="action-btn delete-btn admin-st-af6a31d1"
                                             onClick={() => {
                                                 handlePermanentDelete(selectedUser.id);
                                                 closeModal();
@@ -531,7 +531,7 @@ function AdminUsers() {
                                     )}
                                 </div>
                                 <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-                                <button className="btn btn-primary" onClick={handleSave} style={{ padding: '10px 24px' }}>
+                                <button className="btn btn-primary" onClick={handleSave} className="admin-st-9be3106b">
                                     {selectedUser ? 'Save Changes' : 'Create User'}
                                 </button>
                             </div>

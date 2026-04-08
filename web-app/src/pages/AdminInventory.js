@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, 
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminInventory.css';
 import './PortalStyles.css';
+import './AdminStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
@@ -513,14 +514,14 @@ function AdminInventory() {
             <div className="admin-page page-container-enter">
             {/* Print Only Header */}
             <div className="print-only-header">
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000', paddingBottom: '10px', marginBottom: '20px'}}>
+                <div className="admin-st-c6657cae">
                     <div>
-                        <h1 style={{margin: 0, color: '#000'}}>InkVistAR Studio</h1>
-                        <p style={{margin: 0}}>Inventory & Stock Report</p>
+                        <h1 className="admin-st-b43c9608">InkVistAR Studio</h1>
+                        <p className="admin-st-c4858c02">Inventory & Stock Report</p>
                     </div>
-                    <div style={{textAlign: 'right'}}>
-                        <p style={{margin: 0}}>Date: {new Date().toLocaleDateString()}</p>
-                        <p style={{margin: 0}}>Total Value: ₱{totalValue.toLocaleString()}</p>
+                    <div className="admin-st-7851dbc0">
+                        <p className="admin-st-c4858c02">Date: {new Date().toLocaleDateString()}</p>
+                        <p className="admin-st-c4858c02">Total Value: ₱{totalValue.toLocaleString()}</p>
                     </div>
                 </div>
             </div>
@@ -560,7 +561,7 @@ function AdminInventory() {
                 </div>
 
                 <div className="premium-filters-group">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>
+                    <div className="admin-st-5d251045">
                         <Filter size={16} />
                         <span>Filter by:</span>
                     </div>
@@ -596,7 +597,7 @@ function AdminInventory() {
                         <option value="overstock">Overstock</option>
                     </select>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600', marginLeft: '0.5rem' }}>
+                    <div className="admin-st-a8cc8c61">
                         <SlidersHorizontal size={16} />
                         <span>Sort:</span>
                     </div>
@@ -629,8 +630,8 @@ function AdminInventory() {
                     </div>
                     <div className="stat-info-v2">
                         <span className="stat-label-v2">Low Stock</span>
-                        <h3 className="stat-value-v2" style={{color: '#f59e0b'}}>{lowStockItems}</h3>
-                        <div className="stat-trend-v2" style={{color: '#f59e0b'}}>Needs attention</div>
+                        <h3 className="stat-value-v2 admin-st-b7dbe9cd">{lowStockItems}</h3>
+                        <div className="stat-trend-v2 admin-st-b7dbe9cd">Needs attention</div>
                     </div>
                 </div>
                 <div className="stat-card-v2 glass-card">
@@ -672,7 +673,7 @@ function AdminInventory() {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="8" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading inventory...</td></tr>
+                                <tr><td colSpan="8" className="no-data admin-st-3927920f">Loading inventory...</td></tr>
                             ) : paginatedInventory.length > 0 ? (
                                 paginatedInventory.map((item) => (
                                     <tr key={item.id} className={`status-${getStockStatus(item.currentStock, item.minStock, item.maxStock)}`}>
@@ -683,9 +684,9 @@ function AdminInventory() {
                                             </span>
                                         </td>
                                         <td className="text-center">
-                                            <span style={{ fontWeight: '600' }}>{item.currentStock}</span>
+                                            <span className="admin-fw-600">{item.currentStock}</span>
                                         </td>
-                                        <td className="text-muted text-center" style={{ fontSize: '0.85rem' }}>{item.minStock}</td>
+                                        <td className="text-muted text-center admin-st-e7992da2">{item.minStock}</td>
                                         <td>{item.unit}</td>
                                 <td>₱{item.retailPrice ? item.retailPrice.toLocaleString() : item.cost.toLocaleString()}</td>
                                         <td>
@@ -695,20 +696,20 @@ function AdminInventory() {
                                         </td>
                                         <td className="actions-cell">
                                             {itemStatusFilter === 'active' ? (
-                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-start' }}>
-                                                    <button className="action-btn" style={{backgroundColor: '#10b981', margin: 0}} onClick={() => openTransactionModal(item, 'in')} title="Stock In">
+                                                <div className="admin-st-8487929b">
+                                                    <button className="action-btn admin-st-b3452762" onClick={() => openTransactionModal(item, 'in')} title="Stock In">
                                                         <ArrowUpCircle size={16}/>
                                                     </button>
-                                                    <button className="action-btn" style={{backgroundColor: '#f59e0b', margin: 0}} onClick={() => openTransactionModal(item, 'out')} title="Stock Out">
+                                                    <button className="action-btn admin-st-e2101411" onClick={() => openTransactionModal(item, 'out')} title="Stock Out">
                                                         <ArrowDownCircle size={16}/>
                                                     </button>
-                                                    <button className="action-btn edit-btn" style={{margin: 0}} onClick={() => handleEdit(item)} title="Edit">
+                                                    <button className="action-btn edit-btn admin-st-c4858c02" onClick={() => handleEdit(item)} title="Edit">
                                                         <Edit2 size={16}/>
                                                     </button>
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <button className="action-btn view-btn" onClick={() => handleRestore(item.id)} style={{backgroundColor: '#10b981'}} title="Restore"><RotateCcw size={16}/></button>
+                                                    <button className="action-btn view-btn" onClick={() => handleRestore(item.id)} className="admin-st-f1f5ea52" title="Restore"><RotateCcw size={16}/></button>
                                                     <button className="action-btn delete-btn" onClick={() => handlePermanentDelete(item.id)} title="Permanent Delete"><Trash2 size={16}/></button>
                                                 </>
                                             )}
@@ -748,9 +749,9 @@ function AdminInventory() {
                         </div>
                         <form onSubmit={handleSave}>
                             <div className="modal-body">
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
+                                <div className="admin-st-6e0f6c6a">
                                     {/* Left Column: Basic Info */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <div className="admin-st-ff43421e">
                                         <div className="form-group">
                                             <label className="premium-label">Product Identity</label>
                                             <input
@@ -761,9 +762,9 @@ function AdminInventory() {
                                                 placeholder="e.g. Dynamic Black Ink 8oz"
                                             />
                                         </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
+                                        <div className="admin-st-c68bdd5b">
                                             <div className="form-group">
-                                                <label style={{ fontSize: '0.75rem' }}>Category *</label>
+                                                <label className="admin-st-af89d6d6">Category *</label>
                                                 <select 
                                                     value={formData.category}
                                                     onChange={(e) => setFormData({...formData, category: e.target.value})}
@@ -775,7 +776,7 @@ function AdminInventory() {
                                                 </select>
                                             </div>
                                             <div className="form-group">
-                                                <label style={{ fontSize: '0.75rem' }}>Unit *</label>
+                                                <label className="admin-st-af89d6d6">Unit *</label>
                                                 <input
                                                     type="text"
                                                     value={formData.unit}
@@ -787,9 +788,9 @@ function AdminInventory() {
                                         </div>
                                         <div className="form-group">
                                             <label className="premium-label">Financials (₱)</label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
+                                            <div className="admin-st-c68bdd5b">
                                                 <div>
-                                                    <label style={{ fontSize: '0.75rem' }}>Cost Price</label>
+                                                    <label className="admin-st-af89d6d6">Cost Price</label>
                                                     <input
                                                         type="number"
                                                         value={formData.cost}
@@ -798,13 +799,12 @@ function AdminInventory() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label style={{ fontSize: '0.75rem' }}>Retail Price</label>
+                                                    <label className="admin-st-af89d6d6">Retail Price</label>
                                                     <input
                                                         type="number"
                                                         value={formData.retailPrice}
                                                         onChange={(e) => setFormData({...formData, retailPrice: e.target.value})}
-                                                        className="form-input"
-                                                        style={{ borderColor: '#6366f1', borderStyle: 'dashed' }}
+                                                        className="form-input admin-st-45e16daa"
                                                     />
                                                 </div>
                                             </div>
@@ -812,26 +812,25 @@ function AdminInventory() {
                                     </div>
 
                                     {/* Right Column: Stock Levels */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <div className="admin-st-ff43421e">
                                         <div className="form-group">
                                             <label className="premium-label">Stock Status</label>
                                             <div className="glass-panel">
-                                                <label style={{ fontSize: '0.75rem', fontWeight: 700 }}>Initial / Current Quantity</label>
+                                                <label className="admin-st-4d4ffce1">Initial / Current Quantity</label>
                                                 <input
                                                     type="number"
                                                     value={formData.currentStock}
                                                     onChange={(e) => setFormData({...formData, currentStock: e.target.value})}
-                                                    className="form-input"
-                                                    style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '5px' }}
+                                                    className="form-input admin-st-7047dd0b"
                                                 />
                                             </div>
                                         </div>
 
                                         <div className="glass-panel danger">
                                             <span className="panel-title">Stock Limits</span>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
+                                            <div className="admin-st-ece89b73">
                                                 <div>
-                                                    <label style={{ fontSize: '0.7rem', color: '#991b1b' }}>Min (Alert)</label>
+                                                    <label className="admin-st-496ebd9a">Min (Alert)</label>
                                                     <input
                                                         type="number"
                                                         value={formData.minStock}
@@ -840,7 +839,7 @@ function AdminInventory() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label style={{ fontSize: '0.7rem', color: '#991b1b' }}>Max (Goal)</label>
+                                                    <label className="admin-st-496ebd9a">Max (Goal)</label>
                                                     <input
                                                         type="number"
                                                         value={formData.maxStock}
@@ -855,12 +854,12 @@ function AdminInventory() {
                             </div>
                             <div className="modal-footer">
                                 {selectedItem && (
-                                    <button type="button" className="action-btn delete-btn" style={{ marginRight: 'auto', padding: '10px 16px' }} onClick={() => { closeModal(setAddEditModal); handleDelete(selectedItem.id); }} disabled={isSaving}>
+                                    <button type="button" className="action-btn delete-btn admin-st-47451e19" onClick={() => { closeModal(setAddEditModal); handleDelete(selectedItem.id); }} disabled={isSaving}>
                                         <Trash2 size={16} /> Delete Item
                                     </button>
                                 )}
                                 <button type="button" className="btn btn-secondary" onClick={() => closeModal(setAddEditModal)} disabled={isSaving}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ padding: '10px 32px' }} disabled={isSaving}>
+                                <button type="submit" className="btn btn-primary admin-st-ccf37d25" disabled={isSaving}>
                                     {selectedItem ? 'Update Stock Item' : 'Register Item'}
                                 </button>
                             </div>
@@ -879,30 +878,29 @@ function AdminInventory() {
                         </div>
                         <form onSubmit={handleTransaction}>
                             <div className="modal-body">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', background: '#f8fafc', padding: '15px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-                                    <div style={{ background: '#fff', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <div className="admin-st-7f97b32e">
+                                    <div className="admin-st-14f13811">
                                         <Package size={24} className="text-bronze" />
                                     </div>
                                     <div>
-                                        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{selectedItem?.name}</h3>
-                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Current: {selectedItem?.currentStock} {selectedItem?.unit}</p>
+                                        <h3 className="admin-st-f7749303">{selectedItem?.name}</h3>
+                                        <p className="admin-st-0a7b94ac">Current: {selectedItem?.currentStock} {selectedItem?.unit}</p>
                                     </div>
                                 </div>
 
-                                <div className="form-group" style={{ marginBottom: '20px' }}>
-                                    <label style={{ fontWeight: 700, fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Quantity to {transactionData.type === 'in' ? 'Add' : 'Remove'} ({selectedItem?.unit}) *</label>
+                                <div className="form-group admin-mb-20">
+                                    <label className="admin-st-80a8a11c">Quantity to {transactionData.type === 'in' ? 'Add' : 'Remove'} ({selectedItem?.unit}) *</label>
                                     <input
                                         type="number"
                                         min="1"
                                         value={transactionData.quantity}
                                         onChange={(e) => setTransactionData({...transactionData, quantity: e.target.value})}
-                                        className="form-input"
-                                        style={{ fontSize: '1.5rem', fontWeight: 800 }}
+                                        className="form-input admin-st-934f10ff"
                                     />
                                 </div>
 
                                 <div className="form-group">
-                                    <label style={{ fontWeight: 700, fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Reason / Note</label>
+                                    <label className="admin-st-80a8a11c">Reason / Note</label>
                                     <select
                                         value={transactionData.reason}
                                         onChange={(e) => setTransactionData({...transactionData, reason: e.target.value})}
@@ -924,7 +922,7 @@ function AdminInventory() {
                                         )}
                                     </select>
                                 </div>
-                                {transactionError && <p style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '10px', fontWeight: 600 }}>{transactionError}</p>}
+                                {transactionError && <p className="admin-st-5c0c21da">{transactionError}</p>}
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-secondary" onClick={() => closeModal(setTransactionModal)}>Cancel</button>
@@ -945,7 +943,7 @@ function AdminInventory() {
                             <h2>Transaction History</h2>
                             <button className="close-btn" onClick={() => closeModal(setHistoryModal)}><X size={24}/></button>
                         </div>
-                        <div className="modal-body" style={{ maxHeight: '70vh' }}>
+                        <div className="modal-body admin-st-cc3b3598">
                             <div className="table-responsive">
                                 <table className="data-table">
                                     <thead>
@@ -961,8 +959,8 @@ function AdminInventory() {
                                     <tbody>
                                         {transactions.map(t => (
                                             <tr key={t.id}>
-                                                <td style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{new Date(t.created_at).toLocaleString()}</td>
-                                                <td style={{ fontWeight: 700 }}>{t.item_name}</td>
+                                                <td className="admin-st-8b921591">{new Date(t.created_at).toLocaleString()}</td>
+                                                <td className="admin-fw-700">{t.item_name}</td>
                                                 <td>
                                                     <span className={`badge ${t.transaction_type === 'in' ? 'status-active' : 'status-inactive'}`}>
                                                         {t.transaction_type.toUpperCase()}
@@ -971,8 +969,8 @@ function AdminInventory() {
                                                 <td style={{ fontWeight: 800, color: t.transaction_type === 'in' ? '#10b981' : '#ef4444' }}>
                                                     {t.transaction_type === 'in' ? '+' : '-'}{t.quantity}
                                                 </td>
-                                                <td style={{ fontSize: '0.85rem' }}>{t.user_name}</td>
-                                                <td style={{ fontStyle: 'italic', fontSize: '0.85rem' }}>{t.reason}</td>
+                                                <td className="admin-st-e7992da2">{t.user_name}</td>
+                                                <td className="admin-st-6fff95bb">{t.reason}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -991,24 +989,24 @@ function AdminInventory() {
                 <div className={`modal-overlay ${serviceKitsModal.visible ? 'open' : ''}`} onClick={() => closeModal(setServiceKitsModal)}>
                     <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                <div style={{ background: '#fef3c7', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div className="admin-flex-center admin-gap-15">
+                                <div className="admin-st-007284eb">
                                     <Package size={20} className="text-orange" />
                                 </div>
                                 <div>
-                                    <h2 style={{ margin: 0 }}>Service Kit Protocols</h2>
-                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Configure mandatory supply lists for specific services</p>
+                                    <h2 className="admin-m-0">Service Kit Protocols</h2>
+                                    <p className="admin-st-925e4e02">Configure mandatory supply lists for specific services</p>
                                 </div>
                             </div>
                             <button className="close-btn" onClick={() => closeModal(setServiceKitsModal)}><X size={24}/></button>
                         </div>
-                        <div className="modal-body" style={{ maxHeight: '70vh', padding: '30px' }}>
-                            <div className="glass-card" style={{ padding: '20px', marginBottom: '25px', border: '1px solid #fbbf24' }}>
-                                <h3 style={{ margin: '0 0 15px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div className="modal-body admin-st-7215da49">
+                            <div className="glass-card admin-st-654f1b6d">
+                                <h3 className="admin-st-299edae5">
                                     <Plus size={18} /> {editingKitOriginalType ? 'Modify System Kit' : 'Register New Protocol'}
                                 </h3>
                                 <div className="form-group">
-                                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Service Designation</label>
+                                    <label className="admin-st-d050454a">Service Designation</label>
                                     <input 
                                         type="text" 
                                         className="form-input" 
@@ -1017,7 +1015,7 @@ function AdminInventory() {
                                         onChange={e => setEditingKitServiceType(e.target.value)}
                                     />
                                 </div>
-                                <div className="form-group" style={{marginTop: '1.5rem'}}>
+                                <div className="form-group admin-st-185d793c">
                                     <label>Add Item to Kit</label>
                                     <select 
                                         className="form-input" 
@@ -1039,10 +1037,10 @@ function AdminInventory() {
                                 </div>
                                 
                                 {editingKitMaterials.length > 0 && (
-                                    <div style={{ marginTop: '1rem' }}>
+                                    <div className="admin-st-988c5fa7">
                                         <label>Kit Items:</label>
                                         {editingKitMaterials.map((mat, idx) => (
-                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
+                                            <div key={idx} className="admin-st-57608dc7">
                                                 <input 
                                                     type="number" 
                                                     min="1"
@@ -1052,9 +1050,9 @@ function AdminInventory() {
                                                         newVal[idx].default_quantity = Number(e.target.value);
                                                         setEditingKitMaterials(newVal);
                                                     }}
-                                                    style={{ width: '80px', padding: '5px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                                                    className="admin-st-8381b655"
                                                 />
-                                                <span style={{flex: 1}}>{mat.item_name} ({mat.unit})</span>
+                                                <span className="admin-st-49cdf874">{mat.item_name} ({mat.unit})</span>
                                                 <button 
                                                     className="action-btn delete-btn" 
                                                     onClick={() => setEditingKitMaterials(editingKitMaterials.filter((_, i) => i !== idx))}
@@ -1065,7 +1063,7 @@ function AdminInventory() {
                                         ))}
                                     </div>
                                 )}
-                                <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+                                <div className="admin-st-bce72c81">
                                      <button className="btn btn-primary" onClick={handleSaveKit} disabled={isSaving || editingKitMaterials.length === 0}>
                                         {isSaving ? 'Saving...' : 'Save Kit'}
                                      </button>
@@ -1089,7 +1087,7 @@ function AdminInventory() {
                                         {editingKitOriginalType === type ? (
                                             <div className="inline-edit-form fade-in">
                                                 <div className="form-group">
-                                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Update Service Type Name</label>
+                                                    <label className="admin-st-a2d5e684">Update Service Type Name</label>
                                                     <input 
                                                         type="text" 
                                                         className="form-input" 
@@ -1097,8 +1095,8 @@ function AdminInventory() {
                                                         onChange={e => setEditingKitServiceType(e.target.value)}
                                                     />
                                                 </div>
-                                                <div className="form-group" style={{marginTop: '1rem'}}>
-                                                    <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Add Supplies to Kit</label>
+                                                <div className="form-group admin-st-988c5fa7">
+                                                    <label className="admin-st-a2d5e684">Add Supplies to Kit</label>
                                                     <select 
                                                         className="form-input" 
                                                         onChange={(e) => {
@@ -1117,7 +1115,7 @@ function AdminInventory() {
                                                         ))}
                                                     </select>
                                                 </div>
-                                                <div style={{ marginTop: '1rem', background: '#fff', borderRadius: '6px', padding: '8px' }}>
+                                                <div className="admin-st-f3877976">
                                                     {editingKitMaterials.map((mat, idx) => (
                                                         <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0', borderBottom: idx === editingKitMaterials.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
                                                             <input 
@@ -1129,12 +1127,11 @@ function AdminInventory() {
                                                                     newVal[idx].default_quantity = Number(e.target.value);
                                                                     setEditingKitMaterials(newVal);
                                                                 }}
-                                                                style={{ width: '50px', padding: '4px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '0.85rem' }}
+                                                                className="admin-st-b9da71e3"
                                                             />
-                                                            <span style={{flex: 1, fontSize: '0.85rem'}}>{mat.item_name}</span>
+                                                            <span className="admin-st-25d395ac">{mat.item_name}</span>
                                                             <button 
-                                                                className="action-btn delete-btn" 
-                                                                style={{ padding: '2px', background: 'none', border: 'none', color: '#ef4444' }}
+                                                                className="action-btn delete-btn admin-st-67e81612"
                                                                 onClick={() => setEditingKitMaterials(editingKitMaterials.filter((_, i) => i !== idx))}
                                                             >
                                                                 <X size={14}/>
@@ -1142,17 +1139,17 @@ function AdminInventory() {
                                                         </div>
                                                     ))}
                                                 </div>
-                                                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                                    <button type="button" className="btn btn-secondary" onClick={() => { setEditingKitServiceType(''); setEditingKitOriginalType(''); setEditingKitMaterials([]); }} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Cancel</button>
-                                                    <button type="button" className="btn btn-secondary" style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 12px' }} onClick={() => handleDeleteKit(type)}><Trash2 size={16}/></button>
-                                                    <button className="btn btn-primary" onClick={handleSaveKit} disabled={isSaving || editingKitMaterials.length === 0} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>{isSaving ? '...' : 'Save Changes'}</button>
+                                                <div className="admin-st-6a3a6aa8">
+                                                    <button type="button" className="btn btn-secondary" onClick={() => { setEditingKitServiceType(''); setEditingKitOriginalType(''); setEditingKitMaterials([]); }} className="admin-st-2029b6f9">Cancel</button>
+                                                    <button type="button" className="btn btn-secondary admin-st-7b8c305f" onClick={() => handleDeleteKit(type)}><Trash2 size={16}/></button>
+                                                    <button className="btn btn-primary" onClick={handleSaveKit} disabled={isSaving || editingKitMaterials.length === 0} className="admin-st-2029b6f9">{isSaving ? '...' : 'Save Changes'}</button>
                                                 </div>
                                             </div>
                                         ) : (
                                             <React.Fragment>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', gap: '0.5rem' }}>
-                                                    <h4 style={{ margin: 0, color: '#1f2937', flex: 1 }}>{type}</h4>
-                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <div className="admin-st-db565939">
+                                                    <h4 className="admin-st-323ff927">{type}</h4>
+                                                    <div className="admin-st-c3b81489">
                                                         <button
                                                             className="action-btn edit-btn service-kit-action-btn" 
                                                             onClick={() => {
@@ -1164,7 +1161,7 @@ function AdminInventory() {
                                                                     default_quantity: m.default_quantity,
                                                                     unit: m.unit
                                                                 }))); 
-                                                            }} style={{ backgroundColor: '#10b981', padding: '8px' }}
+                                                            }} className="admin-st-7f4c9b70"
                                                         >
                                                             <Edit2 size={16}/>
                                                         </button>
@@ -1176,7 +1173,7 @@ function AdminInventory() {
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <ul style={{ margin: 0, paddingLeft: '20px', color: '#4b5563' }}>
+                                                <ul className="admin-st-ce1e7d49">
                                                     {materials.map((mat, i) => (
                                                       <li key={i}>{mat.default_quantity}x {mat.item_name}</li>
                                                     ))}
