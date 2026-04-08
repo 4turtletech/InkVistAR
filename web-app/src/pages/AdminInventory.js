@@ -1142,7 +1142,7 @@ function AdminInventory() {
                                                 <div className="admin-st-6a3a6aa8">
                                                     <button type="button" className="btn btn-secondary" onClick={() => { setEditingKitServiceType(''); setEditingKitOriginalType(''); setEditingKitMaterials([]); }} className="admin-st-2029b6f9">Cancel</button>
                                                     <button type="button" className="btn btn-secondary admin-st-7b8c305f" onClick={() => handleDeleteKit(type)}><Trash2 size={16}/></button>
-                                                    <button className="btn btn-primary" onClick={handleSaveKit} disabled={isSaving || editingKitMaterials.length === 0} className="admin-st-2029b6f9">{isSaving ? '...' : 'Save Changes'}</button>
+                                                    <button className="btn btn-primary admin-st-2029b6f9" onClick={handleSaveKit} disabled={isSaving || editingKitMaterials.length === 0} >{isSaving ? '...' : 'Save Changes'}</button>
                                                 </div>
                                             </div>
                                         ) : (

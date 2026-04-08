@@ -156,10 +156,10 @@ function AdminAnalytics() {
             <header className="admin-header admin-st-c23ff2ab">
                 <h1>Analytics & Reports</h1>
                 <div className="admin-st-bb81d8eb">
-                    <button className="btn btn-secondary" onClick={handlePrint} className="admin-st-2609fdda">
+                    <button className="btn btn-secondary admin-st-2609fdda" onClick={handlePrint} >
                         <Printer size={18} /> Print Report
                     </button>
-                    <button className="btn btn-primary" onClick={handleExport} className="admin-st-2609fdda">
+                    <button className="btn btn-primary admin-st-2609fdda" onClick={handleExport} >
                         <Download size={18} /> Export Report
                     </button>
                 </div>

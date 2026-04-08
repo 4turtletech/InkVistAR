@@ -330,7 +330,7 @@ function AdminCompletedSessions() {
                                                                     <span className="admin-st-34acc2e5">{mat.quantity}x {mat.item_name}</span>
                                                                     <span className="admin-st-fef01c14">Itemized Consumable</span>
                                                                 </div>
-                                                                <span className={`badge status-consumed`} className="admin-st-12e5feb7">{mat.status.toUpperCase()}</span>
+                                                                <span className={`badge status-consumed admin-st-12e5feb7`} >{mat.status.toUpperCase()}</span>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -358,7 +358,7 @@ function AdminCompletedSessions() {
                             </div>
 
                             <div className="modal-footer">
-                                <button className="btn btn-primary" onClick={closeModal} className="admin-st-6948e5f9">Done Reviewing</button>
+                                <button className="btn btn-primary admin-st-6948e5f9" onClick={closeModal} >Done Reviewing</button>
                             </div>
                         </div>
                     </div>

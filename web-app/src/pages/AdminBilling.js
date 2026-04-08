@@ -278,7 +278,7 @@ function AdminBilling() {
                                     <option value="amount">Amount</option>
                                 </select>
 
-                                <button className="btn btn-primary" onClick={openModal} className="admin-st-4796037d">
+                                <button className="btn btn-primary admin-st-4796037d" onClick={openModal} >
                                     <Plus size={18} className="admin-st-c02c7d9c" /> Create Invoice
                                 </button>
                             </div>
@@ -534,7 +534,7 @@ function AdminBilling() {
                                 </div>
                             </div>
                             <div className="admin-flex-center admin-gap-10">
-                                <button className="btn btn-primary" onClick={handlePrintAction} className="admin-st-a829cff3">
+                                <button className="btn btn-primary admin-st-a829cff3" onClick={handlePrintAction} >
                                     <Printer size={18} /> Print / Export PDF
                                 </button>
                                 <button className="close-btn" onClick={closePreview}><X size={24}/></button>

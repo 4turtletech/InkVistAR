@@ -397,10 +397,10 @@ function AdminSettings() {
                                 </div>
 
                                 <div className="admin-st-a00b0937">
-                                    <button className="btn btn-primary" onClick={handleBackup} className="admin-st-2609fdda">
+                                    <button className="btn btn-primary admin-st-2609fdda" onClick={handleBackup} >
                                         <Download size={18}/> Download Backup
                                     </button>
-                                    <button className="btn btn-secondary" onClick={handleRestore} className="admin-st-2609fdda">
+                                    <button className="btn btn-secondary admin-st-2609fdda" onClick={handleRestore} >
                                         <Upload size={18}/> Restore from File
                                     </button>
                                     <input type="file" id="restore-input" className="admin-st-224b51a7" onChange={(e) => {

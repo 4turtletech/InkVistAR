@@ -286,7 +286,7 @@ function AdminDashboard() {
                             <input type="text" placeholder="Search things..." />
                         </div> {/* This search is for the overall dashboard, not specific tables */}
                         
-                        <div className="notif-btn-wrapper" ref={notifRef} className="admin-st-fab32c0e">
+                        <div className="notif-btn-wrapper admin-st-fab32c0e" ref={notifRef} >
                             <button className="notif-trigger-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
                                 <Bell size={20} />
                                 {unreadNotifications > 0 && <span className="notif-badge-dot"></span>}

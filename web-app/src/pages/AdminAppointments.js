@@ -527,16 +527,14 @@ function AdminAppointments() {
                     <div className="admin-st-bb81d8eb">
                         <div className="view-toggle admin-flex-center admin-gap-10">
                             <button
-                                className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+                                className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'} admin-st-1b9ed2b3`}
                                 onClick={() => setViewMode('list')}
-                                className="admin-st-1b9ed2b3"
                             >
                                 <List size={16} /> List
                             </button>
                             <button
-                                className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+                                className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'} admin-st-1b9ed2b3`}
                                 onClick={() => setViewMode('calendar')}
-                                className="admin-st-1b9ed2b3"
                             >
                                 <Calendar size={16} /> Calendar
                             </button>
@@ -1171,15 +1169,11 @@ function AdminAppointments() {
                                             </button>
                                         )}
                                     </div>
-                                    <button className="btn btn-primary" onClick={handleSave} className="admin-st-a3930dd9">
+                                    <button className="btn btn-primary admin-st-a3930dd9" onClick={handleSave} >
                                         {selectedAppointment ? 'Update Appointment' : 'Create Appointment'}
                                     </button>
                                 </div>
-                                <button 
-                                    className="btn btn-secondary" 
-                                    onClick={closeModal} 
-                                    className="admin-st-2b5b349d"
-                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e2e8f0'}
+                                <button className="btn btn-secondary admin-st-2b5b349d" onClick={closeModal} onMouseEnter={(e) => e.target.style.backgroundColor = '#e2e8f0'}
                                     onMouseLeave={(e) => e.target.style.backgroundColor = '#f1f5f9'}
                                 >
                                     Close
@@ -1259,7 +1253,7 @@ function AdminAppointments() {
                                                 </div>
                                             </div>
                                             <div className="admin-st-7851dbc0">
-                                                <span className={`badge status-${getStatusColor(apt.status)}`} className="admin-st-af89d6d6">{apt.status}</span>
+                                                <span className={`${`badge status-${getStatusColor(apt.status)} admin-st-af89d6d6`} `} >{apt.status}</span>
                                                 <div className="admin-st-16d46816">Artist: {apt.artist_name}</div>
                                             </div>
                                         </div>

@@ -417,7 +417,7 @@ function AdminClients() {
                                     <Trash2 size={16}/> Archive Account
                                 </button>
                                 <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-                                <button className="btn btn-primary" onClick={handleSaveClient} className="admin-st-f9a92399">
+                                <button className="btn btn-primary admin-st-f9a92399" onClick={handleSaveClient} >
                                     <Save size={18}/> Commit Changes
                                 </button>
                             </div>

@@ -307,13 +307,7 @@ function AdminStaff() {
                 </div>
                 <div className="form-group">
                     <label>Commission Rate (%)</label>
-                    <input
-                        type="text"
-                        className="form-input"
-                        value="30"
-                        disabled
-                        className="admin-st-10bc60ad"
-                    />
+                    <input className="form-input admin-st-10bc60ad" type="text" value="30" disabled/>
                 </div>
             </div>
             <button className="btn btn-primary admin-st-194b571d" onClick={handleUpdateProfile}>
@@ -589,7 +583,7 @@ function AdminStaff() {
                                     <div>
                                         <h2 className="admin-m-0">{selectedArtist.name}</h2>
                                         <div className="admin-st-df628aac">
-                                            <span className={`badge role-${selectedArtist.user_type}`} className="admin-st-500d49ab">{selectedArtist.role}</span>
+                                            <span className={`${`badge role-${selectedArtist.user_type} admin-st-500d49ab`} `} >{selectedArtist.role}</span>
                                             <span className="admin-st-3bf8f64b">Staff ID: #STR-{selectedArtist.id.toString().padStart(4, '0')}</span>
                                         </div>
                                     </div>
@@ -630,7 +624,7 @@ function AdminStaff() {
                             <div className="modal-footer">
                                 <button className="btn btn-secondary" onClick={closeModal}>Close Management Portal</button>
                                 {activeTab === 'profile' && (
-                                    <button className="btn btn-primary" onClick={handleUpdateProfile} className="admin-st-f9a92399">
+                                    <button className="btn btn-primary admin-st-f9a92399" onClick={handleUpdateProfile} >
                                         <Save size={18} /> Sync Account Updates
                                     </button>
                                 )}
@@ -641,7 +635,7 @@ function AdminStaff() {
 
                 {/* Portfolio Content Editor Modal */}
                 {editWorkModal.mounted && selectedWork && (
-                    <div className={`modal-overlay ${editWorkModal.visible ? 'open' : ''}`} onClick={closeEditWork} className="admin-st-63d3f2c7">
+                    <div className={`${`modal-overlay ${editWorkModal.visible ? 'open' : ''} admin-st-63d3f2c7`} `} onClick={closeEditWork} >
                         <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <div>

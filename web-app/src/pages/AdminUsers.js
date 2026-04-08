@@ -531,7 +531,7 @@ function AdminUsers() {
                                     )}
                                 </div>
                                 <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-                                <button className="btn btn-primary" onClick={handleSave} className="admin-st-9be3106b">
+                                <button className="btn btn-primary admin-st-9be3106b" onClick={handleSave} >
                                     {selectedUser ? 'Save Changes' : 'Create User'}
                                 </button>
                             </div>
