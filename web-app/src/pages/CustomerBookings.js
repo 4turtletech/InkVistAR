@@ -1,3 +1,4 @@
+import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
@@ -231,20 +232,8 @@ function CustomerBookings(){
             else if (isBusy) statusColor = '#f59e0b';
 
             days.push(
-                <div 
-                    key={i} 
-                    className={`calendar-day ${isPast || isTooFar ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
-                    onClick={() => {
-                        if (isPast || isTooFar) return;
-                        if (isFull) {
-                            showAlert("Fully Booked", "This date is fully booked. Please choose another date.", "warning");
-                            return;
-                        }
-                        setBookingData({...bookingData, date: dateStr});
-                    }}
-                    style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-                >
-                    <span style={{ zIndex: 1 }}>{i}</span>
+                <div className={`${`calendar-day ${isPast || isTooFar ? 'disabled' : ''} customer-st-cdfe5ca9`} key={i} ${isSelected ? 'selected' : ''}`} onClick={() => { if (isPast || isTooFar) return; if (isFull) { showAlert("Fully Booked", "This date is fully booked. Please choose another date.", "warning"); return; } setBookingData({...bookingData, date: dateStr}); }} >
+                    <span className="customer-st-b4dfcc0b" >{i}</span>
                     {!isPast && !isTooFar && (
                         <div style={{ width: '4px', height: '4px', borderRadius: '2px', backgroundColor: statusColor, marginTop: '2px' }} />
                     )}
@@ -307,24 +296,19 @@ function CustomerBookings(){
                     <h1>My Bookings</h1>
                 </div>
                 <div className="header-actions">
-                    <button className="action-btn" onClick={() => { setBookingStep(1); setIsBookingModalOpen(true); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                    <button className="action-btn customer-st-98cc44d8" onClick={() => { setBookingStep(1); setIsBookingModalOpen(true); }} >
                         <Plus size={16} /> Book New Session
                     </button>
                 </div>
             </header>
             <div className="portal-content">
                 {loading ? <div className="no-data">Loading...</div> : (
-                        <div className="table-card-container" style={{ minHeight: '600px' }}>
+                        <div className="table-card-container customer-st-e54796c6" >
                             <div className="card-header-v2">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div className="customer-st-416869c2" >
+                                    <div className="customer-st-1910a4be" >
                                         <Filter size={18} color="#64748b" />
-                                        <select 
-                                            className="pagination-select" 
-                                            value={statusFilter} 
-                                            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                                            style={{ margin: 0 }}
-                                        >
+                                        <select className="pagination-select customer-st-03930596" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} >
                                             <option value="all">All Status</option>
                                             <option value="confirmed">Confirmed</option>
                                             <option value="pending">Pending</option>
@@ -332,16 +316,9 @@ function CustomerBookings(){
                                             <option value="cancelled">Cancelled</option>
                                         </select>
                                     </div>
-                                    <div style={{ position: 'relative', width: '250px' }}>
-                                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-                                        <input 
-                                            type="text" 
-                                            placeholder="Search bookings..." 
-                                            value={searchTerm}
-                                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                                            className="pagination-select"
-                                            style={{ paddingLeft: '35px', width: '100%', margin: 0 }}
-                                        />
+                                    <div className="customer-st-e64759bd" >
+                                        <Search className="customer-st-73ad8fa0" size={16} />
+                                        <input className="pagination-select customer-st-5ce7667d" type="text" placeholder="Search bookings..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
                                     </div>
                                 </div>
                                 <span className="status-badge-v2 pending">{filteredAppointments.length} Bookings</span>
@@ -354,31 +331,27 @@ function CustomerBookings(){
                                             <thead><tr><th>ID</th><th>Staff</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Price</th><th>Action</th></tr></thead>
                                             <tbody>{displayedAppointments.map(a=> (
                                                 <tr key={a.id}>
-                                                    <td style={{ fontWeight: '600', color: '#64748b' }}>#{a.id}</td>
-                                                    <td style={{ fontWeight: '600' }}>{a.artist_name}</td>
+                                                    <td className="customer-st-968fd1b5" >#{a.id}</td>
+                                                    <td className="customer-st-8515177a" >{a.artist_name}</td>
                                                     <td>{a.service_type || 'Tattoo'}</td>
                                                     <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
                                                     <td>{a.start_time}</td>
                                                     <td><span className={`status-badge ${a.status.toLowerCase()}`}>{a.status}</span></td>
                                                     <td>
                                                         {a.price > 0 ? (
-                                                            <div style={{ fontWeight: 'bold' }}>₱{Number(a.price).toLocaleString()}</div>
+                                                            <div className="customer-st-52ddb992" >₱{Number(a.price).toLocaleString()}</div>
                                                         ) : (
-                                                            <span style={{color: '#9ca3af', fontStyle: 'italic', fontSize: '0.85rem'}}>Pending Quote</span>
+                                                            <span className="customer-st-b8eb7d87" >Pending Quote</span>
                                                         )}
                                                     </td>
                                                     <td>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <div className="customer-st-929a545b" >
                                                             {a.status === 'pending' && a.price > 0 && a.payment_status === 'unpaid' ? (
-                                                                <button 
-                                                                    className="btn btn-primary" 
-                                                                    style={{padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px'}}
-                                                                    onClick={() => handlePay(a)}
-                                                                >
+                                                                <button className="btn btn-primary customer-st-f3c9d3c3" onClick={() => handlePay(a)} >
                                                                     <CreditCard size={14}/> Pay Deposit
                                                                 </button>
                                                             ) : a.payment_status === 'paid' ? (
-                                                                <span className="status-badge-v2 confirmed" style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px' }}>
+                                                                <span className="status-badge-v2 confirmed customer-st-abded735" >
                                                                     <CheckCircle size={12}/> Fully Paid
                                                                 </span>
                                                             ) : a.payment_status === 'downpayment_paid' ? (
@@ -390,22 +363,14 @@ function CustomerBookings(){
                                                                     <CreditCard size={14}/> Pay Balance
                                                                 </button>
                                                             ) : a.status === 'completed' ? (
-                                                                <button 
-                                                                    className="btn btn-primary" 
-                                                                    style={{padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#10b981', border: 'none'}}
-                                                                    onClick={() => { setSelectedApt(a); setShowAftercare(true); }}
-                                                                >
+                                                                <button className="btn btn-primary customer-st-6c6e14b5" onClick={() => { setSelectedApt(a); setShowAftercare(true); }} >
                                                                     <Heart size={14}/> Aftercare
                                                                 </button>
                                                             ) : (
-                                                                <span style={{color: '#9ca3af', fontSize: '0.9rem'}}>-</span>
+                                                                <span className="customer-st-48e66a80" >-</span>
                                                             )}
 
-                                                            <button 
-                                                                className="billing-details-btn"
-                                                                onClick={() => handleViewDetails(a)}
-                                                                style={{ padding: '6px 12px' }}
-                                                            >
+                                                            <button className="billing-details-btn customer-st-3047a29f" onClick={() => handleViewDetails(a)} >
                                                                 <Info size={14} /> Details
                                                             </button>
                                                         </div>
@@ -426,7 +391,7 @@ function CustomerBookings(){
                                     />
                                 </>
                             ) : (
-                                <div className="no-data-container" style={{ flex: 1 }}>
+                                <div className="no-data-container customer-st-282aded5" >
                                     <Inbox size={48} className="no-data-icon" />
                                     <p className="no-data-text">No bookings found matching your criteria.</p>
                                 </div>
@@ -445,66 +410,62 @@ function CustomerBookings(){
                             <button className="close-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
                         </div>
                         <div className="modal-body">
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                                <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                                    <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Staff Assigned</label>
-                                    <p style={{ margin: '4px 0 0', fontWeight: '600', color: '#1e293b' }}>{selectedApt.artist_name || 'TBD'}</p>
+                            <div className="customer-st-5c49f804" >
+                                <div className="customer-st-e8eceac8" >
+                                    <label className="customer-st-3c5cf8dd" >Staff Assigned</label>
+                                    <p className="customer-st-5d13f831" >{selectedApt.artist_name || 'TBD'}</p>
                                 </div>
-                                <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                                    <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service Type</label>
-                                    <p style={{ margin: '4px 0 0', fontWeight: '600', color: '#1e293b' }}>{selectedApt.service_type || 'General Session'}</p>
+                                <div className="customer-st-e8eceac8" >
+                                    <label className="customer-st-3c5cf8dd" >Service Type</label>
+                                    <p className="customer-st-5d13f831" >{selectedApt.service_type || 'General Session'}</p>
                                 </div>
                             </div>
 
-                            <div style={{ marginBottom: '24px' }}>
-                                <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '10px' }}>Vision & Booking Notes</label>
-                                <div style={{ padding: '16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-                                    <h4 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', color: '#0f172a' }}>{selectedApt.design_title}</h4>
-                                    <p style={{ margin: 0, fontSize: '0.95rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                            <div className="customer-st-654b1414" >
+                                <label className="customer-st-627edbaf" >Vision & Booking Notes</label>
+                                <div className="customer-st-6f352cca" >
+                                    <h4 className="customer-st-232eb362" >{selectedApt.design_title}</h4>
+                                    <p className="customer-st-590a9062" >
                                         {selectedApt.notes || 'No specific notes provided.'}
                                     </p>
                                     
                                     {selectedApt.reference_image && (
-                                        <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
-                                            <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase' }}>Reference Image</p>
-                                            <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
-                                                <img src={selectedApt.reference_image} alt="Reference" style={{ width: '100%', maxHeight: '350px', objectFit: 'contain', background: '#f8fafc' }} />
+                                        <div className="customer-st-2dc9a8a0" >
+                                            <p className="customer-st-af520488" >Reference Image</p>
+                                            <div className="customer-st-e6f3b223" >
+                                                <img className="customer-st-454ebe6d" src={selectedApt.reference_image} alt="Reference" />
                                             </div>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            <h4 style={{ marginBottom: '12px', color: '#475569', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Financial Summary</h4>
-                            <div className="billing-summary" style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                    <span style={{ color: '#64748b' }}>Total Service Price:</span>
-                                    <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>₱{selectedApt.price.toLocaleString()}</span>
+                            <h4 className="customer-st-6f90639a" >Financial Summary</h4>
+                            <div className="billing-summary customer-st-aa822c5e" >
+                                <div className="customer-st-56da6dbd" >
+                                    <span className="customer-st-504f25fa" >Total Service Price:</span>
+                                    <span className="customer-st-c6cdc897" >₱{selectedApt.price.toLocaleString()}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                    <span style={{ color: '#64748b' }}>Amount Paid:</span>
-                                    <span style={{ fontWeight: 600, color: '#10b981', fontSize: '1.1rem' }}>
+                                <div className="customer-st-56da6dbd" >
+                                    <span className="customer-st-504f25fa" >Amount Paid:</span>
+                                    <span className="customer-st-49af0fbb" >
                                         ₱{Number(selectedApt.total_paid || 0).toLocaleString()}
                                     </span>
                                 </div>
-                                <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '15px 0' }} />
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ fontWeight: 600, color: '#1e293b' }}>Remaining Balance:</span>
-                                    <span style={{ fontWeight: 800, fontSize: '1.4rem', color: '#0f172a' }}>
+                                <hr className="customer-st-b45fb1af" />
+                                <div className="customer-st-4110ceca" >
+                                    <span className="customer-st-e7b1617c" >Remaining Balance:</span>
+                                    <span className="customer-st-58e71408" >
                                         ₱{Math.max(0, selectedApt.price - (selectedApt.total_paid || 0)).toLocaleString()}
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <div className="modal-footer" style={{ justifyContent: 'space-between', width: '100%', gap: '12px' }}>
-                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsModalOpen(false)}>Close</button>
+                        <div className="modal-footer customer-st-14ad7875" >
+                            <button className="btn btn-secondary customer-st-282aded5" onClick={() => setIsModalOpen(false)}>Close</button>
                             
                             {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && selectedApt.price > 0 && selectedApt.payment_status === 'unpaid' && (
-                                <button 
-                                    className="btn btn-primary" 
-                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                                    onClick={() => handlePay(selectedApt)}
-                                >
+                                <button className="btn btn-primary customer-st-9fb0229b" onClick={() => handlePay(selectedApt)} >
                                     <CreditCard size={18}/> Pay Deposit (₱{Math.round(selectedApt.price * 0.2).toLocaleString()})
                                 </button>
                             )}
@@ -520,7 +481,7 @@ function CustomerBookings(){
                             )}
                             
                             {selectedApt.payment_status === 'paid' && (
-                                <div className="status-badge-v2 confirmed" style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}>
+                                <div className="status-badge-v2 confirmed customer-st-472abd65" >
                                     <CheckCircle size={18}/> Fully Paid
                                 </div>
                             )}
@@ -535,36 +496,36 @@ function CustomerBookings(){
                 <div className="modal-overlay" onClick={() => setShowAftercare(false)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Heart size={24} color="#10b981" /> Aftercare Guide</h2>
+                            <h2 className="customer-st-da70abb8" ><Heart size={24} color="#10b981" /> Aftercare Guide</h2>
                             <button className="close-btn" onClick={() => setShowAftercare(false)}><X size={24} /></button>
                         </div>
                         <div className="modal-body">
-                            <p style={{ color: '#475569', marginBottom: '24px', lineHeight: '1.6' }}>Congratulations on your new tattoo! Proper aftercare is crucial for vibrant colors and smooth healing. Please follow these steps carefully:</p>
+                            <p className="customer-st-5242ed5e" >Congratulations on your new tattoo! Proper aftercare is crucial for vibrant colors and smooth healing. Please follow these steps carefully:</p>
                             
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                    <h4 style={{ color: '#1e293b', marginBottom: '10px', fontWeight: 700 }}>1. The First Hours</h4>
-                                    <p style={{ color: '#475569', margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
+                            <div className="customer-st-409d6bf5" >
+                                <div className="customer-st-360705c8" >
+                                    <h4 className="customer-st-e458bee7" >1. The First Hours</h4>
+                                    <p className="customer-st-c9d8a99f" >
                                         Leave the bandage on for 2-4 hours. Wash gently with warm water and fragrance-free antibacterial soap. Do not scrub.
                                     </p>
                                 </div>
                                 
-                                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                    <h4 style={{ color: '#1e293b', marginBottom: '10px', fontWeight: 700 }}>2. Healing Phase (14 Days)</h4>
-                                    <p style={{ color: '#475569', margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
+                                <div className="customer-st-360705c8" >
+                                    <h4 className="customer-st-e458bee7" >2. Healing Phase (14 Days)</h4>
+                                    <p className="customer-st-c9d8a99f" >
                                         Apply a thin layer of unscented lotion 2-3 times a day. Do NOT pick or scratch scabs. Avoid direct sunlight and swimming.
                                     </p>
                                 </div>
                             </div>
                             
-                            <div style={{ marginTop: '24px', padding: '20px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '16px' }}>
-                                <p style={{ margin: 0, fontSize: '0.95rem', color: '#166534', fontWeight: 600 }}>
+                            <div className="customer-st-040844df" >
+                                <p className="customer-st-e7d774e4" >
                                     Questions? Reach out to your artist immediately if red, swollen, or hot to the touch.
                                 </p>
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => setShowAftercare(false)}>Got it!</button>
+                            <button className="btn btn-secondary customer-st-1daa6293" onClick={() => setShowAftercare(false)}>Got it!</button>
                         </div>
                     </div>
                 </div>
@@ -575,12 +536,12 @@ function CustomerBookings(){
                 <div className="modal-overlay">
                     <div className="modal-content large">
                         <div className="modal-header">
-                            <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Sparkles size={24} color="#daa520" /> New Booking Request</h2>
+                            <h2 className="customer-st-da70abb8" ><Sparkles size={24} color="#daa520" /> New Booking Request</h2>
                             <button className="close-btn" onClick={() => setIsBookingModalOpen(false)}><X size={24} /></button>
                         </div>
-                        <div className="modal-body" style={{ padding: 0 }}>
-                            <div style={{ padding: '24px 32px 10px' }}>
-                                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                        <div className="modal-body customer-st-f182ff49" >
+                            <div className="customer-st-befb1147" >
+                                <div className="customer-st-f93c6e1f" >
                                     {[1, 2, 3, 4].map(step => (
                                         <div key={step} style={{ 
                                             height: '4px', flex: 1, borderRadius: '2px',
@@ -593,13 +554,13 @@ function CustomerBookings(){
                         </div>
                         
                         <form onSubmit={handleSubmitBooking}>
-                            <div className="modal-body" style={{ padding: '24px' }}>
+                            <div className="modal-body customer-st-4a472601" >
                                 
                                 {bookingStep === 1 && (
                                     <div className="fade-in">
-                                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>1. Service Type</h3>
+                                        <h3 className="customer-st-69ffca42" >1. Service Type</h3>
                                         <div className="form-group">
-                                            <label style={{ fontWeight: '600', marginBottom: '12px', display: 'block' }}>What type of service are you looking for?</label>
+                                            <label className="customer-st-36716a21" >What type of service are you looking for?</label>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
                                                 {serviceOptions.map(type => (
                                                     <div 
@@ -610,15 +571,15 @@ function CustomerBookings(){
                                                             background: bookingData.serviceType === type ? '#fffdf5' : 'white', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'
                                                         }}
                                                     >
-                                                        <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>{type}</span>
+                                                        <span className="customer-st-043152e7" >{type}</span>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
 
-                                        <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                            <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', fontStyle: 'italic' }}>
-                                                <Info size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+                                        <div className="customer-st-59166514" >
+                                            <p className="customer-st-7b7d7267" >
+                                                <Info className="customer-st-ff2b4fb6" size={14} />
                                                 <strong>Artist Assignment:</strong> Our studio management will review your design and assign the best-suited resident artist for your specific style and complexity.
                                             </p>
                                         </div>
@@ -627,24 +588,24 @@ function CustomerBookings(){
 
                                 {bookingStep === 2 && (
                                     <div className="fade-in">
-                                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>2. Design Details</h3>
+                                        <h3 className="customer-st-69ffca42" >2. Design Details</h3>
                                         <div className="form-group">
-                                            <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Tattoo Idea / Title</label>
+                                            <label className="customer-st-67198c20" >Tattoo Idea / Title</label>
                                             <input 
                                                 type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
                                                 value={bookingData.designTitle} onChange={e => setBookingData({...bookingData, designTitle: e.target.value})}
                                                 minLength={3} maxLength={100}
                                             />
                                         </div>
-                                        <div className="form-group" style={{ marginTop: '16px' }}>
-                                            <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Tell us your story (Optional)</label>
+                                        <div className="form-group customer-st-5d155c93" >
+                                            <label className="customer-st-67198c20" >Tell us your story (Optional)</label>
                                             <textarea 
                                                 className="form-input" rows="4" placeholder="Describe the size, color preferences, and any meaningful details..."
                                                 value={bookingData.notes} onChange={e => setBookingData({...bookingData, notes: e.target.value})}
                                             />
                                         </div>
-                                        <div className="form-group" style={{ marginTop: '16px' }}>
-                                            <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>Reference Image</label>
+                                        <div className="form-group customer-st-5d155c93" >
+                                            <label className="customer-st-67198c20" >Reference Image</label>
                                             <div 
                                                 onClick={() => document.getElementById('modal-ref-img').click()}
                                                 style={{ 
@@ -654,11 +615,11 @@ function CustomerBookings(){
                                                 }}
                                             >
                                                 {bookingData.referenceImage ? (
-                                                    <img src={bookingData.referenceImage} alt="Ref" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                    <img className="customer-st-2fbefd4f" src={bookingData.referenceImage} alt="Ref" />
                                                 ) : (
                                                     <>
                                                         <ImageIcon size={24} color="#94a3b8" />
-                                                        <span style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '8px' }}>Upload a photo or sketch</span>
+                                                        <span className="customer-st-4b235664" >Upload a photo or sketch</span>
                                                     </>
                                                 )}
                                                 <input type="file" id="modal-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
@@ -669,8 +630,8 @@ function CustomerBookings(){
 
                                 {bookingStep === 3 && (
                                     <div className="fade-in">
-                                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>3. Placement</h3>
-                                        <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '16px' }}>Where would you like your tattoo?</p>
+                                        <h3 className="customer-st-69ffca42" >3. Placement</h3>
+                                        <p className="customer-st-b943a453" >Where would you like your tattoo?</p>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                                             {["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"].map(part => (
                                                 <button
@@ -687,8 +648,8 @@ function CustomerBookings(){
                                                 </button>
                                             ))}
                                         </div>
-                                        <div className="form-group" style={{ marginTop: '20px' }}>
-                                            <label style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '8px' }}>Specific location notes</label>
+                                        <div className="form-group customer-st-842c3fb4" >
+                                            <label className="customer-st-fc6d29da" >Specific location notes</label>
                                             <input 
                                                 type="text" className="form-input" placeholder="e.g. Left inner forearm, near elbow" 
                                                 value={bookingData.placementNotes} onChange={e => setBookingData({...bookingData, placementNotes: e.target.value})} 
@@ -699,22 +660,22 @@ function CustomerBookings(){
 
                                 {bookingStep === 4 && (
                                     <div className="fade-in">
-                                        <h3 style={{ marginBottom: '20px', color: '#1e293b' }}>4. Schedule Your Session</h3>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
-                                            <div className="calendar-container" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                                    <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><ChevronLeft size={20}/></button>
-                                                    <span style={{ fontWeight: 'bold' }}>{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
-                                                    <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><ChevronRight size={20}/></button>
+                                        <h3 className="customer-st-69ffca42" >4. Schedule Your Session</h3>
+                                        <div className="customer-st-d1b64d7a" >
+                                            <div className="calendar-container customer-st-8601e470" >
+                                                <div className="customer-st-0c5ea219" >
+                                                    <button className="customer-st-67331937" type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} ><ChevronLeft size={20}/></button>
+                                                    <span className="customer-st-52ddb992" >{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
+                                                    <button className="customer-st-67331937" type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} ><ChevronRight size={20}/></button>
                                                 </div>
                                                 <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem' }}>
-                                                    {['S','M','T','W','T','F','S'].map(d => <div key={d} style={{ color: '#94a3b8', fontWeight: 'bold', padding: '8px 0' }}>{d}</div>)}
+                                                    {['S','M','T','W','T','F','S'].map(d => <div className="customer-st-1894d8a4" key={d} >{d}</div>)}
                                                     {renderCalendarDays()}
                                                 </div>
                                             </div>
                                             <div className="time-slots">
-                                                <label style={{ fontWeight: '600', marginBottom: '12px', display: 'block' }}>Preferred Time Slot</label>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                                                <label className="customer-st-36716a21" >Preferred Time Slot</label>
+                                                <div className="customer-st-caa523c7" >
                                                     {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => {
                                                         let isDisabled = false;
                                                         if (bookingData.date) {
@@ -748,9 +709,9 @@ function CustomerBookings(){
                                         </div>
                                         
                                         {bookingData.date && bookingData.startTime && (
-                                            <div style={{ marginTop: '24px', padding: '16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div className="customer-st-21be8237" >
                                                 <CheckCircle size={20} color="#16a34a" />
-                                                <span style={{ fontSize: '0.9rem', color: '#166534', fontWeight: '500' }}>
+                                                <span className="customer-st-e295ad00" >
                                                     Selected: {new Date(bookingData.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} at {bookingData.startTime}
                                                 </span>
                                             </div>
@@ -759,30 +720,17 @@ function CustomerBookings(){
                                 )}
                             </div>
 
-                            <div className="modal-footer" style={{ background: '#f8fafc', padding: '16px 24px', display: 'flex', justifyContent: 'space-between' }}>
-                                <button 
-                                    type="button" className="btn btn-secondary" 
-                                    onClick={() => bookingStep === 1 ? setIsBookingModalOpen(false) : setBookingStep(bookingStep - 1)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                                >
+                            <div className="modal-footer customer-st-a2acee48" >
+                                <button className="btn btn-secondary customer-st-929a545b" type="button" onClick={() => bookingStep === 1 ? setIsBookingModalOpen(false) : setBookingStep(bookingStep - 1)} >
                                     {bookingStep === 1 ? 'Cancel' : <><ArrowLeft size={16}/> Previous</>}
                                 </button>
                                 
                                 {bookingStep < 4 ? (
-                                    <button 
-                                        type="button" className="btn btn-primary" 
-                                        onClick={() => setBookingStep(bookingStep + 1)}
-                                        style={{ backgroundColor: '#1e293b', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                        disabled={(bookingStep === 1 && !bookingData.serviceType) || (bookingStep === 2 && !bookingData.designTitle)}
-                                    >
+                                    <button className="btn btn-primary customer-st-a412cd6b" type="button" onClick={() => setBookingStep(bookingStep + 1)} disabled={(bookingStep === 1 && !bookingData.serviceType) || (bookingStep === 2 && !bookingData.designTitle)} >
                                         Next Step <ArrowRight size={16}/>
                                     </button>
                                 ) : (
-                                    <button 
-                                        type="submit" className="btn btn-primary" 
-                                        disabled={isSubmitting || !bookingData.date || !bookingData.startTime} 
-                                        style={{ backgroundColor: '#daa520', border: 'none', minWidth: '180px' }}
-                                    >
+                                    <button className="btn btn-primary customer-st-a1410f35" type="submit" disabled={isSubmitting || !bookingData.date || !bookingData.startTime} >
                                         {isSubmitting ? 'Submitting...' : 'Request Session'}
                                     </button>
                                 )}

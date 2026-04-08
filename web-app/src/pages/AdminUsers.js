@@ -397,8 +397,8 @@ function AdminUsers() {
                                                     </button>
                                                 ) : (
                                                     <>
-                                                        <button className="action-btn view-btn" onClick={() => handleRestore(user.id)} className="admin-st-f1f5ea52">Restore</button>
-                                                        <button className="action-btn delete-btn" onClick={() => handlePermanentDelete(user.id)} className="admin-st-2cf55662">Delete</button>
+                                                        <button className="action-btn view-btn admin-st-f1f5ea52" onClick={() => handleRestore(user.id)}>Restore</button>
+                                                        <button className="action-btn delete-btn admin-st-2cf55662" onClick={() => handlePermanentDelete(user.id)}>Delete</button>
                                                     </>
                                                 )}
                                             </td>

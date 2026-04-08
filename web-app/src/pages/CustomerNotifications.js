@@ -1,3 +1,4 @@
+import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { 
@@ -146,7 +147,7 @@ function CustomerNotifications() {
     return (
         <div className="portal-layout">
             <CustomerSideNav />
-            <div className="portal-container customer-portal" style={{ flex: 1, minWidth: 0 }}>
+            <div className="portal-container customer-portal customer-st-5f9aa399" >
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Updates & Alerts</h1>
@@ -159,20 +160,20 @@ function CustomerNotifications() {
                     </div>
                 </header>
 
-                <p className="header-subtitle" style={{ marginTop: '-1.5rem', marginBottom: '2rem', textAlign: 'left', maxWidth: '100%' }}>Stay informed about your tattoo journey</p>
+                <p className="header-subtitle customer-st-a37b17a0" >Stay informed about your tattoo journey</p>
 
-                <div className="portal-stats-row" style={{ display: 'flex', gap: '20px', marginBottom: '25px', flexWrap: 'wrap' }}>
-                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '20px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '5px' }}>Total Updates</span>
-                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b' }}>{notifications.length}</span>
+                <div className="portal-stats-row customer-st-9eeb7fb7" >
+                    <div className="glass-card customer-st-7743f948" >
+                        <span className="customer-st-dd32c518" >Total Updates</span>
+                        <span className="customer-st-05fe7b62" >{notifications.length}</span>
                     </div>
                     <div className="glass-card" style={{ flex: '1 1 200px', padding: '20px', textAlign: 'center', borderLeft: unreadCount > 0 ? '4px solid #f59e0b' : 'none' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '5px' }}>Unread Alerts</span>
+                        <span className="customer-st-dd32c518" >Unread Alerts</span>
                         <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#f59e0b' : 'inherit' }}>{unreadCount}</span>
                     </div>
                 </div>
 
-                <div className="filter-bar" style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                <div className="filter-bar customer-st-35ad0876" >
                     <button 
                         className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
                         onClick={() => setActiveFilter('all')}
@@ -196,9 +197,9 @@ function CustomerNotifications() {
                             <p>Fetching your updates...</p>
                         </div>
                     ) : (
-                        <div className="notifications-wrapper" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: '500px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+                        <div className="notifications-wrapper customer-st-38951e22" >
                                 {currentItems.length > 0 ? (
-                                    <div className="notifications-stream" style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, maxWidth: '100%' }}>
+                                    <div className="notifications-stream customer-st-2bb70a3c" >
                                         {currentItems.map(n => {
                                             const style = getNotificationStyle(n.type);
                                             const Icon = style.icon;
@@ -211,66 +212,48 @@ function CustomerNotifications() {
                                                     }
                                                 }}>
                                                     <div className="notif-id-marker"></div>
-                                                    <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                    <div className="notif-main customer-st-c060295c" >
                                                         <div className="icon-badge" style={{ background: style.bg, padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
                                                             <Icon size={16} color={style.color}/>
                                                         </div>
                                                         
-                                                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '20px', overflow: 'hidden', minWidth: 0 }}>
+                                                        <div className="customer-st-3229fd12" >
                                                             <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? '#64748b' : '#1e293b' }}>{n.title}</span>
-                                                            <p className="notif-body" style={{ margin: 0, fontSize: '0.9rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</p>
+                                                            <p className="notif-body customer-st-bab5df7a" >{n.message}</p>
                                                         </div>
 
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexShrink: 0 }}>
-                                                            <span className="notif-time" style={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: '100px', textAlign: 'right' }}>
+                                                        <div className="customer-st-7c19c2d3" >
+                                                            <span className="notif-time customer-st-02404bb8" >
                                                                 {formatNotificationTime(n.created_at)}
                                                             </span>
                                                             
-                                                            <div className="notif-actions" style={{ display: 'flex', gap: '8px' }}>
+                                                            <div className="notif-actions customer-st-4557600f" >
                                                                 {!n.is_read ? (
-                                                                    <button className="notif-btn ghost" onClick={() => markRead(n.id)} style={{ padding: '4px' }} title="Mark as Read">
+                                                                    <button className="notif-btn ghost customer-st-1b8f69ba" onClick={() => markRead(n.id)} title="Mark as Read">
                                                                         <Check size={14}/>
                                                                     </button>
                                                                 ) : (
-                                                                    <button className="notif-btn ghost" onClick={() => markUnread(n.id)} style={{ padding: '4px' }} title="Mark as Unread">
+                                                                    <button className="notif-btn ghost customer-st-1b8f69ba" onClick={() => markUnread(n.id)} title="Mark as Unread">
                                                                         <RotateCcw size={14}/>
                                                                     </button>
                                                                 )}
                                                                 {n.type === 'appointment_reminder' && (
-                                                                    <a
-                                                                        href="/customer/bookings"
-                                                                        className="notif-btn primary"
-                                                                        style={{ padding: '4px 10px', fontSize: '0.75rem', backgroundColor: '#3b82f6', textDecoration: 'none' }}
-                                                                    >
+                                                                    <a className="notif-btn primary customer-st-b615ccfe" href="/customer/bookings" >
                                                                         View Upcoming
                                                                     </a>
                                                                 )}
                                                                 {n.type === 'pos_invoice' && (
-                                                                    <a
-                                                                        href={`${API_URL}/api/invoices/${n.related_id}`}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="notif-btn primary"
-                                                                        style={{ padding: '4px 10px', fontSize: '0.75rem', textDecoration: 'none' }}
-                                                                    >
+                                                                    <a className="notif-btn primary customer-st-be163e3f" href={`${API_URL}/api/invoices/${n.related_id}`} target="_blank" rel="noopener noreferrer" >
                                                                         Invoice
                                                                     </a>
                                                                 )}
                                                                 {n.type === 'aftercare_reminder' && (
-                                                                    <a
-                                                                        href="/customer/aftercare"
-                                                                        className="notif-btn primary"
-                                                                        style={{ padding: '4px 10px', fontSize: '0.75rem', backgroundColor: '#06b6d4', textDecoration: 'none' }}
-                                                                    >
+                                                                    <a className="notif-btn primary customer-st-3d39e5b0" href="/customer/aftercare" >
                                                                         View Guide
                                                                     </a>
                                                                 )}
                                                                 {n.type === 'review_prompt' && (
-                                                                    <a
-                                                                        href={`/customer/reviews/new?appointment=${n.related_id}`}
-                                                                        className="notif-btn primary"
-                                                                        style={{ padding: '4px 10px', fontSize: '0.75rem', backgroundColor: '#f59e0b', textDecoration: 'none' }}
-                                                                    >
+                                                                    <a className="notif-btn primary customer-st-9bd8a3c8" href={`/customer/reviews/new?appointment=${n.related_id}`} >
                                                                         Leave Review
                                                                     </a>
                                                                 )}
@@ -282,7 +265,7 @@ function CustomerNotifications() {
                                         })}
                                     </div>
                                 ) : (
-                                    <div className="all-clear" style={{ padding: '100px 0' }}>
+                                    <div className="all-clear customer-st-3e3d331f" >
                                         <CheckCircle size={48} color="#10b981" />
                                         <h3>Everything Up to Date</h3>
                                         <p>You have no new notifications at this time.</p>
@@ -290,7 +273,7 @@ function CustomerNotifications() {
                                 )}
 
                                 {filteredNotifs.length > itemsPerPage && (
-                                    <div style={{ marginTop: '20px' }}>
+                                    <div className="customer-st-842c3fb4" >
                                         <Pagination 
                                             currentPage={currentPage}
                                             totalPages={totalPages}
@@ -309,30 +292,30 @@ function CustomerNotifications() {
 
             {/* Notification View Modal */}
             {selectedNotification && (
-                <div className="modal-overlay" onClick={() => setSelectedNotification(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                <div className="modal-overlay customer-st-ec6d11c3" onClick={() => setSelectedNotification(null)} >
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div className="customer-st-18b79f09" >
+                            <div className="customer-st-da70abb8" >
                                 <div style={{ background: selectedNotification.style.bg, padding: '10px', borderRadius: '12px' }}>
                                     <selectedNotification.style.icon size={24} color={selectedNotification.style.color} />
                                 </div>
-                                <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.25rem' }}>{selectedNotification.title}</h3>
+                                <h3 className="customer-st-a047e906" >{selectedNotification.title}</h3>
                             </div>
-                            <button className="close-btn" onClick={() => setSelectedNotification(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><XCircle size={24} /></button>
+                            <button className="close-btn customer-st-6df53034" onClick={() => setSelectedNotification(null)} ><XCircle size={24} /></button>
                         </div>
-                        <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                            <p style={{ margin: 0, color: '#334155', fontSize: '1rem', lineHeight: '1.6' }}>{selectedNotification.message}</p>
+                        <div className="customer-st-49ffbede" >
+                            <p className="customer-st-5454b175" >{selectedNotification.message}</p>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
-                            <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
-                            <div className="notif-actions" style={{ display: 'flex', gap: '10px' }}>
+                        <div className="customer-st-23aef110" >
+                            <span className="customer-st-97b91651" >Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
+                            <div className="notif-actions customer-st-7cead41b" >
                                 {selectedNotification.related_id && selectedNotification.type !== 'pos_invoice' && selectedNotification.type !== 'review_prompt' && selectedNotification.type !== 'aftercare_reminder' && (
-                                    <a href={`/customer/bookings?appointment=${selectedNotification.related_id}`} className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#3b82f6', color: '#fff', borderRadius: '6px' }}>Take Action</a>
+                                    <a className="notif-btn primary customer-st-be17fc86" href={`/customer/bookings?appointment=${selectedNotification.related_id}`} >Take Action</a>
                                 )}
-                                {selectedNotification.type === 'pos_invoice' && <a href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#3b82f6', color: '#fff', borderRadius: '6px' }}>View Invoice</a>}
-                                {selectedNotification.type === 'aftercare_reminder' && <a href="/customer/aftercare" className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#06b6d4', color: '#fff', borderRadius: '6px' }}>View Guide</a>}
-                                {selectedNotification.type === 'review_prompt' && <a href={`/customer/reviews/new?appointment=${selectedNotification.related_id}`} className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#f59e0b', color: '#fff', borderRadius: '6px' }}>Leave Review</a>}
-                                <button className="notif-btn ghost" onClick={() => setSelectedNotification(null)} style={{ padding: '6px 12px', fontSize: '0.85rem', cursor: 'pointer' }}>Close</button>
+                                {selectedNotification.type === 'pos_invoice' && <a className="notif-btn primary customer-st-be17fc86" href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" >View Invoice</a>}
+                                {selectedNotification.type === 'aftercare_reminder' && <a className="notif-btn primary customer-st-b55afb9c" href="/customer/aftercare" >View Guide</a>}
+                                {selectedNotification.type === 'review_prompt' && <a className="notif-btn primary customer-st-3f2429fc" href={`/customer/reviews/new?appointment=${selectedNotification.related_id}`} >Leave Review</a>}
+                                <button className="notif-btn ghost customer-st-cb4a8d52" onClick={() => setSelectedNotification(null)} >Close</button>
                             </div>
                         </div>
                     </div>

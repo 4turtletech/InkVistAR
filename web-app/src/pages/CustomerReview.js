@@ -1,3 +1,4 @@
+import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -79,60 +80,47 @@ function CustomerReview() {
             <CustomerSideNav />
             <div className="portal-container customer-portal">
                 <header className="portal-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        <button className="action-btn" onClick={() => navigate(-1)} style={{ background: 'none', border: '1px solid #e2e8f0', color: '#64748b', display: 'flex', alignItems: 'center' }}>
-                            <ArrowLeft size={16} style={{ marginRight: '5px' }} /> Back
+                    <div className="customer-st-c060295c" >
+                        <button className="action-btn customer-st-12556b4b" onClick={() => navigate(-1)} >
+                            <ArrowLeft className="customer-st-92b47de2" size={16} /> Back
                         </button>
-                        <h1 style={{ margin: 0 }}>Review Your Session</h1>
+                        <h1 className="customer-st-03930596" >Review Your Session</h1>
                     </div>
                 </header>
 
                 <div className="portal-content">
                     {success ? (
-                        <div className="data-card" style={{ textAlign: 'center', padding: '50px' }}>
-                            <Star size={48} color="#f59e0b" fill="#f59e0b" style={{ marginBottom: '20px' }} />
+                        <div className="data-card customer-st-108e349d" >
+                            <Star className="customer-st-8afcd01b" size={48} color="#f59e0b" fill="#f59e0b" />
                             <h2>Thank You!</h2>
                             <p>Your review has been submitted and is pending moderation.</p>
-                            <button className="premium-btn primary" onClick={() => navigate('/customer')} style={{ marginTop: '20px' }}>Return to Portal</button>
+                            <button className="premium-btn primary customer-st-842c3fb4" onClick={() => navigate('/customer')} >Return to Portal</button>
                         </div>
                     ) : (
-                        <div className="data-card" style={{ maxWidth: '600px', margin: '0 auto' }}>
-                            {errorMsg && <div className="alert alert-error" style={{ marginBottom: '20px', padding: '15px', background: '#fee2e2', color: '#b91c1c', borderRadius: '8px' }}>{errorMsg}</div>}
+                        <div className="data-card customer-st-afdbb800" >
+                            {errorMsg && <div className="alert alert-error customer-st-c763b02a" >{errorMsg}</div>}
                             
                             {!appointment ? (
                                 <p>Loading session details...</p>
                             ) : (
                                 <form onSubmit={handleSubmit}>
-                                    <div style={{ marginBottom: '25px', textAlign: 'center' }}>
-                                        <h3 style={{ marginBottom: '5px' }}>Session: {appointment.design_title}</h3>
-                                        <p style={{ color: '#64748b' }}>Rate your experience with your artist</p>
+                                    <div className="customer-st-e71e5ab0" >
+                                        <h3 className="customer-st-299a8c77" >Session: {appointment.design_title}</h3>
+                                        <p className="customer-st-504f25fa" >Rate your experience with your artist</p>
                                     </div>
                                     
-                                    <div style={{ marginBottom: '25px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                                    <div className="customer-st-6ef1d3d0" >
                                         {[1, 2, 3, 4, 5].map(star => (
-                                            <Star 
-                                                key={star} 
-                                                size={40} 
-                                                color={rating >= star ? '#f59e0b' : '#cbd5e1'} 
-                                                fill={rating >= star ? '#f59e0b' : 'transparent'} 
-                                                onClick={() => setRating(star)} 
-                                                style={{ cursor: 'pointer', transition: 'all 0.2s' }} 
-                                            />
+                                            <Star className="customer-st-5b46469c" key={star} size={40} color={rating >= star ? '#f59e0b' : '#cbd5e1'} fill={rating >= star ? '#f59e0b' : 'transparent'} onClick={() => setRating(star)} />
                                         ))}
                                     </div>
                                     
-                                    <div className="form-group" style={{ marginBottom: '25px' }}>
+                                    <div className="form-group customer-st-cdb6f6cb" >
                                         <label>Comment (Optional)</label>
-                                        <textarea 
-                                            value={comment} 
-                                            onChange={(e) => setComment(e.target.value)} 
-                                            placeholder="Tell us about your tattoo and the artist's service..."
-                                            rows={5}
-                                            style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', resize: 'vertical' }}
-                                        ></textarea>
+                                        <textarea className="customer-st-b5d17ae6" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Tell us about your tattoo and the artist's service..." rows={5} ></textarea>
                                     </div>
                                     
-                                    <button type="submit" className="premium-btn primary" disabled={loading} style={{ width: '100%' }}>
+                                    <button className="premium-btn primary customer-st-1daa6293" type="submit" disabled={loading} >
                                         {loading ? 'Submitting...' : 'Submit Review'}
                                     </button>
                                 </form>
