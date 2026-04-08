@@ -631,9 +631,12 @@ function CustomerBookings(){
                                 {bookingStep === 3 && (
                                     <div className="fade-in">
                                         <h3 className="customer-st-69ffca42" >3. Placement</h3>
-                                        <p className="customer-st-b943a453" >Where would you like your tattoo?</p>
+                                        <p className="customer-st-b943a453" >Where would you like your {bookingData.serviceType === 'Piercing' ? 'piercing' : 'tattoo'}?</p>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                                            {["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"].map(part => (
+                                            {(bookingData.serviceType === 'Piercing' 
+                                                ? ["Ear Lobe", "Helix", "Tragus", "Conch", "Industrial", "Nostril", "Septum", "Eyebrow", "Lip/Oral", "Navel", "Nipple", "Other"]
+                                                : ["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"]
+                                            ).map(part => (
                                                 <button
                                                     key={part} type="button"
                                                     onClick={() => setBookingData({...bookingData, placement: part})}
