@@ -13,16 +13,47 @@ require('dotenv').config();
 const app = express();
 const { sendResendEmail } = require('./utils/emailService');
 const server = http.createServer(app);
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
+
+// Define allowed origins for CORS
+const allowedOrigins = [
+  'https://inkvistar-web.vercel.app',
+  'https://inkvistar-web.vercel.app/',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:19006',
+  'http://localhost:8081'
+];
+
+// Add the FRONTEND_URL origin if it's not already in the list
+try {
+  const frontendOrigin = new URL(FRONTEND_URL).origin;
+  if (!allowedOrigins.includes(frontendOrigin)) {
+    allowedOrigins.push(frontendOrigin);
+  }
+} catch (e) {
+  // If parsing fails, just use the string if it looks like an origin
+  if (FRONTEND_URL && !allowedOrigins.includes(FRONTEND_URL)) {
+    allowedOrigins.push(FRONTEND_URL);
+  }
+}
+
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
   }
 });
-
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
 
 // Helper to get safe protocol (prioritize https for production)
 const getProtocol = (req) => {
@@ -41,10 +72,26 @@ const PAYMONGO_API_BASE = 'https://api.paymongo.com/v1';
 
 // Enhanced CORS configuration
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if the origin is in our allowed list or matches our patterns
+    const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed)) || 
+                     origin.includes('vercel.app') || 
+                     origin.includes('localhost');
+                     
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.log('Blocked by CORS:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 }));
 
 // Keep raw body for webhook signature verification while still parsing JSON elsewhere
