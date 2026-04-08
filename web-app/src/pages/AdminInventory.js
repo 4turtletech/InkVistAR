@@ -689,7 +689,7 @@ function AdminInventory() {
                         </div>
                         <form onSubmit={handleSave}>
                             <div className="modal-body">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
                                     {/* Left Column: Basic Info */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                         <div className="form-group">
@@ -702,7 +702,7 @@ function AdminInventory() {
                                                 placeholder="e.g. Dynamic Black Ink 8oz"
                                             />
                                         </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
                                             <div className="form-group">
                                                 <label style={{ fontSize: '0.75rem' }}>Category *</label>
                                                 <select 
@@ -728,7 +728,7 @@ function AdminInventory() {
                                         </div>
                                         <div className="form-group">
                                             <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Financials (₱)</label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
                                                 <div>
                                                     <label style={{ fontSize: '0.75rem' }}>Cost Price</label>
                                                     <input
@@ -770,7 +770,7 @@ function AdminInventory() {
 
                                         <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '12px', border: '1px solid #fee2e2' }}>
                                             <label style={{ color: '#dc2626', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '5px', display: 'block' }}>Stock Limits</label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
                                                 <div>
                                                     <label style={{ fontSize: '0.7rem', color: '#991b1b' }}>Min (Alert)</label>
                                                     <input
