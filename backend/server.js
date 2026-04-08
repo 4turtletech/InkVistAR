@@ -2673,7 +2673,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
         if (!e && r.length) {
           const currentData = r[0];
           let notificationsSent = false;
-          const oldDate = oldAppt.appointment_date ? (oldAppt.appointment_date.includes('T') ? oldAppt.appointment_date.split('T')[0] : oldAppt.appointment_date.toISOString().split('T')[0]) : null;
+          const oldDate = oldAppt.appointment_date ? new Date(oldAppt.appointment_date).toISOString().split('T')[0] : null;
           const newDate = date ? date.split('T')[0] : null;
 
           // Helper to avoid notifying user 1 (Admin/Unassigned) since Admin has a separate dashboard

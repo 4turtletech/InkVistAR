@@ -274,10 +274,7 @@ function CustomerBookings(){
             return;
         }
 
-        if (bookingData.serviceType !== 'Consultation' && !bookingData.artistId) {
-            showAlert("Artist Required", "Please select an artist for Tattoo or Piercing services.", "warning");
-            return;
-        }
+        // Admin handles artist assignment later, allowing the customer to omit selecting an artist here.
 
         setIsSubmitting(true);
         try {

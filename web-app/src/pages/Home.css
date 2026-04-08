@@ -1,23 +1,23 @@
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Cinzel:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&display=swap');
 
 /* Base Styles & Variables */
 :root {
     --bg-dark: #050505;
-    --bg-card: #0D0D0D;
+    --bg-card: #000000;
     --text-primary: #f8FAFC;
-    --text-muted: #94A3B8;
+    --text-muted: #a3a3a3;
     --accent-gold: #C19A6B;
     --accent-gold-dark: #8a6c4a;
-    --border-glass: rgba(193, 154, 107, 0.15);
-    --border-light: rgba(255, 255, 255, 0.05);
+    --border-glass: rgba(193, 154, 107, 0.25);
+    --border-light: rgba(255, 255, 255, 0.03);
     --blur-strong: blur(12px);
 }
 
 .home-container {
     background-color: var(--bg-dark);
     color: var(--text-primary);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Cinzel', serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -34,8 +34,8 @@ h1, h2, h3, h4 {
 
 /* Standard Premium Glass Card */
 .glass-card-premium {
-    background: rgba(13, 13, 13, 0.7);
-    border: 1px solid var(--border-light);
+    background: rgba(5, 5, 5, 0.9);
+    border: 1px solid var(--border-glass);
     border-radius: 12px;
     backdrop-filter: var(--blur-strong);
     -webkit-backdrop-filter: var(--blur-strong);
@@ -109,7 +109,7 @@ h1, h2, h3, h4 {
 .hero-overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(to bottom, rgba(5,5,5,0.3) 0%, var(--bg-dark) 100%);
+    background: linear-gradient(to bottom, rgba(5,5,5,0.7) 0%, var(--bg-dark) 100%);
     z-index: 2;
 }
 
@@ -148,28 +148,7 @@ h1, h2, h3, h4 {
     color: var(--accent-gold);
 }
 
-.scroll-indicator {
-    position: absolute;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    letter-spacing: 5px;
-    text-transform: uppercase;
-    opacity: 0.8;
-}
-
-.scroll-indicator .line {
-    width: 1px;
-    height: 50px;
-    background: linear-gradient(to bottom, var(--accent-gold), transparent);
-}
+/* Removed Scroll Indicator CSS per Phase 3 minimalism */
 
 /* Universal Section Formatting */
 .premium-section {
@@ -188,7 +167,7 @@ h1, h2, h3, h4 {
 
 .section-subtitle {
     color: var(--accent-gold);
-    font-family: 'Inter', sans-serif;
+    font-family: 'Cinzel', serif;
     font-size: 0.9rem;
     letter-spacing: 4px;
     text-transform: uppercase;
@@ -219,7 +198,7 @@ h1, h2, h3, h4 {
     overflow: hidden;
     aspect-ratio: 3/4;
     cursor: pointer;
-    background: #111;
+    background: #000;
 }
 
 .artist-img {
@@ -292,6 +271,7 @@ h1, h2, h3, h4 {
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    background: #000;
     border: 1px solid var(--border-light);
 }
 

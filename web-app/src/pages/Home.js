@@ -9,11 +9,11 @@ import { API_URL } from '../config';
 
 // Dynamic Artist List
 const FEATURED_ARTISTS = [
-    { name: 'Troy', style: 'Black & Grey Realism', image: '/images/tattoos/media__1775671276990.jpg' },
-    { name: 'Lloid', style: 'Fine Line Geometry', image: '/images/tattoos/media__1775671277027.jpg' },
-    { name: 'Ken', style: 'Traditional Japanese', image: '/images/tattoos/media__1775671277040.jpg' },
-    { name: 'Mar', style: 'Neo-Traditional', image: '/images/tattoos/media__1775671277051.jpg' },
-    { name: 'Brian', style: 'Surrealism', image: '/images/tattoos/media__1775671277056.jpg' },
+    { name: 'Troy', style: 'Black & Grey Realism', image: '/images/tattoos/media__1775672821008.jpg' },
+    { name: 'Lloid', style: 'Fine Line Geometry', image: '/images/tattoos/media__1775672821025.jpg' },
+    { name: 'Ken', style: 'Traditional Japanese', image: '/images/tattoos/media__1775672821057.jpg' },
+    { name: 'Mar', style: 'Neo-Traditional', image: '/images/tattoos/media__1775672821061.jpg' },
+    { name: 'Brian', style: 'Surrealism', image: '/images/tattoos/media__1775671277040.jpg' },
     { name: 'JeaR', style: 'Dotwork & Mandala', image: '/images/tattoos/media__1775667820757.jpg' },
     { name: 'Lem', style: 'Watercolor', image: '/images/tattoos/media__1775667820770.jpg' },
     { name: 'Renz', style: 'Tribal / Polynesian', image: '/images/tattoos/media__1775667820781.jpg' },
@@ -101,17 +101,12 @@ function Home() {
                     
                     <div className="hero-content fade-up visible">
                         <span className="hero-tagline">BGC's Premier Studio</span>
-                        <h1 className="hero-title">INKVICTUS <span>TATTOO</span></h1>
+                        <h1 className="hero-title"><span>INKVICTUS</span> TATTOO</h1>
                         <button onClick={() => navigate('/book')} className="btn-gold-luxury">
                             Book Consultation
                         </button>
                     </div>
 
-                    <div className="scroll-indicator">
-                        <span>SCROLL TO EXPLORE</span>
-                        <ChevronDown size={20} color="var(--accent-gold)" />
-                        <div className="line"></div>
-                    </div>
                 </header>
 
                 {/* 2. Featured Artists */}
@@ -167,7 +162,7 @@ function Home() {
                 <section className="premium-section fade-up" ref={servicesRef}>
                     <div className="section-header">
                         <span className="section-subtitle">Expertise</span>
-                        <h2 className="section-title">Specialized <i>Services</i></h2>
+                        <h2 className="section-title">Specialized Services</h2>
                     </div>
                     <div className="services-container">
                         <div className="service-item glass-card-premium">
@@ -192,13 +187,14 @@ function Home() {
                 <section className="premium-section fade-up" ref={testimonialsRef}>
                     <div className="section-header">
                         <span className="section-subtitle">Reputation</span>
-                        <h2 className="section-title">The <i>Experience</i></h2>
+                        <h2 className="section-title">The Experience</h2>
                     </div>
                     
-                    <div className="premium-carousel-container">
+                    <div className="premium-carousel-container" style={{ marginBottom: '2rem' }}>
                         {testimonials.length === 0 ? (
-                            <div className="glass-card-premium" style={{ textAlign: 'center', padding: '4rem 2rem', opacity: 0.7 }}>
-                                <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>There are currently no reviews available. Be the first to leave a mark!</p>
+                            <div style={{ textAlign: 'center', padding: '3rem 0', borderTop: '1px solid var(--border-glass)', borderBottom: '1px solid var(--border-glass)' }}>
+                                <PenTool size={32} color="var(--accent-gold)" style={{ opacity: 0.5, marginBottom: '1rem' }} />
+                                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>No chronicles recorded yet. Be the first to leave a mark.</p>
                             </div>
                         ) : (
                             <>
