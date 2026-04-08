@@ -223,6 +223,26 @@ function ArtistPortal() {
                                         )) : <p className="no-data">No new notifications</p>}
                                     </div>
                                 </div>
+
+                                {/* Recent Reviews Widget */}
+                                <div className="data-card">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+                                        <span style={{ fontSize: '20px' }}>⭐</span>
+                                        <h2 style={{ margin: 0, border: 'none', padding: 0 }}>Recent Client Feedback</h2>
+                                    </div>
+                                    <div className="artist-portal-review-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                        <div style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '12px', borderLeft: '4px solid #f59e0b' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                                <span style={{ fontWeight: 600, color: '#1e293b' }}>Sarah Jenkins</span>
+                                                <span style={{ color: '#f59e0b' }}>★★★★★</span>
+                                            </div>
+                                            <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b' }}>"Absolutely amazing attention to detail on my forearm sleeve. The session was practically painless!"</p>
+                                        </div>
+                                    </div>
+                                    <button className="action-btn artist-portal-launch-btn" style={{ width: '100%', marginTop: '15px', padding: '10px', borderRadius: '8px', background: '#e2e8f0', color: '#1e293b' }} onClick={() => navigate('/artist/portfolio')}>
+                                        Manage Portfolio & Reviews
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Upcoming Appointments */}

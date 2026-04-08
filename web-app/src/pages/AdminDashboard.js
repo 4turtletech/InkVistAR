@@ -417,50 +417,6 @@ function AdminDashboard() {
                                     </div>
                                 </div>
 
-                                {/* Today's Appointments */}
-                                <div className="glass-card">
-                                    <div className="card-header-v2">
-                                        <div className="header-title">
-                                            <Clock size={20} />
-                                            <h2>Today's Schedule</h2>
-                                        </div>
-                                        <button className="view-all-btn" onClick={() => navigate('/admin/appointments')} className="admin-st-d3ffc78c">View All</button>
-                                    </div>
-                                    <div className="modern-table-wrapper">
-                                        {todaysAppointments.length > 0 ? (
-                                            <table className="premium-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Time</th>
-                                                        <th>Client</th>
-                                                        <th>Staff</th>
-                                                        <th>Service</th>
-                                                        <th>Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {todaysAppointments.map(apt => (
-                                                        <tr key={apt.id}>
-                                                            <td className="date-time-cell">
-                                                                <span className="primary-date">{apt.start_time}</span>
-                                                            </td>
-                                                            <td>{apt.client_name || 'Unknown'}</td>
-                                                            <td>{apt.artist_name}</td>
-                                                            <td>
-                                                                <span className="badge-v2 pending admin-st-606efc58">
-                                                                    {apt.service_type || 'Tattoo Session'}
-                                                                </span>
-                                                            </td>
-                                                            <td><span className={`badge-v2 ${apt.status}`}>{apt.status}</span></td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        ) : <p className="no-data admin-st-eb108882">No appointments for today.</p>}
-                                    </div>
-                                </div>
-
-                                {/* Appointments Overview */}
                                 <div className="glass-card">
                                     <div className="card-header-v2">
                                         <div className="header-title">
@@ -622,32 +578,58 @@ function AdminDashboard() {
                                     </div>
                                 </div>
 
-                                {/* System Audit Logs */}
+                                {/* Today's Appointments */}
                                 <div className="glass-card">
                                     <div className="card-header-v2">
                                         <div className="header-title">
-                                            <FileText size={20} />
-                                            <h2>Audit Stream</h2>
+                                            <Clock size={20} />
+                                            <h2>Today's Schedule</h2>
                                         </div>
+                                        <button className="view-all-btn" onClick={() => navigate('/admin/appointments')} className="admin-st-d3ffc78c">View All</button>
                                     </div>
+                                    <div className="modern-table-wrapper">
                                     <div className="audit-stream">
-                                        {displayedLogs.map((log) => (
-                                            <div key={log.id} className="audit-entry">
+                                        {todaysAppointments.length > 0 ? todaysAppointments.map(apt => (
+                                            <div key={apt.id} className="audit-entry">
                                                 <div className="entry-marker"></div>
                                                 <div className="entry-content">
-                                                    <div className="entry-time">{new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                    <div className="entry-time">{apt.start_time}</div>
                                                     <div className="entry-desc">
-                                                        <strong>{log.user_name || 'System'}</strong> {log.action.toLowerCase()}: {log.details}
+                                                        <strong>{apt.artist_name}</strong> session with {apt.client_name || 'Walk-in'} 
+                                                        <span className={`badge-v2 ${apt.status}`} style={{marginLeft: '10px', fontSize: '0.7em', padding: '2px 6px'}}>{apt.status}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                        ))}
+                                        )) : <p className="no-data admin-st-eb108882" style={{border: 'none', padding: '20px 0'}}>No appointments for today.</p>}
                                     </div>
-                                    <button className="full-logs-btn" onClick={() => navigate('/admin/logs')}>
-                                        View Full Audit Trail
-                                    </button>
-                                </div>
-                            </div>
+
+                                {/* Appointments Overview */}
+/* HIDING AUDIT STREAM                                 {/* System Audit Logs */} */
+/* HIDING AUDIT STREAM                                 <div className="glass-card"> */
+/* HIDING AUDIT STREAM                                     <div className="card-header-v2"> */
+/* HIDING AUDIT STREAM                                         <div className="header-title"> */
+/* HIDING AUDIT STREAM                                             <FileText size={20} /> */
+/* HIDING AUDIT STREAM                                             <h2>Audit Stream</h2> */
+/* HIDING AUDIT STREAM                                         </div> */
+/* HIDING AUDIT STREAM                                     </div> */
+/* HIDING AUDIT STREAM                                     <div className="audit-stream"> */
+/* HIDING AUDIT STREAM                                         {displayedLogs.map((log) => ( */
+/* HIDING AUDIT STREAM                                             <div key={log.id} className="audit-entry"> */
+/* HIDING AUDIT STREAM                                                 <div className="entry-marker"></div> */
+/* HIDING AUDIT STREAM                                                 <div className="entry-content"> */
+/* HIDING AUDIT STREAM                                                     <div className="entry-time">{new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div> */
+/* HIDING AUDIT STREAM                                                     <div className="entry-desc"> */
+/* HIDING AUDIT STREAM                                                         <strong>{log.user_name || 'System'}</strong> {log.action.toLowerCase()}: {log.details} */
+/* HIDING AUDIT STREAM                                                     </div> */
+/* HIDING AUDIT STREAM                                                 </div> */
+/* HIDING AUDIT STREAM                                             </div> */
+/* HIDING AUDIT STREAM                                         ))} */
+/* HIDING AUDIT STREAM                                     </div> */
+/* HIDING AUDIT STREAM                                     <button className="full-logs-btn" onClick={() => navigate('/admin/logs')}> */
+/* HIDING AUDIT STREAM                                         View Full Audit Trail */
+/* HIDING AUDIT STREAM                                     </button> */
+/* HIDING AUDIT STREAM                                 </div> */
+/* HIDING AUDIT STREAM                             </div> */
                         </div>
                     </div>
                 )}

@@ -206,6 +206,28 @@ function CustomerPortal() {
                                 </div>
                             </div>
 
+                            {/* My Tattoo Journey & Aftercare Widget */}
+                            <div className="data-card-v2 customer-st-aftercare" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #1e293b, #0f172a)', color: '#fff' }}>
+                                <div className="card-header-v2" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '15px' }}>
+                                    <div className="header-title" style={{ color: '#fff' }}>
+                                        <Award size={20} className="text-gold" style={{ color: '#f59e0b' }} />
+                                        <h2 style={{ color: '#fff', margin: 0 }}>Healing Journey Tracker</h2>
+                                    </div>
+                                    <button className="view-all-btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none' }} onClick={() => navigate('/customer/aftercare')}>View Guide</button>
+                                </div>
+                                <div style={{ padding: '20px 0', display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <h3 style={{ fontSize: '1.2rem', margin: '0 0 10px 0', color: '#fff' }}>Your Latest Tattoo is Healing!</h3>
+                                        <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                            Keep it clean and moisturized. You are currently on <strong>Day 3</strong> of the initial healing phase. Avoid direct sunlight and heavy sweating.
+                                        </p>
+                                    </div>
+                                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: '4px solid #f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245, 158, 11, 0.1)' }}>
+                                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>3</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Upcoming Appointments */}
                             <div className="data-card-v2">
                                 <div className="card-header-v2">
