@@ -54,19 +54,21 @@ function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
 
     useEffect(() => {
-        fetch(`${API_URL}/api/testimonials`)
+        fetch(`${API_URL}/api/reviews`)
             .then(res => res.json())
             .then(data => {
-                if (data.success && data.testimonials.length > 0) {
-                    setTestimonials(data.testimonials);
+                if (data.success && data.reviews && data.reviews.length > 0) {
+                    // Filter approved is ideally done on the backend, but we'll ensure safety here
+                    const approved = data.reviews.filter(r => r.status === 'approved' || r.status === undefined);
+                    setTestimonials(approved);
                 } else {
-                    setTestimonials([
-                        { id: 1, customer_name: 'Cornelius Cornwall', rating: 5, content: 'Absolutely stunning work. The atmosphere is incredibly professional and relaxing. I wouldn\'t trust anyone else with my skin.', media_type: 'none' },
-                        { id: 2, customer_name: 'Genevieve Winters', rating: 5, content: 'Inkvictus redefined what getting a tattoo means for me. The luxury, the care, the artistic vision—unparalleled in BGC.', media_type: 'none' }
-                    ]);
+                    setTestimonials([]); // Start blank if no data
                 }
             })
-            .catch(err => console.error("Error fetching testimonials:", err));
+            .catch(err => {
+                console.error("Error fetching reviews:", err);
+                setTestimonials([]);
+            });
     }, []);
 
     const nextSlide = useCallback(() => {
@@ -193,33 +195,41 @@ function Home() {
                     </div>
                     
                     <div className="premium-carousel-container">
-                        <div className="carousel-track" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
-                            {testimonials.map((testimony, idx) => (
-                                <div key={testimony.id} className={`carousel-slide ${idx === currentSlide ? 'active' : ''}`}>
-                                    <div className="premium-testimonial-card glass-card-premium">
-                                        <div className="testimonial-stars">
-                                            {'★'.repeat(testimony.rating || 5)}{'☆'.repeat(5 - (testimony.rating || 5))}
+                        {testimonials.length === 0 ? (
+                            <div className="glass-card-premium" style={{ textAlign: 'center', padding: '4rem 2rem', opacity: 0.7 }}>
+                                <p style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>There are currently no reviews available. Be the first to leave a mark!</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="carousel-track" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
+                                    {testimonials.map((testimony, idx) => (
+                                        <div key={testimony.id || idx} className={`carousel-slide ${idx === currentSlide ? 'active' : ''}`}>
+                                            <div className="premium-testimonial-card glass-card-premium">
+                                                <div className="testimonial-stars">
+                                                    {'★'.repeat(testimony.rating || 5)}{'☆'.repeat(5 - (testimony.rating || 5))}
+                                                </div>
+                                                <h4 className="testimonial-author">{testimony.customer_name || 'Inkvictus Valued Client'}</h4>
+                                                <p className="testimonial-body">"{testimony.comment || testimony.content}"</p>
+                                            </div>
                                         </div>
-                                        <h4 className="testimonial-author">{testimony.customer_name}</h4>
-                                        <p className="testimonial-body">"{testimony.content}"</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        {testimonials.length > 1 && (
-                            <div className="carousel-controls">
-                                <button className="carousel-btn" onClick={prevSlide}><ChevronLeft size={24} /></button>
-                                <div className="carousel-indicators">
-                                    {testimonials.map((_, idx) => (
-                                        <button 
-                                            key={idx} 
-                                            className={`indicator-dot ${idx === currentSlide ? 'active' : ''}`}
-                                            onClick={() => setCurrentSlide(idx)}
-                                        />
                                     ))}
                                 </div>
-                                <button className="carousel-btn" onClick={nextSlide}><ChevronRight size={24} /></button>
-                            </div>
+                                {testimonials.length > 1 && (
+                                    <div className="carousel-controls">
+                                        <button className="carousel-btn" onClick={prevSlide}><ChevronLeft size={24} /></button>
+                                        <div className="carousel-indicators">
+                                            {testimonials.map((_, idx) => (
+                                                <button 
+                                                    key={idx} 
+                                                    className={`indicator-dot ${idx === currentSlide ? 'active' : ''}`}
+                                                    onClick={() => setCurrentSlide(idx)}
+                                                />
+                                            ))}
+                                        </div>
+                                        <button className="carousel-btn" onClick={nextSlide}><ChevronRight size={24} /></button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </section>
