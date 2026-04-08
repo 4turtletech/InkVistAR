@@ -498,6 +498,7 @@ db.getConnection((err, connection) => {
         price DECIMAL(10, 2) DEFAULT 0.00,
         notes TEXT,
         reference_image LONGTEXT,
+        draft_image LONGTEXT,
         status VARCHAR(50) DEFAULT 'pending',
         is_deleted BOOLEAN DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -2712,12 +2713,26 @@ app.put('/api/artist/appointments/:id/reject', (req, res) => {
   db.query("UPDATE appointments SET status = 'pending', artist_id = 1 WHERE id = ?", [id], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
     if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Not found' });
-
-    // Notify admin that artist rejected the assignment
-    createNotification(1, 'Assignment Declined', `Artist declined the appointment #${id}. Reverted to Admin mapping.`, 'system', id);
-    res.json({ success: true, message: 'Declined successfully' });
+    res.json({ success: true, message: 'Appointment declined and sent back to admin' });
   });
 });
+
+// Upload Draft Image for Appointment
+app.put('/api/artist/appointments/:id/draft', (req, res) => {
+  const { id } = req.params;
+  const { draft_image } = req.body;
+  if (!draft_image) {
+    return res.status(400).json({ success: false, message: 'Missing draft image data' });
+  }
+
+  db.query("UPDATE appointments SET draft_image = ? WHERE id = ?", [draft_image, id], (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, message: 'Draft image updated successfully' });
+  });
+});
+
+
 
 // POST record an instant manual payment (Admin)
 app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {

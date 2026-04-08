@@ -573,7 +573,15 @@ function ArtistSessions() {
                                 {/* Left Column: Visual Documentation & Notes */}
                                 <div className="artist-session-col">
                                     {/* Visual Documentation */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: activeSession.draft_image ? '1fr 1fr 1fr' : '1fr 1fr', gap: '15px' }}>
+                                        {activeSession.draft_image && (
+                                            <div className="artist-session-card" style={{ padding: '15px' }}>
+                                                <label className="artist-session-label">Draft Design</label>
+                                                <div className="artist-session-photo-container">
+                                                    <img src={activeSession.draft_image} alt="Draft" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="artist-session-card">
                                             <label className="artist-session-label">Before State</label>
                                             <div className="artist-session-photo-container">

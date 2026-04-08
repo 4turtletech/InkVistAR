@@ -93,6 +93,28 @@ function ArtistAppointments(){
         } catch (e) { console.error(e); }
     };
 
+    const handleUploadDraft = async (e, id) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const base64String = reader.result;
+            try {
+                const res = await Axios.put(`${API_URL}/api/artist/appointments/${id}/draft`, { draft_image: base64String });
+                if (res.data.success) {
+                    setSelectedAppointment(prev => ({ ...prev, draft_image: base64String }));
+                    fetch(); // update list implicitly
+                    alert('Draft image successfully attached to this session!');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error uploading draft.');
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
     const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
     const currentItems = filteredAppointments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
@@ -304,7 +326,7 @@ function ArtistAppointments(){
                                                     )}
 
                                                     {selectedAppointment.reference_image && (
-                                                        <div>
+                                                        <div style={{ marginBottom: '20px' }}>
                                                             <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#64748b' }}>Reference Image</p>
                                                             <img 
                                                                 src={selectedAppointment.reference_image.startsWith('http') ? selectedAppointment.reference_image : `${API_URL}${selectedAppointment.reference_image}`} 
@@ -313,6 +335,33 @@ function ArtistAppointments(){
                                                             />
                                                         </div>
                                                     )}
+
+                                                    {/* Draft Design Section */}
+                                                    <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>Artist Draft Design</p>
+                                                            <label className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '6px', margin: 0 }}>
+                                                                {selectedAppointment.draft_image ? 'Update Draft' : 'Upload Draft'}
+                                                                <input 
+                                                                    type="file" 
+                                                                    accept="image/*" 
+                                                                    style={{ display: 'none' }} 
+                                                                    onChange={(e) => handleUploadDraft(e, selectedAppointment.id)} 
+                                                                />
+                                                            </label>
+                                                        </div>
+                                                        {selectedAppointment.draft_image ? (
+                                                            <img 
+                                                                src={selectedAppointment.draft_image} 
+                                                                alt="Draft Design" 
+                                                                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#fff' }} 
+                                                            />
+                                                        ) : (
+                                                            <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem', border: '1px dashed #cbd5e1', borderRadius: '8px', background: '#fff' }}>
+                                                                No draft uploaded yet. Attach your design mockups here.
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div style={{ padding: '15px 20px', borderTop: '1px solid #e2e8f0', textAlign: 'right', background: '#f8fafc', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
                                                     <button onClick={() => setSelectedAppointment(null)} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>Close</button>
