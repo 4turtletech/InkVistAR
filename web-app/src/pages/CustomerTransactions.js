@@ -1,3 +1,4 @@
+import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_URL } from '../config';
@@ -133,16 +134,16 @@ function CustomerTransactions() {
                                                 </div>
                                             </td>
                                             <td>
-                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Appt #{t.appointment_id}</span>
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{t.paymongo_payment_id || t.session_id?.substring(0, 15) + '...'}</span>
+                                                <div className="customer-st-120fac5f" >
+                                                    <span className="customer-st-af086db4" >Appt #{t.appointment_id}</span>
+                                                    <span className="customer-st-daff4552" >{t.paymongo_payment_id || t.session_id?.substring(0, 15) + '...'}</span>
                                                 </div>
                                             </td>
                                             <td>
                                                 <span className="design-title">{t.design_title || 'Tattoo Service'}</span>
                                             </td>
                                             <td>
-                                                <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                                                <div className="customer-st-d6dc26a1" >
                                                     ₱{(t.amount / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                 </div>
                                             </td>
@@ -163,12 +164,7 @@ function CustomerTransactions() {
                                                 </span>
                                             </td>
                                             <td>
-                                                <button 
-                                                    className="btn-view"
-                                                    title="View Receipt"
-                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#6366f1' }}
-                                                    onClick={() => alert(`Payment Reference: ${t.paymongo_payment_id || t.session_id}\nAmount: ₱${(t.amount/100).toFixed(2)}\nStatus: ${t.status}`)}
-                                                >
+                                                <button className="btn-view customer-st-ff1cca66" title="View Receipt" onClick={() => alert(`Payment Reference: ${t.paymongo_payment_id || t.session_id}\nAmount: ₱${(t.amount/100).toFixed(2)}\nStatus: ${t.status}`)} >
                                                     <ExternalLink size={18} />
                                                 </button>
                                             </td>
@@ -201,7 +197,7 @@ function CustomerTransactions() {
                 />
             </div>
             
-            <footer style={{ marginTop: '24px', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+            <footer className="customer-st-9262b8cd" >
                 <p>Transactions are processed securely via PayMongo. For billing inquiries, contact studio support.</p>
             </footer>
         </div>

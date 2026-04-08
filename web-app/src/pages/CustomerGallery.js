@@ -1,3 +1,4 @@
+import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -151,20 +152,14 @@ function CustomerGallery(){
                     </div>
                     
                     <div className="header-actions">
-                        <div className="header-search glass-card" style={{padding: '0.6rem 1rem', background: '#fff', display: 'flex', alignItems: 'center', borderRadius: '12px', border: '1px solid #e2e8f0'}}>
-                            <Search size={18} style={{color: 'var(--text-muted)', marginRight: '8px'}} />
-                            <input 
-                                type="text" 
-                                placeholder="Search styles, artists..." 
-                                style={{border: 'none', outline: 'none', width: '200px', fontSize: '0.9rem'}}
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="header-search glass-card customer-st-85bcdeca" >
+                            <Search className="customer-st-7cc777b1" size={18} />
+                            <input className="customer-st-baadca45" type="text" placeholder="Search styles, artists..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
                     </div>
                 </header>
 
-                <p className="header-subtitle" style={{ marginTop: '-2.5rem', marginBottom: '2.5rem', marginRight: '-5.5rem', textAlign: 'left' }}>Explore verified artwork and save your favorites</p>
+                <p className="header-subtitle customer-st-5c2e40e1" >Explore verified artwork and save your favorites</p>
 
                 <div className="portal-content">
                     {/* View Tabs */}
@@ -193,7 +188,7 @@ function CustomerGallery(){
 
                     {/* Category Filters */}
                     {viewMode === 'All' && categories.length > 1 && (
-                        <div style={{ marginBottom: '20px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <div className="customer-st-c22c9153" >
                             {categories.map(cat => (
                                 <button 
                                     key={cat}
@@ -219,7 +214,7 @@ function CustomerGallery(){
 
                     {loading ? (
                         <div className="no-data">
-                            <Loader size={40} style={{animation: 'spin 1s linear infinite'}} />
+                            <Loader className="customer-st-b915c9ab" size={40} />
                             <p>Curating your gallery...</p>
                         </div>
                     ) : (

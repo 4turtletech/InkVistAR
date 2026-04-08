@@ -1,3 +1,4 @@
+import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { User, Mail, Phone, MapPin, Save, Edit2, X, FileText, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Camera } from 'lucide-react';
@@ -132,7 +133,7 @@ function CustomerProfile() {
             <CustomerSideNav />
             <div className="portal-container customer-portal">
                 <header className="portal-header"><h1>My Profile</h1></header>
-                <div className="portal-content" style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <div className="portal-content customer-st-252946b6" >
                     {/* Message Alert */}
                     {message.text && (
                         <div style={{
@@ -154,8 +155,8 @@ function CustomerProfile() {
                         <div className="data-card">
                             {!isEditing ? (
                                 <div className="profile-view">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                                        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                    <div className="customer-st-97d05a8d" >
+                                        <div className="customer-st-72b7213b" >
                                             <div style={{
                                                 width: '100px', height: '100px', borderRadius: '50%',
                                                 backgroundColor: '#f1f5f9', overflow: 'hidden',
@@ -163,19 +164,19 @@ function CustomerProfile() {
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center'
                                             }}>
                                                 {profile.profile_image ? (
-                                                    <img src={profile.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <img className="customer-st-81466193" src={profile.profile_image} alt="Profile" />
                                                 ) : (
-                                                    <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#64748b' }}>{profile.name.charAt(0)}</span>
+                                                    <span className="customer-st-f1b3ed19" >{profile.name.charAt(0)}</span>
                                                 )}
                                             </div>
                                             <div>
-                                                <h2 style={{ margin: '0 0 5px 0', fontSize: '1.8rem' }}>{profile.name}</h2>
-                                                <p style={{ margin: 0, color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <h2 className="customer-st-f26d6ce7" >{profile.name}</h2>
+                                                <p className="customer-st-211acdfd" >
                                                     <Mail size={16} /> {profile.email}
                                                 </p>
                                             </div>
                                         </div>
-                                        <button className="btn btn-secondary" onClick={() => { setOriginalProfile({...profile}); setIsEditing(true); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <button className="btn btn-secondary customer-st-929a545b" onClick={() => { setOriginalProfile({...profile}); setIsEditing(true); }} >
                                             <Edit2 size={16} /> Edit Profile
                                         </button>
                                     </div>
@@ -189,7 +190,7 @@ function CustomerProfile() {
                                             <label><MapPin size={16} /> Location</label>
                                             <p>{profile.location || 'Not provided'}</p>
                                         </div>
-                                        <div className="info-group" style={{ gridColumn: '1 / -1' }}>
+                                        <div className="info-group customer-st-d5e576b0" >
                                             <label><FileText size={16} /> Tattoo Preferences</label>
                                             <p>{profile.preferences || 'No preferences listed'}</p>
                                         </div>
@@ -198,8 +199,8 @@ function CustomerProfile() {
                             ) : (
                                 <form onSubmit={handleSave}>
                                     {/* Profile Picture Upload Section */}
-                                    <div style={{ textAlign: 'center', marginBottom: '30px', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px' }}>
-                                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                                    <div className="customer-st-e48abace" >
+                                        <div className="customer-st-7293b2f9" >
                                             <div style={{
                                                 width: '120px', height: '120px', borderRadius: '50%',
                                                 backgroundColor: '#e2e8f0', overflow: 'hidden',
@@ -207,7 +208,7 @@ function CustomerProfile() {
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center'
                                             }}>
                                                 {profile.profile_image ? (
-                                                    <img src={profile.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <img className="customer-st-81466193" src={profile.profile_image} alt="Profile" />
                                                 ) : (
                                                     <User size={48} color="#94a3b8" />
                                                 )}
@@ -223,33 +224,21 @@ function CustomerProfile() {
                                                 <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
                                             </label>
                                         </div>
-                                        <p style={{ marginTop: '10px', fontSize: '0.85rem', color: '#64748b' }}>Update profile picture</p>
+                                        <p className="customer-st-75b1ab67" >Update profile picture</p>
                                     </div>
 
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                                        <h2 style={{ margin: 0 }}>Edit Profile</h2>
+                                    <div className="customer-st-a65ac038" >
+                                        <h2 className="customer-st-03930596" >Edit Profile</h2>
                                         <button type="button" className="close-btn" onClick={() => { if(originalProfile) setProfile(originalProfile); setIsEditing(false); }}><X size={24} /></button>
                                     </div>
 
                                     {/* Section 1: Personal Information */}
-                                    <div style={{
-                                        borderBottom: '2px solid #f1f5f9',
-                                        paddingBottom: '16px',
-                                        marginBottom: '24px'
-                                    }}>
-                                        <h3 style={{
-                                            color: '#1e293b',
-                                            fontSize: '1.1rem',
-                                            fontWeight: '600',
-                                            marginBottom: '16px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px'
-                                        }}>
+                                    <div className="customer-st-11391c33" >
+                                        <h3 className="customer-st-001ffef5" >
                                             <User size={20} color="#daa520" />
                                             Personal Information
                                         </h3>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                        <div className="customer-st-e66d54ba" >
                                             <div className="form-group">
                                                 <label style={formLabel}><User size={16} /> Name</label>
                                                 <input
@@ -262,27 +251,12 @@ function CustomerProfile() {
                                             </div>
                                             <div className="form-group">
                                                 <label style={formLabel}><Mail size={16} /> Email</label>
-                                                <input
-                                                    type="email"
-                                                    className="form-input"
-                                                    value={profile.email}
-                                                    disabled
-                                                    style={{ ...inputStyle, backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
-                                                />
+                                                <input className="form-input customer-st-59f58c25" type="email" value={profile.email} disabled />
                                             </div>
                                             <div className="form-group">
                                                 <label style={formLabel}><Phone size={16} /> Phone</label>
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <select 
-                                                        className="form-input" 
-                                                        style={{ width: '90px' }}
-                                                        value={profile.phone.startsWith('+') ? profile.phone.substring(0, 3) : '+63'}
-                                                        onChange={e => {
-                                                            const code = e.target.value;
-                                                            const currentNo = profile.phone.replace(/^\+\d+/, '');
-                                                            setProfile({ ...profile, phone: code + currentNo });
-                                                        }}
-                                                    >
+                                                <div className="customer-st-4557600f" >
+                                                    <select className="form-input customer-st-62944d63" value={profile.phone.startsWith('+') ? profile.phone.substring(0, 3) : '+63'} onChange={e => { const code = e.target.value; const currentNo = profile.phone.replace(/^\+\d+/, ''); setProfile({ ...profile, phone: code + currentNo }); }} >
                                                         <option value="+63">PH (+63)</option>
                                                         <option value="+1">US/CA (+1)</option>
                                                         <option value="+44">UK (+44)</option>
@@ -292,15 +266,7 @@ function CustomerProfile() {
                                                         <option value="+65">SG (+65)</option>
                                                         <option value="+64">NZ (+64)</option>
                                                     </select>
-                                                    <input
-                                                        type="tel" className="form-input" style={{ flex: 1 }}
-                                                        value={profile.phone.replace(/^\+\d+/, '')}
-                                                        onChange={e => {
-                                                            const prefix = profile.phone.match(/^\+\d+/) ? profile.phone.match(/^\+\d+/)[0] : '+63';
-                                                            setProfile({ ...profile, phone: prefix + e.target.value.replace(/[^\d]/g, '') });
-                                                        }}
-                                                        placeholder="9123456789"
-                                                    />
+                                                    <input className="form-input customer-st-282aded5" type="tel" value={profile.phone.replace(/^\+\d+/, '')} onChange={e => { const prefix = profile.phone.match(/^\+\d+/) ? profile.phone.match(/^\+\d+/)[0] : '+63'; setProfile({ ...profile, phone: prefix + e.target.value.replace(/[^\d]/g, '') }); }} placeholder="9123456789" />
                                                 </div>
                                             </div>
                                             <div className="form-group">
@@ -314,7 +280,7 @@ function CustomerProfile() {
                                                     style={inputStyle}
                                                 />
                                             </div>
-                                            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                            <div className="form-group customer-st-d5e576b0" >
                                                 <label style={formLabel}><FileText size={16} /> Tattoo Preferences</label>
                                                 <textarea
                                                     className="form-input"
@@ -329,16 +295,9 @@ function CustomerProfile() {
                                     </div>
 
                                     {/* Section 2: Password & Security */}
-                                    <div style={{ marginBottom: '24px' }}>
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            marginBottom: '16px',
-                                            borderBottom: '2px solid #f1f5f9',
-                                            paddingBottom: '16px'
-                                        }}>
-                                            <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div className="customer-st-654b1414" >
+                                        <div className="customer-st-cea57272" >
+                                            <h3 className="customer-st-81119ad0" >
                                                 <Lock size={20} color="#daa520" />
                                                 Password & Security
                                             </h3>
@@ -362,28 +321,17 @@ function CustomerProfile() {
                                         </div>
 
                                         {showChangePassword && (
-                                            <div style={{ padding: '20px', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-                                                <div className="form-group" style={{ marginBottom: '16px' }}>
+                                            <div className="customer-st-7cf173a4" >
+                                                <div className="form-group customer-st-c0c93821" >
                                                     <label style={formLabel}><Lock size={16} /> Current Password</label>
-                                                    <div style={{ position: 'relative' }}>
-                                                        <input
-                                                            type={showPassword ? 'text' : 'password'}
-                                                            className="form-input"
-                                                            value={passwords.currentPassword}
-                                                            onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })}
-                                                            placeholder="Enter current password"
-                                                            style={{ ...inputStyle, paddingRight: '40px' }}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setShowPassword(!showPassword)}
-                                                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
-                                                        >
+                                                    <div className="customer-st-c72eaba8" >
+                                                        <input className="form-input customer-st-bfca3145" type={showPassword ? 'text' : 'password'} value={passwords.currentPassword} onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })} placeholder="Enter current password" />
+                                                        <button className="customer-st-22f2a0b4" type="button" onClick={() => setShowPassword(!showPassword)} >
                                                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                                <div className="customer-st-e66d54ba" >
                                                     <div className="form-group">
                                                         <label style={formLabel}><Lock size={16} /> New Password</label>
                                                         <input
@@ -411,12 +359,12 @@ function CustomerProfile() {
                                         )}
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '10px', marginTop: '32px' }}>
-                                        <button type="button" className="btn btn-secondary" onClick={() => { if(originalProfile) setProfile(originalProfile); setIsEditing(false); }} style={{ flex: 1 }}>
+                                    <div className="customer-st-9ef284c9" >
+                                        <button className="btn btn-secondary customer-st-282aded5" type="button" onClick={() => { if(originalProfile) setProfile(originalProfile); setIsEditing(false); }} >
                                             Cancel
                                         </button>
-                                        <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1, backgroundColor: '#daa520', color: 'white', border: 'none' }}>
-                                            {saving ? 'Saving...' : <><Save size={18} style={{ marginRight: '8px' }} /> Save All Changes</>}
+                                        <button className="btn btn-primary customer-st-68632107" type="submit" disabled={saving} >
+                                            {saving ? 'Saving...' : <><Save className="customer-st-b4fa5b5e" size={18} /> Save All Changes</>}
                                         </button>
                                     </div>
                                 </form>

@@ -1,3 +1,4 @@
+import './CustomerStyles.css';
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -116,8 +117,8 @@ function CustomerPortal() {
                     <div className="header-title">
                         <h1>Customer Dashboard</h1>
                     </div>
-                    <div className="header-actions" style={{ display: 'flex', alignItems: 'center' }}>
-                        <div className="notif-btn-wrapper" ref={notifRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <div className="header-actions customer-st-ab0e209e" >
+                        <div className="notif-btn-wrapper customer-st-fb24e15a" ref={notifRef} >
                             <button className="notif-trigger-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
                                 <Bell size={22} />
                                 {unreadCount > 0 && <span className="notif-badge-dot"></span>}
@@ -156,13 +157,13 @@ function CustomerPortal() {
                                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer',
                                 marginLeft: '10px'
                             }}>
-                                <img src={customer.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img className="customer-st-81466193" src={customer.profile_image} alt="Profile" />
                             </div>
                         )}
                     </div>
                 </header>
 
-                <p className="header-subtitle" style={{ marginTop: '-2.5rem', marginBottom: '2.5rem', marginRight: '-5.5rem', textAlign: 'left' }}>Welcome back, {customer.name || 'Inker'}!</p>
+                <p className="header-subtitle customer-st-5c2e40e1" >Welcome back, {customer.name || 'Inker'}!</p>
 
                 <div className="portal-content">  
                     {loading ? (
@@ -174,7 +175,7 @@ function CustomerPortal() {
                         <>
                             {/* Stats Grid */}
                             <div className="stats-grid">
-                                <div className="stat-card-v2" onClick={() => navigate('/customer/bookings')} style={{ cursor: 'pointer' }}>
+                                <div className="stat-card-v2 customer-st-637517f0" onClick={() => navigate('/customer/bookings')} >
                                     <div className="stat-icon-wrapper blue">
                                         <Calendar size={24} />
                                     </div>
@@ -184,7 +185,7 @@ function CustomerPortal() {
                                     </div>
                                 </div>
 
-                                <div className="stat-card-v2" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'Favorites' } })} style={{ cursor: 'pointer' }}>
+                                <div className="stat-card-v2 customer-st-637517f0" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'Favorites' } })} >
                                     <div className="stat-icon-wrapper rose">
                                         <Heart size={24} />
                                     </div>
@@ -194,7 +195,7 @@ function CustomerPortal() {
                                     </div>
                                 </div>
 
-                                <div className="stat-card-v2" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'My Tattoos' } })} style={{ cursor: 'pointer' }}>
+                                <div className="stat-card-v2 customer-st-637517f0" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'My Tattoos' } })} >
                                     <div className="stat-icon-wrapper gold">
                                         <Award size={24} />
                                     </div>
@@ -224,7 +225,7 @@ function CustomerPortal() {
                                             </thead>
                                             <tbody>
                                                 {appointments.map((apt) => (
-                                                    <tr key={apt.id} onClick={() => { setSelectedApt(apt); setIsModalOpen(true); }} style={{ cursor: 'pointer' }}>
+                                                    <tr className="customer-st-637517f0" key={apt.id} onClick={() => { setSelectedApt(apt); setIsModalOpen(true); }} >
                                                         <td>
                                                             <div className="client-cell">
                                                                 <div className="avatar-placeholder">{apt.artist.charAt(0)}</div>
@@ -244,7 +245,7 @@ function CustomerPortal() {
                                             </tbody>
                                         </table>
                                     ) : (
-                                        <div className="empty-state-simple" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        <div className="empty-state-simple customer-st-28872d64" >
                                             <p>No upcoming appointments found.</p>
                                         </div>
                                     )}
@@ -397,18 +398,18 @@ function CustomerPortal() {
                         `}</style>
 
                             {/* Tattoo Inspiration Banner */}
-                            <div className="data-card-v2" style={{ marginTop: '2rem' }}>
+                            <div className="data-card-v2 customer-st-318cc07f" >
                                 <div className="card-header-v2">
                                     <h2>Tattoo Inspiration</h2>
                                     <button className="view-more-btn" onClick={() => navigate('/customer/gallery')}>Browse Gallery</button>
                                 </div>
-                                <div style={{ padding: '1.5rem' }}>
+                                <div className="customer-st-fa665a80" >
                                     <div className="glass-card" style={{ padding: '2.5rem', textAlign: 'center', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(193, 154, 107, 0.1), rgba(0, 0, 0, 0.2))', border: '1px solid rgba(193, 154, 107, 0.2)' }}>
                                         <h3 style={{ margin: '0 0 10px 0', color: '#C19A6B', fontSize: '1.5rem', fontFamily: 'Playfair Display, serif' }}>Discover Your Next Piece</h3>
-                                        <p style={{ color: '#a3a3a3', marginBottom: '20px', maxWidth: '600px', margin: '0 auto 20px auto', lineHeight: '1.6' }}>
+                                        <p className="customer-st-32128d6b" >
                                             Browse our extensive gallery of traditional, realism, and custom tattoo designs created by our expert artists. Find the perfect inspiration for your next session.
                                         </p>
-                                        <button className="btn btn-primary" onClick={() => navigate('/customer/gallery')} style={{ padding: '0.75rem 2rem' }}>Explore Designs</button>
+                                        <button className="btn btn-primary customer-st-8d2f8d6c" onClick={() => navigate('/customer/gallery')} >Explore Designs</button>
                                     </div>
                                 </div>
                             </div>
@@ -432,49 +433,49 @@ function CustomerPortal() {
                             <button className="close-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
                         </div>
                         <div className="modal-body">
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                                <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                                    <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Artist</label>
-                                    <p style={{ margin: '4px 0 0', fontWeight: '600', color: '#1e293b' }}>{selectedApt.artist}</p>
+                            <div className="customer-st-5c49f804" >
+                                <div className="customer-st-e8eceac8" >
+                                    <label className="customer-st-3c5cf8dd" >Artist</label>
+                                    <p className="customer-st-5d13f831" >{selectedApt.artist}</p>
                                 </div>
-                                <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                                    <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service</label>
-                                    <p style={{ margin: '4px 0 0', fontWeight: '600', color: '#1e293b' }}>{selectedApt.service}</p>
+                                <div className="customer-st-e8eceac8" >
+                                    <label className="customer-st-3c5cf8dd" >Service</label>
+                                    <p className="customer-st-5d13f831" >{selectedApt.service}</p>
                                 </div>
                             </div>
 
-                            <div style={{ marginBottom: '24px' }}>
-                                <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '10px' }}>Notes & Instructions</label>
-                                <div style={{ padding: '16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-                                    <h4 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', color: '#0f172a' }}>{selectedApt.service}</h4>
-                                    <p style={{ margin: 0, fontSize: '0.95rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                            <div className="customer-st-654b1414" >
+                                <label className="customer-st-627edbaf" >Notes & Instructions</label>
+                                <div className="customer-st-6f352cca" >
+                                    <h4 className="customer-st-232eb362" >{selectedApt.service}</h4>
+                                    <p className="customer-st-590a9062" >
                                         {selectedApt.notes || 'No specific notes provided for this session.'}
                                     </p>
                                     
                                     {selectedApt.reference_image && (
-                                        <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
-                                            <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase' }}>Reference Image</p>
-                                            <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
-                                                <img src={selectedApt.reference_image} alt="Reference" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', background: '#f8fafc' }} />
+                                        <div className="customer-st-2dc9a8a0" >
+                                            <p className="customer-st-af520488" >Reference Image</p>
+                                            <div className="customer-st-e6f3b223" >
+                                                <img className="customer-st-24a40422" src={selectedApt.reference_image} alt="Reference" />
                                             </div>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="billing-summary" style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Status</span>
+                            <div className="billing-summary customer-st-aa822c5e" >
+                                <div className="customer-st-f9ad4483" >
+                                    <span className="customer-st-3cdb6192" >Status</span>
                                     <span className={`status-badge-v2 ${selectedApt.status.toLowerCase()}`}>{selectedApt.status}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Scheduled For</span>
-                                    <span style={{ fontWeight: '600', color: '#1e293b' }}>{selectedApt.date} at {selectedApt.time}</span>
+                                <div className="customer-st-f9ad4483" >
+                                    <span className="customer-st-3cdb6192" >Scheduled For</span>
+                                    <span className="customer-st-e7b1617c" >{selectedApt.date} at {selectedApt.time}</span>
                                 </div>
                                 {selectedApt.price > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
-                                        <span style={{ fontWeight: 'bold', color: '#0f172a' }}>Estimated Cost</span>
-                                        <span style={{ fontWeight: '800', fontSize: '1.2rem', color: '#10b981' }}>₱{selectedApt.price.toLocaleString()}</span>
+                                    <div className="customer-st-6edb6e51" >
+                                        <span className="customer-st-d4f78aa8" >Estimated Cost</span>
+                                        <span className="customer-st-8cb6763e" >₱{selectedApt.price.toLocaleString()}</span>
                                     </div>
                                 )}
                             </div>
