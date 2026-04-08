@@ -179,7 +179,7 @@ function CustomerPortal() {
                                     </div>
                                 </div>
 
-                                <div className="stat-card-v2" onClick={() => navigate('/customer/gallery')} style={{ cursor: 'pointer' }}>
+                                <div className="stat-card-v2" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'Favorites' } })} style={{ cursor: 'pointer' }}>
                                     <div className="stat-icon-wrapper rose">
                                         <Heart size={24} />
                                     </div>
@@ -189,7 +189,7 @@ function CustomerPortal() {
                                     </div>
                                 </div>
 
-                                <div className="stat-card-v2" onClick={() => navigate('/customer/gallery')} style={{ cursor: 'pointer' }}>
+                                <div className="stat-card-v2" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'My Tattoos' } })} style={{ cursor: 'pointer' }}>
                                     <div className="stat-icon-wrapper gold">
                                         <Award size={24} />
                                     </div>
@@ -247,7 +247,7 @@ function CustomerPortal() {
                             </div>
 
                             <div className="quick-actions-grid">
-                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/gallery')}>
+                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'Favorites' } })}>
                                     <div className="action-icon-wrapper blue">
                                         <Heart size={20} />
                                     </div>
@@ -257,7 +257,7 @@ function CustomerPortal() {
                                     </div>
                                 </button>
 
-                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/gallery')}>
+                                <button className="action-card-v2 glass-card" onClick={() => navigate('/customer/gallery', { state: { initialViewMode: 'My Tattoos' } })}>
                                     <div className="action-icon-wrapper gold">
                                         <Award size={20} />
                                     </div>

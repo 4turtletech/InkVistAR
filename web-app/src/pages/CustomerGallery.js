@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { X, Calendar, Heart, Award, Search, Filter, Loader } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
@@ -10,15 +10,24 @@ function CustomerGallery(){
     const [works, setWorks] = useState([]);
     const [favorites, setFavorites] = useState([]);
     const [myTattoos, setMyTattoos] = useState([]);
-    const [viewMode, setViewMode] = useState('All'); // 'All', 'Favorites', 'My Tattoos'
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [viewMode, setViewMode] = useState(location.state?.initialViewMode || 'All'); // 'All', 'Favorites', 'My Tattoos'
+    
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedWork, setSelectedWork] = useState(null);
     const [toggling, setToggling] = useState(false);
     const [activeCategory, setActiveCategory] = useState('All');
     const [categories, setCategories] = useState(['All']);
-    const navigate = useNavigate();
-    
+
+    useEffect(() => {
+        // Clear navigation state after consumed
+        if (location.state?.initialViewMode) {
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
+
     const user = JSON.parse(localStorage.getItem('user'));
     const userId = user ? user.id : null;
 
