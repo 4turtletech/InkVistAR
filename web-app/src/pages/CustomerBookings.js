@@ -490,8 +490,34 @@ function CustomerBookings(){
                                 </div>
                             </div>
                         </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Close</button>
+                        <div className="modal-footer" style={{ justifyContent: 'space-between', width: '100%', gap: '12px' }}>
+                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsModalOpen(false)}>Close</button>
+                            
+                            {selectedApt.status === 'pending' && selectedApt.price > 0 && selectedApt.payment_status === 'unpaid' && (
+                                <button 
+                                    className="btn btn-primary" 
+                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                    onClick={() => handlePay(selectedApt)}
+                                >
+                                    <CreditCard size={18}/> Pay Deposit (₱{Math.round(selectedApt.price * 0.2).toLocaleString()})
+                                </button>
+                            )}
+                            
+                            {selectedApt.payment_status === 'downpayment_paid' && (
+                                <button 
+                                    className="btn btn-primary" 
+                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none' }}
+                                    onClick={() => handlePay(selectedApt, 'balance')}
+                                >
+                                    <CreditCard size={18}/> Pay Remaining Balance
+                                </button>
+                            )}
+                            
+                            {selectedApt.payment_status === 'paid' && (
+                                <div className="status-badge-v2 confirmed" style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}>
+                                    <CheckCircle size={18}/> Fully Paid
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
