@@ -693,7 +693,7 @@ function AdminInventory() {
                                     {/* Left Column: Basic Info */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                         <div className="form-group">
-                                            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Product Identity</label>
+                                            <label className="premium-label">Product Identity</label>
                                             <input
                                                 type="text"
                                                 value={formData.name}
@@ -727,7 +727,7 @@ function AdminInventory() {
                                             </div>
                                         </div>
                                         <div className="form-group">
-                                            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Financials (₱)</label>
+                                            <label className="premium-label">Financials (₱)</label>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
                                                 <div>
                                                     <label style={{ fontSize: '0.75rem' }}>Cost Price</label>
@@ -755,8 +755,8 @@ function AdminInventory() {
                                     {/* Right Column: Stock Levels */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                         <div className="form-group">
-                                            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Stock Status</label>
-                                            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                            <label className="premium-label">Stock Status</label>
+                                            <div className="glass-panel">
                                                 <label style={{ fontSize: '0.75rem', fontWeight: 700 }}>Initial / Current Quantity</label>
                                                 <input
                                                     type="number"
@@ -768,8 +768,8 @@ function AdminInventory() {
                                             </div>
                                         </div>
 
-                                        <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '12px', border: '1px solid #fee2e2' }}>
-                                            <label style={{ color: '#dc2626', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '5px', display: 'block' }}>Stock Limits</label>
+                                        <div className="glass-panel danger">
+                                            <span className="panel-title">Stock Limits</span>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
                                                 <div>
                                                     <label style={{ fontSize: '0.7rem', color: '#991b1b' }}>Min (Alert)</label>

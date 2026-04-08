@@ -1151,6 +1151,36 @@ body.sidenav-collapsed .portal-layout .portal-container {
     flex-shrink: 0;
 }
 
+.premium-label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.glass-panel {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.glass-panel.danger {
+    background: #fef2f2;
+    border: 1px solid #fee2e2;
+}
+
+.glass-panel.danger .panel-title {
+    color: #dc2626;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    display: block;
+}
+
 .modal-body {
     padding: 1.5rem;
 }

@@ -304,29 +304,29 @@ function AdminStudio() {
                             <form onSubmit={handleSave}>
                                 <div className="modal-body" style={{ padding: '30px' }}>
                                     <div className="form-group" style={{ marginBottom: '20px' }}>
-                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Official Branch Designation</label>
+                                        <label className="premium-label">Official Branch Designation</label>
                                         <input type="text" className="form-input" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g., Downtown Sanctuary, Westside Hub" />
                                     </div>
                                     <div className="form-group" style={{ marginBottom: '20px' }}>
-                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Geographic Location (Full Address)</label>
+                                        <label className="premium-label">Geographic Location (Full Address)</label>
                                         <input type="text" className="form-input" required value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                                         <div className="form-group">
-                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Contact Hotlink (Phone)</label>
+                                            <label className="premium-label">Contact Hotlink (Phone)</label>
                                             <input type="text" className="form-input" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                                         </div>
                                         <div className="form-group">
-                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Operational Capacity</label>
+                                            <label className="premium-label">Operational Capacity</label>
                                             <input type="number" className="form-input" required value={formData.capacity} onChange={e => setFormData({...formData, capacity: e.target.value})} />
                                         </div>
                                     </div>
                                     <div className="form-group">
-                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Standard Operating Protocol (Hours)</label>
+                                        <label className="premium-label">Standard Operating Protocol (Hours)</label>
                                         <input type="text" className="form-input" placeholder="e.g. 09:00 - 20:00" value={formData.operating_hours} onChange={e => setFormData({...formData, operating_hours: e.target.value})} />
                                     </div>
                                     
-                                    <div style={{ marginTop: '20px', padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <div className="glass-panel" style={{ marginTop: '20px' }}>
                                         <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic' }}>
                                             * Modifying branch details will update all associated staff records and public-facing portal listings instantly.
                                         </p>

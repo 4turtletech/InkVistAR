@@ -435,9 +435,9 @@ function AdminUsers() {
                                 <button className="close-btn" onClick={closeModal}><X size={24} /></button>
                             </div>
                             <div className="modal-body">
-                                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                <div className="form-row">
                                     <div className="form-group">
-                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Full Name *</label>
+                                        <label className="premium-label">Full Name *</label>
                                         <input
                                             type="text"
                                             value={formData.name}
@@ -447,7 +447,7 @@ function AdminUsers() {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Email Address *</label>
+                                        <label className="premium-label">Email Address *</label>
                                         <input
                                             type="email"
                                             value={formData.email}
@@ -458,9 +458,9 @@ function AdminUsers() {
                                     </div>
                                 </div>
 
-                                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                <div className="form-row">
                                     <div className="form-group">
-                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Phone Number</label>
+                                        <label className="premium-label">Phone Number</label>
                                         <input
                                             type="tel"
                                             value={formData.phone}
@@ -470,7 +470,7 @@ function AdminUsers() {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>User Role *</label>
+                                        <label className="premium-label">User Role *</label>
                                         <select
                                             value={formData.user_type}
                                             onChange={(e) => setFormData({ ...formData, user_type: e.target.value })}
@@ -488,9 +488,9 @@ function AdminUsers() {
                                     </div>
                                 </div>
 
-                                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div className="form-row">
                                     <div className="form-group">
-                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Account Status</label>
+                                        <label className="premium-label">Account Status</label>
                                         <select
                                             value={formData.status}
                                             onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -503,7 +503,7 @@ function AdminUsers() {
                                     </div>
                                     {!selectedUser && (
                                         <div className="form-group">
-                                            <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Initial Password *</label>
+                                            <label className="premium-label">Initial Password *</label>
                                             <input
                                                 type="password"
                                                 value={formData.password || ''}

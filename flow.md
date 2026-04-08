@@ -1,12 +1,12 @@
 # InkVistAR - Improved Tattoo Session Flow
 
-This document outlines the optimized workflow for InkVistAR, refining the process from initial consultation to final review. This flow minimizes customer friction, ensures artist-led pricing, and leverages automated payment syncing.
+This document outlines the optimized workflow for InkVistAR, refining the process from initial consultation to final review. This flow minimizes customer friction, ensures centralized admin/manager pricing, and leverages automated payment syncing.
 
 ## Phase 1: Inbound & Artist Matching
 1.  **Customer**: Visits Landing Page -> Uses **Booking Wizard** to submit a "Session Request" (Consultation).
 2.  **Admin Portal**: Receives "Pending" request. Admin reviews the vision and **assigns the best-suited Artist** (Step moved up for better accuracy).
-3.  **Artist Portal**: Artist receives notification. Reviews design idea, confirms availability, and **determines the Price/Timeline** for the procedure.
-4.  **Admin Portal**: Verifies Artist's input and sends the "Payment Requirement" notification to the Customer.
+3.  **Artist Portal**: Artist receives notification. Reviews design idea and confirms availability.
+4.  **Admin Portal**: Admin/Manager determines the **Price/Timeline** for the procedure and sends the "Payment Requirement" notification to the Customer.
 
 ## Phase 2: Commitment & Deposit
 5.  **Customer**: Receives notification -> Opens "Booking Details" -> Selects **Payment Option** (Full or Reservation Fee).
@@ -47,6 +47,6 @@ This document outlines the optimized workflow for InkVistAR, refining the proces
 
 ### Key Improvements over Original Flow:
 *   **Single-Record Continuity**: No need for a "Tattoo Session Booking" (Step 7 in the old flow). The Consultation Request simply evolves into the Tattoo Session record once the deposit is paid.
-*   **Artist-Led Pricing**: The artist who will perform the work sets the price *before* the customer pays, increasing trust and accuracy.
+*   **Centralized Pricing**: The Admin or Manager sets the verified price *before* the customer pays, increasing trust and shop accuracy.
 *   **Automated Accounting**: Heavy reliance on PayMongo Webhooks to remove manual logging steps for the Admin.
 *   **Adaptive Rescheduling**: Rescheduling loops back to the *same* artist's calendar first to maintain session continuity.
