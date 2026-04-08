@@ -27,10 +27,10 @@ function AdminUsers() {
 
     // Modal state for animations
     const [userModal, setUserModal] = useState({ mounted: false, visible: false });
-    const [confirmDialog, setConfirmDialog] = useState({ 
-        isOpen: false, 
-        title: '', 
-        message: '', 
+    const [confirmDialog, setConfirmDialog] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
         onConfirm: null,
         type: 'danger',
         isAlert: false
@@ -44,7 +44,7 @@ function AdminUsers() {
         status: 'active',
         password: ''
     });
-    
+
     // Modal animation handlers
     const openModal = () => {
         setUserModal({ mounted: true, visible: false });
@@ -102,9 +102,9 @@ function AdminUsers() {
                 user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (user.phone && user.phone.includes(searchTerm));
-            
+
             const matchesRole = filterRole === 'all' || user.user_type === filterRole;
-            
+
             return matchesSearch && matchesRole;
         });
 
@@ -244,113 +244,113 @@ function AdminUsers() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-            <header className="admin-users-header">
-                <div className="header-title-area">
-                    <h1>User Management</h1>
-                    <p>Manage platform users, roles, and account status</p>
-                </div>
-                <div className="header-actions-group">
-                    <button className="btn-indigo" onClick={handleAddNew}>
-                        <UserPlus size={18}/> Add New User
-                    </button>
-                </div>
-            </header>
+                <header className="admin-users-header">
+                    <div className="header-title-area">
+                        <h1>User Management</h1>
+                        <p>Manage platform users, roles, and account status</p>
+                    </div>
+                    <div className="header-actions-group">
+                        <button className="btn-indigo" onClick={handleAddNew}>
+                            <UserPlus size={18} /> Add New User
+                        </button>
+                    </div>
+                </header>
 
-            <div className="premium-filter-bar">
-                <div className="premium-search-box">
-                    <Search size={18} className="text-muted" />
-                    <input
-                        type="text"
-                        placeholder="Search by name, email, or phone..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="premium-filter-bar">
+                    <div className="premium-search-box">
+                        <Search size={18} className="text-muted" />
+                        <input
+                            type="text"
+                            placeholder="Search by name, email, or phone..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="premium-filters-group">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>
+                            <Filter size={16} />
+                            <span>Filter by:</span>
+                        </div>
+                        <select
+                            value={filterRole}
+                            onChange={(e) => setFilterRole(e.target.value)}
+                            className="premium-select-v2"
+                        >
+                            <option value="all">All Roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="artist">Artist</option>
+                            <option value="manager">Manager</option>
+                            <option value="customer">Customer</option>
+                        </select>
+
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="premium-select-v2"
+                        >
+                            <option value="active">Active Users</option>
+                            <option value="deleted">Deactivated Users</option>
+                        </select>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600', marginLeft: '0.5rem' }}>
+                            <SlidersHorizontal size={16} />
+                            <span>Sort:</span>
+                        </div>
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="premium-select-v2"
+                        >
+                            <option value="name">Name</option>
+                            <option value="email">Email</option>
+                            <option value="role">Role</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div className="premium-filters-group">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>
-                        <Filter size={16} />
-                        <span>Filter by:</span>
+                <div className="users-stats-grid">
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper blue">
+                            <Users size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Total Users</span>
+                            <h3 className="stat-value-v2">{users.length}</h3>
+                            <div className="stat-trend-v2">Platform Wide</div>
+                        </div>
                     </div>
-                    <select 
-                        value={filterRole} 
-                        onChange={(e) => setFilterRole(e.target.value)}
-                        className="premium-select-v2"
-                    >
-                        <option value="all">All Roles</option>
-                        <option value="admin">Admin</option>
-                        <option value="artist">Artist</option>
-                        <option value="manager">Manager</option>
-                        <option value="customer">Customer</option>
-                    </select>
-
-                    <select 
-                        value={filterStatus} 
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="premium-select-v2"
-                    >
-                        <option value="active">Active Users</option>
-                        <option value="deleted">Deactivated Users</option>
-                    </select>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600', marginLeft: '0.5rem' }}>
-                        <SlidersHorizontal size={16} />
-                        <span>Sort:</span>
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper green">
+                            <CheckCircle size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Filtered Results</span>
+                            <h3 className="stat-value-v2">{filteredUsers.length}</h3>
+                            <div className="stat-trend-v2">Current View</div>
+                        </div>
                     </div>
-                    <select 
-                        value={sortBy} 
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="premium-select-v2"
-                    >
-                        <option value="name">Name</option>
-                        <option value="email">Email</option>
-                        <option value="role">Role</option>
-                    </select>
-                </div>
-            </div>
-
-            <div className="users-stats-grid">
-                <div className="stat-card-v2 glass-card">
-                    <div className="stat-icon-wrapper blue">
-                        <Users size={24} />
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper purple">
+                            <Palette size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Active Artists</span>
+                            <h3 className="stat-value-v2">{users.filter(u => u.user_type === 'artist').length}</h3>
+                            <div className="stat-trend-v2">Studio Staff</div>
+                        </div>
                     </div>
-                    <div className="stat-info-v2">
-                        <span className="stat-label-v2">Total Users</span>
-                        <h3 className="stat-value-v2">{users.length}</h3>
-                        <div className="stat-trend-v2">Platform Wide</div>
+                    <div className="stat-card-v2 glass-card">
+                        <div className="stat-icon-wrapper orange">
+                            <UserCircle size={24} />
+                        </div>
+                        <div className="stat-info-v2">
+                            <span className="stat-label-v2">Total Customers</span>
+                            <h3 className="stat-value-v2">{users.filter(u => u.user_type === 'customer').length}</h3>
+                            <div className="stat-trend-v2">Client Base</div>
+                        </div>
                     </div>
                 </div>
-                <div className="stat-card-v2 glass-card">
-                    <div className="stat-icon-wrapper green">
-                        <CheckCircle size={24} />
-                    </div>
-                    <div className="stat-info-v2">
-                        <span className="stat-label-v2">Filtered Results</span>
-                        <h3 className="stat-value-v2">{filteredUsers.length}</h3>
-                        <div className="stat-trend-v2">Current View</div>
-                    </div>
-                </div>
-                <div className="stat-card-v2 glass-card">
-                    <div className="stat-icon-wrapper purple">
-                        <Palette size={24} />
-                    </div>
-                    <div className="stat-info-v2">
-                        <span className="stat-label-v2">Active Artists</span>
-                        <h3 className="stat-value-v2">{users.filter(u => u.user_type === 'artist').length}</h3>
-                        <div className="stat-trend-v2">Studio Staff</div>
-                    </div>
-                </div>
-                <div className="stat-card-v2 glass-card">
-                    <div className="stat-icon-wrapper orange">
-                        <UserCircle size={24} />
-                    </div>
-                    <div className="stat-info-v2">
-                        <span className="stat-label-v2">Total Customers</span>
-                        <h3 className="stat-value-v2">{users.filter(u => u.user_type === 'customer').length}</h3>
-                        <div className="stat-trend-v2">Client Base</div>
-                    </div>
-                </div>
-            </div>
 
                 <div className="table-card-container glass-card">
                     <div className="table-responsive">
@@ -368,7 +368,7 @@ function AdminUsers() {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="7" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading users...</td></tr>
+                                    <tr><td colSpan="7" className="no-data" style={{ textAlign: 'center', padding: '2rem' }}>Loading users...</td></tr>
                                 ) : paginatedUsers.length > 0 ? (
                                     paginatedUsers.map((user) => (
                                         <tr key={user.id}>
@@ -388,7 +388,7 @@ function AdminUsers() {
                                             </td>
                                             <td className="actions-cell">
                                                 <button className="action-btn edit-btn" onClick={() => handleEdit(user)}>
-                                                    Edit
+                                                    Review
                                                 </button>
                                                 {!user.is_deleted ? (
                                                     <button className="action-btn delete-btn" onClick={() => handleDelete(user.id)}>
@@ -396,8 +396,8 @@ function AdminUsers() {
                                                     </button>
                                                 ) : (
                                                     <>
-                                                        <button className="action-btn view-btn" onClick={() => handleRestore(user.id)} style={{backgroundColor: '#10b981'}}>Restore</button>
-                                                        <button className="action-btn delete-btn" onClick={() => handlePermanentDelete(user.id)} style={{backgroundColor: '#991b1b'}}>Delete</button>
+                                                        <button className="action-btn view-btn" onClick={() => handleRestore(user.id)} style={{ backgroundColor: '#10b981' }}>Restore</button>
+                                                        <button className="action-btn delete-btn" onClick={() => handlePermanentDelete(user.id)} style={{ backgroundColor: '#991b1b' }}>Delete</button>
                                                     </>
                                                 )}
                                             </td>
@@ -412,7 +412,7 @@ function AdminUsers() {
                         </table>
                     </div>
 
-                    <Pagination 
+                    <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
                         onPageChange={setCurrentPage}
@@ -426,128 +426,128 @@ function AdminUsers() {
                     />
                 </div>
 
-            {/* Modal */}
-            {userModal.mounted && (
-                <div className={`modal-overlay ${userModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>{selectedUser ? 'Edit User Profile' : 'Create New User'}</h2>
-                            <button className="close-btn" onClick={closeModal}><X size={24}/></button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                <div className="form-group">
-                                    <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Full Name *</label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                        className="form-input"
-                                        placeholder="Full Name"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Email Address *</label>
-                                    <input
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                        className="form-input"
-                                        placeholder="email@example.com"
-                                    />
-                                </div>
+                {/* Modal */}
+                {userModal.mounted && (
+                    <div className={`modal-overlay ${userModal.visible ? 'open' : ''}`} onClick={closeModal}>
+                        <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2>{selectedUser ? 'Edit User Profile' : 'Create New User'}</h2>
+                                <button className="close-btn" onClick={closeModal}><X size={24} /></button>
                             </div>
-                            
-                            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                <div className="form-group">
-                                    <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Phone Number</label>
-                                    <input
-                                        type="tel"
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                        className="form-input"
-                                        placeholder="Phone"
-                                    />
+                            <div className="modal-body">
+                                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                    <div className="form-group">
+                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Full Name *</label>
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            className="form-input"
+                                            placeholder="Full Name"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Email Address *</label>
+                                        <input
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            className="form-input"
+                                            placeholder="email@example.com"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="form-group">
-                                    <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>User Role *</label>
-                                    <select 
-                                        value={formData.user_type}
-                                        onChange={(e) => setFormData({...formData, user_type: e.target.value})}
-                                        className="form-input"
-                                        disabled={selectedUser?.email === 'admin@inkvistar.com'}
-                                    >
-                                        <option value="customer">Customer (Client)</option>
-                                        <option value="artist">Artist (Staff)</option>
-                                        <option value="manager">Manager</option>
-                                        <option value="admin">System Admin</option>
-                                    </select>
-                                    {selectedUser?.email === 'admin@inkvistar.com' && (
-                                        <small style={{color: '#94a3b8', fontSize: '0.75rem', marginTop: '4px', display: 'block'}}>Primary admin role protected</small>
+
+                                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                    <div className="form-group">
+                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Phone Number</label>
+                                        <input
+                                            type="tel"
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            className="form-input"
+                                            placeholder="Phone"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>User Role *</label>
+                                        <select
+                                            value={formData.user_type}
+                                            onChange={(e) => setFormData({ ...formData, user_type: e.target.value })}
+                                            className="form-input"
+                                            disabled={selectedUser?.email === 'admin@inkvistar.com'}
+                                        >
+                                            <option value="customer">Customer (Client)</option>
+                                            <option value="artist">Artist (Staff)</option>
+                                            <option value="manager">Manager</option>
+                                            <option value="admin">System Admin</option>
+                                        </select>
+                                        {selectedUser?.email === 'admin@inkvistar.com' && (
+                                            <small style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Primary admin role protected</small>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div className="form-group">
+                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Account Status</label>
+                                        <select
+                                            value={formData.status}
+                                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                            className="form-input"
+                                        >
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive / Deactivated</option>
+                                            <option value="suspended">Suspended</option>
+                                        </select>
+                                    </div>
+                                    {!selectedUser && (
+                                        <div className="form-group">
+                                            <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Initial Password *</label>
+                                            <input
+                                                type="password"
+                                                value={formData.password || ''}
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                className="form-input"
+                                                placeholder="Secure password"
+                                            />
+                                        </div>
                                     )}
                                 </div>
                             </div>
-
-                            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <div className="form-group">
-                                    <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Account Status</label>
-                                    <select 
-                                        value={formData.status}
-                                        onChange={(e) => setFormData({...formData, status: e.target.value})}
-                                        className="form-input"
-                                    >
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive / Deactivated</option>
-                                        <option value="suspended">Suspended</option>
-                                    </select>
+                            <div className="modal-footer">
+                                <div style={{ marginRight: 'auto' }}>
+                                    {selectedUser && selectedUser.email !== 'admin@inkvistar.com' && (
+                                        <button
+                                            className="action-btn delete-btn"
+                                            style={{ padding: '10px 16px' }}
+                                            onClick={() => {
+                                                handlePermanentDelete(selectedUser.id);
+                                                closeModal();
+                                            }}
+                                        >
+                                            Delete Forever
+                                        </button>
+                                    )}
                                 </div>
-                                {!selectedUser && (
-                                    <div className="form-group">
-                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Initial Password *</label>
-                                        <input
-                                            type="password"
-                                            value={formData.password || ''}
-                                            onChange={(e) => setFormData({...formData, password: e.target.value})}
-                                            className="form-input"
-                                            placeholder="Secure password"
-                                        />
-                                    </div>
-                                )}
+                                <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                                <button className="btn btn-primary" onClick={handleSave} style={{ padding: '10px 24px' }}>
+                                    {selectedUser ? 'Save Changes' : 'Create User'}
+                                </button>
                             </div>
-                        </div>
-                        <div className="modal-footer">
-                            <div style={{ marginRight: 'auto' }}>
-                                {selectedUser && selectedUser.email !== 'admin@inkvistar.com' && (
-                                    <button 
-                                        className="action-btn delete-btn" 
-                                        style={{ padding: '10px 16px' }}
-                                        onClick={() => {
-                                            handlePermanentDelete(selectedUser.id);
-                                            closeModal();
-                                        }}
-                                    >
-                                        Delete Forever
-                                    </button>
-                                )}
-                            </div>
-                            <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-                            <button className="btn btn-primary" onClick={handleSave} style={{ padding: '10px 24px' }}>
-                                {selectedUser ? 'Save Changes' : 'Create User'}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-            <ConfirmModal 
-                isOpen={confirmDialog.isOpen}
-                title={confirmDialog.title}
-                message={confirmDialog.message}
-                confirmText={confirmDialog.confirmText}
-                onConfirm={confirmDialog.onConfirm}
-                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-                type={confirmDialog.type}
-                isAlert={confirmDialog.isAlert}
-            />
+                )}
+                <ConfirmModal
+                    isOpen={confirmDialog.isOpen}
+                    title={confirmDialog.title}
+                    message={confirmDialog.message}
+                    confirmText={confirmDialog.confirmText}
+                    onConfirm={confirmDialog.onConfirm}
+                    onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                    type={confirmDialog.type}
+                    isAlert={confirmDialog.isAlert}
+                />
             </div>
         </div>
     );
