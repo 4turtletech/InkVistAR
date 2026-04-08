@@ -100,8 +100,9 @@ function AdminUsers() {
     const filterAndSortUsers = () => {
         let filtered = users.filter(user => {
             const matchesSearch =
-                user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (user.id || '').toString().includes(searchTerm) ||
+                (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (user.phone && user.phone.includes(searchTerm));
 
             const matchesRole = filterRole === 'all' || user.user_type === filterRole;
@@ -241,6 +242,13 @@ function AdminUsers() {
         openModal();
     };
 
+    // Compute autocomplete suggestions dynamically from the dataset
+    const searchSuggestions = Array.from(new Set([
+        ...users.map(u => (u.id || '').toString()),
+        ...users.map(u => (u.name || '').trim()),
+        ...users.map(u => (u.email || '').trim())
+    ])).filter(Boolean);
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -262,10 +270,16 @@ function AdminUsers() {
                         <Search size={18} className="text-muted" />
                         <input
                             type="text"
-                            placeholder="Search by name, email, or phone..."
+                            list="search-suggestions-users"
+                            placeholder="Search by name, email, id..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
+                        <datalist id="search-suggestions-users">
+                            {searchSuggestions.map(suggestion => (
+                                <option key={suggestion} value={suggestion} />
+                            ))}
+                        </datalist>
                     </div>
 
                     <div className="premium-filters-group">

@@ -204,12 +204,20 @@ function AdminPOS() {
     const filteredInventory = useMemo(() => {
         return Array.isArray(inventory) ? inventory.filter(item => {
             if (!item) return false;
-            const matchesSearch = (item.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+            const matchesSearch = (item.id || '').toString().includes(searchTerm) ||
+                                 (item.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
                                  (item.category || '').toLowerCase().includes((searchTerm || '').toLowerCase());
             const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
             return matchesSearch && matchesCategory;
         }) : [];
     }, [inventory, searchTerm, activeCategory]);
+
+    // Compute autocomplete suggestions dynamically from the dataset
+    const searchSuggestions = Array.from(new Set([
+        ...inventory.map(i => (i.id || '').toString()),
+        ...inventory.map(i => (i.name || '').trim()),
+        ...inventory.map(i => (i.category || '').trim())
+    ])).filter(Boolean);
 
     return (
         <div className="admin-page-with-sidenav">
@@ -227,10 +235,16 @@ function AdminPOS() {
                                 <input 
                                     ref={searchInputRef}
                                     type="text" 
-                                    placeholder="Search products..." 
+                                    list="search-suggestions-pos"
+                                    placeholder="Search products by name, category, or ID..." 
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
+                                <datalist id="search-suggestions-pos">
+                                    {searchSuggestions.map(suggestion => (
+                                        <option key={suggestion} value={suggestion} />
+                                    ))}
+                                </datalist>
                             </div>
                             <button className="refresh-pos-btn" onClick={fetchInventory} title="Refresh Inventory">
                                 <RefreshCw size={20} className={loading ? 'spinning' : ''} />

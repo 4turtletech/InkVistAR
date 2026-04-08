@@ -93,6 +93,7 @@ function AdminStaff() {
     const filterStaff = () => {
         let filtered = staff.filter(s => {
             const matchesSearch =
+                (s.id || '').toString().includes(searchTerm) ||
                 (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (s.email || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesRole = roleFilter === 'all' || s.role.toLowerCase() === roleFilter.toLowerCase();
@@ -365,7 +366,7 @@ function AdminStaff() {
         <div className="tab-content">
             <div className="gallery-grid-admin">
                 {artistDetails.portfolio.map(work => (
-                    <div key={work.id} className="gallery-item-admin" onClick={() => openEditWork(work)} className="admin-st-24b531c6">
+                    <div key={work.id} className="gallery-item-admin admin-st-24b531c6" onClick={() => openEditWork(work)}>
                         <img src={work.image_url} alt={work.title} />
                         <div className="gallery-overlay">
                             <button className="delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteWork(work.id); }}>
@@ -422,6 +423,13 @@ function AdminStaff() {
         );
     };
 
+    // Compute autocomplete suggestions dynamically from the dataset
+    const searchSuggestions = Array.from(new Set([
+        ...staff.map(s => (s.id || '').toString()),
+        ...staff.map(s => (s.name || '').trim()),
+        ...staff.map(s => (s.email || '').trim())
+    ])).filter(Boolean);
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -438,10 +446,16 @@ function AdminStaff() {
                         <Search size={18} className="text-muted" />
                         <input
                             type="text"
-                            placeholder="Search staff by name or email..."
+                            list="search-suggestions-staff"
+                            placeholder="Search staff by name, email, or id..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
+                        <datalist id="search-suggestions-staff">
+                            {searchSuggestions.map(suggestion => (
+                                <option key={suggestion} value={suggestion} />
+                            ))}
+                        </datalist>
                     </div>
 
                     <div className="premium-filters-group">
@@ -705,11 +719,10 @@ function AdminStaff() {
                                             <div className="form-group">
                                                 <label className="admin-st-19644797">Project Narrative</label>
                                                 <textarea
-                                                    className="form-input"
+                                                    className="form-input admin-st-7b393fc7"
                                                     rows="6"
                                                     value={workFormData.description}
                                                     onChange={e => setWorkFormData({ ...workFormData, description: e.target.value })}
-                                                    className="admin-st-7b393fc7"
                                                 />
                                             </div>
                                         </div>

@@ -148,6 +148,7 @@ function AdminAppointments() {
     const filterAndSortAppointments = () => {
         let filtered = appointments.filter(apt => {
             const matchesSearch =
+                (apt.id || '').toString().includes(searchTerm) ||
                 (apt.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (apt.artistName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (apt.serviceType || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -533,6 +534,13 @@ function AdminAppointments() {
     const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
     const currentItems = filteredAppointments.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+    // Compute autocomplete suggestions dynamically from the dataset
+    const searchSuggestions = Array.from(new Set([
+        ...appointments.map(a => (a.id || '').toString()),
+        ...appointments.map(a => (a.clientName || '').trim()),
+        ...appointments.map(a => (a.artistName || '').trim())
+    ])).filter(Boolean);
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -649,10 +657,16 @@ function AdminAppointments() {
                                     <Search size={18} className="text-muted" />
                                     <input
                                         type="text"
+                                        list="search-suggestions-appointments"
                                         placeholder="Search appointments..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
+                                    <datalist id="search-suggestions-appointments">
+                                        {searchSuggestions.map(suggestion => (
+                                            <option key={suggestion} value={suggestion} />
+                                        ))}
+                                    </datalist>
                                 </div>
 
                                 <div className="quick-filters admin-st-70e52978">

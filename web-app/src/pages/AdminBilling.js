@@ -206,6 +206,12 @@ function AdminBilling() {
     const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
     const paginatedInvoices = filteredInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+    // Compute autocomplete suggestions dynamically from the dataset
+    const searchSuggestions = Array.from(new Set([
+        ...invoices.map(i => (i.id || '').toString()),
+        ...invoices.map(i => (i.client_name || '').trim())
+    ])).filter(Boolean);
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -247,10 +253,16 @@ function AdminBilling() {
                                 <Search size={18} className="premium-search-icon" />
                                 <input
                                     type="text"
+                                    list="search-suggestions-billing"
                                     placeholder="Search invoices by client or ID..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
+                                <datalist id="search-suggestions-billing">
+                                    {searchSuggestions.map(suggestion => (
+                                        <option key={suggestion} value={suggestion} />
+                                    ))}
+                                </datalist>
                             </div>
 
                             <div className="premium-filters-group admin-st-6935a47f">

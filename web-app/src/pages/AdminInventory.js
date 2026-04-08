@@ -202,7 +202,9 @@ function AdminInventory() {
 
     const filterAndSortInventory = () => {
         let filtered = inventory.filter(item => {
-            const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = 
+                (item.id || '').toString().includes(searchTerm) || 
+                (item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
             
             const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
             
@@ -508,6 +510,13 @@ function AdminInventory() {
     const lowStockItems = inventory.filter(i => i.currentStock <= i.minStock).length;
     const totalValue = inventory.reduce((sum, i) => sum + (i.currentStock * i.cost), 0);
 
+    // Compute autocomplete suggestions dynamically from the dataset
+    const searchSuggestions = Array.from(new Set([
+        ...inventory.map(i => (i.id || '').toString()),
+        ...inventory.map(i => (i.name || '').trim()),
+        ...inventory.map(i => (i.category || '').trim())
+    ])).filter(Boolean);
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -554,10 +563,16 @@ function AdminInventory() {
                     <Search size={18} className="text-muted" />
                     <input
                         type="text"
-                        placeholder="Search items..."
+                        list="search-suggestions-inventory"
+                        placeholder="Search items by name, category, or ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                    <datalist id="search-suggestions-inventory">
+                        {searchSuggestions.map(suggestion => (
+                            <option key={suggestion} value={suggestion} />
+                        ))}
+                    </datalist>
                 </div>
 
                 <div className="premium-filters-group">

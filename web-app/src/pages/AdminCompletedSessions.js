@@ -92,6 +92,7 @@ function AdminCompletedSessions() {
 
         if (searchTerm) {
             filtered = filtered.filter(s =>
+                (s.id || '').toString().includes(searchTerm) ||
                 s.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 s.artistName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (s.designTitle && s.designTitle.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -123,6 +124,14 @@ function AdminCompletedSessions() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const currentSessions = filteredSessions.slice(startIndex, startIndex + itemsPerPage);
 
+    // Compute autocomplete suggestions dynamically from the dataset
+    const searchSuggestions = Array.from(new Set([
+        ...sessions.map(s => (s.id || '').toString()),
+        ...sessions.map(s => (s.clientName || '').trim()),
+        ...sessions.map(s => (s.artistName || '').trim()),
+        ...sessions.map(s => (s.designTitle || '').trim())
+    ])).filter(Boolean);
+
     return (
         <div className="portal-layout">
             <AdminSideNav />
@@ -149,11 +158,17 @@ function AdminCompletedSessions() {
                                         <Search size={18} className="admin-st-5a5e8413" />
                                         <input
                                             type="text"
-                                            placeholder="Search by client, artist, or design..."
+                                            list="search-suggestions-sessions"
+                                            placeholder="Search by ID, client, artist, or design..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                             className="admin-st-0be6745d"
                                         />
+                                        <datalist id="search-suggestions-sessions">
+                                            {searchSuggestions.map(suggestion => (
+                                                <option key={suggestion} value={suggestion} />
+                                            ))}
+                                        </datalist>
                                     </div>
                                 </div>
                                 <select
@@ -203,9 +218,8 @@ function AdminCompletedSessions() {
                                                     </td>
                                                     <td>
                                                         <button
-                                                            className="btn btn-primary"
+                                                            className="btn btn-primary admin-st-3a8ba4fe"
                                                             onClick={() => handleViewSession(session)}
-                                                            className="admin-st-3a8ba4fe"
                                                         >
                                                             View Details
                                                         </button>

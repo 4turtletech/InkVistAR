@@ -66,6 +66,7 @@ function AdminClients() {
 
     const filteredClients = clients.filter(c => 
         c && (
+            (c.id || '').toString().includes(searchTerm) || 
             (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
             (c.email || '').toLowerCase().includes(searchTerm.toLowerCase())
         )
@@ -166,6 +167,13 @@ function AdminClients() {
         });
     };
 
+    // Compute autocomplete suggestions dynamically from the dataset
+    const searchSuggestions = Array.from(new Set([
+        ...clients.map(c => (c.id || '').toString()),
+        ...clients.map(c => (c.name || '').trim()),
+        ...clients.map(c => (c.email || '').trim())
+    ])).filter(Boolean);
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -182,10 +190,16 @@ function AdminClients() {
                         <Search size={18} className="text-muted" />
                         <input
                             type="text"
-                            placeholder="Search clients..."
+                            list="search-suggestions-clients"
+                            placeholder="Search clients by name, email, or id..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
+                        <datalist id="search-suggestions-clients">
+                            {searchSuggestions.map(suggestion => (
+                                <option key={suggestion} value={suggestion} />
+                            ))}
+                        </datalist>
                     </div>
                     <div className="premium-filters-group">
                         <div className="filter-label-group">
@@ -283,17 +297,15 @@ function AdminClients() {
                                             ) : (
                                                 <div className="admin-st-ce770332">
                                                     <button 
-                                                        className="action-btn view-btn" 
+                                                        className="action-btn view-btn admin-st-a1f52a0b" 
                                                         onClick={() => handleRestoreClient(client.id)} 
-                                                        className="admin-st-a1f52a0b" 
                                                         title="Restore Client"
                                                     >
                                                         <RotateCcw size={14}/> Restore
                                                     </button>
                                                     <button 
-                                                        className="action-btn delete-btn" 
+                                                        className="action-btn delete-btn admin-st-efbab0dd" 
                                                         onClick={() => handlePermanentDelete(client.id)} 
-                                                        className="admin-st-efbab0dd" 
                                                         title="Permanently Delete Client"
                                                     >
                                                         <Trash2 size={14}/> Delete
@@ -373,12 +385,11 @@ function AdminClients() {
                                                     <div className="form-group">
                                                         <label className="admin-st-19644797">Internal Confidential Notes</label>
                                                         <textarea 
-                                                            className="form-input" 
+                                                            className="form-input admin-st-6c845e15" 
                                                             rows="8" 
                                                             placeholder="Record specific sensitivities, design preferences, or billing history notes..." 
                                                             value={formData.notes || ''} 
                                                             onChange={e => setFormData({...formData, notes: e.target.value})}
-                                                            className="admin-st-6c845e15"
                                                         ></textarea>
                                                     </div>
                                                 </div>
