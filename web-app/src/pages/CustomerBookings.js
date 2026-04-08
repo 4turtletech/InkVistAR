@@ -261,6 +261,11 @@ function CustomerBookings(){
             return;
         }
 
+        if (bookingData.serviceType !== 'Consultation' && !bookingData.artistId) {
+            showAlert("Artist Required", "Please select an artist for Tattoo or Piercing services.", "warning");
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const res = await Axios.post(`${API_URL}/api/customer/appointments`, {

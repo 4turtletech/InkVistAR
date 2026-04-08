@@ -709,7 +709,7 @@ function AdminInventory() {
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <button className="action-btn view-btn" onClick={() => handleRestore(item.id)} className="admin-st-f1f5ea52" title="Restore"><RotateCcw size={16}/></button>
+                                                    <button className="action-btn view-btn admin-st-f1f5ea52" onClick={() => handleRestore(item.id)} title="Restore"><RotateCcw size={16}/></button>
                                                     <button className="action-btn delete-btn" onClick={() => handlePermanentDelete(item.id)} title="Permanent Delete"><Trash2 size={16}/></button>
                                                 </>
                                             )}
@@ -1140,7 +1140,7 @@ function AdminInventory() {
                                                     ))}
                                                 </div>
                                                 <div className="admin-st-6a3a6aa8">
-                                                    <button type="button" className="btn btn-secondary" onClick={() => { setEditingKitServiceType(''); setEditingKitOriginalType(''); setEditingKitMaterials([]); }} className="admin-st-2029b6f9">Cancel</button>
+                                                    <button type="button" className="btn btn-secondary admin-st-2029b6f9" onClick={() => { setEditingKitServiceType(''); setEditingKitOriginalType(''); setEditingKitMaterials([]); }}>Cancel</button>
                                                     <button type="button" className="btn btn-secondary admin-st-7b8c305f" onClick={() => handleDeleteKit(type)}><Trash2 size={16}/></button>
                                                     <button className="btn btn-primary admin-st-2029b6f9" onClick={handleSaveKit} disabled={isSaving || editingKitMaterials.length === 0} >{isSaving ? '...' : 'Save Changes'}</button>
                                                 </div>
@@ -1151,7 +1151,7 @@ function AdminInventory() {
                                                     <h4 className="admin-st-323ff927">{type}</h4>
                                                     <div className="admin-st-c3b81489">
                                                         <button
-                                                            className="action-btn edit-btn service-kit-action-btn" 
+                                                            className="action-btn edit-btn service-kit-action-btn admin-st-7f4c9b70" 
                                                             onClick={() => {
                                                                 setEditingKitServiceType(type);
                                                                 setEditingKitOriginalType(type);
@@ -1161,7 +1161,7 @@ function AdminInventory() {
                                                                     default_quantity: m.default_quantity,
                                                                     unit: m.unit
                                                                 }))); 
-                                                            }} className="admin-st-7f4c9b70"
+                                                            }} 
                                                         >
                                                             <Edit2 size={16}/>
                                                         </button>

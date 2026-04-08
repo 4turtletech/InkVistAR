@@ -229,12 +229,12 @@ function AdminBilling() {
                         <>
                         <div className="stats-row">
                             <div className="stat-item">
-                                <span className="stat-label">Total Revenue (Feb)</span>
-                                <span className="stat-count">₱12,450</span>
+                                <span className="stat-label">Total Revenue</span>
+                                <span className="stat-count">₱{invoices.filter(i => i.status?.toLowerCase() === 'paid').reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString()}</span>
                             </div>
                             <div className="stat-item">
-                                <span className="stat-label">Pending Payments</span>
-                                <span className="stat-count">₱1,200</span>
+                                <span className="stat-label">Pending Receivable</span>
+                                <span className="stat-count">₱{invoices.filter(i => i.status?.toLowerCase() === 'pending').reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString()}</span>
                             </div>
                             <div className="stat-item">
                                 <span className="stat-label">Invoices Issued</span>

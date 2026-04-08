@@ -820,6 +820,35 @@ function paymongoAuthHeader() {
 }
 
 // Helper: Create Notification
+/** 
+ * Mock Email Service Builder (Resend & Nodemailer Stand-in)
+ * TODO: Implement API keys once Domain is registered.
+ * Usage: sendReceiptEmail(customerEmail, invoiceData, appointmentData)
+ */
+function sendReceiptEmail(customerEmail, invoiceData) {
+  if (process.env.RESEND_API_KEY) {
+    // resend.emails.send({ ... }) 
+    console.log(`[RESEND] Sending invoice to ${customerEmail}...`);
+  } else {
+    console.log(`
+==================================================
+📬 MOCK EMAIL SENT -> To: ${customerEmail}
+--------------------------------------------------
+Subject: Your InkVistAR Studio Receipt (Invoice #${invoiceData.id})
+Hello! Thank you for your payment to InkVistAR Studio.
+    
+🧾 INVOICE DETAILS:
+- Invoice #: ${invoiceData.id}
+- Date: ${new Date().toLocaleDateString()}
+- Amount Paid: ₱${parseFloat(invoiceData.amount).toLocaleString()}
+- Payment Method: ${invoiceData.method}
+
+Thank you for choosing InkVistAR!
+==================================================
+    `);
+  }
+}
+
 function createNotification(userId, title, message, type, relatedId = null) {
   const utcNow = new Date().toISOString().slice(0, 19).replace('T', ' ');
   const insertQuery = 'INSERT INTO notifications (user_id, title, message, type, related_id, created_at, is_read) VALUES (?, ?, ?, ?, ?, ?, 0)';
@@ -2779,9 +2808,10 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
       `;
         db.query(updateStatusQuery, [id, id], (upErr) => {
           if (!upErr) {
-            db.query('SELECT customer_id FROM appointments WHERE id = ?', [id], (ce, cr) => {
+            db.query('SELECT ap.customer_id, u.email as cx_email FROM appointments ap JOIN users u ON ap.customer_id = u.id WHERE ap.id = ?', [id], (ce, cr) => {
               if (!ce && cr.length) {
                 createNotification(cr[0].customer_id, 'Payment Recorded', `We have recorded a manual payment of ₱${parseFloat(amount).toLocaleString()} for your session #${id}.`, 'payment_success', id);
+                sendReceiptEmail(cr[0].cx_email, { id: paymentId, amount, method });
               }
             });
           }
@@ -3515,7 +3545,7 @@ app.post('/api/payments/webhook', (req, res) => {
 
     // Get current status first to determine new status
     db.query(`
-      SELECT ap.status, ap.customer_id, ap.artist_id, u.name as customer_name 
+      SELECT ap.status, ap.customer_id, ap.artist_id, u.name as customer_name, u.email as cx_email
       FROM appointments ap 
       JOIN users u ON ap.customer_id = u.id 
       WHERE ap.id = ?
@@ -3532,6 +3562,9 @@ app.post('/api/payments/webhook', (req, res) => {
 
             createNotification(appt.customer_id, 'Payment Received', `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
             createNotification(appt.artist_id, 'Payment Received', `Payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
+            
+            // SEND EMAILED RECEIPT
+            sendReceiptEmail(appt.cx_email, { id: paymongoPaymentId, amount: amount/100, method: 'PayMongo' });
 
             // Notify Admins and Managers
             db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
@@ -4355,9 +4388,9 @@ app.get('/api/admin/invoices', (req, res) => {
 
 // Admin: Create Invoice
 app.post('/api/admin/invoices', (req, res) => {
-  const { client, type, amount, status, customerId } = req.body;
-  const query = 'INSERT INTO invoices (customer_id, client_name, service_type, amount, status, created_at) VALUES (?, ?, ?, ?, ?, NOW())';
-  db.query(query, [customerId || null, client, type, amount, status], (err, result) => {
+  const { client, type, amount, status } = req.body;
+  const query = 'INSERT INTO invoices (client_name, service_type, amount, status, created_at) VALUES (?, ?, ?, ?, NOW())';
+  db.query(query, [client, type, amount, status], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     res.json({ success: true, message: 'Invoice created', id: result.insertId });
   });

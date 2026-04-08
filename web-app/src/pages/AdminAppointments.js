@@ -321,6 +321,34 @@ function AdminAppointments() {
         openModal();
     };
 
+    const handleRebookNextSession = (appointment) => {
+        setSelectedAppointment(null);
+        setModalTab('details');
+        setFormData({
+            clientId: appointment.clientId || appointment.customer_id,
+            artistId: appointment.artistId || appointment.artist_id,
+            secondaryArtistId: appointment.secondary_artist_id || '',
+            commissionSplit: appointment.commission_split || 50,
+            serviceType: appointment.serviceType || appointment.service_type,
+            designTitle: appointment.designTitle || appointment.design_title,
+            date: new Date().toISOString().split('T')[0],
+            time: '13:00',
+            status: 'pending',
+            paymentStatus: 'unpaid',
+            notes: `Continuation of project: ${appointment.designTitle || appointment.design_title}`,
+            price: appointment.price || 0,
+            beforePhoto: null,
+            referenceImage: appointment.referenceImage || '',
+            manualPaidAmount: 0,
+            manualPaymentMethod: 'Cash'
+        });
+        setClientSearch(appointment.clientName);
+        
+        showConfirm(`Are you sure you want to Rebook a next session for this project?`, () => {
+            openModal();
+        });
+    };
+
     const handleSave = async () => {
         const isConsultation = formData.serviceType === 'Consultation';
         const isArtistRequired = !isConsultation;
@@ -1014,9 +1042,36 @@ function AdminAppointments() {
                                                             <option value="rejected">Rejected</option>
                                                         </select>
                                                     </div>
-                                                </div>
+                                                                                          </div>
                                             </div>
                                         </div>
+                                        
+                                        {/* Project Session History Panel */}
+                                        {selectedAppointment && formData.designTitle && (
+                                            <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e2e8f0', gridColumn: '1 / -1' }}>
+                                                <h4 style={{ margin: 0, marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}>
+                                                    Project Session History: <span style={{ color: '#4338ca' }}>{formData.designTitle}</span>
+                                                </h4>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    {appointments.filter(a => a.customer_id === selectedAppointment.customer_id && a.design_title === formData.designTitle)
+                                                        .sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date))
+                                                        .map((session, idx) => (
+                                                            <div key={session.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 16px', borderRadius: '6px', background: session.id === selectedAppointment.id ? '#e0e7ff' : '#f8fafc', border: `1px solid ${session.id === selectedAppointment.id ? '#c7d2fe' : '#e2e8f0'}` }}>
+                                                                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                                                    <span style={{ fontWeight: session.id === selectedAppointment.id ? '700' : '600', color: session.id === selectedAppointment.id ? '#4338ca' : '#475569' }}>Session {idx + 1}</span>
+                                                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                                                        {new Date(session.appointment_date).toLocaleDateString()} at {session.start_time}
+                                                                    </span>
+                                                                </div>
+                                                                <span className={`badge status-${session.status.toLowerCase() === 'completed' ? 'active' : session.status.toLowerCase() === 'pending' ? 'pending' : 'expired'}`} style={{ scale: '0.85', transformOrigin: 'right' }}>
+                                                                    {session.status}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
                                     </div>
                                 )}
                                  {modalTab === 'pricing' && (
@@ -1153,19 +1208,33 @@ function AdminAppointments() {
                             </div>
                             <div className="modal-footer admin-st-ac2eb647">
                                 <div className="admin-st-f232bb1d">
-                                    <div>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
                                         {selectedAppointment && (
-                                            <button 
-                                                className="btn btn-danger admin-st-ce9b8932" 
-                                                onClick={() => {
-                                                    handleDelete(selectedAppointment.id);
-                                                    closeModal();
-                                                }} 
-                                                onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
-                                                onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
-                                            >
-                                                <X size={16} /> Delete Appointment
-                                            </button>
+                                            <>
+                                                <button 
+                                                    className="btn btn-danger admin-st-ce9b8932" 
+                                                    onClick={() => {
+                                                        handleDelete(selectedAppointment.id);
+                                                        closeModal();
+                                                    }} 
+                                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
+                                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
+                                                >
+                                                    <X size={16} /> Delete Appointment
+                                                </button>
+                                                
+                                                <button 
+                                                    type="button"
+                                                    className="btn btn-secondary" 
+                                                    onClick={() => {
+                                                        closeModal();
+                                                        setTimeout(() => handleRebookNextSession(selectedAppointment), 200);
+                                                    }}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#e0e7ff', color: '#4338ca', borderColor: '#c7d2fe' }}
+                                                >
+                                                    <Plus size={16} /> Rebook Next Session
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                     <button className="btn btn-primary admin-st-a3930dd9" onClick={handleSave} >
