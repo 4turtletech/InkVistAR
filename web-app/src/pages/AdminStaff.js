@@ -10,6 +10,7 @@ import AdminSideNav from '../components/AdminSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import './AdminStaff.css';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 
 function AdminStaff() {
@@ -311,15 +312,15 @@ function AdminStaff() {
                         className="form-input"
                         value="30"
                         disabled
-                        style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}
+                        className="admin-st-10bc60ad"
                     />
                 </div>
             </div>
-            <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={handleUpdateProfile}>
-                <Save size={18} style={{ marginRight: '8px' }} /> Save Changes
+            <button className="btn btn-primary admin-st-194b571d" onClick={handleUpdateProfile}>
+                <Save size={18} className="admin-st-7f4ee4f3" /> Save Changes
             </button>
 
-            <div className="stats-row" style={{ marginTop: '40px', padding: 0 }}>
+            <div className="stats-row admin-st-40088812">
                 <div className="stat-item">
                     <span className="stat-label">Total Appointments</span>
                     <span className="stat-count">{artistDetails.stats.total_appointments}</span>
@@ -334,7 +335,7 @@ function AdminStaff() {
 
     const renderScheduleTab = () => (
         <div className="tab-content">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div className="admin-st-07952507">
                 <h3>Upcoming Schedule</h3>
                 <button className="btn btn-secondary" onClick={handleBlockDate}>Block Date</button>
             </div>
@@ -370,14 +371,14 @@ function AdminStaff() {
         <div className="tab-content">
             <div className="gallery-grid-admin">
                 {artistDetails.portfolio.map(work => (
-                    <div key={work.id} className="gallery-item-admin" onClick={() => openEditWork(work)} style={{ cursor: 'pointer' }}>
+                    <div key={work.id} className="gallery-item-admin" onClick={() => openEditWork(work)} className="admin-st-24b531c6">
                         <img src={work.image_url} alt={work.title} />
                         <div className="gallery-overlay">
                             <button className="delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteWork(work.id); }}>
                                 <Trash2 size={16} />
                             </button>
                             <span>{work.title}</span>
-                            {work.price_estimate && <span style={{ color: '#daa520', fontSize: '0.8rem', fontWeight: '600' }}>₱{Number(work.price_estimate).toLocaleString()}</span>}
+                            {work.price_estimate && <span className="admin-st-1998107d">₱{Number(work.price_estimate).toLocaleString()}</span>}
                         </div>
                     </div>
                 ))}
@@ -397,7 +398,7 @@ function AdminStaff() {
 
         return (
             <div className="tab-content">
-                <div className="stats-row" style={{ padding: 0, marginBottom: '20px' }}>
+                <div className="stats-row admin-st-129729d4">
                     <div className="stat-item">
                         <span className="stat-label">Total Commission</span>
                         <span className="stat-count">₱{earnings.reduce((sum, e) => sum + e.commission, 0).toLocaleString()}</span>
@@ -418,7 +419,7 @@ function AdminStaff() {
                                 <td>{new Date(e.appointment_date).toLocaleDateString()}</td>
                                 <td>{e.client_name}</td>
                                 <td>₱{e.amount.toLocaleString()}</td>
-                                <td style={{ color: '#10b981', fontWeight: 'bold' }}>₱{e.commission.toFixed(2)}</td>
+                                <td className="admin-st-9e10b928">₱{e.commission.toFixed(2)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -450,7 +451,7 @@ function AdminStaff() {
                     </div>
 
                     <div className="premium-filters-group">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>
+                        <div className="admin-st-5d251045">
                             <Filter size={16} />
                             <span>Filter by:</span>
                         </div>
@@ -465,7 +466,7 @@ function AdminStaff() {
                             <option value="admin">Admin</option>
                         </select>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600', marginLeft: '0.5rem' }}>
+                        <div className="admin-st-a8cc8c61">
                             <SlidersHorizontal size={16} />
                             <span>Sort:</span>
                         </div>
@@ -536,7 +537,7 @@ function AdminStaff() {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="5" className="no-data" style={{ textAlign: 'center', padding: '2rem' }}>Loading staff...</td></tr>
+                                    <tr><td colSpan="5" className="no-data admin-st-3927920f">Loading staff...</td></tr>
                                 ) : paginatedStaff.length > 0 ? (
                                     paginatedStaff.map((member) => (
                                         <tr key={member.id}>
@@ -579,24 +580,24 @@ function AdminStaff() {
                 {/* Detailed Artist Manager Overlay */}
                 {artistManagerModal.mounted && selectedArtist && (
                     <div className={`modal-overlay ${artistManagerModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                        <div className="modal-content xl" style={{ height: '90vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-content xl admin-st-980ed307" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                    <div style={{ background: '#f1f5f9', width: '50px', height: '50px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
+                                <div className="admin-flex-center admin-gap-20">
+                                    <div className="admin-st-d84f98fc">
                                         <User size={28} />
                                     </div>
                                     <div>
-                                        <h2 style={{ margin: 0 }}>{selectedArtist.name}</h2>
-                                        <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                                            <span className={`badge role-${selectedArtist.user_type}`} style={{ fontSize: '0.7rem', padding: '4px 10px' }}>{selectedArtist.role}</span>
-                                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Staff ID: #STR-{selectedArtist.id.toString().padStart(4, '0')}</span>
+                                        <h2 className="admin-m-0">{selectedArtist.name}</h2>
+                                        <div className="admin-st-df628aac">
+                                            <span className={`badge role-${selectedArtist.user_type}`} className="admin-st-500d49ab">{selectedArtist.role}</span>
+                                            <span className="admin-st-3bf8f64b">Staff ID: #STR-{selectedArtist.id.toString().padStart(4, '0')}</span>
                                         </div>
                                     </div>
                                 </div>
                                 <button className="close-btn" onClick={closeModal}><X size={24} /></button>
                             </div>
 
-                            <div className="settings-tabs" style={{ padding: '0 30px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                            <div className="settings-tabs admin-st-23c98a22">
                                 <button className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
                                     <UserCircle size={16} /> Profile Information
                                 </button>
@@ -611,9 +612,9 @@ function AdminStaff() {
                                 </button>
                             </div>
 
-                            <div className="modal-body" style={{ flex: 1, padding: '30px' }}>
+                            <div className="modal-body admin-st-89c672df">
                                 {loadingDetails ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '20px', color: '#94a3b8' }}>
+                                    <div className="admin-st-578fa77f">
                                         <div className="loading-spinner"></div>
                                         <p>Fetching performance metrics...</p>
                                     </div>
@@ -629,7 +630,7 @@ function AdminStaff() {
                             <div className="modal-footer">
                                 <button className="btn btn-secondary" onClick={closeModal}>Close Management Portal</button>
                                 {activeTab === 'profile' && (
-                                    <button className="btn btn-primary" onClick={handleUpdateProfile} style={{ padding: '10px 30px' }}>
+                                    <button className="btn btn-primary" onClick={handleUpdateProfile} className="admin-st-f9a92399">
                                         <Save size={18} /> Sync Account Updates
                                     </button>
                                 )}
@@ -640,28 +641,28 @@ function AdminStaff() {
 
                 {/* Portfolio Content Editor Modal */}
                 {editWorkModal.mounted && selectedWork && (
-                    <div className={`modal-overlay ${editWorkModal.visible ? 'open' : ''}`} onClick={closeEditWork} style={{ zIndex: 1100 }}>
+                    <div className={`modal-overlay ${editWorkModal.visible ? 'open' : ''}`} onClick={closeEditWork} className="admin-st-63d3f2c7">
                         <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <div>
-                                    <h2 style={{ margin: 0 }}>Review Portfolio Asset</h2>
-                                    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>Update display metadata and gallery positioning</p>
+                                    <h2 className="admin-m-0">Review Portfolio Asset</h2>
+                                    <p className="admin-st-9b9985a8">Update display metadata and gallery positioning</p>
                                 </div>
                                 <button className="close-btn" onClick={closeEditWork}><X size={24} /></button>
                             </div>
                             <form onSubmit={handleSaveWork}>
-                                <div className="modal-body" style={{ maxHeight: '70vh' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '30px' }}>
+                                <div className="modal-body admin-st-cc3b3598">
+                                    <div className="admin-st-ede7eeea">
                                         {/* Left: Visual Asset */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                            <div style={{ width: '100%', height: '350px', backgroundColor: '#f8fafc', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <img src={selectedWork.image_url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                        <div className="admin-st-52f745d6">
+                                            <div className="admin-st-721d662a">
+                                                <img src={selectedWork.image_url} alt="Preview" className="admin-st-2aa2aed6" />
                                             </div>
-                                            <div className="form-group" style={{ background: '#f8fafc', padding: '15px', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
-                                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontWeight: 600, color: '#334155' }}>
+                                            <div className="form-group admin-st-cd631299">
+                                                <label className="admin-st-32231f0d">
                                                     <input
                                                         type="checkbox"
-                                                        style={{ width: '18px', height: '18px' }}
+                                                        className="admin-st-95e08695"
                                                         checked={workFormData.isPublic}
                                                         onChange={e => setWorkFormData({ ...workFormData, isPublic: e.target.checked })}
                                                     />
@@ -671,9 +672,9 @@ function AdminStaff() {
                                         </div>
 
                                         {/* Right: Metadata */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        <div className="admin-st-ff43421e">
                                             <div className="form-group">
-                                                <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Asset Title</label>
+                                                <label className="admin-st-19644797">Asset Title</label>
                                                 <input
                                                     type="text"
                                                     className="form-input"
@@ -682,9 +683,9 @@ function AdminStaff() {
                                                     required
                                                 />
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                            <div className="admin-st-2f580e88">
                                                 <div className="form-group">
-                                                    <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Style Category</label>
+                                                    <label className="admin-st-19644797">Style Category</label>
                                                     <select
                                                         className="form-input"
                                                         value={workFormData.category}
@@ -698,7 +699,7 @@ function AdminStaff() {
                                                     </select>
                                                 </div>
                                                 <div className="form-group">
-                                                    <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Market Valuation (₱)</label>
+                                                    <label className="admin-st-19644797">Market Valuation (₱)</label>
                                                     <input
                                                         type="number"
                                                         className="form-input"
@@ -708,13 +709,13 @@ function AdminStaff() {
                                                 </div>
                                             </div>
                                             <div className="form-group">
-                                                <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Project Narrative</label>
+                                                <label className="admin-st-19644797">Project Narrative</label>
                                                 <textarea
                                                     className="form-input"
                                                     rows="6"
                                                     value={workFormData.description}
                                                     onChange={e => setWorkFormData({ ...workFormData, description: e.target.value })}
-                                                    style={{ minHeight: '150px' }}
+                                                    className="admin-st-7b393fc7"
                                                 />
                                             </div>
                                         </div>
@@ -722,7 +723,7 @@ function AdminStaff() {
                                 </div>
                                 <div className="modal-footer">
                                     <button type="button" className="btn btn-secondary" onClick={closeEditWork}>Discard Changes</button>
-                                    <button type="submit" className="btn btn-primary" style={{ padding: '10px 40px' }}><Save size={18} /> Update Content</button>
+                                    <button type="submit" className="btn btn-primary admin-st-6948e5f9"><Save size={18} /> Update Content</button>
                                 </div>
                             </form>
                         </div>

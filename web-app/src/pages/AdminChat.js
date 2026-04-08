@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { MessageSquare, Calendar, Activity } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import ChatWidget from '../components/ChatWidget';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 import { io } from 'socket.io-client';
 import './AdminChat.css';

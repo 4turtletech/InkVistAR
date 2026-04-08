@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { DollarSign, Calendar, Users, Download, Package, Printer, Filter } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminAnalytics.css';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 
 function AdminAnalytics() {
@@ -67,29 +68,28 @@ function AdminAnalytics() {
         <div className="admin-page-with-sidenav">
                <AdminSideNav />
             <div className="admin-page page-container-enter">
-            <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none', color: '#1f2937' }}>
+            <header className="admin-header admin-st-c23ff2ab">
                 <h1>Analytics & Reports</h1>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <button className="btn btn-secondary" onClick={handlePrint} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <div className="admin-st-bb81d8eb">
+                    <button className="btn btn-secondary" onClick={handlePrint} className="admin-st-2609fdda">
                         <Printer size={18} /> Print Report
                     </button>
-                    <button className="btn btn-primary" onClick={handleExport} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <button className="btn btn-primary" onClick={handleExport} className="admin-st-2609fdda">
                         <Download size={18} /> Export Report
                     </button>
                 </div>
             </header>
 
-            <div className="premium-filter-bar" style={{ margin: '20px 2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>
+            <div className="premium-filter-bar admin-st-c77b64b9">
+                <div className="admin-st-f60a1998">
+                    <div className="admin-st-5d251045">
                         <Filter size={16} />
                         <span>Time Range:</span>
                     </div>
                     <select 
                         value={dateRange}
                         onChange={(e) => setDateRange(e.target.value)}
-                        className="premium-select-v2"
-                        style={{ minWidth: '180px' }}
+                        className="premium-select-v2 admin-st-94a14c3f"
                     >
                         <option value="week">Last Week</option>
                         <option value="month">This Month</option>
@@ -100,21 +100,21 @@ function AdminAnalytics() {
             </div>
 
             {loading ? (
-                <div className="no-data" style={{padding: '4rem'}}>Loading analytics...</div>
+                <div className="no-data admin-st-28fdef5f">Loading analytics...</div>
             ) : !analytics ? (
-                <div className="no-data" style={{padding: '4rem'}}>No analytics data available.</div>
+                <div className="no-data admin-st-28fdef5f">No analytics data available.</div>
             ) : (
             <>
             {/* Print Only Header */}
             <div className="print-only-header">
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000', paddingBottom: '10px', marginBottom: '20px'}}>
+                <div className="admin-st-c6657cae">
                     <div>
-                        <h1 style={{margin: 0, color: '#000'}}>InkVistAR Studio</h1>
-                        <p style={{margin: 0}}>Analytics & Performance Report</p>
+                        <h1 className="admin-st-b43c9608">InkVistAR Studio</h1>
+                        <p className="admin-st-c4858c02">Analytics & Performance Report</p>
                     </div>
-                    <div style={{textAlign: 'right'}}>
-                        <p style={{margin: 0}}>Date: {new Date().toLocaleDateString()}</p>
-                        <p style={{margin: 0}}>Range: {dateRange.charAt(0).toUpperCase() + dateRange.slice(1)}</p>
+                    <div className="admin-st-7851dbc0">
+                        <p className="admin-st-c4858c02">Date: {new Date().toLocaleDateString()}</p>
+                        <p className="admin-st-c4858c02">Range: {dateRange.charAt(0).toUpperCase() + dateRange.slice(1)}</p>
                     </div>
                 </div>
             </div>

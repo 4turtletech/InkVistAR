@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Users, Calendar, DollarSign, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Info, SlidersHorizontal } from 'lucide-react';
 import './AdminDashboard.css';
 import AdminSideNav from '../components/AdminSideNav';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 
 function AdminDashboard() {
@@ -285,7 +286,7 @@ function AdminDashboard() {
                             <input type="text" placeholder="Search things..." />
                         </div> {/* This search is for the overall dashboard, not specific tables */}
                         
-                        <div className="notif-btn-wrapper" ref={notifRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <div className="notif-btn-wrapper" ref={notifRef} className="admin-st-fab32c0e">
                             <button className="notif-trigger-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
                                 <Bell size={20} />
                                 {unreadNotifications > 0 && <span className="notif-badge-dot"></span>}
@@ -378,7 +379,7 @@ function AdminDashboard() {
                             </div>
 
                             <div className="stat-card-v2 glass-card clickable" onClick={() => navigate('/admin/pos')}>
-                                <div className="stat-icon-wrapper blue" style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}>
+                                <div className="stat-icon-wrapper blue admin-st-b08058c4">
                                     <ShoppingCart size={24} />
                                 </div>
                                 <div className="stat-info-v2">
@@ -423,7 +424,7 @@ function AdminDashboard() {
                                             <Clock size={20} />
                                             <h2>Today's Schedule</h2>
                                         </div>
-                                        <button className="view-all-btn" onClick={() => navigate('/admin/appointments')} style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500' }}>View All</button>
+                                        <button className="view-all-btn" onClick={() => navigate('/admin/appointments')} className="admin-st-d3ffc78c">View All</button>
                                     </div>
                                     <div className="modern-table-wrapper">
                                         {todaysAppointments.length > 0 ? (
@@ -446,7 +447,7 @@ function AdminDashboard() {
                                                             <td>{apt.client_name || 'Unknown'}</td>
                                                             <td>{apt.artist_name}</td>
                                                             <td>
-                                                                <span className="badge-v2 pending" style={{ fontSize: '0.72rem' }}>
+                                                                <span className="badge-v2 pending admin-st-606efc58">
                                                                     {apt.service_type || 'Tattoo Session'}
                                                                 </span>
                                                             </td>
@@ -455,7 +456,7 @@ function AdminDashboard() {
                                                     ))}
                                                 </tbody>
                                             </table>
-                                        ) : <p className="no-data" style={{padding: '2rem', textAlign: 'center'}}>No appointments for today.</p>}
+                                        ) : <p className="no-data admin-st-eb108882">No appointments for today.</p>}
                                     </div>
                                 </div>
 
@@ -466,7 +467,7 @@ function AdminDashboard() {
                                             <Calendar size={20} />
                                             <h2>Appointments Overview</h2>
                                         </div>
-                                        <div className="card-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                        <div className="card-actions admin-st-bb81d8eb">
                                             <div className="filter-pill-group">
                                                 <button 
                                                     className={`filter-pill ${appointmentFilter === 'upcoming' ? 'active' : ''}`}
@@ -481,14 +482,14 @@ function AdminDashboard() {
                                                     onClick={() => { setAppointmentFilter('all'); setAppointmentPage(1); }}
                                                 >All</button>
                                             </div>
-                                            <div className="header-search" style={{ height: '36px', width: '200px' }}>
+                                            <div className="header-search admin-st-bea296a0">
                                                 <Search size={14} />
                                                 <input
                                                     type="text"
                                                     placeholder="Search..."
                                                     value={appointmentSearch}
                                                     onChange={(e) => { setAppointmentSearch(e.target.value); setAppointmentPage(1); }}
-                                                    style={{ fontSize: '0.8rem' }}
+                                                    className="admin-st-fb2a7115"
                                                 />
                                             </div>
                                         </div>
@@ -502,7 +503,7 @@ function AdminDashboard() {
                                                     <th>Service</th>
                                                     <th>Date</th>
                                                     <th>Status</th>
-                                                    <th style={{ textAlign: 'right' }}>Actions</th>
+                                                    <th className="admin-st-7851dbc0">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -511,7 +512,7 @@ function AdminDashboard() {
                                                         <td>{appointment.client_name}</td>
                                                         <td>{appointment.artist_name}</td>
                                                         <td>
-                                                            <span className="badge-v2 pending" style={{ fontSize: '0.72rem' }}>
+                                                            <span className="badge-v2 pending admin-st-606efc58">
                                                                 {appointment.service_type || 'Tattoo Session'}
                                                             </span>
                                                         </td>
@@ -547,20 +548,20 @@ function AdminDashboard() {
                                                         </td>
                                                     </tr>
                                                 )) : (
-                                                    <tr><td colSpan="6" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>No appointments found</td></tr>
+                                                    <tr><td colSpan="6" className="no-data admin-st-3927920f">No appointments found</td></tr>
                                                 )}
                                             </tbody>
                                         </table>
                                     </div>
 
                                     {appointmentTotalPages > 1 && (
-                                        <div className="card-footer-v2" style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem', gap: '10px', alignItems: 'center' }}>
+                                        <div className="card-footer-v2 admin-st-700e3e2e">
                                             <button
                                                 className="icon-btn-v2"
                                                 disabled={appointmentPage === 1}
                                                 onClick={() => setAppointmentPage(p => p - 1)}
                                             ><ChevronLeft size={16} /></button>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{appointmentPage} / {appointmentTotalPages}</span>
+                                            <span className="admin-st-c949b242">{appointmentPage} / {appointmentTotalPages}</span>
                                             <button
                                                 className="icon-btn-v2"
                                                 disabled={appointmentPage === appointmentTotalPages}
@@ -602,7 +603,7 @@ function AdminDashboard() {
                                             <Bell size={20} />
                                             <h2>System Alerts</h2>
                                         </div>
-                                        <button className="view-all-btn" onClick={() => navigate('/admin/notifications')} style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500' }}>View All</button>
+                                        <button className="view-all-btn" onClick={() => navigate('/admin/notifications')} className="admin-st-d3ffc78c">View All</button>
                                     </div>
                                     <div className="alerts-stack">
                                         {alerts.length > 0 ? alerts.map(alert => (
@@ -657,62 +658,62 @@ function AdminDashboard() {
                 <div className="modal-overlay open" onClick={() => setIsDetailModalOpen(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                <div style={{ background: '#f8fafc', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div className="admin-flex-center admin-gap-15">
+                                <div className="admin-st-c911153f">
                                     <Clock size={20} className="text-bronze" />
                                 </div>
                                 <div>
-                                    <h2 style={{ margin: 0 }}>Session Intelligence</h2>
-                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Appointment Ref: #{selectedAppointment.id}</p>
+                                    <h2 className="admin-m-0">Session Intelligence</h2>
+                                    <p className="admin-st-925e4e02">Appointment Ref: #{selectedAppointment.id}</p>
                                 </div>
                             </div>
                             <button className="close-btn" onClick={() => setIsDetailModalOpen(false)}>
                                 <X size={24} />
                             </button>
                         </div>
-                        <div className="modal-body" style={{ padding: '30px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Client Entity</span>
-                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{selectedAppointment.client_name}</span>
+                        <div className="modal-body admin-st-7cea880d">
+                            <div className="admin-st-2f580e88">
+                                <div className="detail-item admin-st-8edafd44">
+                                    <span className="admin-st-2591d288">Client Entity</span>
+                                    <span className="admin-st-c9f09bca">{selectedAppointment.client_name}</span>
                                 </div>
-                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Assigned Professional</span>
-                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{selectedAppointment.artist_name}</span>
+                                <div className="detail-item admin-st-8edafd44">
+                                    <span className="admin-st-2591d288">Assigned Professional</span>
+                                    <span className="admin-st-c9f09bca">{selectedAppointment.artist_name}</span>
                                 </div>
-                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Scheduled Date</span>
-                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{new Date(selectedAppointment.appointment_date).toLocaleDateString()}</span>
+                                <div className="detail-item admin-st-8edafd44">
+                                    <span className="admin-st-2591d288">Scheduled Date</span>
+                                    <span className="admin-st-c9f09bca">{new Date(selectedAppointment.appointment_date).toLocaleDateString()}</span>
                                 </div>
-                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Timeline (Start)</span>
-                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{selectedAppointment.start_time}</span>
+                                <div className="detail-item admin-st-8edafd44">
+                                    <span className="admin-st-2591d288">Timeline (Start)</span>
+                                    <span className="admin-st-c9f09bca">{selectedAppointment.start_time}</span>
                                 </div>
-                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Status Lifecycle</span>
+                                <div className="detail-item admin-st-8edafd44">
+                                    <span className="admin-st-2591d288">Status Lifecycle</span>
                                     <span className={`status-badge-v2 ${selectedAppointment.status.toLowerCase()}`}>
                                         {selectedAppointment.status}
                                     </span>
                                 </div>
-                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Service Protocol</span>
-                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{selectedAppointment.service_type || 'Tattoo Session'}</span>
+                                <div className="detail-item admin-st-8edafd44">
+                                    <span className="admin-st-2591d288">Service Protocol</span>
+                                    <span className="admin-st-c9f09bca">{selectedAppointment.service_type || 'Tattoo Session'}</span>
                                 </div>
                                 {selectedAppointment.notes && (
-                                    <div className="detail-item" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Operational Memo / Notes</span>
-                                        <span style={{ fontSize: '0.9rem', color: '#475569', whiteSpace: 'pre-wrap' }}>
+                                    <div className="detail-item admin-st-bb130abb">
+                                        <span className="admin-st-2591d288">Operational Memo / Notes</span>
+                                        <span className="admin-st-9aa3b024">
                                             {selectedAppointment.notes}
                                         </span>
                                     </div>
                                 )}
-                                <div className="detail-item" style={{ background: '#f1f5f9', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Valuation (Total)</span>
-                                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b' }}>₱{Number(selectedAppointment.price || 0).toLocaleString()}</span>
+                                <div className="detail-item admin-st-0ce7012c">
+                                    <span className="admin-st-2591d288">Valuation (Total)</span>
+                                    <span className="admin-st-362525e0">₱{Number(selectedAppointment.price || 0).toLocaleString()}</span>
                                 </div>
-                                <div className="detail-item" style={{ background: '#ecfdf5', padding: '15px', borderRadius: '12px', border: '1px solid #10b981' }}>
-                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#059669', textTransform: 'uppercase', marginBottom: '5px' }}>Financial Clearance (Paid)</span>
-                                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669' }}>
+                                <div className="detail-item admin-st-1c711d5e">
+                                    <span className="admin-st-e26908b3">Financial Clearance (Paid)</span>
+                                    <span className="admin-st-da64dae6">
                                         ₱{Number(selectedAppointment.total_paid || 0).toLocaleString()}
                                     </span>
                                 </div>
@@ -732,28 +733,26 @@ function AdminDashboard() {
                 <div className="modal-overlay open" onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2 style={{ fontSize: '1.25rem' }}>System Confirmation</h2>
+                            <h2 className="admin-st-14fa8787">System Confirmation</h2>
                             <button className="close-btn" onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}>
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="modal-body" style={{ padding: '30px', textAlign: 'center' }}>
-                            <div style={{ background: '#fff7ed', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                                <SlidersHorizontal size={24} style={{ color: '#f97316' }} />
+                        <div className="modal-body admin-st-06ff1ea3">
+                            <div className="admin-st-969fbc7a">
+                                <SlidersHorizontal size={24} className="admin-st-606a2b73" />
                             </div>
-                            <p style={{ margin: 0, color: '#475569', lineHeight: 1.6, fontSize: '1rem' }}>{confirmModal.message}</p>
+                            <p className="admin-st-9e8bc04b">{confirmModal.message}</p>
                         </div>
-                        <div className="modal-footer" style={{ gap: '15px' }}>
+                        <div className="modal-footer admin-st-651c59bd">
                             <button
-                                className="btn btn-secondary"
-                                style={{ flex: 1 }}
+                                className="btn btn-secondary admin-st-49cdf874"
                                 onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}
                             >
                                 Revert
                             </button>
                             <button
-                                className="btn btn-primary"
-                                style={{ flex: 1 }}
+                                className="btn btn-primary admin-st-49cdf874"
                                 onClick={() => {
                                     confirmModal.onConfirm?.();
                                     setConfirmModal({ open: false, message: '', onConfirm: null });

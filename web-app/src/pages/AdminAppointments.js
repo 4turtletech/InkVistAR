@@ -7,6 +7,7 @@ import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import './AdminAppointments.css';
 import './PortalStyles.css';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 
 function AdminAppointments() {
@@ -448,32 +449,32 @@ function AdminAppointments() {
             <div className="admin-page page-container-enter">
                 {/* Print Only Header */}
                 <div className="print-only-header">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000', paddingBottom: '10px', marginBottom: '20px' }}>
+                    <div className="admin-st-c6657cae">
                         <div>
-                            <h1 style={{ margin: 0, color: '#000' }}>InkVistAR Studio</h1>
-                            <p style={{ margin: 0 }}>Appointments & Schedule Report</p>
+                            <h1 className="admin-st-b43c9608">InkVistAR Studio</h1>
+                            <p className="admin-m-0">Appointments & Schedule Report</p>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <p style={{ margin: 0 }}>Date: {new Date().toLocaleDateString()}</p>
-                            <p style={{ margin: 0 }}>View: {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}</p>
+                        <div className="admin-st-7851dbc0">
+                            <p className="admin-m-0">Date: {new Date().toLocaleDateString()}</p>
+                            <p className="admin-m-0">View: {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}</p>
                         </div>
                     </div>
                 </div>
-                <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none', color: '#1f2937' }}>
+                <header className="admin-header admin-st-c23ff2ab">
                     <h1>Appointment Management</h1>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <div className="view-toggle" style={{ display: 'flex', gap: '10px' }}>
+                    <div className="admin-st-bb81d8eb">
+                        <div className="view-toggle admin-flex-center admin-gap-10">
                             <button
                                 className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
                                 onClick={() => setViewMode('list')}
-                                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.5rem 1rem' }}
+                                className="admin-st-1b9ed2b3"
                             >
                                 <List size={16} /> List
                             </button>
                             <button
                                 className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
                                 onClick={() => setViewMode('calendar')}
-                                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.5rem 1rem' }}
+                                className="admin-st-1b9ed2b3"
                             >
                                 <Calendar size={16} /> Calendar
                             </button>
@@ -491,21 +492,21 @@ function AdminAppointments() {
                 </header>
 
                 {viewMode === 'calendar' ? (
-                    <div className="data-card" style={{ margin: '2rem' }}>
-                        <div className="calendar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                <button onClick={() => changeMonth(-1)} className="action-btn" style={{ margin: 0 }}><ChevronLeft size={20} /></button>
-                                <button onClick={() => setCurrentDate(new Date())} className="action-btn" style={{ margin: 0, padding: '0.4rem 1rem', background: 'transparent', border: '1px solid #e2e8f0', color: '#64748b' }}>Today</button>
-                                <button onClick={() => changeMonth(1)} className="action-btn" style={{ margin: 0 }}><ChevronRight size={20} /></button>
+                    <div className="data-card admin-st-96be3bbd">
+                        <div className="calendar-header admin-st-07952507">
+                            <div className="admin-st-f21b09cf">
+                                <button onClick={() => changeMonth(-1)} className="action-btn admin-m-0"><ChevronLeft size={20} /></button>
+                                <button onClick={() => setCurrentDate(new Date())} className="action-btn admin-st-505e88db">Today</button>
+                                <button onClick={() => changeMonth(1)} className="action-btn admin-m-0"><ChevronRight size={20} /></button>
                             </div>
-                            <h2 style={{ margin: 0, border: 'none' }}>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
-                            <div style={{ width: '150px' }}></div>
+                            <h2 className="admin-st-dcacbd6e">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
+                            <div className="admin-st-c25159cb"></div>
                         </div>
-                        <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }}>
+                        <div className="calendar-grid admin-st-3d636867">
                             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                                <div key={d} style={{ fontWeight: 'bold', textAlign: 'center', padding: '10px', color: '#64748b' }}>{d}</div>
+                                <div key={d} className="admin-st-24b38fb3">{d}</div>
                             ))}
-                            {[...Array(firstDayOfMonth)].map((_, i) => <div key={`empty-${i}`} style={{ background: '#f8fafc', borderRadius: '8px' }}></div>)}
+                            {[...Array(firstDayOfMonth)].map((_, i) => <div key={`empty-${i}`} className="admin-st-e2f83dcd"></div>)}
                             {[...Array(daysInMonth)].map((_, i) => {
                                 const day = i + 1;
                                 const dayAppts = getAppointmentsForDate(day);
@@ -525,24 +526,16 @@ function AdminAppointments() {
                                         onClick={() => handleDayClick(`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`)}>
                                         <div style={{ fontWeight: 'bold', marginBottom: '5px', color: isToday ? '#6366f1' : '#334155', display: 'flex', justifyContent: 'space-between' }}>
                                             <span>{day}</span>
-                                            <Plus size={12} style={{ opacity: 0.5 }} />
+                                            <Plus size={12} className="admin-st-0dbc0f09" />
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: 'auto' }}>
+                                        <div className="admin-st-5e598434">
                                             {dayAppts.length > 0 && (
-                                                <div style={{
-                                                    fontSize: '0.75rem',
-                                                    padding: '4px',
-                                                    borderRadius: '4px',
-                                                    backgroundColor: '#e0e7ff',
-                                                    color: '#3730a3',
-                                                    textAlign: 'center',
-                                                    fontWeight: '600'
-                                                }}>
+                                                <div className="admin-st-50ce32ce">
                                                     {dayAppts.length} {dayAppts.length === 1 ? 'Booking' : 'Bookings'}
                                                 </div>
                                             )}
                                             {dayAppts.length > 0 && (
-                                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                                <div className="admin-st-3c36f78c">
                                                     {dayAppts.slice(0, 5).map(apt => (
                                                         <div key={apt.id} style={{
                                                             width: '8px', 
@@ -551,7 +544,7 @@ function AdminAppointments() {
                                                             backgroundColor: apt.status === 'confirmed' ? '#10b981' : (apt.status === 'pending' ? '#f59e0b' : (apt.status === 'cancelled' || apt.status === 'rejected' ? '#94a3b8' : '#6366f1'))
                                                         }} title={apt.status} />
                                                     ))}
-                                                    {dayAppts.length > 5 && <span style={{ fontSize: '10px', color: '#94a3b8', lineHeight: '8px' }}>+</span>}
+                                                    {dayAppts.length > 5 && <span className="admin-st-ba210a9a">+</span>}
                                                 </div>
                                             )}
                                         </div>
@@ -562,9 +555,9 @@ function AdminAppointments() {
                     </div>
                 ) : (
                     <>
-                        <div className="premium-filter-bar" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1.5rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                                <div className="premium-search-box" style={{ flex: 1, minWidth: '300px' }}>
+                        <div className="premium-filter-bar admin-st-a0e60838">
+                            <div className="admin-st-c67f566c">
+                                <div className="premium-search-box admin-st-8c2b2854">
                                     <Search size={18} className="text-muted" />
                                     <input
                                         type="text"
@@ -574,18 +567,11 @@ function AdminAppointments() {
                                     />
                                 </div>
 
-                                <div className="quick-filters" style={{
-                                    display: 'flex',
-                                    background: 'rgba(255,255,255,0.5)',
-                                    padding: '4px',
-                                    borderRadius: '12px',
-                                    border: '1px solid #e2e8f0',
-                                    gap: '4px'
-                                }}>
+                                <div className="quick-filters admin-st-70e52978">
                                     {[
                                         { id: 'all', label: 'All', icon: <Filter size={14} /> },
                                         { id: 'upcoming', label: 'Upcoming', icon: <Plus size={14} /> },
-                                        { id: 'latest', label: 'Latest Added', icon: <Plus size={14} style={{ transform: 'rotate(45deg)' }} /> }
+                                        { id: 'latest', label: 'Latest Added', icon: <Plus size={14} className="admin-st-554a34d7" /> }
                                     ].map(filter => (
                                         <button
                                             key={filter.id}
@@ -616,19 +602,7 @@ function AdminAppointments() {
                                                 setServiceFilter('all');
                                                 setDateFilter('');
                                             }}
-                                            className="badge"
-                                            style={{
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '6px',
-                                                padding: '8px 16px',
-                                                background: 'transparent',
-                                                color: '#ef4444',
-                                                transition: 'all 0.2s',
-                                                fontWeight: '600'
-                                            }}
+                                            className="badge admin-st-8dd03aaa"
                                         >
                                             <X size={14} />
                                             Clear Filters
@@ -637,8 +611,8 @@ function AdminAppointments() {
                                 </div>
                             </div>
 
-                            <div className="premium-filters-group" style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600', marginRight: '0.5rem' }}>
+                            <div className="premium-filters-group admin-st-d6f83f6a">
+                                <div className="admin-st-fa9239cc">
                                     <Filter size={16} />
                                     <span>Refine:</span>
                                 </div>
@@ -646,8 +620,7 @@ function AdminAppointments() {
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="premium-select-v2"
-                                    style={{ minWidth: '140px' }}
+                                    className="premium-select-v2 admin-st-8a8a8b6a"
                                 >
                                     <option value="all">All Status</option>
                                     <option value="confirmed">Confirmed</option>
@@ -661,8 +634,7 @@ function AdminAppointments() {
                                 <select
                                     value={serviceFilter}
                                     onChange={(e) => setServiceFilter(e.target.value)}
-                                    className="premium-select-v2"
-                                    style={{ minWidth: '160px' }}
+                                    className="premium-select-v2 admin-st-8b224a6c"
                                 >
                                     <option value="all">All Services</option>
                                     <option value="Tattoo Session">Tattoo Session</option>
@@ -676,11 +648,10 @@ function AdminAppointments() {
                                     type="date"
                                     value={dateFilter}
                                     onChange={(e) => setDateFilter(e.target.value)}
-                                    className="premium-select-v2"
-                                    style={{ paddingRight: '1rem', backgroundImage: 'none' }}
+                                    className="premium-select-v2 admin-st-b63c52d4"
                                 />
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600', marginLeft: '0.5rem' }}>
+                                <div className="admin-st-a8cc8c61">
                                     <SlidersHorizontal size={16} />
                                     <span>Sort:</span>
                                 </div>
@@ -735,14 +706,14 @@ function AdminAppointments() {
                                     </thead>
                                     <tbody>
                                         {loading ? (
-                                            <tr><td colSpan="10" className="no-data" style={{ textAlign: 'center', padding: '2rem' }}>Loading appointments...</td></tr>
+                                            <tr><td colSpan="10" className="no-data admin-st-3927920f">Loading appointments...</td></tr>
                                         ) : currentItems.length > 0 ? (
                                             currentItems.map((appointment) => (
                                                 <tr key={appointment.id}>
                                                     <td>#{appointment.id}</td>
                                                     <td>{appointment.clientName}</td>
                                                     <td>{appointment.artistName}</td>
-                                                    <td style={{ maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={appointment.serviceType}>{appointment.serviceType}</td>
+                                                    <td className="admin-st-775cebbf" title={appointment.serviceType}>{appointment.serviceType}</td>
                                                     <td>{appointment.date}</td>
                                                     <td>{appointment.time}</td>
                                                     <td>
@@ -752,41 +723,40 @@ function AdminAppointments() {
                                                     </td>
                                                     <td>
                                                         {appointment.paymentStatus === 'paid' ? (
-                                                            <span className="badge status-confirmed" style={{ backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #10b981' }}>Fully Paid</span>
+                                                            <span className="badge status-confirmed admin-st-4c344c9a">Fully Paid</span>
                                                         ) : appointment.paymentStatus === 'downpayment_paid' ? (
-                                                            <span className="badge" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #3b82f6' }}>Downpayment</span>
+                                                            <span className="badge admin-st-4a6cc9f0">Downpayment</span>
                                                         ) : appointment.price > 0 ? (
                                                             appointment.totalPaid >= appointment.price ? (
-                                                                <span className="badge status-confirmed" style={{ backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #10b981' }}>Fully Paid</span>
+                                                                <span className="badge status-confirmed admin-st-4c344c9a">Fully Paid</span>
                                                             ) : appointment.totalPaid > 0 ? (
-                                                                <span className="badge" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #3b82f6' }}>Balance: ₱{(appointment.price - appointment.totalPaid).toLocaleString()}</span>
+                                                                <span className="badge admin-st-4a6cc9f0">Balance: ₱{(appointment.price - appointment.totalPaid).toLocaleString()}</span>
                                                             ) : (
-                                                                <span className="badge" style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #ef4444' }}>Unpaid</span>
+                                                                <span className="badge admin-st-07684bc7">Unpaid</span>
                                                             )
                                                         ) : (
-                                                            <span className="badge" style={{ backgroundColor: '#f9fafb', color: '#6b7280', border: '1px solid #e5e7eb' }}>No Charge</span>
+                                                            <span className="badge admin-st-2d1fd819">No Charge</span>
                                                         )}
                                                     </td>
                                                     <td>₱{Number(appointment.price).toLocaleString()}</td>
                                                     <td className="actions-cell">
                                                         { appointment.status === 'pending' && (
                                                             <>
-                                                                <button className="action-btn view-btn" style={{ backgroundColor: '#10b981', marginRight: '5px', padding: '4px 8px' }} onClick={() => handleStatusUpdate(appointment.id, 'confirmed', appointment.clientName)} title="Approve">
-                                                                    <Check size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px' }} />
+                                                                <button className="action-btn view-btn admin-st-bb9a2c41" onClick={() => handleStatusUpdate(appointment.id, 'confirmed', appointment.clientName)} title="Approve">
+                                                                    <Check size={14} className="admin-st-da4d9cdd" />
                                                                 </button>
-                                                                <button className="action-btn delete-btn" style={{ marginRight: '5px', padding: '4px 8px' }} onClick={() => handleStatusUpdate(appointment.id, 'cancelled', appointment.clientName)} title="Reject">
-                                                                    <X size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
+                                                                <button className="action-btn delete-btn admin-st-02e8d890" onClick={() => handleStatusUpdate(appointment.id, 'cancelled', appointment.clientName)} title="Reject">
+                                                                    <X size={14} className="admin-st-234e64b8" />
                                                                 </button>
                                                             </>
                                                         )}
                                                         {appointment.status?.toLowerCase() === 'confirmed' && (
                                                             <button
-                                                                className="action-btn view-btn"
-                                                                style={{ backgroundColor: '#8b5cf6', marginRight: '5px', padding: '4px 8px' }}
+                                                                className="action-btn view-btn admin-st-5d943a90"
                                                                 onClick={() => handleStatusUpdate(appointment.id, 'completed', appointment.clientName)}
                                                                 title="Mark as Done"
                                                             >
-                                                                <Check size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px' }} />
+                                                                <Check size={14} className="admin-st-da4d9cdd" />
                                                             </button>
                                                         )}
                                                         <button className="action-btn edit-btn" onClick={() => handleEdit(appointment)}>
@@ -828,9 +798,9 @@ function AdminAppointments() {
                     <div className={`modal-overlay ${appointmentModal.visible ? 'open' : ''}`} onClick={closeModal}>
                         <div className="modal-content xl" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingRight: '40px' }}>
-                                        <h2 style={{ margin: 0 }}>{selectedAppointment ? `Edit Appointment #${selectedAppointment.id}` : 'New Appointment'}</h2>
+                                <div className="admin-st-15246701">
+                                    <div className="admin-st-18a02d52">
+                                        <h2 className="admin-m-0">{selectedAppointment ? `Edit Appointment #${selectedAppointment.id}` : 'New Appointment'}</h2>
                                         <div className="modal-tabs">
                                             <button 
                                                 className={`modal-tab-btn ${modalTab === 'details' ? 'active' : ''}`} 
@@ -852,13 +822,13 @@ function AdminAppointments() {
                                             </button>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                    <div className="admin-st-f21b09cf">
                                         <span className={`badge status-${getStatusColor(formData.status)}`}>{formData.status}</span>
                                         {selectedAppointment && selectedAppointment.price > 0 && (
-                                            <div className="badge" style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                            <div className="badge admin-st-d2713882">
                                                 <span>Paid: ₱{selectedAppointment.totalPaid.toLocaleString()} / ₱{formData.price.toLocaleString()}</span>
                                                 {selectedAppointment.totalPaid < formData.price && (
-                                                    <span style={{ color: '#ef4444', fontWeight: 700 }}>(Bal: ₱{(formData.price - selectedAppointment.totalPaid).toLocaleString()})</span>
+                                                    <span className="admin-st-14a76a5d">(Bal: ₱{(formData.price - selectedAppointment.totalPaid).toLocaleString()})</span>
                                                 )}
                                             </div>
                                         )}
@@ -868,26 +838,26 @@ function AdminAppointments() {
                             </div>
                             <div className="modal-body">
                                 {modalTab === 'details' && (
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+                                    <div className="admin-st-b97f1a79">
                                         {/* Left Column: People & Service */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        <div className="admin-st-d295c8d6">
                                             <div>
                                                 <label className="premium-input-label">Client Information</label>
                                                 {formData.clientId ? (
-                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <div style={{ background: '#d1fae5', padding: '8px', borderRadius: '50%' }}>
+                                                    <div className="admin-st-013bb379">
+                                                        <div className="admin-st-b0dbc89c">
+                                                            <div className="admin-st-589acf0b">
                                                                 <User size={18} color="#10b981" />
                                                             </div>
-                                                            <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1rem' }}>{clients.find(c => c.id == formData.clientId)?.name || clientSearch}</span>
+                                                            <span className="admin-st-0e40c814">{clients.find(c => c.id == formData.clientId)?.name || clientSearch}</span>
                                                         </div>
-                                                        <button type="button" onClick={() => { setFormData(prev => ({...prev, clientId: null})); setClientSearch(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                                                        <button type="button" onClick={() => { setFormData(prev => ({...prev, clientId: null})); setClientSearch(''); }} className="admin-st-f32d59a5">
                                                             <X size={20} />
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <div style={{ position: 'relative' }}>
-                                                        <div className="premium-search-box" style={{ maxWidth: '100%' }}>
+                                                    <div className="admin-st-d85c4e64">
+                                                        <div className="premium-search-box admin-st-c7f79b45">
                                                             <Search size={18} />
                                                             <input
                                                                 type="text"
@@ -899,11 +869,11 @@ function AdminAppointments() {
                                                             />
                                                         </div>
                                                         {(clientDropdownOpen || clientSearch) && (
-                                                            <div className="glass-card" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, maxHeight: '200px', overflowY: 'auto', background: 'white', border: '1px solid #e2e8f0', marginTop: '4px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+                                                            <div className="glass-card admin-st-83ac1cb2">
                                                                 {clients.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
-                                                                    <div key={c.id} style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '12px' }} onClick={() => { setFormData({ ...formData, clientId: c.id }); setClientSearch(c.name); }}>
+                                                                    <div key={c.id} className="admin-st-824731e9" onClick={() => { setFormData({ ...formData, clientId: c.id }); setClientSearch(c.name); }}>
                                                                         <User size={16} color="#C19A6B" />
-                                                                        <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{c.name}</span>
+                                                                        <span className="admin-st-9d3db44b">{c.name}</span>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -914,26 +884,26 @@ function AdminAppointments() {
 
                                             <div>
                                                 <label className="premium-input-label">Staff Assignment</label>
-                                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <div className="admin-st-efc8b70e">
                                                     <div className="premium-input-group">
-                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Primary Artist *</label>
+                                                        <label className="admin-st-b8618eb2">Primary Artist *</label>
                                                         <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2">
                                                             <option value="">Select Artist</option>
                                                             {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                                         </select>
                                                     </div>
                                                     <div className="premium-input-group">
-                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Secondary Artist</label>
+                                                        <label className="admin-st-b8618eb2">Secondary Artist</label>
                                                         <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2">
                                                             <option value="">None (Solo)</option>
                                                             {artists.filter(a => a.id != formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                                         </select>
                                                     </div>
                                                     {formData.secondaryArtistId && (
-                                                        <div style={{ marginTop: '4px', background: '#f5f3ff', padding: '12px', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5b21b6', margin: 0 }}>Split % (Pri/Sec):</label>
-                                                            <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: parseInt(e.target.value) })} className="premium-input-v2" style={{ width: '70px', padding: '8px' }} />
-                                                            <span style={{ color: '#6d28d9', fontWeight: 700 }}>/ {100 - (formData.commissionSplit || 0)}</span>
+                                                        <div className="admin-st-953ba7ac">
+                                                            <label className="admin-st-15b3be7e">Split % (Pri/Sec):</label>
+                                                            <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: parseInt(e.target.value) })} className="premium-input-v2 admin-st-e070afd8" />
+                                                            <span className="admin-st-7206c648">/ {100 - (formData.commissionSplit || 0)}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -941,9 +911,9 @@ function AdminAppointments() {
 
                                             <div>
                                                 <label className="premium-input-label">Service Details</label>
-                                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <div className="admin-st-efc8b70e">
                                                     <div className="premium-input-group">
-                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Service Type *</label>
+                                                        <label className="admin-st-b8618eb2">Service Type *</label>
                                                         <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2">
                                                             <option value="Tattoo Session">Tattoo Session</option>
                                                             <option value="Consultation">Consultation</option>
@@ -952,7 +922,7 @@ function AdminAppointments() {
                                                         </select>
                                                     </div>
                                                     <div className="premium-input-group">
-                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Design / Idea</label>
+                                                        <label className="admin-st-b8618eb2">Design / Idea</label>
                                                         <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
                                                     </div>
                                                 </div>
@@ -960,22 +930,22 @@ function AdminAppointments() {
                                         </div>
 
                                         {/* Right Column: Schedule & Status */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        <div className="admin-st-d295c8d6">
                                             <div>
                                                 <label className="premium-input-label">Schedule & Status</label>
-                                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                                <div className="admin-st-efc8b70e">
+                                                    <div className="admin-st-fefecdf0">
                                                         <div className="premium-input-group">
-                                                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Date *</label>
+                                                            <label className="admin-st-b8618eb2">Date *</label>
                                                             <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="premium-input-v2" />
                                                         </div>
                                                         <div className="premium-input-group">
-                                                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Time *</label>
+                                                            <label className="admin-st-b8618eb2">Time *</label>
                                                             <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-input-v2" />
                                                         </div>
                                                     </div>
                                                     <div className="premium-input-group">
-                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Booking Status</label>
+                                                        <label className="admin-st-b8618eb2">Booking Status</label>
                                                         <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="premium-select-v2">
                                                             <option value="pending">Pending Review</option>
                                                             <option value="confirmed">Confirmed</option>
@@ -991,16 +961,16 @@ function AdminAppointments() {
                                 )}
                                  {modalTab === 'pricing' && (
                                     /* Pricing Tab View */
-                                    <div className="fade-in" style={{ padding: '0 40px' }}>
-                                        <div style={{ background: '#f8fafc', borderRadius: '24px', padding: '40px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '30px', maxWidth: '700px', margin: '0 auto' }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                                    <div className="fade-in admin-st-9628d1ce">
+                                        <div className="admin-st-dd4f6313">
+                                            <div className="admin-st-e5b0a825">
                                                 <div className="form-group">
-                                                    <label style={{ fontWeight: 700, color: '#1e293b' }}>Total Quote (₱) *</label>
-                                                    <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="premium-input-v2" style={{ fontSize: '1.5rem', fontWeight: 800, padding: '15px' }} />
+                                                    <label className="admin-st-6ad161f7">Total Quote (₱) *</label>
+                                                    <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="premium-input-v2 admin-st-1a49bbe7" />
                                                 </div>
                                                 <div className="form-group">
-                                                    <label style={{ fontWeight: 700, color: '#1e293b' }}>Payment Strategy</label>
-                                                    <select value={formData.paymentStatus} onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })} className="premium-select-v2" style={{ height: '62px' }}>
+                                                    <label className="admin-st-6ad161f7">Payment Strategy</label>
+                                                    <select value={formData.paymentStatus} onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })} className="premium-select-v2 admin-st-c8e7c63b">
                                                         <option value="unpaid">Draft (Unquoted)</option>
                                                         <option value="downpayment_paid">Downpayment Collected</option>
                                                         <option value="paid">Fully Paid</option>
@@ -1009,26 +979,25 @@ function AdminAppointments() {
                                             </div>
 
                                             {selectedAppointment && (
-                                                <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '20px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                                                        <span style={{ color: '#64748b', fontWeight: 600 }}>Total Collected:</span>
-                                                        <span style={{ fontWeight: 800, color: '#10b981', fontSize: '1.2rem' }}>₱{selectedAppointment.totalPaid.toLocaleString()}</span>
+                                                <div className="admin-st-4344b743">
+                                                    <div className="admin-st-7c85a4a1">
+                                                        <span className="admin-st-9e124000">Total Collected:</span>
+                                                        <span className="admin-st-3947f0f7">₱{selectedAppointment.totalPaid.toLocaleString()}</span>
                                                     </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <span style={{ color: '#64748b', fontWeight: 600 }}>Remaining Balance:</span>
-                                                        <span style={{ fontWeight: 800, color: '#ef4444', fontSize: '1.2rem' }}>₱{Math.max(0, formData.price - selectedAppointment.totalPaid).toLocaleString()}</span>
+                                                    <div className="admin-st-ddde571d">
+                                                        <span className="admin-st-9e124000">Remaining Balance:</span>
+                                                        <span className="admin-st-da5d65cf">₱{Math.max(0, formData.price - selectedAppointment.totalPaid).toLocaleString()}</span>
                                                     </div>
                                                 </div>
                                             )}
 
-                                            <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
-                                                <button className="btn" style={{ flex: 1, padding: '15px', background: '#fff', border: '2px solid #e2e8f0', borderRadius: '12px', fontWeight: 700 }} onClick={() => setModalTab('details')}>Back to Details</button>
+                                            <div className="admin-st-422e3858">
+                                                <button className="btn admin-st-c52b9668" onClick={() => setModalTab('details')}>Back to Details</button>
                                                 
                                                 {formData.price > 0 && formData.paymentStatus === 'unpaid' && (
                                                     <button 
                                                         type="button"
-                                                        className="btn btn-primary" 
-                                                        style={{ flex: 1.5, padding: '15px', background: '#3b82f6', border: 'none', borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#fff', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.3)' }} 
+                                                        className="btn btn-primary admin-st-2b208132" 
                                                         onClick={() => {
                                                             showAlert('Payment Link Sent', `A digital payment checkout link for ₱${formData.price.toLocaleString()} has been routed to the client.`, 'success');
                                                         }}
@@ -1038,7 +1007,7 @@ function AdminAppointments() {
                                                 )}
 
                                                 {selectedAppointment && (
-                                                    <button className="btn btn-primary" style={{ flex: 1.5, padding: '15px', background: '#10b981', border: 'none', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#fff' }} onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>
+                                                    <button className="btn btn-primary admin-st-f9f5beee" onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>
                                                         <DollarSign size={20} /> Record Manual Payment
                                                     </button>
                                                 )}
@@ -1049,52 +1018,51 @@ function AdminAppointments() {
 
                                 {modalTab === 'notes' && (
                                     /* Notes Tab View */
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+                                    <div className="admin-st-b97f1a79">
                                         {/* Left Column: Session Summary & Notes */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        <div className="admin-st-d295c8d6">
                                             <div>
-                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Session Details Summary</label>
-                                                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Service Type:</span>
-                                                        <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1rem' }}>{formData.serviceType}</span>
+                                                <label className="admin-st-739a1b05">Session Details Summary</label>
+                                                <div className="admin-st-ae64ad42">
+                                                    <div className="admin-flex-between">
+                                                        <span className="admin-st-26b52dcd">Service Type:</span>
+                                                        <span className="admin-st-0e40c814">{formData.serviceType}</span>
                                                     </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Design Idea:</span>
-                                                        <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1rem' }}>{formData.designTitle || 'N/A'}</span>
+                                                    <div className="admin-flex-between">
+                                                        <span className="admin-st-26b52dcd">Design Idea:</span>
+                                                        <span className="admin-st-0e40c814">{formData.designTitle || 'N/A'}</span>
                                                     </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Scheduled For:</span>
-                                                        <span style={{ fontWeight: 700, color: '#6366f1', fontSize: '1rem' }}>{formData.date} at {formData.time}</span>
+                                                    <div className="admin-flex-between">
+                                                        <span className="admin-st-26b52dcd">Scheduled For:</span>
+                                                        <span className="admin-st-afc165d9">{formData.date} at {formData.time}</span>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div>
-                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Internal Session Notes</label>
+                                                <label className="admin-st-739a1b05">Internal Session Notes</label>
                                                 <textarea 
                                                     value={formData.notes} 
                                                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
-                                                    className="premium-select-v2" 
-                                                    style={{ width: '100%', height: '250px', minHeight: '200px', padding: '12px 16px', fontSize: '1rem', lineHeight: '1.6', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', resize: 'vertical' }} 
+                                                    className="premium-select-v2 admin-st-ef6586d6" 
                                                     placeholder="Add detailed internal notes, placement instructions, or specific client requests..." 
                                                 />
                                             </div>
                                         </div>
 
                                         {/* Right Column: Reference Assets */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        <div className="admin-st-d295c8d6">
                                             <div>
-                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Reference Assets</label>
-                                                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', minHeight: '420px', display: 'flex', flexDirection: 'column', gap: '20px', justifyContent: 'center', alignItems: 'center' }}>
+                                                <label className="admin-st-739a1b05">Reference Assets</label>
+                                                <div className="admin-st-699063a3">
                                                     {/* Reference Image (Booking Data) */}
                                                     {(formData.referenceImage || selectedAppointment?.referenceImage) ? (
-                                                        <div style={{ width: '100%' }}>
-                                                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Reference from Booking</label>
+                                                        <div className="admin-w-full">
+                                                            <label className="admin-st-e7eee706">Reference from Booking</label>
                                                             <img 
                                                                 src={formData.referenceImage || selectedAppointment?.referenceImage} 
                                                                 alt="Reference" 
-                                                                style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} 
+                                                                className="admin-st-ab1ba3de" 
                                                             />
                                                         </div>
                                                     ) : null}
@@ -1102,18 +1070,18 @@ function AdminAppointments() {
                                                     {/* Before Photo (Studio Log) */}
                                                     {(formData.beforePhoto || selectedAppointment?.beforePhoto) ? (
                                                         <div style={{ width: '100%', borderTop: (formData.referenceImage || selectedAppointment?.referenceImage) ? '1px dashed #e2e8f0' : 'none', paddingTop: (formData.referenceImage || selectedAppointment?.referenceImage) ? '20px' : '0' }}>
-                                                            <label style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Stage Photo (Before)</label>
+                                                            <label className="admin-st-e7eee706">Stage Photo (Before)</label>
                                                             <img 
                                                                 src={formData.beforePhoto || selectedAppointment?.beforePhoto} 
                                                                 alt="Before" 
-                                                                style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} 
+                                                                className="admin-st-ab1ba3de" 
                                                             />
                                                         </div>
                                                     ) : null}
 
                                                     {!(formData.referenceImage || selectedAppointment?.referenceImage || formData.beforePhoto || selectedAppointment?.beforePhoto) && (
-                                                        <div style={{ color: '#94a3b8' }}>
-                                                            <Image size={48} style={{ marginBottom: '15px', opacity: 0.5 }} />
+                                                        <div className="admin-st-28e6a799">
+                                                            <Image size={48} className="admin-st-04217666" />
                                                             <p>No reference image uploaded</p>
                                                         </div>
                                                     )}
@@ -1123,8 +1091,8 @@ function AdminAppointments() {
                                     </div>
                                 )}
                             </div>
-                            <div className="modal-footer" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '30px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            <div className="modal-footer admin-st-ac2eb647">
+                                <div className="admin-st-f232bb1d">
                                     <div>
                                         {selectedAppointment && (
                                             <button 
@@ -1133,19 +1101,7 @@ function AdminAppointments() {
                                                     handleDelete(selectedAppointment.id);
                                                     closeModal();
                                                 }} 
-                                                style={{ 
-                                                    padding: '12px 24px',
-                                                    backgroundColor: '#ef4444',
-                                                    color: 'white',
-                                                    borderRadius: '8px',
-                                                    border: 'none',
-                                                    fontWeight: '600',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '8px'
-                                                }}
+                                                className="admin-st-ce9b8932"
                                                 onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
                                                 onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
                                             >
@@ -1153,24 +1109,14 @@ function AdminAppointments() {
                                             </button>
                                         )}
                                     </div>
-                                    <button className="btn btn-primary" onClick={handleSave} style={{ padding: '12px 36px', minWidth: '160px' }}>
+                                    <button className="btn btn-primary" onClick={handleSave} className="admin-st-a3930dd9">
                                         {selectedAppointment ? 'Update Appointment' : 'Create Appointment'}
                                     </button>
                                 </div>
                                 <button 
                                     className="btn btn-secondary" 
                                     onClick={closeModal} 
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '14px', 
-                                        borderRadius: '12px',
-                                        backgroundColor: '#f1f5f9',
-                                        color: '#64748b',
-                                        border: '1px solid #e2e8f0',
-                                        fontWeight: '700',
-                                        fontSize: '0.95rem',
-                                        transition: 'all 0.2s'
-                                    }}
+                                    className="admin-st-2b5b349d"
                                     onMouseEnter={(e) => e.target.style.backgroundColor = '#e2e8f0'}
                                     onMouseLeave={(e) => e.target.style.backgroundColor = '#f1f5f9'}
                                 >
@@ -1183,25 +1129,24 @@ function AdminAppointments() {
 
                 {/* Manual Payment Modal */}
                 {manualPaymentModal.isOpen && (
-                    <div className="modal-overlay" style={{ zIndex: 3000 }}>
+                    <div className="modal-overlay admin-st-b92d1844">
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h2>Record Payment</h2>
                                 <button className="close-btn" onClick={() => setManualPaymentModal({ ...manualPaymentModal, isOpen: false })}><X size={24}/></button>
                             </div>
                             <div className="modal-body">
-                                <div className="form-group" style={{ marginBottom: '20px' }}>
-                                    <label style={{ fontWeight: 700, fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Payment Amount (₱)</label>
+                                <div className="form-group admin-mb-20">
+                                    <label className="admin-st-80a8a11c">Payment Amount (₱)</label>
                                     <input 
                                         type="number" 
-                                        className="form-input" 
-                                        style={{ fontSize: '1.2rem', fontWeight: 800 }}
+                                        className="form-input admin-st-22430afb"
                                         value={manualPaymentModal.amount} 
                                         onChange={(e) => setManualPaymentModal({ ...manualPaymentModal, amount: e.target.value })} 
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label style={{ fontWeight: 700, fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Payment Method</label>
+                                    <label className="admin-st-80a8a11c">Payment Method</label>
                                     <select 
                                         className="form-input"
                                         value={manualPaymentModal.method} 
@@ -1224,28 +1169,19 @@ function AdminAppointments() {
 
                 {/* Day View Modal */}
                 {dayViewModal.isOpen && (
-                    <div className="modal-overlay" style={{ zIndex: 2000 }} onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}>
+                    <div className="modal-overlay admin-st-032d51d4" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}>
                         <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h2>{dayViewModal.date}</h2>
                                 <button className="close-btn" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}><X size={24}/></button>
                             </div>
                             <div className="modal-body">
-                                <h4 style={{ marginBottom: '20px', color: '#64748b' }}>Appointments for this day:</h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <h4 className="admin-st-48229229">Appointments for this day:</h4>
+                                <div className="admin-st-b8aaf979">
                                     {dayViewModal.appointments.map(apt => (
                                         <div 
                                             key={apt.id} 
-                                            className="glass-card" 
-                                            style={{ 
-                                                padding: '16px', 
-                                                cursor: 'pointer', 
-                                                display: 'flex', 
-                                                justifyContent: 'space-between', 
-                                                alignItems: 'center',
-                                                border: '1px solid #e2e8f0',
-                                                transition: 'all 0.2s'
-                                            }}
+                                            className="glass-card admin-st-9880e94d"
                                             onClick={() => {
                                                 setDayViewModal({ ...dayViewModal, isOpen: false });
                                                 handleEdit(apt);
@@ -1253,21 +1189,21 @@ function AdminAppointments() {
                                             onMouseEnter={e => e.currentTarget.style.borderColor = '#6366f1'}
                                             onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}
                                         >
-                                            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                                                <div style={{ padding: '8px 12px', background: '#f1f5f9', borderRadius: '8px', fontWeight: 700, color: '#6366f1', fontSize: '0.9rem' }}>{apt.start_time}</div>
+                                            <div className="admin-st-a5c3808d">
+                                                <div className="admin-st-351e3911">{apt.start_time}</div>
                                                 <div>
-                                                    <div style={{ fontWeight: 700, color: '#1e293b' }}>{apt.clientName}</div>
-                                                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{apt.service_type || 'Tattoo Session'}</div>
+                                                    <div className="admin-st-6ad161f7">{apt.clientName}</div>
+                                                    <div className="admin-st-3bf8f64b">{apt.service_type || 'Tattoo Session'}</div>
                                                 </div>
                                             </div>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <span className={`badge status-${getStatusColor(apt.status)}`} style={{ fontSize: '0.75rem' }}>{apt.status}</span>
-                                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>Artist: {apt.artist_name}</div>
+                                            <div className="admin-st-7851dbc0">
+                                                <span className={`badge status-${getStatusColor(apt.status)}`} className="admin-st-af89d6d6">{apt.status}</span>
+                                                <div className="admin-st-16d46816">Artist: {apt.artist_name}</div>
                                             </div>
                                         </div>
                                     ))}
                                     {dayViewModal.appointments.length === 0 && (
-                                        <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No appointments scheduled for this day.</div>
+                                        <div className="admin-st-555dbe34">No appointments scheduled for this day.</div>
                                     )}
                                 </div>
                             </div>

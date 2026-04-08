@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './AdminLogin.css';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 
 function AdminLogin() {
@@ -39,7 +40,7 @@ function AdminLogin() {
             <div className="admin-login-box">
                 <h2>Admin Portal</h2>
                 <p>Please sign in to manage the system</p>
-                {errorMsg && <div className="error-alert" style={{ background: '#fee2e2', color: '#991b1b', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}>{errorMsg}</div>}
+                {errorMsg && <div className="error-alert admin-error-alert">{errorMsg}</div>}
                 <form onSubmit={handleLogin}>
                     <div className="input-group">
                         <label>Email Address</label>

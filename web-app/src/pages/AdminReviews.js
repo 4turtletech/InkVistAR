@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { Star, CheckCircle, XCircle } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import './PortalStyles.css';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 
 function AdminReviews() {
@@ -53,7 +54,7 @@ function AdminReviews() {
                 </header>
 
                 <div className="admin-content">
-                    <div className="settings-tabs" style={{ marginBottom: '20px' }}>
+                    <div className="settings-tabs admin-mb-20">
                         <button className={`tab-button ${activeTab === 'pending' ? 'active' : ''}`} onClick={() => setActiveTab('pending')}>Pending ({reviews.filter(r=>r.status==='pending').length})</button>
                         <button className={`tab-button ${activeTab === 'approved' ? 'active' : ''}`} onClick={() => setActiveTab('approved')}>Approved</button>
                         <button className={`tab-button ${activeTab === 'rejected' ? 'active' : ''}`} onClick={() => setActiveTab('rejected')}>Rejected</button>
@@ -78,33 +79,33 @@ function AdminReviews() {
                                         <tbody>
                                             {filteredReviews.map(r => (
                                                 <tr key={r.id}>
-                                                    <td style={{ fontWeight: 600 }}>{r.customer_name}</td>
+                                                    <td className="admin-fw-600">{r.customer_name}</td>
                                                     <td>{r.artist_name}</td>
                                                     <td>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                                        <div className="admin-flex-center admin-gap-5">
                                                             {r.rating} <Star size={14} color="#f59e0b" fill="#f59e0b" />
                                                         </div>
                                                     </td>
-                                                    <td style={{ maxWidth: '300px', whiteSpace: 'normal', fontSize: '0.9rem' }}>{r.comment || <span style={{color: '#94a3b8', fontStyle: 'italic'}}>No comment</span>}</td>
+                                                    <td className="admin-max-w-md admin-text-sm admin-st-c41d69db">{r.comment || <span className="admin-color-slate-400 admin-st-28d1f7b9">No comment</span>}</td>
                                                     <td>{new Date(r.created_at).toLocaleDateString()}</td>
                                                     {activeTab === 'pending' && (
                                                         <td>
-                                                            <div style={{ display: 'flex', gap: '5px' }}>
-                                                                <button onClick={() => handleModeration(r.id, 'approved')} className="action-btn" style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px' }} title="Approve"><CheckCircle size={16} /></button>
-                                                                <button onClick={() => handleModeration(r.id, 'rejected')} className="action-btn" style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px' }} title="Reject"><XCircle size={16} /></button>
+                                                            <div className="admin-flex-center admin-gap-5">
+                                                                <button onClick={() => handleModeration(r.id, 'approved')} className="action-btn admin-bg-emerald-50 admin-color-emerald admin-border-none admin-p-5 admin-rounded-md" title="Approve"><CheckCircle size={16} /></button>
+                                                                <button onClick={() => handleModeration(r.id, 'rejected')} className="action-btn admin-color-red admin-border-none admin-p-5 admin-rounded-md admin-st-72931cd2" title="Reject"><XCircle size={16} /></button>
                                                             </div>
                                                         </td>
                                                     )}
                                                     {activeTab === 'approved' && (
                                                         <td>
-                                                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
+                                                            <label className="admin-flex-center admin-cursor-pointer admin-gap-10">
                                                                 <input 
                                                                     type="checkbox" 
                                                                     checked={r.is_showcased === 1 || r.is_showcased === true} 
                                                                     onChange={(e) => handleModeration(r.id, 'approved', e.target.checked)}
-                                                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                                                    className="admin-cursor-pointer admin-st-95e08695"
                                                                 />
-                                                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Show on Info Page</span>
+                                                                <span className="admin-text-sm admin-color-slate-500">Show on Info Page</span>
                                                             </label>
                                                         </td>
                                                     )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { MapPin, Clock, Users, Power, Trash2, Edit2, Plus, X, Search, Filter, SlidersHorizontal } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
+import './AdminStyles.css';
 import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
 import AdminTestimonials from '../components/AdminTestimonials';
@@ -144,14 +145,14 @@ function AdminStudio() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-header" style={{ background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: 'none' }}>
+                <header className="admin-header admin-st-46169809">
                     <h1>Studio Settings</h1>
                     {activeTab === 'branches' && (
-                        <button className="btn btn-primary" onClick={openAddModal}><Plus size={18} style={{marginRight:'5px'}}/> Add Branch</button>
+                        <button className="btn btn-primary" onClick={openAddModal}><Plus size={18} className="admin-st-c02c7d9c"/> Add Branch</button>
                     )}
                 </header>
 
-                <div style={{ display: 'flex', gap: '2rem', padding: '0 2rem', borderBottom: '1px solid #e5e7eb', marginBottom: '1.5rem', background: '#fff' }}>
+                <div className="admin-st-d14eab7d">
                     <button 
                         style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'branches' ? '2px solid #C19A6B' : '2px solid transparent', color: activeTab === 'branches' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
                         onClick={() => setActiveTab('branches')}
@@ -174,7 +175,7 @@ function AdminStudio() {
 
                 {activeTab === 'branches' ? (
                     <>
-                        <div className="premium-filter-bar" style={{ margin: '0 2rem 1.5rem 2rem' }}>
+                        <div className="premium-filter-bar admin-st-277a8390">
                     <div className="premium-search-box">
                         <Search size={18} className="text-muted" />
                         <input
@@ -186,7 +187,7 @@ function AdminStudio() {
                     </div>
 
                     <div className="premium-filters-group">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>
+                        <div className="admin-st-5d251045">
                             <Filter size={16} />
                             <span>Status:</span>
                         </div>
@@ -199,7 +200,7 @@ function AdminStudio() {
                             <option value="deleted">Deleted Branches</option>
                         </select>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem', fontWeight: '600', marginLeft: '0.5rem' }}>
+                        <div className="admin-st-a8cc8c61">
                             <SlidersHorizontal size={16} />
                             <span>Sort:</span>
                         </div>
@@ -227,7 +228,7 @@ function AdminStudio() {
                                 <table className="data-table">
                                     <thead>
                                         <tr>
-                                            <th style={{ minWidth: '200px' }}>Branch Name</th>
+                                            <th className="admin-st-a06603ef">Branch Name</th>
                                             <th>Address</th>
                                             <th>Operating Hours</th>
                                             <th>Capacity Tracking</th>
@@ -237,7 +238,7 @@ function AdminStudio() {
                                     </thead>
                                     <tbody>
                                         {loading ? (
-                                            <tr><td colSpan="6" className="no-data" style={{textAlign: 'center', padding: '2rem'}}>Loading branches...</td></tr>
+                                            <tr><td colSpan="6" className="no-data admin-st-3927920f">Loading branches...</td></tr>
                                         ) : filteredBranches && filteredBranches.length > 0 ? filteredBranches.map((branch) => {
                                             if (!branch) return null;
                                             const capacity = Number(branch.capacity) || 1;
@@ -245,15 +246,15 @@ function AdminStudio() {
                                             const occupancyPercent = Math.min((occupancy / capacity) * 100, 100);
                                             return (
                                                 <tr key={branch.id}>
-                                                    <td><strong>{branch.name}</strong><br/><small style={{color:'#666'}}>{branch.phone}</small></td>
-                                                    <td><div style={{display:'flex', alignItems:'center', gap:'5px'}}><MapPin size={14}/> {branch.address}</div></td>
-                                                    <td><div style={{display:'flex', alignItems:'center', gap:'5px'}}><Clock size={14}/> {branch.operating_hours}</div></td>
+                                                    <td><strong>{branch.name}</strong><br/><small className="admin-st-169f06e0">{branch.phone}</small></td>
+                                                    <td><div className="admin-st-5e3a23bb"><MapPin size={14}/> {branch.address}</div></td>
+                                                    <td><div className="admin-st-5e3a23bb"><Clock size={14}/> {branch.operating_hours}</div></td>
                                                     <td>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <div style={{ width: '100px', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow:'hidden' }}>
+                                                        <div className="admin-flex-center admin-gap-10">
+                                                            <div className="admin-st-e03150eb">
                                                                 <div style={{ width: `${occupancyPercent || 0}%`, height: '100%', background: occupancyPercent > 90 ? '#ef4444' : '#10b981', borderRadius: '4px' }}></div>
                                                             </div>
-                                                            <span style={{fontSize:'0.85rem'}}>{branch.current_occupancy}/{branch.capacity}</span>
+                                                            <span className="admin-st-e7992da2">{branch.current_occupancy}/{branch.capacity}</span>
                                                         </div>
                                                     </td>
                                                     <td>
@@ -262,7 +263,7 @@ function AdminStudio() {
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <div style={{display:'flex', gap:'5px'}}>
+                                                        <div className="admin-st-ce770332">
                                                             {filterStatus === 'active' ? (
                                                                 <>
                                                                     <button className="action-btn" onClick={() => toggleStatus(branch)} title="Toggle Status" style={{backgroundColor: branch.status === 'Open' ? '#f59e0b' : '#10b981'}}><Power size={16}/></button>
@@ -270,7 +271,7 @@ function AdminStudio() {
                                                                     <button className="action-btn delete-btn" onClick={() => handleDelete(branch.id)}><Trash2 size={16}/></button>
                                                                 </>
                                                             ) : (
-                                                                <button className="action-btn view-btn" onClick={() => handleRestore(branch.id)} style={{backgroundColor: '#10b981'}}>Restore</button>
+                                                                <button className="action-btn view-btn" onClick={() => handleRestore(branch.id)} className="admin-st-f1f5ea52">Restore</button>
                                                             )}
                                                         </div>
                                                     </td>
@@ -290,28 +291,28 @@ function AdminStudio() {
                     <div className={`modal-overlay ${branchModal.visible ? 'open' : ''}`} onClick={closeModal}>
                         <div className="modal-content" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    <div style={{ background: '#f8fafc', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div className="admin-flex-center admin-gap-15">
+                                    <div className="admin-st-c911153f">
                                         <MapPin size={20} className="text-bronze" />
                                     </div>
                                     <div>
-                                        <h2 style={{ margin: 0 }}>{editingId ? 'Modify Studio Branch' : 'Establish New Branch'}</h2>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Configure operational studio location</p>
+                                        <h2 className="admin-m-0">{editingId ? 'Modify Studio Branch' : 'Establish New Branch'}</h2>
+                                        <p className="admin-st-925e4e02">Configure operational studio location</p>
                                     </div>
                                 </div>
                                 <button className="close-btn" onClick={closeModal}><X size={24}/></button>
                             </div>
                             <form onSubmit={handleSave}>
-                                <div className="modal-body" style={{ padding: '30px' }}>
-                                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                                <div className="modal-body admin-st-7cea880d">
+                                    <div className="form-group admin-mb-20">
                                         <label className="premium-label">Official Branch Designation</label>
                                         <input type="text" className="form-input" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g., Downtown Sanctuary, Westside Hub" />
                                     </div>
-                                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                                    <div className="form-group admin-mb-20">
                                         <label className="premium-label">Geographic Location (Full Address)</label>
                                         <input type="text" className="form-input" required value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                    <div className="admin-st-c200c71d">
                                         <div className="form-group">
                                             <label className="premium-label">Contact Hotlink (Phone)</label>
                                             <input type="text" className="form-input" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
@@ -326,15 +327,15 @@ function AdminStudio() {
                                         <input type="text" className="form-input" placeholder="e.g. 09:00 - 20:00" value={formData.operating_hours} onChange={e => setFormData({...formData, operating_hours: e.target.value})} />
                                     </div>
                                     
-                                    <div className="glass-panel" style={{ marginTop: '20px' }}>
-                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic' }}>
+                                    <div className="glass-panel admin-st-194b571d">
+                                        <p className="admin-st-76a35748">
                                             * Modifying branch details will update all associated staff records and public-facing portal listings instantly.
                                         </p>
                                     </div>
                                 </div>
                                 <div className="modal-footer">
                                     <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-                                    <button type="submit" className="btn btn-primary" style={{ padding: '10px 40px' }}>
+                                    <button type="submit" className="btn btn-primary admin-st-6948e5f9">
                                         {editingId ? 'Update Branch' : 'Finalize Creation'}
                                     </button>
                                 </div>
