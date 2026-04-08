@@ -4,16 +4,16 @@ import './Home.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
 import Footer from '../components/Footer';
-import { ChevronLeft, ChevronRight, PenTool, Crop, Aperture } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Crop, Aperture } from 'lucide-react';
 import { API_URL } from '../config';
 
 // Dynamic Artist List
 const FEATURED_ARTISTS = [
-    { name: 'Troy', style: 'Black & Grey Realism', image: '/images/tattoos/media__1775660017173.jpg' },
-    { name: 'Lloid', style: 'Fine Line Geometry', image: '/images/tattoos/media__1775660017196.jpg' },
-    { name: 'Ken', style: 'Traditional Japanese', image: '/images/tattoos/media__1775660017816.jpg' },
-    { name: 'Mar', style: 'Neo-Traditional', image: '/images/tattoos/media__1775667820736.jpg' },
-    { name: 'Brian', style: 'Surrealism', image: '/images/tattoos/media__1775667820747.jpg' },
+    { name: 'Troy', style: 'Black & Grey Realism', image: '/images/tattoos/media__1775671276990.jpg' },
+    { name: 'Lloid', style: 'Fine Line Geometry', image: '/images/tattoos/media__1775671277027.jpg' },
+    { name: 'Ken', style: 'Traditional Japanese', image: '/images/tattoos/media__1775671277040.jpg' },
+    { name: 'Mar', style: 'Neo-Traditional', image: '/images/tattoos/media__1775671277051.jpg' },
+    { name: 'Brian', style: 'Surrealism', image: '/images/tattoos/media__1775671277056.jpg' },
     { name: 'JeaR', style: 'Dotwork & Mandala', image: '/images/tattoos/media__1775667820757.jpg' },
     { name: 'Lem', style: 'Watercolor', image: '/images/tattoos/media__1775667820770.jpg' },
     { name: 'Renz', style: 'Tribal / Polynesian', image: '/images/tattoos/media__1775667820781.jpg' },
@@ -102,13 +102,14 @@ function Home() {
                     <div className="hero-content fade-up visible">
                         <span className="hero-tagline">BGC's Premier Studio</span>
                         <h1 className="hero-title">INKVICTUS <span>TATTOO</span></h1>
-                        <button onClick={() => navigate('/register')} className="btn-gold-luxury">
+                        <button onClick={() => navigate('/book')} className="btn-gold-luxury">
                             Book Consultation
                         </button>
                     </div>
 
                     <div className="scroll-indicator">
-                        <span>Scroll</span>
+                        <span>SCROLL TO EXPLORE</span>
+                        <ChevronDown size={20} color="var(--accent-gold)" />
                         <div className="line"></div>
                     </div>
                 </header>
@@ -117,7 +118,7 @@ function Home() {
                 <section className="premium-section fade-up" ref={artistsRef}>
                     <div className="section-header">
                         <span className="section-subtitle">Our Talent</span>
-                        <h2 className="section-title">The <i>Masters</i> of Ink</h2>
+                        <h2 className="section-title">The Masters of Ink</h2>
                     </div>
                     <div className="artists-grid">
                         {FEATURED_ARTISTS.map((artist, idx) => (
@@ -137,7 +138,7 @@ function Home() {
                     <div className="glass-card-premium matrix-grid">
                         <div className="matrix-content">
                             <span className="section-subtitle">Our Philosophy</span>
-                            <h2 className="section-title" style={{ marginBottom: '2rem' }}>Crafting <i>Timeless</i> Art in BGC</h2>
+                            <h2 className="section-title" style={{ marginBottom: '2rem' }}>Crafting Timeless Art in BGC</h2>
                             <p className="matrix-text">
                                 Inkvictus Tattoo is more than just a studio; it is a sanctuary for art and expression. Located in the heart of BGC, we offer a premium experience that combines world-class artistry with the highest standards of hygiene and comfort.
                             </p>
@@ -238,8 +239,8 @@ function Home() {
                 <section className="final-cta-section fade-up">
                     <div className="cta-bg"></div>
                     <div className="cta-content">
-                        <h2 className="cta-title">Ready to Make Your <i>Mark?</i></h2>
-                        <button onClick={() => navigate('/register')} className="btn-gold-luxury" style={{ padding: '1.5rem 4rem', fontSize: '1.2rem' }}>
+                        <h2 className="cta-title">Ready to Make Your Mark?</h2>
+                        <button onClick={() => navigate('/book')} className="btn-gold-luxury" style={{ padding: '1.5rem 4rem', fontSize: '1.2rem' }}>
                             Begin Your Journey
                         </button>
                     </div>

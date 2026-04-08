@@ -3,7 +3,7 @@
     color: #ffffff;
     padding: 60px 40px 30px;
     font-family: 'Inter', sans-serif;
-    border-top: 1px solid rgba(218, 165, 32, 0.2);
+    border-top: 1px solid rgba(193, 154, 107, 0.15);
 }
 
 .footer-content {
@@ -16,8 +16,9 @@
 }
 
 .footer-section h2.footer-logo {
-    color: #daa520;
+    color: #C19A6B;
     font-family: 'Cinzel', serif;
+    font-style: normal;
     letter-spacing: 3px;
     font-size: 1.5rem;
     margin-bottom: 15px;
@@ -48,7 +49,7 @@
     left: 0;
     width: 25px;
     height: 2px;
-    background-color: #daa520;
+    background-color: #C19A6B;
 }
 
 .footer-section ul {
@@ -68,7 +69,7 @@
 }
 
 .footer-section ul li a:hover {
-    color: #daa520;
+    color: #C19A6B;
 }
 
 .contact-item {
@@ -91,7 +92,7 @@
 }
 
 .social-links a {
-    color: #daa520;
+    color: #C19A6B;
     transition: transform 0.3s, color 0.3s;
 }
 
