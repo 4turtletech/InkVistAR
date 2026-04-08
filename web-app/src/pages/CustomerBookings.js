@@ -159,6 +159,18 @@ function CustomerBookings(){
         });
     };
 
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const appointmentId = params.get('appointment');
+        if (appointmentId && appointments.length > 0) {
+            const target = appointments.find(a => a.id.toString() === appointmentId);
+            if (target) {
+                handleViewDetails(target);
+                window.history.replaceState({}, '', '/customer/bookings');
+            }
+        }
+    }, [appointments]);
+
     const handleViewDetails = async (appt) => {
         setSelectedApt(appt);
         setIsModalOpen(true);

@@ -227,6 +227,18 @@ function ArtistSessions() {
         }, 400);
     };
 
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const appointmentId = params.get('appointment');
+        if (appointmentId && sessions.length > 0) {
+            const target = sessions.find(s => s.id.toString() === appointmentId);
+            if (target) {
+                handleManageSession(target);
+                window.history.replaceState({}, '', '/artist/sessions');
+            }
+        }
+    }, [sessions]);
+
     const handleManageSession = (session) => {
         setActiveSession(session);
         setSessionData({

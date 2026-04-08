@@ -450,8 +450,12 @@ function AdminNotifications() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
                             <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
                             <div className="notif-actions" style={{ display: 'flex', gap: '10px' }}>
-                                {selectedNotification.path && (
-                                    <button className="btn btn-primary" onClick={() => { navigate(selectedNotification.path); setSelectedNotification(null); }} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Take Action <ArrowRight size={14} /></button>
+                                {(selectedNotification.path || selectedNotification.related_id) && (
+                                    <button className="btn btn-primary" onClick={() => { 
+                                        const link = selectedNotification.path || `/admin/appointments?appointment=${selectedNotification.related_id}`;
+                                        navigate(link); 
+                                        setSelectedNotification(null); 
+                                    }} style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Take Action <ArrowRight size={14} /></button>
                                 )}
                                 <button className="btn btn-secondary" onClick={() => setSelectedNotification(null)} style={{ padding: '6px 12px', fontSize: '0.85rem', cursor: 'pointer', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'transparent' }}>Close</button>
                             </div>

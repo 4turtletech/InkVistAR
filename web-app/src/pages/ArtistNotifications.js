@@ -311,7 +311,7 @@ function ArtistNotifications() {
                                     </>
                                 )}
                                 {selectedNotification.related_id && (
-                                    <a href="/artist/sessions" className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#3b82f6', color: '#fff', borderRadius: '6px' }}>Take Action</a>
+                                    <a href={`/artist/sessions?appointment=${selectedNotification.related_id}`} className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#3b82f6', color: '#fff', borderRadius: '6px' }}>Take Action</a>
                                 )}
                                 <button className="notif-btn ghost" onClick={() => setSelectedNotification(null)} style={{ padding: '6px 12px', fontSize: '0.85rem', cursor: 'pointer', background: 'none', border: 'none', color: '#64748b' }}>Close</button>
                             </div>
