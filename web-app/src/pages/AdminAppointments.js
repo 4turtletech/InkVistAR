@@ -46,6 +46,7 @@ function AdminAppointments() {
         paymentStatus: 'unpaid',
         notes: '',
         price: 0,
+        beforePhoto: null,
         manualPaidAmount: 0,
         manualPaymentMethod: 'Cash'
     });
@@ -274,6 +275,7 @@ function AdminAppointments() {
             paymentStatus: appointment.paymentStatus || appointment.payment_status,
             notes: appointment.notes,
             price: appointment.price,
+            beforePhoto: appointment.beforePhoto,
             manualPaidAmount: appointment.manualPaidAmount || 0,
             manualPaymentMethod: appointment.manualPaymentMethod || 'Cash'
         });
@@ -306,6 +308,7 @@ function AdminAppointments() {
             paymentStatus: 'unpaid',
             notes: '',
             price: 0,
+            beforePhoto: null,
             manualPaidAmount: 0,
             manualPaymentMethod: 'Cash'
         });
@@ -338,6 +341,7 @@ function AdminAppointments() {
                     paymentStatus: formData.paymentStatus,
                     notes: formData.notes,
                     price: finalPrice,
+                    beforePhoto: formData.beforePhoto,
                     manualPaidAmount: parseFloat(formData.manualPaidAmount) || 0,
                     manualPaymentMethod: formData.manualPaymentMethod
                 };
@@ -861,9 +865,9 @@ function AdminAppointments() {
                                         {/* Left Column: People & Service */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                             <div>
-                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Client Information</label>
+                                                <label className="premium-input-label">Client Information</label>
                                                 {formData.clientId ? (
-                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '12px', border: '2px solid #10b981' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                             <div style={{ background: '#d1fae5', padding: '8px', borderRadius: '50%' }}>
                                                                 <User size={18} color="#10b981" />
@@ -902,37 +906,37 @@ function AdminAppointments() {
                                             </div>
 
                                             <div>
-                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Staff Assignment</label>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                                    <div className="form-group">
-                                                        <label style={{ fontSize: '0.75rem' }}>Primary Artist *</label>
+                                                <label className="premium-input-label">Staff Assignment</label>
+                                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                    <div className="premium-input-group">
+                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Primary Artist *</label>
                                                         <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2">
                                                             <option value="">Select Artist</option>
                                                             {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                                         </select>
                                                     </div>
-                                                    <div className="form-group">
-                                                        <label style={{ fontSize: '0.75rem' }}>Secondary Artist</label>
+                                                    <div className="premium-input-group">
+                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Secondary Artist</label>
                                                         <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2">
                                                             <option value="">None (Solo)</option>
                                                             {artists.filter(a => a.id != formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                                         </select>
                                                     </div>
+                                                    {formData.secondaryArtistId && (
+                                                        <div style={{ marginTop: '4px', background: '#f5f3ff', padding: '12px', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5b21b6', margin: 0 }}>Split % (Pri/Sec):</label>
+                                                            <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: parseInt(e.target.value) })} className="premium-input-v2" style={{ width: '70px', padding: '8px' }} />
+                                                            <span style={{ color: '#6d28d9', fontWeight: 700 }}>/ {100 - (formData.commissionSplit || 0)}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                {formData.secondaryArtistId && (
-                                                    <div style={{ marginTop: '10px', background: '#f5f3ff', padding: '10px', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5b21b6', margin: 0 }}>Split % (Pri/Sec):</label>
-                                                        <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: parseInt(e.target.value) })} className="premium-input-v2" style={{ width: '60px', padding: '4px' }} />
-                                                        <span style={{ color: '#6d28d9', fontWeight: 700 }}>/ {100 - (formData.commissionSplit || 0)}</span>
-                                                    </div>
-                                                )}
                                             </div>
 
                                             <div>
-                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Service Details</label>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                                    <div className="form-group">
-                                                        <label style={{ fontSize: '0.75rem' }}>Service Type *</label>
+                                                <label className="premium-input-label">Service Details</label>
+                                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                    <div className="premium-input-group">
+                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Service Type *</label>
                                                         <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2">
                                                             <option value="Tattoo Session">Tattoo Session</option>
                                                             <option value="Consultation">Consultation</option>
@@ -940,29 +944,31 @@ function AdminAppointments() {
                                                             <option value="Touch-up">Touch-up</option>
                                                         </select>
                                                     </div>
-                                                    <div className="form-group">
-                                                        <label style={{ fontSize: '0.75rem' }}>Design / Idea</label>
+                                                    <div className="premium-input-group">
+                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Design / Idea</label>
                                                         <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Right Column: Schedule & Notes */}
+                                        {/* Right Column: Schedule & Status */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                             <div>
-                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Schedule & Status</label>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
-                                                    <div className="form-group">
-                                                        <label style={{ fontSize: '0.75rem' }}>Date *</label>
-                                                        <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="premium-select-v2" />
+                                                <label className="premium-input-label">Schedule & Status</label>
+                                                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                                        <div className="premium-input-group">
+                                                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Date *</label>
+                                                            <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="premium-input-v2" />
+                                                        </div>
+                                                        <div className="premium-input-group">
+                                                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Time *</label>
+                                                            <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-input-v2" />
+                                                        </div>
                                                     </div>
-                                                    <div className="form-group">
-                                                        <label style={{ fontSize: '0.75rem' }}>Time *</label>
-                                                        <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-select-v2" />
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label style={{ fontSize: '0.75rem' }}>Booking Status</label>
+                                                    <div className="premium-input-group">
+                                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Booking Status</label>
                                                         <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="premium-select-v2">
                                                             <option value="pending">Pending Review</option>
                                                             <option value="confirmed">Confirmed</option>
