@@ -1022,52 +1022,52 @@ function AdminAppointments() {
 
                                 {modalTab === 'notes' && (
                                     /* Notes Tab View */
-                                    <div className="fade-in" style={{ padding: '0 40px' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '40px' }}>
-                                            {/* Left side: Notes & Details */}
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                                <div>
-                                                    <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Session Details Summary</label>
-                                                    <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span style={{ color: '#64748b' }}>Service Type:</span>
-                                                            <span style={{ fontWeight: 700, color: '#1e293b' }}>{formData.serviceType}</span>
-                                                        </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span style={{ color: '#64748b' }}>Design Idea:</span>
-                                                            <span style={{ fontWeight: 700, color: '#1e293b' }}>{formData.designTitle || 'N/A'}</span>
-                                                        </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span style={{ color: '#64748b' }}>Scheduled For:</span>
-                                                            <span style={{ fontWeight: 700, color: '#6366f1' }}>{formData.date} at {formData.time}</span>
-                                                        </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+                                        {/* Left Column: Session Summary & Notes */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                            <div>
+                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Session Details Summary</label>
+                                                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Service Type:</span>
+                                                        <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1rem' }}>{formData.serviceType}</span>
                                                     </div>
-                                                </div>
-
-                                                <div className="form-group">
-                                                    <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Internal Session Notes</label>
-                                                    <textarea 
-                                                        value={formData.notes} 
-                                                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
-                                                        className="premium-select-v2" 
-                                                        style={{ height: '250px', minHeight: '200px', padding: '20px', fontSize: '1rem', lineHeight: '1.6' }} 
-                                                        placeholder="Add detailed internal notes, placement instructions, or specific client requests..." 
-                                                    />
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Design Idea:</span>
+                                                        <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1rem' }}>{formData.designTitle || 'N/A'}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Scheduled For:</span>
+                                                        <span style={{ fontWeight: 700, color: '#6366f1', fontSize: '1rem' }}>{formData.date} at {formData.time}</span>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* Right side: Reference Image */}
+                                            <div>
+                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Internal Session Notes</label>
+                                                <textarea 
+                                                    value={formData.notes} 
+                                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
+                                                    className="premium-select-v2" 
+                                                    style={{ width: '100%', height: '250px', minHeight: '200px', padding: '12px 16px', fontSize: '1rem', lineHeight: '1.6', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', resize: 'vertical' }} 
+                                                    placeholder="Add detailed internal notes, placement instructions, or specific client requests..." 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Right Column: Reference Assets */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                             <div>
                                                 <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Reference Assets</label>
-                                                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '24px', border: '2px dashed #e2e8f0', textAlign: 'center', minHeight: '400px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                                                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center', minHeight: '420px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                                                     {(formData.beforePhoto || selectedAppointment?.beforePhoto) ? (
                                                         <div style={{ width: '100%' }}>
                                                             <img 
                                                                 src={formData.beforePhoto || selectedAppointment?.beforePhoto} 
                                                                 alt="Reference" 
-                                                                style={{ maxWidth: '100%', maxHeight: '450px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} 
+                                                                style={{ maxWidth: '100%', maxHeight: '380px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} 
                                                             />
-                                                            <p style={{ marginTop: '15px', color: '#64748b', fontSize: '0.85rem' }}>Reference Image provided by client</p>
+                                                            <p style={{ marginTop: '12px', color: '#64748b', fontSize: '0.85rem' }}>Reference Image provided by client</p>
                                                         </div>
                                                     ) : (
                                                         <div style={{ color: '#94a3b8' }}>
