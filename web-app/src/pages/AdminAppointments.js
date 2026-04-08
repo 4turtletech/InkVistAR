@@ -1156,12 +1156,11 @@ function AdminAppointments() {
                                     <div>
                                         {selectedAppointment && (
                                             <button 
-                                                className="btn btn-danger" 
+                                                className="btn btn-danger admin-st-ce9b8932" 
                                                 onClick={() => {
                                                     handleDelete(selectedAppointment.id);
                                                     closeModal();
                                                 }} 
-                                                className="admin-st-ce9b8932"
                                                 onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
                                                 onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
                                             >
