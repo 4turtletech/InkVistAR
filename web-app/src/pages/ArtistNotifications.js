@@ -15,6 +15,7 @@ import {
 import ArtistSideNav from '../components/ArtistSideNav';
 import Pagination from '../components/Pagination';
 import './PortalStyles.css';
+import './ArtistStyles.css';
 import { API_URL } from '../config';
 
 function ArtistNotifications() {

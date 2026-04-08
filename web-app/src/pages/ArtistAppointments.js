@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
-import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import './PortalStyles.css';
+import './ArtistStyles.css';
 import { API_URL } from '../config';
 
 function ArtistAppointments(){
@@ -150,47 +150,33 @@ function ArtistAppointments(){
                         <>
                             {viewMode === 'calendar' ? (
                                 <div className="data-card">
-                                    <div className="calendar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                            <button onClick={() => changeMonth(-1)} className="action-btn" style={{margin:0}}><ChevronLeft size={20}/></button>
-                                            <button onClick={() => setCurrentDate(new Date())} className="action-btn" style={{ margin:0, padding: '0.4rem 1rem', background: 'transparent', border: '1px solid #e2e8f0', color: '#64748b' }}>Today</button>
-                                            <button onClick={() => changeMonth(1)} className="action-btn" style={{margin:0}}><ChevronRight size={20}/></button>
+                                    <div className="artist-calendar-header">
+                                        <div className="artist-calendar-nav">
+                                            <button onClick={() => changeMonth(-1)} className="artist-calendar-nav-btn"><ChevronLeft size={20}/></button>
+                                            <button onClick={() => setCurrentDate(new Date())} className="artist-calendar-nav-btn">Today</button>
+                                            <button onClick={() => changeMonth(1)} className="artist-calendar-nav-btn"><ChevronRight size={20}/></button>
                                         </div>
                                         <h2 style={{margin:0, border: 'none'}}>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
                                         <div style={{ width: '150px' }}></div>
                                     </div>
-                                    <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }}>
+                                    <div className="artist-calendar-grid">
                                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                                            <div key={d} style={{ fontWeight: 'bold', textAlign: 'center', padding: '10px', color: '#64748b' }}>{d}</div>
+                                            <div key={d} className="artist-calendar-day-header">{d}</div>
                                         ))}
-                                        {[...Array(firstDayOfMonth)].map((_, i) => <div key={`empty-${i}`} style={{ background: '#f8fafc', borderRadius: '8px' }}></div>)}
+                                        {[...Array(firstDayOfMonth)].map((_, i) => <div key={`empty-${i}`} className="artist-calendar-cell-empty"></div>)}
                                         {[...Array(daysInMonth)].map((_, i) => {
                                             const day = i + 1;
                                             const dayAppts = getAppointmentsForDate(day);
                                             const isToday = new Date().getDate() === day && new Date().getMonth() === currentDate.getMonth() && new Date().getFullYear() === currentDate.getFullYear();
                                             
                                             return (
-                                                <div key={day} style={{ 
-                                                    border: isToday ? '2px solid #6366f1' : '1px solid #e2e8f0', 
-                                                    minHeight: '100px', 
-                                                    padding: '8px', 
-                                                    borderRadius: '8px',
-                                                    backgroundColor: 'white'
-                                                }}>
-                                                    <div style={{ fontWeight: 'bold', marginBottom: '5px', color: isToday ? '#6366f1' : '#334155' }}>{day}</div>
+                                                <div key={day} className={`artist-calendar-cell ${isToday ? 'today' : ''}`}>
+                                                    <div className="artist-calendar-date-number">{day}</div>
                                                     {dayAppts.map(apt => (
-                                                        <div key={apt.id} style={{ 
-                                                            fontSize: '0.75rem', 
-                                                            padding: '4px', 
-                                                            marginBottom: '4px', 
-                                                            borderRadius: '4px',
-                                                            backgroundColor: apt.status === 'confirmed' ? '#d1fae5' : (apt.status === 'pending' ? '#fef3c7' : '#e0e7ff'),
-                                                            color: apt.status === 'confirmed' ? '#065f46' : (apt.status === 'pending' ? '#92400e' : '#3730a3'),
-                                                            whiteSpace: 'nowrap',
-                                                            overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            cursor: 'pointer'
-                                                        }} title={`${apt.start_time || 'N/A'} - ${apt.client_name}`}>
+                                                        <div key={apt.id} 
+                                                             className={`artist-calendar-event ${apt.status === 'confirmed' ? 'confirmed' : (apt.status === 'pending' ? 'pending' : 'other')}`}
+                                                             title={`${apt.start_time || 'N/A'} - ${apt.client_name}`}
+                                                        >
                                                             {(apt.start_time || '').slice(0,5)} {apt.client_name}
                                                         </div>
                                                     ))}
@@ -228,9 +214,9 @@ function ArtistAppointments(){
                                                                 </td>
                                                                 {activeTab === 'pending' && (
                                                                     <td>
-                                                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                                                            <button onClick={() => setConfirmModal({ visible: true, title: 'Accept Assignment', message: 'Do you want to accept this appointment?', onConfirm: () => handleAccept(a.id) })} className="action-btn" style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.85rem' }}>Accept</button>
-                                                                            <button onClick={() => setConfirmModal({ visible: true, title: 'Decline Assignment', message: 'Are you sure you want to decline this assignment? It will be reverted back to the Admin.', onConfirm: () => handleReject(a.id) })} className="action-btn" style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.85rem' }}>Decline</button>
+                                                                        <div className="artist-action-group">
+                                                                            <button onClick={() => setConfirmModal({ visible: true, title: 'Confirm Availability', message: 'Ready to take on this assignment? Confirming will notify the manager to generate a quote for the client.', onConfirm: () => handleAccept(a.id) })} className="artist-btn-accept">Confirm</button>
+                                                                            <button onClick={() => setConfirmModal({ visible: true, title: 'Decline Assignment', message: 'Are you sure you want to decline this assignment? It will be reverted back to the Admin for reassignment.', onConfirm: () => handleReject(a.id) })} className="artist-btn-decline">Decline</button>
                                                                         </div>
                                                                     </td>
                                                                 )}

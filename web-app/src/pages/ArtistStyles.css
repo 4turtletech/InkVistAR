@@ -1,0 +1,388 @@
+/* Artist UI Premium Styling Foundation */
+
+.artist-portal-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Action Buttons (Premium) */
+.artist-btn-accept {
+    background-color: #10b981;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.artist-btn-accept:hover {
+    background-color: #059669;
+    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+}
+
+.artist-btn-decline {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.artist-btn-decline:hover {
+    background-color: #dc2626;
+    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+}
+
+.artist-action-group {
+    display: flex;
+    gap: 12px;
+}
+
+/* Calendar View Styles */
+.artist-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.artist-calendar-nav {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.artist-calendar-nav-btn {
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.artist-calendar-nav-btn:hover {
+    background: #f8fafc;
+    color: #1e293b;
+}
+
+.artist-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+}
+
+.artist-calendar-day-header {
+    font-weight: 700;
+    text-align: center;
+    padding: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+}
+
+.artist-calendar-cell {
+    min-height: 110px;
+    padding: 10px;
+    border-radius: 12px;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.artist-calendar-cell:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.artist-calendar-cell.today {
+    border: 2px solid #C19A6B; /* Using the primary bronze */
+    box-shadow: 0 0 0 4px rgba(193, 154, 107, 0.1);
+}
+
+.artist-calendar-date-number {
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #334155;
+    font-size: 1.1rem;
+}
+
+.artist-calendar-cell.today .artist-calendar-date-number {
+    color: #C19A6B;
+}
+
+.artist-calendar-event {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    font-weight: 500;
+    transition: transform 0.1s;
+}
+
+.artist-calendar-event:hover {
+    transform: scale(1.02);
+}
+
+.artist-calendar-event.confirmed {
+    background-color: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+
+.artist-calendar-event.pending {
+    background-color: #fff7ed;
+    color: #ea580c;
+    border: 1px solid #ffedd5;
+}
+
+.artist-calendar-event.other {
+    background-color: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+/* Empty Cell */
+.artist-calendar-cell-empty {
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px dashed #e2e8f0;
+}
+
+/* Artist Sessions */
+.artist-session-status-panel {
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.artist-session-grid {
+    display: grid;
+    grid-template-columns: minmax(400px, 1fr) 350px;
+    gap: 30px;
+}
+
+.artist-session-col {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.artist-session-card {
+    background: #f8fafc;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    padding: 15px;
+    text-align: center;
+}
+
+.artist-session-label {
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.artist-session-photo-container {
+    height: 180px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Artist Profile */
+.artist-profile-form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.artist-profile-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: #1e293b;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.artist-profile-section-title {
+    color: #1e293b;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.artist-profile-picture-section {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #f8fafc;
+    border-radius: 12px;
+}
+
+/* Artist Portal Main Dashboard */
+.artist-portal-logout {
+    margin-left: 15px;
+}
+
+.artist-portal-header-actions {
+    display: flex;
+    align-items: center;
+}
+
+.artist-portal-notif-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.artist-portal-clickable-card {
+    cursor: pointer;
+}
+
+.artist-portal-grid-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+.artist-portal-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.artist-portal-section-title {
+    margin: 0;
+}
+
+.artist-portal-launch-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 8px;
+}
+
+.artist-portal-no-data {
+    padding: 20px;
+    text-align: center;
+}
+
+.artist-portal-notif-title-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.artist-portal-notif-title {
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+.artist-portal-notif-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.artist-portal-notif-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+}
+
+.artist-portal-notif-item-title {
+    margin: 0 0 5px 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.artist-portal-notif-item-message {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* Artist Utilities */
+.artist-flex-center {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.artist-flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.artist-modal-body-scroll {
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+.artist-gallery-grid {
+    display: grid;
+    grid-template-columns: minmax(300px, 1fr) 320px;
+    gap: 30px;
+}
+
+.artist-gallery-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.artist-price-large {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #701a75;
+}
+
+.artist-section-p {
+    line-height: 1.7;
+    color: #334155;
+    margin: 0;
+}

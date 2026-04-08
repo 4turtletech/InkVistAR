@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, DollarSign, Users, BarChart3, Clock, LogOut, Bell, CheckCircle, AlertCircle } from 'lucide-react';
 import './PortalStyles.css';
+import './ArtistStyles.css';
 import ArtistSideNav from '../components/ArtistSideNav';
 import { API_URL } from '../config';
 
@@ -103,8 +104,8 @@ function ArtistPortal() {
                     <div className="header-title">
                         <h1>Artist Dashboard</h1>
                     </div>
-                    <div className="header-actions" style={{ display: 'flex', alignItems: 'center' }}>
-                        <div className="notif-btn-wrapper" ref={notifRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <div className="artist-portal-header-actions">
+                        <div className="artist-portal-notif-wrapper" ref={notifRef}>
                             <button className="notif-trigger-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
                                 <Bell size={22} />
                                 {unreadCount > 0 && <span className="notif-badge-dot"></span>}
@@ -136,7 +137,7 @@ function ArtistPortal() {
                                 </div>
                             )}
                         </div>
-                        <button className="logout-btn" onClick={() => navigate('/login')} style={{ marginLeft: '15px' }}>
+                        <button className="logout-btn artist-portal-logout" onClick={() => navigate('/login')}>
                             <LogOut size={20} />
                             Logout
                         </button>
@@ -150,7 +151,7 @@ function ArtistPortal() {
                         <>
                             {/* Stats Grid */}
                             <div className="stats-grid">
-                                <div className="stat-card clickable" onClick={() => navigate('/artist/earnings')} style={{ cursor: 'pointer' }}>
+                                <div className="stat-card clickable artist-portal-clickable-card" onClick={() => navigate('/artist/earnings')} style={{ cursor: 'pointer' }}>
                                     <DollarSign className="stat-icon" size={32} />
                                     <div className="stat-info">
                                         <p className="stat-label">Total Earnings</p>
@@ -158,7 +159,7 @@ function ArtistPortal() {
                                     </div>
                                 </div>
 
-                                <div className="stat-card clickable" onClick={() => navigate('/artist/appointments')} style={{ cursor: 'pointer' }}>
+                                <div className="stat-card clickable artist-portal-clickable-card" onClick={() => navigate('/artist/appointments')} style={{ cursor: 'pointer' }}>
                                     <Calendar className="stat-icon" size={32} />
                                     <div className="stat-info">
                                         <p className="stat-label">Appointments</p>
@@ -167,11 +168,11 @@ function ArtistPortal() {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+                            <div className="artist-portal-grid-layout">
                                 <div className="data-card">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                        <h2 style={{ margin: 0 }}>Today's Schedule</h2>
-                                        <button className="action-btn" onClick={() => navigate('/artist/sessions')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Launch Session View</button>
+                                    <div className="artist-portal-section-header">
+                                        <h2 className="artist-portal-section-title">Today's Schedule</h2>
+                                        <button className="action-btn artist-portal-launch-btn" onClick={() => navigate('/artist/sessions')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Launch Session View</button>
                                     </div>
                                     {todaysAppointments.length > 0 ? (
                                         <div className="table-responsive">
@@ -197,7 +198,7 @@ function ArtistPortal() {
                                             </table>
                                         </div>
                                     ) : (
-                                        <div className="no-data" style={{ padding: '20px', textAlign: 'center' }}>
+                                        <div className="artist-portal-no-data">
                                             <CheckCircle size={40} color="#10b981" style={{ marginBottom: '10px' }} />
                                             <p>No appointments scheduled for today.</p>
                                         </div>
@@ -210,13 +211,13 @@ function ArtistPortal() {
                                         <Bell size={20} />
                                         <h2 style={{ margin: 0, border: 'none', padding: 0 }}>Notifications</h2>
                                     </div>
-                                    <div className="notifications-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                    <div className="artist-portal-notif-list">
                                         {notifications.length > 0 ? notifications.map(notif => (
-                                            <div key={notif.id} style={{ padding: '10px', borderBottom: '1px solid #eee', display: 'flex', gap: '10px' }}>
+                                            <div key={notif.id} className="artist-portal-notif-item">
                                                 <AlertCircle size={16} color="#6366f1" style={{ marginTop: '3px' }} />
                                                 <div>
-                                                    <p style={{ margin: '0 0 5px 0', fontWeight: '600', fontSize: '0.9rem' }}>{notif.title}</p>
-                                                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>{notif.message}</p>
+                                                    <p className="artist-portal-notif-item-title">{notif.title}</p>
+                                                    <p className="artist-portal-notif-item-message">{notif.message}</p>
                                                 </div>
                                             </div>
                                         )) : <p className="no-data">No new notifications</p>}
@@ -228,7 +229,7 @@ function ArtistPortal() {
                             <div className="data-card">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                                     <h2 style={{ margin: 0 }}>Upcoming Sessions</h2>
-                                    <button className="action-btn" onClick={() => navigate('/artist/appointments')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>View Full Schedule</button>
+                                    <button className="action-btn artist-portal-launch-btn" onClick={() => navigate('/artist/appointments')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>View Full Schedule</button>
                                 </div>
                                 <div className="table-responsive">
                                     {appointments.filter(apt => {

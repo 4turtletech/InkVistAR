@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import './PortalStyles.css';
+import './ArtistStyles.css';
 import { API_URL } from '../config';
 
 function ArtistProfile() {
@@ -191,13 +192,7 @@ function ArtistProfile() {
                         <div className="data-card" style={{ maxWidth: '700px', margin: '0 auto' }}>
                             <form onSubmit={handleSave}>
                                 {/* Profile Picture Section */}
-                                <div className="profile-picture-section" style={{
-                                    textAlign: 'center',
-                                    marginBottom: '30px',
-                                    padding: '20px',
-                                    backgroundColor: '#f8fafc',
-                                    borderRadius: '12px'
-                                }}>
+                                <div className="artist-profile-picture-section">
                                     <div style={{ position: 'relative', display: 'inline-block' }}>
                                         <div style={{
                                             width: '140px',
@@ -301,47 +296,47 @@ function ArtistProfile() {
                                     </h3>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                         <div className="form-group">
-                                            <label style={formLabel}><User size={16} /> Artist Name <span style={{ color: '#ef4444' }}>*</span></label>
+                                            <label className="artist-profile-form-label"><User size={16} /> Artist Name <span style={{ color: '#ef4444' }}>*</span></label>
                                             <input
                                                 type="text"
-                                                className="form-input"
+                                                className="form-input artist-profile-input"
                                                 value={profile.name}
                                                 onChange={e => setProfile({ ...profile, name: e.target.value })}
                                                 placeholder="Your full name"
-                                                style={inputStyle}
+                                                
                                             />
                                         </div>
                                         <div className="form-group">
-                                            <label style={formLabel}><Mail size={16} /> Email</label>
+                                            <label className="artist-profile-form-label"><Mail size={16} /> Email</label>
                                             <input
                                                 type="email"
-                                                className="form-input"
+                                                className="form-input artist-profile-input"
                                                 value={profile.email}
                                                 disabled
-                                                style={{ ...inputStyle, backgroundColor: '#f1f5f9', color: '#64748b' }}
+                                                style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}
                                             />
                                             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Contact support to change</span>
                                         </div>
                                         <div className="form-group">
-                                            <label style={formLabel}><Phone size={16} /> Phone Number</label>
+                                            <label className="artist-profile-form-label"><Phone size={16} /> Phone Number</label>
                                             <input
                                                 type="tel"
-                                                className="form-input"
+                                                className="form-input artist-profile-input"
                                                 value={profile.phone || ''}
                                                 onChange={e => setProfile({ ...profile, phone: e.target.value.replace(/[^0-9+\s()-]/g, '') })}
                                                 placeholder="+1 (555) 123-4567"
-                                                style={inputStyle}
+                                                
                                             />
                                         </div>
                                         <div className="form-group">
-                                            <label style={formLabel}><Building size={16} /> Studio Name</label>
+                                            <label className="artist-profile-form-label"><Building size={16} /> Studio Name</label>
                                             <input
                                                 type="text"
-                                                className="form-input"
+                                                className="form-input artist-profile-input"
                                                 value={profile.studio_name || ''}
                                                 onChange={e => setProfile({ ...profile, studio_name: e.target.value })}
                                                 placeholder="Your studio or shop name"
-                                                style={{...inputStyle, backgroundColor: '#f1f5f9', color: '#64748b'}}
+                                                style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}
                                                 disabled
                                             />
                                         </div>
@@ -368,37 +363,37 @@ function ArtistProfile() {
                                     </h3>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                            <label style={formLabel}><Palette size={16} /> Specialization / Styles</label>
+                                            <label className="artist-profile-form-label"><Palette size={16} /> Specialization / Styles</label>
                                             <input
                                                 type="text"
-                                                className="form-input"
+                                                className="form-input artist-profile-input"
                                                 value={profile.specialization || ''}
                                                 onChange={e => setProfile({ ...profile, specialization: e.target.value })}
                                                 placeholder="e.g. Realism, Traditional, Japanese, Watercolor, Neo-traditional"
-                                                style={inputStyle}
+                                                
                                             />
                                             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Separate multiple styles with commas</span>
                                         </div>
                                         <div className="form-group">
-                                            <label style={formLabel}><Clock size={16} /> Years of Experience</label>
+                                            <label className="artist-profile-form-label"><Clock size={16} /> Years of Experience</label>
                                             <input
                                                 type="number"
-                                                className="form-input"
+                                                className="form-input artist-profile-input"
                                                 value={profile.experience_years}
                                                 onChange={e => setProfile({ ...profile, experience_years: Math.max(0, parseInt(e.target.value) || 0) })}
                                                 min="0"
                                                 max="50"
-                                                style={inputStyle}
+                                                
                                             />
                                         </div>
                                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                            <label style={formLabel}><Percent size={16} /> Platform Commission Rate</label>
+                                            <label className="artist-profile-form-label"><Percent size={16} /> Platform Commission Rate</label>
                                             <input
                                                 type="text"
-                                                className="form-input"
+                                                className="form-input artist-profile-input"
                                                 value="30%"
                                                 disabled
-                                                style={{ ...inputStyle, backgroundColor: '#f1f5f9', color: '#64748b' }}
+                                                style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}
                                             />
                                             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                                                 Platform takes a fixed 30% commission. You keep 70%.
@@ -456,17 +451,17 @@ function ArtistProfile() {
                                         }}>
                                             <div style={{ marginBottom: '16px' }}>
                                                 <div className="form-group">
-                                                    <label style={formLabel}>
+                                                    <label className="artist-profile-form-label">
                                                         <Lock size={16} /> Current Password
                                                     </label>
                                                     <div style={{ position: 'relative' }}>
                                                         <input
                                                             type={showPassword ? 'text' : 'password'}
-                                                            className="form-input"
+                                                            className="form-input artist-profile-input"
                                                             value={passwords.currentPassword}
                                                             onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })}
                                                             placeholder="Enter current password"
-                                                            style={{ ...inputStyle, paddingRight: '40px' }}
+                                                            style={{ paddingRight: '40px' }}
                                                         />
                                                         <button
                                                             type="button"
@@ -489,29 +484,29 @@ function ArtistProfile() {
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                                 <div className="form-group">
-                                                    <label style={formLabel}>
+                                                    <label className="artist-profile-form-label">
                                                         <Lock size={16} /> New Password
                                                     </label>
                                                     <input
                                                         type="password"
-                                                        className="form-input"
+                                                        className="form-input artist-profile-input"
                                                         value={passwords.newPassword}
                                                         onChange={e => setPasswords({ ...passwords, newPassword: e.target.value })}
                                                         placeholder="Min. 6 characters"
-                                                        style={inputStyle}
+                                                        
                                                     />
                                                 </div>
                                                 <div className="form-group">
-                                                    <label style={formLabel}>
+                                                    <label className="artist-profile-form-label">
                                                         <Lock size={16} /> Confirm New Password
                                                     </label>
                                                     <input
                                                         type="password"
-                                                        className="form-input"
+                                                        className="form-input artist-profile-input"
                                                         value={passwords.confirmPassword}
                                                         onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
                                                         placeholder="Re-enter new password"
-                                                        style={inputStyle}
+                                                        
                                                     />
                                                 </div>
                                             </div>
@@ -578,27 +573,5 @@ function ArtistProfile() {
         </div>
     );
 }
-
-// Inline styles
-const formLabel = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    color: '#334155',
-    marginBottom: '6px'
-};
-
-const inputStyle = {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #e2e8f0',
-    borderRadius: '6px',
-    fontSize: '0.95rem',
-    color: '#1e293b',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-    boxSizing: 'border-box'
-};
 
 export default ArtistProfile;
