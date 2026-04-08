@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, FileText, Image, Package, Search, Filter, Calendar, Clock, User, DollarSign, X } from 'lucide-react';
+import { CheckCircle, FileText, Image as ImageIcon, Package, Search, Filter, Calendar, Clock, User, DollarSign, X } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
 import './PortalStyles.css';
@@ -238,123 +238,158 @@ function AdminCompletedSessions() {
                 {/* Session Details Modal */}
                 {sessionModal.mounted && selectedSession && (
                     <div className={`modal-overlay ${sessionModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                        <div className="modal-content" style={{ maxWidth: '900px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-content xl" style={{ height: '90vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <div>
-                                    <h2>Session: {selectedSession.clientName}</h2>
-                                    <p style={{ margin: 0, color: '#666' }}>{selectedSession.designTitle}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                    <div style={{ background: '#f8fafc', width: '50px', height: '50px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <ImageIcon size={28} className="text-bronze" />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ margin: 0 }}>Archive Record: {selectedSession.clientName}</h2>
+                                        <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.9rem' }}>Project: {selectedSession.designTitle}</p>
+                                    </div>
                                 </div>
-                                <button className="close-btn" onClick={closeModal}><X size={20} /></button>
+                                <button className="close-btn" onClick={closeModal}><X size={24} /></button>
                             </div>
 
-                            <div className="modal-body">
-                                {/* Session Info Cards */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
-                                    <div className="data-card" style={{ background: '#f8fafc' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                                            <Calendar size={20} color="#3b82f6" />
-                                            <strong>Date</strong>
+                            <div className="modal-body" style={{ flex: 1, padding: '30px', maxHeight: 'none' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '40px', height: '100%' }}>
+                                    {/* Left Column: Visual Archive & Notes */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                                        {/* Performance Metrics Row */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+                                            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                                <label style={{ fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Procedure Date</label>
+                                                <div style={{ fontWeight: 700, fontSize: '1rem' }}>{selectedSession.date}</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Started at {selectedSession.time}</div>
+                                            </div>
+                                            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                                <label style={{ fontWeight: 700, fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Primary Artist</label>
+                                                <div style={{ fontWeight: 700, fontSize: '1rem' }}>{selectedSession.artistName}</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Senior Tattoo Artist</div>
+                                            </div>
+                                            <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '16px', border: '1px solid #dcfce7' }}>
+                                                <label style={{ fontWeight: 700, fontSize: '0.7rem', color: '#166534', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Revenue Item</label>
+                                                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#166534' }}>₱{selectedSession.price.toLocaleString()}</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#15803d' }}>Payment Confirmed</div>
+                                            </div>
                                         </div>
-                                        <p style={{ margin: 0, fontSize: '0.95rem' }}>{selectedSession.date}</p>
-                                        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>{selectedSession.time}</p>
-                                    </div>
-                                    <div className="data-card" style={{ background: '#f8fafc' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                                            <User size={20} color="#3b82f6" />
-                                            <strong>Client</strong>
-                                        </div>
-                                        <p style={{ margin: 0 }}>{selectedSession.clientName}</p>
-                                    </div>
-                                    <div className="data-card" style={{ background: '#f8fafc' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                                            <FileText size={20} color="#3b82f6" />
-                                            <strong>Artist</strong>
-                                        </div>
-                                        <p style={{ margin: 0 }}>{selectedSession.artistName}</p>
-                                    </div>
-                                    <div className="data-card" style={{ background: '#f8fafc' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                                            <DollarSign size={20} color="#10b981" />
-                                            <strong>Price</strong>
-                                        </div>
-                                        <p style={{ margin: 0, fontWeight: '600', color: '#10b981' }}>₱{selectedSession.price.toLocaleString()}</p>
-                                    </div>
-                                </div>
 
-                                {/* Photos */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                    <div className="photo-upload-box" style={{ border: '2px dashed #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center' }}>
-                                        <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600' }}>Before Photo</label>
-                                        {selectedSession.beforePhoto ? (
-                                            <img src={selectedSession.beforePhoto} alt="Before" style={{ width: '100%', maxHeight: '250px', objectFit: 'cover', borderRadius: '4px' }} />
-                                        ) : (
-                                            <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No before photo uploaded</p>
-                                        )}
-                                    </div>
-                                    <div className="photo-upload-box" style={{ border: '2px dashed #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center' }}>
-                                        <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600' }}>After Photo</label>
-                                        {selectedSession.afterPhoto ? (
-                                            <img src={selectedSession.afterPhoto} alt="After" style={{ width: '100%', maxHeight: '250px', objectFit: 'cover', borderRadius: '4px' }} />
-                                        ) : (
-                                            <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No after photo uploaded</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Session Notes */}
-                                <div style={{ marginBottom: '20px' }}>
-                                    <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600' }}>
-                                        <FileText size={16} style={{ verticalAlign: 'middle' }} /> Session Notes
-                                    </label>
-                                    <div style={{
-                                        background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px',
-                                        padding: '15px', minHeight: '100px', whiteSpace: 'pre-wrap'
-                                    }}>
-                                        {selectedSession.notes || 'No notes recorded'}
-                                    </div>
-                                </div>
-
-                                {/* Materials Used */}
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600' }}>
-                                        <Package size={16} style={{ verticalAlign: 'middle' }} /> Materials Used
-                                    </label>
-                                    <div style={{
-                                        background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px'
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>
-                                            <strong>Total Material Cost</strong>
-                                            <strong style={{ color: '#10b981' }}>₱{selectedSession.totalCost?.toLocaleString() || 0}</strong>
+                                        {/* Visual Documentation */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>Before State</label>
+                                                <div style={{ background: '#f8fafc', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {selectedSession.beforePhoto ? (
+                                                        <img src={selectedSession.beforePhoto} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                                                            <ImageIcon size={32} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                                                            <div style={{ fontSize: '0.8rem' }}>No initial documentation</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>After State</label>
+                                                <div style={{ background: '#f8fafc', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {selectedSession.afterPhoto ? (
+                                                        <img src={selectedSession.afterPhoto} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                                                            <ImageIcon size={32} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                                                            <div style={{ fontSize: '0.8rem' }}>No final documentation</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                        {selectedSession.materials && selectedSession.materials.length > 0 ? (
-                                            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                                                {selectedSession.materials.map((mat, idx) => (
-                                                    <li key={idx} style={{
-                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                        padding: '8px 0', borderBottom: '1px solid #e2e8f0'
-                                                    }}>
-                                                        <span>{mat.quantity}x {mat.item_name}</span>
-                                                        <span style={{
-                                                            fontSize: '0.8rem',
-                                                            padding: '2px 8px',
-                                                            borderRadius: '4px',
-                                                            background: mat.status === 'consumed' ? '#d1fae5' : '#fef3c7',
-                                                            color: mat.status === 'consumed' ? '#065640' : '#92400e'
-                                                        }}>
-                                                            {mat.status.toUpperCase()}
-                                                        </span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        ) : (
-                                            <p style={{ color: '#94a3b8', fontStyle: 'italic', margin: 0 }}>No materials logged for this session</p>
-                                        )}
+
+                                        {/* Artist Notes Archive */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <FileText size={14}/> Procedure Narrative
+                                            </label>
+                                            <div style={{
+                                                background: '#f8fafc', 
+                                                border: '1px solid #e2e8f0', 
+                                                borderRadius: '20px',
+                                                padding: '24px', 
+                                                fontSize: '0.95rem',
+                                                lineHeight: '1.7',
+                                                color: '#334155',
+                                                minHeight: '120px',
+                                                whiteSpace: 'pre-wrap'
+                                            }}>
+                                                {selectedSession.notes || 'No notes were recorded for this session.'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Column: Logistics & Supplies */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        <div style={{ 
+                                            background: '#fff', 
+                                            borderRadius: '24px', 
+                                            border: '1px solid #e2e8f0', 
+                                            padding: '24px',
+                                            height: '100%',
+                                            display: 'flex',
+                                            flexDirection: 'column'
+                                        }}>
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Package size={14}/> Logistics & Consumables
+                                            </label>
+                                            
+                                            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px' }}>
+                                                {selectedSession.materials && selectedSession.materials.length > 0 ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        {selectedSession.materials.map((mat, idx) => (
+                                                            <div key={idx} style={{
+                                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                padding: '12px 16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9'
+                                                            }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{mat.quantity}x {mat.item_name}</span>
+                                                                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Itemized Consumable</span>
+                                                                </div>
+                                                                <span className={`badge status-consumed`} style={{ fontSize: '0.65rem' }}>{mat.status.toUpperCase()}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+                                                        <Package size={32} style={{ opacity: 0.2, marginBottom: '10px' }} />
+                                                        <p style={{ margin: 0, fontSize: '0.85rem' }}>No materials were itemized for this specific procedure.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div style={{ 
+                                                background: '#f8fafc', 
+                                                padding: '20px', 
+                                                borderRadius: '20px', 
+                                                border: '1px solid #e2e8f0',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Logistics Cost</div>
+                                                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b' }}>₱{selectedSession.totalCost?.toLocaleString() || 0}</div>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#10b981' }}>{selectedSession.materials ? selectedSession.materials.length : 0}</div>
+                                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Items Used</div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={closeModal}>Close</button>
+                                <button className="btn btn-primary" onClick={closeModal} style={{ padding: '10px 40px' }}>Done Reviewing</button>
                             </div>
                         </div>
                     </div>

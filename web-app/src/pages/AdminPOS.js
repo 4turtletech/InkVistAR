@@ -358,73 +358,82 @@ function AdminPOS() {
                 </div>
 
                 {showReceipt && lastOrder && (
-                    <div className="pos-modal-overlay">
-                        <div className="receipt-modal">
-                            <div className="receipt-success-header">
-                                <CheckCircle size={40} className="success-icon-anim" />
-                                <h2>Transaction Complete</h2>
-                                <p>Digital invoice generated successfully</p>
+                    <div className="modal-overlay open" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
+                        <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                    <div style={{ background: '#dcfce7', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <CheckCircle size={24} className="text-green-600" />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ margin: 0 }}>Transaction Settlement Successful</h2>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Digital ledger entry committed to archive</p>
+                                    </div>
+                                </div>
+                                <button className="close-btn" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}><X size={24} /></button>
                             </div>
-                            <button className="close-btn" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}><X size={20} /></button>
 
-                            <div className="invoice-paper">
-                                <div className="invoice-header">
-                                    <div className="invoice-biz-info">
-                                        <h1>InkVistAR Studio</h1>
-                                        <p>123 Art Street, New York, NY 10001</p>
-                                        <p>Tel: 555-123-4567</p>
+                            <div className="modal-body" style={{ maxHeight: '70vh', padding: '30px', background: '#f8fafc' }}>
+                                <div style={{ background: '#fff', padding: '40px', borderRadius: '30px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', maxWidth: '600px', margin: '0 auto' }}>
+                                    <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                                        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.025em' }}>InkVistAR Studio</h1>
+                                        <p style={{ margin: '5px 0', fontSize: '0.85rem', color: '#64748b' }}>123 Art Street, New York, NY 10001</p>
                                     </div>
-                                    <div className="invoice-meta">
-                                        <h2>Invoice</h2>
-                                        <p>#INV-{lastOrder.orderId}</p>
-                                        <p>Date: {lastOrder.date}</p>
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px dashed #e2e8f0' }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Billed To</div>
+                                            <div style={{ fontSize: '1rem', fontWeight: 700 }}>{lastOrder.customerName}</div>
+                                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{customers.find(c => c.id === parseInt(lastOrder.customerId))?.email || 'Guest Session'}</div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Invoice Ref</div>
+                                            <div style={{ fontSize: '1rem', fontWeight: 700 }}>#INV-{lastOrder.orderId}</div>
+                                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{lastOrder.date}</div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="invoice-divider"></div>
-
-                                <div className="invoice-bill-to">
-                                    <label className="invoice-label">Billed To</label>
-                                    <p>{lastOrder.customerName}</p>
-                                    <p>{customers.find(c => c.id === parseInt(lastOrder.customerId))?.email || 'Guest Session'}</p>
-                                </div>
-
-                                <table className="invoice-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Item</th>
-                                            <th>Quantity</th>
-                                            <th>Price</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {lastOrder.items.map(item => (
-                                            <tr key={item.id}>
-                                                <td>{item.name}</td>
-                                                <td>{item.quantity}</td>
-                                                <td>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString()}</td>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '30px' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                                                <th style={{ padding: '12px', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Item Specification</th>
+                                                <th style={{ padding: '12px', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', textAlign: 'center' }}>Unit</th>
+                                                <th style={{ padding: '12px', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', textAlign: 'right' }}>Total</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <td colSpan="2"></td>
-                                            <td>Total: ₱{lastOrder.total.toLocaleString()}</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {lastOrder.items.map(item => (
+                                                <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                    <td style={{ padding: '12px', fontSize: '0.9rem', fontWeight: 600 }}>{item.name}</td>
+                                                    <td style={{ padding: '12px', fontSize: '0.9rem', textAlign: 'center' }}>{item.quantity}</td>
+                                                    <td style={{ padding: '12px', fontSize: '0.9rem', fontWeight: 700, textAlign: 'right' }}>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString()}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td colSpan="2" style={{ padding: '30px 12px 10px', fontSize: '0.9rem', fontWeight: 700, color: '#64748b', textAlign: 'right' }}>Net Amount:</td>
+                                                <td style={{ padding: '30px 12px 10px', fontSize: '1.25rem', fontWeight: 800, color: '#10b981', textAlign: 'right' }}>₱{lastOrder.total.toLocaleString()}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
                             </div>
 
-                            <div className="invoice-modal-actions">
+                            <div className="modal-footer" style={{ gap: '15px' }}>
+                                <button className="btn btn-secondary" style={{ marginRight: 'auto' }} onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
+                                    Skip Dispatch
+                                </button>
                                 <button 
-                                    className="send-invoice-btn" 
+                                    className="btn btn-primary" 
+                                    style={{ padding: '10px 40px', background: '#6366f1' }}
                                     onClick={handleSendReceipt} 
                                     disabled={isSending || !lastOrder.customerId}
                                 >
-                                    <Send size={18} /> {isSending ? 'Sending...' : 'Send to Customer Account'}
+                                    {isSending ? 'Transmitting...' : 'Dispatch to Customer Account'}
                                 </button>
-                                <button className="close-invoice-btn" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
-                                    Close
+                                <button className="btn btn-primary" style={{ padding: '10px 40px' }} onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
+                                    Done
                                 </button>
                             </div>
                         </div>

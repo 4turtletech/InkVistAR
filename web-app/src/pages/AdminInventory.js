@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, X, RotateCcw, Printer, Download, Search, Filter, SlidersHorizontal, DollarSign, AlertTriangle, Layers } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminInventory.css';
+import './PortalStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
@@ -681,127 +682,129 @@ function AdminInventory() {
             {/* Add/Edit Modal */}
             {addEditModal.mounted && (
                 <div className={`modal-overlay ${addEditModal.visible ? 'open' : ''}`} onClick={() => closeModal(setAddEditModal)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>{selectedItem ? 'Edit Item' : 'Add New Item'}</h2>
-                            <button className="close-btn" onClick={() => closeModal(setAddEditModal)}><X size={20}/></button>
+                            <h2>{selectedItem ? 'Edit Inventory Item' : 'Register New Item'}</h2>
+                            <button className="close-btn" onClick={() => closeModal(setAddEditModal)}><X size={24}/></button>
                         </div>
                         <form onSubmit={handleSave}>
-                        <div className="modal-body">
-                            <div className="form-group">
-                                <label>Item Name *</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                    className="form-input"
-                                />
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Category *</label>
-                                    <select 
-                                        value={formData.category}
-                                        onChange={(e) => setFormData({...formData, category: e.target.value})}
-                                        className="form-input"
-                                    >
-                                        {INVENTORY_CATEGORIES.map(cat => (
-                                            <option key={cat.value} value={cat.value}>{cat.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Unit *</label>
-                                    <input
-                                        type="text"
-                                        value={formData.unit}
-                                        onChange={(e) => setFormData({...formData, unit: e.target.value})}
-                                        className="form-input"
-                                    />
-                                </div>
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Current Stock *</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={formData.currentStock}
-                                        onChange={(e) => setFormData({...formData, currentStock: e.target.value})}
-                                        className="form-input"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Acquisition Cost</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={formData.cost}
-                                        onChange={(e) => setFormData({...formData, cost: e.target.value})}
-                                        className="form-input"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Retail Selling Price *</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={formData.retailPrice}
-                                        onChange={(e) => setFormData({...formData, retailPrice: e.target.value})}
-                                        className="form-input"
-                                        style={{ borderColor: '#6366f1', borderWidth: '2px' }}
-                                    />
-                                </div>
-                            </div>
-                            
-                            <div style={{ marginTop: '20px', padding: '15px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                                <h4 style={{ margin: '0 0 10px 0', color: '#1e293b', fontSize: '0.95rem' }}>Stock Alert Preferences</h4>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label style={{ color: '#ef4444', fontWeight: 'bold' }}>Low Stock Warning (Min)</label>
-                                        <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 5px 0' }}>Trigger an alert when stock equals or falls below this number.</p>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={formData.minStock}
-                                            onChange={(e) => setFormData({...formData, minStock: e.target.value})}
-                                            className="form-input"
-                                            placeholder="e.g. 5"
-                                        />
+                            <div className="modal-body">
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                                    {/* Left Column: Basic Info */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        <div className="form-group">
+                                            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Product Identity</label>
+                                            <input
+                                                type="text"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                                className="form-input"
+                                                placeholder="e.g. Dynamic Black Ink 8oz"
+                                            />
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                            <div className="form-group">
+                                                <label style={{ fontSize: '0.75rem' }}>Category *</label>
+                                                <select 
+                                                    value={formData.category}
+                                                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                                    className="form-input"
+                                                >
+                                                    {INVENTORY_CATEGORIES.map(cat => (
+                                                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label style={{ fontSize: '0.75rem' }}>Unit *</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.unit}
+                                                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
+                                                    className="form-input"
+                                                    placeholder="pcs, oz, boxes"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="form-group">
+                                            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Financials (₱)</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                                <div>
+                                                    <label style={{ fontSize: '0.75rem' }}>Cost Price</label>
+                                                    <input
+                                                        type="number"
+                                                        value={formData.cost}
+                                                        onChange={(e) => setFormData({...formData, cost: e.target.value})}
+                                                        className="form-input"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ fontSize: '0.75rem' }}>Retail Price</label>
+                                                    <input
+                                                        type="number"
+                                                        value={formData.retailPrice}
+                                                        onChange={(e) => setFormData({...formData, retailPrice: e.target.value})}
+                                                        className="form-input"
+                                                        style={{ borderColor: '#6366f1', borderStyle: 'dashed' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="form-group">
-                                        <label style={{ color: '#10b981', fontWeight: 'bold' }}>Target Capacity (Max)</label>
-                                        <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 5px 0' }}>The maximum amount of this item the studio should hold.</p>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={formData.maxStock}
-                                            onChange={(e) => setFormData({...formData, maxStock: e.target.value})}
-                                            className="form-input"
-                                            placeholder="e.g. 50"
-                                        />
+
+                                    {/* Right Column: Stock Levels */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        <div className="form-group">
+                                            <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Stock Status</label>
+                                            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: 700 }}>Initial / Current Quantity</label>
+                                                <input
+                                                    type="number"
+                                                    value={formData.currentStock}
+                                                    onChange={(e) => setFormData({...formData, currentStock: e.target.value})}
+                                                    className="form-input"
+                                                    style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '5px' }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '12px', border: '1px solid #fee2e2' }}>
+                                            <label style={{ color: '#dc2626', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '5px', display: 'block' }}>Stock Limits</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                                <div>
+                                                    <label style={{ fontSize: '0.7rem', color: '#991b1b' }}>Min (Alert)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={formData.minStock}
+                                                        onChange={(e) => setFormData({...formData, minStock: e.target.value})}
+                                                        className="form-input"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ fontSize: '0.7rem', color: '#991b1b' }}>Max (Goal)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={formData.maxStock}
+                                                        onChange={(e) => setFormData({...formData, maxStock: e.target.value})}
+                                                        className="form-input"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="modal-footer" style={{ display: 'flex', justifyContent: selectedItem ? 'space-between' : 'flex-end' }}>
-                            {selectedItem && (
-                                <button type="button" className="btn btn-secondary" style={{ background: '#fee2e2', color: '#dc2626', border: 'none' }} onClick={() => { closeModal(setAddEditModal); handleDelete(selectedItem.id); }} disabled={isSaving}>
-                                    <Trash2 size={16} style={{marginRight: '5px', verticalAlign: 'middle'}} />
-                                    Delete Item
-                                </button>
-                            )}
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <button type="button" className="btn btn-secondary" onClick={() => closeModal(setAddEditModal)} disabled={isSaving}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn btn-primary" disabled={isSaving}>
-                                    {isSaving ? 'Saving...' : 'Save Item'}
+                            <div className="modal-footer">
+                                {selectedItem && (
+                                    <button type="button" className="action-btn delete-btn" style={{ marginRight: 'auto', padding: '10px 16px' }} onClick={() => { closeModal(setAddEditModal); handleDelete(selectedItem.id); }} disabled={isSaving}>
+                                        <Trash2 size={16} /> Delete Item
+                                    </button>
+                                )}
+                                <button type="button" className="btn btn-secondary" onClick={() => closeModal(setAddEditModal)} disabled={isSaving}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" style={{ padding: '10px 32px' }} disabled={isSaving}>
+                                    {selectedItem ? 'Update Stock Item' : 'Register Item'}
                                 </button>
                             </div>
-                        </div>
                         </form>
                     </div>
                 </div>
@@ -812,34 +815,63 @@ function AdminInventory() {
                 <div className={`modal-overlay ${transactionModal.visible ? 'open' : ''}`} onClick={() => closeModal(setTransactionModal)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>{transactionData.type === 'in' ? 'Stock In (Restock)' : 'Stock Out (Usage)'}</h2>
-                            <button className="close-btn" onClick={() => closeModal(setTransactionModal)}><X size={20}/></button>
+                            <h2>{transactionData.type === 'in' ? 'Restock Item' : 'Deduct Stock'}</h2>
+                            <button className="close-btn" onClick={() => closeModal(setTransactionModal)}><X size={24}/></button>
                         </div>
                         <form onSubmit={handleTransaction}>
                             <div className="modal-body">
-                                {transactionError && <p style={{ color: '#ef4444', textAlign: 'center', marginBottom: '1rem', background: '#fee2e2', padding: '0.5rem', borderRadius: '6px' }}>{transactionError}</p>}
-                                <p><strong>Item:</strong> {selectedItem?.name}</p>
-                                <p><strong>Current Stock:</strong> {selectedItem?.currentStock} {selectedItem?.unit}</p>
-                                <div className="form-group" style={{marginTop: '15px'}}>
-                                    <label>Quantity *</label>
-                                    <input 
-                                        type="number" 
-                                        className="form-input" 
-                                        min="1" 
-                                        max={transactionData.type === 'out' ? selectedItem?.currentStock : undefined}
-                                        required 
-                                        value={transactionData.quantity} 
-                                        onChange={e => { setTransactionData({...transactionData, quantity: e.target.value}); setTransactionError(''); }} 
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', background: '#f8fafc', padding: '15px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ background: '#fff', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                        <Package size={24} className="text-bronze" />
+                                    </div>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{selectedItem?.name}</h3>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Current: {selectedItem?.currentStock} {selectedItem?.unit}</p>
+                                    </div>
+                                </div>
+
+                                <div className="form-group" style={{ marginBottom: '20px' }}>
+                                    <label style={{ fontWeight: 700, fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Quantity to {transactionData.type === 'in' ? 'Add' : 'Remove'} ({selectedItem?.unit}) *</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={transactionData.quantity}
+                                        onChange={(e) => setTransactionData({...transactionData, quantity: e.target.value})}
+                                        className="form-input"
+                                        style={{ fontSize: '1.5rem', fontWeight: 800 }}
                                     />
                                 </div>
+
                                 <div className="form-group">
-                                    <label>Reason / Reference</label>
-                                    <input type="text" className="form-input" placeholder={transactionData.type === 'in' ? 'e.g. Order #123' : 'e.g. Session #456'} value={transactionData.reason} onChange={e => setTransactionData({...transactionData, reason: e.target.value})} />
+                                    <label style={{ fontWeight: 700, fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Reason / Note</label>
+                                    <select
+                                        value={transactionData.reason}
+                                        onChange={(e) => setTransactionData({...transactionData, reason: e.target.value})}
+                                        className="form-input"
+                                    >
+                                        {transactionData.type === 'in' ? (
+                                            <>
+                                                <option value="Restock">Bulk Restock</option>
+                                                <option value="Return">Return from Session</option>
+                                                <option value="Adjustment">Manual Correction</option>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <option value="Session Usage">Artist Session Usage</option>
+                                                <option value="Expired">Damaged / Expired</option>
+                                                <option value="Missing">Lost / Missing</option>
+                                                <option value="Adjustment">Manual Correction</option>
+                                            </>
+                                        )}
+                                    </select>
                                 </div>
+                                {transactionError && <p style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '10px', fontWeight: 600 }}>{transactionError}</p>}
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-secondary" onClick={() => closeModal(setTransactionModal)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">Confirm</button>
+                                <button type="submit" className={`btn ${transactionData.type === 'in' ? 'btn-primary' : ''}`} style={{ background: transactionData.type === 'out' ? '#ef4444' : undefined, color: 'white', padding: '10px 24px' }}>
+                                    Confirm {transactionData.type === 'in' ? 'Addition' : 'Deduction'}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -849,34 +881,47 @@ function AdminInventory() {
             {/* History Modal */}
             {historyModal.mounted && (
                 <div className={`modal-overlay ${historyModal.visible ? 'open' : ''}`} onClick={() => closeModal(setHistoryModal)}>
-                    <div className="modal-content" style={{maxWidth: '800px'}} onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>Inventory Transaction History</h2>
-                            <button className="close-btn" onClick={() => closeModal(setHistoryModal)}><X size={20}/></button>
+                            <h2>Transaction History</h2>
+                            <button className="close-btn" onClick={() => closeModal(setHistoryModal)}><X size={24}/></button>
                         </div>
-                        <div className="modal-body" style={{maxHeight: '60vh', overflowY: 'auto'}}>
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Item</th>
-                                        <th>Type</th>
-                                        <th>Qty</th>
-                                        <th>Reason/Ref</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {transactions.map(t => (
-                                        <tr key={t.id}>
-                                            <td>{new Date(t.created_at).toLocaleString()}</td>
-                                            <td>{t.item_name}</td>
-                                            <td><span className={`badge status-${t.type === 'in' ? 'active' : 'inactive'}`}>{t.type.toUpperCase()}</span></td>
-                                            <td>{t.quantity}</td>
-                                            <td>{t.reason}</td>
+                        <div className="modal-body" style={{ maxHeight: '70vh' }}>
+                            <div className="table-responsive">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date & Time</th>
+                                            <th>Item</th>
+                                            <th>Type</th>
+                                            <th>Qty</th>
+                                            <th>Action By</th>
+                                            <th>Reason</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {transactions.map(t => (
+                                            <tr key={t.id}>
+                                                <td style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{new Date(t.created_at).toLocaleString()}</td>
+                                                <td style={{ fontWeight: 700 }}>{t.item_name}</td>
+                                                <td>
+                                                    <span className={`badge ${t.transaction_type === 'in' ? 'status-active' : 'status-inactive'}`}>
+                                                        {t.transaction_type.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td style={{ fontWeight: 800, color: t.transaction_type === 'in' ? '#10b981' : '#ef4444' }}>
+                                                    {t.transaction_type === 'in' ? '+' : '-'}{t.quantity}
+                                                </td>
+                                                <td style={{ fontSize: '0.85rem' }}>{t.user_name}</td>
+                                                <td style={{ fontStyle: 'italic', fontSize: '0.85rem' }}>{t.reason}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => closeModal(setHistoryModal)}>Close</button>
                         </div>
                     </div>
                 </div>
@@ -885,19 +930,26 @@ function AdminInventory() {
             {/* Service Kits Modal */}
             {serviceKitsModal.mounted && (
                 <div className={`modal-overlay ${serviceKitsModal.visible ? 'open' : ''}`} onClick={() => closeModal(setServiceKitsModal)}>
-                    <div className="modal-content" style={{maxWidth: '800px'}} onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>Manage Service Kits</h2>
-                            <button className="close-btn" onClick={() => closeModal(setServiceKitsModal)}><X size={20}/></button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <div style={{ background: '#fef3c7', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Package size={20} className="text-orange" />
+                                </div>
+                                <div>
+                                    <h2 style={{ margin: 0 }}>Service Kit Protocols</h2>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Configure mandatory supply lists for specific services</p>
+                                </div>
+                            </div>
+                            <button className="close-btn" onClick={() => closeModal(setServiceKitsModal)}><X size={24}/></button>
                         </div>
-                        <div className="modal-body" style={{maxHeight: '70vh', overflowY: 'auto'}}>
-                            
-                            {/* Create New Kit Section - Only shown when not editing an existing kit */}
-                            {!editingKitOriginalType && (
-                                <div style={{ background: '#f9fafb', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e5e7eb', marginBottom: '2rem' }}>
-                                    <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>Create New Service Kit</h3>
+                        <div className="modal-body" style={{ maxHeight: '70vh', padding: '30px' }}>
+                            <div className="glass-card" style={{ padding: '20px', marginBottom: '25px', border: '1px solid #fbbf24' }}>
+                                <h3 style={{ margin: '0 0 15px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <Plus size={18} /> {editingKitOriginalType ? 'Modify System Kit' : 'Register New Protocol'}
+                                </h3>
                                 <div className="form-group">
-                                    <label>Service Type (Exact Match from Booking Form)</label>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Service Designation</label>
                                     <input 
                                         type="text" 
                                         className="form-input" 
@@ -906,7 +958,7 @@ function AdminInventory() {
                                         onChange={e => setEditingKitServiceType(e.target.value)}
                                     />
                                 </div>
-                                <div className="form-group" style={{marginTop: '1rem'}}>
+                                <div className="form-group" style={{marginTop: '1.5rem'}}>
                                     <label>Add Item to Kit</label>
                                     <select 
                                         className="form-input" 
@@ -960,7 +1012,6 @@ function AdminInventory() {
                                      </button>
                                 </div>
                             </div>
-                            )}
 
                             {/* Existing Kits */}
                             <h3>Existing Service Kits</h3>

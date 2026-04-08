@@ -347,12 +347,12 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
     const renderStepPlacement = () => (
         <div className="fade-in">
-            <h3 style={{fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <MapPin className="text-bronze" size={24} /> 2. Placement
+            <h3 style={{fontSize: '1.4rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <MapPin className="text-bronze" size={22} /> 2. Placement
             </h3>
-            <p style={{color: '#64748b', marginBottom: '32px'}}>Where on your body would you like this tattoo?</p>
+            <p style={{color: '#64748b', marginBottom: '24px', fontSize: '0.95rem'}}>Where on your body would you like this tattoo?</p>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
                 {["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"].map(part => (
                     <button
                         key={part} type="button"
@@ -361,32 +361,33 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             if (errors.placement) setErrors(prev => ({...prev, placement: ''}));
                         }}
                         style={{
-                            padding: '16px', borderRadius: '12px', border: `2px solid ${formData.placement === part ? '#C19A6B' : (errors.placement ? '#ef4444' : '#e2e8f0')}`,
+                            padding: '12px 8px', borderRadius: '10px', border: `2px solid ${formData.placement === part ? '#C19A6B' : (errors.placement ? '#ef4444' : '#e2e8f0')}`,
                             background: formData.placement === part ? '#C19A6B' : 'white',
                             color: formData.placement === part ? 'white' : '#1e293b',
-                            fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s'
+                            fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s',
+                            boxShadow: formData.placement === part ? '0 4px 12px rgba(193, 154, 107, 0.3)' : 'none'
                         }}
                     >
                         {part}
                     </button>
                 ))}
             </div>
-            {errors.placement && <small style={{color: '#ef4444', display: 'block', marginTop: '12px', fontSize: '0.9rem', textAlign: 'center'}}>{errors.placement}</small>}
+            {errors.placement && <small style={{color: '#ef4444', display: 'block', marginTop: '10px', fontSize: '0.85rem', textAlign: 'center'}}>{errors.placement}</small>}
         </div>
     );
 
     const renderStepScheduling = () => (
         <div className="fade-in">
-            <h3 style={{fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <Calendar className="text-bronze" size={24} /> 3. Schedule Consultation
+            <h3 style={{fontSize: '1.4rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <Calendar className="text-bronze" size={22} /> 3. Select Date & Time
             </h3>
-            <p style={{color: '#64748b', marginBottom: '32px'}}>Consultations are free. Select a date to meet in-studio and discuss your design.</p>
+            <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.95rem'}}>Select a date for your free in-studio consultation.</p>
             
-            <div style={{display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 250px', gap: '32px'}}>
+            <div style={{display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', alignItems: 'start'}}>
                 <div>{renderCalendar()}</div>
-                <div>
-                     <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '12px', display: 'block'}}>Preferred Time</label>
-                     <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                     <label style={{fontWeight: '700', color: '#1e293b', marginBottom: '12px', display: 'block', fontSize: '0.9rem', textTransform: 'uppercase'}}>Available Times</label>
+                     <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
                         {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => {
                             let isDisabled = false;
                             if (formData.date) {
@@ -407,14 +408,14 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                 }}
                                 disabled={isDisabled}
                                 style={{
-                                    padding: '12px',
+                                    padding: '10px 4px',
                                     borderRadius: '8px',
                                     border: formData.time === t ? '2px solid #C19A6B' : '1px solid #e2e8f0',
-                                    backgroundColor: formData.time === t ? '#fffcf0' : (isDisabled ? '#f8fafc' : 'white'),
+                                    backgroundColor: formData.time === t ? '#fffcf0' : (isDisabled ? 'transparent' : 'white'),
                                     fontWeight: formData.time === t ? '700' : '500',
                                     color: formData.time === t ? '#1e293b' : (isDisabled ? '#cbd5e1' : '#64748b'),
                                     cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                    opacity: isDisabled ? 0.6 : 1,
+                                    fontSize: '0.85rem',
                                     transition: 'all 0.2s'
                                 }}
                             >
@@ -424,63 +425,64 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             );
                         })}
                      </div>
+                     <div style={{ marginTop: '20px', fontSize: '0.8rem', color: '#94a3b8', lineHeight: '1.4' }}>
+                        <Info size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                        Time slots are 1 hour each.
+                     </div>
                 </div>
             </div>
-            {errors.date && <small style={{color: '#ef4444', display: 'block', marginTop: '16px', fontSize: '0.9rem', textAlign: 'center'}}>{errors.date}</small>}
+            {errors.date && <small style={{color: '#ef4444', display: 'block', marginTop: '12px', fontSize: '0.85rem', textAlign: 'center'}}>{errors.date}</small>}
         </div>
     );
 
     const renderStepContact = () => (
         <div className="fade-in">
-            <h3 style={{fontSize: '1.5rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                <User className="text-bronze" size={24} /> 4. Contact Information
+            <h3 style={{fontSize: '1.4rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <User className="text-bronze" size={22} /> 4. Contact Details
             </h3>
-            <p style={{color: '#64748b', marginBottom: '32px'}}>How should we reach out to you regarding your request?</p>
+            <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.95rem'}}>How should we reach out regarding your request?</p>
 
-            <div style={{ padding: '32px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div className="form-group" style={{ marginBottom: '20px', position: 'relative' }}>
-                    <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Full Name *</label>
-                    <input
-                        type="text"
-                        className={`form-input ${errors.name ? 'error' : ''}`}
-                        placeholder="John Doe"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        disabled={!!user}
-                        minLength={2}
-                        maxLength={100}
-                    />
-                    {errors.name && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.name}</small>}
-                </div>
-                <div className="form-group" style={{ marginBottom: '20px', position: 'relative' }}>
-                    <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Email Address *</label>
-                    <input
-                        type="email"
-                        className={`form-input ${errors.email ? 'error' : ''}`}
-                        placeholder="john.doe@example.com"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        disabled={!!user}
-                    />
-                    {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.email}</small>}
+            <div style={{ padding: '24px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                    <div className="form-group" style={{ position: 'relative' }}>
+                        <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>Full Name *</label>
+                        <input
+                            type="text"
+                            className={`form-input ${errors.name ? 'error' : ''}`}
+                            placeholder="John Doe"
+                            value={formData.name}
+                            onChange={(e) => handleInputChange('name', e.target.value)}
+                            disabled={!!user}
+                            style={{ padding: '10px' }}
+                        />
+                        {errors.name && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.name}</small>}
+                    </div>
+                    <div className="form-group" style={{ position: 'relative' }}>
+                        <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>Email Address *</label>
+                        <input
+                            type="email"
+                            className={`form-input ${errors.email ? 'error' : ''}`}
+                            placeholder="john@example.com"
+                            value={formData.email}
+                            onChange={(e) => handleInputChange('email', e.target.value)}
+                            disabled={!!user}
+                            style={{ padding: '10px' }}
+                        />
+                        {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.email}</small>}
+                    </div>
                 </div>
                 <div className="form-group" style={{ position: 'relative' }}>
-                    <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block' }}>Phone Number *</label>
+                    <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>Phone Number *</label>
                     <div style={{ display: 'flex', gap: '10px' }}>
                         <select 
                             className="form-input" 
-                            style={{ width: '110px', flexShrink: 0, appearance: 'menulist' }}
+                            style={{ width: '110px', flexShrink: 0, appearance: 'menulist', padding: '10px' }}
                             value={formData.phoneCode || '+63'} 
                             onChange={(e) => handleInputChange('phoneCode', e.target.value)}
                         >
                             <option value="+63">PH (+63)</option>
-                            <option value="+1">US/CA (+1)</option>
+                            <option value="+1">US (+1)</option>
                             <option value="+44">UK (+44)</option>
-                            <option value="+61">AU (+61)</option>
-                            <option value="+81">JP (+81)</option>
-                            <option value="+82">KR (+82)</option>
-                            <option value="+65">SG (+65)</option>
-                            <option value="+64">NZ (+64)</option>
                         </select>
                         <input 
                             type="tel" 
@@ -488,12 +490,16 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             placeholder="9171234567" 
                             value={formData.phone} 
                             onChange={(e) => handleInputChange('phone', e.target.value.replace(/[^0-9]/g, ''))} 
-                            style={{ flex: 1 }}
+                            style={{ flex: 1, padding: '10px' }}
                         />
                     </div>
-                    {errors.phone && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.phone}</small>}
+                    {errors.phone && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.phone}</small>}
                 </div>
             </div>
+            <p style={{ marginTop: '16px', color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center' }}>
+                <CheckCircle size={12} style={{ marginRight: '4px' }} />
+                Your data is secure and will only be used to contact you about this booking.
+            </p>
         </div>
     );
 

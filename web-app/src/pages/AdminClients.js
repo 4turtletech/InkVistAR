@@ -322,72 +322,103 @@ function AdminClients() {
 
                 {clientModal.mounted && selectedClient && (
                     <div className={`modal-overlay ${clientModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                        <div className="modal-content glass-modal" style={{maxWidth: '750px', height: '85vh', display: 'flex', flexDirection: 'column'}} onClick={e => e.stopPropagation()}>
-                            <div className="modal-header-v2">
-                                <h2>Manage Client: {selectedClient.name}</h2>
-                                <button className="modal-close-btn" onClick={closeModal}><X/></button>
+                        <div className="modal-content large" onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                    <div style={{ background: '#f8fafc', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <User size={20} className="text-bronze" />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ margin: 0 }}>Client Profile: {selectedClient.name}</h2>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Account ID: #CLI-{selectedClient.id.toString().padStart(5, '0')}</p>
+                                    </div>
+                                </div>
+                                <button className="close-btn" onClick={closeModal}><X size={24}/></button>
                             </div>
-                            <div className="settings-tabs" style={{padding: '0 1.5rem'}}>
-                                <button className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}><User size={16}/> Profile</button>
-                                <button className={`tab-button ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}><Calendar size={16}/> History</button>
+                            
+                            <div className="settings-tabs" style={{ padding: '0 30px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
+                                <button className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
+                                    <User size={16}/> Personal Information
+                                </button>
+                                <button className={`tab-button ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
+                                    <Calendar size={16}/> Visit History
+                                </button>
                             </div>
-                            <div className="modal-body">
-                                {loadingDetails ? <p>Loading details...</p> : (
-                                    activeTab === 'profile' ? (
-                                        <div>
-                                            <div className="form-row">
-                                                <div className="form-group">
-                                                    <label>Name</label>
-                                                    <input type="text" className="form-input" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
+
+                            <div className="modal-body" style={{ maxHeight: '60vh', padding: '30px' }}>
+                                {loadingDetails ? (
+                                    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+                                        <div className="loading-spinner"></div>
+                                    </div>
+                                ) : (
+                                    <div className="fade-in">
+                                        {activeTab === 'profile' ? (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                    <div className="form-group">
+                                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Legal Name</label>
+                                                        <input type="text" className="form-input" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Direct Link (Email)</label>
+                                                        <input type="email" className="form-input" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Primary Contact</label>
+                                                        <input type="text" className="form-input" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                                    </div>
                                                 </div>
-                                                <div className="form-group">
-                                                    <label>Email</label>
-                                                    <input type="email" className="form-input" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                    <div className="form-group">
+                                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Internal Confidential Notes</label>
+                                                        <textarea 
+                                                            className="form-input" 
+                                                            rows="8" 
+                                                            placeholder="Record specific sensitivities, design preferences, or billing history notes..." 
+                                                            value={formData.notes || ''} 
+                                                            onChange={e => setFormData({...formData, notes: e.target.value})}
+                                                            style={{ minHeight: '190px' }}
+                                                        ></textarea>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="form-group">
-                                                <label>Phone</label>
-                                                <input type="text" className="form-input" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                        ) : (
+                                            <div className="table-responsive" style={{ maxHeight: '450px' }}>
+                                                <table className="portal-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Procedure Date</th>
+                                                            <th>Artist</th>
+                                                            <th>Design Project</th>
+                                                            <th>Outcome</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {clientDetails.appointments.length > 0 ? clientDetails.appointments.map(apt => (
+                                                        <tr key={apt.id}>
+                                                            <td style={{ fontWeight: 600 }}>{new Date(apt.appointment_date).toLocaleDateString()}</td>
+                                                            <td>{apt.artist_name}</td>
+                                                            <td>{apt.design_title}</td>
+                                                            <td><span className={`status-badge ${apt.status}`}>{apt.status.toUpperCase()}</span></td>
+                                                        </tr>
+                                                    )) : (
+                                                        <tr><td colSpan="4" className="no-data">This client has no recorded procedures in the archive.</td></tr>
+                                                    )}
+                                                    </tbody>
+                                                </table>
                                             </div>
-                                            <div className="form-group">
-                                                <label>Admin Notes</label>
-                                                <textarea className="form-input" rows="3" placeholder="Add private notes about the client..." value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="table-responsive" style={{maxHeight: '400px'}}>
-                                            <table className="data-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Date</th>
-                                                        <th>Staff</th>
-                                                        <th>Service</th>
-                                                        <th>Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                {clientDetails.appointments.length > 0 ? clientDetails.appointments.map(apt => (
-                                                    <tr key={apt.id}>
-                                                        <td>{new Date(apt.appointment_date).toLocaleDateString()}</td>
-                                                        <td>{apt.artist_name}</td>
-                                                        <td>{apt.design_title}</td>
-                                                        <td><span className={`badge status-${apt.status}`}>{apt.status}</span></td>
-                                                    </tr>
-                                                )) : (
-                                                    <tr><td colSpan="4" className="no-data">No appointment history.</td></tr>
-                                                )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )
+                                        )}
+                                    </div>
                                 )}
                             </div>
-                            <div className="modal-footer" style={{justifyContent: 'space-between'}}>
-                                <button className="btn btn-secondary" style={{backgroundColor: '#fee2e2', color: '#991b1b'}} onClick={handleDeactivateClient}><Trash2 size={16}/> Deactivate</button>
-                                <div>
-                                    <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-                                    <button className="btn btn-primary" onClick={handleSaveClient}><Save size={16}/> Save Changes</button>
-                                </div>
+                            <div className="modal-footer">
+                                <button className="action-btn delete-btn" style={{ marginRight: 'auto', padding: '10px 16px' }} onClick={handleDeactivateClient}>
+                                    <Trash2 size={16}/> Archive Account
+                                </button>
+                                <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                                <button className="btn btn-primary" onClick={handleSaveClient} style={{ padding: '10px 30px' }}>
+                                    <Save size={18}/> Commit Changes
+                                </button>
                             </div>
                         </div>
                     </div>

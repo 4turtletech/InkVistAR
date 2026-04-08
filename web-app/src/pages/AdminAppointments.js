@@ -6,6 +6,7 @@ import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import './AdminAppointments.css';
+import './PortalStyles.css';
 import { API_URL } from '../config';
 
 function AdminAppointments() {
@@ -811,387 +812,326 @@ function AdminAppointments() {
                     </>
                 )}
 
-                {/* Modal */}
+                {/* Main Appointment Modal */}
                 {appointmentModal.mounted && (
                     <div className={`modal-overlay ${appointmentModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                        <div className="modal-content" style={{ maxWidth: '1100px', width: '95%', overflowX: 'hidden', boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
-                            <div className="modal-header" style={{ paddingBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div className="modal-content xl" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingRight: '40px' }}>
                                         <h2 style={{ margin: 0 }}>{selectedAppointment ? `Edit Appointment #${selectedAppointment.id}` : 'New Appointment'}</h2>
                                         <div className="modal-tabs">
                                             <button 
                                                 className={`modal-tab-btn ${modalTab === 'details' ? 'active' : ''}`} 
                                                 onClick={() => setModalTab('details')}
                                             >
-                                                <Info size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                                                Details
+                                                <Info size={16} /> Details
                                             </button>
                                             <button 
                                                 className={`modal-tab-btn ${modalTab === 'pricing' ? 'active' : ''}`} 
                                                 onClick={() => setModalTab('pricing')}
                                             >
-                                                <DollarSign size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                                                Pricing
+                                                <DollarSign size={16} /> Pricing
                                             </button>
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                         <span className={`badge status-${getStatusColor(formData.status)}`}>{formData.status}</span>
                                         {selectedAppointment && selectedAppointment.price > 0 && (
-                                            <div className="badge" style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', display: 'inline-block' }}>
-                                                Paid: ₱{selectedAppointment.totalPaid.toLocaleString()} / ₱{formData.price.toLocaleString()}
+                                            <div className="badge" style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                                <span>Paid: ₱{selectedAppointment.totalPaid.toLocaleString()} / ₱{formData.price.toLocaleString()}</span>
                                                 {selectedAppointment.totalPaid < formData.price && (
-                                                    <span style={{ marginLeft: '4px', color: '#ef4444' }}>
-                                                        (Bal: ₱{(formData.price - selectedAppointment.totalPaid).toLocaleString()})
-                                                    </span>
+                                                    <span style={{ color: '#ef4444', fontWeight: 700 }}>(Bal: ₱{(formData.price - selectedAppointment.totalPaid).toLocaleString()})</span>
                                                 )}
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                                <button className="close-btn" onClick={closeModal}>×</button>
+                                <button className="close-btn" onClick={closeModal}><X size={24}/></button>
                             </div>
                             <div className="modal-body">
                                 {modalTab === 'details' ? (
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-                                    {/* Left Column: People & Service */}
-                                    <div>
-                                        <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                        </h3>
-                                        <div className="form-group" style={{ position: 'relative' }}>
-                                            <label>Client Selection *</label>
-                                            {formData.clientId ? (
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f8fafc', borderRadius: '12px', border: '2px solid #10b981', width: '100%' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                        <div style={{ background: '#d1fae5', padding: '6px', borderRadius: '50%' }}>
-                                                            <User size={16} color="#10b981" />
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
+                                        {/* Left Column: People & Service */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                            <div>
+                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Client Information</label>
+                                                {formData.clientId ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#f8fafc', borderRadius: '12px', border: '2px solid #10b981' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <div style={{ background: '#d1fae5', padding: '8px', borderRadius: '50%' }}>
+                                                                <User size={18} color="#10b981" />
+                                                            </div>
+                                                            <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1rem' }}>{clients.find(c => c.id == formData.clientId)?.name || clientSearch}</span>
                                                         </div>
-                                                        <span style={{ fontWeight: 700, color: '#1e293b' }}>{clients.find(c => c.id == formData.clientId)?.name || clientSearch}</span>
+                                                        <button type="button" onClick={() => { setFormData(prev => ({...prev, clientId: null})); setClientSearch(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                                                            <X size={20} />
+                                                        </button>
                                                     </div>
-                                                    <button type="button" onClick={() => { setFormData(prev => ({...prev, clientId: null})); setClientSearch(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}>
-                                                        <X size={18} />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="premium-search-box" style={{ maxWidth: '100%', marginBottom: '5px' }}>
-                                                        <Search size={16} />
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Search clients..."
-                                                            value={clientSearch}
-                                                            onChange={(e) => setClientSearch(e.target.value)}
-                                                            onFocus={() => setClientDropdownOpen(true)}
-                                                            onBlur={() => setTimeout(() => setClientDropdownOpen(false), 200)}
-                                                        />
-                                                    </div>
-                                                    {(clientDropdownOpen || clientSearch) && (
-                                                        <div className="glass-card" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, maxHeight: '150px', overflowY: 'auto', background: 'white' }}>
-                                                            {clients.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
-                                                                <div key={c.id} style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => { setFormData({ ...formData, clientId: c.id }); setClientSearch(c.name); }}>
-                                                                    <User size={14} color="#C19A6B" />
-                                                                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{c.name}</div>
-                                                                </div>
-                                                            ))}
-                                                            {clients.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).length === 0 && (
-                                                                <div style={{ padding: '10px 12px', color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center' }}>No clients found</div>
-                                                            )}
+                                                ) : (
+                                                    <div style={{ position: 'relative' }}>
+                                                        <div className="premium-search-box" style={{ maxWidth: '100%' }}>
+                                                            <Search size={18} />
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Search for a client..."
+                                                                value={clientSearch}
+                                                                onChange={(e) => setClientSearch(e.target.value)}
+                                                                onFocus={() => setClientDropdownOpen(true)}
+                                                                onBlur={() => setTimeout(() => setClientDropdownOpen(false), 200)}
+                                                            />
                                                         </div>
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-                                        <div className="form-group" style={{ marginTop: '15px' }}>
-                                            <label>Assign Primary Artist *</label>
-                                            <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2" style={{ width: '100%' }}>
-                                                <option value="">Select Artist</option>
-                                                {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                            </select>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
-                                            <div className="form-group">
-                                                <label>Secondary Artist</label>
-                                                <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2" style={{ width: '100%' }}>
-                                                    <option value="">None (Solo)</option>
-                                                    {artists.filter(a => a.id !== formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                                </select>
+                                                        {(clientDropdownOpen || clientSearch) && (
+                                                            <div className="glass-card" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, maxHeight: '200px', overflowY: 'auto', background: 'white', border: '1px solid #e2e8f0', marginTop: '4px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+                                                                {clients.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
+                                                                    <div key={c.id} style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '12px' }} onClick={() => { setFormData({ ...formData, clientId: c.id }); setClientSearch(c.name); }}>
+                                                                        <User size={16} color="#C19A6B" />
+                                                                        <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{c.name}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
-                                            {formData.secondaryArtistId && (
+
+                                            <div>
+                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Staff Assignment</label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.75rem' }}>Primary Artist *</label>
+                                                        <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2">
+                                                            <option value="">Select Artist</option>
+                                                            {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.75rem' }}>Secondary Artist</label>
+                                                        <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2">
+                                                            <option value="">None (Solo)</option>
+                                                            {artists.filter(a => a.id != formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                {formData.secondaryArtistId && (
+                                                    <div style={{ marginTop: '10px', background: '#f5f3ff', padding: '10px', borderRadius: '8px', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5b21b6', margin: 0 }}>Split % (Pri/Sec):</label>
+                                                        <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: parseInt(e.target.value) })} className="premium-input-v2" style={{ width: '60px', padding: '4px' }} />
+                                                        <span style={{ color: '#6d28d9', fontWeight: 700 }}>/ {100 - (formData.commissionSplit || 0)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Service Details</label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.75rem' }}>Service Type *</label>
+                                                        <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2">
+                                                            <option value="Tattoo Session">Tattoo Session</option>
+                                                            <option value="Consultation">Consultation</option>
+                                                            <option value="Piercing">Piercing</option>
+                                                            <option value="Touch-up">Touch-up</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.75rem' }}>Design / Idea</label>
+                                                        <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Right Column: Schedule & Notes */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                            <div>
+                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Schedule & Status</label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.75rem' }}>Date *</label>
+                                                        <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="premium-select-v2" />
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.75rem' }}>Time *</label>
+                                                        <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-select-v2" />
+                                                    </div>
+                                                </div>
                                                 <div className="form-group">
-                                                    <label>Split % (Primary/Sec)</label>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                        <input 
-                                                            type="number" 
-                                                            min="1" 
-                                                            max="99" 
-                                                            value={formData.commissionSplit} 
-                                                            onChange={(e) => setFormData({ ...formData, commissionSplit: parseInt(e.target.value) })}
-                                                            className="premium-input-v2" 
-                                                            style={{ width: '60px', textAlign: 'center' }} 
-                                                        />
-                                                        <span style={{ fontSize: '0.85rem', color: '#64748b' }}>/ {100 - (formData.commissionSplit || 0)}</span>
+                                                    <label style={{ fontSize: '0.75rem' }}>Booking Status</label>
+                                                    <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="premium-select-v2">
+                                                        <option value="pending">Pending Review</option>
+                                                        <option value="confirmed">Confirmed</option>
+                                                        <option value="completed">Completed</option>
+                                                        <option value="cancelled">Cancelled</option>
+                                                        <option value="rejected">Rejected</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Notes & Assets</label>
+                                                <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="premium-select-v2" style={{ height: '100px', minHeight: '100px' }} placeholder="Add internal notes or instructions..." />
+                                                {(formData.beforePhoto || selectedAppointment?.beforePhoto) && (
+                                                    <div style={{ marginTop: '15px', padding: '10px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Reference Reference</label>
+                                                        <img src={formData.beforePhoto || selectedAppointment?.beforePhoto} alt="Ref" style={{ maxHeight: '120px', borderRadius: '8px' }} />
                                                     </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '30px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                        </h3>
-                                        <div className="form-group">
-                                            <label>Service Type *</label>
-                                            <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2" style={{ width: '100%' }}>
-                                                <option value="Tattoo Session">Tattoo Session</option>
-                                                <option value="Consultation">Consultation</option>
-                                                <option value="Piercing">Piercing</option>
-                                                <option value="Touch-up">Touch-up</option>
-                                            </select>
-                                        </div>
-                                        <div className="form-group" style={{ marginTop: '15px' }}>
-                                            <label>Design Title / Idea</label>
-                                            <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Traditional Dagger" style={{ width: '100%' }} />
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-
-                                    {/* Right Column: Schedule & Notes */}
-                                    <div>
-                                        <h3 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                        </h3>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '15px' }}>
-                                            <div className="form-group">
-                                                <label>Date *</label>
-                                                <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="premium-select-v2" style={{ width: '100%', backgroundImage: 'none' }} />
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Time *</label>
-                                                <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-select-v2" style={{ width: '100%', backgroundImage: 'none' }} />
-                                            </div>
-                                        </div>
-                                        <div className="form-group" style={{ marginTop: '15px' }}>
-                                            <label>Appointment Status</label>
-                                            <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="premium-select-v2" style={{ width: '100%' }}>
-                                                <option value="pending">Pending Review</option>
-                                                <option value="confirmed">Confirmed</option>
-                                                <option value="completed">Completed</option>
-                                                <option value="cancelled">Cancelled</option>
-                                                <option value="rejected">Rejected</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="form-group" style={{ marginTop: '20px' }}>
-                                            <label><FileText size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Notes & Instructions</label>
-                                            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="premium-select-v2" style={{ width: '100%', height: '140px', backgroundImage: 'none' }} rows="5" placeholder="Client requests, medical alerts, or placement details..." />
-                                        </div>
-
-                                        {(formData.beforePhoto || selectedAppointment?.beforePhoto) && (
-                                            <div className="form-group" style={{ marginTop: '20px' }}>
-                                                <label><Image size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Reference Image</label>
-                                                <div style={{ marginTop: '8px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '8px', background: '#f8fafc', display: 'flex', justifyContent: 'center' }}>
-                                                    <img src={formData.beforePhoto || selectedAppointment?.beforePhoto} alt="Reference" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px' }} />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
                                 ) : (
                                     /* Pricing Tab View */
-                                    <div className="fade-in" style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
-                                        <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1e293b', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <DollarSign size={20} className="text-primary" /> Pricing & Financials
-                                        </h3>
-                                        
-                                        <div className="form-group">
-                                            <label>Total Quoted Price</label>
-                                            <div style={{ position: 'relative' }}>
-                                                <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '600', color: '#64748b' }}>₱</span>
-                                                <input 
-                                                    type="number" 
-                                                    value={formData.price} 
-                                                    onChange={(e) => setFormData({ ...formData, price: e.target.value })} 
-                                                    className="premium-input-v2" 
-                                                    style={{ width: '100%', paddingLeft: '30px', fontSize: '1.2rem', fontWeight: '700', color: '#1e293b' }} 
-                                                    placeholder="0.00"
-                                                />
+                                    <div className="fade-in" style={{ padding: '0 40px' }}>
+                                        <div style={{ background: '#f8fafc', borderRadius: '24px', padding: '40px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '30px', maxWidth: '700px', margin: '0 auto' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                                                <div className="form-group">
+                                                    <label style={{ fontWeight: 700, color: '#1e293b' }}>Total Quote (₱) *</label>
+                                                    <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="premium-input-v2" style={{ fontSize: '1.5rem', fontWeight: 800, padding: '15px' }} />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label style={{ fontWeight: 700, color: '#1e293b' }}>Payment Strategy</label>
+                                                    <select value={formData.paymentStatus} onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })} className="premium-select-v2" style={{ height: '62px' }}>
+                                                        <option value="unpaid">Draft (Unquoted)</option>
+                                                        <option value="downpayment_paid">Downpayment Collected</option>
+                                                        <option value="paid">Fully Paid</option>
+                                                    </select>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', marginTop: '30px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#475569' }}>Payment Summary</h4>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-primary"
-                                                    style={{
-                                                        padding: '6px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px',
-                                                        opacity: (!selectedAppointment || (selectedAppointment.totalPaid >= formData.price)) ? 0.5 : 1
-                                                    }}
-                                                    onClick={() => selectedAppointment && (selectedAppointment.totalPaid < formData.price) && setManualPaymentModal({ ...manualPaymentModal, isOpen: true, amount: '' })}
-                                                    disabled={!selectedAppointment || (selectedAppointment.totalPaid >= formData.price)}
-                                                >
-                                                    <Plus size={14} /> Record Studio Payment
-                                                </button>
-                                            </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px dashed #e2e8f0' }}>
-                                                    <span style={{ color: '#64748b' }}>Total Collected</span>
-                                                    <span style={{ fontWeight: '700', color: '#10b981' }}>₱{Number(selectedAppointment?.totalPaid || 0).toLocaleString()}</span>
+                                            {selectedAppointment && (
+                                                <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '20px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                                                        <span style={{ color: '#64748b', fontWeight: 600 }}>Total Collected:</span>
+                                                        <span style={{ fontWeight: 800, color: '#10b981', fontSize: '1.2rem' }}>₱{selectedAppointment.totalPaid.toLocaleString()}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#64748b', fontWeight: 600 }}>Remaining Balance:</span>
+                                                        <span style={{ fontWeight: 800, color: '#ef4444', fontSize: '1.2rem' }}>₱{Math.max(0, formData.price - selectedAppointment.totalPaid).toLocaleString()}</span>
+                                                    </div>
                                                 </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '4px' }}>
-                                                    <span style={{ fontWeight: '600', color: '#475569' }}>Outstanding Balance</span>
-                                                    <span style={{ fontWeight: '800', color: '#ef4444', fontSize: '1.1rem' }}>₱{Math.max(0, (formData.price || 0) - (selectedAppointment?.totalPaid || 0)).toLocaleString()}</span>
-                                                </div>
+                                            )}
+
+                                            <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
+                                                <button className="btn" style={{ flex: 1, padding: '15px', background: '#fff', border: '2px solid #e2e8f0', borderRadius: '12px', fontWeight: 700 }} onClick={() => setModalTab('details')}>Back to Details</button>
+                                                {selectedAppointment && (
+                                                    <button className="btn btn-primary" style={{ flex: 1.5, padding: '15px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }} onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>
+                                                        <CreditCard size={20} /> Record Manual Payment
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
-                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '15px 20px', borderTop: '1px solid #e2e8f0' }}>
-                                <div className="footer-left">
-                                    {selectedAppointment && (
-                                        <button
-                                            className="btn btn-secondary"
-                                            style={{ backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '5px' }}
-                                            onClick={() => {
-                                                handleDelete(selectedAppointment.id);
-                                                closeModal();
-                                            }}
-                                        >
-                                            <X size={16} /> Delete Appointment
-                                        </button>
-                                    )}
-                                </div>
-                                <div className="footer-right" style={{ display: 'flex', gap: '1rem' }}>
-                                    <button className="btn btn-secondary" onClick={closeModal}>
-                                        Cancel
-                                    </button>
-                                    <button className="btn btn-primary" onClick={handleSave}>
-                                        Save Appointment
-                                    </button>
-                                </div>
+                            <div className="modal-footer">
+                                <button className="btn btn-secondary" onClick={closeModal} style={{ padding: '12px 24px' }}>Cancel</button>
+                                <button className="btn btn-primary" onClick={handleSave} style={{ padding: '12px 36px', minWidth: '160px' }}>
+                                    {selectedAppointment ? 'Update Appointment' : 'Create Appointment'}
+                                </button>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Manual Payment Sub-Modal */}
+                {/* Manual Payment Modal */}
                 {manualPaymentModal.isOpen && (
                     <div className="modal-overlay" style={{ zIndex: 3000 }}>
-                        <div className="modal-content" style={{ maxWidth: '400px' }}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h3>Insert Payment Manually</h3>
-                                <button className="close-btn" onClick={() => setManualPaymentModal({ isOpen: false })}><X size={20} /></button>
+                                <h2>Record Payment</h2>
+                                <button className="close-btn" onClick={() => setManualPaymentModal({ ...manualPaymentModal, isOpen: false })}><X size={24}/></button>
                             </div>
                             <div className="modal-body">
-                                <div className="form-group">
-                                    <label>Amount to Add (₱)</label>
-                                    <input
-                                        type="number"
-                                        className="form-input"
-                                        value={manualPaymentModal.amount}
-                                        onChange={e => {
-                                            const val = e.target.value;
-                                            if (val === '') setManualPaymentModal({ ...manualPaymentModal, amount: '' });
-                                            else setManualPaymentModal({ ...manualPaymentModal, amount: Math.max(0, parseFloat(val) || 0) });
-                                        }}
-                                        min="0"
-                                        step="0.01"
-                                        placeholder="Enter amount paid in studio"
+                                <div className="form-group" style={{ marginBottom: '20px' }}>
+                                    <label style={{ fontWeight: 700, fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Payment Amount (₱)</label>
+                                    <input 
+                                        type="number" 
+                                        className="form-input" 
+                                        style={{ fontSize: '1.2rem', fontWeight: 800 }}
+                                        value={manualPaymentModal.amount} 
+                                        onChange={(e) => setManualPaymentModal({ ...manualPaymentModal, amount: e.target.value })} 
                                     />
                                 </div>
-                                <div className="form-group" style={{ marginTop: '15px' }}>
-                                    <label>Payment Method</label>
-                                    <select
+                                <div className="form-group">
+                                    <label style={{ fontWeight: 700, fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Payment Method</label>
+                                    <select 
                                         className="form-input"
-                                        value={manualPaymentModal.method}
-                                        onChange={e => setManualPaymentModal({ ...manualPaymentModal, method: e.target.value })}
+                                        value={manualPaymentModal.method} 
+                                        onChange={(e) => setManualPaymentModal({ ...manualPaymentModal, method: e.target.value })}
                                     >
                                         <option value="Cash">Cash</option>
                                         <option value="GCash">GCash</option>
-                                        <option value="Card (Manual)">Card (Direct/POS)</option>
                                         <option value="Bank Transfer">Bank Transfer</option>
+                                        <option value="Card">Card</option>
                                     </select>
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleApplyManualPayment}>Apply Adjustment</button>
+                                <button className="btn btn-secondary" onClick={() => setManualPaymentModal({ ...manualPaymentModal, isOpen: false })}>Cancel</button>
+                                <button className="btn btn-primary" onClick={handleApplyManualPayment}>Record Payment</button>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Calendar Day View Modal */}
+                {/* Day View Modal */}
                 {dayViewModal.isOpen && (
                     <div className="modal-overlay" style={{ zIndex: 2000 }} onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}>
-                        <div className="modal-content glass-modal" style={{ maxWidth: '500px', border: '1px solid rgba(255,255,255,0.4)' }} onClick={e => e.stopPropagation()}>
-                            <div className="modal-header-v2">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ background: '#f1f5f9', width: '40px', height: '40px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
-                                        <Calendar size={20} />
-                                    </div>
-                                    <div>
-                                        <h3 style={{ margin: 0 }}>{new Date(dayViewModal.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</h3>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Daily Schedule Summary</p>
-                                    </div>
-                                </div>
-                                <button className="modal-close-btn" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}><X size={20} /></button>
+                        <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2>{dayViewModal.date}</h2>
+                                <button className="close-btn" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}><X size={24}/></button>
                             </div>
-                            <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '20px' }}>
-                                {dayViewModal.appointments.length > 0 ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        {dayViewModal.appointments.map(apt => (
-                                            <div
-                                                key={apt.id}
-                                                className="glass-card"
-                                                style={{
-                                                    padding: '16px',
-                                                    cursor: 'pointer',
-                                                    borderLeft: `4px solid ${apt.status === 'confirmed' ? '#10b981' : (apt.status === 'pending' ? '#f59e0b' : '#6366f1')}`,
-                                                    background: 'rgba(255,255,255,0.5)',
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center'
-                                                }}
-                                                onClick={() => {
-                                                    setDayViewModal({ ...dayViewModal, isOpen: false });
-                                                    handleEdit(apt);
-                                                }}
-                                            >
-                                                <div style={{ flex: 1, minWidth: 0, paddingRight: '10px' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', overflow: 'hidden' }}>
-                                                        <Clock size={14} style={{ color: '#64748b', flexShrink: 0 }} />
-                                                        <span style={{ fontWeight: '700', color: '#1e293b', flexShrink: 0 }}>{apt.time.slice(0, 5)}</span>
-                                                        <span style={{ color: '#64748b', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>• {apt.clientName}</span>
-                                                    </div>
-                                                    <div style={{ fontSize: '0.85rem', color: '#475569', marginLeft: '22px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                        {apt.serviceType} with {apt.artistName}
-                                                    </div>
-                                                </div>
-                                                <div className={`badge status-${getStatusColor(apt.status)}`} style={{ fontSize: '0.7rem', padding: '4px 8px' }}>
-                                                    {apt.status}
+                            <div className="modal-body">
+                                <h4 style={{ marginBottom: '20px', color: '#64748b' }}>Appointments for this day:</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {dayViewModal.appointments.map(apt => (
+                                        <div 
+                                            key={apt.id} 
+                                            className="glass-card" 
+                                            style={{ 
+                                                padding: '16px', 
+                                                cursor: 'pointer', 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center',
+                                                border: '1px solid #e2e8f0',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onClick={() => {
+                                                setDayViewModal({ ...dayViewModal, isOpen: false });
+                                                handleEdit(apt);
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.borderColor = '#6366f1'}
+                                            onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}
+                                        >
+                                            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                                                <div style={{ padding: '8px 12px', background: '#f1f5f9', borderRadius: '8px', fontWeight: 700, color: '#6366f1', fontSize: '0.9rem' }}>{apt.start_time}</div>
+                                                <div>
+                                                    <div style={{ fontWeight: 700, color: '#1e293b' }}>{apt.clientName}</div>
+                                                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{apt.service_type || 'Tattoo Session'}</div>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
-                                        <div style={{ background: '#f8fafc', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px auto', color: '#cbd5e1' }}>
-                                            <Calendar size={32} />
+                                            <div style={{ textAlign: 'right' }}>
+                                                <span className={`badge status-${getStatusColor(apt.status)}`} style={{ fontSize: '0.75rem' }}>{apt.status}</span>
+                                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>Artist: {apt.artist_name}</div>
+                                            </div>
                                         </div>
-                                        <p style={{ fontWeight: 600, margin: 0 }}>No Appointments Yet</p>
-                                        <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>The schedule for this day is currently clear.</p>
-                                    </div>
-                                )}
+                                    ))}
+                                    {dayViewModal.appointments.length === 0 && (
+                                        <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No appointments scheduled for this day.</div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="modal-footer" style={{ borderTop: '1px solid #f1f5f9', padding: '20px' }}>
-                                <button
-                                    className="btn btn-primary"
-                                    style={{ width: '100%', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                                    onClick={() => {
-                                        setDayViewModal({ ...dayViewModal, isOpen: false });
-                                        handleAddNew(dayViewModal.date);
-                                    }}
-                                >
-                                    <Plus size={18} /> Schedule New Appointment
+                            <div className="modal-footer">
+                                <button className="btn btn-secondary" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}>Close</button>
+                                <button className="btn btn-primary" onClick={() => {
+                                    setDayViewModal({ ...dayViewModal, isOpen: false });
+                                    handleAddNew();
+                                    setFormData(prev => ({ ...prev, date: dayViewModal.date }));
+                                }}>
+                                    <Plus size={18} /> Add Appointment
                                 </button>
                             </div>
                         </div>

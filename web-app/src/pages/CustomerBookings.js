@@ -308,8 +308,6 @@ function CustomerBookings(){
             </header>
             <div className="portal-content">
                 {loading ? <div className="no-data">Loading...</div> : (
-                <div className="portal-content">
-                    {loading ? <div className="no-data">Loading...</div> : (
                         <div className="table-card-container" style={{ minHeight: '600px' }}>
                             <div className="card-header-v2">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
@@ -430,8 +428,6 @@ function CustomerBookings(){
                         </div>
                     )}
                 </div>
-                )}
-            </div>
             </div>
 
             {/* Payment Details Modal */}
@@ -492,115 +488,51 @@ function CustomerBookings(){
                                         ₱{Math.max(0, selectedApt.price - (selectedApt.total_paid || 0)).toLocaleString()}
                                     </span>
                                 </div>
-                                {selectedApt.price - (selectedApt.total_paid || 0) > 0 && (
-                                    <button 
-                                        className="btn btn-primary" 
-                                        style={{ width: '100%', marginTop: '20px', padding: '12px', borderRadius: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold' }}
-                                        onClick={() => {
-                                            setIsModalOpen(false);
-                                            const hasPaidAny = (selectedApt.total_paid || 0) > 0;
-                                            handlePay(selectedApt, hasPaidAny ? 'balance' : 'deposit');
-                                        }}
-                                    >
-                                        <CreditCard size={18} /> Pay {selectedApt.payment_status === 'downpayment_paid' ? 'Remaining Balance' : 'Deposit Now'}
-                                    </button>
-                                )}
                             </div>
-
-                            <h4 style={{ marginBottom: '12px', color: '#475569', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Transaction History</h4>
-                            {modalLoading ? (
-                                <div style={{ textAlign: 'center', padding: '20px' }}>Loading history...</div>
-                            ) : modalTransactions.length > 0 ? (
-                                <div className="mini-transactions" style={{ maxHeight: '180px', overflowY: 'auto', paddingRight: '5px' }}>
-                                    {modalTransactions.map(t => {
-                                        let methodLabel = 'Online Payment';
-                                        try {
-                                            const raw = typeof t.raw_event === 'string' ? JSON.parse(t.raw_event) : t.raw_event;
-                                            if (raw?.method) methodLabel = `Manual (${raw.method})`;
-                                        } catch(e) {}
-                                        
-                                        return (
-                                        <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.95rem' }}>
-                                            <div>
-                                                <div style={{ fontWeight: 500, color: '#1e293b' }}>
-                                                    {t.status === 'paid' ? `Payment Successful` : 'Attempted Payment'}
-                                                </div>
-                                                <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{methodLabel}</div>
-                                                <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{new Date(t.created_at).toLocaleDateString()} at {new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                            </div>
-                                            <div style={{ fontWeight: 600, color: t.status === 'paid' ? '#10b981' : '#f59e0b' }}>
-                                                ₱{(t.amount / 100).toLocaleString()}
-                                            </div>
-                                        </div>
-                                    )})}
-                                </div>
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px' }}>
-                                    No transaction history found.
-                                </div>
-                            )}
-
-                            {selectedApt.payment_status === 'downpayment_paid' && (
-                                <div style={{ marginTop: '24px' }}>
-                                    <button 
-                                        className="btn btn-primary" 
-                                        style={{ width: '100%', padding: '14px', borderRadius: '10px', color: 'white', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-                                        onClick={() => { setIsModalOpen(false); handlePay(selectedApt, 'balance'); }}
-                                    >
-                                        <CreditCard size={20} /> Pay Remaining Balance
-                                    </button>
-                                    <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem', marginTop: '10px' }}> Secure checkout powered by PayMongo </p>
-                                </div>
-                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Close</button>
                         </div>
                     </div>
                 </div>
             )}
 
+
+
             {showAftercare && selectedApt && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '600px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+                <div className="modal-overlay" onClick={() => setShowAftercare(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981' }}><Heart size={20} /> Aftercare Instructions</h3>
-                            <button className="close-btn" onClick={() => setShowAftercare(false)}><X size={20} /></button>
+                            <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Heart size={24} color="#10b981" /> Aftercare Guide</h2>
+                            <button className="close-btn" onClick={() => setShowAftercare(false)}><X size={24} /></button>
                         </div>
                         <div className="modal-body">
-                            <p style={{ color: '#475569', marginBottom: '20px' }}>Congratulations on your new tattoo! Proper aftercare is crucial for vibrant colors and smooth healing. Please follow these steps carefully:</p>
+                            <p style={{ color: '#475569', marginBottom: '24px', lineHeight: '1.6' }}>Congratulations on your new tattoo! Proper aftercare is crucial for vibrant colors and smooth healing. Please follow these steps carefully:</p>
                             
-                            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-                                <h4 style={{ color: '#1e293b', marginBottom: '8px' }}>1. The First 24 Hours</h4>
-                                <ul style={{ paddingLeft: '20px', color: '#475569', margin: 0 }}>
-                                    <li style={{ marginBottom: '4px' }}>Leave the bandage on for 2-4 hours, or overnight if your artist recommended it.</li>
-                                    <li>Wash gently with warm water and fragrance-free antibacterial soap. Do not scrub.</li>
-                                </ul>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                    <h4 style={{ color: '#1e293b', marginBottom: '10px', fontWeight: 700 }}>1. The First Hours</h4>
+                                    <p style={{ color: '#475569', margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
+                                        Leave the bandage on for 2-4 hours. Wash gently with warm water and fragrance-free antibacterial soap. Do not scrub.
+                                    </p>
+                                </div>
+                                
+                                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                    <h4 style={{ color: '#1e293b', marginBottom: '10px', fontWeight: 700 }}>2. Healing Phase (14 Days)</h4>
+                                    <p style={{ color: '#475569', margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
+                                        Apply a thin layer of unscented lotion 2-3 times a day. Do NOT pick or scratch scabs. Avoid direct sunlight and swimming.
+                                    </p>
+                                </div>
                             </div>
                             
-                            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-                                <h4 style={{ color: '#1e293b', marginBottom: '8px' }}>2. Days 2 to 14 (Healing Phase)</h4>
-                                <ul style={{ paddingLeft: '20px', color: '#475569', margin: 0 }}>
-                                    <li style={{ marginBottom: '4px' }}>Apply a very thin layer of tattoo specific ointment or unscented lotion 2-3 times a day.</li>
-                                    <li style={{ marginBottom: '4px' }}>Do NOT pick, scratch, or peel the scabs. Let them fall off naturally.</li>
-                                    <li>Avoid direct sunlight, swimming, saunas, and soaking in tubs.</li>
-                                </ul>
-                            </div>
-                            
-                            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                <h4 style={{ color: '#1e293b', marginBottom: '8px' }}>3. Long-Term Care</h4>
-                                <ul style={{ paddingLeft: '20px', color: '#475569', margin: 0 }}>
-                                    <li style={{ marginBottom: '4px' }}>Always apply sunscreen (SPF 50+) when exposed to the sun to prevent fading.</li>
-                                    <li>Keep your skin moisturized to keep the ink looking fresh.</li>
-                                </ul>
-                            </div>
-                            
-                            <div style={{ marginTop: '24px', padding: '16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px' }}>
-                                <p style={{ margin: 0, fontSize: '0.9rem', color: '#166534' }}>
-                                    <strong>Questions or concerns?</strong> If your tattoo is extremely red, swollen, or hot to the touch after several days, please reach out to your artist immediately.
+                            <div style={{ marginTop: '24px', padding: '20px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '16px' }}>
+                                <p style={{ margin: 0, fontSize: '0.95rem', color: '#166534', fontWeight: 600 }}>
+                                    Questions? Reach out to your artist immediately if red, swollen, or hot to the touch.
                                 </p>
                             </div>
-                            
-                            <div style={{ marginTop: '20px' }}>
-                                <button className="btn btn-secondary" onClick={() => setShowAftercare(false)} style={{ width: '100%' }}>Close</button>
-                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => setShowAftercare(false)}>Got it!</button>
                         </div>
                     </div>
                 </div>
@@ -609,21 +541,23 @@ function CustomerBookings(){
             {/* Custom New Booking Modal */}
             {isBookingModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '800px', width: '95%', maxHeight: '90vh', overflowY: 'auto', padding: 0 }}>
+                    <div className="modal-content large">
                         <div className="modal-header">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}><Sparkles size={24} color="#daa520" /> Book Your Next Masterpiece</h2>
-                                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                            <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Sparkles size={24} color="#daa520" /> New Booking Request</h2>
+                            <button className="close-btn" onClick={() => setIsBookingModalOpen(false)}><X size={24} /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: 0 }}>
+                            <div style={{ padding: '24px 32px 10px' }}>
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                                     {[1, 2, 3, 4].map(step => (
                                         <div key={step} style={{ 
                                             height: '4px', flex: 1, borderRadius: '2px',
                                             background: bookingStep >= step ? '#daa520' : '#e2e8f0',
-                                            transition: 'all 0.3s'
+                                            transition: 'all 0.4s ease'
                                         }} />
                                     ))}
                                 </div>
                             </div>
-                            <button className="close-btn" onClick={() => setIsBookingModalOpen(false)}><X size={24} /></button>
                         </div>
                         
                         <form onSubmit={handleSubmitBooking}>

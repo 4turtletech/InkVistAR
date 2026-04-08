@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar } from 'lucide-react';
+import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -457,180 +457,232 @@ function ArtistSessions() {
             {/* Active Session Modal */}
             {sessionModal.mounted && activeSession && (
                 <div className={`modal-overlay ${sessionModal.visible ? 'open' : ''}`} onClick={closeSessionModal}>
-                    <div className="modal-content session-modal" style={{ maxWidth: '800px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <div>
-                                <h2>Session: {activeSession.client_name}</h2>
-                                <p style={{ margin: 0, color: '#666' }}>{activeSession.design_title}</p>
+                                <h2 style={{ margin: 0 }}>Active Session: {activeSession.client_name}</h2>
+                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.9rem' }}>Project: {activeSession.design_title}</p>
                             </div>
-                            <button className="close-btn" onClick={closeSessionModal}><X size={20} /></button>
+                            <button className="close-btn" onClick={closeSessionModal}><X size={24} /></button>
                         </div>
 
-                        <div className="modal-body">
-                            {/* Status Control */}
-                            <div className="data-card" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <span className={`status-badge ${activeSession.status}`}>{activeSession.status.toUpperCase()}</span>
-                                    {activeSession.status === 'confirmed' && <span style={{ color: '#666', fontSize: '0.9rem' }}>Ready to start</span>}
+                        <div className="modal-body" style={{ maxHeight: '75vh' }}>
+                            {/* Status Control Panel */}
+                            <div style={{ 
+                                background: 'rgba(255, 255, 255, 0.5)', 
+                                backdropFilter: 'blur(10px)',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '20px',
+                                padding: '20px',
+                                marginBottom: '24px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                    <span className={`badge ${activeSession.status}`} style={{ padding: '8px 16px', fontSize: '0.8rem', fontWeight: 800 }}>
+                                        {activeSession.status.toUpperCase()}
+                                    </span>
+                                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                        {activeSession.status === 'confirmed' ? 'Ready for procedure' : 
+                                         activeSession.status === 'in_progress' ? 'Session currently active' : 'Session archived'}
+                                    </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '10px' }}>
+                                
+                                <div style={{ display: 'flex', gap: '12px' }}>
                                     {activeSession.status === 'confirmed' && (
-                                        <button className="btn btn-primary" onClick={() => handleUpdateStatus('in_progress')}>
-                                            <Play size={16} style={{ marginRight: '5px' }} /> Start Session
+                                        <button className="btn btn-primary" style={{ padding: '10px 24px' }} onClick={() => handleUpdateStatus('in_progress')}>
+                                            <Play size={18} /> Start Procedure
                                         </button>
                                     )}
                                     {activeSession.status === 'in_progress' && !isCompletingSession && (
-                                        <button className="btn btn-primary" style={{ backgroundColor: '#10b981' }} onClick={() => handleUpdateStatus('completed')}>
-                                            <CheckCircle size={16} style={{ marginRight: '5px' }} /> Complete Session
+                                        <button className="btn btn-primary" style={{ backgroundColor: '#10b981', padding: '10px 24px' }} onClick={() => handleUpdateStatus('completed')}>
+                                            <CheckCircle size={18} /> Complete Work
                                         </button>
                                     )}
                                     {isCompletingSession && (
-                                        <button className="btn btn-secondary" onClick={() => setIsCompletingSession(false)}>
-                                            <X size={16} style={{ marginRight: '5px' }} /> Cancel Completion
+                                        <button className="btn btn-secondary" style={{ padding: '10px 20px' }} onClick={() => setIsCompletingSession(false)}>
+                                            Cancel
                                         </button>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Photos */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                <div className="photo-upload-box" style={{ border: '2px dashed #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center' }}>
-                                    <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600' }}>Before Photo</label>
-                                    {sessionData.beforePhoto ? (
-                                        <img src={sessionData.beforePhoto} alt="Before" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                                    ) : (
-                                        <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                                            <Upload size={16} /> Upload
-                                            <input type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(e, 'beforePhoto')} />
-                                        </label>
-                                    )}
-                                </div>
-                                <div className="photo-upload-box" style={{ border: '2px dashed #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center' }}>
-                                    <label style={{ display: 'block', marginBottom: '10px', fontWeight: '600' }}>After Photo</label>
-                                    {sessionData.afterPhoto ? (
-                                        <img src={sessionData.afterPhoto} alt="After" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '4px' }} />
-                                    ) : (
-                                        <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                                            <Upload size={16} /> Upload
-                                            <input type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(e, 'afterPhoto')} />
-                                        </label>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Notes & Supplies */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <div className="form-group">
-                                    <label><FileText size={16} style={{ verticalAlign: 'middle' }} /> Session Notes</label>
-                                    <textarea
-                                        className="form-input"
-                                        rows="10"
-                                        value={sessionData.notes}
-                                        onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
-                                        placeholder="Record session details, skin reaction, etc..."
-                                        style={{ height: '100%' }}
-                                    />
-                                </div>
-
-                                {/* Dynamic Session Materials */}
-                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <label><Package size={16} style={{ verticalAlign: 'middle' }} /> Dynamic Supply Log</label>
-
-                                    {isCompletingSession ? (
-                                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '15px', flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                                <strong>Items Held/Consumed</strong>
-                                                <span style={{ color: '#10b981', fontWeight: 'bold' }}>₱{sessionCost.toLocaleString()}</span>
-                                            </div>
-
-                                            <div style={{ flex: 1, overflowY: 'auto', maxHeight: '150px' }}>
-                                                {sessionMaterials.length === 0 ? (
-                                                    <p style={{ color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>No materials logged yet.</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) 350px', gap: '30px' }}>
+                                {/* Left Column: Visual Documentation & Notes */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    {/* Visual Documentation */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                        <div style={{ 
+                                            background: '#f8fafc',
+                                            borderRadius: '16px',
+                                            border: '1px solid #e2e8f0',
+                                            padding: '15px',
+                                            textAlign: 'center'
+                                        }}>
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Before State</label>
+                                            <div style={{ height: '180px', borderRadius: '12px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {sessionData.beforePhoto ? (
+                                                    <img src={sessionData.beforePhoto} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
-                                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                                                        {sessionMaterials.map((mat, idx) => (
-                                                            <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}>
-                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                                    <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>{mat.quantity}x {mat.item_name}</span>
-                                                                    <span style={{ fontSize: '0.75rem', color: mat.status === 'hold' ? '#f59e0b' : '#64748b' }}>{mat.status.toUpperCase()}</span>
-                                                                </div>
-                                                                {mat.status === 'hold' && (
-                                                                    <button
-                                                                        onClick={() => handleReleaseMaterial(mat.id)}
-                                                                        title="Return to Inventory"
-                                                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
-                                                                    >
-                                                                        <X size={14} />
-                                                                    </button>
-                                                                )}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
+                                                    <button className="btn-glass" onClick={() => document.getElementById('before-photo-input').click()}>
+                                                        <Upload size={16} /> Upload
+                                                    </button>
                                                 )}
+                                                <input id="before-photo-input" type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(e, 'beforePhoto')} />
                                             </div>
+                                        </div>
+                                        <div style={{ 
+                                            background: '#f8fafc',
+                                            borderRadius: '16px',
+                                            border: '1px solid #e2e8f0',
+                                            padding: '15px',
+                                            textAlign: 'center'
+                                        }}>
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Post Procedure</label>
+                                            <div style={{ height: '180px', borderRadius: '12px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {sessionData.afterPhoto ? (
+                                                    <img src={sessionData.afterPhoto} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <button className="btn-glass" onClick={() => document.getElementById('after-photo-input').click()}>
+                                                        <Upload size={16} /> Upload
+                                                    </button>
+                                                )}
+                                                <input id="after-photo-input" type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(e, 'afterPhoto')} />
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                            <div style={{ marginTop: '15px', borderTop: '1px dashed #cbd5e1', paddingTop: '10px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                                    <strong style={{ fontSize: '0.85rem', color: '#475569' }}>Add Supplies:</strong>
-                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    {/* Artist Notes */}
+                                    <div className="form-group">
+                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <FileText size={14}/> Procedure Notes & Observations
+                                        </label>
+                                        <textarea
+                                            className="form-input"
+                                            rows="8"
+                                            value={sessionData.notes}
+                                            onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
+                                            placeholder="Document procedure details, pigment choices, or client skin response..."
+                                            style={{ borderRadius: '16px', minHeight: '200px' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Right Column: Supplies & Logistics */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <div style={{ 
+                                        background: '#fff',
+                                        borderRadius: '24px',
+                                        border: '1px solid #e2e8f0',
+                                        padding: '24px',
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column'
+                                    }}>
+                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Package size={14}/> Consumption Log
+                                        </label>
+
+                                        {isCompletingSession || activeSession.status === 'in_progress' ? (
+                                            <>
+                                                <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px' }}>
+                                                    {sessionMaterials.length === 0 ? (
+                                                        <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
+                                                            <Package size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
+                                                            <p style={{ margin: 0, fontSize: '0.85rem' }}>No supplies logged yet.</p>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                            {sessionMaterials.map((mat, idx) => (
+                                                                <div key={idx} style={{ 
+                                                                    display: 'flex', 
+                                                                    justifyContent: 'space-between', 
+                                                                    alignItems: 'center', 
+                                                                    padding: '10px 12px', 
+                                                                    background: '#f8fafc',
+                                                                    borderRadius: '12px',
+                                                                    border: '1px solid #f1f5f9'
+                                                                }}>
+                                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                        <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{mat.quantity}x {mat.item_name}</span>
+                                                                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{mat.category}</span>
+                                                                    </div>
+                                                                    {mat.status === 'hold' && (
+                                                                        <button
+                                                                            onClick={() => handleReleaseMaterial(mat.id)}
+                                                                            style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius: '8px' }}
+                                                                        >
+                                                                            <X size={14} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px 15px', borderRadius: '12px' }}>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Total Cost</span>
+                                                        <span style={{ fontWeight: 800, color: '#10b981' }}>₱{sessionCost.toLocaleString()}</span>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button 
+                                                            className="btn-glass" 
+                                                            style={{ flex: 1, fontSize: '0.75rem', justifyContent: 'center', padding: '8px' }}
+                                                            onClick={openInventoryModal}
+                                                            disabled={addingMaterial}
+                                                        >
+                                                            <Plus size={14}/> Add Item
+                                                        </button>
                                                         {Object.keys(serviceKits).length > 0 && (
                                                             <select
                                                                 disabled={addingMaterial}
+                                                                className="premium-select-v2"
+                                                                style={{ flex: 1.2, fontSize: '0.75rem', background: '#f8fafc' }}
                                                                 onChange={(e) => {
                                                                     if (e.target.value) {
                                                                         handleQuickAddKit(serviceKits[e.target.value]);
                                                                         e.target.value = '';
                                                                     }
                                                                 }}
-                                                                style={{
-                                                                    padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0',
-                                                                    fontSize: '0.8rem', cursor: addingMaterial ? 'not-allowed' : 'pointer',
-                                                                    background: '#fff'
-                                                                }}
                                                             >
-                                                                <option value="">📦 Quick Kits</option>
+                                                                <option value="">Apply Kit</option>
                                                                 {Object.keys(serviceKits).map(kitName => (
-                                                                    <option key={kitName} value={kitName}>
-                                                                        {kitName} ({serviceKits[kitName].length} items)
-                                                                    </option>
+                                                                    <option key={kitName} value={kitName}>{kitName}</option>
                                                                 ))}
                                                             </select>
                                                         )}
-                                                        <button
-                                                            onClick={openInventoryModal}
-                                                            disabled={addingMaterial}
-                                                            style={{
-                                                                padding: '6px 12px', borderRadius: '6px', background: '#3b82f6',
-                                                                border: 'none', fontSize: '0.8rem', cursor: addingMaterial ? 'not-allowed' : 'pointer',
-                                                                color: '#fff', display: 'flex', alignItems: 'center', gap: '6px'
-                                                            }}
-                                                        >
-                                                            <Package size={14} /> Add Item
-                                                        </button>
                                                     </div>
+
+                                                    {isCompletingSession && (
+                                                        <button 
+                                                            className="btn btn-primary" 
+                                                            onClick={confirmCompletion}
+                                                            style={{ marginTop: '5px', justifyContent: 'center', fontWeight: 800 }}
+                                                        >
+                                                            Finalize Session
+                                                        </button>
+                                                    )}
                                                 </div>
+                                            </>
+                                        ) : (
+                                            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                                                <Clock size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
+                                                <p style={{ margin: 0, fontSize: '0.85rem' }}>{activeSession.status === 'confirmed' ? 'Start procedure to log supplies.' : 'Supply log archived.'}</p>
                                             </div>
-                                            <button 
-                                                className="btn btn-primary" 
-                                                onClick={confirmCompletion}
-                                                style={{ marginTop: '15px', width: '100%', justifyContent: 'center' }}
-                                            >
-                                                Finalize & Complete Session
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', textAlign: 'center', background: '#f8fafc', color: '#64748b', fontStyle: 'italic' }}>
-                                            {activeSession.status === 'confirmed' ? 'Start session to begin logging materials.' : activeSession.status === 'in_progress' ? 'Click "Complete Session" above to log supplies and finalize session.' : 'Session ended. Supplies finalized.'}
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={closeSessionModal}>Close</button>
-                            <button className="btn btn-primary" onClick={handleSaveDetails}>
-                                <Save size={16} style={{ marginRight: '5px' }} /> Save Details
+                            <button className="btn btn-secondary" onClick={closeSessionModal}>Close View</button>
+                            <button className="btn btn-primary" style={{ padding: '10px 32px' }} onClick={handleSaveDetails} disabled={isSaving}>
+                                <Save size={18} /> {isSaving ? 'Saving...' : 'Sync Progress'}
                             </button>
                         </div>
                     </div>
@@ -640,26 +692,28 @@ function ArtistSessions() {
             {/* Inventory Selection Modal */}
             {inventoryModal.mounted && (
                 <div className={`modal-overlay ${inventoryModal.visible ? 'open' : ''}`} onClick={closeInventoryModal}>
-                    <div className="modal-content" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content" style={{ maxWidth: '550px' }} onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>Select Item to Add</h2>
-                            <button className="close-btn" onClick={closeInventoryModal}><X size={20} /></button>
+                            <div>
+                                <h2 style={{ margin: 0 }}>Add Supplies</h2>
+                                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>Search and select items to log for this session</p>
+                            </div>
+                            <button className="close-btn" onClick={closeInventoryModal}><X size={24} /></button>
                         </div>
-                        <div className="modal-body">
-                            <div className="form-group">
-                                <label><Search size={16} style={{ verticalAlign: 'middle' }} /> Search Inventory</label>
+                        <div className="modal-body" style={{ maxHeight: '60vh' }}>
+                            <div className="premium-search-box" style={{ marginBottom: '20px' }}>
+                                <Search size={18} className="text-muted" />
                                 <input
                                     type="text"
-                                    className="form-input"
                                     placeholder="Search by name or category..."
                                     value={inventorySearch}
                                     onChange={(e) => setInventorySearch(e.target.value)}
                                     autoFocus
                                 />
                             </div>
-                            <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '15px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {inventoryItems.length === 0 ? (
-                                    <p style={{ color: '#64748b', fontStyle: 'italic' }}>No inventory items available.</p>
+                                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>No items in stock.</div>
                                 ) : (
                                     (() => {
                                         const filtered = inventoryItems.filter(item =>
@@ -667,7 +721,7 @@ function ArtistSessions() {
                                             (item.name && item.name.toLowerCase().includes(inventorySearch.toLowerCase())) ||
                                             (item.category && item.category.toLowerCase().includes(inventorySearch.toLowerCase()))
                                         );
-                                        return filtered.map(item => (
+                                        return filtered.length > 0 ? filtered.map(item => (
                                             <div
                                                 key={item.id}
                                                 onClick={() => {
@@ -675,39 +729,27 @@ function ArtistSessions() {
                                                     closeInventoryModal();
                                                 }}
                                                 style={{
-                                                    padding: '12px',
-                                                    borderBottom: '1px solid #e2e8f0',
-                                                    cursor: 'pointer',
+                                                    padding: '12px 16px',
+                                                    background: '#f8fafc',
+                                                    border: '1px solid #e2e8f0',
+                                                    borderRadius: '12px',
                                                     display: 'flex',
                                                     justifyContent: 'space-between',
                                                     alignItems: 'center',
-                                                    borderRadius: '6px',
-                                                    marginBottom: '8px',
-                                                    background: '#f8fafc',
-                                                    transition: 'background 0.2s'
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
                                                 }}
-                                                onMouseEnter={(e) => e.target.style.background = '#e2e8f0'}
-                                                onMouseLeave={(e) => e.target.style.background = '#f8fafc'}
+                                                className="inventory-item-row"
                                             >
                                                 <div>
-                                                    <div style={{ fontWeight: '600' }}>{item.name}</div>
-                                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                                                        {item.category} • Stock: {item.current_stock} {item.unit}
+                                                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{item.name}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                                        {item.category} • {item.current_stock} {item.unit} available
                                                     </div>
                                                 </div>
-                                                <button
-                                                    disabled={addingMaterial || item.current_stock < 1}
-                                                    style={{
-                                                        padding: '6px 12px', borderRadius: '6px',
-                                                        background: item.current_stock < 1 ? '#cbd5e1' : '#10b981',
-                                                        border: 'none', color: '#fff', cursor: item.current_stock < 1 ? 'not-allowed' : 'pointer',
-                                                        fontSize: '0.8rem'
-                                                    }}
-                                                >
-                                                    {item.current_stock < 1 ? 'Out of Stock' : 'Add'}
-                                                </button>
+                                                <button className="btn-glass" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Add</button>
                                             </div>
-                                        ));
+                                        )) : <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>No matching items found.</div>;
                                     })()
                                 )}
                             </div>

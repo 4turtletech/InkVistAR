@@ -3,10 +3,11 @@ import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminUsers.css';
+import './PortalStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
-import { Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle } from 'lucide-react';
+import { Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X } from 'lucide-react';
 
 function AdminUsers() {
     const navigate = useNavigate();
@@ -428,112 +429,111 @@ function AdminUsers() {
             {/* Modal */}
             {userModal.mounted && (
                 <div className={`modal-overlay ${userModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>{selectedUser ? 'Edit User' : 'Add New User'}</h2>
-                            <button className="close-btn" onClick={closeModal}>×</button>
+                            <h2>{selectedUser ? 'Edit User Profile' : 'Create New User'}</h2>
+                            <button className="close-btn" onClick={closeModal}><X size={24}/></button>
                         </div>
                         <div className="modal-body">
-                            <div className="form-group">
-                                <label>Name *</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                    className="form-input"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Email *</label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                                    className="form-input"
-                                />
-                            </div>
-                            {!selectedUser && (
+                            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                                 <div className="form-group">
-                                    <label>Password *</label>
+                                    <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Full Name *</label>
                                     <input
-                                        type="password"
-                                        value={formData.password || ''}
-                                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
                                         className="form-input"
-                                        placeholder="Enter password"
+                                        placeholder="Full Name"
                                     />
                                 </div>
-                            )}
-                            <div className="form-group">
-                                <label>Phone</label>
-                                <input
-                                    type="tel"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                    className="form-input"
-                                />
+                                <div className="form-group">
+                                    <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Email Address *</label>
+                                    <input
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                        className="form-input"
+                                        placeholder="email@example.com"
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>Role *</label>
-                                <select 
-                                    value={formData.user_type}
-                                    onChange={(e) => setFormData({...formData, user_type: e.target.value})}
-                                    className="form-input"
-                                    disabled={selectedUser?.email === 'admin@inkvistar.com'}
-                                >
-                                    <option value="customer">Customer</option>
-                                    <option value="artist">Artist</option>
-                                    <option value="manager">Manager</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                                {selectedUser?.email === 'admin@inkvistar.com' && (
-                                    <small style={{color: '#ef4444', fontSize: '0.8rem'}}>Cannot change role of system admin</small>
+                            
+                            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                <div className="form-group">
+                                    <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                        className="form-input"
+                                        placeholder="Phone"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>User Role *</label>
+                                    <select 
+                                        value={formData.user_type}
+                                        onChange={(e) => setFormData({...formData, user_type: e.target.value})}
+                                        className="form-input"
+                                        disabled={selectedUser?.email === 'admin@inkvistar.com'}
+                                    >
+                                        <option value="customer">Customer (Client)</option>
+                                        <option value="artist">Artist (Staff)</option>
+                                        <option value="manager">Manager</option>
+                                        <option value="admin">System Admin</option>
+                                    </select>
+                                    {selectedUser?.email === 'admin@inkvistar.com' && (
+                                        <small style={{color: '#94a3b8', fontSize: '0.75rem', marginTop: '4px', display: 'block'}}>Primary admin role protected</small>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div className="form-group">
+                                    <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Account Status</label>
+                                    <select 
+                                        value={formData.status}
+                                        onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                        className="form-input"
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive / Deactivated</option>
+                                        <option value="suspended">Suspended</option>
+                                    </select>
+                                </div>
+                                {!selectedUser && (
+                                    <div className="form-group">
+                                        <label style={{ fontWeight: '700', fontSize: '0.9rem', color: '#475569', marginBottom: '8px', display: 'block' }}>Initial Password *</label>
+                                        <input
+                                            type="password"
+                                            value={formData.password || ''}
+                                            onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                            className="form-input"
+                                            placeholder="Secure password"
+                                        />
+                                    </div>
                                 )}
                             </div>
-                            <div className="form-group">
-                                <label>Status</label>
-                                <select 
-                                    value={formData.status}
-                                    onChange={(e) => setFormData({...formData, status: e.target.value})}
-                                    className="form-input"
-                                >
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                    <option value="suspended">Suspended</option>
-                                </select>
-                            </div>
                         </div>
-                        <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-                            <div>
+                        <div className="modal-footer">
+                            <div style={{ marginRight: 'auto' }}>
                                 {selectedUser && selectedUser.email !== 'admin@inkvistar.com' && (
                                     <button 
-                                        className="btn btn-delete" 
-                                        style={{ 
-                                            backgroundColor: '#dc2626', 
-                                            color: 'white',
-                                            padding: '10px 20px',
-                                            borderRadius: '6px',
-                                            fontWeight: '600',
-                                            border: 'none',
-                                            cursor: 'pointer'
-                                        }}
+                                        className="action-btn delete-btn" 
+                                        style={{ padding: '10px 16px' }}
                                         onClick={() => {
                                             handlePermanentDelete(selectedUser.id);
                                             closeModal();
                                         }}
                                     >
-                                        Delete Permanently
+                                        Delete Forever
                                     </button>
                                 )}
                             </div>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <button className="btn btn-secondary" onClick={closeModal}>
-                                    Cancel
-                                </button>
-                                <button className="btn btn-primary" onClick={handleSave}>
-                                    {selectedUser ? 'Update User' : 'Add User'}
-                                </button>
-                            </div>
+                            <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                            <button className="btn btn-primary" onClick={handleSave} style={{ padding: '10px 24px' }}>
+                                {selectedUser ? 'Save Changes' : 'Create User'}
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -579,38 +579,59 @@ function AdminStaff() {
                 {/* Detailed Artist Manager Overlay */}
                 {artistManagerModal.mounted && selectedArtist && (
                     <div className={`modal-overlay ${artistManagerModal.visible ? 'open' : ''}`} onClick={closeModal}>
-                        <div className="modal-content glass-modal" style={{ maxWidth: '1000px', width: '95%', height: '90vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
-                            <div className="modal-header-v2">
-                                <div>
-                                    <h2>{selectedArtist.name}</h2>
-                                    <p style={{ margin: 0, color: '#666' }}>Artist Management Portal</p>
+                        <div className="modal-content xl" style={{ height: '90vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                    <div style={{ background: '#f1f5f9', width: '50px', height: '50px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
+                                        <User size={28} />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ margin: 0 }}>{selectedArtist.name}</h2>
+                                        <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                                            <span className={`badge role-${selectedArtist.user_type}`} style={{ fontSize: '0.7rem', padding: '4px 10px' }}>{selectedArtist.role}</span>
+                                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Staff ID: #STR-{selectedArtist.id.toString().padStart(4, '0')}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button className="modal-close-btn" onClick={closeModal}><X size={24} /></button>
+                                <button className="close-btn" onClick={closeModal}><X size={24} /></button>
                             </div>
 
-                            <div className="settings-tabs" style={{ padding: '0 20px', borderBottom: '1px solid #eee' }}>
+                            <div className="settings-tabs" style={{ padding: '0 30px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
                                 <button className={`tab-button ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
-                                    <User size={16} style={{ marginRight: 5 }} /> Profile
+                                    <UserCircle size={16} /> Profile Information
                                 </button>
                                 <button className={`tab-button ${activeTab === 'schedule' ? 'active' : ''}`} onClick={() => setActiveTab('schedule')}>
-                                    <Calendar size={16} style={{ marginRight: 5 }} /> Schedule
+                                    <Calendar size={16} /> Procedure Schedule
                                 </button>
                                 <button className={`tab-button ${activeTab === 'portfolio' ? 'active' : ''}`} onClick={() => setActiveTab('portfolio')}>
-                                    <Image size={16} style={{ marginRight: 5 }} /> Portfolio
+                                    <Palette size={16} /> Media Portfolio
                                 </button>
                                 <button className={`tab-button ${activeTab === 'earnings' ? 'active' : ''}`} onClick={() => setActiveTab('earnings')}>
-                                    <DollarSign size={16} style={{ marginRight: 5 }} /> Earnings
+                                    <DollarSign size={16} /> Remittance Log
                                 </button>
                             </div>
 
-                            <div className="modal-body" style={{ flex: 1, overflowY: 'auto' }}>
-                                {loadingDetails ? <div className="no-data">Loading details...</div> : (
-                                    <>
+                            <div className="modal-body" style={{ flex: 1, padding: '30px' }}>
+                                {loadingDetails ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '20px', color: '#94a3b8' }}>
+                                        <div className="loading-spinner"></div>
+                                        <p>Fetching performance metrics...</p>
+                                    </div>
+                                ) : (
+                                    <div className="fade-in">
                                         {activeTab === 'profile' && renderProfileTab()}
                                         {activeTab === 'schedule' && renderScheduleTab()}
                                         {activeTab === 'portfolio' && renderPortfolioTab()}
                                         {activeTab === 'earnings' && renderEarningsTab()}
-                                    </>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button className="btn btn-secondary" onClick={closeModal}>Close Management Portal</button>
+                                {activeTab === 'profile' && (
+                                    <button className="btn btn-primary" onClick={handleUpdateProfile} style={{ padding: '10px 30px' }}>
+                                        <Save size={18} /> Sync Account Updates
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -620,74 +641,88 @@ function AdminStaff() {
                 {/* Portfolio Content Editor Modal */}
                 {editWorkModal.mounted && selectedWork && (
                     <div className={`modal-overlay ${editWorkModal.visible ? 'open' : ''}`} onClick={closeEditWork} style={{ zIndex: 1100 }}>
-                        <div className="modal-content" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>Edit Portfolio Item</h2>
+                                <div>
+                                    <h2 style={{ margin: 0 }}>Review Portfolio Asset</h2>
+                                    <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.85rem' }}>Update display metadata and gallery positioning</p>
+                                </div>
                                 <button className="close-btn" onClick={closeEditWork}><X size={24} /></button>
                             </div>
                             <form onSubmit={handleSaveWork}>
-                                <div className="modal-body">
-                                    <div style={{ width: '100%', height: '200px', backgroundColor: '#f1f5f9', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px' }}>
-                                        <img src={selectedWork.image_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Title</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            value={workFormData.title}
-                                            onChange={e => setWorkFormData({ ...workFormData, title: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Category</label>
-                                            <select
-                                                className="form-input"
-                                                value={workFormData.category}
-                                                onChange={e => setWorkFormData({ ...workFormData, category: e.target.value })}
-                                            >
-                                                <option value="Realism">Realism</option>
-                                                <option value="Traditional">Traditional</option>
-                                                <option value="Japanese">Japanese</option>
-                                                <option value="Tribal">Tribal</option>
-                                                <option value="Fine Line">Fine Line</option>
-                                            </select>
+                                <div className="modal-body" style={{ maxHeight: '70vh' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '30px' }}>
+                                        {/* Left: Visual Asset */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                            <div style={{ width: '100%', height: '350px', backgroundColor: '#f8fafc', borderRadius: '20px', overflow: 'hidden', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <img src={selectedWork.image_url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                            </div>
+                                            <div className="form-group" style={{ background: '#f8fafc', padding: '15px', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontWeight: 600, color: '#334155' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        style={{ width: '18px', height: '18px' }}
+                                                        checked={workFormData.isPublic}
+                                                        onChange={e => setWorkFormData({ ...workFormData, isPublic: e.target.checked })}
+                                                    />
+                                                    Visible in Public Studio Gallery
+                                                </label>
+                                            </div>
                                         </div>
-                                        <div className="form-group">
-                                            <label>Price Estimate (₱)</label>
-                                            <input
-                                                type="number"
-                                                className="form-input"
-                                                value={workFormData.priceEstimate}
-                                                onChange={e => setWorkFormData({ ...workFormData, priceEstimate: e.target.value })}
-                                            />
+
+                                        {/* Right: Metadata */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                            <div className="form-group">
+                                                <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Asset Title</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-input"
+                                                    value={workFormData.title}
+                                                    onChange={e => setWorkFormData({ ...workFormData, title: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                                <div className="form-group">
+                                                    <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Style Category</label>
+                                                    <select
+                                                        className="form-input"
+                                                        value={workFormData.category}
+                                                        onChange={e => setWorkFormData({ ...workFormData, category: e.target.value })}
+                                                    >
+                                                        <option value="Realism">Realism</option>
+                                                        <option value="Traditional">Traditional</option>
+                                                        <option value="Japanese">Japanese</option>
+                                                        <option value="Tribal">Tribal</option>
+                                                        <option value="Fine Line">Fine Line</option>
+                                                    </select>
+                                                </div>
+                                                <div className="form-group">
+                                                    <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Market Valuation (₱)</label>
+                                                    <input
+                                                        type="number"
+                                                        className="form-input"
+                                                        value={workFormData.priceEstimate}
+                                                        onChange={e => setWorkFormData({ ...workFormData, priceEstimate: e.target.value })}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="form-group">
+                                                <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Project Narrative</label>
+                                                <textarea
+                                                    className="form-input"
+                                                    rows="6"
+                                                    value={workFormData.description}
+                                                    onChange={e => setWorkFormData({ ...workFormData, description: e.target.value })}
+                                                    style={{ minHeight: '150px' }}
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Description</label>
-                                        <textarea
-                                            className="form-input"
-                                            rows="3"
-                                            value={workFormData.description}
-                                            onChange={e => setWorkFormData({ ...workFormData, description: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={workFormData.isPublic}
-                                                onChange={e => setWorkFormData({ ...workFormData, isPublic: e.target.checked })}
-                                            />
-                                            Visible in Public Gallery
-                                        </label>
                                     </div>
                                 </div>
                                 <div className="modal-footer">
-                                    <button type="button" className="btn btn-secondary" onClick={closeEditWork}>Cancel</button>
-                                    <button type="submit" className="btn btn-primary"><Save size={18} style={{ marginRight: '8px' }} /> Update Content</button>
+                                    <button type="button" className="btn btn-secondary" onClick={closeEditWork}>Discard Changes</button>
+                                    <button type="submit" className="btn btn-primary" style={{ padding: '10px 40px' }}><Save size={18} /> Update Content</button>
                                 </div>
                             </form>
                         </div>

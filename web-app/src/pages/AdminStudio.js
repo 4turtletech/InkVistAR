@@ -290,38 +290,54 @@ function AdminStudio() {
                     <div className={`modal-overlay ${branchModal.visible ? 'open' : ''}`} onClick={closeModal}>
                         <div className="modal-content" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>{editingId ? 'Edit Branch' : 'Add New Branch'}</h2>
-                                <button className="close-btn" onClick={closeModal}><X size={20}/></button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                    <div style={{ background: '#f8fafc', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <MapPin size={20} className="text-bronze" />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ margin: 0 }}>{editingId ? 'Modify Studio Branch' : 'Establish New Branch'}</h2>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Configure operational studio location</p>
+                                    </div>
+                                </div>
+                                <button className="close-btn" onClick={closeModal}><X size={24}/></button>
                             </div>
                             <form onSubmit={handleSave}>
-                                <div className="modal-body">
-                                    <div className="form-group">
-                                        <label>Branch Name</label>
-                                        <input type="text" className="form-input" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                                <div className="modal-body" style={{ padding: '30px' }}>
+                                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Official Branch Designation</label>
+                                        <input type="text" className="form-input" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g., Downtown Sanctuary, Westside Hub" />
                                     </div>
-                                    <div className="form-group">
-                                        <label>Address</label>
+                                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Geographic Location (Full Address)</label>
                                         <input type="text" className="form-input" required value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
                                     </div>
-                                    <div className="form-row">
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                                         <div className="form-group">
-                                            <label>Phone</label>
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Contact Hotlink (Phone)</label>
                                             <input type="text" className="form-input" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                                         </div>
                                         <div className="form-group">
-                                            <label>Capacity (Max People)</label>
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Operational Capacity</label>
                                             <input type="number" className="form-input" required value={formData.capacity} onChange={e => setFormData({...formData, capacity: e.target.value})} />
                                         </div>
                                     </div>
                                     <div className="form-group">
-                                        <label>Operating Hours</label>
+                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Standard Operating Protocol (Hours)</label>
                                         <input type="text" className="form-input" placeholder="e.g. 09:00 - 20:00" value={formData.operating_hours} onChange={e => setFormData({...formData, operating_hours: e.target.value})} />
+                                    </div>
+                                    
+                                    <div style={{ marginTop: '20px', padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic' }}>
+                                            * Modifying branch details will update all associated staff records and public-facing portal listings instantly.
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="modal-footer">
                                     <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-                                    <button type="submit" className="btn btn-primary">Save Branch</button>
-                                                </div>
+                                    <button type="submit" className="btn btn-primary" style={{ padding: '10px 40px' }}>
+                                        {editingId ? 'Update Branch' : 'Finalize Creation'}
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>

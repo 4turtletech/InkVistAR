@@ -465,35 +465,52 @@ function AdminBilling() {
                     <div className={`modal-overlay ${invoiceModal.visible ? 'open' : ''}`} onClick={closeModal}>
                         <div className="modal-content" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>{invoiceModal.mode === 'edit' ? 'Edit Invoice' : 'Generate Invoice'}</h2>
-                                <button className="close-btn" onClick={closeModal}><X size={20}/></button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                    <div style={{ background: '#f8fafc', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <FileText size={20} className="text-bronze" />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ margin: 0 }}>{invoiceModal.mode === 'edit' ? 'Update Billing Record' : 'Generate Financial Invoice'}</h2>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Account Settlement & Revenue Log</p>
+                                    </div>
+                                </div>
+                                <button className="close-btn" onClick={closeModal}><X size={24}/></button>
                             </div>
                             <form onSubmit={handleInvoiceSubmit}>
-                                <div className="modal-body">
-                                    <div className="form-group">
-                                        <label>Client Name</label>
+                                <div className="modal-body" style={{ padding: '30px' }}>
+                                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Recipient Entity (Client)</label>
                                         <input type="text" className="form-input" required value={newInvoice.client} onChange={e => setNewInvoice({...newInvoice, client: e.target.value})} />
                                     </div>
-                                    <div className="form-group">
-                                        <label>Service Type</label>
-                                        <select className="form-input" required value={newInvoice.type} onChange={e => setNewInvoice({...newInvoice, type: e.target.value})}>
-                                            <option value="Tattoo Session">Tattoo Session</option>
-                                            <option value="Consultation">Consultation</option>
-                                            <option value="Piercing">Piercing</option>
-                                            <option value="Touch-up">Touch-up</option>
-                                            <option value="Aftercare Check">Aftercare Check</option>
-                                            <option value="Jewelry Purchase">Jewelry Purchase</option>
-                                            <option value="Other">Other</option>
-                                        </select>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
+                                        <div className="form-group">
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Service Classification</label>
+                                            <select className="form-input" required value={newInvoice.type} onChange={e => setNewInvoice({...newInvoice, type: e.target.value})}>
+                                                <option value="Tattoo Session">Tattoo Session</option>
+                                                <option value="Consultation">Consultation</option>
+                                                <option value="Piercing">Piercing</option>
+                                                <option value="Touch-up">Touch-up</option>
+                                                <option value="Aftercare Check">Aftercare Check</option>
+                                                <option value="Jewelry Purchase">Jewelry Purchase</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Settlement Amount (₱)</label>
+                                            <input type="number" className="form-input" required value={newInvoice.amount} onChange={e => setNewInvoice({...newInvoice, amount: e.target.value})} />
+                                        </div>
                                     </div>
-                                    <div className="form-group">
-                                        <label>Amount (₱)</label>
-                                        <input type="number" className="form-input" required value={newInvoice.amount} onChange={e => setNewInvoice({...newInvoice, amount: e.target.value})} />
+                                    <div style={{ marginTop: '20px', padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic' }}>
+                                            * This action will generate a formal PDF invoice and log the transaction in the studio's centralized financial ledger.
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="modal-footer">
-                                    <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-                                    <button type="submit" className="btn btn-primary">Generate</button>
+                                    <button type="button" className="btn btn-secondary" onClick={closeModal}>Discard</button>
+                                    <button type="submit" className="btn btn-primary" style={{ padding: '10px 30px' }}>
+                                        {invoiceModal.mode === 'edit' ? 'Update Invoice' : 'Commit & Generate'}
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -503,112 +520,150 @@ function AdminBilling() {
 
             {/* Invoice Preview Modal */}
             {previewModal.mounted && (
-                <div className={`modal-overlay preview-modal-overlay ${previewModal.visible ? 'open' : ''}`} onClick={closePreview}>
-                    <div id="printable-invoice" className="preview-modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="preview-modal-header no-print">
-                            <h2>Invoice Preview</h2>
-                            <div style={{display: 'flex', gap: '10px'}}>
-                                <button className="btn btn-primary" onClick={handlePrintAction}>
-                                    <Printer size={18} style={{marginRight: '5px'}}/> Print / PDF
+                <div className={`modal-overlay ${previewModal.visible ? 'open' : ''}`} onClick={closePreview}>
+                    <div className="modal-content xl" style={{ height: '90vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <div style={{ background: '#f8fafc', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Printer size={20} className="text-bronze" />
+                                </div>
+                                <div>
+                                    <h2 style={{ margin: 0 }}>Document Preview</h2>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Invoice ID: INV-{previewModal.invoice.id}</p>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button className="btn btn-primary" onClick={handlePrintAction} style={{ padding: '8px 20px' }}>
+                                    <Printer size={18} /> Print / Export PDF
                                 </button>
                                 <button className="close-btn" onClick={closePreview}><X size={24}/></button>
                             </div>
                         </div>
-                        
-                        <div id="printable-invoice" className="invoice-paper">
-                            <div className="invoice-header">
-                                <div className="invoice-biz-info">
-                                    <h1 style={{color: '#667eea', margin: 0}}>InkVistAR Studio</h1>
-                                    <p>123 Tattoo Street, Art District</p>
-                                    <p>Metropolis, NY 10001</p>
-                                    <p>Phone: (555) 001-2024</p>
+
+                        <div className="modal-body" style={{ flex: 1, background: '#f1f5f9', padding: '40px', display: 'flex', justifyContent: 'center', overflowY: 'auto' }}>
+                            <div id="printable-invoice" className="invoice-paper" style={{ 
+                                background: '#fff', 
+                                width: '100%', 
+                                maxWidth: '800px', 
+                                minHeight: '1000px', 
+                                padding: '60px', 
+                                borderRadius: '4px',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                            }}>
+                                <div className="invoice-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '40px' }}>
+                                    <div className="invoice-biz-info">
+                                        <h1 style={{ color: '#1e293b', margin: '0 0 10px', fontSize: '2rem', fontWeight: 800 }}>InkVistAR Studio</h1>
+                                        <p style={{ margin: '2px 0', color: '#64748b' }}>123 Tattoo Street, Art District</p>
+                                        <p style={{ margin: '2px 0', color: '#64748b' }}>Metropolis, NY 10001</p>
+                                        <p style={{ margin: '2px 0', color: '#64748b' }}>Phone: (555) 001-2024</p>
+                                    </div>
+                                    <div className="invoice-meta" style={{ textAlign: 'right' }}>
+                                        <h2 style={{ margin: '0 0 10px', fontSize: '1.5rem', fontWeight: 700 }}>INVOICE</h2>
+                                        <p style={{ margin: '2px 0', color: '#64748b' }}>Ref: INV-{previewModal.invoice.id}</p>
+                                        <p style={{ margin: '2px 0', color: '#64748b' }}>Date: {new Date(previewModal.invoice.created_at).toLocaleDateString()}</p>
+                                    </div>
                                 </div>
-                                <div className="invoice-meta">
-                                    <h2 style={{margin: 0}}>INVOICE</h2>
-                                    <p>ID: INV-{previewModal.invoice.id}</p>
-                                    <p>Date: {new Date(previewModal.invoice.created_at).toLocaleDateString()}</p>
+
+                                <div style={{ borderBottom: '2px solid #f1f5f9', marginBottom: '30px' }}></div>
+
+                                <div className="invoice-bill-to" style={{ marginBottom: '40px' }}>
+                                    <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '10px' }}>Bill To</h3>
+                                    <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>{previewModal.invoice.client_name}</p>
+                                    <p style={{ margin: '4px 0', color: '#64748b' }}>Client ID: CU-{previewModal.invoice.client_id || 'N/A'}</p>
+                                </div>
+
+                                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '60px' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f8fafc' }}>
+                                            <th style={{ padding: '15px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Description of Services</th>
+                                            <th style={{ padding: '15px', textAlign: 'right', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '20px 15px', fontSize: '1rem' }}>{previewModal.invoice.service_type}</td>
+                                            <td style={{ padding: '20px 15px', textAlign: 'right', fontSize: '1.1rem', fontWeight: 600 }}>₱{Number(previewModal.invoice.amount).toLocaleString()}</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td style={{ padding: '30px 15px', textAlign: 'right', fontWeight: 700, fontSize: '1.1rem' }}>Total Settlement Amount:</td>
+                                            <td style={{ padding: '30px 15px', textAlign: 'right', fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>₱{Number(previewModal.invoice.amount).toLocaleString()}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+
+                                <div className="invoice-footer" style={{ marginTop: 'auto', paddingTop: '40px', borderTop: '1px solid #f1f5f9' }}>
+                                    <p style={{ margin: '0 0 20px', color: '#64748b', fontStyle: 'italic' }}>Thank you for choosing InkVistAR Studio for your creative projects.</p>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                        <div>
+                                            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Invoice Status</p>
+                                            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: previewModal.invoice.status === 'paid' ? '#10b981' : '#f59e0b' }}>
+                                                {previewModal.invoice.status.toUpperCase()}
+                                            </p>
+                                        </div>
+                                        <div className="signature-line" style={{ textAlign: 'center' }}>
+                                            <div style={{ borderBottom: '1px solid #1e293b', width: '250px', height: '40px', marginBottom: '8px' }}></div>
+                                            <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Authorized Studio Signature</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div className="invoice-divider"></div>
-
-                            <div className="invoice-bill-to">
-                                <h3>BILL TO:</h3>
-                                <p><strong>{previewModal.invoice.client_name}</strong></p>
-                                <p>Client ID: CU-{previewModal.invoice.client_id || 'N/A'}</p>
-                            </div>
-
-                            <table className="invoice-table">
-                                <thead>
-                                    <tr>
-                                        <th>Description</th>
-                                        <th style={{textAlign: 'right'}}>Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>{previewModal.invoice.service_type}</td>
-                                        <td style={{textAlign: 'right'}}>₱{Number(previewModal.invoice.amount).toLocaleString()}</td>
-                                    </tr>
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td><strong>Total</strong></td>
-                                        <td style={{textAlign: 'right'}}><strong>₱{Number(previewModal.invoice.amount).toLocaleString()}</strong></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-
-                            <div className="invoice-footer">
-                                <p>Thank you for choosing InkVistAR Studio!</p>
-                                <p>Status: {previewModal.invoice.status.toUpperCase()}</p>
-                                <div className="signature-line">
-                                    <p>Authorized Signature</p>
-                                    <div style={{borderBottom: '1px solid #000', width: '200px', height: '40px'}}></div>
-                                </div>
-                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={closePreview}>Close Preview</button>
                         </div>
                     </div>
                 </div>
             )}
                 {/* Record Payout Modal */}
                 {payoutModal.mounted && (
-                    <div className="modal-overlay open" onClick={() => setPayoutModal({ mounted: false, visible: false })}>
-                        <div className="modal-content glass-card" onClick={e => e.stopPropagation()}>
+                    <div className={`modal-overlay ${payoutModal.visible ? 'open' : ''}`} onClick={() => setPayoutModal({ mounted: false, visible: false })}>
+                        <div className="modal-content" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>Record Artist Payout</h2>
-                                <button className="close-btn" onClick={() => setPayoutModal({ mounted: false, visible: false })}><X size={20}/></button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                    <div style={{ background: '#f8fafc', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <DollarSign size={20} className="text-bronze" />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ margin: 0 }}>Artist Remittance</h2>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Record internal staff payout</p>
+                                    </div>
+                                </div>
+                                <button className="close-btn" onClick={() => setPayoutModal({ mounted: false, visible: false })}><X size={24}/></button>
                             </div>
                             <form onSubmit={handlePayoutSubmit}>
-                                <div className="modal-body">
-                                    <div className="form-group" style={{marginBottom: '1rem'}}>
-                                        <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: 'bold'}}>Select Artist</label>
-                                        <select className="form-input" required value={newPayout.artistId} onChange={e => setNewPayout({...newPayout, artistId: e.target.value})} style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-                                            <option value="">Select Artist...</option>
+                                <div className="modal-body" style={{ padding: '30px' }}>
+                                    <div className="form-group" style={{marginBottom: '20px'}}>
+                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Target Recipient (Artist)</label>
+                                        <select className="form-input" required value={newPayout.artistId} onChange={e => setNewPayout({...newPayout, artistId: e.target.value})}>
+                                            <option value="">Select Professional Artist...</option>
                                             {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                         </select>
                                     </div>
-                                    <div className="form-group" style={{marginBottom: '1rem'}}>
-                                        <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: 'bold'}}>Amount (₱)</label>
-                                        <input type="number" className="form-input" required value={newPayout.amount} onChange={e => setNewPayout({...newPayout, amount: e.target.value})} style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0'}} />
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                        <div className="form-group">
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Remittance Amount (₱)</label>
+                                            <input type="number" className="form-input" required value={newPayout.amount} onChange={e => setNewPayout({...newPayout, amount: e.target.value})} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Transfer Protocol</label>
+                                            <select className="form-input" value={newPayout.method} onChange={e => setNewPayout({...newPayout, method: e.target.value})}>
+                                                <option value="Bank Transfer">Bank Transfer</option>
+                                                <option value="Cash">Cash Disbursement</option>
+                                                <option value="G-Cash">G-Cash Digital</option>
+                                                <option value="Wallet">System Wallet</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="form-group" style={{marginBottom: '1rem'}}>
-                                        <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: 'bold'}}>Payout Method</label>
-                                        <select className="form-input" value={newPayout.method} onChange={e => setNewPayout({...newPayout, method: e.target.value})} style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                            <option value="Cash">Cash</option>
-                                            <option value="G-Cash">G-Cash</option>
-                                            <option value="Wallet">Wallet</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group" style={{marginBottom: '1rem'}}>
-                                        <label style={{display: 'block', marginBottom: '0.5rem', fontWeight: 'bold'}}>Reference # / Notes</label>
-                                        <input type="text" className="form-input" value={newPayout.reference} onChange={e => setNewPayout({...newPayout, reference: e.target.value})} style={{width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0'}} />
+                                    <div className="form-group">
+                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Transaction Reference / Memo</label>
+                                        <input type="text" className="form-input" placeholder="Bank ref # or payout notes..." value={newPayout.reference} onChange={e => setNewPayout({...newPayout, reference: e.target.value})} />
                                     </div>
                                 </div>
                                 <div className="modal-footer">
                                     <button type="button" className="btn btn-secondary" onClick={() => setPayoutModal({ mounted: false, visible: false })}>Cancel</button>
-                                    <button type="submit" className="btn btn-primary">Record Payment</button>
+                                    <button type="submit" className="btn btn-primary" style={{ padding: '10px 30px' }}>Record Remittance</button>
                                 </div>
                             </form>
                         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, DollarSign, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Info } from 'lucide-react';
+import { Users, Calendar, DollarSign, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Info, SlidersHorizontal } from 'lucide-react';
 import './AdminDashboard.css';
 import AdminSideNav from '../components/AdminSideNav';
 import { API_URL } from '../config';
@@ -654,65 +654,73 @@ function AdminDashboard() {
 
             {/* Appointment Detail Modal */}
             {isDetailModalOpen && selectedAppointment && (
-                <div className="dashboard-modal-overlay" onClick={() => setIsDetailModalOpen(false)}>
-                    <div className="dashboard-modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="dashboard-modal-header">
-                            <h2>Appointment Details</h2>
-                            <button className="modal-close-btn" onClick={() => setIsDetailModalOpen(false)}>
-                                <X size={20} />
+                <div className="modal-overlay open" onClick={() => setIsDetailModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <div style={{ background: '#f8fafc', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Clock size={20} className="text-bronze" />
+                                </div>
+                                <div>
+                                    <h2 style={{ margin: 0 }}>Session Intelligence</h2>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Appointment Ref: #{selectedAppointment.id}</p>
+                                </div>
+                            </div>
+                            <button className="close-btn" onClick={() => setIsDetailModalOpen(false)}>
+                                <X size={24} />
                             </button>
                         </div>
-                        <div className="dashboard-modal-body">
-                            <div className="detail-grid">
-                                <div className="detail-item">
-                                    <span className="detail-label">Client Name</span>
-                                    <span className="detail-value">{selectedAppointment.client_name}</span>
+                        <div className="modal-body" style={{ padding: '30px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Client Entity</span>
+                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{selectedAppointment.client_name}</span>
                                 </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Artist Name</span>
-                                    <span className="detail-value">{selectedAppointment.artist_name}</span>
+                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Assigned Professional</span>
+                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{selectedAppointment.artist_name}</span>
                                 </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Date</span>
-                                    <span className="detail-value">{new Date(selectedAppointment.appointment_date).toLocaleDateString()}</span>
+                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Scheduled Date</span>
+                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{new Date(selectedAppointment.appointment_date).toLocaleDateString()}</span>
                                 </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Start Time</span>
-                                    <span className="detail-value">{selectedAppointment.start_time}</span>
+                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Timeline (Start)</span>
+                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{selectedAppointment.start_time}</span>
                                 </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Status</span>
-                                    <span className={`detail-value badge-v2 ${selectedAppointment.status.toLowerCase()}`}>
+                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Status Lifecycle</span>
+                                    <span className={`status-badge-v2 ${selectedAppointment.status.toLowerCase()}`}>
                                         {selectedAppointment.status}
                                     </span>
                                 </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Service Type</span>
-                                    <span className="detail-value">{selectedAppointment.service_type || 'Tattoo Session'}</span>
+                                <div className="detail-item" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Service Protocol</span>
+                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{selectedAppointment.service_type || 'Tattoo Session'}</span>
                                 </div>
                                 {selectedAppointment.notes && (
-                                    <div className="detail-item" style={{ gridColumn: 'span 2' }}>
-                                        <span className="detail-label">Client Notes</span>
-                                        <span className="detail-value" style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>
+                                    <div className="detail-item" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Operational Memo / Notes</span>
+                                        <span style={{ fontSize: '0.9rem', color: '#475569', whiteSpace: 'pre-wrap' }}>
                                             {selectedAppointment.notes}
                                         </span>
                                     </div>
                                 )}
-                                <div className="detail-item">
-                                    <span className="detail-label">Total Price</span>
-                                    <span className="detail-value">₱{Number(selectedAppointment.price || 0).toLocaleString()}</span>
+                                <div className="detail-item" style={{ background: '#f1f5f9', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Valuation (Total)</span>
+                                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b' }}>₱{Number(selectedAppointment.price || 0).toLocaleString()}</span>
                                 </div>
-                                <div className="detail-item">
-                                    <span className="detail-label">Paid Amount</span>
-                                    <span className="detail-value" style={{ color: '#10b981' }}>
+                                <div className="detail-item" style={{ background: '#ecfdf5', padding: '15px', borderRadius: '12px', border: '1px solid #10b981' }}>
+                                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#059669', textTransform: 'uppercase', marginBottom: '5px' }}>Financial Clearance (Paid)</span>
+                                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#059669' }}>
                                         ₱{Number(selectedAppointment.total_paid || 0).toLocaleString()}
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <div className="dashboard-modal-footer">
-                            <button className="logout-btn" onClick={() => setIsDetailModalOpen(false)} style={{ background: '#f1f5f9', color: '#64748b' }}>
-                                Close
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setIsDetailModalOpen(false)}>
+                                Dismiss Details
                             </button>
                         </div>
                     </div>
@@ -721,34 +729,37 @@ function AdminDashboard() {
 
             {/* Confirmation Modal */}
             {confirmModal.open && (
-                <div className="dashboard-modal-overlay" onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}>
-                    <div className="dashboard-modal-content" style={{ maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
-                        <div className="dashboard-modal-header">
-                            <h2 style={{ fontSize: '1.1rem' }}>Confirm Action</h2>
-                            <button className="modal-close-btn" onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}>
-                                <X size={18} />
+                <div className="modal-overlay open" onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}>
+                    <div className="modal-content" style={{ maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 style={{ fontSize: '1.25rem' }}>System Confirmation</h2>
+                            <button className="close-btn" onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}>
+                                <X size={20} />
                             </button>
                         </div>
-                        <div className="dashboard-modal-body" style={{ padding: '1.5rem 2rem' }}>
-                            <p style={{ margin: 0, color: '#475569', lineHeight: 1.6 }}>{confirmModal.message}</p>
+                        <div className="modal-body" style={{ padding: '30px', textAlign: 'center' }}>
+                            <div style={{ background: '#fff7ed', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                                <SlidersHorizontal size={24} style={{ color: '#f97316' }} />
+                            </div>
+                            <p style={{ margin: 0, color: '#475569', lineHeight: 1.6, fontSize: '1rem' }}>{confirmModal.message}</p>
                         </div>
-                        <div className="dashboard-modal-footer" style={{ gap: '0.75rem' }}>
+                        <div className="modal-footer" style={{ gap: '15px' }}>
                             <button
-                                className="logout-btn"
-                                style={{ background: '#f1f5f9', color: '#64748b' }}
+                                className="btn btn-secondary"
+                                style={{ flex: 1 }}
                                 onClick={() => setConfirmModal({ open: false, message: '', onConfirm: null })}
                             >
-                                Cancel
+                                Revert
                             </button>
                             <button
-                                className="logout-btn"
-                                style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white' }}
+                                className="btn btn-primary"
+                                style={{ flex: 1 }}
                                 onClick={() => {
                                     confirmModal.onConfirm?.();
                                     setConfirmModal({ open: false, message: '', onConfirm: null });
                                 }}
                             >
-                                Confirm
+                                Authorize
                             </button>
                         </div>
                     </div>
