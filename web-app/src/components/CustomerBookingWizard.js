@@ -720,7 +720,18 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     onClick={() => setStep(Math.max(1, step - 1))} 
                     disabled={step === 1} 
                     className="btn btn-secondary" 
-                    style={{display: 'flex', alignItems: 'center', gap: '8px', opacity: step === 1 ? 0 : 1, transition: 'opacity 0.2s', visibility: step === 1 ? 'hidden' : 'visible'}}
+                    style={{
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px', 
+                        padding: '12px 24px',
+                        borderRadius: '12px',
+                        fontWeight: '600',
+                        opacity: step === 1 ? 0 : 1, 
+                        transition: 'all 0.3s ease', 
+                        visibility: step === 1 ? 'hidden' : 'visible',
+                        border: '1px solid #e2e8f0'
+                    }}
                 >
                     <ChevronLeft size={20} /> Previous
                 </button>
@@ -740,7 +751,19 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             setStep(step + 1);
                         }} 
                         className="btn btn-primary" 
-                        style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 28px'}}
+                        style={{
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '10px', 
+                            padding: '12px 32px',
+                            backgroundColor: '#C19A6B',
+                            borderColor: '#C19A6B',
+                            color: 'white',
+                            fontWeight: '700',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(193, 154, 107, 0.3)',
+                            transition: 'all 0.3s ease'
+                        }}
                     >
                         Next Step <ChevronRight size={20} />
                     </button>
@@ -763,7 +786,19 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         }} 
                         disabled={loading} 
                         className="btn btn-primary" 
-                        style={{display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#1e293b', borderColor: '#1e293b', padding: '12px 32px'}}
+                        style={{
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '10px', 
+                            backgroundColor: '#1e293b', 
+                            borderColor: '#1e293b', 
+                            padding: '12px 36px',
+                            color: 'white',
+                            fontWeight: '700',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                            transition: 'all 0.3s ease'
+                        }}
                     >
                         {loading ? 'Sending...' : 'Request Consultation'} <CheckCircle size={20} />
                     </button>

@@ -31,7 +31,7 @@ function AdminAppointments() {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
-    const [modalTab, setModalTab] = useState('details'); // 'details' or 'pricing'
+    const [modalTab, setModalTab] = useState('details'); // 'details', 'pricing', or 'notes'
     const [appointmentModal, setAppointmentModal] = useState({ mounted: false, visible: false });
     const [manualPaymentModal, setManualPaymentModal] = useState({ isOpen: false, amount: '', method: 'Cash' });
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger', isAlert: false });
@@ -833,6 +833,12 @@ function AdminAppointments() {
                                             >
                                                 <DollarSign size={16} /> Pricing
                                             </button>
+                                            <button 
+                                                className={`modal-tab-btn ${modalTab === 'notes' ? 'active' : ''}`} 
+                                                onClick={() => setModalTab('notes')}
+                                            >
+                                                <FileText size={16} /> Notes
+                                            </button>
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -850,7 +856,7 @@ function AdminAppointments() {
                                 <button className="close-btn" onClick={closeModal}><X size={24}/></button>
                             </div>
                             <div className="modal-body">
-                                {modalTab === 'details' ? (
+                                {modalTab === 'details' && (
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
                                         {/* Left Column: People & Service */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -955,32 +961,22 @@ function AdminAppointments() {
                                                         <label style={{ fontSize: '0.75rem' }}>Time *</label>
                                                         <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-select-v2" />
                                                     </div>
-                                                </div>
-                                                <div className="form-group">
-                                                    <label style={{ fontSize: '0.75rem' }}>Booking Status</label>
-                                                    <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="premium-select-v2">
-                                                        <option value="pending">Pending Review</option>
-                                                        <option value="confirmed">Confirmed</option>
-                                                        <option value="completed">Completed</option>
-                                                        <option value="cancelled">Cancelled</option>
-                                                        <option value="rejected">Rejected</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Notes & Assets</label>
-                                                <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="premium-select-v2" style={{ height: '100px', minHeight: '100px' }} placeholder="Add internal notes or instructions..." />
-                                                {(formData.beforePhoto || selectedAppointment?.beforePhoto) && (
-                                                    <div style={{ marginTop: '15px', padding: '10px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                                                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Reference Reference</label>
-                                                        <img src={formData.beforePhoto || selectedAppointment?.beforePhoto} alt="Ref" style={{ maxHeight: '120px', borderRadius: '8px' }} />
+                                                    <div className="form-group">
+                                                        <label style={{ fontSize: '0.75rem' }}>Booking Status</label>
+                                                        <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="premium-select-v2">
+                                                            <option value="pending">Pending Review</option>
+                                                            <option value="confirmed">Confirmed</option>
+                                                            <option value="completed">Completed</option>
+                                                            <option value="cancelled">Cancelled</option>
+                                                            <option value="rejected">Rejected</option>
+                                                        </select>
                                                     </div>
-                                                )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                ) : (
+                                )}
+                                 {modalTab === 'pricing' && (
                                     /* Pricing Tab View */
                                     <div className="fade-in" style={{ padding: '0 40px' }}>
                                         <div style={{ background: '#f8fafc', borderRadius: '24px', padding: '40px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '30px', maxWidth: '700px', margin: '0 auto' }}>
@@ -1023,11 +1019,120 @@ function AdminAppointments() {
                                         </div>
                                     </div>
                                 )}
+
+                                {modalTab === 'notes' && (
+                                    /* Notes Tab View */
+                                    <div className="fade-in" style={{ padding: '0 40px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '40px' }}>
+                                            {/* Left side: Notes & Details */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                                <div>
+                                                    <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Session Details Summary</label>
+                                                    <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span style={{ color: '#64748b' }}>Service Type:</span>
+                                                            <span style={{ fontWeight: 700, color: '#1e293b' }}>{formData.serviceType}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span style={{ color: '#64748b' }}>Design Idea:</span>
+                                                            <span style={{ fontWeight: 700, color: '#1e293b' }}>{formData.designTitle || 'N/A'}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span style={{ color: '#64748b' }}>Scheduled For:</span>
+                                                            <span style={{ fontWeight: 700, color: '#6366f1' }}>{formData.date} at {formData.time}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="form-group">
+                                                    <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Internal Session Notes</label>
+                                                    <textarea 
+                                                        value={formData.notes} 
+                                                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
+                                                        className="premium-select-v2" 
+                                                        style={{ height: '250px', minHeight: '200px', padding: '20px', fontSize: '1rem', lineHeight: '1.6' }} 
+                                                        placeholder="Add detailed internal notes, placement instructions, or specific client requests..." 
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Right side: Reference Image */}
+                                            <div>
+                                                <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Reference Assets</label>
+                                                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '24px', border: '2px dashed #e2e8f0', textAlign: 'center', minHeight: '400px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                                                    {(formData.beforePhoto || selectedAppointment?.beforePhoto) ? (
+                                                        <div style={{ width: '100%' }}>
+                                                            <img 
+                                                                src={formData.beforePhoto || selectedAppointment?.beforePhoto} 
+                                                                alt="Reference" 
+                                                                style={{ maxWidth: '100%', maxHeight: '450px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} 
+                                                            />
+                                                            <p style={{ marginTop: '15px', color: '#64748b', fontSize: '0.85rem' }}>Reference Image provided by client</p>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ color: '#94a3b8' }}>
+                                                            <Image size={48} style={{ marginBottom: '15px', opacity: 0.5 }} />
+                                                            <p>No reference image uploaded</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={closeModal} style={{ padding: '12px 24px' }}>Cancel</button>
-                                <button className="btn btn-primary" onClick={handleSave} style={{ padding: '12px 36px', minWidth: '160px' }}>
-                                    {selectedAppointment ? 'Update Appointment' : 'Create Appointment'}
+                            <div className="modal-footer" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '30px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <div>
+                                        {selectedAppointment && (
+                                            <button 
+                                                className="btn btn-danger" 
+                                                onClick={() => {
+                                                    handleDelete(selectedAppointment.id);
+                                                    closeModal();
+                                                }} 
+                                                style={{ 
+                                                    padding: '12px 24px',
+                                                    backgroundColor: '#ef4444',
+                                                    color: 'white',
+                                                    borderRadius: '8px',
+                                                    border: 'none',
+                                                    fontWeight: '600',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px'
+                                                }}
+                                                onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
+                                                onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
+                                            >
+                                                <X size={16} /> Delete Appointment
+                                            </button>
+                                        )}
+                                    </div>
+                                    <button className="btn btn-primary" onClick={handleSave} style={{ padding: '12px 36px', minWidth: '160px' }}>
+                                        {selectedAppointment ? 'Update Appointment' : 'Create Appointment'}
+                                    </button>
+                                </div>
+                                <button 
+                                    className="btn btn-secondary" 
+                                    onClick={closeModal} 
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '14px', 
+                                        borderRadius: '12px',
+                                        backgroundColor: '#f1f5f9',
+                                        color: '#64748b',
+                                        border: '1px solid #e2e8f0',
+                                        fontWeight: '700',
+                                        fontSize: '0.95rem',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e2e8f0'}
+                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+                                >
+                                    Close
                                 </button>
                             </div>
                         </div>
