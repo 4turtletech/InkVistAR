@@ -176,6 +176,38 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 
 ---
 
+## Tattoo Session Activity Diagram Flowchart
+
+### Flow Sequence
+1. **Customer**: Visit Landing Page -> Homepage -> Tattoo Consultation Booking.
+2. **Admin**: Confirmation of Booking (Reject/Accept). If Rejected, Customer is notified.
+3. **Admin**: Consultation on Schedule -> Consultation with Customer -> Determine the Price of the Tattoo Procedure -> Sends Payment Requirement. If Customer declines, flow ends.
+4. **Customer**: Receives Payment Options.
+5. **PayMongo API**: Payment Gateway (Full 100% or Down Reservation Fee). Success or Error.
+6. **Admin**: Notifies of Payment for Tattoo Session.
+7. **Customer**: Tattoo Session Booking.
+8. **Admin**: Confirmation of Booking -> Search for Artist.
+9. **Artist**: Notifies of being Selected -> Reads & Reviews Task Given by Manager. If Rejected, Admin searches for a new Artist.
+10. **Artist**: Schedule Assigned.
+11. **Admin**: Tattoo Session Set on Schedule.
+12. **Customer**: Commit Before Assigned Schedule. Cancel & Reschedule (goes back to Admin Search for Artist) or Yes.
+13. **Customer**: Visit Studio -> Meet Staff & Manager -> Final Design & Placement Decision.
+14. **Artist**: Sets Up for Session & Design Reference.
+15. **Customer**: Readies for Tattoo Session.
+16. **Admin**: Marks Session In-Progress.
+17. **Artist**: Take Before Session Photo -> Conducts Tattoo.
+18. **Customer/Artist**: Takes Breather (optional) -> Continue on Session.
+19. **Artist**: Check if Session is Time Bound. If Yes, Finishes Tattoo -> Takes After Session Photo & Logs Used Consumables. If No, Reschedule for another.
+20. **Admin**: Mark Session Completed -> Check Customer Payment Status.
+21. **Customer**: Pays Full Tattoo Amount (if Not Paid).
+22. **Admin**: Manual Logs Payment (if necessary/manual) -> Sets Notification of Selected Aftercare.
+23. **Artist**: Configures Best Aftercare Plan.
+24. **Customer**: Receives Daily Aftercare Notification until Healing is Complete -> Review Experience.
+25. **Admin**: Receives Review & Option to Showcase. Shows at Landing Page (Yes) or Hide & Logs Customer Review (No).
+26. **Customer**: Receives Thanks Message. Flow ends.
+
+---
+
 ## Test Accounts
 | Role | Email | Password |
 |------|-------|----------|
