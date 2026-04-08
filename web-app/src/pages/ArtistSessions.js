@@ -29,6 +29,8 @@ function ArtistSessions() {
 
     const [sessionModal, setSessionModal] = useState({ mounted: false, visible: false });
     const [inventoryModal, setInventoryModal] = useState({ mounted: false, visible: false });
+    const [viewingApt, setViewingApt] = useState(null);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
@@ -399,7 +401,7 @@ function ArtistSessions() {
                                         </thead>
                                         <tbody>
                                             {sessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(session => (
-                                                <tr key={session.id}>
+                                                <tr key={session.id} onClick={() => { setViewingApt(session); setIsDetailsOpen(true); }} style={{ cursor: 'pointer' }}>
                                                     <td>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
                                                             <Clock size={14} className="text-muted" />
@@ -410,7 +412,7 @@ function ArtistSessions() {
                                                     <td>{session.design_title}</td>
                                                     <td><span className={`status-badge ${session.status}`}>{session.status}</span></td>
                                                     <td>
-                                                        <button className="btn btn-primary" onClick={() => handleManageSession(session)} style={{ padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); handleManageSession(session); }} style={{ padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                             <Play size={14} /> Manage Session
                                                         </button>
                                                     </td>
@@ -452,6 +454,74 @@ function ArtistSessions() {
                     type={confirmModal.type}
                     isAlert={confirmModal.isAlert}
                 />
+
+                {/* Read-Only Session Details Modal */}
+                {isDetailsOpen && viewingApt && (
+                    <div className="modal-overlay open" onClick={() => setIsDetailsOpen(false)}>
+                        <div className="modal-content" style={{ maxWidth: '600px', width: '95%' }} onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h3>Session Information</h3>
+                                <button className="close-btn" onClick={() => setIsDetailsOpen(false)}><X size={20} /></button>
+                            </div>
+                            <div className="modal-body">
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+                                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</label>
+                                        <p style={{ margin: '4px 0 0', fontWeight: '600', color: '#1e293b' }}>{viewingApt.client_name}</p>
+                                    </div>
+                                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Design Title</label>
+                                        <p style={{ margin: '4px 0 0', fontWeight: '600', color: '#1e293b' }}>{viewingApt.design_title}</p>
+                                    </div>
+                                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact Email</label>
+                                        <p style={{ margin: '4px 0 0', fontWeight: '600', color: '#1e293b' }}>{viewingApt.client_email || 'N/A'}</p>
+                                    </div>
+                                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</label>
+                                        <p style={{ margin: '4px 0 0' }}>
+                                            <span className={`status-badge ${viewingApt.status}`}>{viewingApt.status}</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginBottom: '24px' }}>
+                                    <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '10px' }}>Notes & Instructions</label>
+                                    <div style={{ padding: '16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+                                        <p style={{ margin: 0, fontSize: '0.95rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                                            {viewingApt.notes || 'No specific notes provided for this session.'}
+                                        </p>
+                                        
+                                        {viewingApt.reference_image && (
+                                            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+                                                <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase' }}>Reference Image</p>
+                                                <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
+                                                    <img src={viewingApt.reference_image} alt="Reference" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', background: '#f8fafc' }} />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div style={{ padding: '16px', background: '#eff6ff', borderRadius: '12px', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <Clock size={20} style={{ color: '#2563eb' }} />
+                                    <div>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#1d4ed8', fontWeight: '600' }}>Schedule Confirmation</p>
+                                        <p style={{ margin: 0, fontSize: '0.95rem', color: '#2563eb', fontWeight: 'bold' }}>
+                                            {viewingApt.appointment_date ? new Date(viewingApt.appointment_date).toLocaleDateString() : 'Today'} at {viewingApt.start_time}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button className="btn btn-secondary" onClick={() => setIsDetailsOpen(false)}>Close</button>
+                                <button className="btn btn-primary" onClick={() => { setIsDetailsOpen(false); handleManageSession(viewingApt); }}>
+                                    Go to Management
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Active Session Modal */}

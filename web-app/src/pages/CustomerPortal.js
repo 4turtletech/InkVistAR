@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell } from 'lucide-react';
+import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package } from 'lucide-react';
 import './PortalStyles.css';
 import CustomerSideNav from '../components/CustomerSideNav';
 import ChatWidget from '../components/ChatWidget';
@@ -22,6 +22,8 @@ function CustomerPortal() {
         savedDesigns: 0
     });
     const [appointments, setAppointments] = useState([]);
+    const [selectedApt, setSelectedApt] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [artists, setArtists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeAppointment, setActiveAppointment] = useState(null);
@@ -83,7 +85,10 @@ function CustomerPortal() {
                     service: apt.design_title || 'Tattoo',
                     date: new Date(apt.appointment_date).toLocaleDateString(),
                     time: apt.start_time,
-                    status: apt.status.charAt(0).toUpperCase() + apt.status.slice(1)
+                    status: apt.status.charAt(0).toUpperCase() + apt.status.slice(1),
+                    price: apt.price || 0,
+                    notes: apt.notes,
+                    reference_image: apt.reference_image
                 }));
                 setAppointments(mappedAppointments);
 
@@ -219,7 +224,7 @@ function CustomerPortal() {
                                             </thead>
                                             <tbody>
                                                 {appointments.map((apt) => (
-                                                    <tr key={apt.id}>
+                                                    <tr key={apt.id} onClick={() => { setSelectedApt(apt); setIsModalOpen(true); }} style={{ cursor: 'pointer' }}>
                                                         <td>
                                                             <div className="client-cell">
                                                                 <div className="avatar-placeholder">{apt.artist.charAt(0)}</div>
@@ -416,6 +421,70 @@ function CustomerPortal() {
                     room={activeAppointment.id}
                     currentUser={`customer_${customerId}`}
                 />
+            )}
+
+            {/* Appointment Details Modal */}
+            {isModalOpen && selectedApt && (
+                <div className="modal-overlay open" onClick={() => setIsModalOpen(false)}>
+                    <div className="modal-content" style={{ maxWidth: '600px', width: '95%' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Session Details</h3>
+                            <button className="close-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+                                <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                    <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Artist</label>
+                                    <p style={{ margin: '4px 0 0', fontWeight: '600', color: '#1e293b' }}>{selectedApt.artist}</p>
+                                </div>
+                                <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                    <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service</label>
+                                    <p style={{ margin: '4px 0 0', fontWeight: '600', color: '#1e293b' }}>{selectedApt.service}</p>
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '10px' }}>Notes & Instructions</label>
+                                <div style={{ padding: '16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+                                    <h4 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', color: '#0f172a' }}>{selectedApt.service}</h4>
+                                    <p style={{ margin: 0, fontSize: '0.95rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                                        {selectedApt.notes || 'No specific notes provided for this session.'}
+                                    </p>
+                                    
+                                    {selectedApt.reference_image && (
+                                        <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+                                            <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase' }}>Reference Image</p>
+                                            <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
+                                                <img src={selectedApt.reference_image} alt="Reference" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', background: '#f8fafc' }} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="billing-summary" style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Status</span>
+                                    <span className={`status-badge-v2 ${selectedApt.status.toLowerCase()}`}>{selectedApt.status}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Scheduled For</span>
+                                    <span style={{ fontWeight: '600', color: '#1e293b' }}>{selectedApt.date} at {selectedApt.time}</span>
+                                </div>
+                                {selectedApt.price > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                                        <span style={{ fontWeight: 'bold', color: '#0f172a' }}>Estimated Cost</span>
+                                        <span style={{ fontWeight: '800', fontSize: '1.2rem', color: '#10b981' }}>₱{selectedApt.price.toLocaleString()}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Close</button>
+                            <button className="btn btn-primary" onClick={() => { setIsModalOpen(false); navigate('/customer/bookings'); }}>Manage Bookings</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
