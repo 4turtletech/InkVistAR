@@ -271,7 +271,7 @@ function AdminStudio() {
                                                                     <button className="action-btn delete-btn" onClick={() => handleDelete(branch.id)}><Trash2 size={16}/></button>
                                                                 </>
                                                             ) : (
-                                                                <button className="action-btn view-btn" onClick={() => handleRestore(branch.id)} className="admin-st-f1f5ea52">Restore</button>
+                                                                <button className="action-btn view-btn admin-st-f1f5ea52" onClick={() => handleRestore(branch.id)}>Restore</button>
                                                             )}
                                                         </div>
                                                     </td>

@@ -923,7 +923,7 @@
 }
 
 .admin-st-9da56724 {
-    background: style.bg;
+    background: rgba(255, 255, 255, 0.1);
     padding: 6px;
     border-radius: 6px;
     flex-shrink: 0px;
@@ -1041,7 +1041,7 @@
 }
 
 .admin-st-6e19c74b {
-    background: getNotificationStyle(selectedNotification.type).bg;
+    background: rgba(255, 255, 255, 0.1);
     padding: 10px;
     border-radius: 12px;
     display: flex;

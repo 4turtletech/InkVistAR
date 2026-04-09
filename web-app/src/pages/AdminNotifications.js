@@ -362,7 +362,7 @@ function AdminNotifications() {
                                                 }}>
                                                     <div className="notif-id-marker"></div>
                                                     <div className="notif-main admin-flex-center admin-gap-15">
-                                                        <div className="icon-badge admin-st-9da56724">
+                                                        <div className="icon-badge admin-st-9da56724" style={{ background: style.bg }}>
                                                             {Icon}
                                                         </div>
 
@@ -435,7 +435,7 @@ function AdminNotifications() {
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header admin-st-0abc30a2">
                             <div className="admin-st-b0dbc89c">
-                                <div className="admin-st-6e19c74b">
+                                <div className="admin-st-6e19c74b" style={{ background: getNotificationStyle(selectedNotification.type).bg }}>
                                     {getIcon(selectedNotification.type)}
                                 </div>
                                 <h3 className="admin-st-9840f93f">{selectedNotification.title}</h3>
