@@ -614,7 +614,7 @@ function CustomerBookings(){
                             <h2 className="customer-st-da70abb8" ><Sparkles size={24} color="#daa520" /> New Booking Request</h2>
                             <button className="close-btn" onClick={closeBookingModal}><X size={24} /></button>
                         </div>
-                        <div className="modal-body customer-st-f182ff49" >
+                        <div style={{ padding: '0 24px', paddingTop: '16px' }} >
                             <div className="customer-st-befb1147" >
                                 <div className="customer-st-f93c6e1f" >
                                     {[1, 2, 3, 4].map(step => (
