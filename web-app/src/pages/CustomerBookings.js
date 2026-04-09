@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
-import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
@@ -42,6 +42,7 @@ function CustomerBookings(){
     });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalTab, setModalTab] = useState('details');
     const [selectedApt, setSelectedApt] = useState(null);
     const [modalTransactions, setModalTransactions] = useState([]);
     const [modalLoading, setModalLoading] = useState(false);
@@ -175,6 +176,7 @@ function CustomerBookings(){
 
     const handleViewDetails = async (appt) => {
         setSelectedApt(appt);
+        setModalTab('details');
         setIsModalOpen(true);
         setModalLoading(true);
         try {
@@ -427,67 +429,116 @@ function CustomerBookings(){
                 <div className="modal-overlay">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h3>Appointment Details</h3>
+                            <div>
+                                <h3 style={{ margin: 0 }}>Appointment Details</h3>
+                                <div className="modal-tabs" style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+                                    <button 
+                                        type="button"
+                                        className={`modal-tab-btn ${modalTab === 'details' ? 'active' : ''}`} 
+                                        onClick={() => setModalTab('details')}
+                                        style={{ background: 'none', border: 'none', borderBottom: modalTab==='details' ? '2px solid #6366f1' : 'none', padding: '8px 12px', cursor: 'pointer', fontWeight: modalTab==='details'?'bold':'normal', color: modalTab==='details'?'#6366f1':'#64748b', display: 'flex', alignItems: 'center' }}
+                                    >
+                                        <Info size={14} style={{ marginRight: '5px' }}/> Details
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        className={`modal-tab-btn ${modalTab === 'transactions' ? 'active' : ''}`} 
+                                        onClick={() => setModalTab('transactions')}
+                                        style={{ background: 'none', border: 'none', borderBottom: modalTab==='transactions' ? '2px solid #6366f1' : 'none', padding: '8px 12px', cursor: 'pointer', fontWeight: modalTab==='transactions'?'bold':'normal', color: modalTab==='transactions'?'#6366f1':'#64748b', display: 'flex', alignItems: 'center' }}
+                                    >
+                                        <Receipt size={14} style={{ marginRight: '5px' }}/> Transactions
+                                    </button>
+                                </div>
+                            </div>
                             <button className="close-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
                         </div>
                         <div className="modal-body">
-                            <div className="customer-st-5c49f804" >
-                                <div className="customer-st-e8eceac8" >
-                                    <label className="customer-st-3c5cf8dd" >Staff Assigned</label>
-                                    <p className="customer-st-5d13f831" >{selectedApt.artist_name || 'TBD'}</p>
-                                </div>
-                                <div className="customer-st-e8eceac8" >
-                                    <label className="customer-st-3c5cf8dd" >Service Type</label>
-                                    <p className="customer-st-5d13f831" >{selectedApt.service_type || 'General Session'}</p>
-                                </div>
-                            </div>
+                            {modalTab === 'details' ? (
+                                <>
+                                    <div className="customer-st-5c49f804" >
+                                        <div className="customer-st-e8eceac8" >
+                                            <label className="customer-st-3c5cf8dd" >Staff Assigned</label>
+                                            <p className="customer-st-5d13f831" >{selectedApt.artist_name || 'TBD'}</p>
+                                        </div>
+                                        <div className="customer-st-e8eceac8" >
+                                            <label className="customer-st-3c5cf8dd" >Service Type</label>
+                                            <p className="customer-st-5d13f831" >{selectedApt.service_type || 'General Session'}</p>
+                                        </div>
+                                    </div>
 
-                            <div className="customer-st-654b1414" >
-                                <label className="customer-st-627edbaf" >Vision & Booking Notes</label>
-                                <div className="customer-st-6f352cca" >
-                                    <h4 className="customer-st-232eb362" >{selectedApt.design_title}</h4>
-                                    <p className="customer-st-590a9062" >
-                                        {selectedApt.notes || 'No specific notes provided.'}
-                                    </p>
-                                    
-                                    {selectedApt.reference_image && (
-                                        <div className="customer-st-2dc9a8a0" >
-                                            <p className="customer-st-af520488" >Reference Image</p>
-                                            <div className="customer-st-e6f3b223" >
-                                                <img className="customer-st-454ebe6d" src={selectedApt.reference_image} alt="Reference" />
-                                            </div>
+                                    <div className="customer-st-654b1414" >
+                                        <label className="customer-st-627edbaf" >Vision & Booking Notes</label>
+                                        <div className="customer-st-6f352cca" >
+                                            <h4 className="customer-st-232eb362" >{selectedApt.design_title}</h4>
+                                            <p className="customer-st-590a9062" >
+                                                {selectedApt.notes || 'No specific notes provided.'}
+                                            </p>
+                                            
+                                            {selectedApt.reference_image && (
+                                                <div className="customer-st-2dc9a8a0" >
+                                                    <p className="customer-st-af520488" >Reference Image</p>
+                                                    <div className="customer-st-e6f3b223" >
+                                                        <img className="customer-st-454ebe6d" src={selectedApt.reference_image} alt="Reference" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <h4 className="customer-st-6f90639a" >Financial Summary</h4>
+                                    <div className="billing-summary customer-st-aa822c5e" >
+                                        <div className="customer-st-56da6dbd" >
+                                            <span className="customer-st-504f25fa" >Total Service Price:</span>
+                                            <span className="customer-st-c6cdc897" >₱{selectedApt.price.toLocaleString()}</span>
+                                        </div>
+                                        <div className="customer-st-56da6dbd" >
+                                            <span className="customer-st-504f25fa" >Amount Paid:</span>
+                                            <span className="customer-st-49af0fbb" >
+                                                ₱{Number(selectedApt.total_paid || 0).toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <hr className="customer-st-b45fb1af" />
+                                        <div className="customer-st-4110ceca" >
+                                            <span className="customer-st-e7b1617c" >Remaining Balance:</span>
+                                            <span className="customer-st-58e71408" >
+                                                ₱{Math.max(0, selectedApt.price - (selectedApt.total_paid || 0)).toLocaleString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="customer-st-5c49f804">
+                                    {modalLoading ? (
+                                        <p style={{ color: '#64748b' }}>Loading transactions...</p>
+                                    ) : modalTransactions.length > 0 ? (
+                                        <div style={{width: '100%'}}>
+                                            {modalTransactions.map(t => (
+                                                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #e2e8f0' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{new Date(t.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric'})}</span>
+                                                        <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            {t.payment_method || 'PayMongo'} 
+                                                            {t.paymongo_payment_id && <span style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>{t.paymongo_payment_id.substring(0,8)}</span>}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                                        <span style={{ fontWeight: 700, color: t.status.toLowerCase() === 'paid' ? '#10b981' : '#f59e0b', fontSize: '1.1rem' }}>₱{(t.amount/100).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                        <span style={{ fontSize: '0.7rem', padding: '2px 8px', background: t.status.toLowerCase()==='paid'? '#ecfdf5' : '#fff7ed', color: t.status.toLowerCase()==='paid'?'#059669':'#ea580c', borderRadius: '12px', fontWeight: 600 }}>{t.status.toUpperCase()}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: '40px 10px', color: '#94a3b8' }}>
+                                            <Inbox size={48} style={{ opacity: 0.3, marginBottom: '16px' }} />
+                                            <p style={{ fontSize: '0.95rem' }}>No payment history exists for this session yet.</p>
                                         </div>
                                     )}
                                 </div>
-                            </div>
-
-                            <h4 className="customer-st-6f90639a" >Financial Summary</h4>
-                            <div className="billing-summary customer-st-aa822c5e" >
-                                <div className="customer-st-56da6dbd" >
-                                    <span className="customer-st-504f25fa" >Total Service Price:</span>
-                                    <span className="customer-st-c6cdc897" >₱{selectedApt.price.toLocaleString()}</span>
-                                </div>
-                                <div className="customer-st-56da6dbd" >
-                                    <span className="customer-st-504f25fa" >Amount Paid:</span>
-                                    <span className="customer-st-49af0fbb" >
-                                        ₱{Number(selectedApt.total_paid || 0).toLocaleString()}
-                                    </span>
-                                </div>
-                                <hr className="customer-st-b45fb1af" />
-                                <div className="customer-st-4110ceca" >
-                                    <span className="customer-st-e7b1617c" >Remaining Balance:</span>
-                                    <span className="customer-st-58e71408" >
-                                        ₱{Math.max(0, selectedApt.price - (selectedApt.total_paid || 0)).toLocaleString()}
-                                    </span>
-                                </div>
-                            </div>
+                            )}
                         </div>
                         <div className="modal-footer customer-st-14ad7875" >
                             <button className="btn btn-secondary customer-st-282aded5" onClick={() => setIsModalOpen(false)}>Close</button>
-                            
-                            <button className="btn" style={{background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '0.9rem'}} onClick={() => navigate('/customer/transactions')}>
-                                <Inbox size={16}/> Transaction History
-                            </button>
                             
                             {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && selectedApt.price > 0 && selectedApt.payment_status === 'unpaid' && (
                                 <button className="btn btn-primary customer-st-9fb0229b" onClick={() => handlePay(selectedApt)} >
