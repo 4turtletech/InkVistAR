@@ -485,6 +485,10 @@ function CustomerBookings(){
                         <div className="modal-footer customer-st-14ad7875" >
                             <button className="btn btn-secondary customer-st-282aded5" onClick={() => setIsModalOpen(false)}>Close</button>
                             
+                            <button className="btn" style={{background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '0.9rem'}} onClick={() => navigate('/customer/transactions')}>
+                                <Inbox size={16}/> Transaction History
+                            </button>
+                            
                             {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && selectedApt.price > 0 && selectedApt.payment_status === 'unpaid' && (
                                 <button className="btn btn-primary customer-st-9fb0229b" onClick={() => handlePay(selectedApt)} >
                                     <CreditCard size={18}/> Pay Deposit (₱{Math.round(selectedApt.price * 0.2).toLocaleString()})

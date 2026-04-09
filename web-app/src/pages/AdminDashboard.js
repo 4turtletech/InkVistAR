@@ -378,16 +378,7 @@ function AdminDashboard() {
                                 </div>
                             </div>
 
-                            <div className="stat-card-v2 glass-card clickable" onClick={() => navigate('/admin/pos')}>
-                                <div className="stat-icon-wrapper blue admin-st-b08058c4">
-                                    <ShoppingCart size={24} />
-                                </div>
-                                <div className="stat-info-v2">
-                                    <span className="stat-label-v2">POS System</span>
-                                    <h3 className="stat-value-v2">Launch</h3>
-                                    <div className="stat-trend-v2">Inventory Sales</div>
-                                </div>
-                            </div>
+
                         </div>
 
                         <div className="dashboard-layout-grid">
@@ -602,6 +593,20 @@ function AdminDashboard() {
                                         )) : <p className="no-data admin-st-eb108882" style={{ border: 'none', padding: '20px 0' }}>No appointments for today.</p>}
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Standalone POS Launcher Wrapper */}
+                        <div className="admin-st-pos-banner" style={{ marginTop: '25px' }}>
+                            <div className="stat-card-v2 glass-card clickable" onClick={() => navigate('/admin/pos')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', padding: '20px', background: 'linear-gradient(135deg, #1e293b, #0f172a)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                                <div className="stat-icon-wrapper blue" style={{ background: 'rgba(59, 130, 246, 0.2)' }}>
+                                    <ShoppingCart size={28} color="#3b82f6" />
+                                </div>
+                                <div className="stat-info-v2" style={{ textAlign: 'left', flex: 1, border: 'none' }}>
+                                    <h3 className="stat-value-v2" style={{ color: '#fff', fontSize: '1.2rem', margin: 0 }}>Launch POS System</h3>
+                                    <div className="stat-trend-v2" style={{ color: '#94a3b8', marginTop: '4px' }}>Process walk-ins, merchandise, and retail inventory sales independently</div>
+                                </div>
+                                <button className="view-all-btn admin-st-d3ffc78c" style={{ background: '#3b82f6', color: '#fff', padding: '10px 24px', fontSize: '1rem', border: 'none' }} onClick={(e) => { e.stopPropagation(); navigate('/admin/pos'); }}>Launch Terminal</button>
                             </div>
                         </div>
                     </div>

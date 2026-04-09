@@ -48,7 +48,7 @@ function AdminNotifications() {
             setLoading(true);
             const user = JSON.parse(localStorage.getItem('user'));
             const adminId = user ? user.id : 1;
-            
+
             const [notifsResponse, appointmentsResponse, inventoryResponse] = await Promise.all([
                 Axios.get(`${API_URL}/api/notifications/${adminId}`), // Admin notifications
                 Axios.get(`${API_URL}/api/admin/appointments`),
@@ -221,7 +221,7 @@ function AdminNotifications() {
 
     const filterButtonStyle = (isActive, type = 'default') => {
         if (!isActive) return { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)' };
-        
+
         // Distinguish Unread with a more urgent amber color
         const activeBg = type === 'unread' ? '#f59e0b' : '#daa520';
         return { background: activeBg, color: 'white', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' };
@@ -344,7 +344,7 @@ function AdminNotifications() {
                                             const Icon = getIcon(n.type);
                                             const style = getNotificationStyle(n.type);
                                             return (
-                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600', cursor: 'pointer' }} onClick={(e) => { 
+                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600', cursor: 'pointer' }} onClick={(e) => {
                                                     if (!e.target.closest('.notif-actions')) {
                                                         setSelectedNotification(n);
                                                         if (!n.is_read && n.id && typeof n.id === 'number') markAsRead(n.id);
@@ -369,19 +369,18 @@ function AdminNotifications() {
                                                             <div className="notif-actions admin-st-ade7e518">
                                                                 {n.path && (
                                                                     <button
-                                                                        className="notif-btn primary"
+                                                                        className="notif-btn primary admin-st-397af07e"
                                                                         onClick={() => navigate(n.path)}
-                                                                        className="admin-st-397af07e"
                                                                     >
                                                                         Take Action <ArrowRight size={16} />
                                                                     </button>
                                                                 )}
                                                                 {!n.is_read ? (
-                                                                    <button className="notif-btn ghost" onClick={() => markAsRead(n.id)} className="admin-st-69ced960" title="Mark as Read">
+                                                                    <button className="notif-btn ghost admin-st-69ced960" onClick={() => markAsRead(n.id)} title="Mark as Read">
                                                                         <Check size={14} />
                                                                     </button>
                                                                 ) : (
-                                                                    <button className="notif-btn ghost" onClick={() => markAsUnread(n.id)} className="admin-st-69ced960" title="Mark as Unread">
+                                                                    <button className="notif-btn ghost admin-st-69ced960" onClick={() => markAsUnread(n.id)} title="Mark as Unread">
                                                                         <RotateCcw size={14} />
                                                                     </button>
                                                                 )}
@@ -422,31 +421,31 @@ function AdminNotifications() {
 
             {/* Notification View Modal */}
             {selectedNotification && (
-                <div className="modal-overlay" onClick={() => setSelectedNotification(null)} className="admin-st-e20839c6">
+                <div className="modal-overlay open admin-st-e20839c6" onClick={() => setSelectedNotification(null)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="admin-st-0abc30a2">
+                        <div className="modal-header admin-st-0abc30a2">
                             <div className="admin-st-b0dbc89c">
                                 <div className="admin-st-6e19c74b">
                                     {getIcon(selectedNotification.type)}
                                 </div>
                                 <h3 className="admin-st-9840f93f">{selectedNotification.title}</h3>
                             </div>
-                            <button className="close-btn" onClick={() => setSelectedNotification(null)} className="admin-st-f32d59a5"><XCircle size={24} /></button>
+                            <button className="close-btn admin-st-f32d59a5" onClick={() => setSelectedNotification(null)}><XCircle size={24} /></button>
                         </div>
-                        <div className="admin-st-4085b14b">
+                        <div className="modal-body admin-st-4085b14b">
                             <p className="admin-st-707f7391">{selectedNotification.message}</p>
                         </div>
-                        <div className="admin-st-16f41633">
+                        <div className="modal-footer admin-st-16f41633">
                             <span className="admin-st-00ead0ce">Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
                             <div className="notif-actions admin-flex-center admin-gap-10">
                                 {(selectedNotification.path || selectedNotification.related_id) && (
-                                    <button className="btn btn-primary" onClick={() => { 
+                                    <button className="btn btn-primary admin-st-45ce59e0" onClick={() => {
                                         const link = selectedNotification.path || `/admin/appointments?appointment=${selectedNotification.related_id}`;
-                                        navigate(link); 
-                                        setSelectedNotification(null); 
-                                    }} className="admin-st-45ce59e0">Take Action <ArrowRight size={14} /></button>
+                                        navigate(link);
+                                        setSelectedNotification(null);
+                                    }}>Take Action <ArrowRight size={14} /></button>
                                 )}
-                                <button className="btn btn-secondary" onClick={() => setSelectedNotification(null)} className="admin-st-d0455f69">Close</button>
+                                <button className="btn btn-secondary admin-st-d0455f69" onClick={() => setSelectedNotification(null)}>Close</button>
                             </div>
                         </div>
                     </div>

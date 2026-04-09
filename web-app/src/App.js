@@ -44,6 +44,7 @@ import CustomerGallery from './pages/CustomerGallery';
 import CustomerProfile from './pages/CustomerProfile';
 import CustomerBookingCreate from './pages/CustomerBookingCreate';
 import CustomerReview from './pages/CustomerReview';
+import CustomerTransactions from './pages/CustomerTransactions';
 import PaymentSimulation from './pages/PaymentSimulation';
 import BookingConfirmation from './pages/BookingConfirmation';
 import PayMongoPayment from './pages/PayMongoPayment';
@@ -124,6 +125,7 @@ function App() {
           <Route path="/customer/profile" element={<ProtectedRoute allowedRoles={['customer']}><CustomerProfile /></ProtectedRoute>} />
           <Route path="/customer/notifications" element={<ProtectedRoute allowedRoles={['customer']}><CustomerNotifications /></ProtectedRoute>} />
           <Route path="/customer/reviews/new" element={<ProtectedRoute allowedRoles={['customer']}><CustomerReview /></ProtectedRoute>} />
+          <Route path="/customer/transactions" element={<ProtectedRoute allowedRoles={['customer']}><CustomerTransactions /></ProtectedRoute>} />
           <Route path="/payment" element={<ProtectedRoute allowedRoles={['customer']}><PaymentSimulation /></ProtectedRoute>} />
           <Route path="/pay-mongo" element={<PayMongoPayment />} />
           <Route path="/booking-confirmation" element={<ProtectedRoute allowedRoles={['customer']}><BookingConfirmation /></ProtectedRoute>} />

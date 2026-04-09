@@ -220,7 +220,7 @@ function AdminBilling() {
                     <h1>Billing & Payments</h1>
                     <div className="admin-st-800dd6f5">
                          <button className={`btn ${activeTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('invoices')}>
-                            <FileText size={18} className="admin-st-c02c7d9c"/> Invoices
+                            <FileText size={18} className="admin-st-c02c7d9c"/> Transaction Logs
                         </button>
                         <button className={`btn ${activeTab === 'config' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('config')}>
                             <Settings size={18} className="admin-st-c02c7d9c"/> Configuration

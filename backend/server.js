@@ -2305,9 +2305,11 @@ app.post('/api/customer/appointments', (req, res) => {
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
         }
 
-        // Notify Artist
+        // Notify Artist/Admin
         const notifDate = date || 'an upcoming date';
-        createNotification(currentArtistId, 'New Booking Request', `New request from client for ${notifDate}. Please assign an artist.`, 'appointment_request', result.insertId);
+        const displayService = serviceType || 'Consultation';
+        const displayDesign = designTitle || 'Tattoo Request';
+        createNotification(currentArtistId, 'New Booking Request', `New ${displayService} request: "${displayDesign}" for ${notifDate}. Pending review.`, 'appointment_request', result.insertId);
 
         // NEW: Notify Customer
         const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
