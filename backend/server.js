@@ -595,6 +595,15 @@ db.getConnection((err, connection) => {
             console.log('✅ Added draft_image column to appointments');
           }
         });
+
+        // MIGRATION: Add 'reschedule_count' column if it doesn't exist
+        db.query("SHOW COLUMNS FROM appointments LIKE 'reschedule_count'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding reschedule_count column...');
+            db.query("ALTER TABLE appointments ADD COLUMN reschedule_count INT DEFAULT 0");
+            console.log('✅ Added reschedule_count column to appointments');
+          }
+        });
       }
     });
 
@@ -2420,7 +2429,8 @@ app.get('/api/customer/:customerId/appointments', (req, res) => {
     SELECT ap.*, ap.price, u.name as artist_name, u.email as artist_email, 
            COALESCE(a.studio_name, 'Independent Artist') as studio_name,
            ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
-           ap.manual_payment_method
+           ap.manual_payment_method,
+           COALESCE(ap.reschedule_count, 0) as reschedule_count
     FROM appointments ap
     JOIN users u ON ap.artist_id = u.id
     LEFT JOIN artists a ON u.id = a.user_id
@@ -2431,6 +2441,75 @@ app.get('/api/customer/:customerId/appointments', (req, res) => {
     if (err) return res.status(500).json({ success: false, message: 'DB Error: ' + err.message });
     res.json({ success: true, appointments: results });
   });
+});
+
+// Customer Reschedule Endpoint
+app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
+  const { id } = req.params;
+  const { customerId, newDate, newTime } = req.body;
+
+  if (!customerId || !newDate) {
+    return res.status(400).json({ success: false, message: 'Missing required fields (customerId, newDate).' });
+  }
+
+  // 1. Fetch the appointment and verify ownership
+  db.query(
+    `SELECT ap.*, u.name as artist_name FROM appointments ap JOIN users u ON ap.artist_id = u.id WHERE ap.id = ? AND ap.customer_id = ? AND ap.is_deleted = 0`,
+    [id, customerId],
+    (err, results) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error.' });
+      if (!results.length) return res.status(404).json({ success: false, message: 'Appointment not found or you do not have permission.' });
+
+      const appt = results[0];
+
+      // 2. Only allow rescheduling for upcoming appointments
+      if (['completed', 'cancelled', 'rejected'].includes(appt.status)) {
+        return res.status(400).json({ success: false, message: 'Cannot reschedule a completed or cancelled appointment.' });
+      }
+
+      // 3. Check reschedule limit (max 2)
+      const currentCount = appt.reschedule_count || 0;
+      if (currentCount >= 2) {
+        return res.status(400).json({ success: false, message: 'You have reached the maximum number of reschedules (2). Please contact the studio for assistance.' });
+      }
+
+      // 4. Check 1-week restriction
+      const now = new Date();
+      const appointmentDate = new Date(appt.appointment_date);
+      const msInAWeek = 7 * 24 * 60 * 60 * 1000;
+      if ((appointmentDate - now) < msInAWeek) {
+        return res.status(400).json({ success: false, message: 'Rescheduling is not allowed for appointments that are less than 1 week away. If this is an emergency, please contact the studio directly.' });
+      }
+
+      // 5. Perform the reschedule
+      db.query(
+        `UPDATE appointments SET appointment_date = ?, start_time = COALESCE(?, start_time), reschedule_count = reschedule_count + 1 WHERE id = ?`,
+        [newDate, newTime || null, id],
+        (updateErr, result) => {
+          if (updateErr) return res.status(500).json({ success: false, message: 'Failed to reschedule: ' + updateErr.message });
+
+          console.log(`📅 Customer ${customerId} rescheduled Appt #${id} to ${newDate} ${newTime || ''}`);
+
+          // Notify artist
+          if (appt.artist_id && appt.artist_id !== 1) {
+            createNotification(appt.artist_id, 'Appointment Rescheduled 📅', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+          }
+          // Notify admins
+          db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
+            if (!adminErr && admins.length > 0) {
+              admins.forEach(admin => {
+                createNotification(admin.id, 'Appointment Rescheduled', `Customer rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+              });
+            }
+          });
+          // Notify customer
+          createNotification(customerId, 'Reschedule Confirmed', `Your appointment #${id} has been rescheduled to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+
+          res.json({ success: true, message: 'Appointment rescheduled successfully.', remainingReschedules: 2 - (currentCount + 1) });
+        }
+      );
+    }
+  );
 });
 
 // ========== GALLERY ENDPOINT ==========

@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
-import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
@@ -55,6 +55,13 @@ function CustomerBookings(){
         type: 'danger',
         isAlert: false 
     });
+
+    // Reschedule states
+    const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+    const [rescheduleDate, setRescheduleDate] = useState('');
+    const [rescheduleTime, setRescheduleTime] = useState('');
+    const [rescheduleMonth, setRescheduleMonth] = useState(new Date());
+    const [isRescheduling, setIsRescheduling] = useState(false);
 
     const showAlert = (title, message, type = 'info') => {
         setConfirmModal({
@@ -310,6 +317,85 @@ function CustomerBookings(){
         "Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Hand", "Neck", "Wrist", "Ankle"
     ];
 
+    const handleOpenReschedule = (appt) => {
+        const now = new Date();
+        const apptDate = new Date(appt.appointment_date);
+        const msInAWeek = 7 * 24 * 60 * 60 * 1000;
+
+        if ((appt.reschedule_count || 0) >= 2) {
+            showAlert("Reschedule Limit Reached", "You have already used your 2 allowed reschedules for this appointment. If this is an emergency, please contact the studio directly.", "warning");
+            return;
+        }
+
+        if ((apptDate - now) < msInAWeek) {
+            showAlert("Reschedule Not Allowed", "Rescheduling is not allowed for appointments that are less than 1 week away. If this is an emergency, please contact the studio directly.", "warning");
+            return;
+        }
+
+        setRescheduleDate('');
+        setRescheduleTime('');
+        setRescheduleMonth(new Date());
+        setIsRescheduleModalOpen(true);
+    };
+
+    const handleSubmitReschedule = async () => {
+        if (!rescheduleDate) {
+            showAlert("Required", "Please select a new date.", "warning");
+            return;
+        }
+        setIsRescheduling(true);
+        try {
+            const res = await Axios.put(`${API_URL}/api/customer/appointments/${selectedApt.id}/reschedule`, {
+                customerId,
+                newDate: rescheduleDate,
+                newTime: rescheduleTime || null
+            });
+            if (res.data.success) {
+                showAlert("Rescheduled", res.data.message + (res.data.remainingReschedules !== undefined ? ` (${res.data.remainingReschedules} reschedule(s) remaining)` : ''), "success");
+                setIsRescheduleModalOpen(false);
+                setIsModalOpen(false);
+                // Refresh appointments
+                const fetchRes = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
+                if (fetchRes.data.success) setAppointments(fetchRes.data.appointments.map(a => ({ ...a, price: parseFloat(a.price) || 0 })));
+            }
+        } catch (err) {
+            showAlert("Reschedule Failed", err.response?.data?.message || "An error occurred while rescheduling.", "danger");
+        } finally {
+            setIsRescheduling(false);
+        }
+    };
+
+    const renderRescheduleCalendar = () => {
+        const days = [];
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const oneWeekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const maxDate = new Date();
+        maxDate.setMonth(today.getMonth() + 3);
+
+        const daysInM = new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() + 1, 0).getDate();
+        const firstDay = new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth(), 1).getDay();
+
+        for (let i = 0; i < firstDay; i++) days.push(<div key={`re-${i}`} className="calendar-day empty"></div>);
+        for (let i = 1; i <= daysInM; i++) {
+            const dateStr = `${rescheduleMonth.getFullYear()}-${String(rescheduleMonth.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            const dateObj = new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth(), i);
+            const isSelected = rescheduleDate === dateStr;
+            const isPast = dateObj < oneWeekFromNow;
+            const isTooFar = dateObj > maxDate;
+
+            days.push(
+                <div key={i} className={`calendar-day ${isPast || isTooFar ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
+                    style={{ flexDirection: 'column' }}
+                    onClick={() => { if (!isPast && !isTooFar) setRescheduleDate(dateStr); }}
+                >
+                    <span>{i}</span>
+                </div>
+            );
+        }
+        return days;
+    };
+
     return (
         <div className="portal-layout">
             <CustomerSideNav />
@@ -351,9 +437,9 @@ function CustomerBookings(){
                                 <>
                                     <div className="table-responsive">
                                         <table className="portal-table">
-                                            <thead><tr><th>ID</th><th>Staff</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Price</th><th>Action</th></tr></thead>
+                                            <thead><tr><th>ID</th><th>Staff</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Price</th><th>Payment</th></tr></thead>
                                             <tbody>{displayedAppointments.map(a=> (
-                                                <tr key={a.id}>
+                                                <tr key={a.id} onClick={() => handleViewDetails(a)} style={{ cursor: 'pointer' }} className="clickable-row hover-bg">
                                                     <td className="customer-st-968fd1b5" >#{a.id}</td>
                                                     <td className="customer-st-8515177a" >{a.artist_name}</td>
                                                     <td>{a.service_type || 'Tattoo'}</td>
@@ -373,7 +459,7 @@ function CustomerBookings(){
                                                                 <button 
                                                                     className="btn btn-primary" 
                                                                     style={{padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)'}}
-                                                                    onClick={() => handlePay(a)} 
+                                                                    onClick={(e) => { e.stopPropagation(); handlePay(a); }} 
                                                                 >
                                                                     <CreditCard size={14}/> Pay Deposit
                                                                 </button>
@@ -385,21 +471,17 @@ function CustomerBookings(){
                                                                 <button 
                                                                     className="btn btn-primary" 
                                                                     style={{padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.3)'}}
-                                                                    onClick={() => handlePay(a, 'balance')}
+                                                                    onClick={(e) => { e.stopPropagation(); handlePay(a, 'balance'); }}
                                                                 >
                                                                     <CreditCard size={14}/> Pay Balance
                                                                 </button>
                                                             ) : a.status === 'completed' ? (
-                                                                <button className="btn btn-primary customer-st-6c6e14b5" onClick={() => { setSelectedApt(a); setShowAftercare(true); }} >
+                                                                <button className="btn btn-primary customer-st-6c6e14b5" onClick={(e) => { e.stopPropagation(); setSelectedApt(a); setShowAftercare(true); }} >
                                                                     <Heart size={14}/> Aftercare
                                                                 </button>
                                                             ) : (
                                                                 <span className="customer-st-48e66a80" >-</span>
                                                             )}
-
-                                                            <button className="billing-details-btn customer-st-3047a29f" onClick={() => handleViewDetails(a)} >
-                                                                <Info size={14} /> Details
-                                                            </button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -567,6 +649,16 @@ function CustomerBookings(){
                         <div className="modal-footer customer-st-14ad7875" >
                             <button className="btn btn-secondary customer-st-282aded5" onClick={() => setIsModalOpen(false)}>Close</button>
                             
+                            {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && (
+                                <button 
+                                    className="btn btn-secondary" 
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #6366f1', color: '#6366f1', background: '#eef2ff' }}
+                                    onClick={() => handleOpenReschedule(selectedApt)}
+                                >
+                                    <CalendarDays size={16}/> Reschedule
+                                </button>
+                            )}
+                            
                             {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && selectedApt.price > 0 && selectedApt.payment_status === 'unpaid' && (
                                 <button className="btn btn-primary customer-st-9fb0229b" style={{ color: 'white' }} onClick={() => handlePay(selectedApt)} >
                                     <CreditCard size={18}/> Pay Deposit
@@ -634,6 +726,58 @@ function CustomerBookings(){
                 </div>
             )}
             
+            {/* Reschedule Modal */}
+            {isRescheduleModalOpen && selectedApt && (
+                <div className="modal-overlay" onClick={() => setIsRescheduleModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                        <div className="modal-header">
+                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><CalendarDays size={20} color="#6366f1" /> Reschedule Appointment</h3>
+                            <button className="close-btn" onClick={() => setIsRescheduleModalOpen(false)}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '20px' }}>
+                            <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '10px', padding: '12px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                <AlertTriangle size={18} color="#6366f1" style={{ marginTop: '2px', flexShrink: 0 }} />
+                                <div style={{ fontSize: '0.85rem', color: '#4338ca', lineHeight: '1.5' }}>
+                                    <strong>Reschedule Policy:</strong> You may reschedule up to 2 times per appointment. Rescheduling is only allowed if the appointment is more than 1 week away.
+                                    <br/><span style={{ opacity: 0.8 }}>Used: {selectedApt.reschedule_count || 0}/2</span>
+                                </div>
+                            </div>
+
+                            <p style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '12px', fontWeight: '600' }}>Select a new date:</p>
+                            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                    <button type="button" onClick={() => setRescheduleMonth(new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() - 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronLeft size={20}/></button>
+                                    <span style={{ fontWeight: '700', color: '#1e293b' }}>{monthNames[rescheduleMonth.getMonth()]} {rescheduleMonth.getFullYear()}</span>
+                                    <button type="button" onClick={() => setRescheduleMonth(new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronRight size={20}/></button>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem' }}>
+                                    {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} style={{ fontWeight: '700', color: '#94a3b8', padding: '6px 0' }}>{d}</div>)}
+                                    {renderRescheduleCalendar()}
+                                </div>
+                            </div>
+
+                            {rescheduleDate && (
+                                <div style={{ marginTop: '16px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <CheckCircle size={18} color="#16a34a" />
+                                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#166534' }}>New date: {new Date(rescheduleDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid #e2e8f0' }}>
+                            <button className="btn btn-secondary" onClick={() => setIsRescheduleModalOpen(false)}>Cancel</button>
+                            <button 
+                                className="btn btn-primary"
+                                disabled={!rescheduleDate || isRescheduling}
+                                onClick={handleSubmitReschedule}
+                                style={{ background: '#6366f1', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', opacity: !rescheduleDate ? 0.5 : 1 }}
+                            >
+                                {isRescheduling ? 'Rescheduling...' : <><CalendarDays size={16}/> Confirm Reschedule</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Custom New Booking Modal */}
             {isBookingModalOpen && (
                 <div className="modal-overlay">
