@@ -5462,10 +5462,22 @@ app.post('/api/reviews', (req, res) => {
           // Notify Admin of new review
           createNotification(1, 'New Review Submitted', `A client submitted a new review for appointment #${appointment_id}. Needs approval.`, 'system', result.insertId);
 
+          // Send thank-you notification to the customer
+          createNotification(customer_id, 'Thank You for Your Review ⭐', `We truly appreciate you taking the time to share your experience with Inkvictus. Your feedback helps us continue delivering the premium artistry and service our clients deserve. Your review is now pending approval and will be showcased soon.`, 'system', result.insertId);
+
           res.json({ success: true, message: 'Review submitted and is pending admin approval.' });
         });
       });
     });
+  });
+});
+
+// GET check if review exists for an appointment
+app.get('/api/reviews/check/:appointmentId', (req, res) => {
+  const { appointmentId } = req.params;
+  db.query('SELECT id FROM reviews WHERE appointment_id = ?', [appointmentId], (err, results) => {
+    if (err) return res.json({ success: true, exists: false });
+    res.json({ success: true, exists: results.length > 0 });
   });
 });
 

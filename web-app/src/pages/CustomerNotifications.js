@@ -32,7 +32,7 @@ function CustomerNotifications() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
     const [isAftercareModalOpen, setIsAftercareModalOpen] = useState(false);
-    
+    const [reviewedAppointments, setReviewedAppointments] = useState(new Set());
 
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
@@ -43,6 +43,24 @@ function CustomerNotifications() {
     useEffect(() => {
         if (customerId) fetchNotifications();
     }, [customerId]);
+
+    // Check which review_prompt appointments already have reviews
+    useEffect(() => {
+        const reviewPrompts = notifications.filter(n => n.type === 'review_prompt' && n.related_id);
+        if (reviewPrompts.length === 0) return;
+        
+        const checkReviews = async () => {
+            const checked = new Set();
+            await Promise.all(reviewPrompts.map(async (n) => {
+                try {
+                    const res = await Axios.get(`${API_URL}/api/reviews/check/${n.related_id}`);
+                    if (res.data.exists) checked.add(Number(n.related_id));
+                } catch (e) { /* ignore */ }
+            }));
+            setReviewedAppointments(checked);
+        };
+        checkReviews();
+    }, [notifications]);
 
     const fetchNotifications = async () => {
         try {
@@ -266,9 +284,15 @@ function CustomerNotifications() {
                                                                     </button>
                                                                 )}
                                                                 {n.type === 'review_prompt' && (
-                                                                    <a className="notif-btn primary customer-st-9bd8a3c8" href={`/customer/reviews/new?appointment=${n.related_id}`} >
-                                                                        Leave Review
-                                                                    </a>
+                                                                    reviewedAppointments.has(Number(n.related_id)) ? (
+                                                                        <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                            <CheckCircle size={14} /> Review Submitted
+                                                                        </span>
+                                                                    ) : (
+                                                                        <a className="notif-btn primary customer-st-9bd8a3c8" href={`/customer/reviews/new?appointment=${n.related_id}`} >
+                                                                            Leave Review
+                                                                        </a>
+                                                                    )
                                                                 )}
                                                             </div>
                                                         </div>
@@ -327,7 +351,15 @@ function CustomerNotifications() {
                                 )}
                                 {selectedNotification.type === 'pos_invoice' && <a className="notif-btn primary customer-st-be17fc86" href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" >View Invoice</a>}
                                 {selectedNotification.type === 'aftercare_reminder' && <button className="notif-btn primary customer-st-b55afb9c" onClick={() => { setSelectedNotification(null); setIsAftercareModalOpen(true); }} >View Guide</button>}
-                                {selectedNotification.type === 'review_prompt' && <a className="notif-btn primary customer-st-3f2429fc" href={`/customer/reviews/new?appointment=${selectedNotification.related_id}`} >Leave Review</a>}
+                                {selectedNotification.type === 'review_prompt' && (
+                                    reviewedAppointments.has(Number(selectedNotification.related_id)) ? (
+                                        <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                            <CheckCircle size={16} /> Review Already Submitted
+                                        </span>
+                                    ) : (
+                                        <a className="notif-btn primary customer-st-3f2429fc" href={`/customer/reviews/new?appointment=${selectedNotification.related_id}`} >Leave Review</a>
+                                    )
+                                )}
                                 <button className="notif-btn ghost customer-st-cb4a8d52" onClick={() => setSelectedNotification(null)} >Close</button>
                             </div>
                         </div>
