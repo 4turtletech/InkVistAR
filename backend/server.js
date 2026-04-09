@@ -3127,7 +3127,7 @@ app.delete('/api/admin/appointments/:id', (req, res) => {
 app.get('/api/appointments/:id/materials', (req, res) => {
   const { id } = req.params;
   const query = `
-    SELECT sm.id, sm.inventory_id, sm.quantity, sm.status, i.name as item_name, i.unit, i.cost, raw_event 
+    SELECT sm.id, sm.inventory_id, sm.quantity, sm.status, i.name as item_name, i.unit, i.cost, i.category 
     FROM session_materials sm 
     JOIN inventory i ON sm.inventory_id = i.id 
     WHERE sm.appointment_id = ? AND sm.status != 'released'
