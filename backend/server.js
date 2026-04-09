@@ -2360,24 +2360,19 @@ app.post('/api/customer/appointments', (req, res) => {
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
         }
 
-        // Notify Artist/Admin
+        // Notify Customer (1 notification only)
         const notifDate = date || 'an upcoming date';
         const displayService = serviceType || 'Consultation';
         const displayDesign = designTitle || 'Tattoo Request';
-        createNotification(currentArtistId, 'New Booking Request', `New ${displayService} request: "${displayDesign}" for ${notifDate}. Pending review.`, 'appointment_request', result.insertId);
-
-        // Notify Customer
         const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const appointmentTime = finalStartTime ? new Date(`2000-01-01T${finalStartTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'a time to be determined';
-        createNotification(customerId, 'Booking Request Received', `Your request for a ${designTitle || serviceType} session on ${appointmentDate} at ${appointmentTime} has been received. We will review it shortly! Expect a call from our staff in the next 24 hours.`, 'appointment_request', result.insertId);
+        createNotification(customerId, 'Booking Request Received', `Your request for a ${displayDesign} session on ${appointmentDate} at ${appointmentTime} has been received. We will review it shortly! Expect a call from our staff in the next 24 hours.`, 'appointment_request', result.insertId);
 
-        // Also notify all Admins/Managers about the new booking request
+        // Notify all Admins/Managers (1 notification each)
         db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
           if (!adminErr && admins.length > 0) {
             admins.forEach(admin => {
-              if (admin.id !== currentArtistId) {
-                createNotification(admin.id, 'Booking Request Received', `New ${displayService} booking request from a customer: "${displayDesign}" for ${notifDate}. Please review and assign pricing.`, 'appointment_request', result.insertId);
-              }
+              createNotification(admin.id, 'New Booking Request', `New ${displayService} request: "${displayDesign}" for ${notifDate}. Please review and assign pricing.`, 'appointment_request', result.insertId);
             });
           }
         });
