@@ -1062,19 +1062,21 @@ function AdminAppointments() {
                                             <div>
                                                 <label className="premium-input-label">Staff Assignment</label>
                                                 <div className="admin-st-efc8b70e">
-                                                    <div className="premium-input-group">
-                                                        <label className="admin-st-b8618eb2">Primary Artist *</label>
-                                                        <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2">
-                                                            <option value="">Select Artist</option>
-                                                            {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                                        </select>
-                                                    </div>
-                                                    <div className="premium-input-group">
-                                                        <label className="admin-st-b8618eb2">Secondary Artist</label>
-                                                        <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2">
-                                                            <option value="">None (Solo)</option>
-                                                            {artists.filter(a => a.id != formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                                        </select>
+                                                    <div className="admin-st-fefecdf0">
+                                                        <div className="premium-input-group">
+                                                            <label className="admin-st-b8618eb2">Primary Artist *</label>
+                                                            <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2">
+                                                                <option value="">Select Artist</option>
+                                                                {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div className="premium-input-group">
+                                                            <label className="admin-st-b8618eb2">Secondary Artist</label>
+                                                            <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2">
+                                                                <option value="">None (Solo)</option>
+                                                                {artists.filter(a => a.id != formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                                            </select>
+                                                        </div>
                                                     </div>
                                                     {formData.secondaryArtistId && (
                                                         <div className="admin-st-953ba7ac">
@@ -1089,18 +1091,20 @@ function AdminAppointments() {
                                             <div>
                                                 <label className="premium-input-label">Service Details</label>
                                                 <div className="admin-st-efc8b70e">
-                                                    <div className="premium-input-group">
-                                                        <label className="admin-st-b8618eb2">Service Type *</label>
-                                                        <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2">
-                                                            <option value="Tattoo Session">Tattoo Session</option>
-                                                            <option value="Consultation">Consultation</option>
-                                                            <option value="Piercing">Piercing</option>
-                                                            <option value="Touch-up">Touch-up</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="premium-input-group">
-                                                        <label className="admin-st-b8618eb2">Design / Idea</label>
-                                                        <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
+                                                    <div className="admin-st-fefecdf0">
+                                                        <div className="premium-input-group">
+                                                            <label className="admin-st-b8618eb2">Service Type *</label>
+                                                            <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2">
+                                                                <option value="Tattoo Session">Tattoo Session</option>
+                                                                <option value="Consultation">Consultation</option>
+                                                                <option value="Piercing">Piercing</option>
+                                                                <option value="Touch-up">Touch-up</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="premium-input-group">
+                                                            <label className="admin-st-b8618eb2">Design / Idea</label>
+                                                            <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1187,12 +1191,12 @@ function AdminAppointments() {
                                     /* Pricing Tab View */
                                     <div className="fade-in admin-st-9628d1ce">
                                         <div className="admin-st-dd4f6313">
-                                            <div className="admin-st-e5b0a825">
-                                                <div className="form-group">
+                                            <div className="admin-st-e5b0a825 admin-st-fefecdf0">
+                                                <div className="form-group" style={{ flex: 1 }}>
                                                     <label className="admin-st-6ad161f7">Total Quote (₱) *</label>
-                                                    <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="premium-input-v2 admin-st-1a49bbe7" />
+                                                    <input type="number" step="1000" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="premium-input-v2 admin-st-1a49bbe7" />
                                                 </div>
-                                                <div className="form-group">
+                                                <div className="form-group" style={{ flex: 1 }}>
                                                     <label className="admin-st-6ad161f7">Payment Strategy</label>
                                                     <select value={formData.paymentStatus} onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })} className="premium-select-v2 admin-st-c8e7c63b">
                                                         <option value="unpaid">Draft (Unquoted)</option>
@@ -1347,7 +1351,7 @@ function AdminAppointments() {
                                             </>
                                         )}
                                     </div>
-                                    <button className="btn btn-primary admin-st-a3930dd9" onClick={handleSave} >
+                                    <button className="btn admin-st-a3930dd9" style={{ backgroundColor: '#10b981', color: 'white', fontWeight: 'bold' }} onClick={handleSave} >
                                         {selectedAppointment ? 'Update Appointment' : 'Create Appointment'}
                                     </button>
                                 </div>
