@@ -223,6 +223,17 @@ function CustomerBookings(){
         maxDate.setMonth(today.getMonth() + 3);
         maxDate.setHours(23, 59, 59, 999);
 
+        // Collect dates where this customer already has an active appointment
+        const myBookedDates = new Set();
+        appointments.forEach(a => {
+            if (!['completed', 'cancelled', 'rejected'].includes(a.status)) {
+                const d = typeof a.appointment_date === 'string' 
+                    ? a.appointment_date.substring(0, 10) 
+                    : new Date(a.appointment_date).toISOString().split('T')[0];
+                myBookedDates.add(d);
+            }
+        });
+
         for (let i = 0; i < firstDayOfMonth; i++) days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
         
         for (let i = 1; i <= daysInMonth; i++) {
@@ -231,17 +242,21 @@ function CustomerBookings(){
             const isSelected = bookingData.date === dateStr;
             const isPast = dateObj <= today;
             const isTooFar = dateObj > maxDate;
+            const hasMySession = myBookedDates.has(dateStr);
 
             const dateData = bookedDates[dateStr] || { count: 0, times: [] };
             const isFull = dateData.count >= 7; // Up to 7 time blocks maximum
             const isBusy = dateData.count >= 4;
 
             let statusColor = '#10b981'; 
-            if (isFull) statusColor = '#ef4444';
+            if (hasMySession) statusColor = '#ef4444';
+            else if (isFull) statusColor = '#ef4444';
             else if (isBusy) statusColor = '#f59e0b';
 
+            const isDisabled = isPast || isTooFar || hasMySession;
+
             days.push(
-                <div className={`${`calendar-day ${isPast || isTooFar ? 'disabled' : ''} customer-st-cdfe5ca9`} key={i} ${isSelected ? 'selected' : ''}`} onClick={() => { if (isPast || isTooFar) return; if (isFull) { showAlert("Fully Booked", "This date is fully booked. Please choose another date.", "warning"); return; } setBookingData({...bookingData, date: dateStr, startTime: ''}); }} >
+                <div className={`${`calendar-day ${isDisabled ? 'disabled' : ''} customer-st-cdfe5ca9`} key={i} ${isSelected ? 'selected' : ''}`} onClick={() => { if (isDisabled) { if (hasMySession) showAlert("Date Unavailable", "You already have a session booked on this date. Please choose another date.", "warning"); return; } if (isFull) { showAlert("Fully Booked", "This date is fully booked. Please choose another date.", "warning"); return; } setBookingData({...bookingData, date: dateStr, startTime: ''}); }} >
                     <span className="customer-st-b4dfcc0b" >{i}</span>
                     {!isPast && !isTooFar && (
                         <div style={{ width: '4px', height: '4px', borderRadius: '2px', backgroundColor: statusColor, marginTop: '2px' }} />
