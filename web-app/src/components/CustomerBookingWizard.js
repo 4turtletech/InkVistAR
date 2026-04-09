@@ -708,14 +708,14 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 </div>
             </div>
 
-            <div style={{minHeight: '400px'}}>
+            <div style={{minHeight: '400px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStepPlacement()} {/* Step 2: Placement */}
                 {step === 3 && renderStepScheduling()} {/* Step 3: Scheduling */}
                 {step === 4 && renderStepContact()} {/* Step 4: Contact Info */}
             </div>
             
-            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '48px', paddingTop: '32px', borderTop: '1px solid #f1f5f9'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #f1f5f9'}}>
                 <button 
                     onClick={() => setStep(Math.max(1, step - 1))} 
                     disabled={step === 1} 

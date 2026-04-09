@@ -265,12 +265,11 @@ function CustomerBookings(){
     };
 
     const handleSubmitBooking = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
 
         if (!bookingData.date || !bookingData.startTime) {
             return showAlert("Required Field", "Please select an available date and time slot from the calendar.", "warning");
         }
-        e.preventDefault();
         if (!bookingData.date || !bookingData.startTime || !bookingData.serviceType || !bookingData.placement) {
             showAlert("Missing Info", "Please select a service, placement, date, and time.", "warning");
             return;
@@ -629,7 +628,7 @@ function CustomerBookings(){
                             </div>
                         </div>
                         
-                        <form onSubmit={handleSubmitBooking}>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
                             <div className="modal-body customer-st-4a472601" >
                                 
                                 {bookingStep === 1 && (
@@ -809,12 +808,12 @@ function CustomerBookings(){
                                         Next Step <ArrowRight size={16}/>
                                     </button>
                                 ) : (
-                                    <button className="btn btn-primary customer-st-a1410f35" type="submit" disabled={isSubmitting}>
+                                    <button className="btn btn-primary customer-st-a1410f35" type="button" onClick={handleSubmitBooking} disabled={isSubmitting}>
                                         {isSubmitting ? 'Submitting...' : 'Request Session'}
                                     </button>
                                 )}
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             )}
