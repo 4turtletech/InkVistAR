@@ -369,14 +369,21 @@ function AdminAppointments() {
 
     const handleSave = async () => {
         const isConsultation = formData.serviceType === 'Consultation';
-        const isArtistRequired = !isConsultation;
+        const isTattooSession = !isConsultation;
 
         const hasNoArtist = !formData.artistId || String(formData.artistId) === 'null' || String(formData.artistId) === 'undefined' || String(formData.artistId) === '0' || String(formData.artistId).trim() === '';
 
-        // Re-aligned time validation to only map to explicit Consultations per the new Day-Lock studio capacity strategy
-        if (!formData.clientId || (isArtistRequired && hasNoArtist) || !formData.date || (isConsultation && !formData.time)) {
+        // Basic required fields: Client + Date (+ Time for consultations)
+        if (!formData.clientId || !formData.date || (isConsultation && !formData.time)) {
             setModalTab('details');
-            showAlert('Missing Required Information', `Please fill in all required fields (Client, ${isArtistRequired ? 'Artist, ' : ''}Date${isConsultation ? ', Time' : ''}).`, 'warning');
+            showAlert('Missing Required Information', `Please fill in all required fields (Client, Date${isConsultation ? ', Time' : ''}).`, 'warning');
+            return;
+        }
+
+        // Tattoo Session specific validations - always enforced
+        if (isTattooSession && hasNoArtist) {
+            setModalTab('details');
+            showAlert('Artist Required', 'A Tattoo Session requires a Resident Artist to be assigned. Please select an artist in the Details tab.', 'warning');
             return;
         }
 
@@ -384,17 +391,10 @@ function AdminAppointments() {
         let priceValue = parseFloat(priceInput);
         const finalPrice = (!priceValue || priceValue < 0) ? 0 : priceValue;
 
-        if (formData.status === 'confirmed' && !isConsultation) {
-            if (finalPrice <= 0) {
-                setModalTab('pricing');
-                showAlert('Pricing Required', 'Please set the finalized Service Price in the Pricing tab before confirming this physical session.', 'warning');
-                return;
-            }
-            if (hasNoArtist) {
-                setModalTab('details');
-                showAlert('Artist Required', 'A Resident Artist MUST be assigned before upgrading a physical session to Confirmed status.', 'warning');
-                return;
-            }
+        if (isTattooSession && finalPrice <= 0) {
+            setModalTab('pricing');
+            showAlert('Pricing Required', 'A Tattoo Session requires a price to be set. Please enter the service price in the Pricing tab before saving.', 'warning');
+            return;
         }
 
         const doSave = async () => {
