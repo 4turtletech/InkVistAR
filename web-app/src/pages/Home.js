@@ -106,6 +106,10 @@ function Home() {
                             Book Consultation
                         </button>
                     </div>
+                    
+                    <div className="scroll-indicator fade-up visible">
+                        <ChevronDown size={32} color="var(--accent-gold)" />
+                    </div>
 
                 </header>
 
@@ -146,13 +150,13 @@ function Home() {
                         </div>
                         <div className="matrix-images">
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/media__1775660017196.jpg" alt="Fine Line Work" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1550684376-efcbd6e3f031?auto=format&fit=crop&q=80&w=800'; }} />
+                                <img src="/images/tattoos/media__1775711211750.png" alt="Studio Dark Concept" />
                             </div>
                             <div className="matrix-img-box">
-                                <img src="https://images.unsplash.com/photo-1605218427368-35b0f99846b1?auto=format&fit=crop&q=80&w=800" alt="Studio Interior" />
+                                <img src="/images/tattoos/media__1775711217542.png" alt="Inkvictus V Logo" />
                             </div>
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/media__1775667820757.jpg" alt="Detail Work" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?auto=format&fit=crop&q=80&w=800'; }} />
+                                <img src="/images/tattoos/media__1775711217566.png" alt="Luxurious Studio Setup" />
                             </div>
                         </div>
                     </div>
