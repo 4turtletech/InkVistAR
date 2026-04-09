@@ -5450,8 +5450,8 @@ app.post('/api/reviews', (req, res) => {
           return res.status(400).json({ success: false, message: 'You have already reviewed this session.' });
         }
 
-        const q = 'INSERT INTO reviews (customer_id, artist_id, appointment_id, rating, comment, status) VALUES (?, ?, ?, ?, ?, "pending")';
-        db.query(q, [customer_id, artist_id, appointment_id, rating, comment || ''], (err3, result) => {
+        const q = 'INSERT INTO reviews (customer_id, artist_id, appointment_id, rating, comment, status) VALUES (?, ?, ?, ?, ?, ?)';
+        db.query(q, [customer_id, artist_id, appointment_id, rating, comment || '', 'pending'], (err3, result) => {
           if (err3) {
             console.error('[REVIEW] Insert error:', err3.message, err3.code);
             return res.status(500).json({ success: false, message: 'Failed to save review: ' + err3.message });
