@@ -97,7 +97,7 @@ function AdminAppointments() {
                             finalClientName = `${nameMatch[1].trim()} (Guest)`;
                         }
                     }
-                    
+
                     return {
                         id: apt.id,
                         clientName: finalClientName,
@@ -219,13 +219,13 @@ function AdminAppointments() {
         }
 
         const confirmHandler = onConfirm || (() => setConfirmDialog(prev => ({ ...prev, isOpen: false })));
-        setConfirmDialog({ 
-            isOpen: true, 
-            title: title || 'Confirm Action', 
-            message, 
-            onConfirm: confirmHandler, 
-            type: 'info', 
-            isAlert: !onConfirm 
+        setConfirmDialog({
+            isOpen: true,
+            title: title || 'Confirm Action',
+            message,
+            onConfirm: confirmHandler,
+            type: 'info',
+            isAlert: !onConfirm
         });
     };
 
@@ -234,31 +234,8 @@ function AdminAppointments() {
     };
 
     const handleStatusUpdate = async (id, status, clientName = 'this client') => {
-        const apt = appointments.find(a => a.id === id);
-        
-        if (status === 'confirmed' && apt && apt.serviceType !== 'Consultation' && (!apt.artistId && !apt.artist_id)) {
-            showConfirm(
-                'Artist Required',
-                `An artist must be assigned to ${clientName} before you can approve this session. Would you like to assign an artist now?`,
-                () => handleEdit(apt)
-            );
-            return;
-        }
-
-        if (status === 'confirmed' && apt && apt.serviceType !== 'Consultation' && (!apt.price || apt.price <= 0)) {
-            showConfirm(
-                'Price Required',
-                `A price must be set for tattoo or piercing sessions before approval. Would you like to set a price for ${clientName}'s session now?`,
-                () => {
-                    handleEdit(apt);
-                    setModalTab('pricing');
-                }
-            );
-            return;
-        }
-
         const actionVerb = status === 'confirmed' ? 'confirm' : status === 'completed' ? 'complete' : 'cancel';
-        
+
         showConfirm(
             `Confirm ${status.charAt(0).toUpperCase() + status.slice(1)}`,
             `Are you sure you want to ${actionVerb} this appointment for ${clientName}? A notification will be sent to them.`,
@@ -367,7 +344,7 @@ function AdminAppointments() {
             manualPaymentMethod: 'Cash'
         });
         setClientSearch(appointment.clientName);
-        
+
         showConfirm(`Are you sure you want to Rebook a next session for this project?`, () => {
             openModal();
         });
@@ -377,24 +354,14 @@ function AdminAppointments() {
         const isConsultation = formData.serviceType === 'Consultation';
         const isArtistRequired = !isConsultation;
 
-        if (!formData.clientId || !formData.date || !formData.time) {
-            showAlert('Missing Information', 'Please fill in all required fields (Client, Date, Time).', 'warning');
-            return;
-        }
-
-        if (isArtistRequired && (!formData.artistId || formData.artistId === '')) {
-            showAlert('Artist Required', 'An artist must be assigned for tattoo and piercing sessions. Artists are only optional for Consultations.', 'warning');
+        if (!formData.clientId || (isArtistRequired && !formData.artistId) || !formData.date || !formData.time) {
+            showConfirm(`Please fill in all required fields (Client, ${isArtistRequired ? 'Artist, ' : ''}Date, Time).`, null);
             return;
         }
 
         let priceInput = formData.price ? String(formData.price).replace(/[^0-9.]/g, '') : '0';
         let priceValue = parseFloat(priceInput);
         const finalPrice = (!priceValue || priceValue < 0) ? 0 : priceValue;
-
-        if (formData.status === 'confirmed' && !isConsultation && finalPrice <= 0) {
-            showAlert('Price Required', 'A price must be assigned for tattoo or piercing sessions before they can be confirmed.', 'warning');
-            return;
-        }
 
         const doSave = async () => {
             try {
@@ -432,28 +399,6 @@ function AdminAppointments() {
             }
         };
 
-        // Day-Lock Collision Detection
-        const parsedArtistId = parseInt(formData.artistId);
-        if (!isConsultation && parsedArtistId && parsedArtistId !== 1 && formData.date &&
-            formData.status !== 'cancelled' && formData.status !== 'rejected') {
-            
-            const hasConflict = appointments.some(a => 
-                a.artistId === parsedArtistId && 
-                a.date === formData.date && 
-                a.id !== selectedAppointment?.id &&
-                a.status !== 'cancelled' && a.status !== 'rejected' &&
-                a.serviceType !== 'Consultation' // Only physical tattoos/piercings trigger the day-lock
-            );
-
-            if (hasConflict) {
-                showConfirm(
-                    `Artist Capacity Warning!\n\nThis artist already has a locked physical session scheduled on ${formData.date}.\n\nAre you bypassing this limit to force an emergency Walk-In/Extra assignment?`,
-                    doSave
-                );
-                return; 
-            }
-        }
-
         showConfirm(
             selectedAppointment ? 'Save changes to this appointment?' : 'Create this new appointment?',
             doSave
@@ -488,28 +433,8 @@ function AdminAppointments() {
         }
     };
 
-    const handleCloneSequence = () => {
-        const freshState = {
-            clientId: formData.clientId,
-            artistId: formData.artistId,
-            secondaryArtistId: formData.secondaryArtistId,
-            serviceType: formData.serviceType,
-            designTitle: formData.designTitle,
-            commissionSplit: formData.commissionSplit,
-            price: formData.price,
-            date: '', 
-            time: '',
-            status: 'pending',
-            paymentStatus: 'pending',
-            notes: '[Next Session] ' + (formData.notes || ''),
-            beforePhoto: null,
-            manualPaidAmount: 0,
-            manualPaymentMethod: 'Cash'
-        };
-        
-        setSelectedAppointment(null);
-        setFormData(freshState);
-        showAlert('Project Cloned', 'Ready to schedule the next physical session! Please select the new Date & Time and click Save to confirm.', 'success');
+    const handleMultiSession = () => {
+        setFormData({ ...formData, notes: formData.notes + '\n[Multi-Session: Session 1 of X]' });
     };
 
     const getStatusColor = (status) => {
@@ -551,7 +476,7 @@ function AdminAppointments() {
 
     const handlePrint = () => {
         const printWindow = window.open('', '_blank');
-        const printData = filteredAppointments.map(a => 
+        const printData = filteredAppointments.map(a =>
             `<tr>
                 <td>${a.clientName || 'N/A'}</td>
                 <td>${a.artistName || 'N/A'}</td>
@@ -709,8 +634,8 @@ function AdminAppointments() {
                                                 <div className="admin-st-3c36f78c">
                                                     {dayAppts.slice(0, 5).map(apt => (
                                                         <div key={apt.id} style={{
-                                                            width: '8px', 
-                                                            height: '8px', 
+                                                            width: '8px',
+                                                            height: '8px',
                                                             borderRadius: '50%',
                                                             backgroundColor: apt.status === 'confirmed' ? '#10b981' : (apt.status === 'pending' ? '#f59e0b' : (apt.status === 'cancelled' || apt.status === 'rejected' ? '#94a3b8' : '#6366f1'))
                                                         }} title={apt.status} />
@@ -917,7 +842,7 @@ function AdminAppointments() {
                                                     </td>
                                                     <td>₱{Number(appointment.price).toLocaleString()}</td>
                                                     <td className="actions-cell">
-                                                        { appointment.status === 'pending' && (
+                                                        {appointment.status === 'pending' && (
                                                             <>
                                                                 <button className="action-btn view-btn admin-st-bb9a2c41" onClick={() => handleStatusUpdate(appointment.id, 'confirmed', appointment.clientName)} title="Approve">
                                                                     <Check size={14} className="admin-st-da4d9cdd" />
@@ -979,20 +904,20 @@ function AdminAppointments() {
                                     <div className="admin-st-18a02d52">
                                         <h2 className="admin-m-0">{selectedAppointment ? `Edit Appointment #${selectedAppointment.id}` : 'New Appointment'}</h2>
                                         <div className="modal-tabs">
-                                            <button 
-                                                className={`modal-tab-btn ${modalTab === 'details' ? 'active' : ''}`} 
+                                            <button
+                                                className={`modal-tab-btn ${modalTab === 'details' ? 'active' : ''}`}
                                                 onClick={() => setModalTab('details')}
                                             >
                                                 <Info size={16} /> Details
                                             </button>
-                                            <button 
-                                                className={`modal-tab-btn ${modalTab === 'pricing' ? 'active' : ''}`} 
+                                            <button
+                                                className={`modal-tab-btn ${modalTab === 'pricing' ? 'active' : ''}`}
                                                 onClick={() => setModalTab('pricing')}
                                             >
                                                 <DollarSign size={16} /> Pricing
                                             </button>
-                                            <button 
-                                                className={`modal-tab-btn ${modalTab === 'notes' ? 'active' : ''}`} 
+                                            <button
+                                                className={`modal-tab-btn ${modalTab === 'notes' ? 'active' : ''}`}
                                                 onClick={() => setModalTab('notes')}
                                             >
                                                 <FileText size={16} /> Notes
@@ -1003,7 +928,7 @@ function AdminAppointments() {
                                         <span className={`badge status-${getStatusColor(formData.status)}`}>{formData.status}</span>
                                         {selectedAppointment && selectedAppointment.price > 0 && (
                                             <div className="badge admin-st-d2713882">
-                                                <span>Paid: ₱{Number(selectedAppointment.totalPaid || 0).toLocaleString()} / ₱{Number(formData.price || 0).toLocaleString()}</span>
+                                                <span>Paid: ₱{selectedAppointment.totalPaid.toLocaleString()} / ₱{formData.price.toLocaleString()}</span>
                                                 {selectedAppointment.totalPaid < formData.price && (
                                                     <span className="admin-st-14a76a5d">(Bal: ₱{(formData.price - selectedAppointment.totalPaid).toLocaleString()})</span>
                                                 )}
@@ -1011,7 +936,7 @@ function AdminAppointments() {
                                         )}
                                     </div>
                                 </div>
-                                <button className="close-btn" onClick={closeModal}><X size={24}/></button>
+                                <button className="close-btn" onClick={closeModal}><X size={24} /></button>
                             </div>
                             <div className="modal-body">
                                 {modalTab === 'details' && (
@@ -1028,7 +953,7 @@ function AdminAppointments() {
                                                             </div>
                                                             <span className="admin-st-0e40c814">{clients.find(c => c.id == formData.clientId)?.name || clientSearch}</span>
                                                         </div>
-                                                        <button type="button" onClick={() => { setFormData(prev => ({...prev, clientId: null})); setClientSearch(''); }} className="admin-st-f32d59a5">
+                                                        <button type="button" onClick={() => { setFormData(prev => ({ ...prev, clientId: null })); setClientSearch(''); }} className="admin-st-f32d59a5">
                                                             <X size={20} />
                                                         </button>
                                                     </div>
@@ -1062,21 +987,19 @@ function AdminAppointments() {
                                             <div>
                                                 <label className="premium-input-label">Staff Assignment</label>
                                                 <div className="admin-st-efc8b70e">
-                                                    <div className="admin-st-fefecdf0">
-                                                        <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Primary Artist *</label>
-                                                            <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2">
-                                                                <option value="">Select Artist</option>
-                                                                {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                                            </select>
-                                                        </div>
-                                                        <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Secondary Artist</label>
-                                                            <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2">
-                                                                <option value="">None (Solo)</option>
-                                                                {artists.filter(a => a.id != formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                                            </select>
-                                                        </div>
+                                                    <div className="premium-input-group">
+                                                        <label className="admin-st-b8618eb2">Primary Artist *</label>
+                                                        <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2">
+                                                            <option value="">Select Artist</option>
+                                                            {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div className="premium-input-group">
+                                                        <label className="admin-st-b8618eb2">Secondary Artist</label>
+                                                        <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2">
+                                                            <option value="">None (Solo)</option>
+                                                            {artists.filter(a => a.id != formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                                        </select>
                                                     </div>
                                                     {formData.secondaryArtistId && (
                                                         <div className="admin-st-953ba7ac">
@@ -1091,20 +1014,18 @@ function AdminAppointments() {
                                             <div>
                                                 <label className="premium-input-label">Service Details</label>
                                                 <div className="admin-st-efc8b70e">
-                                                    <div className="admin-st-fefecdf0">
-                                                        <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Service Type *</label>
-                                                            <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2">
-                                                                <option value="Tattoo Session">Tattoo Session</option>
-                                                                <option value="Consultation">Consultation</option>
-                                                                <option value="Piercing">Piercing</option>
-                                                                <option value="Touch-up">Touch-up</option>
-                                                            </select>
-                                                        </div>
-                                                        <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Design / Idea</label>
-                                                            <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
-                                                        </div>
+                                                    <div className="premium-input-group">
+                                                        <label className="admin-st-b8618eb2">Service Type *</label>
+                                                        <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2">
+                                                            <option value="Tattoo Session">Tattoo Session</option>
+                                                            <option value="Consultation">Consultation</option>
+                                                            <option value="Piercing">Piercing</option>
+                                                            <option value="Touch-up">Touch-up</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="premium-input-group">
+                                                        <label className="admin-st-b8618eb2">Design / Idea</label>
+                                                        <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
                                                     </div>
                                                 </div>
                                             </div>
@@ -1135,30 +1056,10 @@ function AdminAppointments() {
                                                             <option value="rejected">Rejected</option>
                                                         </select>
                                                     </div>
-                                                    
-                                                    {selectedAppointment && formData.serviceType === 'Tattoo Session' && (
-                                                        <div style={{ marginTop: '16px' }}>
-                                                            <button 
-                                                                type="button" 
-                                                                onClick={handleCloneSequence}
-                                                                style={{
-                                                                    width: '100%', padding: '10px', borderRadius: '8px',
-                                                                    backgroundColor: '#f1f5f9', color: '#4338ca', fontSize: '0.9rem',
-                                                                    fontWeight: '700', border: '1px dashed #cbd5e1', cursor: 'pointer',
-                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                                                    transition: 'all 0.2s'
-                                                                }}
-                                                                onMouseOver={(e) => { e.target.style.backgroundColor = '#e0e7ff'; e.target.style.borderColor = '#818cf8'; }}
-                                                                onMouseOut={(e) => { e.target.style.backgroundColor = '#f1f5f9'; e.target.style.borderColor = '#cbd5e1'; }}
-                                                            >
-                                                                <span style={{ fontSize: '1.2rem', fontWeight: '800' }}>+</span> Schedule Next Session
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                                                          </div>
+                                                </div>
                                             </div>
                                         </div>
-                                        
+
                                         {/* Project Session History Panel */}
                                         {selectedAppointment && formData.designTitle && (
                                             <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e2e8f0', gridColumn: '1 / -1' }}>
@@ -1184,19 +1085,19 @@ function AdminAppointments() {
                                                 </div>
                                             </div>
                                         )}
-                                        
+
                                     </div>
                                 )}
-                                 {modalTab === 'pricing' && (
+                                {modalTab === 'pricing' && (
                                     /* Pricing Tab View */
                                     <div className="fade-in admin-st-9628d1ce">
                                         <div className="admin-st-dd4f6313">
-                                            <div className="admin-st-e5b0a825 admin-st-fefecdf0">
-                                                <div className="form-group" style={{ flex: 1 }}>
+                                            <div className="admin-st-e5b0a825">
+                                                <div className="form-group">
                                                     <label className="admin-st-6ad161f7">Total Quote (₱) *</label>
-                                                    <input type="number" step="1000" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="premium-input-v2 admin-st-1a49bbe7" />
+                                                    <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="premium-input-v2 admin-st-1a49bbe7" />
                                                 </div>
-                                                <div className="form-group" style={{ flex: 1 }}>
+                                                <div className="form-group">
                                                     <label className="admin-st-6ad161f7">Payment Strategy</label>
                                                     <select value={formData.paymentStatus} onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })} className="premium-select-v2 admin-st-c8e7c63b">
                                                         <option value="unpaid">Draft (Unquoted)</option>
@@ -1210,7 +1111,7 @@ function AdminAppointments() {
                                                 <div className="admin-st-4344b743">
                                                     <div className="admin-st-7c85a4a1">
                                                         <span className="admin-st-9e124000">Total Collected:</span>
-                                                        <span className="admin-st-3947f0f7">₱{Number(selectedAppointment.totalPaid || 0).toLocaleString()}</span>
+                                                        <span className="admin-st-3947f0f7">₱{selectedAppointment.totalPaid.toLocaleString()}</span>
                                                     </div>
                                                     <div className="admin-st-ddde571d">
                                                         <span className="admin-st-9e124000">Remaining Balance:</span>
@@ -1221,19 +1122,18 @@ function AdminAppointments() {
 
                                             <div className="admin-st-422e3858">
                                                 <button className="btn admin-st-c52b9668" onClick={() => setModalTab('details')}>Back to Details</button>
-                                                
-                                                {/* Hidden for now until actual payment gateway integration */
-                                                /* formData.price > 0 && formData.paymentStatus === 'unpaid' && (
-                                                    <button 
+
+                                                {formData.price > 0 && formData.paymentStatus === 'unpaid' && (
+                                                    <button
                                                         type="button"
-                                                        className="btn btn-primary admin-st-2b208132" 
+                                                        className="btn btn-primary admin-st-2b208132"
                                                         onClick={() => {
-                                                            showAlert('Payment Link Sent', `A digital payment checkout link for ₱${Number(formData.price || 0).toLocaleString()} has been routed to the client.`, 'success');
+                                                            showAlert('Payment Link Sent', `A digital payment checkout link for ₱${formData.price.toLocaleString()} has been routed to the client.`, 'success');
                                                         }}
                                                     >
                                                         <CreditCard size={20} /> Request Digital Payment
                                                     </button>
-                                                ) */}
+                                                )}
 
                                                 {selectedAppointment && (
                                                     <button className="btn btn-primary admin-st-f9f5beee" onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>
@@ -1270,11 +1170,11 @@ function AdminAppointments() {
 
                                             <div>
                                                 <label className="admin-st-739a1b05">Internal Session Notes</label>
-                                                <textarea 
-                                                    value={formData.notes} 
-                                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })} 
-                                                    className="premium-select-v2 admin-st-ef6586d6" 
-                                                    placeholder="Add detailed internal notes, placement instructions, or specific client requests..." 
+                                                <textarea
+                                                    value={formData.notes}
+                                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                                    className="premium-select-v2 admin-st-ef6586d6"
+                                                    placeholder="Add detailed internal notes, placement instructions, or specific client requests..."
                                                 />
                                             </div>
                                         </div>
@@ -1288,10 +1188,10 @@ function AdminAppointments() {
                                                     {(formData.referenceImage || selectedAppointment?.referenceImage) ? (
                                                         <div className="admin-w-full">
                                                             <label className="admin-st-e7eee706">Reference from Booking</label>
-                                                            <img 
-                                                                src={formData.referenceImage || selectedAppointment?.referenceImage} 
-                                                                alt="Reference" 
-                                                                className="admin-st-ab1ba3de" 
+                                                            <img
+                                                                src={formData.referenceImage || selectedAppointment?.referenceImage}
+                                                                alt="Reference"
+                                                                className="admin-st-ab1ba3de"
                                                             />
                                                         </div>
                                                     ) : null}
@@ -1300,10 +1200,10 @@ function AdminAppointments() {
                                                     {(formData.beforePhoto || selectedAppointment?.beforePhoto) ? (
                                                         <div style={{ width: '100%', borderTop: (formData.referenceImage || selectedAppointment?.referenceImage) ? '1px dashed #e2e8f0' : 'none', paddingTop: (formData.referenceImage || selectedAppointment?.referenceImage) ? '20px' : '0' }}>
                                                             <label className="admin-st-e7eee706">Stage Photo (Before)</label>
-                                                            <img 
-                                                                src={formData.beforePhoto || selectedAppointment?.beforePhoto} 
-                                                                alt="Before" 
-                                                                className="admin-st-ab1ba3de" 
+                                                            <img
+                                                                src={formData.beforePhoto || selectedAppointment?.beforePhoto}
+                                                                alt="Before"
+                                                                className="admin-st-ab1ba3de"
                                                             />
                                                         </div>
                                                     ) : null}
@@ -1325,21 +1225,21 @@ function AdminAppointments() {
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         {selectedAppointment && (
                                             <>
-                                                <button 
-                                                    className="btn btn-danger admin-st-ce9b8932" 
+                                                <button
+                                                    className="btn btn-danger admin-st-ce9b8932"
                                                     onClick={() => {
                                                         handleDelete(selectedAppointment.id);
                                                         closeModal();
-                                                    }} 
+                                                    }}
                                                     onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
                                                     onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
                                                 >
                                                     <X size={16} /> Delete Appointment
                                                 </button>
-                                                
-                                                <button 
+
+                                                <button
                                                     type="button"
-                                                    className="btn btn-secondary" 
+                                                    className="btn btn-secondary"
                                                     onClick={() => {
                                                         closeModal();
                                                         setTimeout(() => handleRebookNextSession(selectedAppointment), 200);
@@ -1351,7 +1251,7 @@ function AdminAppointments() {
                                             </>
                                         )}
                                     </div>
-                                    <button className="btn admin-st-a3930dd9" style={{ backgroundColor: '#10b981', color: 'white', fontWeight: 'bold' }} onClick={handleSave} >
+                                    <button className="btn btn-primary admin-st-a3930dd9" onClick={handleSave} >
                                         {selectedAppointment ? 'Update Appointment' : 'Create Appointment'}
                                     </button>
                                 </div>
@@ -1371,23 +1271,23 @@ function AdminAppointments() {
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h2>Record Payment</h2>
-                                <button className="close-btn" onClick={() => setManualPaymentModal({ ...manualPaymentModal, isOpen: false })}><X size={24}/></button>
+                                <button className="close-btn" onClick={() => setManualPaymentModal({ ...manualPaymentModal, isOpen: false })}><X size={24} /></button>
                             </div>
                             <div className="modal-body">
                                 <div className="form-group admin-mb-20">
                                     <label className="admin-st-80a8a11c">Payment Amount (₱)</label>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         className="form-input admin-st-22430afb"
-                                        value={manualPaymentModal.amount} 
-                                        onChange={(e) => setManualPaymentModal({ ...manualPaymentModal, amount: e.target.value })} 
+                                        value={manualPaymentModal.amount}
+                                        onChange={(e) => setManualPaymentModal({ ...manualPaymentModal, amount: e.target.value })}
                                     />
                                 </div>
                                 <div className="form-group">
                                     <label className="admin-st-80a8a11c">Payment Method</label>
-                                    <select 
+                                    <select
                                         className="form-input"
-                                        value={manualPaymentModal.method} 
+                                        value={manualPaymentModal.method}
                                         onChange={(e) => setManualPaymentModal({ ...manualPaymentModal, method: e.target.value })}
                                     >
                                         <option value="Cash">Cash</option>
@@ -1411,14 +1311,14 @@ function AdminAppointments() {
                         <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h2>{dayViewModal.date}</h2>
-                                <button className="close-btn" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}><X size={24}/></button>
+                                <button className="close-btn" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}><X size={24} /></button>
                             </div>
                             <div className="modal-body">
                                 <h4 className="admin-st-48229229">Appointments for this day:</h4>
                                 <div className="admin-st-b8aaf979">
                                     {dayViewModal.appointments.map(apt => (
-                                        <div 
-                                            key={apt.id} 
+                                        <div
+                                            key={apt.id}
                                             className="glass-card admin-st-9880e94d"
                                             onClick={() => {
                                                 setDayViewModal({ ...dayViewModal, isOpen: false });

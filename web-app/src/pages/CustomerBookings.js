@@ -267,11 +267,11 @@ function CustomerBookings(){
     const handleSubmitBooking = async (e) => {
         if (e) e.preventDefault();
 
-        if (!bookingData.date || !bookingData.startTime) {
-            return showAlert("Required Field", "Please select an available date and time slot from the calendar.", "warning");
+        if (!bookingData.date || (bookingData.serviceType === 'Consultation' && !bookingData.startTime)) {
+            return showAlert("Required Field", "Please select an available date" + (bookingData.serviceType === 'Consultation' ? " and time slot" : "") + " from the calendar.", "warning");
         }
-        if (!bookingData.date || !bookingData.startTime || !bookingData.serviceType || !bookingData.placement) {
-            showAlert("Missing Info", "Please select a service, placement, date, and time.", "warning");
+        if (!bookingData.date || !bookingData.serviceType || !bookingData.placement) {
+            showAlert("Missing Info", "Please select a service, placement, and date.", "warning");
             return;
         }
 
@@ -283,7 +283,8 @@ function CustomerBookings(){
                 customerId,
                 artistId: bookingData.artistId,
                 date: bookingData.date,
-                startTime: bookingData.startTime,
+                startTime: bookingData.serviceType === 'Consultation' ? bookingData.startTime : null,
+                endTime: bookingData.serviceType === 'Consultation' ? bookingData.startTime : null,
                 serviceType: bookingData.serviceType,
                 designTitle: bookingData.designTitle,
                 notes: `Placement: ${bookingData.placement}\n\nDetails: ${bookingData.notes}`,
@@ -757,39 +758,41 @@ function CustomerBookings(){
                                                     {renderCalendarDays()}
                                                 </div>
                                             </div>
-                                            <div className="time-slots">
-                                                <label className="customer-st-36716a21" >Preferred Time Slot</label>
-                                                <div className="customer-st-caa523c7" >
-                                                    {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => {
-                                                        let isDisabled = false;
-                                                        if (bookingData.date) {
-                                                            const checkDate = new Date(`${bookingData.date}T${t}:00`);
-                                                            if (checkDate <= new Date()) isDisabled = true;
-                                                            if (bookedDates[bookingData.date] && bookedDates[bookingData.date].times.includes(t)) isDisabled = true;
-                                                        } else {
-                                                            isDisabled = true; // Wait for date selection
-                                                        }
+                                            {bookingData.serviceType === 'Consultation' && (
+                                                <div className="time-slots">
+                                                    <label className="customer-st-36716a21" >Preferred Time Slot</label>
+                                                    <div className="customer-st-caa523c7" >
+                                                        {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => {
+                                                            let isDisabled = false;
+                                                            if (bookingData.date) {
+                                                                const checkDate = new Date(`${bookingData.date}T${t}:00`);
+                                                                if (checkDate <= new Date()) isDisabled = true;
+                                                                if (bookedDates[bookingData.date] && bookedDates[bookingData.date].times.includes(t)) isDisabled = true;
+                                                            } else {
+                                                                isDisabled = true; // Wait for date selection
+                                                            }
 
-                                                        return (
-                                                        <div 
-                                                            key={t}
-                                                            onClick={() => {
-                                                                if (!isDisabled) setBookingData({...bookingData, startTime: t});
-                                                            }}
-                                                            style={{
-                                                                padding: '12px', borderRadius: '8px', border: `1px solid ${bookingData.startTime === t ? '#daa520' : '#e2e8f0'}`,
-                                                                background: bookingData.startTime === t ? '#daa520' : (isDisabled ? '#f8fafc' : 'white'),
-                                                                color: bookingData.startTime === t ? 'white' : (isDisabled ? '#cbd5e1' : '#1e293b'),
-                                                                textAlign: 'center', cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.9rem',
-                                                                opacity: isDisabled ? 0.6 : 1
-                                                            }}
-                                                        >
-                                                            {parseInt(t) > 12 ? (parseInt(t)-12) + ':00 PM' : t + ':00 PM'}
-                                                        </div>
-                                                        );
-                                                    })}
+                                                            return (
+                                                            <div 
+                                                                key={t}
+                                                                onClick={() => {
+                                                                    if (!isDisabled) setBookingData({...bookingData, startTime: t});
+                                                                }}
+                                                                style={{
+                                                                    padding: '12px', borderRadius: '8px', border: `1px solid ${bookingData.startTime === t ? '#daa520' : '#e2e8f0'}`,
+                                                                    background: bookingData.startTime === t ? '#daa520' : (isDisabled ? '#f8fafc' : 'white'),
+                                                                    color: bookingData.startTime === t ? 'white' : (isDisabled ? '#cbd5e1' : '#1e293b'),
+                                                                    textAlign: 'center', cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.9rem',
+                                                                    opacity: isDisabled ? 0.6 : 1
+                                                                }}
+                                                            >
+                                                                {parseInt(t) > 12 ? (parseInt(t)-12) + ':00 PM' : t + ':00 PM'}
+                                                            </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
                                         </div>
                                         
                                         {bookingData.date && bookingData.startTime && (
