@@ -274,7 +274,7 @@ function AdminAppointments() {
             const target = appointments.find(a => a.id.toString() === appointmentId);
             if (target) {
                 handleEdit(target);
-                window.history.replaceState({}, '', '/admin/appointments');
+                navigate('/admin/appointments', { replace: true });
             }
         }
     }, [location.search, appointments]);
@@ -1370,7 +1370,7 @@ function AdminAppointments() {
                                                 <div className="admin-st-351e3911">{apt.start_time}</div>
                                                 <div>
                                                     <div className="admin-st-6ad161f7">{apt.clientName}</div>
-                                                    <div className="admin-st-3bf8f64b">{apt.service_type || 'Tattoo Session'}</div>
+                                                    <div className="admin-st-3bf8f64b">{apt.serviceType || 'Tattoo Session'}</div>
                                                 </div>
                                             </div>
                                             <div className="admin-st-7851dbc0">

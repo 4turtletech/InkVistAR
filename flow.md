@@ -4,7 +4,7 @@ This document outlines the optimized workflow for InkVistAR, refining the proces
 
 ## Phase 1: Inbound & Artist Matching
 1.  **Customer**: Visits Landing Page -> Uses **Booking Wizard** to submit a "Session Request" (Consultation).
-2.  **Admin Portal**: Receives "Pending" request. Admin reviews the vision and **assigns the best-suited Artist** (Step moved up for better accuracy).
+2.  **Admin Portal**: Receives "Pending" request. Admin reviews the vision and
 3.  **Artist Portal**: Artist receives notification. Reviews design idea and confirms availability.
 4.  **Admin Portal**: Admin/Manager determines the **Price/Timeline** for the procedure and sends the "Payment Requirement" notification to the Customer.
 
