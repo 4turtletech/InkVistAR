@@ -1209,6 +1209,7 @@ app.post('/api/login', async (req, res) => {
       if (req.body.orphanAppointmentId) {
         db.query('UPDATE appointments SET customer_id = ? WHERE id = ?', [user.id, req.body.orphanAppointmentId], (updateErr) => {
           if (updateErr) console.error('Error claiming orphan appointment:', updateErr);
+          else createNotification(1, 'Booking Claimed', `${user.name} logged in and claimed their pending booking request.`, 'appointment_request', req.body.orphanAppointmentId);
         });
       }
 
@@ -1642,6 +1643,7 @@ app.post('/api/register', async (req, res) => {
           if (orphanAppointmentId) {
             db.query('UPDATE appointments SET customer_id = ? WHERE id = ?', [userId, orphanAppointmentId], (updateErr) => {
               if (updateErr) console.error('Error claiming orphan appointment during registration:', updateErr);
+              else createNotification(1, 'Booking Claimed', `New user ${fullName} registered and claimed their pending booking request.`, 'appointment_request', orphanAppointmentId);
             });
           }
 
@@ -2610,7 +2612,7 @@ app.get('/api/admin/appointments', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', (req, res) => {
-  const { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage } = req.body;
+  const { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard } = req.body;
 
   if (!customerId || !artistId || !date) {
     return res.status(400).json({ success: false, message: 'customerId, artistId, and date are required.' });
@@ -2647,6 +2649,12 @@ app.post('/api/admin/appointments', (req, res) => {
         return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
       }
       createNotification(customerId, 'Appointment Scheduled', `Your appointment has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
+      
+      // If securely routed from the public frontend wizard, alert the Admin
+      if (isFromWizard) {
+        createNotification(1, 'New Booking Request', `A new consultation request was submitted from the booking wizard. Pending review.`, 'appointment_request', result.insertId);
+      }
+      
       res.json({ success: true, message: 'Appointment created successfully', id: result.insertId });
     });
   });

@@ -166,7 +166,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nPlacement: ${formData.placement}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || formData.name}\nEmail: ${currentUser?.email || formData.email}\nPhone: ${formData.phoneCode || '+63'}${formData.phone}`,
                 referenceImage: formData.referenceImage,
                 status: 'pending',
-                price: 0 // Free consultation
+                price: 0, // Free consultation
+                isFromWizard: true
             });
 
             if (response.data.success) {
