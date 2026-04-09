@@ -2799,7 +2799,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
 
           // 3. Independent Price Update
           if (price !== undefined && price > 0 && price !== oldAppt.price && !notificationsSent) {
-            createNotification(currentData.customer_id, 'Session Fee Update', `The total price for your session #${id} has been set to ₱${parseFloat(price).toLocaleString()}. Please review your balance.`, 'system', id);
+            createNotification(currentData.customer_id, 'Session Fee Update', `The total price for your session #${id} has been set to ₱${parseFloat(price).toLocaleString()}. Please pay the required reservation fee/down payment to successfully secure your booking.`, 'system', id);
             notificationsSent = true;
           }
 
