@@ -628,7 +628,7 @@ function CustomerBookings(){
                             </div>
                         </div>
                         
-                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '55vh', minHeight: '450px', overflow: 'hidden' }}>
                             <div className="modal-body customer-st-4a472601" >
                                 
                                 {bookingStep === 1 && (
@@ -664,40 +664,46 @@ function CustomerBookings(){
                                 {bookingStep === 2 && (
                                     <div className="fade-in">
                                         <h3 className="customer-st-69ffca42" >2. Design Details</h3>
-                                        <div className="form-group">
-                                            <label className="customer-st-67198c20" >Tattoo Idea / Title</label>
-                                            <input 
-                                                type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
-                                                value={bookingData.designTitle} onChange={e => setBookingData({...bookingData, designTitle: e.target.value})}
-                                                minLength={3} maxLength={100}
-                                            />
-                                        </div>
-                                        <div className="form-group customer-st-5d155c93" >
-                                            <label className="customer-st-67198c20" >Tell us your story (Optional)</label>
-                                            <textarea 
-                                                className="form-input" rows="4" placeholder="Describe the size, color preferences, and any meaningful details..."
-                                                value={bookingData.notes} onChange={e => setBookingData({...bookingData, notes: e.target.value})}
-                                            />
-                                        </div>
-                                        <div className="form-group customer-st-5d155c93" >
-                                            <label className="customer-st-67198c20" >Reference Image</label>
-                                            <div 
-                                                onClick={() => document.getElementById('modal-ref-img').click()}
-                                                style={{ 
-                                                    height: '120px', border: '2px dashed #e2e8f0', borderRadius: '12px', 
-                                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-                                                    cursor: 'pointer', background: bookingData.referenceImage ? '#f8fafc' : 'transparent', overflow: 'hidden'
-                                                }}
-                                            >
-                                                {bookingData.referenceImage ? (
-                                                    <img className="customer-st-2fbefd4f" src={bookingData.referenceImage} alt="Ref" />
-                                                ) : (
-                                                    <>
-                                                        <ImageIcon size={24} color="#94a3b8" />
-                                                        <span className="customer-st-4b235664" >Upload a photo or sketch</span>
-                                                    </>
-                                                )}
-                                                <input type="file" id="modal-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                                    <label className="customer-st-67198c20" >Tattoo Idea / Title</label>
+                                                    <input 
+                                                        type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
+                                                        value={bookingData.designTitle} onChange={e => setBookingData({...bookingData, designTitle: e.target.value})}
+                                                        minLength={3} maxLength={100}
+                                                    />
+                                                </div>
+                                                <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0 }}>
+                                                    <label className="customer-st-67198c20" >Tell us your story (Optional)</label>
+                                                    <textarea 
+                                                        className="form-input" rows="5" placeholder="Describe the size, color preferences, and any meaningful details..."
+                                                        value={bookingData.notes} onChange={e => setBookingData({...bookingData, notes: e.target.value})}
+                                                        style={{ resize: 'none' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column' }}>
+                                                <label className="customer-st-67198c20" >Reference Image</label>
+                                                <div 
+                                                    onClick={() => document.getElementById('modal-ref-img').click()}
+                                                    style={{ 
+                                                        flex: 1, border: '2px dashed #e2e8f0', borderRadius: '12px', 
+                                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+                                                        cursor: 'pointer', background: bookingData.referenceImage ? '#f8fafc' : 'transparent', overflow: 'hidden',
+                                                        minHeight: '180px'
+                                                    }}
+                                                >
+                                                    {bookingData.referenceImage ? (
+                                                        <img className="customer-st-2fbefd4f" src={bookingData.referenceImage} alt="Ref" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                    ) : (
+                                                        <>
+                                                            <ImageIcon size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
+                                                            <span className="customer-st-4b235664" style={{ fontSize: '0.85rem', textAlign: 'center', padding: '0 10px' }} >Upload a photo or sketch</span>
+                                                        </>
+                                                    )}
+                                                    <input type="file" id="modal-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

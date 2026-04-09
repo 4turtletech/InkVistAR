@@ -287,59 +287,65 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             </h3>
             <p style={{color: '#64748b', marginBottom: '32px'}}>Tell us roughly what you're looking for so we can match you with the right artist. All fields are required.</p>
 
-            <div className="form-group" style={{marginBottom: '24px', position: 'relative'}}>
-                <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Tattoo Idea / Style *</label>
-                <input
-                    type="text"
-                    className={`form-input ${errors.designTitle ? 'error' : ''}`}
-                    placeholder="e.g. Fine-line Floral, Traditional Blackwork, Realistic Portrait"
-                    value={formData.designTitle}
-                    onChange={(e) => handleInputChange('designTitle', e.target.value)}
-                    minLength={5}
-                    maxLength={150}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                    {errors.designTitle ? (
-                        <small style={{color: '#ef4444', fontSize: '0.8rem'}}>{errors.designTitle}</small>
-                    ) : <span />}
-                    <small style={{color: '#94a3b8', fontSize: '0.8rem'}}>{formData.designTitle.length}/150</small>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div className="form-group" style={{ marginBottom: 0, position: 'relative' }}>
+                        <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Tattoo Idea / Style *</label>
+                        <input
+                            type="text"
+                            className={`form-input ${errors.designTitle ? 'error' : ''}`}
+                            placeholder="e.g. Fine-line Floral, Traditional Blackwork, Realistic Portrait"
+                            value={formData.designTitle}
+                            onChange={(e) => handleInputChange('designTitle', e.target.value)}
+                            minLength={5}
+                            maxLength={150}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                            {errors.designTitle ? (
+                                <small style={{color: '#ef4444', fontSize: '0.8rem'}}>{errors.designTitle}</small>
+                            ) : <span />}
+                            <small style={{color: '#94a3b8', fontSize: '0.8rem'}}>{formData.designTitle.length}/150</small>
+                        </div>
+                    </div>
+                    
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Additional Details (Placement, Size, etc.)</label>
+                        <textarea
+                            rows="5"
+                            className="form-input"
+                            placeholder="Where on your body? How large? Any specific details or meaning?"
+                            value={formData.notes}
+                            onChange={(e) => handleInputChange('notes', e.target.value)}
+                            maxLength={500}
+                            style={{ resize: 'none' }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                            <small style={{color: '#94a3b8', fontSize: '0.8rem'}}>{formData.notes.length}/500</small>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            
-            <div className="form-group" style={{marginBottom: '24px'}}>
-                <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Reference Image (Optional)</label>
-                <div 
-                    onClick={() => document.getElementById('wizard-ref-img').click()}
-                    style={{ 
-                        height: '140px', border: '2px dashed #e2e8f0', borderRadius: '12px', 
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-                        cursor: 'pointer', background: formData.referenceImage ? '#f8fafc' : 'transparent', overflow: 'hidden'
-                    }}
-                >
-                    {formData.referenceImage ? (
-                        <img src={formData.referenceImage} alt="Ref" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    ) : (
-                        <>
-                            <ImageIcon size={32} color="#94a3b8" />
-                            <span style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '10px' }}>Upload inspiration or sketches</span>
-                        </>
-                    )}
-                    <input type="file" id="wizard-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
-                </div>
-            </div>
 
-            <div className="form-group">
-                <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Additional Details (Placement, Size, etc.)</label>
-                <textarea
-                    rows="5"
-                    className="form-input"
-                    placeholder="Where on your body? How large? Any specific details or meaning?"
-                    value={formData.notes}
-                    onChange={(e) => handleInputChange('notes', e.target.value)}
-                    maxLength={500}
-                />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                    <small style={{color: '#94a3b8', fontSize: '0.8rem'}}>{formData.notes.length}/500</small>
+                <div className="form-group" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column' }}>
+                    <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Reference Image (Optional)</label>
+                    <div 
+                        onClick={() => document.getElementById('wizard-ref-img').click()}
+                        style={{ 
+                            flex: 1, border: '2px dashed #e2e8f0', borderRadius: '12px', 
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+                            cursor: 'pointer', background: formData.referenceImage ? '#f8fafc' : 'transparent', overflow: 'hidden',
+                            minHeight: '180px'
+                        }}
+                    >
+                        {formData.referenceImage ? (
+                            <img src={formData.referenceImage} alt="Ref" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        ) : (
+                            <>
+                                <ImageIcon size={32} color="#94a3b8" />
+                                <span style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '10px' }}>Upload inspiration or sketches</span>
+                            </>
+                        )}
+                        <input type="file" id="wizard-ref-img" hidden accept="image/*" onChange={handleImageUpload} />
+                    </div>
                 </div>
             </div>
         </div>
@@ -708,7 +714,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 </div>
             </div>
 
-            <div style={{minHeight: '400px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px'}}>
+            <div style={{height: '55vh', minHeight: '450px', overflowY: 'auto', paddingRight: '10px'}}>
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStepPlacement()} {/* Step 2: Placement */}
                 {step === 3 && renderStepScheduling()} {/* Step 3: Scheduling */}
