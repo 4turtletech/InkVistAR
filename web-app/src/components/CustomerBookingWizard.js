@@ -170,7 +170,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 referenceImage: formData.referenceImage,
                 status: 'pending',
                 price: 0, // Free consultation
-                isFromWizard: true
+                isFromWizard: true,
+                customerName: currentUser?.name || generatedName
             });
 
             if (response.data.success) {

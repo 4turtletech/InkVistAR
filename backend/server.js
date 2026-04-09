@@ -2612,7 +2612,7 @@ app.get('/api/admin/appointments', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', (req, res) => {
-  const { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard } = req.body;
+  const { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName } = req.body;
 
   if (!customerId || !artistId || !date) {
     return res.status(400).json({ success: false, message: 'customerId, artistId, and date are required.' });
@@ -2652,7 +2652,8 @@ app.post('/api/admin/appointments', (req, res) => {
       
       // If securely routed from the public frontend wizard, alert the Admin
       if (isFromWizard) {
-        createNotification(1, 'New Booking Request', `A new consultation request was submitted from the booking wizard. Pending review.`, 'appointment_request', result.insertId);
+        const clientNameStr = customerName || 'a guest';
+        createNotification(1, 'New Booking Request', `${serviceType || 'Consultation'} requested by ${clientNameStr} ("${designTitle}"). Pending review.`, 'appointment_request', result.insertId);
       }
       
       res.json({ success: true, message: 'Appointment created successfully', id: result.insertId });
