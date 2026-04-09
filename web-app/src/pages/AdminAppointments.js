@@ -365,8 +365,9 @@ function AdminAppointments() {
         const isConsultation = formData.serviceType === 'Consultation';
         const isArtistRequired = !isConsultation;
 
-        if (!formData.clientId || (isArtistRequired && !formData.artistId) || !formData.date || !formData.time) {
-            showConfirm(`Please fill in all required fields (Client, ${isArtistRequired ? 'Artist, ' : ''}Date, Time).`, null);
+        // Re-aligned time validation to only map to explicit Consultations per the new Day-Lock studio capacity strategy
+        if (!formData.clientId || (isArtistRequired && !formData.artistId) || !formData.date || (isConsultation && !formData.time)) {
+            showConfirm(`Please fill in all required fields (Client, ${isArtistRequired ? 'Artist, ' : ''}Date${isConsultation ? ', Time' : ''}).`, null);
             return;
         }
 
@@ -375,7 +376,8 @@ function AdminAppointments() {
         const finalPrice = (!priceValue || priceValue < 0) ? 0 : priceValue;
 
         if (formData.status === 'confirmed' && !isConsultation && finalPrice <= 0) {
-            showAlert('Price Required', 'A price must be assigned for tattoo or piercing sessions before they can be confirmed.', 'warning');
+            setModalTab('pricing');
+            showAlert('Pricing Required', 'Please set the finalized Service Price in the Pricing tab before confirming this physical session.', 'warning');
             return;
         }
 
@@ -1061,10 +1063,12 @@ function AdminAppointments() {
                                                             <label className="admin-st-b8618eb2">Date *</label>
                                                             <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="premium-input-v2" />
                                                         </div>
-                                                        <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Time *</label>
-                                                            <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-input-v2" />
-                                                        </div>
+                                                        {formData.serviceType === 'Consultation' && (
+                                                            <div className="premium-input-group">
+                                                                <label className="admin-st-b8618eb2">Time *</label>
+                                                                <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-input-v2" />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="premium-input-group">
                                                         <label className="admin-st-b8618eb2">Booking Status</label>
