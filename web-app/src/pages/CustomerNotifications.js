@@ -13,7 +13,11 @@ import {
     RotateCcw,
     Mail,
     Trash2,
-    CalendarPlus
+    CalendarPlus,
+    Droplets,
+    Sun,
+    Activity,
+    ShieldAlert
 } from 'lucide-react';
 import CustomerSideNav from '../components/CustomerSideNav';
 import Pagination from '../components/Pagination';
@@ -332,48 +336,80 @@ function CustomerNotifications() {
             )}
             {/* Aftercare Modal */}
             {isAftercareModalOpen && (
-                <div className="modal-overlay" onClick={() => setIsAftercareModalOpen(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ background: 'rgba(6, 182, 212, 0.1)', padding: '10px', borderRadius: '12px' }}>
-                                    <Info size={24} color="#06b6d4" />
+                <div className="modal-overlay" onClick={() => setIsAftercareModalOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ background: '#1e293b', border: '1px solid rgba(193, 154, 107, 0.3)', maxWidth: '650px', width: '100%', maxHeight: '85vh', overflowY: 'auto', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', padding: '0' }}>
+                        
+                        {/* Header */}
+                        <div style={{ padding: '24px 30px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#1e293b', zIndex: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <div style={{ background: 'linear-gradient(135deg, rgba(193, 154, 107, 0.2), rgba(193, 154, 107, 0.05))', padding: '12px', borderRadius: '12px', border: '1px solid rgba(193, 154, 107, 0.2)' }}>
+                                    <Info size={24} color="#C19A6B" />
                                 </div>
-                                <h3 style={{ margin: 0, fontFamily: 'Playfair Display, serif', color: '#ffffff' }}>Tattoo Aftercare Guide</h3>
+                                <div>
+                                    <h3 style={{ margin: 0, fontFamily: 'Playfair Display, serif', color: '#ffffff', fontSize: '1.5rem', fontWeight: 700 }}>Tattoo Aftercare Guide</h3>
+                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Follow these steps for a perfect heal</span>
+                                </div>
                             </div>
-                            <button className="close-btn" onClick={() => setIsAftercareModalOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                            <button className="close-btn" onClick={() => setIsAftercareModalOpen(false)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: '8px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background='rgba(255,255,255,0.1)'} onMouseOut={(e) => e.currentTarget.style.background='rgba(255,255,255,0.05)'}>
                                 <XCircle size={24} />
                             </button>
                         </div>
-                        <div style={{ color: '#cbd5e1', lineHeight: '1.6', fontSize: '0.95rem' }}>
-                            <h4 style={{ color: '#fff', marginTop: '15px' }}>Day 1-3: The Initial Healing</h4>
-                            <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
-                                <li><strong>Keep it covered:</strong> Leave the initial bandage/wrap on for 2-4 hours.</li>
-                                <li><strong>First wash:</strong> Gently wash with unscented anti-bacterial soap and warm water. DO NOT scrub.</li>
-                                <li><strong>Pat dry:</strong> Use a clean paper towel. Never rub, and never use a regular cloth towel.</li>
-                                <li><strong>Moisturize sparingly:</strong> Apply a very thin layer of tattoo-specific ointment or Aquaphor.</li>
-                            </ul>
 
-                            <h4 style={{ color: '#fff', marginTop: '20px' }}>Day 4-14: Peeling & Flaking</h4>
-                            <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
-                                <li><strong>Switch to lotion:</strong> Stop ointment and switch to a fragrance-free lotion.</li>
-                                <li><strong>DO NOT PICK OR SCRATCH:</strong> Flaking is normal. Picking will pull out ink and cause scarring.</li>
-                                <li><strong>Keep it clean:</strong> Wash 1-2 times daily.</li>
-                            </ul>
+                        {/* Content */}
+                        <div style={{ padding: '30px', color: '#cbd5e1', lineHeight: '1.6', fontSize: '0.95rem' }}>
+                            <div style={{ display: 'grid', gap: '25px' }}>
+                                
+                                {/* Phase 1 */}
+                                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '20px' }}>
+                                    <h4 style={{ color: '#C19A6B', marginTop: 0, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
+                                        <Droplets size={18} /> Day 1-3: The Initial Healing
+                                    </h4>
+                                    <ul style={{ paddingLeft: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <li><strong style={{ color: '#fff' }}>Keep it covered:</strong> Leave the initial bandage/wrap on for 2-4 hours.</li>
+                                        <li><strong style={{ color: '#fff' }}>First wash:</strong> Gently wash with unscented anti-bacterial soap and warm water. DO NOT scrub.</li>
+                                        <li><strong style={{ color: '#fff' }}>Pat dry:</strong> Use a clean paper towel. Never rub, and never use a regular cloth towel.</li>
+                                        <li><strong style={{ color: '#fff' }}>Moisturize sparingly:</strong> Apply a very thin layer of tattoo-specific ointment or Aquaphor.</li>
+                                    </ul>
+                                </div>
 
-                            <h4 style={{ color: '#fff', marginTop: '20px' }}>What to Avoid for 2-3 Weeks</h4>
-                            <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
-                                <li><strong>No swimming:</strong> Avoid pools, hot tubs, oceans, and baths (showering is fine).</li>
-                                <li><strong>No direct sunlight:</strong> Keep the tattoo covered or shaded.</li>
-                                <li><strong>No heavy sweating:</strong> Avoid intense workouts or saunas for the first 48 hours.</li>
-                            </ul>
+                                {/* Phase 2 */}
+                                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '20px' }}>
+                                    <h4 style={{ color: '#C19A6B', marginTop: 0, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
+                                        <Activity size={18} /> Day 4-14: Peeling & Flaking
+                                    </h4>
+                                    <ul style={{ paddingLeft: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <li><strong style={{ color: '#fff' }}>Switch to lotion:</strong> Stop ointment and switch to a fragrance-free lotion.</li>
+                                        <li><strong style={{ color: '#fff' }}>DO NOT PICK OR SCRATCH:</strong> Flaking is normal. Picking will pull out ink and cause scarring.</li>
+                                        <li><strong style={{ color: '#fff' }}>Keep it clean:</strong> Wash 1-2 times daily.</li>
+                                    </ul>
+                                </div>
 
-                            <p style={{ marginTop: '20px', fontStyle: 'italic', color: '#94a3b8' }}>
-                                If you experience severe redness, swelling, or signs of infection, please contact the studio immediately or seek medical advice.
-                            </p>
+                                {/* Warnings */}
+                                <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '12px', padding: '20px' }}>
+                                    <h4 style={{ color: '#f59e0b', marginTop: 0, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
+                                        <Sun size={18} /> What to Avoid for 2-3 Weeks
+                                    </h4>
+                                    <ul style={{ paddingLeft: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <li><strong style={{ color: '#fff' }}>No swimming:</strong> Avoid pools, hot tubs, oceans, and baths (showering is fine).</li>
+                                        <li><strong style={{ color: '#fff' }}>No direct sunlight:</strong> Keep the tattoo covered or shaded.</li>
+                                        <li><strong style={{ color: '#fff' }}>No heavy sweating:</strong> Avoid intense workouts or saunas for the first 48 hours.</li>
+                                    </ul>
+                                </div>
+
+                            </div>
+
+                            {/* Footer Warning */}
+                            <div style={{ marginTop: '25px', padding: '15px', background: 'rgba(239, 68, 68, 0.05)', borderLeft: '4px solid #ef4444', borderRadius: '4px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                <ShieldAlert size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                <p style={{ margin: 0, fontStyle: 'italic', color: '#cbd5e1', fontSize: '0.9rem' }}>
+                                    If you experience severe redness, swelling, or signs of infection, please contact the studio immediately or seek medical advice.
+                                </p>
+                            </div>
                         </div>
-                        <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button className="premium-btn primary" onClick={() => setIsAftercareModalOpen(false)} style={{ background: '#daa520', color: '#000', border: 'none', padding: '10px 24px', borderRadius: '24px', fontWeight: 'bold', cursor: 'pointer' }}>
+
+                        {/* Footer Actions */}
+                        <div style={{ padding: '20px 30px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'flex-end', background: '#1e293b', position: 'sticky', bottom: 0, zIndex: 10 }}>
+                            <button onClick={() => setIsAftercareModalOpen(false)} style={{ background: 'linear-gradient(135deg, #C19A6B 0%, #A07855 100%)', color: '#ffffff', border: 'none', padding: '12px 30px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 4px 12px rgba(193, 154, 107, 0.3)', fontSize: '0.95rem' }} onMouseOver={(e) => e.currentTarget.style.transform='translateY(-2px)'} onMouseOut={(e) => e.currentTarget.style.transform='translateY(0)'}>
                                 I Understand
                             </button>
                         </div>
