@@ -54,7 +54,7 @@ function AdminReviews() {
                 </header>
 
                 <div className="admin-content">
-                    <div className="settings-tabs admin-mb-20">
+                    <div className="settings-tabs" style={{ marginBottom: '20px' }}>
                         <button className={`tab-button ${activeTab === 'pending' ? 'active' : ''}`} onClick={() => setActiveTab('pending')}>Pending ({reviews.filter(r=>r.status==='pending').length})</button>
                         <button className={`tab-button ${activeTab === 'approved' ? 'active' : ''}`} onClick={() => setActiveTab('approved')}>Approved</button>
                         <button className={`tab-button ${activeTab === 'rejected' ? 'active' : ''}`} onClick={() => setActiveTab('rejected')}>Rejected</button>
@@ -70,7 +70,7 @@ function AdminReviews() {
                                                 <th>Client</th>
                                                 <th>Artist</th>
                                                 <th>Rating</th>
-                                                <th>Comment</th>
+                                                <th style={{width: '35%'}}>Comment</th>
                                                 <th>Date</th>
                                                 {activeTab === 'pending' && <th>Actions</th>}
                                                 {activeTab === 'approved' && <th>Showcase</th>}
@@ -79,33 +79,35 @@ function AdminReviews() {
                                         <tbody>
                                             {filteredReviews.map(r => (
                                                 <tr key={r.id}>
-                                                    <td className="admin-fw-600">{r.customer_name}</td>
+                                                    <td style={{fontWeight: 600}}>{r.customer_name}</td>
                                                     <td>{r.artist_name}</td>
                                                     <td>
-                                                        <div className="admin-flex-center admin-gap-5">
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                                             {r.rating} <Star size={14} color="#f59e0b" fill="#f59e0b" />
                                                         </div>
                                                     </td>
-                                                    <td className="admin-max-w-md admin-text-sm admin-st-c41d69db">{r.comment || <span className="admin-color-slate-400 admin-st-28d1f7b9">No comment</span>}</td>
+                                                    <td style={{ maxWidth: '300px', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                                                        {r.comment || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No comment</span>}
+                                                    </td>
                                                     <td>{new Date(r.created_at).toLocaleDateString()}</td>
                                                     {activeTab === 'pending' && (
                                                         <td>
-                                                            <div className="admin-flex-center admin-gap-5">
-                                                                <button onClick={() => handleModeration(r.id, 'approved')} className="action-btn admin-bg-emerald-50 admin-color-emerald admin-border-none admin-p-5 admin-rounded-md" title="Approve"><CheckCircle size={16} /></button>
-                                                                <button onClick={() => handleModeration(r.id, 'rejected')} className="action-btn admin-color-red admin-border-none admin-p-5 admin-rounded-md admin-st-72931cd2" title="Reject"><XCircle size={16} /></button>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <button onClick={() => handleModeration(r.id, 'approved')} className="action-btn" style={{ background: '#ecfdf5', color: '#10b981', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }} title="Approve"><CheckCircle size={18} /></button>
+                                                                <button onClick={() => handleModeration(r.id, 'rejected')} className="action-btn" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }} title="Reject"><XCircle size={18} /></button>
                                                             </div>
                                                         </td>
                                                     )}
                                                     {activeTab === 'approved' && (
                                                         <td>
-                                                            <label className="admin-flex-center admin-cursor-pointer admin-gap-10">
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                                                                 <input 
                                                                     type="checkbox" 
                                                                     checked={r.is_showcased === 1 || r.is_showcased === true} 
                                                                     onChange={(e) => handleModeration(r.id, 'approved', e.target.checked)}
-                                                                    className="admin-cursor-pointer admin-st-95e08695"
+                                                                    style={{ cursor: 'pointer', accentColor: '#3b82f6', width: '16px', height: '16px' }}
                                                                 />
-                                                                <span className="admin-text-sm admin-color-slate-500">Show on Info Page</span>
+                                                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Show on Info Page</span>
                                                             </label>
                                                         </td>
                                                     )}

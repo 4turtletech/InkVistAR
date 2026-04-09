@@ -5363,24 +5363,7 @@ function startAppointmentReminders() {
   }, 1000 * 60);
 }
 
-// ========== 404 HANDLER ==========
-app.use((req, res) => {
-  console.log(`❌ 404: ${req.method} ${req.url} not found`);
-  res.status(404).json({
-    success: false,
-    message: 'Endpoint not found'
-  });
-});
 
-// ========== ERROR HANDLER ==========
-app.use((err, req, res, next) => {
-  console.error('🔥 Unhandled error:', err);
-  res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-    error: err.message
-  });
-});
 
 // ========== REVIEWS ENDPOINTS ==========
 
@@ -5516,6 +5499,25 @@ app.put('/api/admin/reviews/:id', (req, res) => {
     }
 
     res.json({ success: true, message: 'Review status updated' });
+  });
+});
+
+// ========== 404 HANDLER ==========
+app.use((req, res) => {
+  console.log(`❌ 404: ${req.method} ${req.url} not found`);
+  res.status(404).json({
+    success: false,
+    message: 'Endpoint not found'
+  });
+});
+
+// ========== ERROR HANDLER ==========
+app.use((err, req, res, next) => {
+  console.error('🔥 Unhandled error:', err);
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error: err.message
   });
 });
 
