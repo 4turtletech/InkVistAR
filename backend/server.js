@@ -2212,6 +2212,32 @@ app.get('/api/artist/:artistId/availability', (req, res) => {
   });
 });
 
+// Get global studio concurrency availability (Whole-Day Limit)
+app.get('/api/public/calendar-availability', (req, res) => {
+  const artistQuery = `SELECT COUNT(id) as totalArtists FROM users WHERE user_type = 'artist' AND is_active = 1 AND is_deleted = 0`;
+  
+  db.query(artistQuery, (artistErr, artistRes) => {
+    if (artistErr) return res.status(500).json({ success: false, message: 'DB Error fetching artists' });
+    
+    // Ensure capacity is at least 1 (representing the generic "Studio Pool") if no physical artists exist yet
+    const totalArtists = Math.max(1, artistRes[0].totalArtists);
+    
+    // Fetch all non-cancelled appointments globally
+    const bookingQuery = `
+      SELECT appointment_date, start_time, status
+      FROM appointments
+      WHERE status NOT IN ('cancelled', 'rejected')
+      AND is_deleted = 0
+      AND appointment_date >= CURDATE()
+    `;
+    
+    db.query(bookingQuery, (bookingErr, bookingRes) => {
+      if (bookingErr) return res.status(500).json({ success: false, message: 'DB Error fetching bookings' });
+      res.json({ success: true, totalArtists, bookings: bookingRes });
+    });
+  });
+});
+
 // Customer book appointment
 app.post('/api/customer/appointments', (req, res) => {
   console.log('📅 Customer booking request:', req.body);
@@ -2270,13 +2296,22 @@ app.post('/api/customer/appointments', (req, res) => {
 
     // Double Booking Check (only if they picked a time)
     if (finalStartTime) {
-      const checkQuery = `
+      let checkQuery = `
       SELECT id FROM appointments 
       WHERE appointment_date = ? AND start_time = ? AND status != 'cancelled' AND is_deleted = 0
-      AND (artist_id = ? OR customer_id = ?)
-    `;
+      AND (`;
+      
+      let queryParams = [date, finalStartTime];
+      
+      if (artistId) { // Only check artist collision if they specifically requested an artist
+        checkQuery += ` artist_id = ? OR `;
+        queryParams.push(artistId);
+      }
+      
+      checkQuery += ` customer_id = ? ) `;
+      queryParams.push(customerId);
 
-      db.query(checkQuery, [date, finalStartTime, currentArtistId, customerId], (checkErr, checkResults) => {
+      db.query(checkQuery, queryParams, (checkErr, checkResults) => {
         if (checkErr) {
           console.error('❌ Error checking double booking:', checkErr);
           return res.status(500).json({ success: false, message: 'Database error' });

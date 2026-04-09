@@ -30,6 +30,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [bookedDates, setBookedDates] = useState({});
+    const [studioCapacity, setStudioCapacity] = useState(1);
 
     const [authView, setAuthView] = useState('register'); // 'login' or 'register'
     useEffect(() => {
@@ -76,8 +77,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     ];
 
     useEffect(() => {
-        // Fetch global availability for the studio (Artist 1 / Admin)
-        fetchAvailability(1);
+        // Fetch global capacity availability for the entire studio
+        fetchAvailability();
         
         // Handle incoming data from Gallery/Artists
         if (location.state && location.state.designTitle) {
@@ -88,10 +89,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         }
     }, [location.state]);
 
-    const fetchAvailability = async (artistId) => {
+    const fetchAvailability = async () => {
         try {
-            const response = await Axios.get(`${API_URL}/api/artist/${artistId}/availability`);
+            const response = await Axios.get(`${API_URL}/api/public/calendar-availability`);
             if (response.data.success) {
+                setStudioCapacity(response.data.totalArtists || 1);
                 const bookings = {};
                 response.data.bookings.forEach(b => {
                     const dateStr = typeof b.appointment_date === 'string' 
@@ -216,8 +218,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             const isTooFar = checkDate > maxDate;
             
             const dateData = bookedDates[dateStr] || { count: 0, times: [] };
-            const isFull = dateData.count >= 7; // Up to 7 time blocks maximum
-            const isBusy = dateData.count >= 4;
+            const isFull = dateData.count >= studioCapacity; 
+            const isBusy = dateData.count >= Math.max(1, studioCapacity - 1);
 
             let statusColor = '#10b981'; 
             if (isFull) statusColor = '#ef4444';

@@ -432,6 +432,28 @@ function AdminAppointments() {
             }
         };
 
+        // Day-Lock Collision Detection
+        const parsedArtistId = parseInt(formData.artistId);
+        if (!isConsultation && parsedArtistId && parsedArtistId !== 1 && formData.date &&
+            formData.status !== 'cancelled' && formData.status !== 'rejected') {
+            
+            const hasConflict = appointments.some(a => 
+                a.artistId === parsedArtistId && 
+                a.date === formData.date && 
+                a.id !== selectedAppointment?.id &&
+                a.status !== 'cancelled' && a.status !== 'rejected' &&
+                a.serviceType !== 'Consultation' // Only physical tattoos/piercings trigger the day-lock
+            );
+
+            if (hasConflict) {
+                showConfirm(
+                    `Artist Capacity Warning!\n\nThis artist already has a locked physical session scheduled on ${formData.date}.\n\nAre you bypassing this limit to force an emergency Walk-In/Extra assignment?`,
+                    doSave
+                );
+                return; 
+            }
+        }
+
         showConfirm(
             selectedAppointment ? 'Save changes to this appointment?' : 'Create this new appointment?',
             doSave
@@ -466,8 +488,28 @@ function AdminAppointments() {
         }
     };
 
-    const handleMultiSession = () => {
-        setFormData({ ...formData, notes: formData.notes + '\n[Multi-Session: Session 1 of X]' });
+    const handleCloneSequence = () => {
+        const freshState = {
+            clientId: formData.clientId,
+            artistId: formData.artistId,
+            secondaryArtistId: formData.secondaryArtistId,
+            serviceType: formData.serviceType,
+            designTitle: formData.designTitle,
+            commissionSplit: formData.commissionSplit,
+            price: formData.price,
+            date: '', 
+            time: '',
+            status: 'pending',
+            paymentStatus: 'pending',
+            notes: '[Next Session] ' + (formData.notes || ''),
+            beforePhoto: null,
+            manualPaidAmount: 0,
+            manualPaymentMethod: 'Cash'
+        };
+        
+        setSelectedAppointment(null);
+        setFormData(freshState);
+        showAlert('Project Cloned', 'Ready to schedule the next physical session! Please select the new Date & Time and click Save to confirm.', 'success');
     };
 
     const getStatusColor = (status) => {
@@ -1089,6 +1131,26 @@ function AdminAppointments() {
                                                             <option value="rejected">Rejected</option>
                                                         </select>
                                                     </div>
+                                                    
+                                                    {selectedAppointment && formData.serviceType === 'Tattoo Session' && (
+                                                        <div style={{ marginTop: '16px' }}>
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={handleCloneSequence}
+                                                                style={{
+                                                                    width: '100%', padding: '10px', borderRadius: '8px',
+                                                                    backgroundColor: '#f1f5f9', color: '#4338ca', fontSize: '0.9rem',
+                                                                    fontWeight: '700', border: '1px dashed #cbd5e1', cursor: 'pointer',
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                                    transition: 'all 0.2s'
+                                                                }}
+                                                                onMouseOver={(e) => { e.target.style.backgroundColor = '#e0e7ff'; e.target.style.borderColor = '#818cf8'; }}
+                                                                onMouseOut={(e) => { e.target.style.backgroundColor = '#f1f5f9'; e.target.style.borderColor = '#cbd5e1'; }}
+                                                            >
+                                                                <span style={{ fontSize: '1.2rem', fontWeight: '800' }}>+</span> Schedule Next Session
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                                                           </div>
                                             </div>
                                         </div>
