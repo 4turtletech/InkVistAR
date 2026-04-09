@@ -2674,12 +2674,16 @@ app.post('/api/admin/appointments', (req, res) => {
         console.error('❌ Error creating admin appointment:', err);
         return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
       }
-      createNotification(customerId, 'Appointment Scheduled', `Your appointment has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
-      
       // If securely routed from the public frontend wizard, alert the Admin
       if (isFromWizard) {
         const clientNameStr = customerName || 'a guest';
+        createNotification(customerId, 'Booking Request Received', `We have received your booking request for ${date} and will calculate a quote for you shortly.`, 'appointment_request', result.insertId);
         createNotification(artistId, 'New Booking Request', `${serviceType || 'Consultation'} requested by ${clientNameStr} ("${designTitle}"). Pending review.`, 'appointment_request', result.insertId);
+      } else {
+        createNotification(customerId, 'Appointment Scheduled', `Your appointment has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
+        if (artistId && artistId !== 1) {
+            createNotification(artistId, 'New Session Assigned', `You have been scheduled for a new session on ${date}.`, 'appointment_confirmed', result.insertId);
+        }
       }
       
       res.json({ success: true, message: 'Appointment created successfully', id: result.insertId });

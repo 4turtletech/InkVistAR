@@ -508,6 +508,29 @@ function CustomerBookings(){
                                                 ₱{Math.max(0, selectedApt.price - (selectedApt.total_paid || 0)).toLocaleString()}
                                             </span>
                                         </div>
+                                        
+                                        {/* Inline Payment Buttons mirroring the external list design */}
+                                        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                            {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && selectedApt.price > 0 && selectedApt.payment_status === 'unpaid' && (
+                                                <button 
+                                                    className="btn btn-primary" 
+                                                    style={{padding: '8px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)'}}
+                                                    onClick={() => handlePay(selectedApt)} 
+                                                >
+                                                    <CreditCard size={16}/> Pay Deposit Now
+                                                </button>
+                                            )}
+                                            
+                                            {selectedApt.payment_status === 'downpayment_paid' && (
+                                                <button 
+                                                    className="btn btn-primary" 
+                                                    style={{padding: '8px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.3)'}}
+                                                    onClick={() => handlePay(selectedApt, 'balance')}
+                                                >
+                                                    <CreditCard size={16}/> Pay Remaining Balance
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </>
                             ) : (
