@@ -46,13 +46,13 @@ function AdminAnalytics() {
         // Prepare CSV data
         const rows = [
             ['Report Type', 'Metric', 'Value'],
-            ['Revenue', 'Total Revenue', `₱${analytics.revenue.total}`],
+            ['Revenue', 'Total Revenue', `₱${Number(analytics.revenue.total).toLocaleString()}`],
             ['Appointments', 'Total', analytics.appointments.total],
             ['Appointments', 'Completed', analytics.appointments.completed],
             ['Appointments', 'Cancelled', analytics.appointments.cancelled],
             [],
             ['Artist Performance', 'Name', 'Revenue', 'Appointments'],
-            ...analytics.artists.map(a => ['Artist', a.name, `₱${a.revenue}`, a.appointments]),
+            ...analytics.artists.map(a => ['Artist', a.name, `₱${Number(a.revenue).toLocaleString()}`, a.appointments]),
             [],
             ['Inventory Consumption', 'Item', 'Used Qty'],
             ...analytics.inventory.map(i => ['Inventory', i.name, `${i.used} ${i.unit}`])
@@ -337,7 +337,7 @@ function AdminAnalytics() {
                                         className="trend-bar" 
                                         style={{ height: `${Math.min((data.value / 5000) * 100, 100)}%` }}
                                     >
-                                        <span className="bar-value">₱{data.value}</span>
+                                        <span className="bar-value">₱{Number(data.value).toLocaleString()}</span>
                                     </div>
                                 </div>
                                 <div className="trend-info">
@@ -383,7 +383,7 @@ function AdminAnalytics() {
                     </div>
                     <div className="breakdown-item">
                         <div className="breakdown-stat">
-                            <span className="stat-number">₱{analytics.appointments.total > 0 ? (analytics.revenue.total / analytics.appointments.total).toFixed(0) : 0}</span>
+                            <span className="stat-number">₱{analytics.appointments.total > 0 ? Number((analytics.revenue.total / analytics.appointments.total).toFixed(0)).toLocaleString() : 0}</span>
                             <span className="stat-label">Avg per Appointment</span>
                         </div>
                         <div className="breakdown-percentage info">
