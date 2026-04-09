@@ -84,9 +84,12 @@ function ArtistPortal() {
                 const today = now.getFullYear() + '-' +
                     String(now.getMonth() + 1).padStart(2, '0') + '-' +
                     String(now.getDate()).padStart(2, '0');
-                const todayAppts = allAppointments.filter(apt =>
-                    apt.appointment_date && apt.appointment_date.startsWith(today) && apt.status !== 'cancelled'
-                );
+                const todayAppts = allAppointments.filter(apt => {
+                    if (!apt.appointment_date) return false;
+                    const d = new Date(apt.appointment_date);
+                    const localAptDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    return localAptDate === today && apt.status !== 'cancelled';
+                });
                 setTodaysAppointments(todayAppts);
             }
             setLoading(false);
@@ -253,11 +256,12 @@ function ArtistPortal() {
                                 </div>
                                 <div className="table-responsive">
                                     {appointments.filter(apt => {
-                                        const aptDate = apt.appointment_date || apt.date || '';
-                                        const dateStr = typeof aptDate === 'string' ? aptDate.split('T')[0] : '';
+                                        if (!apt.appointment_date && !apt.date) return false;
+                                        const d = new Date(apt.appointment_date || apt.date);
+                                        const localAptDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                                         const now = new Date();
                                         const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-                                        return dateStr >= today && apt.status !== 'cancelled';
+                                        return localAptDate >= today && apt.status !== 'cancelled';
                                     }).sort((a,b) => new Date(a.appointment_date || a.date) - new Date(b.appointment_date || b.date)).length > 0 ? (
                                         <table className="portal-table">
                                             <thead>
@@ -271,11 +275,12 @@ function ArtistPortal() {
                                             </thead>
                                             <tbody>
                                                 {appointments.filter(apt => {
-                                                    const aptDate = apt.appointment_date || apt.date || '';
-                                                    const dateStr = typeof aptDate === 'string' ? aptDate.split('T')[0] : '';
+                                                    if (!apt.appointment_date && !apt.date) return false;
+                                                    const d = new Date(apt.appointment_date || apt.date);
+                                                    const localAptDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                                                     const now = new Date();
                                                     const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-                                                    return dateStr >= today && apt.status !== 'cancelled';
+                                                    return localAptDate >= today && apt.status !== 'cancelled';
                                                 }).sort((a,b) => new Date(a.appointment_date || a.date) - new Date(b.appointment_date || b.date)).slice(0, 5).map((apt) => (
                                                     <tr key={apt.id}>
                                                         <td>{apt.client_name || apt.client || 'N/A'}</td>

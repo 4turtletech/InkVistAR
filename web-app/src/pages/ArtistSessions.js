@@ -70,9 +70,8 @@ function ArtistSessions() {
                     String(now.getMonth() + 1).padStart(2, '0') + '-' +
                     String(now.getDate()).padStart(2, '0');
                 const todaySessions = res.data.appointments.filter(a => {
-                    const appointmentDate = typeof a.appointment_date === 'string'
-                        ? a.appointment_date.split('T')[0]
-                        : new Date(a.appointment_date).toISOString().split('T')[0];
+                    const d = new Date(a.appointment_date);
+                    const appointmentDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                     return appointmentDate === today && a.status !== 'cancelled';
                 });
                 setSessions(todaySessions);
