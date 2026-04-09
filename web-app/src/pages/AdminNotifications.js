@@ -80,12 +80,12 @@ function AdminNotifications() {
 
             // 2. Pending Appointments
             if (appointmentsResponse.data.success) {
-                const pending = appointmentsResponse.data.data.filter(apt => apt.status === 'pending');
-                if (pending.length > 0) {
+                const pendingConsultations = appointmentsResponse.data.data.filter(apt => apt.status === 'pending' && apt.service_type === 'Consultation');
+                if (pendingConsultations.length > 0) {
                     alerts.push({
                         id: 'apt-pending',
-                        title: 'Booking Requests',
-                        message: `There are ${pending.length} pending appointment requests awaiting review.`,
+                        title: 'Pending Consultations',
+                        message: `There ${pendingConsultations.length === 1 ? 'is' : 'are'} ${pendingConsultations.length} pending consultation${pendingConsultations.length === 1 ? '' : 's'} awaiting review.`,
                         type: 'appointment',
                         severity: 'medium',
                         created_at: new Date().toISOString(),
