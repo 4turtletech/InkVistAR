@@ -32,7 +32,7 @@ function CustomerReview() {
 
     const fetchAppointmentDetails = async () => {
         try {
-            const res = await Axios.get(`${API_URL}/api/appointments/customer/${user.id}`);
+            const res = await Axios.get(`${API_URL}/api/customer/${user.id}/appointments`);
             if (res.data.success) {
                 const appt = res.data.appointments.find(a => a.id === parseInt(appointmentId));
                 if (appt) {
