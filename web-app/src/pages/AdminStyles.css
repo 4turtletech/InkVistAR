@@ -2143,6 +2143,7 @@
 
 .admin-st-ef6586d6 {
     width: 100%;
+    box-sizing: border-box;
     height: 250px;
     min-height: 200px;
     padding: 12px 16px;
