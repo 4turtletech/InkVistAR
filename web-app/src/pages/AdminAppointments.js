@@ -117,7 +117,8 @@ function AdminAppointments() {
                         price: apt.price || 0,
                         totalPaid: apt.total_paid || 0,
                         manualPaidAmount: apt.manual_paid_amount || 0,
-                        manualPaymentMethod: apt.manual_payment_method || 'Cash'
+                        manualPaymentMethod: apt.manual_payment_method || 'Cash',
+                        clientAvatar: apt.client_avatar
                     };
                 });
                 setAppointments(mappedAppointments);
@@ -1367,10 +1368,20 @@ function AdminAppointments() {
                                             onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}
                                         >
                                             <div className="admin-st-a5c3808d">
-                                                <div className="admin-st-351e3911">{apt.start_time}</div>
+                                                <div className="admin-st-351e3911" style={{ padding: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}>
+                                                    {apt.clientAvatar ? (
+                                                        <img src={apt.clientAvatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <User size={20} color="#94a3b8" />
+                                                    )}
+                                                </div>
                                                 <div>
                                                     <div className="admin-st-6ad161f7">{apt.clientName}</div>
-                                                    <div className="admin-st-3bf8f64b">{apt.serviceType || 'Tattoo Session'}</div>
+                                                    <div className="admin-st-3bf8f64b" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span>{apt.serviceType || 'Tattoo Session'}</span>
+                                                        <span style={{ fontSize: '10px', color: '#cbd5e1' }}>•</span>
+                                                        <span style={{ color: '#6366f1', fontWeight: '500' }}>{apt.start_time || apt.time}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="admin-st-7851dbc0">

@@ -2602,11 +2602,13 @@ app.get('/api/admin/appointments', (req, res) => {
       u_art.name as artist_name,
       ar.commission_rate,
       ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
-      ap.manual_payment_method
+      ap.manual_payment_method,
+      cust.profile_image as client_avatar
     FROM appointments ap
     JOIN users u_cust ON ap.customer_id = u_cust.id
     JOIN users u_art ON ap.artist_id = u_art.id
     LEFT JOIN artists ar ON ap.artist_id = ar.user_id
+    LEFT JOIN customers cust ON ap.customer_id = cust.user_id
     WHERE ap.is_deleted = 0
     ORDER BY ap.appointment_date DESC, ap.start_time DESC
   `;
