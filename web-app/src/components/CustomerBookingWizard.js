@@ -184,7 +184,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             }
         } catch (error) {
             console.error('Booking error:', error);
-            alert('Request Failed. Please check your connection and try again.');
+            if (error.response && error.response.data && error.response.data.message) {
+                 alert('Request Failed: ' + error.response.data.message);
+            } else {
+                 alert('Request Failed. Please check your connection and try again.');
+            }
         } finally {
             setLoading(false);
         }
