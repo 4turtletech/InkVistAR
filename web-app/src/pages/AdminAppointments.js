@@ -234,6 +234,17 @@ function AdminAppointments() {
     };
 
     const handleStatusUpdate = async (id, status, clientName = 'this client') => {
+        const apt = appointments.find(a => a.id === id);
+
+        if (status === 'confirmed' && apt && apt.serviceType !== 'Consultation' && (!apt.price || apt.price <= 0)) {
+            showConfirm(
+                'Price Required',
+                `A price must be set for tattoo or piercing sessions before approval. Would you like to set a price for ${clientName}'s session now?`,
+                () => handleEdit(apt)
+            );
+            return;
+        }
+
         const actionVerb = status === 'confirmed' ? 'confirm' : status === 'completed' ? 'complete' : 'cancel';
 
         showConfirm(
@@ -362,6 +373,11 @@ function AdminAppointments() {
         let priceInput = formData.price ? String(formData.price).replace(/[^0-9.]/g, '') : '0';
         let priceValue = parseFloat(priceInput);
         const finalPrice = (!priceValue || priceValue < 0) ? 0 : priceValue;
+
+        if (formData.status === 'confirmed' && !isConsultation && finalPrice <= 0) {
+            showAlert('Price Required', 'A price must be assigned for tattoo or piercing sessions before they can be confirmed.', 'warning');
+            return;
+        }
 
         const doSave = async () => {
             try {
