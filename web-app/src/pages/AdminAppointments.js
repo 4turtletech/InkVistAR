@@ -283,9 +283,14 @@ function AdminAppointments() {
     const handleEdit = (appointment) => {
         setSelectedAppointment(appointment);
         setModalTab('details');
+        
+        // Check if the stored artistId is a real artist (not admin placeholder)
+        const storedArtistId = appointment.artistId || appointment.artist_id;
+        const isRealArtist = artists.some(a => String(a.id) === String(storedArtistId));
+        
         setFormData({
             clientId: appointment.clientId || appointment.customer_id,
-            artistId: appointment.artistId || appointment.artist_id,
+            artistId: isRealArtist ? storedArtistId : '',
             secondaryArtistId: appointment.secondary_artist_id || '',
             commissionSplit: appointment.commission_split || 50,
             serviceType: appointment.serviceType || appointment.service_type,
