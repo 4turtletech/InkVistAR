@@ -2847,9 +2847,11 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const updates = [];
 
   if (customerId !== undefined) { updates.push('customer_id = ?'); params.push(customerId); }
-  if (artistId !== undefined) { updates.push('artist_id = ?'); params.push(artistId); }
-  if (secondaryArtistId !== undefined) { updates.push('secondary_artist_id = ?'); params.push(secondaryArtistId); }
-  if (commissionSplit !== undefined) { updates.push('commission_split = ?'); params.push(commissionSplit); }
+  if (artistId !== undefined && artistId !== null && String(artistId) !== 'null') { updates.push('artist_id = ?'); params.push(artistId); }
+  if (secondaryArtistId !== undefined && secondaryArtistId !== null && String(secondaryArtistId) !== 'null') { 
+    updates.push('secondary_artist_id = ?'); params.push(secondaryArtistId === '' ? null : secondaryArtistId); 
+  }
+  if (commissionSplit !== undefined && commissionSplit !== null) { updates.push('commission_split = ?'); params.push(commissionSplit); }
   if (date !== undefined) { updates.push('appointment_date = ?'); params.push(date); }
   if (startTime !== undefined) { updates.push('start_time = ?'); params.push(startTime); }
   if (combinedTitle) { updates.push('design_title = ?'); params.push(combinedTitle); }
@@ -2877,6 +2879,41 @@ app.put('/api/admin/appointments/:id', (req, res) => {
 
     db.query(query, params, (err, result) => {
       if (err) {
+        // If the error is about unknown columns (migrations not yet applied), retry without optional new columns
+        if (err.code === 'ER_BAD_FIELD_ERROR') {
+          console.warn('⚠️ Unknown column detected, retrying without optional columns:', err.message);
+          const optionalCols = ['secondary_artist_id', 'commission_split', 'before_photo'];
+          const safeUpdates = [];
+          const safeParams = [];
+          // Rebuild from original request fields, skipping optional columns
+          if (customerId !== undefined) { safeUpdates.push('customer_id = ?'); safeParams.push(customerId); }
+          if (artistId !== undefined && artistId !== null && String(artistId) !== 'null') { safeUpdates.push('artist_id = ?'); safeParams.push(artistId); }
+          if (date !== undefined) { safeUpdates.push('appointment_date = ?'); safeParams.push(date); }
+          if (startTime !== undefined) { safeUpdates.push('start_time = ?'); safeParams.push(startTime); }
+          if (combinedTitle) { safeUpdates.push('design_title = ?'); safeParams.push(combinedTitle); }
+          if (serviceType !== undefined) { safeUpdates.push('service_type = ?'); safeParams.push(serviceType); }
+          if (status !== undefined) { safeUpdates.push('status = ?'); safeParams.push(status); }
+          if (paymentStatus !== undefined) { safeUpdates.push('payment_status = ?'); safeParams.push(paymentStatus); }
+          if (notes !== undefined) { safeUpdates.push('notes = ?'); safeParams.push(notes); }
+          if (price !== undefined) { safeUpdates.push('price = ?'); safeParams.push(price); }
+          if (manualPaidAmount !== undefined) { safeUpdates.push('manual_paid_amount = ?'); safeParams.push(manualPaidAmount); }
+          if (manualPaymentMethod !== undefined) { safeUpdates.push('manual_payment_method = ?'); safeParams.push(manualPaymentMethod); }
+          
+          if (safeUpdates.length === 0) {
+            return res.status(400).json({ success: false, message: 'No valid fields to update.' });
+          }
+          const safeQuery = 'UPDATE appointments SET ' + safeUpdates.join(', ') + ' WHERE id = ? AND is_deleted = 0';
+          safeParams.push(id);
+          
+          return db.query(safeQuery, safeParams, (retryErr, retryResult) => {
+            if (retryErr) {
+              console.error('❌ Retry also failed:', retryErr);
+              return res.status(500).json({ success: false, message: 'Database error: ' + retryErr.message });
+            }
+            // Continue with the rest of the logic using result from retry
+            processPostUpdate(res, id, oldAppt, customerId, artistId, status, paymentStatus, date, startTime, retryResult);
+          });
+        }
         console.error('❌ Error updating admin appointment:', err);
         return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
       }
@@ -2884,83 +2921,89 @@ app.put('/api/admin/appointments/:id', (req, res) => {
         return res.status(404).json({ success: false, message: 'Appointment not found.' });
       }
 
-      // Auto-recalculate payment_status based on updated price and manual_paid_amount
-      const recalculateStatusQuery = `
-        UPDATE appointments 
-        SET payment_status = CASE 
-          WHEN price > 0 AND (((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = id AND status = 'paid') / 100) + manual_paid_amount) >= price THEN 'paid'
-          WHEN price = 0 OR price IS NULL THEN 'paid'
-          ELSE payment_status
-        END 
-        WHERE id = ? AND payment_status != 'paid'
-      `;
-      db.query(recalculateStatusQuery, [id]);
-
-      // Smart Notifications Logic
-      db.query('SELECT customer_id, artist_id, status FROM appointments WHERE id = ?', [id], (e, r) => {
-        if (!e && r.length) {
-          const currentData = r[0];
-          let notificationsSent = false;
-          const oldDate = oldAppt.appointment_date ? new Date(oldAppt.appointment_date).toISOString().split('T')[0] : null;
-          const newDate = date ? date.split('T')[0] : null;
-
-          // Helper to avoid notifying user 1 (Admin/Unassigned) since Admin has a separate dashboard
-          const notifyArtist = (title, msg, type) => {
-             if (currentData.artist_id && currentData.artist_id !== 1) {
-                 createNotification(currentData.artist_id, title, msg, type, id);
-             }
-          };
-
-          // 1. Check for Rescheduling
-          if ((newDate && oldDate && newDate !== oldDate) || (startTime !== undefined && startTime !== oldAppt.start_time)) {
-             createNotification(currentData.customer_id, 'Appointment Rescheduled 📅', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.`, 'appointment_rescheduled', id);
-             notifyArtist('Session Rescheduled', `Details for session #${id} have been updated.`, 'system');
-             notificationsSent = true;
-          }
-
-          // 2. Check for Approval/Rejection
-          if (status !== undefined && status !== oldAppt.status) {
-            if (status === 'confirmed' && oldAppt.status === 'pending') {
-               const priceMsg = price > 0 ? ` The quoted price is ₱${parseFloat(price).toLocaleString()}.` : '';
-               createNotification(currentData.customer_id, 'Booking Request Approved ✅', `Great news! Your booking request #${id} has been approved.${priceMsg} We look forward to seeing you.`, 'appointment_confirmed', id);
-               notifyArtist('Appointment Confirmed', `Appointment #${id} has been accepted and confirmed.`, 'appointment_confirmed');
-               notificationsSent = true;
-            } else if (status === 'rejected' && oldAppt.status === 'pending') {
-               createNotification(currentData.customer_id, 'Booking Request Rejected ❌', `Notice: Your booking request #${id} was unfortunately rejected. Please contact the studio for alternatives.`, 'appointment_rejected', id);
-               notifyArtist('Request Rejected', `Booking request #${id} has been rejected.`, 'appointment_rejected');
-               notificationsSent = true;
-            } else if (status === 'cancelled') {
-               createNotification(currentData.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
-               notifyArtist('Session Cancelled', `Session #${id} was cancelled.`, 'appointment_cancelled');
-               notificationsSent = true;
-            } else if (status === 'completed') {
-               createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
-               notifyArtist('Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed');
-               notificationsSent = true;
-            } else {
-               createNotification(currentData.customer_id, 'Appointment Update', `Your appointment #${id} has been updated to ${status}.`, 'system', id);
-               notifyArtist('Appointment Update', `Appointment #${id} status changed to ${status}.`, 'system');
-               notificationsSent = true;
-            }
-          }
-
-          // 3. Independent Price Update
-          if (price !== undefined && price > 0 && price !== oldAppt.price && !notificationsSent) {
-            createNotification(currentData.customer_id, 'Session Fee Update', `The total price for your session #${id} has been set to ₱${parseFloat(price).toLocaleString()}. Please pay the required reservation fee/down payment to successfully secure your booking.`, 'system', id);
-            notificationsSent = true;
-          }
-
-          // 4. Action Required for New Assignment
-          if (currentData.status === 'pending' && currentData.artist_id !== 1 && oldAppt.artist_id !== currentData.artist_id) {
-             notifyArtist('Action Required: New Assignment', `You have been assigned a new session #${id}. Please accept or decline.`, 'action_required');
-          }
-        }
-      });
-
-      res.json({ success: true, message: 'Appointment updated successfully' });
+      processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle });
     });
   });
 });
+
+function processAdminPostUpdate(res, db, id, oldAppt, fields) {
+  const { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle } = fields;
+
+  // Auto-recalculate payment_status based on updated price and manual_paid_amount
+  const recalculateStatusQuery = `
+    UPDATE appointments 
+    SET payment_status = CASE 
+      WHEN price > 0 AND (((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = id AND status = 'paid') / 100) + manual_paid_amount) >= price THEN 'paid'
+      WHEN price = 0 OR price IS NULL THEN 'paid'
+      ELSE payment_status
+    END 
+    WHERE id = ? AND payment_status != 'paid'
+  `;
+  db.query(recalculateStatusQuery, [id]);
+
+  // Smart Notifications Logic
+  db.query('SELECT customer_id, artist_id, status FROM appointments WHERE id = ?', [id], (e, r) => {
+    if (!e && r.length) {
+      const currentData = r[0];
+      let notificationsSent = false;
+      const oldDate = oldAppt.appointment_date ? new Date(oldAppt.appointment_date).toISOString().split('T')[0] : null;
+      const newDate = date ? date.split('T')[0] : null;
+
+      // Helper to avoid notifying user 1 (Admin/Unassigned) since Admin has a separate dashboard
+      const notifyArtist = (title, msg, type) => {
+         if (currentData.artist_id && currentData.artist_id !== 1) {
+             createNotification(currentData.artist_id, title, msg, type, id);
+         }
+      };
+
+      // 1. Check for Rescheduling
+      if ((newDate && oldDate && newDate !== oldDate) || (startTime !== undefined && startTime !== oldAppt.start_time)) {
+         createNotification(currentData.customer_id, 'Appointment Rescheduled 📅', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.`, 'appointment_rescheduled', id);
+         notifyArtist('Session Rescheduled', `Details for session #${id} have been updated.`, 'system');
+         notificationsSent = true;
+      }
+
+      // 2. Check for Approval/Rejection
+      if (status !== undefined && status !== oldAppt.status) {
+        if (status === 'confirmed' && oldAppt.status === 'pending') {
+           const priceMsg = price > 0 ? ` The quoted price is ₱${parseFloat(price).toLocaleString()}.` : '';
+           createNotification(currentData.customer_id, 'Booking Request Approved ✅', `Great news! Your booking request #${id} has been approved.${priceMsg} We look forward to seeing you.`, 'appointment_confirmed', id);
+           notifyArtist('Appointment Confirmed', `Appointment #${id} has been accepted and confirmed.`, 'appointment_confirmed');
+           notificationsSent = true;
+        } else if (status === 'rejected' && oldAppt.status === 'pending') {
+           createNotification(currentData.customer_id, 'Booking Request Rejected ❌', `Notice: Your booking request #${id} was unfortunately rejected. Please contact the studio for alternatives.`, 'appointment_rejected', id);
+           notifyArtist('Request Rejected', `Booking request #${id} has been rejected.`, 'appointment_rejected');
+           notificationsSent = true;
+        } else if (status === 'cancelled') {
+           createNotification(currentData.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
+           notifyArtist('Session Cancelled', `Session #${id} was cancelled.`, 'appointment_cancelled');
+           notificationsSent = true;
+        } else if (status === 'completed') {
+           createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
+           notifyArtist('Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed');
+           notificationsSent = true;
+        } else {
+           createNotification(currentData.customer_id, 'Appointment Update', `Your appointment #${id} has been updated to ${status}.`, 'system', id);
+           notifyArtist('Appointment Update', `Appointment #${id} status changed to ${status}.`, 'system');
+           notificationsSent = true;
+        }
+      }
+
+      // 3. Independent Price Update
+      if (price !== undefined && price > 0 && price !== oldAppt.price && !notificationsSent) {
+        createNotification(currentData.customer_id, 'Session Fee Update', `The total price for your session #${id} has been set to ₱${parseFloat(price).toLocaleString()}. Please pay the required reservation fee/down payment to successfully secure your booking.`, 'system', id);
+        notificationsSent = true;
+      }
+
+      // 4. Action Required for New Assignment
+      if (currentData.status === 'pending' && currentData.artist_id !== 1 && oldAppt.artist_id !== currentData.artist_id) {
+         notifyArtist('Action Required: New Assignment', `You have been assigned a new session #${id}. Please accept or decline.`, 'action_required');
+      }
+    }
+  });
+
+  res.json({ success: true, message: 'Appointment updated successfully' });
+}
 
 // PUT artist accept appointment
 app.put('/api/artist/appointments/:id/accept', (req, res) => {
