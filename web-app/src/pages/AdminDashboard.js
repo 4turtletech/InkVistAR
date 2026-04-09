@@ -27,7 +27,7 @@ function AdminDashboard() {
     const [notifications, setNotifications] = useState([]);
     const [showNotifDropdown, setShowNotifDropdown] = useState(false);
     const notifRef = useRef(null);
-    
+
     // Audit Logs State
     const [auditSearch, setAuditSearch] = useState('');
     const [auditPage, setAuditPage] = useState(1);
@@ -74,14 +74,14 @@ function AdminDashboard() {
                 // Filter out deleted users for dashboard stats
                 const users = usersResponse.data.users.filter(u => !u.is_deleted);
                 setUsers(users);
-                
+
                 const appointments = appointmentsResponse.data.success ? appointmentsResponse.data.data : [];
 
                 // Calculate stats
                 const totalUsers = users.length;
                 const activeArtists = users.filter(u => u.user_type === 'artist').length;
                 const totalAppointments = appointments.length;
-                
+
                 // --- Process Data for Dashboard ---
                 const now = new Date();
                 const todayStr = now.toISOString().split('T')[0];
@@ -91,10 +91,10 @@ function AdminDashboard() {
                 let dailyRev = 0;
                 let monthlyRev = 0;
                 let totalRev = 0;
-                
+
                 // Chart Data Prep (Last 7 Days)
                 const last7Days = {};
-                for(let i=6; i>=0; i--) {
+                for (let i = 6; i >= 0; i--) {
                     const d = new Date();
                     d.setDate(d.getDate() - i);
                     last7Days[d.toISOString().split('T')[0]] = 0;
@@ -102,8 +102,8 @@ function AdminDashboard() {
 
                 appointments.forEach(apt => {
                     // Normalize date
-                    let aptDateStr = typeof apt.appointment_date === 'string' 
-                        ? apt.appointment_date.split('T')[0] 
+                    let aptDateStr = typeof apt.appointment_date === 'string'
+                        ? apt.appointment_date.split('T')[0]
                         : new Date(apt.appointment_date).toISOString().split('T')[0];
 
                     // Chart Counting
@@ -165,7 +165,7 @@ function AdminDashboard() {
                 if (inventoryResponse.data.success) {
                     const inventory = inventoryResponse.data.data;
                     const lowStockItems = inventory.filter(item => item.current_stock <= item.min_stock);
-                    
+
                     lowStockItems.slice(0, 2).forEach(item => { // Limit to 2 for UI cleanliness
                         generatedAlerts.push({
                             id: alertId++,
@@ -244,18 +244,18 @@ function AdminDashboard() {
 
     // Filter and paginate appointments
     const filteredAppointments = appointments.filter(apt => {
-        const matchesSearch = 
+        const matchesSearch =
             (apt.client_name || '').toLowerCase().includes(appointmentSearch.toLowerCase()) ||
             (apt.artist_name || '').toLowerCase().includes(appointmentSearch.toLowerCase());
-        
+
         if (!matchesSearch) return false;
 
         if (appointmentFilter === 'upcoming') {
             const today = new Date().toISOString().split('T')[0];
-            const aptDate = typeof apt.appointment_date === 'string' 
-                ? apt.appointment_date.split('T')[0] 
+            const aptDate = typeof apt.appointment_date === 'string'
+                ? apt.appointment_date.split('T')[0]
                 : new Date(apt.appointment_date).toISOString().split('T')[0];
-            
+
             return aptDate >= today && apt.status !== 'cancelled' && apt.status !== 'completed';
         }
         return true;
@@ -285,13 +285,13 @@ function AdminDashboard() {
                             <Search size={18} />
                             <input type="text" placeholder="Search things..." />
                         </div> {/* This search is for the overall dashboard, not specific tables */}
-                        
+
                         <div className="notif-btn-wrapper admin-st-fab32c0e" ref={notifRef} >
                             <button className="notif-trigger-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
                                 <Bell size={20} />
                                 {unreadNotifications > 0 && <span className="notif-badge-dot"></span>}
                             </button>
-                            
+
                             {showNotifDropdown && (
                                 <div className="notif-dropdown-v2 glass-card">
                                     <div className="notif-dropdown-header">
@@ -404,8 +404,8 @@ function AdminDashboard() {
                                         {chartData.map((item, index) => (
                                             <div key={index} className="modern-bar-group">
                                                 <div className="bar-rail">
-                                                    <div 
-                                                        className="bar-fill" 
+                                                    <div
+                                                        className="bar-fill"
                                                         style={{ height: `${Math.min(item.count * 15, 100)}%` }}
                                                     >
                                                         <div className="bar-tooltip">{item.count}</div>
@@ -425,15 +425,15 @@ function AdminDashboard() {
                                         </div>
                                         <div className="card-actions admin-st-bb81d8eb">
                                             <div className="filter-pill-group">
-                                                <button 
+                                                <button
                                                     className={`filter-pill ${appointmentFilter === 'upcoming' ? 'active' : ''}`}
                                                     onClick={() => { setAppointmentFilter('upcoming'); setAppointmentPage(1); }}
                                                 >Upcoming</button>
-                                                <button 
+                                                <button
                                                     className={`filter-pill ${appointmentFilter === 'latest' ? 'active' : ''}`}
                                                     onClick={() => { setAppointmentFilter('latest'); setAppointmentPage(1); }}
                                                 >Latest Added</button>
-                                                <button 
+                                                <button
                                                     className={`filter-pill ${appointmentFilter === 'all' ? 'active' : ''}`}
                                                     onClick={() => { setAppointmentFilter('all'); setAppointmentPage(1); }}
                                                 >All</button>
@@ -493,8 +493,8 @@ function AdminDashboard() {
                                                                         </button>
                                                                     </>
                                                                 )}
-                                                                <button 
-                                                                    className="icon-btn-v2" 
+                                                                <button
+                                                                    className="icon-btn-v2"
                                                                     title="Details"
                                                                     onClick={() => { setSelectedAppointment(appointment); setIsDetailModalOpen(true); }}
                                                                 >
@@ -559,7 +559,7 @@ function AdminDashboard() {
                                             <Bell size={20} />
                                             <h2>System Alerts</h2>
                                         </div>
-                                        <button className="view-all-btn" onClick={() => navigate('/admin/notifications')} className="admin-st-d3ffc78c">View All</button>
+                                        <button className="view-all-btn admin-st-d3ffc78c" onClick={() => navigate('/admin/notifications')}>View All</button>
                                     </div>
                                     <div className="alerts-stack">
                                         {alerts.length > 0 ? alerts.map(alert => (
@@ -585,9 +585,8 @@ function AdminDashboard() {
                                             <Clock size={20} />
                                             <h2>Today's Schedule</h2>
                                         </div>
-                                        <button className="view-all-btn" onClick={() => navigate('/admin/appointments')} className="admin-st-d3ffc78c">View All</button>
+                                        <button className="view-all-btn admin-st-d3ffc78c" onClick={() => navigate('/admin/appointments')}>View All</button>
                                     </div>
-                                    <div className="modern-table-wrapper">
                                     <div className="audit-stream">
                                         {todaysAppointments.length > 0 ? todaysAppointments.map(apt => (
                                             <div key={apt.id} className="audit-entry">
@@ -595,41 +594,15 @@ function AdminDashboard() {
                                                 <div className="entry-content">
                                                     <div className="entry-time">{apt.start_time}</div>
                                                     <div className="entry-desc">
-                                                        <strong>{apt.artist_name}</strong> session with {apt.client_name || 'Walk-in'} 
-                                                        <span className={`badge-v2 ${apt.status}`} style={{marginLeft: '10px', fontSize: '0.7em', padding: '2px 6px'}}>{apt.status}</span>
+                                                        <strong>{apt.artist_name}</strong> session with {apt.client_name || 'Walk-in'}
+                                                        <span className={`badge-v2 ${apt.status}`} style={{ marginLeft: '10px', fontSize: '0.7em', padding: '2px 6px' }}>{apt.status}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                        )) : <p className="no-data admin-st-eb108882" style={{border: 'none', padding: '20px 0'}}>No appointments for today.</p>}
+                                        )) : <p className="no-data admin-st-eb108882" style={{ border: 'none', padding: '20px 0' }}>No appointments for today.</p>}
                                     </div>
-
-                                {/* Appointments Overview */}
-/* HIDING AUDIT STREAM                                 {/* System Audit Logs */} */
-/* HIDING AUDIT STREAM                                 <div className="glass-card"> */
-/* HIDING AUDIT STREAM                                     <div className="card-header-v2"> */
-/* HIDING AUDIT STREAM                                         <div className="header-title"> */
-/* HIDING AUDIT STREAM                                             <FileText size={20} /> */
-/* HIDING AUDIT STREAM                                             <h2>Audit Stream</h2> */
-/* HIDING AUDIT STREAM                                         </div> */
-/* HIDING AUDIT STREAM                                     </div> */
-/* HIDING AUDIT STREAM                                     <div className="audit-stream"> */
-/* HIDING AUDIT STREAM                                         {displayedLogs.map((log) => ( */
-/* HIDING AUDIT STREAM                                             <div key={log.id} className="audit-entry"> */
-/* HIDING AUDIT STREAM                                                 <div className="entry-marker"></div> */
-/* HIDING AUDIT STREAM                                                 <div className="entry-content"> */
-/* HIDING AUDIT STREAM                                                     <div className="entry-time">{new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div> */
-/* HIDING AUDIT STREAM                                                     <div className="entry-desc"> */
-/* HIDING AUDIT STREAM                                                         <strong>{log.user_name || 'System'}</strong> {log.action.toLowerCase()}: {log.details} */
-/* HIDING AUDIT STREAM                                                     </div> */
-/* HIDING AUDIT STREAM                                                 </div> */
-/* HIDING AUDIT STREAM                                             </div> */
-/* HIDING AUDIT STREAM                                         ))} */
-/* HIDING AUDIT STREAM                                     </div> */
-/* HIDING AUDIT STREAM                                     <button className="full-logs-btn" onClick={() => navigate('/admin/logs')}> */
-/* HIDING AUDIT STREAM                                         View Full Audit Trail */
-/* HIDING AUDIT STREAM                                     </button> */
-/* HIDING AUDIT STREAM                                 </div> */
-/* HIDING AUDIT STREAM                             </div> */
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
