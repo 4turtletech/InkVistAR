@@ -202,18 +202,52 @@ function Home() {
                             </div>
                         ) : (
                             <>
-                                <div className="carousel-track" style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
-                                    {testimonials.map((testimony, idx) => (
-                                        <div key={testimony.id || idx} className={`carousel-slide ${idx === currentSlide ? 'active' : ''}`}>
-                                            <div className="premium-testimonial-card glass-card-premium">
-                                                <div className="testimonial-stars">
-                                                    {'★'.repeat(testimony.rating || 5)}{'☆'.repeat(5 - (testimony.rating || 5))}
+                                <div className="perspective-carousel">
+                                    {testimonials.map((testimony, idx) => {
+                                        const total = testimonials.length;
+                                        let offset = idx - currentSlide;
+                                        // Wrap around for circular carousel
+                                        if (offset > Math.floor(total / 2)) offset -= total;
+                                        if (offset < -Math.floor(total / 2)) offset += total;
+
+                                        const isActive = offset === 0;
+                                        const isVisible = Math.abs(offset) <= 1;
+
+                                        return (
+                                            <div 
+                                                key={testimony.id || idx} 
+                                                className={`perspective-slide ${isActive ? 'active' : ''}`}
+                                                style={{
+                                                    transform: `translateX(${offset * 75}%) scale(${isActive ? 1 : 0.75})`,
+                                                    opacity: isVisible ? (isActive ? 1 : 0.45) : 0,
+                                                    zIndex: isActive ? 10 : 5 - Math.abs(offset),
+                                                    pointerEvents: isActive ? 'auto' : 'none',
+                                                    filter: isActive ? 'none' : 'blur(1.5px)',
+                                                }}
+                                                onClick={() => !isActive && setCurrentSlide(idx)}
+                                            >
+                                                <div className="perspective-card">
+                                                    <div className="perspective-card-inner">
+                                                        <div className="perspective-quote-mark">"</div>
+                                                        <div className="perspective-stars">
+                                                            {[1,2,3,4,5].map(s => (
+                                                                <span key={s} className={`perspective-star ${s <= (testimony.rating || 5) ? 'filled' : ''}`}>★</span>
+                                                            ))}
+                                                        </div>
+                                                        <p className="perspective-comment">{testimony.comment || testimony.content || 'Amazing experience!'}</p>
+                                                        <div className="perspective-divider"></div>
+                                                        <div className="perspective-author">
+                                                            <div className="perspective-avatar">{(testimony.customer_name || 'C')[0].toUpperCase()}</div>
+                                                            <div>
+                                                                <h4 className="perspective-name">{testimony.customer_name || 'Inkvictus Client'}</h4>
+                                                                <span className="perspective-label">Verified Client</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <h4 className="testimonial-author">{testimony.customer_name || 'Inkvictus Valued Client'}</h4>
-                                                <p className="testimonial-body">"{testimony.comment || testimony.content}"</p>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                                 {testimonials.length > 1 && (
                                     <div className="carousel-controls">
