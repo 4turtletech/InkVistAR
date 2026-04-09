@@ -129,7 +129,8 @@ const db = mysql.createPool({
   connectionLimit: 10,
   waitForConnections: true,
   queueLimit: 0,
-  dateStrings: true // Force date columns to be returned as strings to prevent timezone shifts
+  dateStrings: true, // Force date columns to be returned as strings to prevent timezone shifts
+  maxAllowedPacket: 50 * 1024 * 1024 // 50MB - allows large base64 image data in queries
 });
 
 // Connect to MySQL via Pool
@@ -2856,9 +2857,15 @@ app.put('/api/artist/appointments/:id/draft', (req, res) => {
     return res.status(400).json({ success: false, message: 'Missing draft image data' });
   }
 
+  console.log(`📎 Draft upload for Appt #${id}, payload size: ${(draft_image.length / 1024).toFixed(1)}KB`);
+
   db.query("UPDATE appointments SET draft_image = ? WHERE id = ?", [draft_image, id], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Not found' });
+    if (err) {
+      console.error(`❌ Draft upload DB error for Appt #${id}:`, err.message);
+      return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+    }
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Appointment not found' });
+    console.log(`✅ Draft image saved for Appt #${id}`);
     res.json({ success: true, message: 'Draft image updated successfully' });
   });
 });

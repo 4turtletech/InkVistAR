@@ -150,26 +150,50 @@ function ArtistAppointments(){
         } catch (e) { console.error(e); }
     };
 
+    const compressImage = (file, maxWidth = 1200, quality = 0.7) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
     const handleUploadDraft = async (e, id) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-            const base64String = reader.result;
-            try {
-                const res = await Axios.put(`${API_URL}/api/artist/appointments/${id}/draft`, { draft_image: base64String });
-                if (res.data.success) {
-                    setSelectedAppointment(prev => ({ ...prev, draft_image: base64String }));
-                    fetch(); // update list implicitly
-                    alert('Draft image successfully attached to this session!');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Error uploading draft.');
+        try {
+            const compressedBase64 = await compressImage(file);
+            const res = await Axios.put(`${API_URL}/api/artist/appointments/${id}/draft`, { draft_image: compressedBase64 });
+            if (res.data.success) {
+                setSelectedAppointment(prev => ({ ...prev, draft_image: compressedBase64 }));
+                fetch(); // update list implicitly
+                alert('Draft image successfully attached to this session!');
             }
-        };
-        reader.readAsDataURL(file);
+        } catch (err) {
+            console.error('Draft upload error:', err);
+            const msg = err.response?.data?.message || err.message || 'Unknown error';
+            alert(`Error uploading draft: ${msg}`);
+        }
     };
 
     const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
