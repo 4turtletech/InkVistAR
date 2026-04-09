@@ -245,8 +245,8 @@ function ArtistSessions() {
         setActiveSession(session);
         setSessionData({
             notes: session.notes || '',
-            beforePhoto: null,
-            afterPhoto: null
+            beforePhoto: session.before_photo || null,
+            afterPhoto: session.after_photo || null
         });
         openSessionModal();
     };
@@ -358,7 +358,6 @@ function ArtistSessions() {
             console.log('✅ Response:', res.data);
             if (res.data.success) {
                 showAlert("Saved", "Session details saved successfully!", "success");
-                setActiveSession(null);
                 fetchSessions();
             } else {
                 showAlert("Error", "Failed to save session details. " + res.data.message, "danger");
@@ -786,9 +785,9 @@ function ArtistSessions() {
                                         return filtered.length > 0 ? filtered.map(item => (
                                             <div
                                                 key={item.id}
-                                                onClick={() => {
-                                                    handleQuickAdd(item.id, 1);
+                                                onClick={async () => {
                                                     closeInventoryModal();
+                                                    await handleQuickAdd(item.id, 1);
                                                 }}
                                                 style={{
                                                     padding: '12px 16px',
