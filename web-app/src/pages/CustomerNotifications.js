@@ -27,6 +27,7 @@ function CustomerNotifications() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
+    const [isAftercareModalOpen, setIsAftercareModalOpen] = useState(false);
     
 
     const [user] = useState(() => {
@@ -256,9 +257,9 @@ function CustomerNotifications() {
                                                                     </a>
                                                                 )}
                                                                 {n.type === 'aftercare_reminder' && (
-                                                                    <a className="notif-btn primary customer-st-3d39e5b0" href="/customer/aftercare" >
+                                                                    <button className="notif-btn primary customer-st-3d39e5b0" onClick={(e) => { e.stopPropagation(); setIsAftercareModalOpen(true); }} >
                                                                         View Guide
-                                                                    </a>
+                                                                    </button>
                                                                 )}
                                                                 {n.type === 'review_prompt' && (
                                                                     <a className="notif-btn primary customer-st-9bd8a3c8" href={`/customer/reviews/new?appointment=${n.related_id}`} >
@@ -321,10 +322,60 @@ function CustomerNotifications() {
                                     <a className="notif-btn primary customer-st-be17fc86" href={`/customer/bookings?appointment=${selectedNotification.related_id}`} >Take Action</a>
                                 )}
                                 {selectedNotification.type === 'pos_invoice' && <a className="notif-btn primary customer-st-be17fc86" href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" >View Invoice</a>}
-                                {selectedNotification.type === 'aftercare_reminder' && <a className="notif-btn primary customer-st-b55afb9c" href="/customer/aftercare" >View Guide</a>}
+                                {selectedNotification.type === 'aftercare_reminder' && <button className="notif-btn primary customer-st-b55afb9c" onClick={() => { setSelectedNotification(null); setIsAftercareModalOpen(true); }} >View Guide</button>}
                                 {selectedNotification.type === 'review_prompt' && <a className="notif-btn primary customer-st-3f2429fc" href={`/customer/reviews/new?appointment=${selectedNotification.related_id}`} >Leave Review</a>}
                                 <button className="notif-btn ghost customer-st-cb4a8d52" onClick={() => setSelectedNotification(null)} >Close</button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Aftercare Modal */}
+            {isAftercareModalOpen && (
+                <div className="modal-overlay" onClick={() => setIsAftercareModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ background: 'rgba(6, 182, 212, 0.1)', padding: '10px', borderRadius: '12px' }}>
+                                    <Info size={24} color="#06b6d4" />
+                                </div>
+                                <h3 style={{ margin: 0, fontFamily: 'Playfair Display, serif', color: '#ffffff' }}>Tattoo Aftercare Guide</h3>
+                            </div>
+                            <button className="close-btn" onClick={() => setIsAftercareModalOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                                <XCircle size={24} />
+                            </button>
+                        </div>
+                        <div style={{ color: '#cbd5e1', lineHeight: '1.6', fontSize: '0.95rem' }}>
+                            <h4 style={{ color: '#fff', marginTop: '15px' }}>Day 1-3: The Initial Healing</h4>
+                            <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
+                                <li><strong>Keep it covered:</strong> Leave the initial bandage/wrap on for 2-4 hours.</li>
+                                <li><strong>First wash:</strong> Gently wash with unscented anti-bacterial soap and warm water. DO NOT scrub.</li>
+                                <li><strong>Pat dry:</strong> Use a clean paper towel. Never rub, and never use a regular cloth towel.</li>
+                                <li><strong>Moisturize sparingly:</strong> Apply a very thin layer of tattoo-specific ointment or Aquaphor.</li>
+                            </ul>
+
+                            <h4 style={{ color: '#fff', marginTop: '20px' }}>Day 4-14: Peeling & Flaking</h4>
+                            <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
+                                <li><strong>Switch to lotion:</strong> Stop ointment and switch to a fragrance-free lotion.</li>
+                                <li><strong>DO NOT PICK OR SCRATCH:</strong> Flaking is normal. Picking will pull out ink and cause scarring.</li>
+                                <li><strong>Keep it clean:</strong> Wash 1-2 times daily.</li>
+                            </ul>
+
+                            <h4 style={{ color: '#fff', marginTop: '20px' }}>What to Avoid for 2-3 Weeks</h4>
+                            <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
+                                <li><strong>No swimming:</strong> Avoid pools, hot tubs, oceans, and baths (showering is fine).</li>
+                                <li><strong>No direct sunlight:</strong> Keep the tattoo covered or shaded.</li>
+                                <li><strong>No heavy sweating:</strong> Avoid intense workouts or saunas for the first 48 hours.</li>
+                            </ul>
+
+                            <p style={{ marginTop: '20px', fontStyle: 'italic', color: '#94a3b8' }}>
+                                If you experience severe redness, swelling, or signs of infection, please contact the studio immediately or seek medical advice.
+                            </p>
+                        </div>
+                        <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button className="premium-btn primary" onClick={() => setIsAftercareModalOpen(false)} style={{ background: '#daa520', color: '#000', border: 'none', padding: '10px 24px', borderRadius: '24px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                I Understand
+                            </button>
                         </div>
                     </div>
                 </div>
