@@ -1284,3 +1284,43 @@
     justify-content: center;
     margin: 0 auto 30px;
 }
+
+.premium-chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.premium-chip-btn {
+    padding: 6px 14px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.premium-chip-btn:hover {
+    background: #e0e7ff;
+    color: #4338ca;
+    border-color: #c7d2fe;
+}
+
+.premium-textarea-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+.premium-char-counter {
+    font-weight: 500;
+}
+
+.premium-char-counter.limit-reached {
+    color: #ef4444;
+}

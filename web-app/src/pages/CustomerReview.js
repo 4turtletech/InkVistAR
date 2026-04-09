@@ -139,14 +139,45 @@ function CustomerReview() {
                                     </div>
                                     
                                     <div className="premium-textarea-group" >
-                                        <label className="premium-textarea-label">Tell us more about your experience (Optional)</label>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px' }}>
+                                            <label className="premium-textarea-label" style={{ marginBottom: 0 }}>Tell us more about your experience (Optional)</label>
+                                        </div>
+                                        
+                                        <div className="premium-chips-container">
+                                            {["Great Experience", "Fast Speed of Service", "Excellent Hospitality", "Highly Professional", "Clean & Hygienic", "Loved the Result!"].map((phrase, idx) => (
+                                                <button 
+                                                    key={idx} 
+                                                    type="button" 
+                                                    className="premium-chip-btn"
+                                                    onClick={() => {
+                                                        let newComment = comment;
+                                                        if (newComment.length > 0 && !newComment.endsWith(' ') && !newComment.endsWith('\n')) {
+                                                            newComment += ' ';
+                                                        }
+                                                        newComment += phrase;
+                                                        if (newComment.length > 1000) newComment = newComment.slice(0, 1000);
+                                                        setComment(newComment);
+                                                    }}
+                                                >
+                                                    + {phrase}
+                                                </button>
+                                            ))}
+                                        </div>
+
                                         <textarea 
                                             className="premium-textarea" 
                                             value={comment} 
+                                            maxLength={1000}
                                             onChange={(e) => setComment(e.target.value)} 
                                             placeholder="What did you love about your session? Was the artist professional?" 
                                             rows={4} 
                                         ></textarea>
+                                        
+                                        <div className="premium-textarea-footer">
+                                            <span className={`premium-char-counter ${comment.length >= 1000 ? 'limit-reached' : ''}`}>
+                                                {comment.length} / 1000
+                                            </span>
+                                        </div>
                                     </div>
                                     
                                     <button className="premium-submit-btn" type="submit" disabled={loading} >
