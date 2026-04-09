@@ -414,7 +414,7 @@ function AdminStaff() {
                                 <td>{new Date(e.appointment_date).toLocaleDateString()}</td>
                                 <td>{e.client_name}</td>
                                 <td>₱{e.amount.toLocaleString()}</td>
-                                <td className="admin-st-9e10b928">₱{e.commission.toFixed(2)}</td>
+                                <td className="admin-st-9e10b928">₱{Number(e.commission).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                         ))}
                     </tbody>
