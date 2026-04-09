@@ -320,7 +320,7 @@ function AdminBilling() {
                                                 <td>{inv.client_name}</td>
                                                 <td>{inv.service_type}</td>
                                                 <td>{new Date(inv.created_at).toLocaleDateString()}</td>
-                                                <td>₱{inv.amount}</td>
+                                                <td>₱{Number(inv.amount).toLocaleString()}</td>
                                                 <td>
                                                     {(() => {
                                                         try {
