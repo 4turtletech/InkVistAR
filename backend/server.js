@@ -3545,7 +3545,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
   try {
     // 1. Check DB first
     db.query(`
-      SELECT ap.payment_status, ap.status, ap.customer_id, ap.artist_id, u.name as customer_name, u.email as cx_email 
+      SELECT ap.payment_status, ap.status, ap.customer_id, ap.artist_id, ap.appointment_date, ap.start_time, u.name as customer_name, u.email as cx_email 
       FROM appointments ap 
       JOIN users u ON ap.customer_id = u.id 
       WHERE ap.id = ?`, [appointmentId], async (err, results) => {
@@ -3604,6 +3604,17 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                       createNotification(appt.customer_id, 'Payment Received', `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
                       createNotification(appt.artist_id, 'Payment Received', `Payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
                       
+                      const wasPending = currentAptStatus?.toLowerCase() === 'pending';
+                      
+                      if (wasPending) {
+                          const dateObj = new Date(appt.appointment_date);
+                          const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'your chosen date';
+                          const timeStr = appt.start_time || 'your chosen time';
+                          
+                          createNotification(appt.customer_id, 'Appointment Scheduled', `Your appointment has been scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
+                          createNotification(appt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
+                      }
+                      
                       if (typeof sendReceiptEmail === 'function' && appt.cx_email) {
                           const paymentId = (Array.isArray(paymentList) && paymentList.length > 0) ? paymentList[0].id : null;
                           sendReceiptEmail(appt.cx_email, { id: paymentId, amount: amountCentavos/100, method: 'PayMongo' });
@@ -3614,6 +3625,12 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                               const adminMsg = `Payment of ₱${(amountCentavos / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
                               admins.forEach(admin => {
                                   createNotification(admin.id, 'Payment Received', adminMsg, 'payment_success', appointmentId);
+                                  
+                                  if (wasPending) {
+                                      const dateObj = new Date(appt.appointment_date);
+                                      const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the chosen date';
+                                      createNotification(admin.id, 'Appointment Scheduled', `Appointment #${appointmentId} has been scheduled for ${appt.customer_name} on ${dateStr} at ${appt.start_time || 'TBD'}.`, 'appointment_confirmed', appointmentId);
+                                  }
                               });
                           }
                       });
@@ -3714,7 +3731,7 @@ app.post('/api/payments/webhook', (req, res) => {
 
     // Get current status first to determine new status
     db.query(`
-      SELECT ap.status, ap.customer_id, ap.artist_id, u.name as customer_name, u.email as cx_email
+      SELECT ap.status, ap.customer_id, ap.artist_id, ap.appointment_date, ap.start_time, u.name as customer_name, u.email as cx_email
       FROM appointments ap 
       JOIN users u ON ap.customer_id = u.id 
       WHERE ap.id = ?
@@ -3730,11 +3747,20 @@ app.post('/api/payments/webhook', (req, res) => {
             console.log('✅ Appointment', appointmentId, 'marked as', newPaymentStatus);
 
             const wasPending = appt.status?.toLowerCase() === 'pending';
-            const customerMsg = `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed. ${wasPending ? 'Your appointment has been successfully booked and confirmed!' : ''}`;
-            const artistMsg = `Payment for appointment #${appointmentId} is confirmed. ${wasPending ? 'You are now officially booked for this day.' : ''}`;
+            const customerMsg = `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed.`;
+            const artistMsg = `Payment for appointment #${appointmentId} is confirmed.`;
             
             createNotification(appt.customer_id, 'Payment Received', customerMsg.trim(), 'payment_success', appointmentId);
             createNotification(appt.artist_id, 'Booking Confirmed ✅', artistMsg.trim(), 'payment_success', appointmentId);
+            
+            if (wasPending) {
+                const dateObj = new Date(appt.appointment_date);
+                const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'your chosen date';
+                const timeStr = appt.start_time || 'your chosen time';
+                
+                createNotification(appt.customer_id, 'Appointment Scheduled', `Your appointment has been scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
+                createNotification(appt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
+            }
             
             // SEND EMAILED RECEIPT
             sendReceiptEmail(appt.cx_email, { id: paymongoPaymentId, amount: amount/100, method: 'PayMongo' });
@@ -3742,9 +3768,15 @@ app.post('/api/payments/webhook', (req, res) => {
             // Notify Admins and Managers
             db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
               if (!adminErr && admins.length > 0) {
-                const adminMsg = `Payment of ₱${(amount / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}). ${wasPending ? 'The appointment has been upgraded to Confirmed.' : ''}`;
+                const adminMsg = `Payment of ₱${(amount / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
                 admins.forEach(admin => {
                   createNotification(admin.id, 'Payment Received', adminMsg.trim(), 'payment_success', appointmentId);
+                  
+                  if (wasPending) {
+                      const dateObj = new Date(appt.appointment_date);
+                      const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the chosen date';
+                      createNotification(admin.id, 'Appointment Scheduled', `Appointment #${appointmentId} has been scheduled for ${appt.customer_name} on ${dateStr} at ${appt.start_time || 'TBD'}.`, 'appointment_confirmed', appointmentId);
+                  }
                 });
               }
             });
