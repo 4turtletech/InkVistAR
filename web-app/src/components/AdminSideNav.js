@@ -116,101 +116,23 @@ function AdminSideNav() {
     const isParentActive = (children) => children.some(child => location.pathname === child.path);
 
     const quickActions = [
-        {
-            label: 'Dashboard',
-            icon: LayoutDashboard,
-            path: '/admin/dashboard',
-            description: 'Overview'
-        },
-        {
-            label: 'User Management',
-            icon: Users,
-            isDropdown: true,
-            children: [
-                {
-                    label: 'Users',
-                    path: '/admin/users',
-                    description: 'Manage all users',
-                    icon: Users
-                },
-                {
-                    label: 'Clients',
-                    path: '/admin/clients',
-                    description: 'Client profiles',
-                    icon: UserCircle
-                },
-                {
-                    label: 'Staff',
-                    path: '/admin/staff',
-                    description: 'Manage staff',
-                    icon: Users2
-                }
+        { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', description: 'Overview' },
+        { label: 'User Management', icon: Users, isDropdown: true, children: [
+                { label: 'Users', path: '/admin/users', description: 'Manage all users', icon: Users },
+                { label: 'Clients', path: '/admin/clients', description: 'Client profiles', icon: UserCircle },
+                { label: 'Staff', path: '/admin/staff', description: 'Manage staff', icon: Users2 }
             ]
         },
-        { divider: true },
-        {
-            label: 'Appointments',
-            icon: Calendar,
-            path: '/admin/appointments',
-            description: 'View appointments'
-        },
-        {
-            label: 'Completed Sessions',
-            icon: CheckCircle,
-            path: '/admin/completed-sessions',
-            description: 'View completed sessions'
-        },
-        { divider: true },
-        {
-            label: 'Chat',
-            icon: MessageSquare,
-            path: '/admin/chat',
-            description: 'Chat with customers'
-        },
-        {
-            label: 'Inventory',
-            icon: Package,
-            path: '/admin/inventory',
-            description: 'Manage inventory'
-        },
-        {
-            label: 'POS System',
-            icon: ShoppingCart,
-            path: '/admin/pos',
-            description: 'Point of Sale'
-        },
-        { divider: true },
-        {
-            label: 'Analytics',
-            icon: BarChart3,
-            path: '/admin/analytics',
-            description: 'View reports'
-        },
-        {
-            label: 'Billing',
-            icon: Receipt,
-            path: '/admin/billing',
-            description: 'Payments & Invoices'
-        },
-        { divider: true },
-        {
-            label: 'Reviews',
-            icon: Star,
-            path: '/admin/reviews',
-            description: 'Moderate customer reviews'
-        },
-        {
-            label: 'Studio',
-            icon: Building2,
-            path: '/admin/studio',
-            description: 'Manage branches'
-        },
-        {
-            label: 'Notifications',
-            icon: Bell,
-            path: '/admin/notifications',
-            description: 'System alerts & updates'
-        }
+        { label: 'Appointments', icon: Calendar, path: '/admin/appointments', description: 'View appointments' },
+        { label: 'Completed Sessions', icon: CheckCircle, path: '/admin/completed-sessions', description: 'View completed sessions' },
+        { label: 'Chat', icon: MessageSquare, path: '/admin/chat', description: 'Chat with customers' },
+        { label: 'Inventory', icon: Package, path: '/admin/inventory', description: 'Manage inventory' },
+        { label: 'POS System', icon: ShoppingCart, path: '/admin/pos', description: 'Point of Sale' },
+        { label: 'Analytics', icon: BarChart3, path: '/admin/analytics', description: 'View reports' },
+        { label: 'Billing', icon: Receipt, path: '/admin/billing', description: 'Payments & Invoices' },
+        { label: 'Reviews', icon: Star, path: '/admin/reviews', description: 'Moderate customer reviews' },
+        { label: 'Studio', icon: Building2, path: '/admin/studio', description: 'Manage branches' },
+        { label: 'Notifications', icon: Bell, path: '/admin/notifications', description: 'System alerts & updates' }
     ];
 
     const handleLogout = () => {
@@ -236,10 +158,6 @@ function AdminSideNav() {
                     <p className="menu-label">Main Menu</p>
                     <ul className="menu-list">
                         {quickActions.map((action, index) => {
-                            if (action.divider) {
-                                return <li key={index} className="menu-divider" />;
-                            }
-
                             const IconComponent = action.icon;
                             const active = action.path ? isActive(action.path) : isParentActive(action.children || []);
 

@@ -43,10 +43,8 @@ function CustomerSideNav() {
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/customer' },
         { label: 'My Bookings', icon: Calendar, path: '/customer/bookings' },
-        { divider: true },
         { label: 'Gallery', icon: Image, path: '/customer/gallery' },
         { label: 'Try-On Tattoo', icon: Sparkles, path: '/customer/try-on' },
-        { divider: true },
         { label: 'Notifications', icon: Bell, path: '/customer/notifications' },
         { label: 'Profile', icon: User, path: '/customer/profile' },
     ];
@@ -75,9 +73,6 @@ function CustomerSideNav() {
                     <p className="menu-label">Menu</p>
                     <ul className="menu-list">
                         {menuItems.map((item, index) => {
-                            if (item.divider) {
-                                return <li key={index} className="menu-divider" />;
-                            }
                             const Icon = item.icon;
                             const isActive = location.pathname === item.path;
                             return (

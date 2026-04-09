@@ -128,13 +128,12 @@
 
 .menu-list li {
     margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.menu-divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.06);
-    margin: 8px 12px;
-    list-style: none;
+.menu-list li:last-child {
+    border-bottom: none;
 }
 
 /* Menu Items */
