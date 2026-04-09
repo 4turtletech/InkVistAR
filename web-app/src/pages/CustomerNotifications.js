@@ -23,7 +23,7 @@ import { API_URL } from '../config';
 function CustomerNotifications() {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeFilter, setActiveFilter] = useState('all');
+    const [activeFilter, setActiveFilter] = useState('unread');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
@@ -133,6 +133,7 @@ function CustomerNotifications() {
 
     const filteredNotifs = notifications.filter(n => {
         if (activeFilter === 'unread') return !n.is_read;
+        if (activeFilter === 'read') return n.is_read;
         return true;
     });
 
@@ -187,6 +188,13 @@ function CustomerNotifications() {
                         style={filterButtonStyle(activeFilter === 'unread')}
                     >
                         Unread
+                    </button>
+                    <button 
+                        className={`filter-btn ${activeFilter === 'read' ? 'active' : ''}`}
+                        onClick={() => setActiveFilter('read')}
+                        style={filterButtonStyle(activeFilter === 'read')}
+                    >
+                        Read
                     </button>
                 </div>
 

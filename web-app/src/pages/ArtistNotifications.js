@@ -21,7 +21,7 @@ import { API_URL } from '../config';
 function ArtistNotifications() {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeFilter, setActiveFilter] = useState('all');
+    const [activeFilter, setActiveFilter] = useState('unread');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
@@ -136,6 +136,7 @@ function ArtistNotifications() {
 
     const filteredNotifs = notifications.filter(n => {
         if (activeFilter === 'unread') return !n.is_read;
+        if (activeFilter === 'read') return n.is_read;
         return true;
     });
 
@@ -187,6 +188,13 @@ function ArtistNotifications() {
                         style={filterButtonStyle(activeFilter === 'unread')}
                     >
                         Unread
+                    </button>
+                    <button 
+                        className={`filter-btn ${activeFilter === 'read' ? 'active' : ''}`}
+                        onClick={() => setActiveFilter('read')}
+                        style={filterButtonStyle(activeFilter === 'read')}
+                    >
+                        Read
                     </button>
                 </div>
 

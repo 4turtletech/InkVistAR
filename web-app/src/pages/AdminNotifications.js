@@ -33,7 +33,8 @@ function AdminNotifications() {
     const [loading, setLoading] = useState(true);
     const unreadCount = notifications.filter(n => !n.is_read).length;
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeFilter, setActiveFilter] = useState('all');
+    const [activeFilter, setActiveFilter] = useState('all'); // This is category type
+    const [readStateFilter, setReadStateFilter] = useState('unread'); // default to unread
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
@@ -231,13 +232,15 @@ function AdminNotifications() {
     const filteredNotifs = notifications.filter(n => {
         const matchesSearch = n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             n.message.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = activeFilter === 'all' || n.type === activeFilter;
-        return matchesSearch && matchesFilter;
+        const matchesTypeFilter = activeFilter === 'all' || n.type === activeFilter;
+        const matchesReadFilter = readStateFilter === 'all' ? true : (readStateFilter === 'unread' ? !n.is_read : n.is_read);
+        
+        return matchesSearch && matchesTypeFilter && matchesReadFilter;
     });
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, activeFilter]);
+    }, [searchTerm, activeFilter, readStateFilter]);
 
     const totalPages = Math.ceil(filteredNotifs.length / itemsPerPage);
     const currentItems = filteredNotifs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -284,18 +287,25 @@ function AdminNotifications() {
 
                 <div className="filter-bar admin-st-c9ea7af3">
                     <button
-                        className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
-                        onClick={() => setActiveFilter('all')}
-                        style={filterButtonStyle(activeFilter === 'all')}
+                        className={`filter-btn ${readStateFilter === 'all' ? 'active' : ''}`}
+                        onClick={() => setReadStateFilter('all')}
+                        style={filterButtonStyle(readStateFilter === 'all')}
                     >
                         All
                     </button>
                     <button
-                        className={`filter-btn ${activeFilter === 'unread' ? 'active' : ''}`}
-                        onClick={() => setActiveFilter('unread')}
-                        style={filterButtonStyle(activeFilter === 'unread', 'unread')}
+                        className={`filter-btn ${readStateFilter === 'unread' ? 'active' : ''}`}
+                        onClick={() => setReadStateFilter('unread')}
+                        style={filterButtonStyle(readStateFilter === 'unread', 'unread')}
                     >
                         Unread
+                    </button>
+                    <button
+                        className={`filter-btn ${readStateFilter === 'read' ? 'active' : ''}`}
+                        onClick={() => setReadStateFilter('read')}
+                        style={filterButtonStyle(readStateFilter === 'read')}
+                    >
+                        Read
                     </button>
                 </div>
 
