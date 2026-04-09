@@ -92,7 +92,7 @@ h1, h2, h3, h4 {
     z-index: 1;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    opacity: 0.8; /* Reduced tint to make images viewable */
+    opacity: 0.65; /* Slightly increased tint based on user feedback */
 }
 
 .hero-parallax-img {
@@ -211,8 +211,8 @@ h1, h2, h3, h4 {
     overflow: hidden;
     aspect-ratio: 3/4;
     cursor: pointer;
-    background: var(--accent-gold-dark) !important;
-    border: 1px solid var(--accent-gold-dark) !important;
+    background: var(--accent-gold) !important;
+    border: 1px solid var(--accent-gold) !important;
 }
 
 .artist-img {
@@ -270,7 +270,7 @@ h1, h2, h3, h4 {
 .matrix-text {
     font-size: 1.1rem;
     line-height: 1.8;
-    color: #FFF;
+    color: #FFF !important;
     margin-bottom: 2rem;
 }
 
@@ -356,9 +356,13 @@ h1, h2, h3, h4 {
 }
 
 .service-desc {
-    color: var(--text-muted);
+    color: #FFF !important;
     font-size: 0.95rem;
     line-height: 1.6;
+}
+
+.testimonial-body, .testimonial-author {
+    color: #FFF !important;
 }
 
 /* Final CTA Section */
