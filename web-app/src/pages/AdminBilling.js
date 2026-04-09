@@ -324,8 +324,8 @@ function AdminBilling() {
                                                 <td>
                                                     {(() => {
                                                         try {
-                                                            const evt = JSON.parse(inv.raw_event);
-                                                            return <span style={{fontWeight: '600', color: '#475569'}}>{evt.method || 'Digital'}</span>;
+                                                            const evt = typeof inv.raw_event === 'string' ? JSON.parse(inv.raw_event) : inv.raw_event;
+                                                            return <span style={{fontWeight: '600', color: '#475569'}}>{evt?.method || 'Digital'}</span>;
                                                         } catch(e) {
                                                             return <span style={{fontWeight: '600', color: '#475569'}}>Digital</span>;
                                                         }
@@ -577,6 +577,12 @@ function AdminBilling() {
                                         <h2 className="admin-st-208c2b41">INVOICE</h2>
                                         <p className="admin-st-04bfc9c7">Ref: INV-{previewModal.invoice.id}</p>
                                         <p className="admin-st-04bfc9c7">Date: {new Date(previewModal.invoice.created_at).toLocaleDateString()}</p>
+                                        <p className="admin-st-04bfc9c7">Method: <strong className="admin-st-ca12521c">{(() => {
+                                            try {
+                                                const evt = typeof previewModal.invoice.raw_event === 'string' ? JSON.parse(previewModal.invoice.raw_event) : previewModal.invoice.raw_event;
+                                                return evt?.method || 'Digital';
+                                            } catch(e) { return 'Digital'; }
+                                        })()}</strong></p>
                                     </div>
                                 </div>
 
