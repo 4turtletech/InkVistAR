@@ -117,7 +117,7 @@ function ArtistEarnings() {
                                                             <td>{session.design_title}</td>
                                                             <td>₱{(session.basePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                             <td style={{ color: session.payment_status === 'paid' ? '#10b981' : '#f59e0b', fontWeight: 'bold' }}>
-                                                                ₱{(session.artistShare || 0).toFixed(2)}
+                                                                ₱{Number(session.artistShare || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                                 <span style={{ fontSize: '0.7rem', display: 'block', color: session.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>
                                                                     {session.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
                                                                 </span>
