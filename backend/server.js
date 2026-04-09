@@ -2366,10 +2366,21 @@ app.post('/api/customer/appointments', (req, res) => {
         const displayDesign = designTitle || 'Tattoo Request';
         createNotification(currentArtistId, 'New Booking Request', `New ${displayService} request: "${displayDesign}" for ${notifDate}. Pending review.`, 'appointment_request', result.insertId);
 
-        // NEW: Notify Customer
+        // Notify Customer
         const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const appointmentTime = finalStartTime ? new Date(`2000-01-01T${finalStartTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'a time to be determined';
         createNotification(customerId, 'Booking Request Received', `Your request for a ${designTitle || serviceType} session on ${appointmentDate} at ${appointmentTime} has been received. We will review it shortly! Expect a call from our staff in the next 24 hours.`, 'appointment_request', result.insertId);
+
+        // Also notify all Admins/Managers about the new booking request
+        db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
+          if (!adminErr && admins.length > 0) {
+            admins.forEach(admin => {
+              if (admin.id !== currentArtistId) {
+                createNotification(admin.id, 'Booking Request Received', `New ${displayService} booking request from a customer: "${displayDesign}" for ${notifDate}. Please review and assign pricing.`, 'appointment_request', result.insertId);
+              }
+            });
+          }
+        });
 
         db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (err, users) => {
           if (!err && users && users.length > 0 && users[0].email) {
