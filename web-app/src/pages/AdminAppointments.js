@@ -402,6 +402,12 @@ function AdminAppointments() {
             return;
         }
 
+        if (isTattooSession && finalPrice > 0 && finalPrice < 5000) {
+            setModalTab('pricing');
+            showAlert('Minimum Price', 'The minimum quote for a Tattoo Session is ₱5,000. Please adjust the price accordingly.', 'warning');
+            return;
+        }
+
         const doSave = async () => {
             try {
                 const payload = {
@@ -1158,7 +1164,20 @@ function AdminAppointments() {
                                             <div className="admin-st-e5b0a825">
                                                 <div className="form-group">
                                                     <label className="admin-st-6ad161f7">Total Quote (₱) *</label>
-                                                    <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} className="premium-input-v2 admin-st-1a49bbe7" />
+                                                    <input 
+                                                        type="text" 
+                                                        inputMode="numeric"
+                                                        value={formData.price === 0 || formData.price === '0' ? '' : formData.price} 
+                                                        onChange={(e) => {
+                                                            const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                            setFormData({ ...formData, price: raw === '' ? 0 : Number(raw) });
+                                                        }} 
+                                                        placeholder="e.g. 5000"
+                                                        className="premium-input-v2 admin-st-1a49bbe7" 
+                                                    />
+                                                    {formData.price > 0 && formData.price < 5000 && (
+                                                        <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Minimum quote for tattoo sessions is ₱5,000</span>
+                                                    )}
                                                 </div>
                                                 <div className="form-group">
                                                     <label className="admin-st-6ad161f7">Payment Strategy</label>
