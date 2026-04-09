@@ -2481,7 +2481,26 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
         return res.status(400).json({ success: false, message: 'Rescheduling is not allowed for appointments that are less than 1 week away. If this is an emergency, please contact the studio directly.' });
       }
 
-      // 5. Perform the reschedule
+      // 5. New date must be AFTER the current appointment date (can only move forward)
+      const newDateObj = new Date(newDate);
+      const currentDateNorm = new Date(appt.appointment_date);
+      newDateObj.setHours(0,0,0,0);
+      currentDateNorm.setHours(0,0,0,0);
+      if (newDateObj <= currentDateNorm) {
+        return res.status(400).json({ success: false, message: 'You can only reschedule to a later date than your current appointment.' });
+      }
+
+      // 6. Check for date conflict with other active appointments for this customer
+      db.query(
+        `SELECT id FROM appointments WHERE customer_id = ? AND id != ? AND appointment_date = ? AND status NOT IN ('completed', 'cancelled', 'rejected') AND is_deleted = 0`,
+        [customerId, id, newDate],
+        (conflictErr, conflicts) => {
+          if (conflictErr) return res.status(500).json({ success: false, message: 'Database error checking conflicts.' });
+          if (conflicts.length > 0) {
+            return res.status(400).json({ success: false, message: 'You already have another session booked on this date. Please choose a different date.' });
+          }
+
+      // 7. Perform the reschedule
       db.query(
         `UPDATE appointments SET appointment_date = ?, start_time = COALESCE(?, start_time), reschedule_count = reschedule_count + 1 WHERE id = ?`,
         [newDate, newTime || null, id],
@@ -2508,6 +2527,8 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
           res.json({ success: true, message: 'Appointment rescheduled successfully.', remainingReschedules: 2 - (currentCount + 1) });
         }
       );
+        } // end conflict check callback
+      ); // end conflict check query
     }
   );
 });

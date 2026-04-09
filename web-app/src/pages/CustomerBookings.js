@@ -373,6 +373,21 @@ function CustomerBookings(){
         const maxDate = new Date();
         maxDate.setMonth(today.getMonth() + 3);
 
+        // The current appointment date — customer can only move FORWARD from this
+        const currentApptDate = selectedApt ? new Date(selectedApt.appointment_date) : null;
+        if (currentApptDate) currentApptDate.setHours(0,0,0,0);
+
+        // Collect all dates where this customer already has active appointments (excluding the one being rescheduled)
+        const bookedDateSet = new Set();
+        appointments.forEach(a => {
+            if (a.id !== selectedApt?.id && !['completed', 'cancelled', 'rejected'].includes(a.status)) {
+                const d = typeof a.appointment_date === 'string' 
+                    ? a.appointment_date.substring(0, 10) 
+                    : new Date(a.appointment_date).toISOString().split('T')[0];
+                bookedDateSet.add(d);
+            }
+        });
+
         const daysInM = new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() + 1, 0).getDate();
         const firstDay = new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth(), 1).getDay();
 
@@ -383,13 +398,20 @@ function CustomerBookings(){
             const isSelected = rescheduleDate === dateStr;
             const isPast = dateObj < oneWeekFromNow;
             const isTooFar = dateObj > maxDate;
+            const isBeforeOrSameAsCurrentAppt = currentApptDate ? dateObj <= currentApptDate : false;
+            const isAlreadyBooked = bookedDateSet.has(dateStr);
+            const isDisabled = isPast || isTooFar || isBeforeOrSameAsCurrentAppt || isAlreadyBooked;
 
             days.push(
-                <div key={i} className={`calendar-day ${isPast || isTooFar ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
-                    style={{ flexDirection: 'column' }}
-                    onClick={() => { if (!isPast && !isTooFar) setRescheduleDate(dateStr); }}
+                <div key={i} className={`calendar-day ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
+                    style={{ flexDirection: 'column', position: 'relative' }}
+                    onClick={() => { if (!isDisabled) setRescheduleDate(dateStr); }}
+                    title={isAlreadyBooked ? 'You already have a session on this date' : isBeforeOrSameAsCurrentAppt ? 'You can only reschedule to a later date' : ''}
                 >
                     <span>{i}</span>
+                    {isAlreadyBooked && !isPast && !isTooFar && (
+                        <div style={{ width: '4px', height: '4px', borderRadius: '2px', backgroundColor: '#ef4444', marginTop: '2px' }} />
+                    )}
                 </div>
             );
         }
