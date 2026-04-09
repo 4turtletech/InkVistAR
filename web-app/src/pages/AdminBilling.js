@@ -306,13 +306,14 @@ function AdminBilling() {
                                             <th>Service Type</th>
                                             <th>Date</th>
                                             <th>Amount</th>
+                                            <th>Method</th>
                                             <th>Status</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {loading ? (
-                                            <tr><td colSpan="7" className="no-data admin-st-3927920f">Loading invoices...</td></tr>
+                                            <tr><td colSpan="8" className="no-data admin-st-3927920f">Loading invoices...</td></tr>
                                         ) : paginatedInvoices.map(inv => (
                                             <tr key={inv.id}>
                                                 <td>INV-{inv.id}</td>
@@ -320,6 +321,16 @@ function AdminBilling() {
                                                 <td>{inv.service_type}</td>
                                                 <td>{new Date(inv.created_at).toLocaleDateString()}</td>
                                                 <td>₱{inv.amount}</td>
+                                                <td>
+                                                    {(() => {
+                                                        try {
+                                                            const evt = JSON.parse(inv.raw_event);
+                                                            return <span style={{fontWeight: '600', color: '#475569'}}>{evt.method || 'Digital'}</span>;
+                                                        } catch(e) {
+                                                            return <span style={{fontWeight: '600', color: '#475569'}}>Digital</span>;
+                                                        }
+                                                    })()}
+                                                </td>
                                                 <td>
                                                     <span className={`badge status-${inv.status.toLowerCase() === 'paid' ? 'active' : 'pending'}`}>
                                                         {inv.status}

@@ -2783,7 +2783,8 @@ app.get('/api/admin/invoices', (req, res) => {
       COALESCE(a.service_type, 'Service') as service_type, 
       p.created_at, 
       (p.amount / 100) as amount, 
-      p.status
+      p.status,
+      p.raw_event
     FROM payments p
     LEFT JOIN appointments a ON p.appointment_id = a.id
     LEFT JOIN users u ON a.customer_id = u.id
