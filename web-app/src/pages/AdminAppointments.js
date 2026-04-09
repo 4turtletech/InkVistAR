@@ -370,9 +370,12 @@ function AdminAppointments() {
         const isConsultation = formData.serviceType === 'Consultation';
         const isArtistRequired = !isConsultation;
 
+        const hasNoArtist = !formData.artistId || String(formData.artistId) === 'null' || String(formData.artistId) === 'undefined' || String(formData.artistId) === '0' || String(formData.artistId).trim() === '';
+
         // Re-aligned time validation to only map to explicit Consultations per the new Day-Lock studio capacity strategy
-        if (!formData.clientId || (isArtistRequired && !formData.artistId) || !formData.date || (isConsultation && !formData.time)) {
-            showConfirm(`Please fill in all required fields (Client, ${isArtistRequired ? 'Artist, ' : ''}Date${isConsultation ? ', Time' : ''}).`, null);
+        if (!formData.clientId || (isArtistRequired && hasNoArtist) || !formData.date || (isConsultation && !formData.time)) {
+            setModalTab('details');
+            showAlert('Missing Required Information', `Please fill in all required fields (Client, ${isArtistRequired ? 'Artist, ' : ''}Date${isConsultation ? ', Time' : ''}).`, 'warning');
             return;
         }
 
@@ -380,10 +383,17 @@ function AdminAppointments() {
         let priceValue = parseFloat(priceInput);
         const finalPrice = (!priceValue || priceValue < 0) ? 0 : priceValue;
 
-        if (formData.status === 'confirmed' && !isConsultation && finalPrice <= 0) {
-            setModalTab('pricing');
-            showAlert('Pricing Required', 'Please set the finalized Service Price in the Pricing tab before confirming this physical session.', 'warning');
-            return;
+        if (formData.status === 'confirmed' && !isConsultation) {
+            if (finalPrice <= 0) {
+                setModalTab('pricing');
+                showAlert('Pricing Required', 'Please set the finalized Service Price in the Pricing tab before confirming this physical session.', 'warning');
+                return;
+            }
+            if (hasNoArtist) {
+                setModalTab('details');
+                showAlert('Artist Required', 'A Resident Artist MUST be assigned before upgrading a physical session to Confirmed status.', 'warning');
+                return;
+            }
         }
 
         const doSave = async () => {
