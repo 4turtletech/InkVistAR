@@ -370,7 +370,7 @@ function CustomerBookings(){
                                                     <td>
                                                         <div className="customer-st-929a545b" >
                                                             {a.status === 'pending' && a.price > 0 && a.payment_status === 'unpaid' ? (
-                                                                <button className="btn btn-primary customer-st-f3c9d3c3" onClick={() => handlePay(a)} >
+                                                                <button className="btn btn-primary customer-st-f3c9d3c3" style={{ color: 'white' }} onClick={() => handlePay(a)} >
                                                                     <CreditCard size={14}/> Pay Deposit
                                                                 </button>
                                                             ) : a.payment_status === 'paid' ? (
@@ -541,15 +541,15 @@ function CustomerBookings(){
                             <button className="btn btn-secondary customer-st-282aded5" onClick={() => setIsModalOpen(false)}>Close</button>
                             
                             {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && selectedApt.price > 0 && selectedApt.payment_status === 'unpaid' && (
-                                <button className="btn btn-primary customer-st-9fb0229b" onClick={() => handlePay(selectedApt)} >
-                                    <CreditCard size={18}/> Pay Deposit (₱{Math.round(selectedApt.price * 0.2).toLocaleString()})
+                                <button className="btn btn-primary customer-st-9fb0229b" style={{ color: 'white' }} onClick={() => handlePay(selectedApt)} >
+                                    <CreditCard size={18}/> Pay Deposit
                                 </button>
                             )}
                             
                             {selectedApt.payment_status === 'downpayment_paid' && (
                                 <button 
                                     className="btn btn-primary" 
-                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none' }}
+                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none' }}
                                     onClick={() => handlePay(selectedApt, 'balance')}
                                 >
                                     <CreditCard size={18}/> Pay Remaining Balance

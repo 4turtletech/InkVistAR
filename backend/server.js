@@ -3321,7 +3321,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
     // 1) Pull appointment to get authoritative price AND total already paid
     const checkoutQuery = `
       SELECT 
-        ap.id, ap.price, ap.customer_id, ap.artist_id, ap.status, ap.design_title,
+        ap.id, ap.price, ap.customer_id, ap.artist_id, ap.status, ap.design_title, ap.service_type,
         (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') + (COALESCE(ap.manual_paid_amount, 0) * 100) as total_paid_centavos
       FROM appointments ap
       WHERE ap.id = ? AND ap.is_deleted = 0
@@ -3363,7 +3363,10 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
 
       try {
         if (paymentType === 'deposit') {
-          const depositPesos = Math.max(100, Math.round(priceNumber * 0.3));
+          const isPiercing = appointment.service_type && String(appointment.service_type).toLowerCase().includes('piercing');
+          let tierPrice = isPiercing ? 500 : 5000;
+          tierPrice = Math.min(tierPrice, priceNumber);
+          const depositPesos = Math.max(100, Math.round(tierPrice));
           await proceedWithSession(Math.round(depositPesos * 100), itemName, description);
         } else if (paymentType === 'balance') {
           const totalPaidCentavos = Number(appointment.total_paid_centavos) || 0;
