@@ -1003,7 +1003,7 @@ function AdminAppointments() {
                                         <span className={`badge status-${getStatusColor(formData.status)}`}>{formData.status}</span>
                                         {selectedAppointment && selectedAppointment.price > 0 && (
                                             <div className="badge admin-st-d2713882">
-                                                <span>Paid: ₱{selectedAppointment.totalPaid.toLocaleString()} / ₱{formData.price.toLocaleString()}</span>
+                                                <span>Paid: ₱{Number(selectedAppointment.totalPaid || 0).toLocaleString()} / ₱{Number(formData.price || 0).toLocaleString()}</span>
                                                 {selectedAppointment.totalPaid < formData.price && (
                                                     <span className="admin-st-14a76a5d">(Bal: ₱{(formData.price - selectedAppointment.totalPaid).toLocaleString()})</span>
                                                 )}
@@ -1206,7 +1206,7 @@ function AdminAppointments() {
                                                 <div className="admin-st-4344b743">
                                                     <div className="admin-st-7c85a4a1">
                                                         <span className="admin-st-9e124000">Total Collected:</span>
-                                                        <span className="admin-st-3947f0f7">₱{selectedAppointment.totalPaid.toLocaleString()}</span>
+                                                        <span className="admin-st-3947f0f7">₱{Number(selectedAppointment.totalPaid || 0).toLocaleString()}</span>
                                                     </div>
                                                     <div className="admin-st-ddde571d">
                                                         <span className="admin-st-9e124000">Remaining Balance:</span>
@@ -1224,7 +1224,7 @@ function AdminAppointments() {
                                                         type="button"
                                                         className="btn btn-primary admin-st-2b208132" 
                                                         onClick={() => {
-                                                            showAlert('Payment Link Sent', `A digital payment checkout link for ₱${formData.price.toLocaleString()} has been routed to the client.`, 'success');
+                                                            showAlert('Payment Link Sent', `A digital payment checkout link for ₱${Number(formData.price || 0).toLocaleString()} has been routed to the client.`, 'success');
                                                         }}
                                                     >
                                                         <CreditCard size={20} /> Request Digital Payment
