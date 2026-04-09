@@ -3562,10 +3562,10 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
         // Payment already confirmed — but admin notifications may not have been sent
         // (e.g. webhook updated DB before polling could trigger notifications)
         // Use a one-time deduplication check: only send if no 'payment_success' notification exists for this admin + appointment
-        db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
+        db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
           if (!adminErr && admins.length > 0) {
             admins.forEach(admin => {
-              db.query('SELECT id FROM notifications WHERE user_id = ? AND related_id = ? AND type = "payment_success" LIMIT 1', [admin.id, appointmentId], (nErr, nRes) => {
+              db.query('SELECT id FROM notifications WHERE user_id = ? AND related_id = ? AND type = ? LIMIT 1', [admin.id, appointmentId, 'payment_success'], (nErr, nRes) => {
                 if (!nErr && nRes.length === 0) {
                   // Admin hasn't been notified yet — send now
                   createNotification(admin.id, 'Payment Received', `Payment for appointment #${appointmentId} from ${appt.customer_name} has been confirmed.`, 'payment_success', appointmentId);
@@ -3641,7 +3641,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                           sendReceiptEmail(appt.cx_email, { id: paymentId, amount: amountCentavos/100, method: 'PayMongo' });
                       }
                       
-                      db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
+                      db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
                           if (!adminErr && admins.length > 0) {
                               const adminMsg = `Payment of ₱${(amountCentavos / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
                               admins.forEach(admin => {
@@ -3787,7 +3787,7 @@ app.post('/api/payments/webhook', (req, res) => {
             sendReceiptEmail(appt.cx_email, { id: paymongoPaymentId, amount: amount/100, method: 'PayMongo' });
 
             // Notify Admins and Managers
-            db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
+            db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
               if (!adminErr && admins.length > 0) {
                 const adminMsg = `Payment of ₱${(amount / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
                 admins.forEach(admin => {
@@ -4963,7 +4963,7 @@ io.on('connection', (socket) => {
       io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
 
       // Push Notification to all Admins
-      db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (err, admins) => {
+      db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (err, admins) => {
         if (!err && admins.length > 0) {
           admins.forEach(admin => {
             createNotification(admin.id, 'New Support Live Chat', `${name || 'A customer'} started a new support session.`, 'support_session', null);
@@ -5017,7 +5017,7 @@ io.on('connection', (socket) => {
       }
       // Case B: Customer sends message to Support - notify admins
       else if (customerRoomMatch && !isFromSupport) {
-        db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (err, admins) => {
+        db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (err, admins) => {
           if (!err && admins.length > 0) {
             admins.forEach(admin => {
               createNotification(admin.id, 'New Message from Client', `${data.sender}: ${data.text.substring(0, 50)}`, 'chat_message', null);
