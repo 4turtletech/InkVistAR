@@ -1397,6 +1397,14 @@ app.put('/api/users/:id/push-token', (req, res) => {
   });
 });
 
+// ========== DEBUG/GLOBAL USER ENDPOINTS ==========
+app.get('/api/debug/users', (req, res) => {
+  db.query('SELECT id, name, user_type FROM users WHERE is_deleted = 0', (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    res.json({ success: true, users: results });
+  });
+});
+
 // ========== OTP ENDPOINTS ==========
 
 app.post('/api/send-otp', (req, res) => {
