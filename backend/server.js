@@ -586,6 +586,15 @@ db.getConnection((err, connection) => {
             console.log('✅ Added service_type column to appointments');
           }
         });
+
+        // MIGRATION: Add 'draft_image' column if it doesn't exist
+        db.query("SHOW COLUMNS FROM appointments LIKE 'draft_image'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding draft_image column...');
+            db.query("ALTER TABLE appointments ADD COLUMN draft_image LONGTEXT NULL AFTER reference_image");
+            console.log('✅ Added draft_image column to appointments');
+          }
+        });
       }
     });
 
