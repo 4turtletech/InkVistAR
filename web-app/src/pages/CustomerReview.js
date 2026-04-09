@@ -69,6 +69,7 @@ function CustomerReview() {
                 setErrorMsg(res.data.message);
             }
         } catch (error) {
+            console.error('[REVIEW] Submit error:', error.response?.data || error.message);
             setErrorMsg(error.response?.data?.message || 'Error submitting review.');
         }
         setLoading(false);

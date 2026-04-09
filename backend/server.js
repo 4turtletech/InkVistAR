@@ -5403,30 +5403,67 @@ app.get('/api/artists/:id/reviews', (req, res) => {
 // POST submit a review
 app.post('/api/reviews', (req, res) => {
   const { customer_id, artist_id, appointment_id, rating, comment } = req.body;
+  console.log('[REVIEW] Submission attempt:', { customer_id, artist_id, appointment_id, rating, comment: comment?.substring(0, 50) });
+  
   if (!customer_id || !artist_id || !appointment_id || !rating) {
     return res.status(400).json({ success: false, message: 'Missing fields' });
   }
 
-  // Verify appointment belongs to customer and is completed
-  db.query('SELECT status FROM appointments WHERE id = ? AND customer_id = ?', [appointment_id, customer_id], (err, results) => {
-    if (err || results.length === 0 || results[0].status !== 'completed') {
-      return res.status(400).json({ success: false, message: 'Invalid appointment for review' });
+  // Ensure reviews table exists before attempting insert
+  const ensureTable = `
+    CREATE TABLE IF NOT EXISTS reviews (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      customer_id INT NOT NULL,
+      artist_id INT NOT NULL,
+      appointment_id INT NOT NULL,
+      rating INT NOT NULL,
+      comment TEXT,
+      status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+      is_showcased BOOLEAN DEFAULT FALSE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  
+  db.query(ensureTable, (tableErr) => {
+    if (tableErr) {
+      console.error('[REVIEW] Table creation error:', tableErr.message);
+      return res.status(500).json({ success: false, message: 'Database setup error: ' + tableErr.message });
     }
 
-    // Check if review already exists
-    db.query('SELECT id FROM reviews WHERE appointment_id = ?', [appointment_id], (err2, res2) => {
-      if (!err2 && res2.length > 0) {
-        return res.status(400).json({ success: false, message: 'You have already reviewed this session.' });
+    // Verify appointment belongs to customer and is completed
+    db.query('SELECT status FROM appointments WHERE id = ? AND customer_id = ?', [appointment_id, customer_id], (err, results) => {
+      if (err) {
+        console.error('[REVIEW] Appointment lookup error:', err.message);
+        return res.status(500).json({ success: false, message: 'Database error looking up appointment: ' + err.message });
+      }
+      if (results.length === 0 || results[0].status !== 'completed') {
+        return res.status(400).json({ success: false, message: 'Invalid appointment for review. The session must be completed first.' });
       }
 
-      const q = 'INSERT INTO reviews (customer_id, artist_id, appointment_id, rating, comment, status) VALUES (?, ?, ?, ?, ?, "pending")';
-      db.query(q, [customer_id, artist_id, appointment_id, rating, comment], (err3, result) => {
-        if (err3) return res.status(500).json({ success: false, message: 'Database error' });
+      // Check if review already exists
+      db.query('SELECT id FROM reviews WHERE appointment_id = ?', [appointment_id], (err2, res2) => {
+        if (err2) {
+          console.error('[REVIEW] Duplicate check error:', err2.message);
+          return res.status(500).json({ success: false, message: 'Database error checking existing reviews: ' + err2.message });
+        }
+        if (res2.length > 0) {
+          return res.status(400).json({ success: false, message: 'You have already reviewed this session.' });
+        }
 
-        // Notify Admin of new review
-        createNotification(1, 'New Review Submitted', `A client submitted a new review for appointment #${appointment_id}. Needs approval.`, 'system', result.insertId);
+        const q = 'INSERT INTO reviews (customer_id, artist_id, appointment_id, rating, comment, status) VALUES (?, ?, ?, ?, ?, "pending")';
+        db.query(q, [customer_id, artist_id, appointment_id, rating, comment || ''], (err3, result) => {
+          if (err3) {
+            console.error('[REVIEW] Insert error:', err3.message, err3.code);
+            return res.status(500).json({ success: false, message: 'Failed to save review: ' + err3.message });
+          }
 
-        res.json({ success: true, message: 'Review submitted and is pending admin approval.' });
+          console.log('[REVIEW] Successfully created review ID:', result.insertId);
+
+          // Notify Admin of new review
+          createNotification(1, 'New Review Submitted', `A client submitted a new review for appointment #${appointment_id}. Needs approval.`, 'system', result.insertId);
+
+          res.json({ success: true, message: 'Review submitted and is pending admin approval.' });
+        });
       });
     });
   });
