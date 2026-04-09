@@ -4725,7 +4725,7 @@ app.post('/api/chat', async (req, res) => {
             - Hours: Open from ${studioInfo.openingTime || '1 PM'} to ${studioInfo.closingTime || '8 PM'}.
 
           - Pricing & Booking:
-            - Base Rate: Our base rate is around ₱${billingInfo.baseRate || 150} per hour, but this varies by artist and design complexity.
+            - Base Rate: Our base rate is around ₱${Number(billingInfo.baseRate || 150).toLocaleString()} per hour, but this varies by artist and design complexity.
             - Deposit Policy: ${policiesInfo.deposit || 'A deposit is required to book.'}
             - Cancellation Policy: ${policiesInfo.cancellation || 'Please contact us at least 48 hours in advance to cancel or reschedule.'}
             - How to Book: Tell users to browse artists and use the 'Booking' section of the app.
