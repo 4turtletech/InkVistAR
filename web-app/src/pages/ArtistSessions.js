@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus } from 'lucide-react';
+import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -326,7 +326,7 @@ function ArtistSessions() {
                 setActiveSession(prev => ({ ...prev, status: newStatus }));
 
                 if (newStatus === 'completed') {
-                    closeSessionModal();
+                    showAlert("Session Complete", "Session marked as complete. Review your notes and photos, then click 'Archive Session' when ready.", "success");
                     fetchSessions();
                 } else if (newStatus === 'in_progress') {
                     setTimeout(() => fetchSessionMaterials(activeSession.id), 1000);
@@ -544,7 +544,8 @@ function ArtistSessions() {
                                     </span>
                                     <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
                                         {activeSession.status === 'confirmed' ? 'Ready for procedure' : 
-                                         activeSession.status === 'in_progress' ? 'Session currently active' : 'Session archived'}
+                                         activeSession.status === 'in_progress' ? 'Session currently active' : 
+                                         activeSession.status === 'completed' ? 'Session complete — ready to archive' : 'Session archived'}
                                     </div>
                                 </div>
                                 
@@ -562,6 +563,11 @@ function ArtistSessions() {
                                     {isCompletingSession && (
                                         <button className="btn btn-secondary" style={{ padding: '10px 20px' }} onClick={() => setIsCompletingSession(false)}>
                                             Cancel
+                                        </button>
+                                    )}
+                                    {activeSession.status === 'completed' && (
+                                        <button className="btn btn-primary" style={{ padding: '10px 24px', background: '#6366f1', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => { closeSessionModal(); }}>
+                                            <Archive size={18} /> Archive Session
                                         </button>
                                     )}
                                 </div>
@@ -741,10 +747,17 @@ function ArtistSessions() {
                         </div>
 
                         <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={closeSessionModal}>Close View</button>
-                            <button className="btn btn-primary" style={{ padding: '10px 32px' }} onClick={handleSaveDetails} disabled={isSaving}>
-                                <Save size={18} /> {isSaving ? 'Saving...' : 'Sync Progress'}
-                            </button>
+                            <button className="btn btn-secondary" onClick={closeSessionModal}>{activeSession.status === 'completed' ? 'Close' : 'Close View'}</button>
+                            {activeSession.status !== 'completed' && (
+                                <button className="btn btn-primary" style={{ padding: '10px 32px' }} onClick={handleSaveDetails} disabled={isSaving}>
+                                    <Save size={18} /> {isSaving ? 'Saving...' : 'Sync Progress'}
+                                </button>
+                            )}
+                            {activeSession.status === 'completed' && (
+                                <button className="btn btn-primary" style={{ padding: '10px 32px', background: '#6366f1' }} onClick={() => { closeSessionModal(); }}>
+                                    <Archive size={18} /> Archive Session
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
