@@ -980,12 +980,30 @@ function AdminAppointments() {
                                             <div>
                                                 <label className="premium-input-label">Client Information</label>
                                                 {formData.clientId ? (
-                                                    <div className="admin-st-013bb379">
-                                                        <div className="admin-st-b0dbc89c">
-                                                            <div className="admin-st-589acf0b">
-                                                                <User size={18} color="#10b981" />
-                                                            </div>
-                                                            <span className="admin-st-0e40c814">{clients.find(c => c.id == formData.clientId)?.name || clientSearch}</span>
+                                                    <div className="admin-st-013bb379" style={{ padding: '12px', alignItems: 'center' }}>
+                                                        <div className="admin-st-b0dbc89c" style={{ gap: '16px' }}>
+                                                            {selectedAppointment && selectedAppointment.clientAvatar ? (
+                                                                <div style={{
+                                                                    width: '64px', height: '64px', borderRadius: '50%',
+                                                                    backgroundColor: '#f1f5f9', overflow: 'hidden',
+                                                                    border: '3px solid white', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                                                }}>
+                                                                    <img src={selectedAppointment.clientAvatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                </div>
+                                                            ) : (
+                                                                <div style={{
+                                                                    width: '64px', height: '64px', borderRadius: '50%',
+                                                                    backgroundColor: '#f1f5f9', overflow: 'hidden',
+                                                                    border: '3px solid white', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                                                }}>
+                                                                    <User size={32} color="#10b981" />
+                                                                </div>
+                                                            )}
+                                                            <span className="admin-st-0e40c814" style={{ fontSize: '1.2rem', fontWeight: '600' }}>
+                                                                {clients.find(c => c.id == formData.clientId)?.name || clientSearch}
+                                                            </span>
                                                         </div>
                                                         <button type="button" onClick={() => { setFormData(prev => ({ ...prev, clientId: null })); setClientSearch(''); }} className="admin-st-f32d59a5">
                                                             <X size={20} />
@@ -1368,9 +1386,19 @@ function AdminAppointments() {
                                             onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}
                                         >
                                             <div className="admin-st-a5c3808d">
-                                                <div className="admin-st-351e3911" style={{ padding: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}>
-                                                    {apt.clientAvatar ? (
-                                                        <img src={apt.clientAvatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <div style={{
+                                                    width: '44px', height: '44px', borderRadius: '50%',
+                                                    backgroundColor: '#f1f5f9', overflow: 'hidden',
+                                                    border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                                }}>
+                                                    {apt.clientAvatar && apt.clientAvatar.length > 10 ? (
+                                                        <img 
+                                                            src={apt.clientAvatar} 
+                                                            alt="Profile" 
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                            onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'; }}
+                                                        />
                                                     ) : (
                                                         <User size={20} color="#94a3b8" />
                                                     )}
