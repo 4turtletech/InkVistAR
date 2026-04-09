@@ -604,6 +604,33 @@ db.getConnection((err, connection) => {
             console.log('✅ Added reschedule_count column to appointments');
           }
         });
+
+        // MIGRATION: Add 'secondary_artist_id' column if it doesn't exist
+        db.query("SHOW COLUMNS FROM appointments LIKE 'secondary_artist_id'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding secondary_artist_id column...');
+            db.query("ALTER TABLE appointments ADD COLUMN secondary_artist_id INT NULL AFTER artist_id");
+            console.log('✅ Added secondary_artist_id column to appointments');
+          }
+        });
+
+        // MIGRATION: Add 'commission_split' column if it doesn't exist
+        db.query("SHOW COLUMNS FROM appointments LIKE 'commission_split'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding commission_split column...');
+            db.query("ALTER TABLE appointments ADD COLUMN commission_split INT DEFAULT 50");
+            console.log('✅ Added commission_split column to appointments');
+          }
+        });
+
+        // MIGRATION: Add 'before_photo' column if it doesn't exist
+        db.query("SHOW COLUMNS FROM appointments LIKE 'before_photo'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding before_photo column...');
+            db.query("ALTER TABLE appointments ADD COLUMN before_photo LONGTEXT NULL");
+            console.log('✅ Added before_photo column to appointments');
+          }
+        });
       }
     });
 
