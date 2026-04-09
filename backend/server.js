@@ -2911,7 +2911,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
               return res.status(500).json({ success: false, message: 'Database error: ' + retryErr.message });
             }
             // Continue with the rest of the logic using result from retry
-            processPostUpdate(res, id, oldAppt, customerId, artistId, status, paymentStatus, date, startTime, retryResult);
+            processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle });
           });
         }
         console.error('❌ Error updating admin appointment:', err);
