@@ -147,12 +147,7 @@ function AdminSideNav() {
                 }
             ]
         },
-        {
-            label: 'Studio',
-            icon: Building2,
-            path: '/admin/studio',
-            description: 'Manage branches'
-        },
+        { divider: true },
         {
             label: 'Appointments',
             icon: Calendar,
@@ -165,6 +160,7 @@ function AdminSideNav() {
             path: '/admin/completed-sessions',
             description: 'View completed sessions'
         },
+        { divider: true },
         {
             label: 'Chat',
             icon: MessageSquare,
@@ -183,6 +179,7 @@ function AdminSideNav() {
             path: '/admin/pos',
             description: 'Point of Sale'
         },
+        { divider: true },
         {
             label: 'Analytics',
             icon: BarChart3,
@@ -195,13 +192,19 @@ function AdminSideNav() {
             path: '/admin/billing',
             description: 'Payments & Invoices'
         },
+        { divider: true },
         {
             label: 'Reviews',
             icon: Star,
             path: '/admin/reviews',
             description: 'Moderate customer reviews'
         },
-
+        {
+            label: 'Studio',
+            icon: Building2,
+            path: '/admin/studio',
+            description: 'Manage branches'
+        },
         {
             label: 'Notifications',
             icon: Bell,
@@ -233,6 +236,10 @@ function AdminSideNav() {
                     <p className="menu-label">Main Menu</p>
                     <ul className="menu-list">
                         {quickActions.map((action, index) => {
+                            if (action.divider) {
+                                return <li key={index} className="menu-divider" />;
+                            }
+
                             const IconComponent = action.icon;
                             const active = action.path ? isActive(action.path) : isParentActive(action.children || []);
 

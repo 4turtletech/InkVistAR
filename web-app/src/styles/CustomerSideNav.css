@@ -130,6 +130,13 @@
     margin-bottom: 4px;
 }
 
+.menu-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 8px 12px;
+    list-style: none;
+}
+
 /* Menu Items */
 .menu-item {
     width: 100%;

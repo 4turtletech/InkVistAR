@@ -5,7 +5,7 @@ import AdminSideNav from '../components/AdminSideNav';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
-import AdminTestimonials from '../components/AdminTestimonials';
+
 import AdminSettings from './AdminSettings';
 import './AdminUsers.css'; // Reusing styles
 
@@ -158,12 +158,6 @@ function AdminStudio() {
                         onClick={() => setActiveTab('branches')}
                     >
                         Branches Directory
-                    </button>
-                    <button 
-                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'testimonials' ? '2px solid #C19A6B' : '2px solid transparent', color: activeTab === 'testimonials' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
-                        onClick={() => setActiveTab('testimonials')}
-                    >
-                        Customer Testimonials
                     </button>
                     <button 
                         style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'settings' ? '2px solid #C19A6B' : '2px solid transparent', color: activeTab === 'settings' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
@@ -344,8 +338,6 @@ function AdminStudio() {
                     </div>
                 )}
                 </>
-                ) : activeTab === 'testimonials' ? (
-                    <AdminTestimonials />
                 ) : (
                     <AdminSettings />
                 )}

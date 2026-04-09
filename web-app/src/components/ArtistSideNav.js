@@ -45,8 +45,10 @@ function ArtistSideNav() {
         { label: 'Dashboard', icon: LayoutDashboard, path: '/artist' },
         { label: 'Schedule', icon: Calendar, path: '/artist/appointments' },
         { label: 'Tattoo Session', icon: PenTool, path: '/artist/sessions' },
+        { divider: true },
         { label: 'Portfolio', icon: Image, path: '/artist/gallery' },
         { label: 'Earnings', icon: CreditCard, path: '/artist/earnings' },
+        { divider: true },
         { label: 'Notifications', icon: Bell, path: '/artist/notifications' },
         { label: 'Profile', icon: Users, path: '/artist/profile' },
     ];
@@ -75,6 +77,9 @@ function ArtistSideNav() {
                     <p className="menu-label">Menu</p>
                     <ul className="menu-list">
                         {menuItems.map((item, index) => {
+                            if (item.divider) {
+                                return <li key={index} className="menu-divider" />;
+                            }
                             const Icon = item.icon;
                             const isActive = location.pathname === item.path;
                             return (
