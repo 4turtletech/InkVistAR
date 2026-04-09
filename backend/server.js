@@ -2917,18 +2917,33 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
         if (err) return res.status(500).json({ success: false, message: 'Database error' });
 
         const updateStatusQuery = `
-        UPDATE appointments SET payment_status = CASE
-          WHEN price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount >= price THEN 'paid'
-          WHEN price = 0 OR price IS NULL THEN 'paid'
-          ELSE 'downpayment_paid'
-        END WHERE id = ?
+        UPDATE appointments SET 
+          payment_status = CASE
+            WHEN price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount >= price THEN 'paid'
+            WHEN price = 0 OR price IS NULL THEN 'paid'
+            ELSE 'downpayment_paid'
+          END,
+          status = CASE
+            WHEN status = 'pending' THEN 'confirmed'
+            ELSE status
+          END
+        WHERE id = ?
       `;
         db.query(updateStatusQuery, [id, id], (upErr) => {
           if (!upErr) {
-            db.query('SELECT ap.customer_id, u.email as cx_email FROM appointments ap JOIN users u ON ap.customer_id = u.id WHERE ap.id = ?', [id], (ce, cr) => {
+            db.query('SELECT ap.customer_id, ap.artist_id, ap.status, u.email as cx_email FROM appointments ap JOIN users u ON ap.customer_id = u.id WHERE ap.id = ?', [id], (ce, cr) => {
               if (!ce && cr.length) {
-                createNotification(cr[0].customer_id, 'Payment Recorded', `We have recorded a manual payment of ₱${parseFloat(amount).toLocaleString()} for your session #${id}.`, 'payment_success', id);
-                sendReceiptEmail(cr[0].cx_email, { id: paymentId, amount, method });
+                const updatedAppt = cr[0];
+                const isConfirmedNow = updatedAppt.status === 'confirmed';
+                
+                const customerMsg = `We have recorded a manual payment of ₱${parseFloat(amount).toLocaleString()} for your session #${id}. ${isConfirmedNow ? 'Your appointment is confirmed!' : ''}`;
+                createNotification(updatedAppt.customer_id, 'Payment Recorded', customerMsg.trim(), 'payment_success', id);
+                
+                if (updatedAppt.artist_id && updatedAppt.artist_id !== 1) {
+                  createNotification(updatedAppt.artist_id, 'Payment Recorded', `Manual payment recorded for appointment #${id}. ${isConfirmedNow ? 'You are officially booked for this session.' : ''}`.trim(), 'payment_success', id);
+                }
+                
+                sendReceiptEmail(updatedAppt.cx_email, { id: paymentId, amount, method });
               }
             });
           }
@@ -3680,8 +3695,12 @@ app.post('/api/payments/webhook', (req, res) => {
           } else {
             console.log('✅ Appointment', appointmentId, 'marked as', newPaymentStatus);
 
-            createNotification(appt.customer_id, 'Payment Received', `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
-            createNotification(appt.artist_id, 'Payment Received', `Payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
+            const wasPending = appt.status?.toLowerCase() === 'pending';
+            const customerMsg = `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed. ${wasPending ? 'Your appointment has been successfully booked and confirmed!' : ''}`;
+            const artistMsg = `Payment for appointment #${appointmentId} is confirmed. ${wasPending ? 'You are now officially booked for this day.' : ''}`;
+            
+            createNotification(appt.customer_id, 'Payment Received', customerMsg.trim(), 'payment_success', appointmentId);
+            createNotification(appt.artist_id, 'Booking Confirmed ✅', artistMsg.trim(), 'payment_success', appointmentId);
             
             // SEND EMAILED RECEIPT
             sendReceiptEmail(appt.cx_email, { id: paymongoPaymentId, amount: amount/100, method: 'PayMongo' });
@@ -3689,9 +3708,9 @@ app.post('/api/payments/webhook', (req, res) => {
             // Notify Admins and Managers
             db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
               if (!adminErr && admins.length > 0) {
-                const adminMsg = `Payment of ₱${(amount / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
+                const adminMsg = `Payment of ₱${(amount / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}). ${wasPending ? 'The appointment has been upgraded to Confirmed.' : ''}`;
                 admins.forEach(admin => {
-                  createNotification(admin.id, 'Payment Received', adminMsg, 'payment_success', appointmentId);
+                  createNotification(admin.id, 'Payment Received', adminMsg.trim(), 'payment_success', appointmentId);
                 });
               }
             });
