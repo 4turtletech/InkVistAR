@@ -16,7 +16,9 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const user = JSON.parse(localStorage.getItem('user'));
     
     const [formData, setFormData] = useState({
-        name: user?.name || '',
+        firstName: user?.name ? user.name.split(' ')[0] : '',
+        lastName: user?.name ? user.name.split(' ').slice(1).join(' ') : '',
+        suffix: '',
         email: user?.email || '',
         phone: '',
         date: '',
@@ -112,8 +114,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
     const handleInputChange = (field, value) => {
         let val = value;
-        if (field === 'name') {
-            val = val.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '');
+        if (field === 'firstName' || field === 'lastName' || field === 'suffix') {
+            val = val.replace(/[^a-zA-Z\s-.]/g, '').replace(/^\s+/, '');
         } else if (field === 'email') {
             val = val.replace(/\s/g, '');
         } else if (typeof val === 'string') {
@@ -154,6 +156,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         setLoading(true);
         try {
             const currentUser = JSON.parse(localStorage.getItem('user'));
+            const generatedName = `${formData.firstName} ${formData.lastName} ${formData.suffix}`.replace(/\s+/g, ' ').trim();
 
             const response = await Axios.post(`${API_URL}/api/admin/appointments`, {
                 customerId: uid, // This will be the actual user ID or the placeholder ID (1)
@@ -163,7 +166,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 endTime: formData.time || '13:00',
                 serviceType: 'Consultation',
                 designTitle: formData.designTitle, // This is the tattoo idea
-                notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nPlacement: ${formData.placement}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || formData.name}\nEmail: ${currentUser?.email || formData.email}\nPhone: ${formData.phoneCode || '+63'}${formData.phone}`,
+                notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nPlacement: ${formData.placement}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || generatedName}\nEmail: ${currentUser?.email || formData.email}\nPhone: ${formData.phoneCode || '+63'}${formData.phone}`,
                 referenceImage: formData.referenceImage,
                 status: 'pending',
                 price: 0, // Free consultation
@@ -452,33 +455,58 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.95rem'}}>How should we reach out regarding your request?</p>
 
             <div style={{ padding: '24px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: '16px', marginBottom: '16px' }}>
                     <div className="form-group" style={{ position: 'relative' }}>
-                        <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>Full Name *</label>
+                        <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>First Name *</label>
                         <input
                             type="text"
-                            className={`form-input ${errors.name ? 'error' : ''}`}
-                            placeholder="John Doe"
-                            value={formData.name}
-                            onChange={(e) => handleInputChange('name', e.target.value)}
+                            className={`form-input ${errors.firstName ? 'error' : ''}`}
+                            placeholder="John"
+                            value={formData.firstName}
+                            onChange={(e) => handleInputChange('firstName', e.target.value)}
                             disabled={!!user}
                             style={{ padding: '10px' }}
                         />
-                        {errors.name && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.name}</small>}
+                        {errors.firstName && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.firstName}</small>}
                     </div>
                     <div className="form-group" style={{ position: 'relative' }}>
-                        <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>Email Address *</label>
+                        <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>Last Name *</label>
                         <input
-                            type="email"
-                            className={`form-input ${errors.email ? 'error' : ''}`}
-                            placeholder="john@example.com"
-                            value={formData.email}
-                            onChange={(e) => handleInputChange('email', e.target.value)}
+                            type="text"
+                            className={`form-input ${errors.lastName ? 'error' : ''}`}
+                            placeholder="Doe"
+                            value={formData.lastName}
+                            onChange={(e) => handleInputChange('lastName', e.target.value)}
                             disabled={!!user}
                             style={{ padding: '10px' }}
                         />
-                        {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.email}</small>}
+                        {errors.lastName && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.lastName}</small>}
                     </div>
+                    <div className="form-group" style={{ position: 'relative' }}>
+                        <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>Suffix</label>
+                        <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Jr., Sr., III"
+                            value={formData.suffix}
+                            onChange={(e) => handleInputChange('suffix', e.target.value)}
+                            disabled={!!user}
+                            style={{ padding: '10px' }}
+                        />
+                    </div>
+                </div>
+                <div style={{ marginBottom: '16px' }} className="form-group">
+                    <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>Email Address *</label>
+                    <input
+                        type="email"
+                        className={`form-input ${errors.email ? 'error' : ''}`}
+                        placeholder="john@example.com"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        disabled={!!user}
+                        style={{ padding: '10px' }}
+                    />
+                    {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.email}</small>}
                 </div>
                 <div className="form-group" style={{ position: 'relative' }}>
                     <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>Phone Number *</label>
@@ -490,8 +518,26 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             onChange={(e) => handleInputChange('phoneCode', e.target.value)}
                         >
                             <option value="+63">PH (+63)</option>
-                            <option value="+1">US (+1)</option>
+                            <option value="+1">US/CA (+1)</option>
                             <option value="+44">UK (+44)</option>
+                            <option value="+61">AU (+61)</option>
+                            <option value="+81">JP (+81)</option>
+                            <option value="+82">KR (+82)</option>
+                            <option value="+65">SG (+65)</option>
+                            <option value="+86">CN (+86)</option>
+                            <option value="+33">FR (+33)</option>
+                            <option value="+49">DE (+49)</option>
+                            <option value="+39">IT (+39)</option>
+                            <option value="+34">ES (+34)</option>
+                            <option value="+91">IN (+91)</option>
+                            <option value="+55">BR (+55)</option>
+                            <option value="+52">MX (+52)</option>
+                            <option value="+27">ZA (+27)</option>
+                            <option value="+971">AE (+971)</option>
+                            <option value="+64">NZ (+64)</option>
+                            <option value="+62">ID (+62)</option>
+                            <option value="+60">MY (+60)</option>
+                            <option value="+66">TH (+66)</option>
                         </select>
                         <input 
                             type="tel" 
@@ -780,7 +826,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     <button 
                         onClick={() => {
                             const newErrors = {};
-                            if (!formData.name) newErrors.name = 'Full Name is required';
+                            if (!formData.firstName) newErrors.firstName = 'First Name is required';
+                            if (!formData.lastName) newErrors.lastName = 'Last Name is required';
                             if (!formData.email) newErrors.email = 'Email Address is required';
                             else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Please enter a valid email format';
                             
