@@ -3544,23 +3544,30 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
 
   try {
     // 1. Check DB first
-    db.query('SELECT payment_status, status FROM appointments WHERE id = ?', [appointmentId], async (err, results) => {
+    db.query(`
+      SELECT ap.payment_status, ap.status, ap.customer_id, ap.artist_id, u.name as customer_name, u.email as cx_email 
+      FROM appointments ap 
+      JOIN users u ON ap.customer_id = u.id 
+      WHERE ap.id = ?`, [appointmentId], async (err, results) => {
+      
       if (err || results.length === 0) return res.status(404).json({ success: false, message: 'Not found' });
 
-      let currentPaymentStatus = results[0].payment_status;
-      let currentAptStatus = results[0].status;
+      let appt = results[0];
+      let currentPaymentStatus = appt.payment_status;
+      let currentAptStatus = appt.status;
 
       if (currentPaymentStatus === 'paid') {
         return res.json({ success: true, payment_status: 'paid' });
       }
 
       // 2. If not paid, check if we have an active checkout session
-      db.query('SELECT session_id FROM payments WHERE appointment_id = ? ORDER BY created_at DESC LIMIT 1', [appointmentId], async (pErr, pResults) => {
+      db.query('SELECT session_id, amount FROM payments WHERE appointment_id = ? ORDER BY created_at DESC LIMIT 1', [appointmentId], async (pErr, pResults) => {
         if (pErr || pResults.length === 0 || !pResults[0].session_id) {
           return res.json({ success: true, payment_status: currentPaymentStatus });
         }
 
         const sessionId = pResults[0].session_id;
+        const amountCentavos = pResults[0].amount || 0;
 
         try {
           // Poll PayMongo directly
@@ -3587,8 +3594,31 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
             const newAptStatus = (currentAptStatus?.toLowerCase() === 'pending') ? 'confirmed' : currentAptStatus;
 
             db.query("UPDATE appointments SET payment_status = ?, status = ? WHERE id = ?", [newPaymentStatus, newAptStatus, appointmentId], (updErr) => {
-              if (updErr) console.error(`❌ Failed to update appointments status to paid for ${appointmentId}:`, updErr.message);
-              else console.log(`💾 Appointment ${appointmentId} updated to '${newPaymentStatus}' in DB.`);
+              if (updErr) {
+                  console.error(`❌ Failed to update appointments status to paid for ${appointmentId}:`, updErr.message);
+              } else {
+                  console.log(`💾 Appointment ${appointmentId} updated to '${newPaymentStatus}' in DB.`);
+                  
+                  // If state changed to paid, manually trigger what the webhook would normally do
+                  if (currentPaymentStatus !== newPaymentStatus) {
+                      createNotification(appt.customer_id, 'Payment Received', `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
+                      createNotification(appt.artist_id, 'Payment Received', `Payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
+                      
+                      if (typeof sendReceiptEmail === 'function' && appt.cx_email) {
+                          const paymentId = (Array.isArray(paymentList) && paymentList.length > 0) ? paymentList[0].id : null;
+                          sendReceiptEmail(appt.cx_email, { id: paymentId, amount: amountCentavos/100, method: 'PayMongo' });
+                      }
+                      
+                      db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
+                          if (!adminErr && admins.length > 0) {
+                              const adminMsg = `Payment of ₱${(amountCentavos / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
+                              admins.forEach(admin => {
+                                  createNotification(admin.id, 'Payment Received', adminMsg, 'payment_success', appointmentId);
+                              });
+                          }
+                      });
+                  }
+              }
             });
 
             db.query("UPDATE payments SET status = 'paid' WHERE session_id = ?", [sessionId], (updErr) => {
