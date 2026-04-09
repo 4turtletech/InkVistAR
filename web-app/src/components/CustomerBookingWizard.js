@@ -159,8 +159,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 customerId: uid, // This will be the actual user ID or the placeholder ID (1)
                 artistId: 1, // Default Studio Account
                 date: formData.date,
-                startTime: formData.time,
-                endTime: formData.time,
+                startTime: formData.time || '13:00',
+                endTime: formData.time || '13:00',
                 serviceType: 'Consultation',
                 designTitle: formData.designTitle, // This is the tattoo idea
                 notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nPlacement: ${formData.placement}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || formData.name}\nEmail: ${currentUser?.email || formData.email}\nPhone: ${formData.phoneCode || '+63'}${formData.phone}`,
