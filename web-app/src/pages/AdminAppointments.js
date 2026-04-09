@@ -292,7 +292,7 @@ function AdminAppointments() {
             date: appointment.date || appointment.appointment_date,
             time: appointment.time || appointment.start_time,
             status: appointment.status,
-            paymentStatus: appointment.paymentStatus || appointment.payment_status,
+            paymentStatus: (!appointment.price || appointment.price <= 0) ? 'unpaid' : (appointment.paymentStatus || appointment.payment_status || 'unpaid'),
             notes: appointment.notes,
             price: appointment.price,
             beforePhoto: appointment.beforePhoto,
