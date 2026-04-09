@@ -696,7 +696,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     if (step === 5) return renderConsultationCompletedPage();
 
     return (
-        <div className="data-card" style={{border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', borderRadius: '24px', position: 'relative'}}>
+        <div className="data-card" style={{border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', borderRadius: '24px', position: 'relative', height: '90vh', maxHeight: '750px', display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
             
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', borderBottom: '1px solid #f1f5f9', paddingBottom: '32px'}}>
                 <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
@@ -714,7 +714,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 </div>
             </div>
 
-            <div style={{height: '55vh', minHeight: '450px', overflowY: 'auto', paddingRight: '10px'}}>
+            <div style={{ flex: 1, minHeight: 0, paddingRight: '10px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStepPlacement()} {/* Step 2: Placement */}
                 {step === 3 && renderStepScheduling()} {/* Step 3: Scheduling */}

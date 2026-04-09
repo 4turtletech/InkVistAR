@@ -609,7 +609,7 @@ function CustomerBookings(){
             {/* Custom New Booking Modal */}
             {isBookingModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content large">
+                    <div className="modal-content large" style={{ height: '90vh', maxHeight: '750px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <div className="modal-header">
                             <h2 className="customer-st-da70abb8" ><Sparkles size={24} color="#daa520" /> New Booking Request</h2>
                             <button className="close-btn" onClick={closeBookingModal}><X size={24} /></button>
@@ -628,7 +628,7 @@ function CustomerBookings(){
                             </div>
                         </div>
                         
-                        <div style={{ display: 'flex', flexDirection: 'column', height: '55vh', minHeight: '450px', overflow: 'hidden' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
                             <div className="modal-body customer-st-4a472601" >
                                 
                                 {bookingStep === 1 && (
