@@ -144,7 +144,7 @@ h1, h2, h3, h4 {
 
 .hero-title span {
     font-style: normal;
-    font-weight: 800;
+    font-weight: 400;
     color: var(--accent-gold);
 }
 
@@ -256,7 +256,7 @@ h1, h2, h3, h4 {
 .matrix-text {
     font-size: 1.1rem;
     line-height: 1.8;
-    color: var(--text-muted);
+    color: #FFF;
     margin-bottom: 2rem;
 }
 
@@ -306,7 +306,7 @@ h1, h2, h3, h4 {
     border-bottom: 1px solid var(--border-light);
     transition: all 0.4s ease;
     cursor: pointer;
-    background: transparent;
+    background: var(--accent-gold-dark) !important;
 }
 
 .service-item:hover {
@@ -326,12 +326,13 @@ h1, h2, h3, h4 {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent-gold);
+    background: var(--accent-gold);
+    color: #000;
     transition: all 0.4s ease;
 }
 
 .service-item:hover .service-icon {
-    background: var(--accent-gold);
+    background: var(--accent-gold-dark);
     color: #000;
 }
 
