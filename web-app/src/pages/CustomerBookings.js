@@ -370,7 +370,11 @@ function CustomerBookings(){
                                                     <td>
                                                         <div className="customer-st-929a545b" >
                                                             {a.status === 'pending' && a.price > 0 && a.payment_status === 'unpaid' ? (
-                                                                <button className="btn btn-primary customer-st-f3c9d3c3" style={{ color: 'white' }} onClick={() => handlePay(a)} >
+                                                                <button 
+                                                                    className="btn btn-primary" 
+                                                                    style={{padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)'}}
+                                                                    onClick={() => handlePay(a)} 
+                                                                >
                                                                     <CreditCard size={14}/> Pay Deposit
                                                                 </button>
                                                             ) : a.payment_status === 'paid' ? (

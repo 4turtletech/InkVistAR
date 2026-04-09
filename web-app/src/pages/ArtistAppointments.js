@@ -297,8 +297,8 @@ function ArtistAppointments(){
                                                                 {activeTab === 'pending' && (
                                                                     <td>
                                                                         <div className="artist-action-group">
-                                                                            <button onClick={() => setConfirmModal({ visible: true, title: 'Confirm Availability', message: 'Ready to take on this assignment? Confirming will notify the manager to generate a quote for the client.', onConfirm: () => handleAccept(a.id) })} className="artist-btn-accept">Confirm</button>
-                                                                            <button onClick={() => setConfirmModal({ visible: true, title: 'Decline Assignment', message: 'Are you sure you want to decline this assignment? It will be reverted back to the Admin for reassignment.', onConfirm: () => handleReject(a.id) })} className="artist-btn-decline">Decline</button>
+                                                                            <button onClick={(e) => { e.stopPropagation(); setConfirmModal({ visible: true, title: 'Confirm Availability', message: 'Ready to take on this assignment? Confirming will notify the manager to generate a quote for the client.', onConfirm: () => handleAccept(a.id) }); }} className="artist-btn-accept">Confirm</button>
+                                                                            <button onClick={(e) => { e.stopPropagation(); setConfirmModal({ visible: true, title: 'Decline Assignment', message: 'Are you sure you want to decline this assignment? It will be reverted back to the Admin for reassignment.', onConfirm: () => handleReject(a.id) }); }} className="artist-btn-decline">Decline</button>
                                                                         </div>
                                                                     </td>
                                                                 )}
@@ -420,7 +420,13 @@ function ArtistAppointments(){
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div style={{ padding: '15px 20px', borderTop: '1px solid #e2e8f0', textAlign: 'right', background: '#f8fafc', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
+                                                <div style={{ padding: '15px 20px', borderTop: '1px solid #e2e8f0', textAlign: 'right', background: '#f8fafc', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                                    {selectedAppointment.status === 'pending' && (
+                                                        <>
+                                                            <button onClick={() => { setConfirmModal({ visible: true, title: 'Decline Assignment', message: 'Are you sure you want to decline this assignment? It will be reverted back to the Admin for reassignment.', onConfirm: () => { handleReject(selectedAppointment.id); setSelectedAppointment(null); } }); }} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', color: '#ef4444', border: '1px solid #ef4444', backgroundColor: '#fef2f2' }}>Decline</button>
+                                                            <button onClick={() => { setConfirmModal({ visible: true, title: 'Confirm Availability', message: 'Ready to take on this assignment? Confirming will notify the manager to generate a quote for the client.', onConfirm: () => { handleAccept(selectedAppointment.id); setSelectedAppointment(null); } }); }} className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', backgroundColor: '#10b981', color: 'white', border: 'none' }}>Confirm Availability</button>
+                                                        </>
+                                                    )}
                                                     <button onClick={() => setSelectedAppointment(null)} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>Close</button>
                                                 </div>
                                             </div>

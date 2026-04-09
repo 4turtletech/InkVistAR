@@ -20,7 +20,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         email: user?.email || '',
         phone: '',
         date: '',
-        time: '13:00',
+        time: '',
         designTitle: '',
         notes: '', // This will also capture additional details like placement and size
         placement: '',
@@ -233,7 +233,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             alert('Booking is not allowed on a full day. Please choose another date.');
                             return;
                         }
-                        setFormData({ ...formData, date: dateStr });
+                        setFormData({ ...formData, date: dateStr, time: '' });
                     }}
                     disabled={isPast || isTooFar}
                     style={{
