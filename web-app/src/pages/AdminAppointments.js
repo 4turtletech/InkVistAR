@@ -236,13 +236,18 @@ function AdminAppointments() {
     const handleStatusUpdate = async (id, status, clientName = 'this client') => {
         const apt = appointments.find(a => a.id === id);
 
-        if (status === 'confirmed' && apt && apt.serviceType !== 'Consultation' && (!apt.price || apt.price <= 0)) {
-            showConfirm(
-                'Price Required',
-                `A price must be set for tattoo or piercing sessions before approval. Would you like to set a price for ${clientName}'s session now?`,
-                () => handleEdit(apt)
-            );
-            return;
+        if (status === 'confirmed' && apt && apt.serviceType !== 'Consultation') {
+            const hasNoPrice = (!apt.price || apt.price <= 0);
+            const hasNoArtist = (!apt.artist_id && !apt.artistId);
+
+            if (hasNoPrice || hasNoArtist) {
+                showConfirm(
+                    'Incomplete Session Details',
+                    `This physical session is missing ${hasNoArtist ? 'an Assigned Artist' : ''}${hasNoArtist && hasNoPrice ? ' and ' : ''}${hasNoPrice ? 'a finalized Service Price' : ''}. Would you like to review and supply these parameters for ${clientName}'s session now?`,
+                    () => handleEdit(apt)
+                );
+                return;
+            }
         }
 
         const actionVerb = status === 'confirmed' ? 'confirm' : status === 'completed' ? 'complete' : 'cancel';
