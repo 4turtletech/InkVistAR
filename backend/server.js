@@ -3559,6 +3559,25 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
       let currentAptStatus = appt.status;
 
       if (currentPaymentStatus === 'paid') {
+        // Payment already confirmed — but admin notifications may not have been sent
+        // (e.g. webhook updated DB before polling could trigger notifications)
+        // Use a one-time deduplication check: only send if no 'payment_success' notification exists for this admin + appointment
+        db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
+          if (!adminErr && admins.length > 0) {
+            admins.forEach(admin => {
+              db.query('SELECT id FROM notifications WHERE user_id = ? AND related_id = ? AND type = "payment_success" LIMIT 1', [admin.id, appointmentId], (nErr, nRes) => {
+                if (!nErr && nRes.length === 0) {
+                  // Admin hasn't been notified yet — send now
+                  createNotification(admin.id, 'Payment Received', `Payment for appointment #${appointmentId} from ${appt.customer_name} has been confirmed.`, 'payment_success', appointmentId);
+                  
+                  const dateObj = new Date(appt.appointment_date);
+                  const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the scheduled date';
+                  createNotification(admin.id, 'Appointment Scheduled', `Appointment #${appointmentId} for ${appt.customer_name} on ${dateStr} at ${appt.start_time || 'TBD'} is confirmed.`, 'appointment_confirmed', appointmentId);
+                }
+              });
+            });
+          }
+        });
         return res.json({ success: true, payment_status: 'paid' });
       }
 
