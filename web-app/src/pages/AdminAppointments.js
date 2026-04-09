@@ -236,6 +236,15 @@ function AdminAppointments() {
     const handleStatusUpdate = async (id, status, clientName = 'this client') => {
         const apt = appointments.find(a => a.id === id);
         
+        if (status === 'confirmed' && apt && apt.serviceType !== 'Consultation' && (!apt.artistId && !apt.artist_id)) {
+            showConfirm(
+                'Artist Required',
+                `An artist must be assigned to ${clientName} before you can approve this session. Would you like to assign an artist now?`,
+                () => handleEdit(apt)
+            );
+            return;
+        }
+
         if (status === 'confirmed' && apt && apt.serviceType !== 'Consultation' && (!apt.price || apt.price <= 0)) {
             showConfirm(
                 'Price Required',
@@ -368,8 +377,13 @@ function AdminAppointments() {
         const isConsultation = formData.serviceType === 'Consultation';
         const isArtistRequired = !isConsultation;
 
-        if (!formData.clientId || (isArtistRequired && !formData.artistId) || !formData.date || !formData.time) {
-            showConfirm(`Please fill in all required fields (Client, ${isArtistRequired ? 'Artist, ' : ''}Date, Time).`, null);
+        if (!formData.clientId || !formData.date || !formData.time) {
+            showAlert('Missing Information', 'Please fill in all required fields (Client, Date, Time).', 'warning');
+            return;
+        }
+
+        if (isArtistRequired && (!formData.artistId || formData.artistId === '')) {
+            showAlert('Artist Required', 'An artist must be assigned for tattoo and piercing sessions. Artists are only optional for Consultations.', 'warning');
             return;
         }
 
@@ -1142,7 +1156,8 @@ function AdminAppointments() {
                                             <div className="admin-st-422e3858">
                                                 <button className="btn admin-st-c52b9668" onClick={() => setModalTab('details')}>Back to Details</button>
                                                 
-                                                {formData.price > 0 && formData.paymentStatus === 'unpaid' && (
+                                                {/* Hidden for now until actual payment gateway integration */
+                                                /* formData.price > 0 && formData.paymentStatus === 'unpaid' && (
                                                     <button 
                                                         type="button"
                                                         className="btn btn-primary admin-st-2b208132" 
@@ -1152,7 +1167,7 @@ function AdminAppointments() {
                                                     >
                                                         <CreditCard size={20} /> Request Digital Payment
                                                     </button>
-                                                )}
+                                                ) */}
 
                                                 {selectedAppointment && (
                                                     <button className="btn btn-primary admin-st-f9f5beee" onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>

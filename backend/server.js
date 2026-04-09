@@ -2774,6 +2774,30 @@ app.put('/api/artist/appointments/:id/draft', (req, res) => {
   });
 });
 
+// GET transaction history (invoices mapping)
+app.get('/api/admin/invoices', (req, res) => {
+  const query = `
+    SELECT 
+      p.id, 
+      u.name as client_name, 
+      COALESCE(a.service_type, 'Service') as service_type, 
+      p.created_at, 
+      (p.amount / 100) as amount, 
+      p.status
+    FROM payments p
+    LEFT JOIN appointments a ON p.appointment_id = a.id
+    LEFT JOIN users u ON a.customer_id = u.id
+    ORDER BY p.created_at DESC
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching invoices:", err);
+      return res.status(500).json({ success: false, message: 'Database error fetching invoices' });
+    }
+    res.json({ success: true, data: results });
+  });
+});
 
 
 // POST record an instant manual payment (Admin)
