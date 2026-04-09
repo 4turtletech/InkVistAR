@@ -2214,7 +2214,7 @@ app.get('/api/artist/:artistId/availability', (req, res) => {
 
 // Get global studio concurrency availability (Whole-Day Limit)
 app.get('/api/public/calendar-availability', (req, res) => {
-  const artistQuery = `SELECT COUNT(id) as totalArtists FROM users WHERE user_type = 'artist' AND is_active = 1 AND is_deleted = 0`;
+  const artistQuery = `SELECT COUNT(id) as totalArtists FROM users WHERE user_type = 'artist' AND is_deleted = 0`;
   
   db.query(artistQuery, (artistErr, artistRes) => {
     if (artistErr) return res.status(500).json({ success: false, message: 'DB Error fetching artists' });
