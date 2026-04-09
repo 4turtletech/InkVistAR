@@ -2935,7 +2935,7 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
       `;
         db.query(updateStatusQuery, [id, id], (upErr) => {
           if (!upErr) {
-            db.query('SELECT ap.customer_id, ap.artist_id, ap.status, u.email as cx_email FROM appointments ap JOIN users u ON ap.customer_id = u.id WHERE ap.id = ?', [id], (ce, cr) => {
+            db.query('SELECT ap.customer_id, ap.artist_id, ap.status, ap.appointment_date, u.email as cx_email FROM appointments ap JOIN users u ON ap.customer_id = u.id WHERE ap.id = ?', [id], (ce, cr) => {
               if (!ce && cr.length) {
                 const updatedAppt = cr[0];
                 const isConfirmedNow = updatedAppt.status === 'confirmed';
@@ -2943,8 +2943,10 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
                 const customerMsg = `We have recorded a manual payment of ₱${parseFloat(amount).toLocaleString()} for your session #${id}. ${isConfirmedNow ? 'Your appointment is confirmed!' : ''}`;
                 createNotification(updatedAppt.customer_id, 'Payment Recorded', customerMsg.trim(), 'payment_success', id);
                 
-                if (updatedAppt.artist_id && updatedAppt.artist_id !== 1) {
-                  createNotification(updatedAppt.artist_id, 'Payment Recorded', `Manual payment recorded for appointment #${id}. ${isConfirmedNow ? 'You are officially booked for this session.' : ''}`.trim(), 'payment_success', id);
+                if (updatedAppt.artist_id && updatedAppt.artist_id !== 1 && isConfirmedNow) {
+                  const apptDate = new Date(updatedAppt.appointment_date || Date.now());
+                  const dateStr = !isNaN(apptDate) ? apptDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the scheduled date';
+                  createNotification(updatedAppt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr}.`, 'appointment_confirmed', id);
                 }
                 
                 sendReceiptEmail(updatedAppt.cx_email, { id: paymentId, amount, method });
@@ -3602,7 +3604,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                   // If state changed to paid, manually trigger what the webhook would normally do
                   if (currentPaymentStatus !== newPaymentStatus) {
                       createNotification(appt.customer_id, 'Payment Received', `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
-                      createNotification(appt.artist_id, 'Payment Received', `Payment for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
+                      // Artist only gets Appointment Scheduled, not Payment Received
                       
                       const wasPending = currentAptStatus?.toLowerCase() === 'pending';
                       
@@ -3751,7 +3753,7 @@ app.post('/api/payments/webhook', (req, res) => {
             const artistMsg = `Payment for appointment #${appointmentId} is confirmed.`;
             
             createNotification(appt.customer_id, 'Payment Received', customerMsg.trim(), 'payment_success', appointmentId);
-            createNotification(appt.artist_id, 'Booking Confirmed ✅', artistMsg.trim(), 'payment_success', appointmentId);
+            // Artist only gets Appointment Scheduled (below), not payment notifications
             
             if (wasPending) {
                 const dateObj = new Date(appt.appointment_date);
