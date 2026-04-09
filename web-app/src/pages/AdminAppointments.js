@@ -371,7 +371,7 @@ function AdminAppointments() {
         const isConsultation = formData.serviceType === 'Consultation';
         const isTattooSession = !isConsultation;
 
-        const hasNoArtist = !formData.artistId || String(formData.artistId) === 'null' || String(formData.artistId) === 'undefined' || String(formData.artistId) === '0' || String(formData.artistId).trim() === '';
+        const hasNoArtist = !formData.artistId || String(formData.artistId) === 'null' || String(formData.artistId) === 'undefined' || String(formData.artistId) === '0' || String(formData.artistId).trim() === '' || !artists.some(a => String(a.id) === String(formData.artistId));
 
         // Basic required fields: Client + Date (+ Time for consultations)
         if (!formData.clientId || !formData.date || (isConsultation && !formData.time)) {
