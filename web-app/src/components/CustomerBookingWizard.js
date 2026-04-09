@@ -146,8 +146,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         if (currentUser) {
             finalCustomerId = currentUser.id;
         } else {
-            // For anonymous bookings, use a default artistId (e.g., Studio Admin ID 1) as customerId temporarily
-            finalCustomerId = 1; // This is a workaround to satisfy the backend's NOT NULL constraint for customer_id
+            // For anonymous bookings, use 'admin' string to tell backend to assign to the main studio admin instead of ID 1
+            finalCustomerId = 'admin'; // This is a workaround to satisfy the backend's NOT NULL constraint for customer_id
         }
         finalizeBooking(finalCustomerId);
     };
@@ -159,8 +159,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             const generatedName = `${formData.firstName} ${formData.lastName} ${formData.suffix}`.replace(/\s+/g, ' ').trim();
 
             const response = await Axios.post(`${API_URL}/api/admin/appointments`, {
-                customerId: uid, // This will be the actual user ID or the placeholder ID (1)
-                artistId: 1, // Default Studio Account
+                customerId: uid, // This will be the actual user ID or the placeholder ID ('admin')
+                artistId: 'admin', // Default Studio Account
                 date: formData.date,
                 startTime: formData.time || '13:00',
                 endTime: formData.time || '13:00',

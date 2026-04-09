@@ -1209,7 +1209,12 @@ app.post('/api/login', async (req, res) => {
       if (req.body.orphanAppointmentId) {
         db.query('UPDATE appointments SET customer_id = ? WHERE id = ?', [user.id, req.body.orphanAppointmentId], (updateErr) => {
           if (updateErr) console.error('Error claiming orphan appointment:', updateErr);
-          else createNotification(1, 'Booking Claimed', `${user.name} logged in and claimed their pending booking request.`, 'appointment_request', req.body.orphanAppointmentId);
+          else {
+            db.query("SELECT id FROM users WHERE user_type = 'admin' ORDER BY id ASC LIMIT 1", (err, results) => {
+              const actualAdminId = (results && results.length > 0) ? results[0].id : 1;
+              createNotification(actualAdminId, 'Booking Claimed', `${user.name} logged in and claimed their pending booking request.`, 'appointment_request', req.body.orphanAppointmentId);
+            });
+          }
         });
       }
 
@@ -1643,7 +1648,12 @@ app.post('/api/register', async (req, res) => {
           if (orphanAppointmentId) {
             db.query('UPDATE appointments SET customer_id = ? WHERE id = ?', [userId, orphanAppointmentId], (updateErr) => {
               if (updateErr) console.error('Error claiming orphan appointment during registration:', updateErr);
-              else createNotification(1, 'Booking Claimed', `New user ${fullName} registered and claimed their pending booking request.`, 'appointment_request', orphanAppointmentId);
+              else {
+                db.query("SELECT id FROM users WHERE user_type = 'admin' ORDER BY id ASC LIMIT 1", (err, results) => {
+                  const actualAdminId = (results && results.length > 0) ? results[0].id : 1;
+                  createNotification(actualAdminId, 'Booking Claimed', `New user ${fullName} registered and claimed their pending booking request.`, 'appointment_request', orphanAppointmentId);
+                });
+              }
             });
           }
 
@@ -2612,38 +2622,52 @@ app.get('/api/admin/appointments', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', (req, res) => {
-  const { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName } = req.body;
+  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName } = req.body;
 
   if (!customerId || !artistId || !date) {
     return res.status(400).json({ success: false, message: 'customerId, artistId, and date are required.' });
   }
 
-  const combinedTitle = serviceType && designTitle ? `${serviceType}: ${designTitle}` : (designTitle || serviceType || 'Appointment');
-  const finalStatus = status || 'confirmed';
-
-  // Double Booking Check
-  const checkQuery = `
-    SELECT id FROM appointments 
-    WHERE appointment_date = ? AND start_time = ? AND status != 'cancelled' AND is_deleted = 0
-    AND (artist_id = ? OR customer_id = ?)
-  `;
-
-  db.query(checkQuery, [date, startTime, artistId, customerId], (checkErr, results) => {
-    if (checkErr) {
-      console.error('❌ Error checking double booking:', checkErr);
-      return res.status(500).json({ success: false, message: 'Database error' });
+  const resolveAdminIds = (callback) => {
+    if (customerId === 'admin' || artistId === 'admin') {
+      db.query("SELECT id FROM users WHERE user_type = 'admin' ORDER BY id ASC LIMIT 1", (err, results) => {
+        const actualAdminId = (results && results.length > 0) ? results[0].id : 1;
+        if (customerId === 'admin') customerId = actualAdminId;
+        if (artistId === 'admin') artistId = actualAdminId;
+        callback();
+      });
+    } else {
+      callback();
     }
+  };
 
-    if (results.length > 0) {
-      return res.status(400).json({ success: false, message: 'Scheduling Conflict: The artist or client already has an appointment at this date and time.' });
-    }
+  resolveAdminIds(() => {
+    const combinedTitle = serviceType && designTitle ? `${serviceType}: ${designTitle}` : (designTitle || serviceType || 'Appointment');
+    const finalStatus = status || 'confirmed';
 
-    const query = `
-      INSERT INTO appointments 
-        (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?)
+    // Double Booking Check
+    const checkQuery = `
+      SELECT id FROM appointments 
+      WHERE appointment_date = ? AND start_time = ? AND status != 'cancelled' AND is_deleted = 0
+      AND (artist_id = ? OR customer_id = ?)
     `;
-    db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null], (err, result) => {
+
+    db.query(checkQuery, [date, startTime, artistId, customerId], (checkErr, results) => {
+      if (checkErr) {
+        console.error('❌ Error checking double booking:', checkErr);
+        return res.status(500).json({ success: false, message: 'Database error' });
+      }
+
+      if (results.length > 0) {
+        return res.status(400).json({ success: false, message: 'Scheduling Conflict: The artist or client already has an appointment at this date and time.' });
+      }
+
+      const query = `
+        INSERT INTO appointments 
+          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?)
+      `;
+      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null], (err, result) => {
       if (err) {
         console.error('❌ Error creating admin appointment:', err);
         return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -2653,11 +2677,12 @@ app.post('/api/admin/appointments', (req, res) => {
       // If securely routed from the public frontend wizard, alert the Admin
       if (isFromWizard) {
         const clientNameStr = customerName || 'a guest';
-        createNotification(1, 'New Booking Request', `${serviceType || 'Consultation'} requested by ${clientNameStr} ("${designTitle}"). Pending review.`, 'appointment_request', result.insertId);
+        createNotification(artistId, 'New Booking Request', `${serviceType || 'Consultation'} requested by ${clientNameStr} ("${designTitle}"). Pending review.`, 'appointment_request', result.insertId);
       }
       
       res.json({ success: true, message: 'Appointment created successfully', id: result.insertId });
     });
+  });
   });
 });
 
