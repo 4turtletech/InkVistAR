@@ -5500,7 +5500,7 @@ app.post('/api/reviews', (req, res) => {
           console.log('[REVIEW] Successfully created review ID:', result.insertId);
 
           // Notify Admin of new review
-          createNotification(1, 'New Review Submitted', `A client submitted a new review for appointment #${appointment_id}. Needs approval.`, 'system', result.insertId);
+          createNotification(1, 'New Review Received ⭐', `A client submitted a new review for session #${appointment_id}. Take a moment to review and showcase it!`, 'new_review', appointment_id);
 
           // Send thank-you notification to the customer
           createNotification(customer_id, 'Thank You for Your Review ⭐', `We truly appreciate you taking the time to share your experience with Inkvictus. Your feedback helps us continue delivering the premium artistry and service our clients deserve. Your review is now pending approval and will be showcased soon.`, 'system', result.insertId);

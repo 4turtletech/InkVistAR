@@ -18,6 +18,7 @@ import {
     CheckCheck,
     Info, // Added for system notifications
     RotateCcw, // Added for mark as unread
+    Star, // Added for new reviews
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminSideNav from '../components/AdminSideNav';
@@ -102,7 +103,7 @@ function AdminNotifications() {
                 ...directNotifs.map(n => ({
                     ...n,
                     severity: n.type === 'system' ? 'medium' : 'low',
-                    path: n.type === 'payment_success' ? '/admin/billing' : undefined
+                    path: n.type === 'payment_success' ? '/admin/billing' : (n.type === 'new_review' ? '/admin/reviews' : undefined)
                 }))
             ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
@@ -133,6 +134,8 @@ function AdminNotifications() {
                 return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Payment' };
             case 'pos_invoice':
                 return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Invoice' };
+            case 'new_review':
+                return { color: '#daa520', bg: 'rgba(218, 165, 32, 0.1)', label: 'Review' };
             default:
                 return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', label: 'Update' };
         }
@@ -149,6 +152,7 @@ function AdminNotifications() {
             case 'payment_success': return <CheckCircle size={20} className="text-green" />;
             case 'pos_invoice': return <Info size={20} className="text-blue" />;
             case 'appointment_request': return <CalendarDays size={20} className="text-orange" />;
+            case 'new_review': return <Star size={20} className="text-gold" />;
             default: return <Bell size={20} />;
         }
     };
