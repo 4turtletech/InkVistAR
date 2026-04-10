@@ -2838,7 +2838,10 @@ app.post('/api/admin/appointments', (req, res) => {
 // PUT update an appointment (Admin)
 app.put('/api/admin/appointments/:id', (req, res) => {
   const { id } = req.params;
-  const { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, paymentStatus, notes, price, manualPaidAmount, manualPaymentMethod } = req.body;
+  const { 
+    customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, 
+    status, paymentStatus, notes, price, manualPaidAmount, manualPaymentMethod, beforePhoto 
+  } = req.body;
 
   const combinedTitle = serviceType && designTitle ? `${serviceType}: ${designTitle}` : (designTitle || serviceType || null);
 
@@ -2848,8 +2851,11 @@ app.put('/api/admin/appointments/:id', (req, res) => {
 
   if (customerId !== undefined) { updates.push('customer_id = ?'); params.push(customerId); }
   if (artistId !== undefined && artistId !== null && String(artistId) !== 'null') { updates.push('artist_id = ?'); params.push(artistId); }
-  if (secondaryArtistId !== undefined && secondaryArtistId !== null && String(secondaryArtistId) !== 'null') { 
-    updates.push('secondary_artist_id = ?'); params.push(secondaryArtistId === '' ? null : secondaryArtistId); 
+  
+  // Allow clearing secondary artist by checking if it's explicitly null or empty string
+  if (secondaryArtistId !== undefined) { 
+    updates.push('secondary_artist_id = ?'); 
+    params.push((secondaryArtistId === null || secondaryArtistId === '' || String(secondaryArtistId) === 'null') ? null : secondaryArtistId); 
   }
   if (commissionSplit !== undefined && commissionSplit !== null) { updates.push('commission_split = ?'); params.push(commissionSplit); }
   if (date !== undefined) { updates.push('appointment_date = ?'); params.push(date); }
@@ -2862,6 +2868,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (price !== undefined) { updates.push('price = ?'); params.push(price); }
   if (manualPaidAmount !== undefined) { updates.push('manual_paid_amount = ?'); params.push(manualPaidAmount); }
   if (manualPaymentMethod !== undefined) { updates.push('manual_payment_method = ?'); params.push(manualPaymentMethod); }
+  if (beforePhoto !== undefined) { updates.push('before_photo = ?'); params.push(beforePhoto); }
 
   if (updates.length === 0) {
     return res.status(400).json({ success: false, message: 'No fields to update.' });
@@ -2885,7 +2892,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
           const optionalCols = ['secondary_artist_id', 'commission_split', 'before_photo'];
           const safeUpdates = [];
           const safeParams = [];
-          // Rebuild from original request fields, skipping optional columns
+          // We skip columns that are part of more recent migrations (optional ones)
           if (customerId !== undefined) { safeUpdates.push('customer_id = ?'); safeParams.push(customerId); }
           if (artistId !== undefined && artistId !== null && String(artistId) !== 'null') { safeUpdates.push('artist_id = ?'); safeParams.push(artistId); }
           if (date !== undefined) { safeUpdates.push('appointment_date = ?'); safeParams.push(date); }
@@ -2896,21 +2903,19 @@ app.put('/api/admin/appointments/:id', (req, res) => {
           if (paymentStatus !== undefined) { safeUpdates.push('payment_status = ?'); safeParams.push(paymentStatus); }
           if (notes !== undefined) { safeUpdates.push('notes = ?'); safeParams.push(notes); }
           if (price !== undefined) { safeUpdates.push('price = ?'); safeParams.push(price); }
-          if (manualPaidAmount !== undefined) { safeUpdates.push('manual_paid_amount = ?'); safeParams.push(manualPaidAmount); }
-          if (manualPaymentMethod !== undefined) { safeUpdates.push('manual_payment_method = ?'); safeParams.push(manualPaymentMethod); }
           
           if (safeUpdates.length === 0) {
-            return res.status(400).json({ success: false, message: 'No valid fields to update.' });
+            return res.status(400).json({ success: false, message: 'No valid base fields to update.' });
           }
           const safeQuery = 'UPDATE appointments SET ' + safeUpdates.join(', ') + ' WHERE id = ? AND is_deleted = 0';
           safeParams.push(id);
           
           return db.query(safeQuery, safeParams, (retryErr, retryResult) => {
             if (retryErr) {
-              console.error('❌ Retry also failed:', retryErr);
-              return res.status(500).json({ success: false, message: 'Database error: ' + retryErr.message });
+              console.error('❌ Migration-safe retry also failed:', retryErr);
+              return res.status(500).json({ success: false, message: 'Database error (retry failed): ' + retryErr.message });
             }
-            // Continue with the rest of the logic using result from retry
+            // Continue using result from retry
             processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle });
           });
         }
@@ -2933,13 +2938,15 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
   const recalculateStatusQuery = `
     UPDATE appointments 
     SET payment_status = CASE 
-      WHEN price > 0 AND (((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = id AND status = 'paid') / 100) + manual_paid_amount) >= price THEN 'paid'
+      WHEN price > 0 AND (((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount) >= price THEN 'paid'
       WHEN price = 0 OR price IS NULL THEN 'paid'
       ELSE payment_status
     END 
     WHERE id = ? AND payment_status != 'paid'
   `;
-  db.query(recalculateStatusQuery, [id]);
+  db.query(recalculateStatusQuery, [id, id], (err) => {
+    if (err) console.error(`⚠️ Error auto-recalculating status for appointment #${id}:`, err.message);
+  });
 
   // Smart Notifications Logic
   db.query('SELECT customer_id, artist_id, status FROM appointments WHERE id = ?', [id], (e, r) => {
