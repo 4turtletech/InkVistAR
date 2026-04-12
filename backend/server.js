@@ -3654,7 +3654,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
 
       try {
         if (paymentType === 'deposit') {
-          const isPiercing = appointment.service_type && String(appointment.service_type).toLowerCase().includes('piercing');
+          const isPiercing = appointment.service_type && String(appointment.service_type).toLowerCase() === 'piercing';
           let tierPrice = isPiercing ? 500 : 5000;
           tierPrice = Math.min(tierPrice, priceNumber);
           const depositPesos = Math.max(100, Math.round(tierPrice));

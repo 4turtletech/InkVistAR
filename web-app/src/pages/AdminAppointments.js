@@ -1091,6 +1091,7 @@ function AdminAppointments() {
                                                                 <option value="Tattoo Session">Tattoo Session</option>
                                                                 <option value="Consultation">Consultation</option>
                                                                 <option value="Piercing">Piercing</option>
+                                                                <option value="Tattoo + Piercing">Tattoo + Piercing</option>
                                                                 <option value="Touch-up">Touch-up</option>
                                                             </select>
                                                         </div>

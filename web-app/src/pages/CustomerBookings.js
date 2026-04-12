@@ -28,7 +28,7 @@ function CustomerBookings(){
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [bookedDates, setBookedDates] = useState({});
-    const serviceOptions = ['Tattoo Session', 'Consultation', 'Piercing', 'Follow-up', 'Touch-up'];
+    const serviceOptions = ['Tattoo Session', 'Consultation', 'Piercing', 'Tattoo + Piercing', 'Follow-up', 'Touch-up'];
     
     const [bookingData, setBookingData] = useState({
         artistId: null, // Artist selection is now optional for the customer
@@ -37,6 +37,7 @@ function CustomerBookings(){
         startTime: '',
         designTitle: '',
         placement: '',
+        piercingPlacement: '',
         notes: '',
         referenceImage: null,
     });
@@ -269,7 +270,7 @@ function CustomerBookings(){
 
     const closeBookingModal = () => {
         setIsBookingModalOpen(false);
-        setBookingData({ artistId: null, serviceType: '', date: '', startTime: '', designTitle: '', placement: '', notes: '', referenceImage: null });
+        setBookingData({ artistId: null, serviceType: '', date: '', startTime: '', designTitle: '', placement: '', piercingPlacement: '', notes: '', referenceImage: null });
         setBookingStep(1);
     };
 
@@ -281,7 +282,10 @@ function CustomerBookings(){
             return showAlert("Required Field", "Please provide a design idea or title.", "warning");
         }
         if (bookingStep === 3 && !bookingData.placement && !['Consultation', 'Follow-up'].includes(bookingData.serviceType)) {
-            return showAlert("Required Field", "Please select the placement for your session.", "warning");
+            return showAlert("Required Field", "Please select the tattoo placement for your session.", "warning");
+        }
+        if (bookingStep === 3 && bookingData.serviceType === 'Tattoo + Piercing' && !bookingData.piercingPlacement) {
+            return showAlert("Required Field", "Please also select the piercing location for your bundled session.", "warning");
         }
         setBookingStep(bookingStep + 1);
     };
@@ -301,6 +305,10 @@ function CustomerBookings(){
 
         setIsSubmitting(true);
         try {
+            const placementNotes = bookingData.serviceType === 'Tattoo + Piercing'
+                ? `Tattoo Placement: ${bookingData.placement}\nPiercing Location: ${bookingData.piercingPlacement}`
+                : `Placement: ${bookingData.placement}`;
+
             const res = await Axios.post(`${API_URL}/api/customer/appointments`, {
                 customerId,
                 artistId: bookingData.artistId,
@@ -309,14 +317,14 @@ function CustomerBookings(){
                 endTime: bookingData.serviceType === 'Consultation' ? bookingData.startTime : '13:00',
                 serviceType: bookingData.serviceType,
                 designTitle: bookingData.designTitle,
-                notes: `Placement: ${bookingData.placement}\n\nDetails: ${bookingData.notes}`,
+                notes: `${placementNotes}\n\nDetails: ${bookingData.notes}`,
                 referenceImage: bookingData.referenceImage
             });
 
             if (res.data.success) {
                 showAlert("Booking Requested", "Your session request has been sent! A confirmation notification with details has been added to your account.", "success");
                 setIsBookingModalOpen(false);
-                setBookingData({ artistId: '', serviceType: '', date: '', startTime: '', designTitle: '', placement: '', notes: '', referenceImage: null });
+                setBookingData({ artistId: '', serviceType: '', date: '', startTime: '', designTitle: '', placement: '', piercingPlacement: '', notes: '', referenceImage: null });
                 // Refresh list
                 const fetchRes = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
                 if (fetchRes.data.success) setAppointments(fetchRes.data.appointments);
@@ -876,7 +884,7 @@ function CustomerBookings(){
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                                 <div className="form-group" style={{ marginBottom: 0 }}>
-                                                    <label className="customer-st-67198c20" >Tattoo Idea / Title</label>
+                                                    <label className="customer-st-67198c20" >{bookingData.serviceType === 'Tattoo + Piercing' ? 'Tattoo Design Idea / Title' : 'Tattoo Idea / Title'}</label>
                                                     <input 
                                                         type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
                                                         value={bookingData.designTitle} onChange={e => setBookingData({...bookingData, designTitle: e.target.value})}
@@ -886,11 +894,19 @@ function CustomerBookings(){
                                                 <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0 }}>
                                                     <label className="customer-st-67198c20" >Tell us your story (Optional)</label>
                                                     <textarea 
-                                                        className="form-input" rows="5" placeholder="Describe the size, color preferences, and any meaningful details..."
+                                                        className="form-input" rows={bookingData.serviceType === 'Tattoo + Piercing' ? 3 : 5} placeholder="Describe the size, color preferences, and any meaningful details..."
                                                         value={bookingData.notes} onChange={e => setBookingData({...bookingData, notes: e.target.value})}
                                                         style={{ resize: 'none' }}
                                                     />
                                                 </div>
+                                                {bookingData.serviceType === 'Tattoo + Piercing' && (
+                                                    <div style={{ padding: '14px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                                        <Sparkles size={18} color="#d97706" style={{ marginTop: '2px', flexShrink: 0 }} />
+                                                        <div style={{ fontSize: '0.85rem', color: '#92400e', lineHeight: '1.5' }}>
+                                                            <strong>Bundled Service:</strong> You are booking a tattoo session and a piercing back-to-back on the same day. Both placements will be captured in the next step.
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column' }}>
                                                 <label className="customer-st-67198c20" >Reference Image</label>
@@ -921,33 +937,90 @@ function CustomerBookings(){
                                 {bookingStep === 3 && (
                                     <div className="fade-in">
                                         <h3 className="customer-st-69ffca42" >3. Placement</h3>
-                                        <p className="customer-st-b943a453" >Where would you like your {bookingData.serviceType === 'Piercing' ? 'piercing' : 'tattoo'}?</p>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                                            {(bookingData.serviceType === 'Piercing' 
-                                                ? ["Ear Lobe", "Helix", "Tragus", "Conch", "Industrial", "Nostril", "Septum", "Eyebrow", "Lip/Oral", "Navel", "Nipple", "Other"]
-                                                : ["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"]
-                                            ).map(part => (
-                                                <button
-                                                    key={part} type="button"
-                                                    onClick={() => setBookingData({...bookingData, placement: part})}
-                                                    style={{
-                                                        padding: '12px', borderRadius: '10px', border: `1px solid ${bookingData.placement === part ? '#daa520' : '#e2e8f0'}`,
-                                                        background: bookingData.placement === part ? '#daa520' : 'white',
-                                                        color: bookingData.placement === part ? 'white' : '#1e293b',
-                                                        fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s'
-                                                    }}
-                                                >
-                                                    {part}
-                                                </button>
-                                            ))}
-                                        </div>
+
+                                        {/* Tattoo Placement (shown for Tattoo Session, Touch-up, Follow-up, and Tattoo + Piercing) */}
+                                        {bookingData.serviceType !== 'Piercing' && (
+                                            <>
+                                                <p className="customer-st-b943a453" style={{ marginBottom: '10px' }}>
+                                                    {bookingData.serviceType === 'Tattoo + Piercing' ? '🎨 Where would you like your tattoo?' : 'Where would you like your tattoo?'}
+                                                </p>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                                                    {["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"].map(part => (
+                                                        <button
+                                                            key={part} type="button"
+                                                            onClick={() => setBookingData({...bookingData, placement: part})}
+                                                            style={{
+                                                                padding: '12px', borderRadius: '10px', border: `1px solid ${bookingData.placement === part ? '#daa520' : '#e2e8f0'}`,
+                                                                background: bookingData.placement === part ? '#daa520' : 'white',
+                                                                color: bookingData.placement === part ? 'white' : '#1e293b',
+                                                                fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s'
+                                                            }}
+                                                        >
+                                                            {part}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Piercing Placement (shown for Piercing and Tattoo + Piercing) */}
+                                        {(bookingData.serviceType === 'Piercing' || bookingData.serviceType === 'Tattoo + Piercing') && (
+                                            <>
+                                                {bookingData.serviceType === 'Tattoo + Piercing' && (
+                                                    <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '20px 0' }} />
+                                                )}
+                                                <p className="customer-st-b943a453" style={{ marginBottom: '10px' }}>
+                                                    {bookingData.serviceType === 'Tattoo + Piercing' ? '💎 Where would you like your piercing?' : 'Where would you like your piercing?'}
+                                                </p>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                                                    {["Ear Lobe", "Helix", "Tragus", "Conch", "Industrial", "Nostril", "Septum", "Eyebrow", "Lip/Oral", "Navel", "Nipple", "Other"].map(part => {
+                                                        const isSelected = bookingData.serviceType === 'Piercing'
+                                                            ? bookingData.placement === part
+                                                            : bookingData.piercingPlacement === part;
+                                                        return (
+                                                            <button
+                                                                key={`piercing-${part}`} type="button"
+                                                                onClick={() => {
+                                                                    if (bookingData.serviceType === 'Piercing') {
+                                                                        setBookingData({...bookingData, placement: part});
+                                                                    } else {
+                                                                        setBookingData({...bookingData, piercingPlacement: part});
+                                                                    }
+                                                                }}
+                                                                style={{
+                                                                    padding: '12px', borderRadius: '10px', border: `1px solid ${isSelected ? '#8b5cf6' : '#e2e8f0'}`,
+                                                                    background: isSelected ? '#8b5cf6' : 'white',
+                                                                    color: isSelected ? 'white' : '#1e293b',
+                                                                    fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s'
+                                                                }}
+                                                            >
+                                                                {part}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </>
+                                        )}
+
                                         <div className="form-group customer-st-842c3fb4" >
                                             <label className="customer-st-fc6d29da" >Specific location notes</label>
                                             <input 
-                                                type="text" className="form-input" placeholder="e.g. Left inner forearm, near elbow" 
+                                                type="text" className="form-input" placeholder={bookingData.serviceType === 'Tattoo + Piercing' ? 'e.g. Left inner forearm tattoo, right ear helix piercing' : 'e.g. Left inner forearm, near elbow'}
                                                 value={bookingData.placementNotes} onChange={e => setBookingData({...bookingData, placementNotes: e.target.value})} 
                                             />
                                         </div>
+
+                                        {/* Selection summary for Tattoo + Piercing */}
+                                        {bookingData.serviceType === 'Tattoo + Piercing' && (bookingData.placement || bookingData.piercingPlacement) && (
+                                            <div style={{ marginTop: '12px', padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#166534' }}>
+                                                    {bookingData.placement ? <><Check size={14} color="#16a34a" /> <strong>Tattoo:</strong> {bookingData.placement}</> : <span style={{ color: '#94a3b8' }}>Tattoo placement not selected</span>}
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#166534' }}>
+                                                    {bookingData.piercingPlacement ? <><Check size={14} color="#16a34a" /> <strong>Piercing:</strong> {bookingData.piercingPlacement}</> : <span style={{ color: '#94a3b8' }}>Piercing location not selected</span>}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
