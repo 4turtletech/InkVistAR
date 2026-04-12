@@ -153,35 +153,35 @@ function AdminAnalytics() {
         <div className="admin-page-with-sidenav">
                <AdminSideNav />
             <div className="admin-page page-container-enter">
-            <header className="admin-header admin-st-c23ff2ab">
-                <h1>Analytics & Reports</h1>
-                <div className="admin-st-bb81d8eb">
-                    <button className="btn btn-secondary admin-st-2609fdda" onClick={handlePrint} >
-                        <Printer size={18} /> Print Report
-                    </button>
-                    <button className="btn btn-primary admin-st-2609fdda" onClick={handleExport} >
-                        <Download size={18} /> Export Report
-                    </button>
-                </div>
-            </header>
-
-            <div className="premium-filter-bar admin-st-c77b64b9">
-                <div className="admin-st-f60a1998">
-                    <div className="admin-st-5d251045">
-                        <Filter size={16} />
-                        <span>Time Range:</span>
+            <div className="analytics-sticky-header">
+                <header className="admin-header-glass">
+                    <div className="header-title-area">
+                        <h1>Analytics & Reports</h1>
+                        <p>Track your studio's performance and inventory</p>
                     </div>
-                    <select 
-                        value={dateRange}
-                        onChange={(e) => setDateRange(e.target.value)}
-                        className="premium-select-v2 admin-st-94a14c3f"
-                    >
-                        <option value="week">Last Week</option>
-                        <option value="month">This Month</option>
-                        <option value="quarter">This Quarter</option>
-                        <option value="year">This Year</option>
-                    </select>
-                </div>
+                    <div className="header-actions-area">
+                        <div className="filter-group-glass">
+                            <Filter size={16} color="#6366f1" />
+                            <span>Time Range:</span>
+                            <select 
+                                value={dateRange}
+                                onChange={(e) => setDateRange(e.target.value)}
+                                className="premium-select-glass"
+                            >
+                                <option value="week">Last Week</option>
+                                <option value="month">This Month</option>
+                                <option value="quarter">This Quarter</option>
+                                <option value="year">This Year</option>
+                            </select>
+                        </div>
+                        <button className="btn-glass" onClick={handlePrint}>
+                            <Printer size={18} /> Print
+                        </button>
+                        <button className="btn-primary-glass" onClick={handleExport}>
+                            <Download size={18} /> Export
+                        </button>
+                    </div>
+                </header>
             </div>
 
             {loading ? (
@@ -205,7 +205,7 @@ function AdminAnalytics() {
             </div>
             {/* Key Metrics */}
             <div className="metrics-section">
-                <div className="metric-card primary">
+                <div className="metric-card glass-card primary-metric">
                     <DollarSign className="metric-icon" size={32} />
                     <div className="metric-content">
                         <p className="metric-label">Total Revenue</p>
@@ -213,18 +213,29 @@ function AdminAnalytics() {
                     </div>
                 </div>
 
-                <div className="metric-card">
+                <div className="metric-card glass-card">
                     <Calendar className="metric-icon" size={32} />
                     <div className="metric-content">
                         <p className="metric-label">Total Appointments</p>
                         <p className="metric-value">{analytics.appointments.total}</p>
                         <p className="metric-info">
-                            {analytics.appointments.completed} completed, {analytics.appointments.scheduled} scheduled
+                            <span style={{color: '#10b981', fontWeight: '600'}}>{analytics.appointments.completed} completed</span>
                         </p>
                     </div>
                 </div>
 
-                <div className="metric-card">
+                <div className="metric-card glass-card">
+                    <Users className="metric-icon" size={32} />
+                    <div className="metric-content">
+                        <p className="metric-label">Active Artists</p>
+                        <p className="metric-value">{analytics.artists?.length || 0}</p>
+                        <p className="metric-info">
+                            Producing Revenue
+                        </p>
+                    </div>
+                </div>
+
+                <div className="metric-card glass-card">
                     <Package className="metric-icon" size={32} />
                     <div className="metric-content">
                         <p className="metric-label">Inventory Used</p>
@@ -235,12 +246,12 @@ function AdminAnalytics() {
                     </div>
                 </div>
 
-                <div className="metric-card">
-                    <div className="metric-icon">✓</div>
+                <div className="metric-card glass-card">
+                    <div className="metric-icon" style={{color: '#10b981'}}>✓</div>
                     <div className="metric-content">
                         <p className="metric-label">Completion Rate</p>
                         <p className="metric-value">{analytics.appointments.completionRate}%</p>
-                        <p className="metric-info">
+                        <p className="metric-info" style={{color: '#ef4444'}}>
                             {analytics.appointments.cancelled} cancelled
                         </p>
                     </div>
@@ -249,7 +260,7 @@ function AdminAnalytics() {
 
             <div className="analytics-grid">
                 {/* Services Performance */}
-                <div className="card">
+                <div className="card glass-card">
                     <h2>Popular Styles</h2>
                     <div className="service-list">
                         {analytics.styles.map((style, index) => (
@@ -262,8 +273,7 @@ function AdminAnalytics() {
                                 </div>
                                 <div className="progress-bar">
                                     <div 
-                                        className="progress-fill" 
-                                        // Simple visualization relative to max
+                                        className="progress-fill indigo-fill" 
                                         style={{ width: `${(style.count / Math.max(...analytics.styles.map(s => s.count))) * 100}%` }}
                                     >
                                     </div>
@@ -274,7 +284,7 @@ function AdminAnalytics() {
                 </div>
 
                 {/* Artist Performance */}
-                <div className="card">
+                <div className="card glass-card">
                     <h2>Top Artists</h2>
                     <div className="artist-list">
                         {analytics.artists.map((artist, index) => (
@@ -303,8 +313,8 @@ function AdminAnalytics() {
             </div>
 
             <div className="analytics-grid">
-                {/* Peak Hours */}
-                <div className="card">
+                {/* Inventory */}
+                <div className="card glass-card">
                     <h2>Inventory Consumption</h2>
                     <div className="service-list">
                         {analytics.inventory.map((item, index) => (
@@ -317,8 +327,8 @@ function AdminAnalytics() {
                                 </div>
                                 <div className="progress-bar">
                                     <div 
-                                        className="progress-fill" 
-                                        style={{ width: `${(item.used / Math.max(...analytics.inventory.map(i => i.used))) * 100}%`, backgroundColor: '#f59e0b' }}
+                                        className="progress-fill indigo-fill" 
+                                        style={{ width: `${(item.used / Math.max(...analytics.inventory.map(i => i.used))) * 100}%` }}
                                     ></div>
                                 </div>
                             </div>
@@ -327,7 +337,7 @@ function AdminAnalytics() {
                 </div>
 
                 {/* Monthly Trend */}
-                <div className="card">
+                <div className="card glass-card">
                     <h2>Monthly Revenue Trend</h2>
                     <div className="trend-chart">
                         {analytics.revenue.chart.map((data, index) => (
@@ -351,7 +361,7 @@ function AdminAnalytics() {
             </div>
 
             {/* Additional Stats */}
-            <div className="card">
+            <div className="card glass-card">
                 <h2>Appointment Breakdown</h2>
                 <div className="breakdown-grid">
                     <div className="breakdown-item">

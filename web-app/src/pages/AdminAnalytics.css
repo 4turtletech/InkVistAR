@@ -53,6 +53,93 @@
     font-size: 0.95rem;
 }
 
+/* Glassmorphism Unified Sticky Header */
+.analytics-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: rgba(245, 247, 250, 0.85); /* Matches body with glass effect */
+    padding: 1rem 2rem 0;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.admin-header-glass {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.header-actions-area {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-group-glass {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.premium-select-glass {
+    border: none;
+    background: transparent;
+    font-weight: 500;
+    color: #1e293b;
+    outline: none;
+    cursor: pointer;
+}
+
+.btn-glass {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-glass:hover {
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-primary-glass {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    border: none;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+}
+.btn-primary-glass:hover {
+    box-shadow: 0 6px 14px rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px);
+}
+
 .select-input {
     padding: 0.8rem 1rem;
     border: 1px solid #e5e7eb;
@@ -80,6 +167,14 @@
     align-items: flex-start;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     border: 1px solid #e2e8f0;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.03);
 }
 
 .metric-card.primary {
@@ -217,6 +312,10 @@
     font-size: 0.7rem;
     font-weight: 700;
     transition: width 0.3s;
+}
+
+.indigo-fill {
+    background: linear-gradient(90deg, #818cf8 0%, #4f46e5 100%) !important;
 }
 
 /* Artist List */
@@ -367,7 +466,7 @@
 
 .trend-bar {
     width: 80%;
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    background: linear-gradient(180deg, #818cf8 0%, #4f46e5 100%);
     border-radius: 8px 8px 0 0;
     display: flex;
     align-items: flex-start;
@@ -478,6 +577,10 @@
 
     .trend-chart {
         height: 300px;
+    }
+    
+    .analytics-sticky-header {
+        padding: 1rem 1rem 0;
     }
 }
 
