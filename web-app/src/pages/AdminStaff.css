@@ -9,20 +9,9 @@
     margin-bottom: 1rem;
 }
 
-.header-title-area h1 {
-    font-size: 1.85rem;
-    font-weight: 800;
-    margin: 0;
-    color: #1e293b;
-    letter-spacing: -0.02em;
-}
+/* .header-title-area styles are now defined globally in AdminStyles.css */
 
-.header-title-area p {
-    margin: 4px 0 0 0;
-    color: #94a3b8;
-    font-size: 0.95rem;
-    font-weight: 500;
-}
+
 
 
 
