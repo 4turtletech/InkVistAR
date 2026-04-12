@@ -610,9 +610,12 @@ function AdminAppointments() {
                         </div>
                     </div>
                 </div>
-                <header className="admin-header admin-st-c23ff2ab">
-                    <h1>Appointment Management</h1>
-                    <div className="admin-st-bb81d8eb">
+                <header className="admin-header">
+                    <div className="header-title-area">
+                        <h1>Appointment Management</h1>
+                        <p>Real-time schedule monitoring and booking oversight</p>
+                    </div>
+                    <div className="header-actions-group">
                         <div className="view-toggle admin-flex-center admin-gap-10">
                             <button
                                 className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'} admin-st-1b9ed2b3`}

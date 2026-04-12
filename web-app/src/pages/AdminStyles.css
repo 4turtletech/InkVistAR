@@ -2786,15 +2786,16 @@
     justify-content: space-between;
     align-items: center;
     padding: 1.8rem 2.5rem;
-    background-color: #1a1416; /* Exact match with AdminSideNav */
-    border-bottom: 2px solid #d4af37; /* Refined Sidebar Gold */
+    background-color: #1a1416; /* Exact match with AdminSideNav background */
+    border-bottom: 2px solid #d4af37; /* Consistent Sidebar Gold Accent */
     margin-bottom: 2.5rem;
     height: auto;
     min-height: 110px;
-    color: white;
+    color: #ffffff;
     width: 100%;
     box-sizing: border-box;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    z-index: 10;
 }
 
 .header-title-area {
@@ -2802,25 +2803,26 @@
     flex-direction: column;
     gap: 6px;
     text-align: left;
+    flex-shrink: 0;
 }
 
 .admin-header h1,
 .header-title-area h1 {
     margin: 0;
-    color: #d4af37; /* Complements the background with premium gold */
-    font-size: 1.9rem;
+    color: #d4af37; /* Premium Gold for high contrast and brand alignment */
+    font-size: 2rem;
     font-weight: 800;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
     text-align: left;
     text-transform: uppercase;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .admin-header p,
 .header-title-area p {
     margin: 0;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.9); /* Increased opacity for better readability on #1a1416 */
+    font-size: 1rem;
     font-weight: 500;
     text-align: left;
     letter-spacing: 0.01em;
@@ -2829,6 +2831,9 @@
 .header-actions-group {
     display: flex;
     align-items: center;
+    justify-content: flex-end; /* Strictly right-align buttons */
     gap: 1.25rem;
     flex-wrap: wrap;
+    flex: 1; /* Take up available space to push to right */
+    margin-left: 2rem;
 }
