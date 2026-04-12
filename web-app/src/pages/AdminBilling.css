@@ -6,26 +6,8 @@
     flex-direction: column;
 }
 
-.admin-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem 2.5rem;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-bottom: 2px solid #c19a6b;
-    margin-bottom: 2.5rem;
-    height: auto; /* Remove height constraints */
-    min-height: 100px; /* Ensure a substantial dark header bar */
-    color: white;
-}
+/* .admin-header styles are now defined globally in AdminStyles.css */
 
-.admin-header h1 {
-    color: white;
-    margin: 0;
-    font-size: 1.75rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-}
 
 .stats-row {
     margin-bottom: 2rem;

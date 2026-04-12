@@ -140,36 +140,8 @@
     color: #334155;
 }
 
-.admin-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 30px;
-    height: 64px;
-    background-color: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
-    color: #334155;
-    box-shadow: none;
-    gap: 2rem;
-    flex-wrap: wrap;
-}
+/* .admin-header styles are now defined globally in AdminStyles.css */
 
-.admin-header > div {
-    flex: 1;
-}
-
-.admin-header h1 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #334155;
-}
-
-.admin-header p {
-    margin: 0.5rem 0 0;
-    color: #64748b;
-    font-size: 0.95rem;
-}
 
 /* Filters Section */
 .filters-section {

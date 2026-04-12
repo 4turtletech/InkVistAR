@@ -1,33 +1,7 @@
 /* --- MODERN GLASSMORPHISM INVENTORY STYLES --- */
+/* .admin-header, .header-title-area, .header-actions-group styles are now
+   defined globally in AdminStyles.css */
 
-.admin-inventory-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem 2rem;
-    background: transparent;
-    margin-bottom: 1rem;
-}
-
-.header-title-area h1 {
-    font-size: 1.85rem;
-    font-weight: 800;
-    margin: 0;
-    color: #1e293b;
-    letter-spacing: -0.02em;
-}
-
-.header-title-area p {
-    margin: 4px 0 0 0;
-    color: #94a3b8;
-    font-size: 0.95rem;
-    font-weight: 500;
-}
-
-.header-actions-group {
-    display: flex;
-    gap: 0.75rem;
-}
 
 .btn-glass {
     background: rgba(255, 255, 255, 0.7);
