@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Axios from 'axios';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag, Send, User } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag, Send, User, CreditCard, Wallet, DollarSign, Banknote, Receipt, RotateCcw } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import './AdminStyles.css';
@@ -22,6 +22,9 @@ function AdminPOS() {
     const [error, setError] = useState(null);
     const [discountType, setDiscountType] = useState('none');
     const [customDiscount, setCustomDiscount] = useState(0);
+    const [showAssessment, setShowAssessment] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('Cash');
+    const [amountTendered, setAmountTendered] = useState('');
     const searchInputRef = useRef(null);
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
 
@@ -122,6 +125,12 @@ function AdminPOS() {
         if (cart.length === 0) return;
         const customer = customers.find(c => c.id === parseInt(selectedCustomerId));
         const clientLabel = customer ? customer.name : 'Walk-in Customer';
+
+        // Cash validation
+        if (paymentMethod === 'Cash' && (parseFloat(amountTendered) || 0) < cartTotal) {
+            showAlert("Insufficient Payment", "The amount tendered is less than the total due.", "warning");
+            return;
+        }
         
         setIsCheckingOut(true);
         try {
@@ -145,6 +154,8 @@ function AdminPOS() {
                 status: 'Paid',
                 customerId: selectedCustomerId || null
             });
+
+            const tenderedNum = parseFloat(amountTendered) || 0;
             
             setLastOrder({
                 items: [...cart],
@@ -154,10 +165,14 @@ function AdminPOS() {
                 date: new Date().toLocaleString(),
                 orderId: Math.floor(Math.random() * 1000000),
                 customerName: clientLabel,
-                customerId: selectedCustomerId
+                customerId: selectedCustomerId,
+                paymentMethod: paymentMethod,
+                amountTendered: paymentMethod === 'Cash' ? tenderedNum : cartTotal,
+                changeGiven: paymentMethod === 'Cash' ? Math.max(0, tenderedNum - cartTotal) : 0
             });
             
             setCart([]);
+            setShowAssessment(false);
             setShowReceipt(true);
             fetchInventory(); // Refresh stock
         } catch (error) {
@@ -166,6 +181,18 @@ function AdminPOS() {
         } finally {
             setIsCheckingOut(false);
         }
+    };
+
+    const handleNewSale = () => {
+        setShowReceipt(false);
+        setShowAssessment(false);
+        setCart([]);
+        setSelectedCustomerId('');
+        setDiscountType('none');
+        setCustomDiscount(0);
+        setPaymentMethod('Cash');
+        setAmountTendered('');
+        setLastOrder(null);
     };
 
     const handleSendReceipt = async () => {
@@ -350,158 +377,319 @@ function AdminPOS() {
 
                             <div className="cart-footer">
                                 <div className="cart-summary">
-                                    <div className="customer-selection-sidebar">
-                                        <label><User size={14} /> Assign Customer</label>
-                                        <select 
-                                            value={selectedCustomerId} 
-                                            onChange={(e) => setSelectedCustomerId(e.target.value)}
-                                            className="pos-customer-select"
-                                        >
-                                            <option value="">Walk-in Customer</option>
-                                            {customers.map(c => (
-                                                <option key={c.id} value={c.id}>
-                                                    {c.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="summary-row">
-                                        <span>Subtotal</span>
-                                        <span>₱{cartSubtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                                    </div>
-
-                                    <div className="pos-discount-section" style={{ padding: '10px 0', borderBottom: '1px solid #e2e8f0', marginBottom: '10px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                            <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Apply Discount</span>
-                                            <select 
-                                                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
-                                                value={discountType} 
-                                                onChange={(e) => {
-                                                    setDiscountType(e.target.value);
-                                                    if(e.target.value !== 'custom') setCustomDiscount(0);
-                                                }}
-                                            >
-                                                <option value="none">No Discount</option>
-                                                <option value="pwd_senior">PWD / Senior (20%)</option>
-                                                <option value="promo_10">Promo App (10%)</option>
-                                                <option value="custom">Custom Percentage</option>
-                                            </select>
-                                        </div>
-                                        {discountType === 'custom' && (
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Custom %</span>
-                                                <input 
-                                                    type="number" 
-                                                    min="0" max="100" 
-                                                    style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', textAlign: 'right' }} 
-                                                    value={customDiscount}
-                                                    onChange={e => setCustomDiscount(Number(e.target.value))}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                    
-                                    {discountAmount > 0 && (
-                                        <div className="summary-row" style={{ color: '#ef4444' }}>
-                                            <span>Discount</span>
-                                            <span>-₱{discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                                        </div>
-                                    )}
-
-                                    <div className="summary-row total">
-                                        <span>Final Total</span>
-                                        <span>₱{cartTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                    <div className="summary-row" style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                                        <span>{cart.length} item{cart.length !== 1 ? 's' : ''}</span>
+                                        <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1.1rem' }}>₱{cartSubtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
                                     </div>
                                 </div>
                                 <button 
                                     className="checkout-btn" 
-                                    disabled={cart.length === 0 || isCheckingOut}
-                                    onClick={handleCheckout}
+                                    disabled={cart.length === 0}
+                                    onClick={() => { setAmountTendered(''); setShowAssessment(true); }}
                                 >
-                                    {isCheckingOut ? 'Processing...' : 'Complete Sale'}
-                                    {!isCheckingOut && <ArrowRight size={18} />}
+                                    Assess Sale
+                                    <ArrowRight size={18} />
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {showReceipt && lastOrder && (
-                    <div className="modal-overlay open" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
-                        <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                {/* ══════════════ ASSESSMENT MODAL ══════════════ */}
+                {showAssessment && (
+                    <div className="modal-overlay open" onClick={() => setShowAssessment(false)}>
+                        <div className="modal-content large" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px' }}>
                             <div className="modal-header">
                                 <div className="admin-flex-center admin-gap-15">
-                                    <div className="admin-st-2188556f">
-                                        <CheckCircle size={24} className="text-green-600" />
+                                    <div style={{ width: '40px', height: '40px', background: '#eef2ff', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Receipt size={22} color="#6366f1" />
                                     </div>
                                     <div>
-                                        <h2 className="admin-m-0">Transaction Settlement Successful</h2>
-                                        <p className="admin-st-925e4e02">Digital ledger entry committed to archive</p>
+                                        <h2 className="admin-m-0" style={{ fontSize: '1.15rem' }}>Checkout Assessment</h2>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Review order details before completing the sale</p>
                                     </div>
                                 </div>
-                                <button className="close-btn" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}><X size={24} /></button>
+                                <button className="close-btn" onClick={() => setShowAssessment(false)}><X size={24} /></button>
                             </div>
 
-                            <div className="modal-body admin-st-f5190571">
-                                <div className="admin-st-85008937">
-                                    <div className="admin-st-ab172eb7">
-                                        <h1 className="admin-st-78593364">InkVistAR Studio</h1>
-                                        <p className="admin-st-20eb07f8">123 Art Street, New York, NY 10001</p>
+                            <div className="modal-body" style={{ padding: '20px 24px', maxHeight: '65vh', overflowY: 'auto' }}>
+                                {/* Cart Items Summary */}
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>Order Summary</label>
+                                    <div style={{ background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                                        {cart.map((item, idx) => (
+                                            <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: idx < cart.length - 1 ? '1px solid #e2e8f0' : 'none' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, minWidth: '24px' }}>{item.quantity}×</span>
+                                                    <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#1e293b' }}>{item.name}</span>
+                                                </div>
+                                                <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem' }}>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                            </div>
+                                        ))}
                                     </div>
-
-                                    <div className="admin-st-4b0a33cd">
-                                        <div>
-                                            <div className="admin-st-df29bf0c">Billed To</div>
-                                            <div className="admin-st-18faa366">{lastOrder.customerName}</div>
-                                            <div className="admin-st-3bf8f64b">{customers.find(c => c.id === parseInt(lastOrder.customerId))?.email || 'Guest Session'}</div>
-                                        </div>
-                                        <div className="admin-st-7851dbc0">
-                                            <div className="admin-st-df29bf0c">Invoice Ref</div>
-                                            <div className="admin-st-18faa366">#INV-{lastOrder.orderId}</div>
-                                            <div className="admin-st-3bf8f64b">{lastOrder.date}</div>
-                                        </div>
-                                    </div>
-
-                                    <table className="admin-st-1c80fc18">
-                                        <thead>
-                                            <tr className="admin-st-2dc1a24a">
-                                                <th className="admin-st-ed1446d8">Item Specification</th>
-                                                <th className="admin-st-2f90aa01">Unit</th>
-                                                <th className="admin-st-8fc04342">Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {lastOrder.items.map(item => (
-                                                <tr key={item.id} className="admin-st-bd4d1d67">
-                                                    <td className="admin-st-3a586b35">{item.name}</td>
-                                                    <td className="admin-st-de480dad">{item.quantity}</td>
-                                                    <td className="admin-st-923f35f1">₱{((item.retail_price || item.cost) * item.quantity).toLocaleString()}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <td colSpan="2" className="admin-st-e6c5be46">Net Amount:</td>
-                                                <td className="admin-st-51fd2b0b">₱{lastOrder.total.toLocaleString()}</td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
                                 </div>
+
+                                {/* Discount Section */}
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>Discount</label>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <select 
+                                            style={{ flex: 1, padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', background: '#fff' }}
+                                            value={discountType} 
+                                            onChange={(e) => {
+                                                setDiscountType(e.target.value);
+                                                if(e.target.value !== 'custom') setCustomDiscount(0);
+                                            }}
+                                        >
+                                            <option value="none">No Discount</option>
+                                            <option value="pwd_senior">PWD / Senior (20%)</option>
+                                            <option value="promo_10">Promo App (10%)</option>
+                                            <option value="custom">Custom Percentage</option>
+                                        </select>
+                                        {discountType === 'custom' && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <input 
+                                                    type="number" 
+                                                    min="0" max="100" 
+                                                    style={{ width: '70px', padding: '10px 8px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', textAlign: 'right' }} 
+                                                    value={customDiscount}
+                                                    onChange={e => setCustomDiscount(Number(e.target.value))}
+                                                />
+                                                <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>%</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Totals */}
+                                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#64748b', marginBottom: '6px' }}>
+                                        <span>Subtotal</span>
+                                        <span>₱{cartSubtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                    </div>
+                                    {discountAmount > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#ef4444', marginBottom: '6px' }}>
+                                            <span>Discount</span>
+                                            <span>-₱{discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.3rem', fontWeight: 800, color: '#1e293b', paddingTop: '8px', borderTop: '2px solid #e2e8f0' }}>
+                                        <span>Total Due</span>
+                                        <span>₱{cartTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                    </div>
+                                </div>
+
+                                {/* Assign Customer */}
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}><User size={13} /> Assign Customer</label>
+                                    <select 
+                                        value={selectedCustomerId} 
+                                        onChange={(e) => setSelectedCustomerId(e.target.value)}
+                                        style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', background: '#fff' }}
+                                    >
+                                        <option value="">Guest / Walk-in</option>
+                                        {customers.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Payment Method */}
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'block' }}>Payment Method</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                        {[
+                                            { key: 'Cash', icon: <Banknote size={20} />, color: '#10b981' },
+                                            { key: 'Card', icon: <CreditCard size={20} />, color: '#6366f1' },
+                                            { key: 'GCash', icon: <Wallet size={20} />, color: '#3b82f6' }
+                                        ].map(method => (
+                                            <div
+                                                key={method.key}
+                                                onClick={() => { setPaymentMethod(method.key); if (method.key !== 'Cash') setAmountTendered(''); }}
+                                                style={{
+                                                    padding: '14px 12px', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
+                                                    border: paymentMethod === method.key ? `2px solid ${method.color}` : '2px solid #e2e8f0',
+                                                    background: paymentMethod === method.key ? `${method.color}10` : 'white',
+                                                    color: paymentMethod === method.key ? method.color : '#64748b'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                                                    {method.icon}
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{method.key}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Cash Tender Input */}
+                                {paymentMethod === 'Cash' && (
+                                    <div style={{ marginBottom: '10px' }}>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>Amount Tendered</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b', fontSize: '1.1rem' }}>₱</span>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                                value={amountTendered}
+                                                onChange={e => setAmountTendered(e.target.value)}
+                                                style={{ width: '100%', padding: '14px 14px 14px 32px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1.2rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                                                autoFocus
+                                            />
+                                        </div>
+                                        {amountTendered && (
+                                            <div style={{
+                                                marginTop: '10px', padding: '12px 16px', borderRadius: '10px',
+                                                background: (parseFloat(amountTendered) || 0) >= cartTotal ? '#f0fdf4' : '#fef2f2',
+                                                border: `1px solid ${(parseFloat(amountTendered) || 0) >= cartTotal ? '#bbf7d0' : '#fecaca'}`,
+                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                            }}>
+                                                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: (parseFloat(amountTendered) || 0) >= cartTotal ? '#166534' : '#991b1b' }}>
+                                                    {(parseFloat(amountTendered) || 0) >= cartTotal ? 'Change Due' : 'Insufficient Amount'}
+                                                </span>
+                                                <span style={{ fontWeight: 800, fontSize: '1.1rem', color: (parseFloat(amountTendered) || 0) >= cartTotal ? '#16a34a' : '#ef4444' }}>
+                                                    ₱{Math.max(0, (parseFloat(amountTendered) || 0) - cartTotal).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="modal-footer admin-st-651c59bd">
-                                <button className="btn btn-secondary admin-st-c6588e1a" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
-                                    Skip Dispatch
+                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
+                                <button className="btn btn-secondary" onClick={() => setShowAssessment(false)} style={{ padding: '10px 20px', borderRadius: '10px' }}>
+                                    Cancel
                                 </button>
                                 <button 
-                                    className="btn btn-primary admin-st-be22555c"
+                                    className="checkout-btn" 
+                                    disabled={isCheckingOut || (paymentMethod === 'Cash' && (!amountTendered || (parseFloat(amountTendered) || 0) < cartTotal))}
+                                    onClick={handleCheckout}
+                                    style={{ width: 'auto', padding: '0 28px', height: '48px', fontSize: '1rem' }}
+                                >
+                                    {isCheckingOut ? 'Processing...' : <><CheckCircle size={18} /> Complete Transaction</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ══════════════ INVOICE / RECEIPT MODAL ══════════════ */}
+                {showReceipt && lastOrder && (
+                    <div className="modal-overlay open" onClick={handleNewSale}>
+                        <div className="modal-content large" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px' }}>
+                            <div className="modal-header">
+                                <div className="admin-flex-center admin-gap-15">
+                                    <div style={{ width: '40px', height: '40px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <CheckCircle size={22} color="#10b981" />
+                                    </div>
+                                    <div>
+                                        <h2 className="admin-m-0" style={{ fontSize: '1.15rem' }}>Transaction Complete</h2>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Invoice #{lastOrder.orderId}</p>
+                                    </div>
+                                </div>
+                                <button className="close-btn" onClick={handleNewSale}><X size={24} /></button>
+                            </div>
+
+                            <div className="modal-body" style={{ padding: '20px 24px', maxHeight: '65vh', overflowY: 'auto' }}>
+                                <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                                    {/* Invoice Header */}
+                                    <div style={{ padding: '20px', borderBottom: '1px dashed #e2e8f0', textAlign: 'center' }}>
+                                        <h2 style={{ margin: '0 0 4px 0', fontSize: '1.3rem', fontWeight: 800, color: '#1e293b', letterSpacing: '-0.02em' }}>InkVistAR Studio</h2>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>Official Sales Invoice</p>
+                                    </div>
+
+                                    {/* Invoice Meta */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '2px' }}>Billed To</div>
+                                            <div style={{ fontWeight: 600, color: '#1e293b' }}>{lastOrder.customerName}</div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '2px' }}>Date & Time</div>
+                                            <div style={{ fontWeight: 600, color: '#1e293b' }}>{lastOrder.date}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Invoice Items */}
+                                    <div style={{ padding: '0' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 20px', background: '#f8fafc', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                                            <span>Item</span>
+                                            <div style={{ display: 'flex', gap: '40px' }}>
+                                                <span style={{ minWidth: '30px', textAlign: 'center' }}>Qty</span>
+                                                <span style={{ minWidth: '80px', textAlign: 'right' }}>Amount</span>
+                                            </div>
+                                        </div>
+                                        {lastOrder.items.map(item => (
+                                            <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 20px', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}>
+                                                <span style={{ fontWeight: 500, color: '#1e293b' }}>{item.name}</span>
+                                                <div style={{ display: 'flex', gap: '40px' }}>
+                                                    <span style={{ minWidth: '30px', textAlign: 'center', color: '#64748b' }}>{item.quantity}</span>
+                                                    <span style={{ minWidth: '80px', textAlign: 'right', fontWeight: 600, color: '#1e293b' }}>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Invoice Totals */}
+                                    <div style={{ padding: '14px 20px', borderTop: '1px dashed #e2e8f0', background: '#fafbfc' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#64748b', marginBottom: '4px' }}>
+                                            <span>Subtotal</span>
+                                            <span>₱{lastOrder.subtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                        </div>
+                                        {lastOrder.discount_amount > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#ef4444', marginBottom: '4px' }}>
+                                                <span>Discount</span>
+                                                <span>-₱{lastOrder.discount_amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.15rem', fontWeight: 800, color: '#1e293b', paddingTop: '8px', borderTop: '1px solid #e2e8f0', marginTop: '4px' }}>
+                                            <span>Total</span>
+                                            <span>₱{lastOrder.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Payment Details */}
+                                    <div style={{ padding: '14px 20px', borderTop: '1px dashed #e2e8f0', background: '#f0fdf4' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#475569', marginBottom: '4px' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                {lastOrder.paymentMethod === 'Cash' ? <Banknote size={14} /> : lastOrder.paymentMethod === 'Card' ? <CreditCard size={14} /> : <Wallet size={14} />}
+                                                Payment Method
+                                            </span>
+                                            <span style={{ fontWeight: 700 }}>{lastOrder.paymentMethod}</span>
+                                        </div>
+                                        {lastOrder.paymentMethod === 'Cash' && (
+                                            <>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#475569', marginBottom: '4px' }}>
+                                                    <span>Amount Tendered</span>
+                                                    <span style={{ fontWeight: 600 }}>₱{lastOrder.amountTendered.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 800, color: '#16a34a', paddingTop: '6px', borderTop: '1px solid #bbf7d0', marginTop: '4px' }}>
+                                                    <span>Change Given</span>
+                                                    <span>₱{lastOrder.changeGiven.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
+                                <button 
+                                    className="btn btn-primary"
                                     onClick={handleSendReceipt} 
                                     disabled={isSending || !lastOrder.customerId}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '10px', fontWeight: 600, cursor: lastOrder.customerId ? 'pointer' : 'not-allowed', opacity: lastOrder.customerId ? 1 : 0.5 }}
                                 >
-                                    {isSending ? 'Transmitting...' : 'Dispatch to Customer Account'}
+                                    <Send size={16} /> {isSending ? 'Sending...' : 'Send to Customer'}
                                 </button>
-                                <button className="btn btn-primary admin-st-6948e5f9" onClick={() => { setShowReceipt(false); setSelectedCustomerId(''); }}>
-                                    Done
+                                <button 
+                                    className="checkout-btn"
+                                    onClick={handleNewSale}
+                                    style={{ width: 'auto', padding: '0 28px', height: '48px', fontSize: '1rem', background: '#10b981', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
+                                >
+                                    <RotateCcw size={18} /> New Sale
                                 </button>
                             </div>
                         </div>
