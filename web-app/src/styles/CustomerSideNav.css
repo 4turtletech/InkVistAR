@@ -1,12 +1,12 @@
 /* Customer Side Navigation Styles - Unified with Admin Design */
 :root {
-    --sidenav-bg: #0f172a;
+    --sidenav-bg: #0e0d0d;
     --sidenav-hover: rgba(255, 255, 255, 0.08);
-    --sidenav-active-bg: rgba(99, 102, 241, 0.15);
-    --sidenav-active-text: #818cf8;
-    --sidenav-text: #94a3b8;
-    --sidenav-header-text: #f8fafc;
-    --accent-color: #6366f1;
+    --sidenav-active-bg: rgba(212, 175, 55, 0.15);
+    --sidenav-active-text: #d4af37;
+    --sidenav-text: rgba(255, 255, 255, 0.85);
+    --sidenav-header-text: #d4af37;
+    --accent-color: #d4af37;
 }
 
 .customer-sidenav {
@@ -186,7 +186,7 @@
     height: 18px;
     background-color: var(--accent-color);
     border-radius: 0 4px 4px 0;
-    box-shadow: 2px 0 8px rgba(99, 102, 241, 0.5);
+    box-shadow: 2px 0 8px rgba(212, 175, 55, 0.5);
 }
 
 .menu-section-bottom {

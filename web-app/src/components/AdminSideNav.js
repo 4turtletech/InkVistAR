@@ -144,9 +144,8 @@ function AdminSideNav() {
     return (
         <aside className={`admin-sidenav ${collapsed ? 'collapsed' : ''}`}>
             <div className="sidenav-header">
-                <div className="logo-container" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-                    <AppWindow size={24} className="logo-icon" />
-                    <h3 className="logo-text">InkVictus</h3>
+                <div className="logo-container" onClick={() => navigate('/')} style={{ cursor: 'pointer', padding: '0 10px' }}>
+                    <img src="/inkvictus-logo.png" alt="InkVictus" style={{ objectFit: 'contain', maxHeight: '45px', width: 'auto', padding: '4px' }} />
                 </div>
                 <button className="sidenav-toggle" onClick={toggleCollapsed} title={collapsed ? 'Expand' : 'Collapse'}>
                     {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}

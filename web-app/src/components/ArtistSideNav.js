@@ -60,10 +60,7 @@ function ArtistSideNav() {
         <aside className={`artist-sidenav ${collapsed ? 'collapsed' : ''}`}>
             <div className="sidenav-header">
                 <div className="logo-container" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-                    <div className="logo-box">
-                        <Building2 size={24} />
-                    </div>
-                    <span className="logo-text">InkVictus</span>
+                    <img src="/inkvictus-logo.png" alt="InkVictus" style={{ objectFit: 'contain', maxHeight: '45px', width: 'auto', padding: '4px' }} />
                 </div>
                 <button className="sidenav-toggle" onClick={toggleCollapsed} title={collapsed ? 'Expand' : 'Collapse'}>
                     {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
