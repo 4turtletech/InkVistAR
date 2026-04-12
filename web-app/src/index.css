@@ -22,8 +22,8 @@ code {
 
 /* --- PREMIUM ADMIN COMMON STYLES --- */
 :root {
-  --admin-primary: #6366f1;
-  --admin-primary-dark: #4f46e5;
+  --admin-primary: #be9055;
+  --admin-primary-dark: #be9055;
   --admin-glass: rgba(255, 255, 255, 0.85);
   /* Slightly more opaque glass */
   --admin-border: rgba(255, 255, 255, 0.3);
