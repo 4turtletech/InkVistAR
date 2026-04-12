@@ -209,7 +209,7 @@ function AdminAnalytics() {
                     <DollarSign className="metric-icon" size={32} />
                     <div className="metric-content">
                         <p className="metric-label">Total Revenue</p>
-                        <p className="metric-value">₱{analytics.revenue.total.toLocaleString()}</p>
+                        <p className="metric-value">₱{Number(analytics.revenue.total).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</p>
                     </div>
                 </div>
 
@@ -289,16 +289,16 @@ function AdminAnalytics() {
                     <div className="artist-list">
                         {analytics.artists.map((artist, index) => (
                             <div key={index} className="artist-item">
-                                <div className="artist-info">
+                                <div className="artist-info" style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '50%' }}>
                                     <div className="artist-rank">#{index + 1}</div>
                                     <div className="artist-details">
                                         <p className="artist-name">{artist.name}</p>
                                         <p className="artist-rating">⭐ 5.0</p>
                                     </div>
                                 </div>
-                                <div className="artist-stats">
+                                <div className="artist-stats" style={{ display: 'flex', gap: '2rem', width: '50%', justifyContent: 'flex-end', paddingRight: '1rem' }}>
                                     <div className="stat">
-                                        <span className="stat-value">₱{(artist.revenue || 0).toLocaleString()}</span>
+                                        <span className="stat-value">₱{Number(artist.revenue || 0).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span>
                                         <span className="stat-label">Revenue</span>
                                     </div>
                                     <div className="stat">
@@ -344,15 +344,15 @@ function AdminAnalytics() {
                             <div key={index} className="trend-item">
                                 <div className="trend-bar-container">
                                     <div 
-                                        className="trend-bar" 
-                                        style={{ height: `${Math.min((data.value / 5000) * 100, 100)}%` }}
+                                        className={`trend-bar ${Number(data.value) === 0 ? 'empty-trend-bar' : ''}`}
+                                        style={{ height: Number(data.value) === 0 ? '24px' : `${Math.max(15, Math.min((Number(data.value) / 5000) * 100, 100))}%` }}
                                     >
-                                        <span className="bar-value">₱{Number(data.value).toLocaleString()}</span>
+                                        {Number(data.value) > 0 && <span className="bar-value">₱{Number(data.value).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span>}
                                     </div>
                                 </div>
                                 <div className="trend-info">
                                     <p className="trend-month">{data.month}</p>
-                                    <p className="trend-appointments">{data.appointments} apt</p>
+                                    {Number(data.value) > 0 && <p className="trend-appointments">{data.appointments} apt</p>}
                                 </div>
                             </div>
                         ))}
