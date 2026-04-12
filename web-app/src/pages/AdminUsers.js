@@ -267,7 +267,7 @@ function AdminUsers() {
 
                 <div className="premium-filter-bar premium-filter-bar--stacked">
                     <div className="premium-search-box premium-search-box--full">
-                        <Search size={18} className="text-muted" />
+                        <Search size={16} className="text-muted" />
                         <input
                             type="text"
                             list="search-suggestions-users"
