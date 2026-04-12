@@ -1,6 +1,6 @@
 /* Customer Side Navigation Styles - Unified with Admin Design */
 :root {
-    --sidenav-bg: #0e0d0d;
+    --sidenav-bg: #1a1416;
     --sidenav-hover: rgba(255, 255, 255, 0.08);
     --sidenav-active-bg: rgba(212, 175, 55, 0.15);
     --sidenav-active-text: #d4af37;
