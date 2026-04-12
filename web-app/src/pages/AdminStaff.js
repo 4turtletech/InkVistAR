@@ -12,6 +12,7 @@ import Pagination from '../components/Pagination';
 import './AdminStaff.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
+import { TATTOO_STYLES } from '../constants/tattooStyles';
 
 function AdminStaff() {
     const navigate = useNavigate();
@@ -290,12 +291,16 @@ function AdminStaff() {
                 </div>
                 <div className="form-group">
                     <label>Specialization</label>
-                    <input
-                        type="text"
+                    <select
                         className="form-input"
                         value={formData.specialization || ''}
                         onChange={e => setFormData({ ...formData, specialization: e.target.value })}
-                    />
+                    >
+                        <option value="">Select a specialization</option>
+                        {TATTOO_STYLES.map(style => (
+                            <option key={style} value={style}>{style}</option>
+                        ))}
+                    </select>
                 </div>
                 <div className="form-group">
                     <label>Experience (Years)</label>
@@ -699,11 +704,9 @@ function AdminStaff() {
                                                         value={workFormData.category}
                                                         onChange={e => setWorkFormData({ ...workFormData, category: e.target.value })}
                                                     >
-                                                        <option value="Realism">Realism</option>
-                                                        <option value="Traditional">Traditional</option>
-                                                        <option value="Japanese">Japanese</option>
-                                                        <option value="Tribal">Tribal</option>
-                                                        <option value="Fine Line">Fine Line</option>
+                                                        {TATTOO_STYLES.map(style => (
+                                                            <option key={style} value={style}>{style}</option>
+                                                        ))}
                                                     </select>
                                                 </div>
                                                 <div className="form-group">

@@ -6,6 +6,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
+import { TATTOO_STYLES } from '../constants/tattooStyles';
 
 function ArtistGallery() {
     const [works, setWorks] = useState([]);
@@ -342,11 +343,9 @@ function ArtistGallery() {
                                             <div className="form-group">
                                                 <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Style Category</label>
                                                 <select className="form-input" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                                                    <option value="Realism">Realism</option>
-                                                    <option value="Traditional">Traditional</option>
-                                                    <option value="Japanese">Japanese</option>
-                                                    <option value="Tribal">Tribal</option>
-                                                    <option value="Fine Line">Fine Line</option>
+                                                    {TATTOO_STYLES.map(style => (
+                                                        <option key={style} value={style}>{style}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                             <div className="form-group">

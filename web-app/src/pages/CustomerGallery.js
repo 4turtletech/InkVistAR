@@ -6,6 +6,7 @@ import { X, Calendar, Heart, Award, Search, Filter, Loader } from 'lucide-react'
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
+import { TATTOO_STYLES } from '../constants/tattooStyles';
 
 function CustomerGallery(){
     const [works, setWorks] = useState([]);
@@ -20,7 +21,7 @@ function CustomerGallery(){
     const [selectedWork, setSelectedWork] = useState(null);
     const [toggling, setToggling] = useState(false);
     const [activeCategory, setActiveCategory] = useState('All');
-    const [categories, setCategories] = useState(['All']);
+    const [categories, setCategories] = useState(['All', ...TATTOO_STYLES]);
 
     useEffect(() => {
         // Clear navigation state after consumed

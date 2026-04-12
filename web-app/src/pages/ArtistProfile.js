@@ -8,6 +8,7 @@ import ArtistSideNav from '../components/ArtistSideNav';
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
+import { TATTOO_STYLES } from '../constants/tattooStyles';
 
 function ArtistProfile() {
     const [profile, setProfile] = useState({
@@ -364,15 +365,17 @@ function ArtistProfile() {
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                                             <label className="artist-profile-form-label"><Palette size={16} /> Specialization / Styles</label>
-                                            <input
-                                                type="text"
+                                            <select
                                                 className="form-input artist-profile-input"
                                                 value={profile.specialization || ''}
                                                 onChange={e => setProfile({ ...profile, specialization: e.target.value })}
-                                                placeholder="e.g. Realism, Traditional, Japanese, Watercolor, Neo-traditional"
-                                                
-                                            />
-                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Separate multiple styles with commas</span>
+                                            >
+                                                <option value="">Select your primary specialization</option>
+                                                {TATTOO_STYLES.map(style => (
+                                                    <option key={style} value={style}>{style}</option>
+                                                ))}
+                                            </select>
+                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Choose the tattoo style that best represents your work</span>
                                         </div>
                                         <div className="form-group">
                                             <label className="artist-profile-form-label"><Clock size={16} /> Years of Experience</label>

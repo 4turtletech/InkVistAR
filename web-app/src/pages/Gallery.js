@@ -5,13 +5,14 @@ import './Gallery.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
 import Footer from '../components/Footer';
+import { TATTOO_STYLES } from '../constants/tattooStyles';
 
 const Gallery = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedArtist, setSelectedArtist] = useState(null);
-  const [categories, setCategories] = useState(['All']);
+  const [categories, setCategories] = useState(['All', ...TATTOO_STYLES]);
   const [works, setWorks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
