@@ -558,75 +558,79 @@ function AdminInventory() {
                 </div>
             </header>
 
-            <div className="premium-filter-bar">
-                <div className="premium-search-box">
-                    <Search size={18} className="text-muted" />
-                    <input
-                        type="text"
-                        list="search-suggestions-inventory"
-                        placeholder="Search items by name, category, or ID..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <datalist id="search-suggestions-inventory">
-                        {searchSuggestions.map(suggestion => (
-                            <option key={suggestion} value={suggestion} />
-                        ))}
-                    </datalist>
-                </div>
-
-                <div className="premium-filters-group">
-                    <div className="admin-st-5d251045">
-                        <Filter size={16} />
-                        <span>Filter by:</span>
+            <div className="premium-filter-bar premium-filter-bar--stacked">
+                    <div className="premium-search-box premium-search-box--full">
+                        <Search size={16} className="text-muted" />
+                        <input
+                            type="text"
+                            list="search-suggestions-inventory"
+                            placeholder="Search items by name, category, or ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <datalist id="search-suggestions-inventory">
+                            {searchSuggestions.map(suggestion => (
+                                <option key={suggestion} value={suggestion} />
+                            ))}
+                        </datalist>
                     </div>
-                    <select 
-                        value={itemStatusFilter}
-                        onChange={(e) => setItemStatusFilter(e.target.value)}
-                        className="premium-select-v2"
-                    >
-                        <option value="active">Active Items</option>
-                        <option value="deleted">Deleted Items</option>
-                    </select>
 
-                    <select 
-                        value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="premium-select-v2"
-                    >
-                        <option value="all">All Categories</option>
-                        {INVENTORY_CATEGORIES.map(cat => (
-                            <option key={cat.value} value={cat.value}>{cat.label}</option>
-                        ))}
-                    </select>
+                    <div className="premium-filters-row">
+                        <div className="premium-filter-item">
+                            <Filter size={16} />
+                            <span>Filter by:</span>
+                            <select
+                                value={itemStatusFilter}
+                                onChange={(e) => setItemStatusFilter(e.target.value)}
+                                className="premium-select-v2"
+                            >
+                                <option value="active">Active Items</option>
+                                <option value="deleted">Deleted Items</option>
+                            </select>
+                        </div>
 
-                    <select
-                        value={stockStatusFilter}
-                        onChange={(e) => setStockStatusFilter(e.target.value)}
-                        className="premium-select-v2"
-                    >
-                        <option value="all">All Stock Levels</option>
-                        <option value="out_of_stock">Out of Stock</option>
-                        <option value="low">Low Stock</option>
-                        <option value="optimal">Optimal</option>
-                        <option value="overstock">Overstock</option>
-                    </select>
+                        <div className="premium-filter-item">
+                            <select
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                className="premium-select-v2"
+                            >
+                                <option value="all">All Categories</option>
+                                {INVENTORY_CATEGORIES.map(cat => (
+                                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                    <div className="admin-st-a8cc8c61">
-                        <SlidersHorizontal size={16} />
-                        <span>Sort:</span>
+                        <div className="premium-filter-item">
+                            <select
+                                value={stockStatusFilter}
+                                onChange={(e) => setStockStatusFilter(e.target.value)}
+                                className="premium-select-v2"
+                            >
+                                <option value="all">All Stock Levels</option>
+                                <option value="out_of_stock">Out of Stock</option>
+                                <option value="low">Low Stock</option>
+                                <option value="optimal">Optimal</option>
+                                <option value="overstock">Overstock</option>
+                            </select>
+                        </div>
+
+                        <div className="premium-filter-item">
+                            <SlidersHorizontal size={16} />
+                            <span>Sort:</span>
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="premium-select-v2"
+                            >
+                                <option value="name">Name</option>
+                                <option value="stock">Stock Level</option>
+                                <option value="category">Category</option>
+                            </select>
+                        </div>
                     </div>
-                    <select 
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="premium-select-v2"
-                    >
-                        <option value="name">Name</option>
-                        <option value="stock">Stock Level</option>
-                        <option value="category">Category</option>
-                    </select>
                 </div>
-            </div>
 
             <div className="inventory-stats-grid">
                 <div className="stat-card-v2 glass-card">

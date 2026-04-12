@@ -169,9 +169,9 @@ function AdminStudio() {
 
                 {activeTab === 'branches' ? (
                     <>
-                        <div className="premium-filter-bar admin-st-277a8390">
-                    <div className="premium-search-box">
-                        <Search size={18} className="text-muted" />
+                        <div className="premium-filter-bar premium-filter-bar--stacked">
+                    <div className="premium-search-box premium-search-box--full">
+                        <Search size={16} className="text-muted" />
                         <input
                             type="text"
                             placeholder="Search branches by name or address..."
@@ -180,28 +180,28 @@ function AdminStudio() {
                         />
                     </div>
 
-                    <div className="premium-filters-group">
-                        <div className="admin-st-5d251045">
+                    <div className="premium-filters-row">
+                        <div className="premium-filter-item">
                             <Filter size={16} />
                             <span>Status:</span>
+                            <select
+                                className="premium-select-v2"
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                            >
+                                <option value="active">Active Branches</option>
+                                <option value="deleted">Deleted Branches</option>
+                            </select>
                         </div>
-                        <select 
-                            className="premium-select-v2" 
-                            value={filterStatus} 
-                            onChange={(e) => setFilterStatus(e.target.value)} 
-                        >
-                            <option value="active">Active Branches</option>
-                            <option value="deleted">Deleted Branches</option>
-                        </select>
 
-                        <div className="admin-st-a8cc8c61">
+                        <div className="premium-filter-item">
                             <SlidersHorizontal size={16} />
                             <span>Sort:</span>
+                            <select className="premium-select-v2">
+                                <option value="name">Name</option>
+                                <option value="capacity">Capacity</option>
+                            </select>
                         </div>
-                        <select className="premium-select-v2">
-                            <option value="name">Name</option>
-                            <option value="capacity">Capacity</option>
-                        </select>
                     </div>
                 </div>
 
