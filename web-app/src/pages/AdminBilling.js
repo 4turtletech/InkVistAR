@@ -248,9 +248,9 @@ function AdminBilling() {
                             </div>
                         </div>
 
-                        <div className="premium-filter-bar">
-                            <div className="premium-search-box">
-                                <Search size={18} className="premium-search-icon" />
+                        <div className="premium-filter-bar premium-filter-bar--stacked">
+                            <div className="premium-search-box premium-search-box--full">
+                                <Search size={16} className="premium-search-icon" />
                                 <input
                                     type="text"
                                     list="search-suggestions-billing"
@@ -265,30 +265,30 @@ function AdminBilling() {
                                 </datalist>
                             </div>
 
-                            <div className="premium-filters-group admin-st-6935a47f">
-                                <div className="filter-label-group">
+                            <div className="premium-filters-row">
+                                <div className="premium-filter-item">
                                     <Filter size={16} />
                                     <span>Status:</span>
+                                    <select 
+                                        value={statusFilter} 
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                        className="premium-select-v2"
+                                    >
+                                        <option value="all">All Status</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
                                 </div>
-                                <select 
-                                    value={statusFilter} 
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="premium-select-v2"
-                                >
-                                    <option value="all">All Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="paid">Paid</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
 
-                                <div className="filter-label-group">
+                                <div className="premium-filter-item">
                                     <SlidersHorizontal size={16} />
                                     <span>Sort:</span>
+                                    <select className="premium-select-v2">
+                                        <option value="date">Date</option>
+                                        <option value="amount">Amount</option>
+                                    </select>
                                 </div>
-                                <select className="premium-select-v2">
-                                    <option value="date">Date</option>
-                                    <option value="amount">Amount</option>
-                                </select>
 
                                 <button className="btn btn-primary admin-st-4796037d" onClick={openModal} >
                                     <Plus size={18} className="admin-st-c02c7d9c" /> Create Invoice
