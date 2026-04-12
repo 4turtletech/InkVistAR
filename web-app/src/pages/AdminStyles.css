@@ -893,7 +893,7 @@
 
 .admin-st-be22555c {
     padding: 10px 40px;
-    background: #6366f1;
+    background: #be9055;
 }
 
 .admin-st-2188556f {
@@ -1582,7 +1582,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6366f1;
+    color: #be9055;
 }
 
 .admin-st-df628aac {
@@ -1734,7 +1734,7 @@
 .admin-st-d3ffc78c {
     background: none;
     border: none;
-    color: #6366f1;
+    color: #be9055;
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: 500;
@@ -1828,7 +1828,7 @@
 }
 
 .admin-st-45e16daa {
-    border-color: #6366f1;
+    border-color: #be9055;
     border-style: dashed;
 }
 
@@ -2650,7 +2650,7 @@
 
 .admin-st-afc165d9 {
     font-weight: 700;
-    color: #6366f1;
+    color: #be9055;
     font-size: 1rem;
 }
 
@@ -2747,7 +2747,7 @@
     background: #f1f5f9;
     border-radius: 8px;
     font-weight: 700;
-    color: #6366f1;
+    color: #be9055;
     font-size: 0.9rem;
 }
 
@@ -2787,7 +2787,7 @@
     align-items: center;
     padding: 1.8rem 2.5rem;
     background-color: #1a1416; /* Exact match with AdminSideNav background */
-    border-bottom: 2px solid #d4af37; /* Consistent Sidebar Gold Accent */
+    border-bottom: 2px solid #be9055; /* Bronze-Gold Accent */
     margin-bottom: 2.5rem;
     height: auto;
     min-height: 110px;
@@ -2821,7 +2821,7 @@
 .admin-header p,
 .header-title-area p {
     margin: 0;
-    color: rgba(255, 255, 255, 0.9); /* Increased opacity for better readability on #1a1416 */
+    color: #be9055; /* Refined Bronze-Gold for subheaders to perfectly match title */
     font-size: 1rem;
     font-weight: 500;
     text-align: left;

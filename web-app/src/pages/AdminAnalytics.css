@@ -109,16 +109,16 @@
     height: 40px;
     box-sizing: border-box;
     border-radius: 8px;
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    background: linear-gradient(135deg, #be9055, #4f46e5);
     border: none;
     color: white;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 10px rgba(190, 144, 85, 0.3);
 }
 .btn-primary-glass:hover {
-    box-shadow: 0 6px 14px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 6px 14px rgba(190, 144, 85, 0.4);
     transform: translateY(-1px);
 }
 

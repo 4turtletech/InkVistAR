@@ -23,12 +23,12 @@
 
 .calendar-day-cell:hover {
     background-color: #f8fafc !important;
-    border-color: #6366f1 !important;
+    border-color: #be9055 !important;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .calendar-day-cell:hover span:first-child {
-    color: #6366f1;
+    color: #be9055;
 }
 
 /* Modal Tab Styling */
@@ -53,7 +53,7 @@
 
 .modal-tab-btn.active {
     background: white;
-    color: #6366f1;
+    color: #be9055;
     border-color: #e2e8f0;
     position: relative;
     z-index: 1;

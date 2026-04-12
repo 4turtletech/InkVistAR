@@ -46,12 +46,12 @@
     font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 4px 12px rgba(190, 144, 85, 0.2);
 }
 
 .btn-indigo-sm:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 6px 16px rgba(190, 144, 85, 0.3);
 }
 
 .staff-stats-grid {
@@ -194,8 +194,8 @@
 }
 
 .tab-button.active {
-    color: #6366f1;
-    border-bottom-color: #6366f1;
+    color: #be9055;
+    border-bottom-color: #be9055;
 }
 
 .tab-button:hover {

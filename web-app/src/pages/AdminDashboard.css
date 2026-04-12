@@ -76,8 +76,8 @@
 }
 
 .header-search:focus-within {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    border-color: #be9055;
+    box-shadow: 0 0 0 4px rgba(190, 144, 85, 0.1);
 }
 
 .header-search input {
@@ -186,7 +186,7 @@
 
 .filter-pill.active {
     background: white;
-    color: #6366f1;
+    color: #be9055;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
@@ -564,8 +564,8 @@
 }
 
 .status-select-v2:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    border-color: #be9055;
+    box-shadow: 0 0 0 4px rgba(190, 144, 85, 0.1);
     outline: none;
 }
 
@@ -740,7 +740,7 @@
 .icon-btn-v2:hover {
     background: #f8fafc;
     color: #4f46e5;
-    border-color: #6366f1;
+    border-color: #be9055;
 }
 
 .icon-btn-v2.check:hover { color: #16a34a; border-color: #22c55e; }

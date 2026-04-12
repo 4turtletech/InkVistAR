@@ -2,11 +2,11 @@
 :root {
     --sidenav-bg: #1a1416;
     --sidenav-hover: rgba(255, 255, 255, 0.08);
-    --sidenav-active-bg: rgba(212, 175, 55, 0.15);
-    --sidenav-active-text: #d4af37;
+    --sidenav-active-bg: rgba(212, 175, 55, 0.15); /* Note: rgba can stay or be updated, but replacing exact hexes first */
+    --sidenav-active-text: #be9055;
     --sidenav-text: rgba(255, 255, 255, 0.85);
-    --sidenav-header-text: #d4af37;
-    --accent-color: #d4af37;
+    --sidenav-header-text: #be9055;
+    --accent-color: #be9055;
 }
 
 .admin-sidenav {
@@ -398,7 +398,7 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
 .dropdown-menu .menu-item:hover,
 .dropdown-menu .menu-item.active {
     background-color: rgba(255, 255, 255, 0.1);
-    border-left: 4px solid #d4af37;
+    border-left: 4px solid #be9055;
 }
 
 .dropdown-menu .menu-item svg {

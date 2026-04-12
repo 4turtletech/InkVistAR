@@ -1287,12 +1287,12 @@ body.sidenav-collapsed .portal-layout .portal-container {
 .premium-btn.primary {
     background: var(--primary-gradient);
     color: white;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 4px 12px rgba(190, 144, 85, 0.2);
 }
 
 .premium-btn.primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 6px 20px rgba(190, 144, 85, 0.3);
 }
 
 .premium-btn.secondary {
@@ -1328,7 +1328,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 }
 
 .notification-record.unread {
-    background: rgba(99, 102, 241, 0.03);
+    background: rgba(190, 144, 85, 0.03);
 }
 
 .notif-id-marker {
@@ -1341,7 +1341,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 }
 
 .notification-record.unread .notif-id-marker {
-    background: var(--accent-color, #6366f1);
+    background: var(--accent-color, #be9055);
 }
 
 .notif-main {
@@ -1433,8 +1433,8 @@ body.sidenav-collapsed .portal-layout .portal-container {
 .premium-loader {
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(99, 102, 241, 0.1);
-    border-top-color: #6366f1;
+    border: 3px solid rgba(190, 144, 85, 0.1);
+    border-top-color: #be9055;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
