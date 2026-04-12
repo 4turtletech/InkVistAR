@@ -65,10 +65,10 @@ function AdminReviews() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                    <div>
-                        <h1 style={{ margin: 0 }}>Review Moderation</h1>
-                        <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.95rem' }}>Approve or reject customer reviews before they appear on artist pages.</p>
+                <header className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', textAlign: 'left' }}>
+                    <div style={{ textAlign: 'left' }}>
+                        <h1 style={{ margin: 0, textAlign: 'left' }}>Review Moderation</h1>
+                        <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.8)', fontSize: '0.95rem', textAlign: 'left' }}>Approve or reject customer reviews before they appear on artist pages.</p>
                     </div>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: '#fef3c7', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, color: '#92400e' }}>
