@@ -275,16 +275,16 @@ function AdminDashboard() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page admin-dashboard-container page-container-enter">
-                <header className="dashboard-top-nav">
-                    <div className="top-nav-left">
+                <header className="admin-header">
+                    <div className="header-title-area">
                         <h1>Admin Dashboard</h1>
-                        <p className="subtitle">System Overview & Management</p>
+                        <p>System Overview & Management</p>
                     </div>
-                    <div className="top-nav-right">
+                    <div className="header-actions-group">
                         <div className="header-search">
                             <Search size={18} />
-                            <input type="text" placeholder="Search things..." />
-                        </div> {/* This search is for the overall dashboard, not specific tables */}
+                            <input type="text" placeholder="Search system..." />
+                        </div>
 
                         <div className="notif-btn-wrapper admin-st-fab32c0e" ref={notifRef} >
                             <button className="notif-trigger-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
