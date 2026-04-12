@@ -2,6 +2,12 @@
 
 This document outlines the optimized workflow for InkVistAR, refining the process from initial consultation to final review. This flow minimizes customer friction, ensures centralized admin/manager pricing, and leverages automated payment syncing.
 
+## Visual Flow Representation
+![Tattoo Flow Diagram Part 1](/Users/cpcelis/.gemini/antigravity/brain/02f285f4-90b2-42cc-8a4e-fbc904ae7b1e/media__1775976403772.png)
+![Tattoo Flow Diagram Part 2](/Users/cpcelis/.gemini/antigravity/brain/02f285f4-90b2-42cc-8a4e-fbc904ae7b1e/media__1775976403782.png)
+![Tattoo Flow Diagram Part 3](/Users/cpcelis/.gemini/antigravity/brain/02f285f4-90b2-42cc-8a4e-fbc904ae7b1e/media__1775976403803.png)
+![Tattoo Flow Diagram Part 4](/Users/cpcelis/.gemini/antigravity/brain/02f285f4-90b2-42cc-8a4e-fbc904ae7b1e/media__1775976403808.png)
+
 ## Phase 1: Inbound & Artist Matching
 1.  **Customer**: Visits Landing Page -> Uses **Booking Wizard** to submit a "Session Request" (Consultation).
 2.  **Admin Portal**: Receives "Pending" request. Admin reviews the vision and
