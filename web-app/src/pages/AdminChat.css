@@ -3,7 +3,7 @@
     padding: 0; /* Standardized page-container padding handled by logic or AdminStyles */
     display: flex;
     flex-direction: column;
-    background: #1a1416; /* Exact match with SideNav and Global Header */
+    background: #f1f5f9; /* Reverted to light background */
     min-height: 100vh;
 }
 
@@ -16,12 +16,12 @@
 }
 
 .glass-panel {
-    background: rgba(26, 20, 22, 0.6); /* Darker base for chat panels */
+    background: rgba(255, 255, 255, 0.45); /* Light base for chat panels */
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid rgba(190, 144, 85, 0.15); /* Subtle bronze border */
     border-radius: 20px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
 .appointment-list-container {
@@ -29,7 +29,7 @@
     border-right: 2px solid rgba(190, 144, 85, 0.2); /* Stronger vertical separator */
     display: flex;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .chat-section-divider {
@@ -103,7 +103,7 @@
 
 .appointment-item-name {
     font-weight: 700;
-    color: #ffffff; /* White text for contrast on dark background */
+    color: #1e293b; /* Dark text for contrast on light background */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -113,7 +113,7 @@
 
 .appointment-item-date {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: #94a3b8;
     margin-top: 4px;
     font-weight: 500;
 }
@@ -132,7 +132,7 @@
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.1);
     position: relative;
 }
 
@@ -142,7 +142,7 @@
     justify-content: center;
     align-items: center;
     height: 100%;
-    color: rgba(190, 144, 85, 0.4);
+    color: #94a3b8;
     gap: 20px;
 }
 
@@ -208,35 +208,35 @@
 }
 
 .chat-widget-wrapper .chat-subtitle {
-    color: rgba(255, 255, 255, 0.7) !important;
+    color: #64748b !important;
 }
 
 /* Message Bubbles - Proper Admin/User distinction */
 .chat-widget-wrapper .message-bubble.user-bubble {
     background: #be9055 !important; /* Bronze for Admin replies */
-    color: #000000 !important;
+    color: #ffffff !important;
     border-radius: 18px 18px 2px 18px !important;
     font-weight: 500 !important;
 }
 
 .chat-widget-wrapper .message-bubble.bot-bubble {
-    background: rgba(255, 255, 255, 0.08) !important; /* Dark grey for client messages */
-    color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    background: #f1f5f9 !important; /* Light grey for client messages */
+    color: #1e293b !important;
+    border: 1px solid #e2e8f0 !important;
     border-radius: 18px 18px 18px 2px !important;
 }
 
 /* Input Area Refinement */
 .chat-widget-wrapper .chat-input-area {
-    background: rgba(0, 0, 0, 0.5) !important;
+    background: #ffffff !important;
     border-top: 1px solid rgba(190, 144, 85, 0.2) !important;
     padding: 1.25rem !important;
 }
 
 .chat-widget-wrapper .chat-input-area input {
-    background: rgba(190, 144, 85, 0.05) !important;
+    background: #f8fafc !important;
     border: 1px solid rgba(190, 144, 85, 0.3) !important;
-    color: white !important;
+    color: #1e293b !important;
     padding: 12px 20px !important;
 }
 
