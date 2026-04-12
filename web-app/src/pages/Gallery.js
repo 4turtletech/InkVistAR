@@ -179,15 +179,33 @@ const Gallery = () => {
         <div className="filter-nav-container">
           <span className="filter-label">STYLE FILTER:</span>
           <div className="filter-nav">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                className={`filter-btn ${activeCategory === cat ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat)}
-              >
-                {cat}
-              </button>
-            ))}
+            <select
+              value={activeCategory}
+              onChange={(e) => setActiveCategory(e.target.value)}
+              style={{
+                padding: '8px 20px',
+                paddingRight: '40px',
+                borderRadius: '50px',
+                border: '1px solid #C19A6B',
+                background: '#1a1a1a',
+                color: '#C19A6B',
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                outline: 'none',
+                transition: 'all 0.3s ease',
+                minWidth: '200px',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23C19A6B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 16px center'
+              }}
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
             <button
               className={`filter-btn price-toggle-btn ${showPriceFilter ? 'active' : ''}`}
               onClick={() => setShowPriceFilter(!showPriceFilter)}

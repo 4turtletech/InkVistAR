@@ -187,29 +187,55 @@ function CustomerGallery(){
                         </button>
                     </div>
 
-                    {/* Category Filters */}
+                    {/* Category Filter Dropdown */}
                     {viewMode === 'All' && categories.length > 1 && (
-                        <div className="customer-st-c22c9153" >
-                            {categories.map(cat => (
-                                <button 
-                                    key={cat}
-                                    onClick={() => setActiveCategory(cat)}
-                                    style={{
-                                        padding: '6px 16px',
-                                        borderRadius: '20px',
-                                        border: '1px solid rgba(0,0,0,0.1)',
-                                        background: activeCategory === cat ? '#1e293b' : 'white',
-                                        color: activeCategory === cat ? 'white' : '#64748b',
-                                        fontSize: '0.85rem',
-                                        fontWeight: '600',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        boxShadow: activeCategory === cat ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
-                                    }}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            marginBottom: '16px',
+                            flexWrap: 'wrap'
+                        }}>
+                            <label style={{
+                                fontSize: '0.8rem',
+                                fontWeight: '700',
+                                color: '#64748b',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                <Filter size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                Style:
+                            </label>
+                            <select
+                                value={activeCategory}
+                                onChange={(e) => setActiveCategory(e.target.value)}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '10px',
+                                    border: '1px solid rgba(0,0,0,0.12)',
+                                    background: 'rgba(255,255,255,0.85)',
+                                    backdropFilter: 'blur(8px)',
+                                    color: '#1e293b',
+                                    fontSize: '0.88rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    outline: 'none',
+                                    transition: 'all 0.2s',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                    minWidth: '180px',
+                                    appearance: 'none',
+                                    WebkitAppearance: 'none',
+                                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'right 12px center',
+                                    paddingRight: '36px'
+                                }}
+                            >
+                                {categories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
                         </div>
                     )}
 
