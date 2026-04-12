@@ -3854,7 +3854,9 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                   
                   // If state changed to paid, manually trigger what the webhook would normally do
                   if (currentPaymentStatus !== newPaymentStatus) {
-                      createNotification(appt.customer_id, 'Payment Received', `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed.`, 'payment_success', appointmentId);
+                      const customerAmtStr = (amountCentavos / 100).toLocaleString();
+                      const paymentTypeStr = paymentType === 'deposit' ? 'Downpayment' : paymentType === 'custom' ? 'Partial Payment' : 'Full Payment';
+                      createNotification(appt.customer_id, 'Payment Received', `Your payment of ₱${customerAmtStr} for appointment #${appointmentId} (${paymentTypeStr}) has been successfully confirmed.`, 'payment_success', appointmentId);
                       // Artist only gets Appointment Scheduled, not Payment Received
                       
                       const wasPending = currentAptStatus?.toLowerCase() === 'pending';
@@ -4000,7 +4002,9 @@ app.post('/api/payments/webhook', (req, res) => {
             console.log('✅ Appointment', appointmentId, 'marked as', newPaymentStatus);
 
             const wasPending = appt.status?.toLowerCase() === 'pending';
-            const customerMsg = `Your ${paymentType === 'deposit' ? 'deposit' : 'payment'} for appointment #${appointmentId} is confirmed.`;
+            const customerAmtStr = (amount / 100).toLocaleString();
+            const paymentTypeStr = paymentType === 'deposit' ? 'Downpayment' : paymentType === 'custom' ? 'Partial Payment' : 'Full Payment';
+            const customerMsg = `Your payment of ₱${customerAmtStr} for appointment #${appointmentId} (${paymentTypeStr}) has been successfully confirmed.`;
             const artistMsg = `Payment for appointment #${appointmentId} is confirmed.`;
             
             createNotification(appt.customer_id, 'Payment Received', customerMsg.trim(), 'payment_success', appointmentId);

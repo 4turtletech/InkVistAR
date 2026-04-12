@@ -139,6 +139,7 @@ function CustomerNotifications() {
             case 'appointment_completed':
                 return { icon: CheckCircle, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)', label: 'Completed' };
             case 'payment_received':
+            case 'payment_success':
                 return { icon: Check, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Payment' };
             case 'system':
                 return { icon: Info, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'System' };
