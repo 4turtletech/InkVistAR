@@ -133,6 +133,27 @@ const db = mysql.createPool({
   maxAllowedPacket: 50 * 1024 * 1024 // 50MB - allows large base64 image data in queries
 });
 
+// Generate Kiosk-style Booking Code
+function generateBookingCode(origin, serviceType) {
+  const originCode = origin === 'W' ? 'W' : 'O';
+  
+  let serviceCode = 'C';
+  const typeStr = String(serviceType || '').toLowerCase();
+  // Ensure "Tattoo + Piercing" matches "TP" before generic "tattoo"
+  if (typeStr.includes('tattoo + piercing')) serviceCode = 'TP';
+  else if (typeStr.includes('tattoo')) serviceCode = 'T';
+  else if (typeStr.includes('piercing')) serviceCode = 'P';
+  else if (typeStr.includes('follow') || typeStr.includes('touch')) serviceCode = 'F';
+  
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let randomCode = '';
+  for (let i = 0; i < 4; i++) {
+    randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  return `${originCode}-${serviceCode}-${randomCode}`;
+}
+
 // Connect to MySQL via Pool
 db.getConnection((err, connection) => {
   if (err) {
@@ -629,6 +650,15 @@ db.getConnection((err, connection) => {
             console.log('🔄 Migrating appointments: Adding before_photo column...');
             db.query("ALTER TABLE appointments ADD COLUMN before_photo LONGTEXT NULL");
             console.log('✅ Added before_photo column to appointments');
+          }
+        });
+
+        // MIGRATION: Add 'booking_code' column if it doesn't exist
+        db.query("SHOW COLUMNS FROM appointments LIKE 'booking_code'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding booking_code column...');
+            db.query("ALTER TABLE appointments ADD COLUMN booking_code VARCHAR(50) UNIQUE NULL AFTER id");
+            console.log('✅ Added booking_code column to appointments');
           }
         });
       }
@@ -2394,13 +2424,14 @@ app.post('/api/customer/appointments', (req, res) => {
     }
 
     function insertAppointment() {
+      const bookingCode = generateBookingCode('O', serviceType);
       const query = `
     INSERT INTO appointments 
-    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?)
+    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type, booking_code)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)
   `;
 
-      db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation'], (err, result) => {
+      db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation', bookingCode], (err, result) => {
         if (err) {
           console.error('❌ Error booking appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -2412,13 +2443,13 @@ app.post('/api/customer/appointments', (req, res) => {
         const displayDesign = designTitle || 'Tattoo Request';
         const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const appointmentTime = finalStartTime ? new Date(`2000-01-01T${finalStartTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'a time to be determined';
-        createNotification(customerId, 'Booking Request Received', `Your request for a ${displayDesign} session on ${appointmentDate} at ${appointmentTime} has been received. We will review it shortly! Expect a call from our staff in the next 24 hours.`, 'appointment_request', result.insertId);
+        createNotification(customerId, 'Booking Request Received', `Your request [${bookingCode}] for a ${displayDesign} session on ${appointmentDate} at ${appointmentTime} has been received. We will review it shortly! Expect a call from our staff in the next 24 hours.`, 'appointment_request', result.insertId);
 
         // Notify all Admins/Managers (1 notification each)
         db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
           if (!adminErr && admins.length > 0) {
             admins.forEach(admin => {
-              createNotification(admin.id, 'New Booking Request', `New ${displayService} request: "${displayDesign}" for ${notifDate}. Please review and assign pricing.`, 'appointment_request', result.insertId);
+              createNotification(admin.id, 'New Booking Request', `New ${displayService} request [${bookingCode}]: "${displayDesign}" for ${notifDate}. Please review and assign pricing.`, 'appointment_request', result.insertId);
             });
           }
         });
@@ -2429,7 +2460,7 @@ app.post('/api/customer/appointments', (req, res) => {
           <div style="font-family: Arial, sans-serif; padding: 20px;">
             <h2 style="color: #1e293b;">Booking Request Received!</h2>
             <p style="font-size: 16px;">Hello ${users[0].name},</p>
-            <p style="font-size: 16px;">Your request for a <strong>${designTitle || serviceType}</strong> session on <strong>${appointmentDate}</strong> at <strong>${appointmentTime}</strong> has been received perfectly.</p>
+            <p style="font-size: 16px;">Your request <strong>[${bookingCode}]</strong> for a <strong>${designTitle || serviceType}</strong> session on <strong>${appointmentDate}</strong> at <strong>${appointmentTime}</strong> has been received perfectly.</p>
             <p style="font-size: 16px;">Our team will review your request and get back to you shortly to confirm the details and answer any questions!</p>
             <br/><br/>
             <p style="color: #64748b; font-size: 14px;">- The InkVistAR Studio Team</p>
@@ -2442,7 +2473,8 @@ app.post('/api/customer/appointments', (req, res) => {
         res.json({
           success: true,
           message: 'Appointment booked successfully',
-          appointmentId: result.insertId
+          appointmentId: result.insertId,
+          bookingCode: bookingCode
         });
       });
     }
@@ -2807,12 +2839,13 @@ app.post('/api/admin/appointments', (req, res) => {
         return res.status(400).json({ success: false, message: 'Scheduling Conflict: The artist or client already has an appointment at this date and time.' });
       }
 
+      const bookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType);
       const query = `
         INSERT INTO appointments 
-          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?)
+          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, ?)
       `;
-      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null], (err, result) => {
+      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, bookingCode], (err, result) => {
       if (err) {
         console.error('❌ Error creating admin appointment:', err);
         return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -2820,16 +2853,16 @@ app.post('/api/admin/appointments', (req, res) => {
       // If securely routed from the public frontend wizard, alert the Admin
       if (isFromWizard) {
         const clientNameStr = customerName || 'a guest';
-        createNotification(customerId, 'Booking Request Received', `We have received your booking request for ${date} and will calculate a quote for you shortly.`, 'appointment_request', result.insertId);
-        createNotification(artistId, 'New Booking Request', `${serviceType || 'Consultation'} requested by ${clientNameStr} ("${designTitle}"). Pending review.`, 'appointment_request', result.insertId);
+        createNotification(customerId, 'Booking Request Received', `We have received your booking request [${bookingCode}] for ${date} and will calculate a quote for you shortly.`, 'appointment_request', result.insertId);
+        createNotification(artistId, 'New Booking Request', `${serviceType || 'Consultation'} requested by ${clientNameStr} ("${designTitle}"). Ref Code: [${bookingCode}]. Pending review.`, 'appointment_request', result.insertId);
       } else {
-        createNotification(customerId, 'Appointment Scheduled', `Your appointment has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
+        createNotification(customerId, 'Appointment Scheduled', `Your appointment [${bookingCode}] has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
         if (artistId && artistId !== 1) {
-            createNotification(artistId, 'New Session Assigned', `You have been scheduled for a new session on ${date}.`, 'appointment_confirmed', result.insertId);
+            createNotification(artistId, 'New Session Assigned', `You have been scheduled for a new session [${bookingCode}] on ${date}.`, 'appointment_confirmed', result.insertId);
         }
       }
       
-      res.json({ success: true, message: 'Appointment created successfully', id: result.insertId });
+      res.json({ success: true, message: 'Appointment created successfully', id: result.insertId, bookingCode: bookingCode });
     });
   });
   });

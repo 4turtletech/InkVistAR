@@ -144,6 +144,7 @@ function CustomerBookings(){
     // Filter Logic
     const filteredAppointments = appointments.filter(apt => {
         const matchesSearch = (apt.artist_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              (apt.booking_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                               (apt.design_title || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || apt.status.toLowerCase() === statusFilter.toLowerCase();
         return matchesSearch && matchesStatus;
@@ -485,7 +486,11 @@ function CustomerBookings(){
                                             <thead><tr><th>ID</th><th>Staff</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Price</th><th>Payment</th></tr></thead>
                                             <tbody>{displayedAppointments.map(a=> (
                                                 <tr key={a.id} onClick={() => handleViewDetails(a)} style={{ cursor: 'pointer' }} className="clickable-row hover-bg">
-                                                    <td className="customer-st-968fd1b5" >#{a.id}</td>
+                                                    <td className="customer-st-968fd1b5" >
+                                                        <span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b' }}>
+                                                            {a.booking_code || '#' + a.id}
+                                                        </span>
+                                                    </td>
                                                     <td className="customer-st-8515177a" >{a.artist_name}</td>
                                                     <td>{a.service_type || 'Tattoo'}</td>
                                                     <td>{new Date(a.appointment_date).toLocaleDateString()}</td>

@@ -101,6 +101,7 @@ function AdminAppointments() {
 
                     return {
                         id: apt.id,
+                        bookingCode: apt.booking_code,
                         clientName: finalClientName,
                         clientId: apt.customer_id,
                         artistName: apt.artist_name,
@@ -151,6 +152,7 @@ function AdminAppointments() {
         let filtered = appointments.filter(apt => {
             const matchesSearch =
                 (apt.id || '').toString().includes(searchTerm) ||
+                (apt.bookingCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (apt.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (apt.artistName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (apt.serviceType || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -862,7 +864,11 @@ function AdminAppointments() {
                                         ) : currentItems.length > 0 ? (
                                             currentItems.map((appointment) => (
                                                 <tr key={appointment.id}>
-                                                    <td>#{appointment.id}</td>
+                                                    <td>
+                                                        <span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b' }}>
+                                                            {appointment.bookingCode || '#' + appointment.id}
+                                                        </span>
+                                                    </td>
                                                     <td>{appointment.clientName}</td>
                                                     <td>{appointment.artistName}</td>
                                                     <td className="admin-st-775cebbf" title={appointment.serviceType}>{appointment.serviceType}</td>
@@ -952,7 +958,7 @@ function AdminAppointments() {
                             <div className="modal-header">
                                 <div className="admin-st-15246701">
                                     <div className="admin-st-18a02d52">
-                                        <h2 className="admin-m-0">{selectedAppointment ? `Edit Appointment #${selectedAppointment.id}` : 'New Appointment'}</h2>
+                                        <h2 className="admin-m-0">{selectedAppointment ? `Edit Appointment ${selectedAppointment.bookingCode || '#' + selectedAppointment.id}` : 'New Appointment'}</h2>
                                         <div className="modal-tabs">
                                             <button
                                                 className={`modal-tab-btn ${modalTab === 'details' ? 'active' : ''}`}
