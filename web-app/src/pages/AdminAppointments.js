@@ -50,7 +50,8 @@ function AdminAppointments() {
         beforePhoto: null,
         referenceImage: null,
         manualPaidAmount: 0,
-        manualPaymentMethod: 'Cash'
+        manualPaymentMethod: 'Cash',
+        rejectionReason: ''
     });
     const [dayViewModal, setDayViewModal] = useState({ isOpen: false, date: '', appointments: [] });
 
@@ -304,7 +305,8 @@ function AdminAppointments() {
             beforePhoto: appointment.beforePhoto,
             referenceImage: appointment.referenceImage,
             manualPaidAmount: appointment.manualPaidAmount || 0,
-            manualPaymentMethod: appointment.manualPaymentMethod || 'Cash'
+            manualPaymentMethod: appointment.manualPaymentMethod || 'Cash',
+            rejectionReason: appointment.rejectionReason || ''
         });
         setClientSearch(appointment.clientName);
         openModal();
@@ -338,7 +340,8 @@ function AdminAppointments() {
             beforePhoto: null,
             referenceImage: null,
             manualPaidAmount: 0,
-            manualPaymentMethod: 'Cash'
+            manualPaymentMethod: 'Cash',
+            rejectionReason: ''
         });
         setClientSearch('');
         openModal();
@@ -363,7 +366,8 @@ function AdminAppointments() {
             beforePhoto: null,
             referenceImage: appointment.referenceImage || '',
             manualPaidAmount: 0,
-            manualPaymentMethod: 'Cash'
+            manualPaymentMethod: 'Cash',
+            rejectionReason: ''
         });
         setClientSearch(appointment.clientName);
 
@@ -425,7 +429,8 @@ function AdminAppointments() {
                     price: finalPrice,
                     beforePhoto: formData.beforePhoto,
                     manualPaidAmount: parseFloat(formData.manualPaidAmount) || 0,
-                    manualPaymentMethod: formData.manualPaymentMethod
+                    manualPaymentMethod: formData.manualPaymentMethod,
+                    rejectionReason: formData.status === 'rejected' ? formData.rejectionReason : null
                 };
 
                 if (selectedAppointment) {
@@ -1125,6 +1130,22 @@ function AdminAppointments() {
                                                             <option value="rejected">Rejected</option>
                                                         </select>
                                                     </div>
+                                                    {formData.status === 'rejected' && (
+                                                        <div className="premium-input-group" style={{ marginTop: '12px' }}>
+                                                            <label className="admin-st-b8618eb2">Rejection Reason</label>
+                                                            <textarea
+                                                                className="premium-input-v2"
+                                                                style={{ minHeight: '80px', resize: 'vertical' }}
+                                                                maxLength="500"
+                                                                value={formData.rejectionReason || ''}
+                                                                onChange={(e) => setFormData({ ...formData, rejectionReason: e.target.value })}
+                                                                placeholder="Please provide a reason for rejecting this appointment (Sent to customer)"
+                                                            />
+                                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'right', marginTop: '4px' }}>
+                                                                {formData.rejectionReason ? formData.rejectionReason.length : 0}/500 characters
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

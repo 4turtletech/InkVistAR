@@ -2853,6 +2853,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const status = body.status;
   const paymentStatus = body.paymentStatus;
   const notes = body.notes;
+  const rejectionReason = body.rejectionReason;
   const manualPaymentMethod = body.manualPaymentMethod;
   const beforePhoto = body.beforePhoto;
   
@@ -2932,7 +2933,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
               return res.status(500).json({ success: false, message: 'Database error (retry failed): ' + retryErr.message });
             }
             // Continue using result from retry
-            processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle });
+            processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason });
           });
         }
         console.error('❌ Error updating admin appointment:', err);
@@ -2942,13 +2943,13 @@ app.put('/api/admin/appointments/:id', (req, res) => {
         return res.status(404).json({ success: false, message: 'Appointment not found.' });
       }
 
-      processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle });
+      processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason });
     });
   });
 });
 
 function processAdminPostUpdate(res, db, id, oldAppt, fields) {
-  const { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle } = fields;
+  const { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason } = fields;
 
     // Auto-recalculate payment_status based on updated price and manual_paid_amount
   const recalculateStatusQuery = `
@@ -3006,7 +3007,8 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
              notifyArtist('Appointment Confirmed', `Appointment #${id} has been accepted and confirmed.`, 'appointment_confirmed');
              notificationsSent = true;
           } else if (status === 'rejected' && oldAppt.status === 'pending') {
-             createNotification(currentData.customer_id, 'Booking Request Rejected ❌', `Notice: Your booking request #${id} was unfortunately rejected. Please contact the studio for alternatives.`, 'appointment_rejected', id);
+             const reasonMsg = rejectionReason ? `\n\nReason: ${rejectionReason}` : ' Please contact the studio for alternatives.';
+             createNotification(currentData.customer_id, 'Booking Request Rejected ❌', `Notice: Your booking request #${id} was unfortunately rejected.${reasonMsg}`, 'appointment_rejected', id);
              notifyArtist('Request Rejected', `Booking request #${id} has been rejected.`, 'appointment_rejected');
              notificationsSent = true;
           } else if (status === 'cancelled') {
