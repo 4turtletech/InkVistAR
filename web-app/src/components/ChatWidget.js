@@ -190,29 +190,18 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
     <>
       <div
         className={`chat-widget-container ${isOpen ? 'open' : ''} ${isAdminMode ? 'admin-mode' : ''}`}
-        style={isAdminMode ? {
-          position: 'relative', bottom: 0, right: 0,
-          width: '100%', height: '100%', maxHeight: '100%',
-          transform: 'none', opacity: 1, visibility: 'visible',
-          boxShadow: 'none', borderRadius: '10px'
-        } : {}}
       >
         <div className="chat-header">
           <div className="chat-header-info">
             <span className="chat-title">{isHumanMode ? 'Live Chat support' : 'Tattoo AI Assistant'}</span>
             <span className="chat-subtitle">{isHumanMode ? 'Talking to an artist' : 'Always here to help'}</span>
           </div>
-          <div className="chat-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div className="chat-header-actions">
             {isHumanMode && (
               <button
+                className="end-session-btn"
                 onClick={() => socket.emit('end_support_session', activeRoom)}
                 title="End Conversation"
-                style={{
-                  background: 'rgba(239, 68, 68, 0.8)',
-                  border: 'none', borderRadius: '50%', width: '32px', height: '32px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', color: 'white'
-                }}
               >
                 <X size={18} />
               </button>
@@ -225,30 +214,23 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
                   setIsHumanMode(!isHumanMode);
                 }}
                 title={!isShopOpen ? "Live agents are currently offline (Hours: 1 PM - 8 PM)" : isHumanMode ? "Switch to AI" : "Talk to a person"}
-                style={{
-                  background: isHumanMode ? 'rgba(255,255,255,0.2)' : 'transparent',
-                  border: 'none', borderRadius: '50%', width: '32px', height: '32px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: !isShopOpen ? 'not-allowed' : 'pointer', color: 'white',
-                  opacity: (!isHumanMode && !isShopOpen) ? 0.3 : 1
-                }}
               >
                 {isHumanMode ? <UserSquare size={18} /> : <Bot size={18} />}
               </button>
             )}
             {!isAdminMode && (
-              <button className="close-btn" onClick={() => setIsOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}>
+              <button className="close-btn" onClick={() => setIsOpen(false)}>
                 <X size={20} />
               </button>
             )}
           </div>
         </div>
 
-        <div className="chat-messages" style={{ flex: 1, overflowY: 'auto', padding: '15px' }}>
+        <div className="chat-messages">
           {activeMessages.map((msg) => {
             // system messages in live chat
             if (msg.sender === 'system') {
-              return <div key={msg.id} style={{ textAlign: 'center', fontSize: '0.8rem', color: '#94a3b8', margin: '10px 0' }}>{msg.text}</div>;
+              return <div key={msg.id} className="system-message">{msg.text}</div>;
             }
             const isUser = msg.sender === 'user' || msg.sender === currentUser;
             return (
@@ -257,8 +239,8 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
                 className={`chat-message ${isUser ? 'user' : 'bot'}`}
               >
                 <div className={`message-bubble ${isUser ? 'user-bubble' : 'bot-bubble'}`}>
-                  <p style={{ margin: 0, padding: 0 }}>{msg.text}</p>
-                  <span className="message-time" style={{ fontSize: '0.7rem', opacity: 0.7, alignSelf: isUser ? 'flex-end' : 'flex-start', marginTop: '4px', display: 'block' }}>
+                  <p>{msg.text}</p>
+                  <span className="message-time">
                     {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                   </span>
                 </div>
@@ -276,12 +258,11 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
           <div ref={messagesEndRef} />
 
           {botMessages.length === 1 && !isHumanMode && (
-            <div className="quick-questions" style={{ marginTop: '15px' }}>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '8px' }}>Quick questions:</p>
-              <div className="quick-buttons" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div className="quick-questions">
+              <p>Quick questions:</p>
+              <div className="quick-buttons">
                 {quickQuestions.map((q, i) => (
-                  <button key={i} onClick={() => { setInputValue(q); }}
-                    style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '15px', fontSize: '0.8rem', color: '#334155', cursor: 'pointer' }}>
+                  <button key={i} className="quick-btn" onClick={() => { setInputValue(q); }}>
                     {q}
                   </button>
                 ))}
@@ -290,16 +271,16 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
           )}
         </div>
 
-        <form className="chat-input-area" onSubmit={handleSend} style={{ display: 'flex', padding: '15px', borderTop: '1px solid #e2e8f0', gap: '10px', background: 'white' }}>
+        <form className="chat-input-area" onSubmit={handleSend}>
           <input
             type="text"
             placeholder={isHumanMode ? "Type a message to an artist..." : "Ask me anything..."}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             disabled={isLoading && !isHumanMode}
-            style={{ flex: 1, padding: '10px 15px', border: '1px solid #e2e8f0', borderRadius: '20px', outline: 'none' }}
+            className="chat-input"
           />
-          <button type="submit" className="send-btn" disabled={isLoading && !isHumanMode} style={{ background: '#6366f1', border: 'none', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button type="submit" className="send-btn" disabled={isLoading && !isHumanMode}>
             <Send size={18} color="white" />
           </button>
         </form>

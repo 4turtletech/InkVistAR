@@ -1,128 +1,138 @@
 /* InkVistAR/web-app/src/pages/AdminChat.css */
 .chat-page-wrapper {
-    padding: 20px;
+    padding: 0; /* Standardized page-container padding handled by logic or AdminStyles */
     display: flex;
     flex-direction: column;
-    background: #f1f5f9;
+    background: #1a1416; /* Exact match with SideNav and Global Header */
+    min-height: 100vh;
 }
 
 .admin-chat-layout {
     display: flex;
     flex: 1;
-    height: calc(100vh - 120px);
+    height: calc(100vh - 110px); /* Adjust for standardized header height */
     overflow: hidden;
+    margin: 0 2rem 2rem;
 }
 
 .glass-panel {
-    background: rgba(255, 255, 255, 0.45);
+    background: rgba(26, 20, 22, 0.6); /* Darker base for chat panels */
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(190, 144, 85, 0.15); /* Subtle bronze border */
     border-radius: 20px;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
 
 .appointment-list-container {
-    width: 350px;
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    width: 380px;
+    border-right: 2px solid rgba(190, 144, 85, 0.2); /* Stronger vertical separator */
     display: flex;
     flex-direction: column;
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.chat-list-header {
-    padding: 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.chat-list-header h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: #1e293b;
-    letter-spacing: -0.02em;
+    background: rgba(0, 0, 0, 0.2);
 }
 
 .chat-section-divider {
     padding: 12px 24px;
-    background: rgba(241, 245, 249, 0.5);
+    background: rgba(190, 144, 85, 0.05);
     font-size: 0.75rem;
     font-weight: 700;
-    color: #64748b;
+    color: #be9055; /* Bronze-gold for section titles */
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    border-bottom: 1px solid rgba(190, 144, 85, 0.1);
 }
 
 .appointment-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    overflow-y: overlay;
+    overflow-y: auto;
     flex-grow: 1;
 }
 
+/* Scrollbar styling for appointment list */
+.appointment-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.appointment-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.appointment-list::-webkit-scrollbar-thumb {
+    background: rgba(190, 144, 85, 0.3);
+    border-radius: 10px;
+}
+
 .appointment-item {
-    padding: 18px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(190, 144, 85, 0.15); /* The visual separation user requested */
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    background: transparent;
 }
 
 .appointment-item:hover {
-    background-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(190, 144, 85, 0.05);
 }
 
 .appointment-item.selected {
-    background-color: rgba(99, 102, 241, 0.1);
-    box-shadow: inset 4px 0 0 #6366f1;
+    background-color: rgba(190, 144, 85, 0.1);
+    box-shadow: inset 4px 0 0 #be9055; /* Bronze accent bar */
 }
 
 .live-chat-item {
-    border-left: 4px solid #10b981;
+    border-left: 4px solid #10b981; /* Keep the green active indicator but subtle */
 }
 
 .live-status-pill {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: #10b981;
-    background: #ecfdf5;
-    padding: 2px 8px;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 2px 10px;
     border-radius: 20px;
-    font-weight: 700;
+    font-weight: 800;
+    text-transform: uppercase;
+    border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .appointment-item-name {
     font-weight: 700;
-    color: #1e293b;
+    color: #ffffff; /* White text for contrast on dark background */
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 1.05rem;
+    margin-bottom: 4px;
 }
 
 .appointment-item-date {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.6);
     margin-top: 4px;
     font-weight: 500;
 }
 
 .appointment-item-service {
     font-size: 0.85rem;
-    color: #475569;
+    color: #be9055; /* Bronze for service type */
     margin-top: 5px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-weight: 600;
 }
 
 .chat-window-container {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.4);
     position: relative;
 }
 
@@ -132,14 +142,16 @@
     justify-content: center;
     align-items: center;
     height: 100%;
-    color: #94a3b8;
-    gap: 16px;
+    color: rgba(190, 144, 85, 0.4);
+    gap: 20px;
 }
 
 .no-chat-selected h3 {
-    font-size: 1.1rem;
-    font-weight: 500;
+    font-size: 1.25rem;
+    font-weight: 600;
     margin: 0;
+    color: #be9055;
+    opacity: 0.8;
 }
 
 .chat-widget-wrapper {
@@ -153,17 +165,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px;
-    gap: 12px;
-    color: #64748b;
-    font-size: 0.85rem;
+    padding: 50px;
+    gap: 15px;
+    color: #be9055;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid rgba(99, 102, 241, 0.1);
-    border-top: 3px solid #6366f1;
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(190, 144, 85, 0.1);
+    border-top: 3px solid #be9055;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -172,13 +185,72 @@
     to { transform: rotate(360deg); }
 }
 
-/* Override ChatWidget styles to fit container */
-.chat-widget-wrapper .chat-widget-container {
+/* --- CHAT WIDGET OVERRIDES FOR ADMIN MODE --- */
+.chat-widget-wrapper .chat-widget-container.admin-mode {
     background: transparent !important;
-    backdrop-filter: none !important;
     border: none !important;
+    display: flex;
+    flex-direction: column;
 }
 
-.chat-widget-wrapper .chat-fab {
-    display: none;
+.chat-widget-wrapper .chat-header {
+    background: rgba(190, 144, 85, 0.1) !important;
+    border-bottom: 1px solid rgba(190, 144, 85, 0.2) !important;
+    padding: 1.5rem !important;
+}
+
+.chat-widget-wrapper .chat-title {
+    color: #be9055 !important;
+    font-weight: 800 !important;
+    font-size: 1.2rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+.chat-widget-wrapper .chat-subtitle {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Message Bubbles - Proper Admin/User distinction */
+.chat-widget-wrapper .message-bubble.user-bubble {
+    background: #be9055 !important; /* Bronze for Admin replies */
+    color: #000000 !important;
+    border-radius: 18px 18px 2px 18px !important;
+    font-weight: 500 !important;
+}
+
+.chat-widget-wrapper .message-bubble.bot-bubble {
+    background: rgba(255, 255, 255, 0.08) !important; /* Dark grey for client messages */
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 18px 18px 18px 2px !important;
+}
+
+/* Input Area Refinement */
+.chat-widget-wrapper .chat-input-area {
+    background: rgba(0, 0, 0, 0.5) !important;
+    border-top: 1px solid rgba(190, 144, 85, 0.2) !important;
+    padding: 1.25rem !important;
+}
+
+.chat-widget-wrapper .chat-input-area input {
+    background: rgba(190, 144, 85, 0.05) !important;
+    border: 1px solid rgba(190, 144, 85, 0.3) !important;
+    color: white !important;
+    padding: 12px 20px !important;
+}
+
+.chat-widget-wrapper .chat-input-area input:focus {
+    border-color: #be9055 !important;
+    box-shadow: 0 0 0 2px rgba(190, 144, 85, 0.1) !important;
+}
+
+.chat-widget-wrapper .send-btn {
+    background: #be9055 !important;
+    transition: all 0.2s !important;
+}
+
+.chat-widget-wrapper .send-btn:hover {
+    transform: scale(1.05);
+    background: #d4a86a !important;
 }

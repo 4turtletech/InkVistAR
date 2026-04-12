@@ -56,12 +56,15 @@ function AdminChat() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter chat-page-wrapper">
+                <header className="admin-header">
+                    <div className="header-title-area">
+                        <h1>Chats & Consultations</h1>
+                        <p>Manage live support sessions and artist consultations from one unified dashboard.</p>
+                    </div>
+                </header>
+
                 <div className="admin-chat-layout glass-panel">
                     <div className="appointment-list-container">
-                        <div className="chat-list-header">
-                            <h2>Chats & Consultations</h2>
-                        </div>
-
                         {/* Dynamic Live Sessions */}
                         {liveSessions.length > 0 && (
                             <div className="chat-section-divider">
