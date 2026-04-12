@@ -2786,8 +2786,10 @@
     justify-content: space-between;
     align-items: center;
     padding: 1.8rem 2.5rem;
-    background-color: #1a1416; /* Exact match with AdminSideNav background */
-    border-bottom: 2px solid #be9055; /* Bronze-Gold Accent */
+    background-color: #1a1416;
+    /* Exact match with AdminSideNav background */
+    border-bottom: 2px solid #be9055;
+    /* Bronze-Gold Accent */
     margin-bottom: 2.5rem;
     height: auto;
     min-height: 110px;
@@ -2809,19 +2811,20 @@
 .admin-header h1,
 .header-title-area h1 {
     margin: 0;
-    color: #be9055; /* Refined Bronze-Gold for premium branding */
+    color: #be9055;
+    /* Refined Bronze-Gold for premium branding */
     font-size: 2rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     text-align: left;
     text-transform: uppercase;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .admin-header p,
 .header-title-area p {
     margin: 0;
-    color: #be9055; /* Refined Bronze-Gold for subheaders to perfectly match title */
+    color: #94a3b8;
     font-size: 1rem;
     font-weight: 500;
     text-align: left;
@@ -2831,9 +2834,11 @@
 .header-actions-group {
     display: flex;
     align-items: center;
-    justify-content: flex-end; /* Strictly right-align buttons */
+    justify-content: flex-end;
+    /* Strictly right-align buttons */
     gap: 1.25rem;
     flex-wrap: wrap;
-    flex: 1; /* Take up available space to push to right */
+    flex: 1;
+    /* Take up available space to push to right */
     margin-left: 2rem;
 }
