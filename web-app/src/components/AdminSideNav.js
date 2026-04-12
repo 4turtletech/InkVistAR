@@ -117,12 +117,7 @@ function AdminSideNav() {
 
     const quickActions = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', description: 'Overview' },
-        { label: 'User Management', icon: Users, isDropdown: true, children: [
-                { label: 'Users', path: '/admin/users', description: 'Manage all users', icon: Users },
-                { label: 'Clients', path: '/admin/clients', description: 'Client profiles', icon: UserCircle },
-                { label: 'Staff', path: '/admin/staff', description: 'Manage staff', icon: Users2 }
-            ]
-        },
+        { label: 'User Management', icon: Users, path: '/admin/users', description: 'Manage all users' },
         { label: 'Appointments', icon: Calendar, path: '/admin/appointments', description: 'View appointments' },
         { label: 'Completed Sessions', icon: CheckCircle, path: '/admin/completed-sessions', description: 'View completed sessions' },
         { label: 'Chat', icon: MessageSquare, path: '/admin/chat', description: 'Chat with customers' },
