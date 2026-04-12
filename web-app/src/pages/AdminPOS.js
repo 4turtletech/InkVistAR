@@ -267,30 +267,27 @@ function AdminPOS() {
             <div className="admin-page pos-container page-container-enter">
                 <div className="pos-layout">
                     <div className="pos-main">
-                        <header className="pos-header">
-                            <div className="pos-title-area">
+                        <header className="admin-header">
+                            <div className="header-title-area">
                                 <h1>Studio POS</h1>
                                 <p>Retail & Inventory Transactions</p>
                             </div>
-                            <div className="pos-search">
-                                <Search size={18} className="search-icon" />
-                                <input 
-                                    ref={searchInputRef}
-                                    type="text" 
-                                    list="search-suggestions-pos"
-                                    placeholder="Search products by name, category, or ID..." 
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                                <datalist id="search-suggestions-pos">
-                                    {searchSuggestions.map(suggestion => (
-                                        <option key={suggestion} value={suggestion} />
-                                    ))}
-                                </datalist>
+                            <div className="header-actions-group">
+                                <div className="pos-search">
+                                    <Search size={18} className="search-icon" />
+                                    <input 
+                                        ref={searchInputRef}
+                                        type="text" 
+                                        list="search-suggestions-pos"
+                                        placeholder="Search products..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                <button className="refresh-pos-btn" onClick={fetchInventory} title="Refresh Inventory">
+                                    <RefreshCw size={20} className={loading ? 'spinning' : ''} />
+                                </button>
                             </div>
-                            <button className="refresh-pos-btn" onClick={fetchInventory} title="Refresh Inventory">
-                                <RefreshCw size={20} className={loading ? 'spinning' : ''} />
-                            </button>
                         </header>
 
                         <div className="pos-categories">

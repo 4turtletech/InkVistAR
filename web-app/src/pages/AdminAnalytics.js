@@ -154,12 +154,12 @@ function AdminAnalytics() {
                <AdminSideNav />
             <div className="admin-page page-container-enter">
             <div className="analytics-sticky-header">
-                <header className="admin-header-glass">
+                <header className="admin-header">
                     <div className="header-title-area">
                         <h1>Analytics & Reports</h1>
                         <p>Track your studio's performance and inventory</p>
                     </div>
-                    <div className="header-actions-area">
+                    <div className="header-actions-group">
                         <div className="filter-group-glass">
                             <Filter size={16} color="#6366f1" />
                             <span>Time Range:</span>

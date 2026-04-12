@@ -253,11 +253,12 @@ function AdminNotifications() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page portal-container">
-                <header className="portal-header">
-                    <div className="header-title">
+                <header className="admin-header">
+                    <div className="header-title-area">
                         <h1>Notification Center</h1>
+                        <p>System alerts and direct updates</p>
                     </div>
-                    <div className="header-actions">
+                    <div className="header-actions-group">
                         <button
                             className="premium-btn primary"
                             onClick={markAllRead}
@@ -276,7 +277,6 @@ function AdminNotifications() {
                         </button>
                     </div>
                 </header>
-                <p className="header-subtitle admin-st-a4f2a175">System alerts and direct updates</p>
 
                 <div className="portal-stats-row admin-st-06856550">
                     <div className="glass-card admin-st-e257337a">

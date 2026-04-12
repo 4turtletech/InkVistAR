@@ -253,7 +253,7 @@ function AdminUsers() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-users-header">
+                <header className="admin-header">
                     <div className="header-title-area">
                         <h1>User Management</h1>
                         <p>Manage platform users, roles, and account status</p>

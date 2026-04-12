@@ -217,8 +217,11 @@ function AdminBilling() {
             <AdminSideNav />
             <div className="admin-page page-container-enter">
                 <header className="admin-header">
-                    <h1>Billing & Payments</h1>
-                    <div className="admin-st-800dd6f5">
+                    <div className="header-title-area">
+                        <h1>Billing & Payments</h1>
+                        <p>Manage studio revenue, invoices, and payment tracking</p>
+                    </div>
+                    <div className="header-actions-group">
                          <button className={`btn ${activeTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('invoices')}>
                             <FileText size={18} className="admin-st-c02c7d9c"/> Transaction Logs
                         </button>

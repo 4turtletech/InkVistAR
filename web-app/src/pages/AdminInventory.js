@@ -534,7 +534,7 @@ function AdminInventory() {
                     </div>
                 </div>
             </div>
-            <header className="admin-inventory-header">
+            <header className="admin-header">
                 <div className="header-title-area">
                     <h1>Inventory Management</h1>
                     <p>Track, manage, and audit studio supplies</p>

@@ -2776,7 +2776,56 @@
 }
 
 .admin-st-f60a1998 {
-    display: flex;
     align-items: center;
     gap: 1rem;
+}
+
+/* Premium Standardized Header System */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.8rem 2.5rem;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-bottom: 3px solid #c19a6b;
+    margin-bottom: 2.5rem;
+    height: auto;
+    min-height: 110px;
+    color: white;
+    width: 100%;
+    box-sizing: border-box;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.header-title-area {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+}
+
+.admin-header h1,
+.header-title-area h1 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-align: left;
+}
+
+.admin-header p,
+.header-title-area p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.95rem;
+    font-weight: 400;
+    text-align: left;
+}
+
+.header-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
 }
