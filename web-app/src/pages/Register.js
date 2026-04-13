@@ -309,7 +309,7 @@ function Register() {
             {errors.phone && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.phone}</small>}
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
                 <div className="form-group" style={{ flex: 1, position: 'relative' }}>
-                    <input type={showPassword ? "text" : "password"} name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Password" value={formData.password} onChange={handleChange} onFocus={() => setPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!formData.password) setPasswordFocused(false); }} />
+                    <input type={showPassword ? "text" : "password"} name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Password" value={formData.password} onChange={handleChange} onFocus={() => setPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!formData.password) setPasswordFocused(false); }} onPaste={(e) => e.preventDefault()} />
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
@@ -339,7 +339,7 @@ function Register() {
                     </button>
                 </div>
                 <div className="form-group" style={{ flex: 1, position: 'relative' }}>
-                    <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} />
+                    <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} onPaste={(e) => e.preventDefault()} />
                     <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
