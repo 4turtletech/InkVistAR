@@ -35,9 +35,9 @@ const PasswordStrengthMeter = ({ feedback }) => {
         ))}
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', fontSize: '0.7rem' }}>
-        {criteria.map((c, i) => (
-          <span key={i} style={{ color: c.met ? '#10b981' : '#94a3b8', transition: 'color 0.2s' }}>
-            {c.met ? '✓' : '○'} {c.text}
+        {criteria.filter(c => c.met).map((c, i) => (
+          <span key={i} style={{ color: '#10b981', transition: 'color 0.2s' }}>
+            {c.text}
           </span>
         ))}
       </div>
