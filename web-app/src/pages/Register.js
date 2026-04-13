@@ -14,12 +14,8 @@ const PasswordStrengthMeter = ({ feedback }) => {
   ];
   
   const score = criteria.filter(c => c.met).length;
-  
-  let color = '#e2e8f0';
-  if (score === 1) color = '#ef4444';
-  else if (score === 2) color = '#f59e0b';
-  else if (score === 3) color = '#eab308';
-  else if (score === 4) color = '#10b981';
+  const metCriteria = criteria.filter(c => c.met);
+  const latestMet = metCriteria.length > 0 ? metCriteria[metCriteria.length - 1] : null;
 
   return (
     <div>
@@ -29,18 +25,16 @@ const PasswordStrengthMeter = ({ feedback }) => {
             flex: 1,
             height: '4px',
             borderRadius: '2px',
-            backgroundColor: index < score ? color : '#e2e8f0',
+            backgroundColor: index < score ? '#be9055' : '#e2e8f0',
             transition: 'background-color 0.3s ease'
           }} />
         ))}
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', fontSize: '0.7rem' }}>
-        {criteria.filter(c => c.met).map((c, i) => (
-          <span key={i} style={{ color: '#10b981', transition: 'color 0.2s' }}>
-            {c.text}
-          </span>
-        ))}
-      </div>
+      {latestMet && (
+        <div style={{ fontSize: '0.7rem', color: '#be9055', transition: 'color 0.2s' }}>
+          {latestMet.text}
+        </div>
+      )}
     </div>
   );
 };
@@ -340,7 +334,6 @@ function Register() {
                             </svg>
                         )}
                     </button>
-                    {errors.password && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.password}</small>}
                 </div>
                 <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                     <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} />
