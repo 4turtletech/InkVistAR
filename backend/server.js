@@ -119,18 +119,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// MySQL Connection Pool (from environment variables)
+// MySQL Connection Pool (supporting Railway and generic env variables)
 const db = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || 'banana',
-  database: process.env.DB_NAME || 'inkvistar',
-  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
+  host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+  user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
+  password: process.env.MYSQLPASSWORD || process.env.DB_PASS || 'banana',
+  database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'inkvistar',
+  port: process.env.MYSQLPORT ? Number(process.env.MYSQLPORT) : (process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306),
   connectionLimit: 10,
   waitForConnections: true,
   queueLimit: 0,
   dateStrings: true, // Force date columns to be returned as strings to prevent timezone shifts
   maxAllowedPacket: 50 * 1024 * 1024 // 50MB - allows large base64 image data in queries
+});
+
+// Health check endpoint for Railway/Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // Generate Kiosk-style Booking Code

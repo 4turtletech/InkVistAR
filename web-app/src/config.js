@@ -8,7 +8,7 @@ const explicitApi =
 
 // Vercel preview/prod: require REACT_APP_API_URL to avoid hitting a non-existent relative /api.
 // Local dev: default to localhost:3001.
-export const API_URL = explicitApi || (isProduction ? 'https://inkvistar-api.onrender.com' : 'http://localhost:3001');
+export const API_URL = explicitApi || (isProduction ? '' : 'http://localhost:3001');
 
 if (!explicitApi) {
   console.warn(
