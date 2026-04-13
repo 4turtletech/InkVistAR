@@ -26,14 +26,25 @@ const allowedOrigins = [
   'http://localhost:8081'
 ];
 
-// Add the FRONTEND_URL origin if it's not already in the list
+// Add the FRONTEND_URL origin and its www/non-www counterpart
 try {
-  const frontendOrigin = new URL(FRONTEND_URL).origin;
-  if (!allowedOrigins.includes(frontendOrigin)) {
-    allowedOrigins.push(frontendOrigin);
+  const urlObj = new URL(FRONTEND_URL);
+  const origin = urlObj.origin;
+  const hostname = urlObj.hostname;
+
+  if (!allowedOrigins.includes(origin)) {
+    allowedOrigins.push(origin);
+  }
+
+  // Also allow the www/non-www sibling
+  if (hostname.startsWith('www.')) {
+    const rootOrigin = origin.replace('www.', '');
+    if (!allowedOrigins.includes(rootOrigin)) allowedOrigins.push(rootOrigin);
+  } else if (!hostname.includes('localhost') && !hostname.match(/^\d/)) {
+    const wwwOrigin = origin.replace('://', '://www.');
+    if (!allowedOrigins.includes(wwwOrigin)) allowedOrigins.push(wwwOrigin);
   }
 } catch (e) {
-  // If parsing fails, just use the string if it looks like an origin
   if (FRONTEND_URL && !allowedOrigins.includes(FRONTEND_URL)) {
     allowedOrigins.push(FRONTEND_URL);
   }
@@ -42,11 +53,16 @@ try {
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('vercel.app')) {
+
+      const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed)) ||
+        origin.includes('vercel.app') ||
+        origin.includes('inkvictusstudio.com');
+
+      if (isAllowed) {
         callback(null, true);
       } else {
+        console.log('[Socket.io] Blocked by CORS:', origin);
         callback(new Error('Not allowed by CORS'));
       }
     },
@@ -79,6 +95,7 @@ app.use(cors({
     // Check if the origin is in our allowed list or matches our patterns
     const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed)) ||
       origin.includes('vercel.app') ||
+      origin.includes('inkvictusstudio.com') ||
       origin.includes('localhost');
 
     if (isAllowed) {
