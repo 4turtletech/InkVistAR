@@ -6,16 +6,17 @@ import Navbar from '../components/Navbar';
 import './Login.css'; // Using Login styles for consistency
 
 const PasswordStrengthMeter = ({ feedback }) => {
-  const criteria = [
-    { met: feedback.hasUppercase && feedback.hasLowercase, text: 'Upper & lowercase' },
-    { met: feedback.hasNumber, text: 'Number (0-9)' },
-    { met: feedback.hasSymbol, text: 'Special character' },
-    { met: feedback.hasMinLength, text: '8+ characters' }
+  // Ordered steps: each must be met before the next hint appears
+  const steps = [
+    { met: feedback.hasMinLength, hint: 'At least 8 characters' },
+    { met: feedback.hasNumber, hint: 'Add a number' },
+    { met: feedback.hasUppercase && feedback.hasLowercase, hint: 'Add upper & lowercase letters' },
+    { met: feedback.hasSymbol, hint: 'Add a special character' }
   ];
   
-  const score = criteria.filter(c => c.met).length;
-  const metCriteria = criteria.filter(c => c.met);
-  const latestMet = metCriteria.length > 0 ? metCriteria[metCriteria.length - 1] : null;
+  const score = steps.filter(s => s.met).length;
+  // Find the first unmet step to display as the next hint
+  const nextHint = steps.find(s => !s.met);
 
   return (
     <div>
@@ -30,9 +31,9 @@ const PasswordStrengthMeter = ({ feedback }) => {
           }} />
         ))}
       </div>
-      {latestMet && (
-        <div style={{ fontSize: '0.7rem', color: '#be9055', transition: 'color 0.2s' }}>
-          {latestMet.text}
+      {nextHint && (
+        <div style={{ fontSize: '0.7rem', color: '#ef4444', transition: 'color 0.2s' }}>
+          {nextHint.hint}
         </div>
       )}
     </div>
@@ -81,6 +82,8 @@ function Register() {
       sanitizedValue = value.replace(/\s/g, ''); // No spaces in email
     } else if (name === 'phone') {
       sanitizedValue = value.replace(/[^0-9]/g, '').slice(0, 11); // Only numbers, max 11
+    } else if (name === 'password' || name === 'confirmPassword') {
+      sanitizedValue = value.slice(0, 50);
     } else {
       sanitizedValue = value.replace(/^\s+/, '');
     }
