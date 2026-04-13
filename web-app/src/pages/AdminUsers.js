@@ -44,6 +44,7 @@ function AdminUsers() {
     const [selectedClient, setSelectedClient] = useState(null);
     const [clientActiveTab, setClientActiveTab] = useState('profile');
     const [clientDetails, setClientDetails] = useState({ profile: {}, appointments: [], notes: '' });
+    const [expandedRecordId, setExpandedRecordId] = useState(null);
     const [clientFormData, setClientFormData] = useState({});
     const [loadingClientDetails, setLoadingClientDetails] = useState(false);
 
@@ -100,7 +101,11 @@ function AdminUsers() {
     };
     const closeClientModal = () => {
         setClientModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => { setClientModal({ mounted: false, visible: false }); setSelectedClient(null); }, 400);
+        setTimeout(() => {
+            setClientModal({ mounted: false, visible: false });
+            setSelectedClient(null);
+            setExpandedRecordId(null);
+        }, 400);
     };
 
     const openArtistModalAnim = () => {
@@ -840,7 +845,7 @@ function AdminUsers() {
                                 <button className={`tab-button ${clientActiveTab === 'profile' ? 'active' : ''}`} onClick={() => setClientActiveTab('profile')}>
                                     <User size={16} /> Personal Information
                                 </button>
-                                <button className={`tab-button ${clientActiveTab === 'history' ? 'active' : ''}`} onClick={() => setClientActiveTab('history')}>
+                                <button className={`tab-button ${clientActiveTab === 'history' ? 'active' : ''}`} onClick={() => { setClientActiveTab('history'); setExpandedRecordId(null); }}>
                                     <Calendar size={16} /> Visit History
                                 </button>
                             </div>
@@ -880,18 +885,147 @@ function AdminUsers() {
                                             </div>
                                         ) : (
                                             <div className="table-responsive admin-st-59cb08dc">
-                                                <table className="portal-table">
-                                                    <thead><tr><th>Procedure Date</th><th>Artist</th><th>Design Project</th><th>Outcome</th></tr></thead>
+                                                <table className="portal-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Date</th>
+                                                            <th>Type</th>
+                                                            <th>Description</th>
+                                                            <th>Status</th>
+                                                            <th style={{ width: '28px' }}></th>
+                                                        </tr>
+                                                    </thead>
                                                     <tbody>
-                                                        {clientDetails.appointments.length > 0 ? clientDetails.appointments.map(apt => (
-                                                            <tr key={apt.id}>
-                                                                <td className="admin-fw-600">{new Date(apt.appointment_date).toLocaleDateString()}</td>
-                                                                <td>{apt.artist_name}</td>
-                                                                <td>{apt.design_title}</td>
-                                                                <td><span className={`status-badge ${apt.status}`}>{apt.status.toUpperCase()}</span></td>
-                                                            </tr>
-                                                        )) : (
-                                                            <tr><td colSpan="4" className="no-data">This client has no recorded procedures in the archive.</td></tr>
+                                                        {clientDetails.appointments.length > 0 ? clientDetails.appointments.map(record => {
+                                                            const isExpanded = expandedRecordId === record.id;
+                                                            const isSession = record.recordType === 'Session';
+                                                            return (
+                                                                <React.Fragment key={record.id}>
+                                                                    <tr
+                                                                        onClick={() => setExpandedRecordId(isExpanded ? null : record.id)}
+                                                                        style={{
+                                                                            cursor: 'pointer',
+                                                                            background: isExpanded ? 'rgba(193,154,107,0.08)' : 'transparent',
+                                                                            transition: 'background 0.2s'
+                                                                        }}
+                                                                    >
+                                                                        <td className="admin-fw-600" style={{ whiteSpace: 'nowrap' }}>{new Date(record.appointment_date).toLocaleDateString()}</td>
+                                                                        <td>
+                                                                            <span style={{
+                                                                                display: 'inline-block', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 600,
+                                                                                background: isSession ? 'rgba(59,130,246,0.12)' : 'rgba(16,185,129,0.12)',
+                                                                                color: isSession ? '#3b82f6' : '#10b981'
+                                                                            }}>
+                                                                                {isSession ? 'Session' : 'Retail'}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td>{isSession ? record.design_title : (record.service_type || record.design_title || '—')}</td>
+                                                                        <td><span className={`status-badge ${record.status}`}>{(record.status || '').toUpperCase()}</span></td>
+                                                                        <td style={{ textAlign: 'center', color: '#C19A6B', fontSize: '0.8rem', userSelect: 'none' }}>
+                                                                            {isExpanded ? '▲' : '▼'}
+                                                                        </td>
+                                                                    </tr>
+                                                                    {isExpanded && (
+                                                                        <tr style={{ background: 'rgba(193,154,107,0.04)' }}>
+                                                                            <td colSpan="5" style={{ padding: 0, borderBottom: '2px solid rgba(193,154,107,0.3)' }}>
+                                                                                <div style={{
+                                                                                    padding: '16px 20px',
+                                                                                    display: 'grid',
+                                                                                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                                                                                    gap: '12px 24px',
+                                                                                    fontFamily: "'Inter', sans-serif",
+                                                                                    fontSize: '0.83rem',
+                                                                                    animation: 'fadeIn 0.2s ease'
+                                                                                }}>
+                                                                                    {isSession ? (
+                                                                                        <>
+                                                                                            {record.booking_code && (
+                                                                                                <div>
+                                                                                                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Booking Code</div>
+                                                                                                    <div style={{ color: '#C19A6B', fontWeight: 700, letterSpacing: '0.05em' }}>{record.booking_code}</div>
+                                                                                                </div>
+                                                                                            )}
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Artist</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 500 }}>{record.artist_name || '—'}</div>
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Service</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 500 }}>{record.service_type || '—'}</div>
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Time Slot</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 500 }}>{record.start_time ? `${record.start_time}${record.end_time ? ' – ' + record.end_time : ''}` : '—'}</div>
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Price</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 600 }}>₱{Number(record.price || 0).toLocaleString()}</div>
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Amount Paid</div>
+                                                                                                <div style={{ color: '#10b981', fontWeight: 600 }}>₱{Number(record.total_paid || 0).toLocaleString()}</div>
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Payment Method</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 500 }}>{record.manual_payment_method || '—'}</div>
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Payment Status</div>
+                                                                                                <div style={{ color: record.payment_status === 'paid' ? '#10b981' : '#f59e0b', fontWeight: 600 }}>{(record.payment_status || 'unpaid').toUpperCase()}</div>
+                                                                                            </div>
+                                                                                            {record.reschedule_count > 0 && (
+                                                                                                <div>
+                                                                                                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Reschedules</div>
+                                                                                                    <div style={{ color: '#f59e0b', fontWeight: 600 }}>{record.reschedule_count}</div>
+                                                                                                </div>
+                                                                                            )}
+                                                                                            {record.notes && (
+                                                                                                <div style={{ gridColumn: '1 / -1' }}>
+                                                                                                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Notes</div>
+                                                                                                    <div style={{ color: '#1e293b', fontStyle: 'italic', background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: '8px', padding: '8px 12px' }}>{record.notes}</div>
+                                                                                                </div>
+                                                                                            )}
+                                                                                            {record.reference_image && (
+                                                                                                <div style={{ gridColumn: '1 / -1' }}>
+                                                                                                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Reference Image</div>
+                                                                                                    <img src={record.reference_image} alt="Reference" style={{ maxWidth: '160px', maxHeight: '120px', borderRadius: '10px', border: '1px solid rgba(193,154,107,0.3)', objectFit: 'cover' }} />
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </>
+                                                                                    ) : (
+                                                                                        <>
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Invoice Date</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 500 }}>{new Date(record.appointment_date).toLocaleDateString()}</div>
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Description</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 500 }}>{record.service_type || record.design_title || '—'}</div>
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Amount</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 600 }}>₱{Number(record.amount || record.price || 0).toLocaleString()}</div>
+                                                                                            </div>
+                                                                                            <div>
+                                                                                                <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Payment Status</div>
+                                                                                                <div style={{ color: record.status === 'paid' ? '#10b981' : '#f59e0b', fontWeight: 600 }}>{(record.status || 'unpaid').toUpperCase()}</div>
+                                                                                            </div>
+                                                                                            {record.paymongo_payment_id && (
+                                                                                                <div style={{ gridColumn: '1 / -1' }}>
+                                                                                                    <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Payment Reference</div>
+                                                                                                    <div style={{ color: '#64748b', fontFamily: 'monospace', fontSize: '0.78rem' }}>{record.paymongo_payment_id}</div>
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </>
+                                                                                    )}
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    )}
+                                                                </React.Fragment>
+                                                            );
+                                                        }) : (
+                                                            <tr><td colSpan="5" className="no-data">This client has no recorded procedures in the archive.</td></tr>
                                                         )}
                                                     </tbody>
                                                 </table>
