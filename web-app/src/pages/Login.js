@@ -23,6 +23,13 @@ function Login() {
     const otpRefs = useRef([]);
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+    const [resetPasswordFocused, setResetPasswordFocused] = useState(false);
+    const [resetPwFeedback, setResetPwFeedback] = useState({
+        hasMinLength: false, hasUppercase: false, hasLowercase: false,
+        hasNumber: false, hasSymbol: false
+    });
     
     const navigate = useNavigate();
 
@@ -36,9 +43,9 @@ function Login() {
             errorMsg = "Password is required";
         }
         if (name === 'newPassword' && value) {
-            const strongRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
+            const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
             if (value.length < 8) errorMsg = "Password must be at least 8 characters";
-            else if (!strongRegex.test(value)) errorMsg = "Requires at least 1 letter and 1 number";
+            else if (!strongRegex.test(value)) errorMsg = "Password needs uppercase, lowercase, number, and symbol";
         }
         if (name === 'confirmPassword' && value) {
             if (value !== newPassword) errorMsg = "Passwords do not match";
@@ -55,8 +62,19 @@ function Login() {
         let val = e.target.value;
         if (fieldName === 'email' || fieldName === 'resetEmail') {
             val = val.replace(/\s/g, ''); // Strip spaces in email
+        } else if (fieldName === 'newPassword' || fieldName === 'confirmPassword') {
+            val = val.slice(0, 50);
         }
         setter(val);
+        if (fieldName === 'newPassword') {
+            setResetPwFeedback({
+                hasMinLength: val.length >= 8,
+                hasUppercase: /[A-Z]/.test(val),
+                hasLowercase: /[a-z]/.test(val),
+                hasNumber: /[0-9]/.test(val),
+                hasSymbol: /[@$!%*?&#]/.test(val)
+            });
+        }
         if (errors[fieldName]) {
             setErrors(prev => ({ ...prev, [fieldName]: "" }));
         }
@@ -179,8 +197,14 @@ function Login() {
             return;
         }
 
-        if (newPassword.length < 6) {
-            setError("Password must be at least 6 characters.");
+        if (newPassword.length < 8) {
+            setError("Password must be at least 8 characters.");
+            return;
+        }
+
+        const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+        if (!strongRegex.test(newPassword)) {
+            setError("Password needs uppercase, lowercase, number, and special character.");
             return;
         }
 
@@ -369,12 +393,38 @@ function Login() {
                     {error && <p className="error-message">{error}</p>}
                     <form onSubmit={handlePasswordReset} className="login-form">
                         <div className="form-group" style={{ position: 'relative' }}>
-                            <input type="password" name="newPassword" className={`form-input ${errors.newPassword ? 'error' : ''}`} placeholder="New Password" value={newPassword} onChange={handleChange(setNewPassword, 'newPassword')} onBlur={handleBlur} required />
+                            <input type={showNewPassword ? 'text' : 'password'} name="newPassword" className={`form-input ${errors.newPassword ? 'error' : ''}`} placeholder="New Password" value={newPassword} onChange={handleChange(setNewPassword, 'newPassword')} onFocus={() => setResetPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!newPassword) setResetPasswordFocused(false); }} onPaste={(e) => e.preventDefault()} required />
+                            <div className="password-toggle" onClick={() => setShowNewPassword(!showNewPassword)}>
+                                {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </div>
                             {errors.newPassword && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.newPassword}</small>}
                         </div>
                         <div className="form-group" style={{ position: 'relative' }}>
-                            <input type="password" name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={confirmPassword} onChange={handleChange(setConfirmPassword, 'confirmPassword')} onBlur={handleBlur} required />
+                            <input type={showConfirmNewPassword ? 'text' : 'password'} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={confirmPassword} onChange={handleChange(setConfirmPassword, 'confirmPassword')} onBlur={handleBlur} onPaste={(e) => e.preventDefault()} required />
+                            <div className="password-toggle" onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
+                                {showConfirmNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </div>
                             {errors.confirmPassword && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.confirmPassword}</small>}
+                        </div>
+                        {/* Password Strength Meter */}
+                        <div style={{ overflow: 'hidden', maxHeight: resetPasswordFocused ? '200px' : '0', opacity: resetPasswordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: resetPasswordFocused ? '4px' : '0', marginBottom: '1rem' }}>
+                            <div>
+                                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                                    {[resetPwFeedback.hasMinLength, resetPwFeedback.hasNumber, resetPwFeedback.hasUppercase && resetPwFeedback.hasLowercase, resetPwFeedback.hasSymbol].map((met, i) => (
+                                        <div key={i} style={{ flex: 1, height: '4px', borderRadius: '2px', backgroundColor: met ? '#be9055' : '#e2e8f0', transition: 'background-color 0.3s ease' }} />
+                                    ))}
+                                </div>
+                                {(() => {
+                                    const steps = [
+                                        { met: resetPwFeedback.hasMinLength, hint: 'At least 8 characters' },
+                                        { met: resetPwFeedback.hasNumber, hint: 'Add a number' },
+                                        { met: resetPwFeedback.hasUppercase && resetPwFeedback.hasLowercase, hint: 'Add upper & lowercase letters' },
+                                        { met: resetPwFeedback.hasSymbol, hint: 'Add a special characters: !@#$%^&*()_+' }
+                                    ];
+                                    const nextHint = steps.find(s => !s.met);
+                                    return nextHint ? <div style={{ fontSize: '0.7rem', color: '#ef4444' }}>{nextHint.hint}</div> : null;
+                                })()}
+                            </div>
                         </div>
                         <button type="submit" className="login-btn" disabled={loading}>
                             {loading ? 'Resetting...' : 'Reset Password'}
