@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
@@ -19,7 +19,8 @@ function Login() {
     // Forgot Password States
     const [view, setView] = useState('login'); // 'login', 'forgot-email', 'forgot-otp', 'reset-password'
     const [resetEmail, setResetEmail] = useState("");
-    const [otp, setOtp] = useState("");
+    const [otp, setOtp] = useState(['', '', '', '', '', '']);
+    const otpRefs = useRef([]);
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     
@@ -151,7 +152,7 @@ function Login() {
         try {
             const response = await Axios.post(`${API_URL}/api/verify-otp`, {
                 email: resetEmail,
-                otp: otp
+                otp: otp.join('')
             });
             if (response.data.success) {
                 setView('reset-password');
@@ -189,7 +190,7 @@ function Login() {
                 alert("Password reset successful! Please login.");
                 setView('login');
                 setResetEmail("");
-                setOtp("");
+                setOtp(['', '', '', '', '', '']);
                 setNewPassword("");
                 setConfirmPassword("");
             } else {
@@ -299,9 +300,58 @@ function Login() {
                     {error && <p className="error-message">{error}</p>}
                     <form onSubmit={verifyResetOTP} className="login-form">
                         <div className="form-group">
-                            <input type="text" className="form-input" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Enter 6-digit code" required />
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                {otp.map((digit, idx) => (
+                                    <input
+                                        key={idx}
+                                        ref={el => otpRefs.current[idx] = el}
+                                        type="tel"
+                                        inputMode="numeric"
+                                        maxLength={1}
+                                        value={digit}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
+                                            const newOtp = [...otp];
+                                            newOtp[idx] = val;
+                                            setOtp(newOtp);
+                                            if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
+                                                otpRefs.current[idx - 1]?.focus();
+                                            }
+                                        }}
+                                        onPaste={(e) => {
+                                            e.preventDefault();
+                                            const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+                                            if (pasted) {
+                                                const newOtp = [...otp];
+                                                for (let i = 0; i < 6; i++) newOtp[i] = pasted[i] || '';
+                                                setOtp(newOtp);
+                                                const focusIdx = Math.min(pasted.length, 5);
+                                                otpRefs.current[focusIdx]?.focus();
+                                            }
+                                        }}
+                                        style={{
+                                            width: '44px',
+                                            height: '52px',
+                                            textAlign: 'center',
+                                            fontSize: '1.4rem',
+                                            fontWeight: '700',
+                                            borderRadius: '10px',
+                                            border: digit ? '2px solid #be9055' : '1px solid #ddd',
+                                            backgroundColor: 'white',
+                                            color: '#1e293b',
+                                            outline: 'none',
+                                            transition: 'border-color 0.2s'
+                                        }}
+                                        onFocus={(e) => e.target.style.borderColor = '#be9055'}
+                                        onBlur={(e) => { if (!digit) e.target.style.borderColor = '#ddd'; }}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                        <button type="submit" className="login-btn" disabled={loading}>{loading ? 'Verifying...' : 'Verify OTP'}</button>
+                        <button type="submit" className="login-btn" disabled={loading || otp.join('').length < 6}>{loading ? 'Verifying...' : 'Verify OTP'}</button>
                         <div className="login-footer">
                             <button type="button" onClick={() => { setView('forgot-email'); setError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer'}}>Back</button>
                         </div>
