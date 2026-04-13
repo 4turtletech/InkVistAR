@@ -157,10 +157,14 @@ function Login() {
             if (response.data.success) {
                 setView('reset-password');
             } else {
-                setError(response.data.message);
+                setError('Incorrect OTP');
+                setOtp(['', '', '', '', '', '']);
+                otpRefs.current[0]?.focus();
             }
         } catch (error) {
-            setError("Error verifying OTP");
+            setError('Incorrect OTP');
+            setOtp(['', '', '', '', '', '']);
+            otpRefs.current[0]?.focus();
         } finally {
             setLoading(false);
         }
