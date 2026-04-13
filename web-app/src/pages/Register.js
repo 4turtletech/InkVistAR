@@ -7,13 +7,13 @@ import './Login.css'; // Using Login styles for consistency
 
 const PasswordStrengthMeter = ({ feedback }) => {
   const criteria = [
-    feedback.hasUppercase && feedback.hasLowercase,
-    feedback.hasNumber,
-    feedback.hasSymbol,
-    feedback.hasMinLength
+    { met: feedback.hasUppercase && feedback.hasLowercase, text: 'Upper & lowercase' },
+    { met: feedback.hasNumber, text: 'Number (0-9)' },
+    { met: feedback.hasSymbol, text: 'Special character' },
+    { met: feedback.hasMinLength, text: '8+ characters' }
   ];
   
-  const score = criteria.filter(Boolean).length;
+  const score = criteria.filter(c => c.met).length;
   
   let color = '#e2e8f0';
   if (score === 1) color = '#ef4444';
@@ -22,16 +22,25 @@ const PasswordStrengthMeter = ({ feedback }) => {
   else if (score === 4) color = '#10b981';
 
   return (
-    <div style={{ display: 'flex', gap: '6px' }}>
-      {[0, 1, 2, 3].map((index) => (
-        <div key={index} style={{
-          flex: 1,
-          height: '4px',
-          borderRadius: '2px',
-          backgroundColor: index < score ? color : '#e2e8f0',
-          transition: 'background-color 0.3s ease'
-        }} />
-      ))}
+    <div>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+        {[0, 1, 2, 3].map((index) => (
+          <div key={index} style={{
+            flex: 1,
+            height: '4px',
+            borderRadius: '2px',
+            backgroundColor: index < score ? color : '#e2e8f0',
+            transition: 'background-color 0.3s ease'
+          }} />
+        ))}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', fontSize: '0.7rem' }}>
+        {criteria.map((c, i) => (
+          <span key={i} style={{ color: c.met ? '#10b981' : '#94a3b8', transition: 'color 0.2s' }}>
+            {c.met ? '✓' : '○'} {c.text}
+          </span>
+        ))}
+      </div>
     </div>
   );
 };
@@ -73,7 +82,7 @@ function Register() {
       sanitizedValue = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '').slice(0, 50);
     } else if (name === 'suffix') {
       // Allow letters, periods, and spaces
-      sanitizedValue = value.replace(/[^a-zA-Z.\s]/g, '').replace(/^\s+/, '');
+      sanitizedValue = value.replace(/[^a-zA-Z.\s]/g, '').replace(/^\s+/, '').slice(0, 5);
     } else if (name === 'email') {
       sanitizedValue = value.replace(/\s/g, ''); // No spaces in email
     } else if (name === 'phone') {
@@ -215,9 +224,9 @@ function Register() {
                     <input type="text" name="lastName" className={`form-input ${errors.lastName ? 'error' : ''}`} placeholder="Last Name" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} />
                     {errors.lastName && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.lastName}</small>}
                 </div>
-            </div>
-            <div className="form-group" style={{ position: 'relative' }}>
-                <input type="text" name="suffix" className="form-input" placeholder="Suffix (Optional, e.g. Jr., Sr., III)" value={formData.suffix} onChange={handleChange} />
+                <div className="form-group" style={{ width: '90px', position: 'relative', flexShrink: 0 }}>
+                    <input type="text" name="suffix" className="form-input" placeholder="Suffix" value={formData.suffix} onChange={handleChange} maxLength={5} />
+                </div>
             </div>
             <div className="form-group" style={{ position: 'relative' }}>
                 <input type="email" name="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="Email Address" value={formData.email} onChange={handleChange} onBlur={handleBlur} />
