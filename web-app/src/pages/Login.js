@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { API_URL } from '../config';
 import Navbar from '../components/Navbar';
 import './Login.css';
@@ -30,6 +30,9 @@ function Login() {
         hasMinLength: false, hasUppercase: false, hasLowercase: false,
         hasNumber: false, hasSymbol: false
     });
+
+    // Success modal state
+    const [successModal, setSuccessModal] = useState({ mounted: false, visible: false });
     
     const navigate = useNavigate();
 
@@ -215,12 +218,12 @@ function Login() {
                 newPassword: newPassword
             });
             if (response.data.success) {
-                alert("Password reset successful! Please login.");
-                setView('login');
                 setResetEmail("");
                 setOtp(['', '', '', '', '', '']);
                 setNewPassword("");
                 setConfirmPassword("");
+                setSuccessModal({ mounted: true, visible: false });
+                setTimeout(() => setSuccessModal({ mounted: true, visible: true }), 10);
             } else {
                 setError(response.data.message);
             }
@@ -434,6 +437,77 @@ function Login() {
                 )}
             </div>
         </div>
+
+        {/* Password Reset Success Modal */}
+        {successModal.mounted && (
+            <div
+                style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(15,23,42,0.55)',
+                    backdropFilter: 'blur(6px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 9999,
+                    opacity: successModal.visible ? 1 : 0,
+                    transition: 'opacity 0.35s ease'
+                }}
+            >
+                <div
+                    style={{
+                        background: 'rgba(255,255,255,0.95)',
+                        backdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(255,255,255,0.5)',
+                        borderRadius: '24px',
+                        padding: '40px 36px 32px',
+                        maxWidth: '380px',
+                        width: '90%',
+                        textAlign: 'center',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+                        transform: successModal.visible ? 'scale(1) translateY(0)' : 'scale(0.92) translateY(20px)',
+                        transition: 'transform 0.35s ease, opacity 0.35s ease',
+                        fontFamily: "'Inter', sans-serif"
+                    }}
+                >
+                    <div style={{
+                        width: '64px', height: '64px', borderRadius: '50%',
+                        background: 'rgba(193,154,107,0.12)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        margin: '0 auto 20px'
+                    }}>
+                        <CheckCircle size={32} style={{ color: '#C19A6B' }} />
+                    </div>
+                    <h2 style={{ color: '#1e293b', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 8px' }}>Password Reset Successful</h2>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 28px' }}>
+                        Your password has been updated. You can now log in with your new password.
+                    </p>
+                    <button
+                        onClick={() => {
+                            setSuccessModal(prev => ({ ...prev, visible: false }));
+                            setTimeout(() => {
+                                setSuccessModal({ mounted: false, visible: false });
+                                setView('login');
+                            }, 350);
+                        }}
+                        style={{
+                            width: '100%',
+                            padding: '12px 24px',
+                            backgroundColor: '#C19A6B',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '10px',
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s, transform 0.15s',
+                            fontFamily: "'Inter', sans-serif"
+                        }}
+                        onMouseEnter={e => e.target.style.backgroundColor = '#b08a5c'}
+                        onMouseLeave={e => e.target.style.backgroundColor = '#C19A6B'}
+                    >
+                        Back to Login
+                    </button>
+                </div>
+            </div>
+        )}
         </>
     );
 }
