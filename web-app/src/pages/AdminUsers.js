@@ -5,14 +5,21 @@ import AdminSideNav from '../components/AdminSideNav';
 import './AdminUsers.css';
 import './PortalStyles.css';
 import './AdminStyles.css';
+import './AdminStaff.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
-import { Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X } from 'lucide-react';
+import { TATTOO_STYLES } from '../constants/tattooStyles';
+import {
+    Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
+    User, Calendar, DollarSign, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText
+} from 'lucide-react';
 
 function AdminUsers() {
     const navigate = useNavigate();
     const location = useLocation();
+
+    // ─── Main List State ───
     const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -21,81 +28,138 @@ function AdminUsers() {
     const [sortBy, setSortBy] = useState('name');
     const [loading, setLoading] = useState(true);
 
-    // Pagination state
+    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+
+    // ─── Admin Edit Modal (existing) ───
     const [selectedUser, setSelectedUser] = useState(null);
-
-    // Modal state for animations
     const [userModal, setUserModal] = useState({ mounted: false, visible: false });
-    const [confirmDialog, setConfirmDialog] = useState({
-        isOpen: false,
-        title: '',
-        message: '',
-        onConfirm: null,
-        type: 'danger',
-        isAlert: false
-    });
-
     const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        user_type: 'customer',
-        status: 'active',
-        password: ''
+        name: '', email: '', phone: '', user_type: 'customer', status: 'active', password: ''
     });
 
-    // Modal animation handlers
-    const openModal = () => {
-        setUserModal({ mounted: true, visible: false });
-        setTimeout(() => setUserModal({ mounted: true, visible: true }), 10);
-    };
+    // ─── Client (Customer) Modal ───
+    const [clientModal, setClientModal] = useState({ mounted: false, visible: false });
+    const [selectedClient, setSelectedClient] = useState(null);
+    const [clientActiveTab, setClientActiveTab] = useState('profile');
+    const [clientDetails, setClientDetails] = useState({ profile: {}, appointments: [], notes: '' });
+    const [clientFormData, setClientFormData] = useState({});
+    const [loadingClientDetails, setLoadingClientDetails] = useState(false);
 
-    const closeModal = () => {
-        setUserModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => {
-            setUserModal({ mounted: false, visible: false });
-            setSelectedUser(null);
-        }, 400); // Match CSS transition duration
-    };
+    // ─── Artist Modal ───
+    const [artistModal, setArtistModal] = useState({ mounted: false, visible: false });
+    const [selectedArtist, setSelectedArtist] = useState(null);
+    const [artistActiveTab, setArtistActiveTab] = useState('profile');
+    const [artistDetails, setArtistDetails] = useState({ profile: {}, appointments: [], portfolio: [], stats: {} });
+    const [artistFormData, setArtistFormData] = useState({});
+    const [loadingArtistDetails, setLoadingArtistDetails] = useState(false);
+
+    // Portfolio Editor Sub-Modal
+    const [selectedWork, setSelectedWork] = useState(null);
+    const [editWorkModal, setEditWorkModal] = useState({ mounted: false, visible: false });
+    const [workFormData, setWorkFormData] = useState({
+        title: '', description: '', category: 'Realism', isPublic: true, priceEstimate: ''
+    });
+
+    // ─── Create User Modal ───
+    const [createModal, setCreateModal] = useState({ mounted: false, visible: false });
+    const [createFormData, setCreateFormData] = useState({
+        name: '', email: '', phone: '', password: '', user_type: 'customer'
+    });
+    const [createErrors, setCreateErrors] = useState({});
+
+    // ─── Confirm Dialog ───
+    const [confirmDialog, setConfirmDialog] = useState({
+        isOpen: false, title: '', message: '', onConfirm: null, type: 'danger', isAlert: false
+    });
 
     const showAlert = (title, message, type = 'info') => {
         setConfirmDialog({
-            isOpen: true,
-            title,
-            message,
-            type,
-            isAlert: true,
+            isOpen: true, title, message, type, isAlert: true,
             onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
         });
     };
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
+    // ═══════════════════════════════════════════════════════════
+    // MODAL ANIMATION HELPERS
+    // ═══════════════════════════════════════════════════════════
 
-    useEffect(() => {
-        filterAndSortUsers();
-    }, [users, searchTerm, filterRole, filterStatus, sortBy]);
+    const openAdminModal = () => {
+        setUserModal({ mounted: true, visible: false });
+        setTimeout(() => setUserModal({ mounted: true, visible: true }), 10);
+    };
+    const closeAdminModal = () => {
+        setUserModal(prev => ({ ...prev, visible: false }));
+        setTimeout(() => { setUserModal({ mounted: false, visible: false }); setSelectedUser(null); }, 400);
+    };
+
+    const openClientModalAnim = () => {
+        setClientModal({ mounted: true, visible: false });
+        setTimeout(() => setClientModal({ mounted: true, visible: true }), 10);
+    };
+    const closeClientModal = () => {
+        setClientModal(prev => ({ ...prev, visible: false }));
+        setTimeout(() => { setClientModal({ mounted: false, visible: false }); setSelectedClient(null); }, 400);
+    };
+
+    const openArtistModalAnim = () => {
+        setArtistModal({ mounted: true, visible: false });
+        setTimeout(() => setArtistModal({ mounted: true, visible: true }), 10);
+    };
+    const closeArtistModal = () => {
+        setArtistModal(prev => ({ ...prev, visible: false }));
+        setTimeout(() => { setArtistModal({ mounted: false, visible: false }); setSelectedArtist(null); }, 400);
+    };
+
+    const openCreateModalAnim = () => {
+        setCreateModal({ mounted: true, visible: false });
+        setTimeout(() => setCreateModal({ mounted: true, visible: true }), 10);
+    };
+    const closeCreateModal = () => {
+        setCreateModal(prev => ({ ...prev, visible: false }));
+        setTimeout(() => {
+            setCreateModal({ mounted: false, visible: false });
+            setCreateFormData({ name: '', email: '', phone: '', password: '', user_type: 'customer' });
+            setCreateErrors({});
+        }, 400);
+    };
+
+    const openEditWork = (work) => {
+        setSelectedWork(work);
+        setWorkFormData({
+            title: work.title || '', description: work.description || '',
+            category: work.category || 'Realism',
+            isPublic: work.is_public === 1 || work.is_public === true,
+            priceEstimate: work.price_estimate || ''
+        });
+        setEditWorkModal({ mounted: true, visible: false });
+        setTimeout(() => setEditWorkModal({ mounted: true, visible: true }), 10);
+    };
+    const closeEditWork = () => {
+        setEditWorkModal(prev => ({ ...prev, visible: false }));
+        setTimeout(() => setEditWorkModal({ mounted: false, visible: false }), 400);
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // DATA FETCHING
+    // ═══════════════════════════════════════════════════════════
+
+    useEffect(() => { fetchUsers(); }, []);
+    useEffect(() => { fetchUsers(); }, [filterStatus]);
+    useEffect(() => { filterAndSortUsers(); }, [users, searchTerm, filterRole, filterStatus, sortBy]);
 
     const fetchUsers = async () => {
         try {
             setLoading(true);
             const response = await Axios.get(`${API_URL}/api/admin/users?status=${filterStatus}`);
-            if (response.data.success) {
-                setUsers(response.data.data);
-            }
+            if (response.data.success) setUsers(response.data.data);
             setLoading(false);
         } catch (error) {
             console.error("Error fetching users:", error);
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        fetchUsers();
-    }, [filterStatus]); // Refetch when status filter changes
 
     const filterAndSortUsers = () => {
         let filtered = users.filter(user => {
@@ -104,150 +168,466 @@ function AdminUsers() {
                 (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (user.phone && user.phone.includes(searchTerm));
-
             const matchesRole = filterRole === 'all' || user.user_type === filterRole;
-
             return matchesSearch && matchesRole;
         });
-
-        // Sort
-        if (sortBy === 'name') {
-            filtered.sort((a, b) => a.name.localeCompare(b.name));
-        } else if (sortBy === 'email') {
-            filtered.sort((a, b) => a.email.localeCompare(b.email));
-        } else if (sortBy === 'role') {
-            filtered.sort((a, b) => a.user_type.localeCompare(b.user_type));
-        }
-
+        if (sortBy === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
+        else if (sortBy === 'email') filtered.sort((a, b) => a.email.localeCompare(b.email));
+        else if (sortBy === 'role') filtered.sort((a, b) => a.user_type.localeCompare(b.user_type));
         setFilteredUsers(filtered);
-        setCurrentPage(1); // Reset to first page on filter change
+        setCurrentPage(1);
     };
 
-    // Pagination logic
     const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
     const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    // ═══════════════════════════════════════════════════════════
+    // ROLE-AWARE MODAL ROUTER
+    // ═══════════════════════════════════════════════════════════
+
+    const handleManage = (user) => {
+        if (user.user_type === 'customer') {
+            openClientManageModal(user);
+        } else if (user.user_type === 'artist') {
+            openArtistManageModal(user);
+        } else {
+            // admin (and legacy manager) — use existing flat edit modal
+            handleEdit(user);
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // ADMIN EDIT (existing logic preserved)
+    // ═══════════════════════════════════════════════════════════
 
     const handleEdit = (user) => {
         setSelectedUser(user);
         setFormData({
-            name: user.name,
-            email: user.email,
-            phone: user.phone || '',
-            user_type: user.user_type,
-            status: user.is_deleted ? 'inactive' : 'active',
-            password: ''
+            name: user.name, email: user.email, phone: user.phone || '',
+            user_type: user.user_type, status: user.is_deleted ? 'inactive' : 'active', password: ''
         });
-        openModal();
-    };
-
-    const handleDelete = (userId) => {
-        setConfirmDialog({
-            isOpen: true,
-            title: 'Deactivate User',
-            message: 'Are you sure you want to deactivate this user?',
-            onConfirm: async () => {
-                setConfirmDialog({ isOpen: false });
-                try {
-                    await Axios.delete(`${API_URL}/api/admin/users/${userId}`);
-                    setUsers(users.filter(u => u.id !== userId));
-                } catch (error) {
-                    console.error("Error deactivating user:", error);
-                }
-            }
-        });
-    };
-
-    const handleRestore = async (userId) => {
-        try {
-            await Axios.put(`${API_URL}/api/admin/users/${userId}/restore`);
-            setUsers(users.filter(u => u.id !== userId));
-        } catch (error) {
-            console.error("Error restoring user:", error);
-        }
-    };
-
-    const handlePermanentDelete = (userId) => {
-        setConfirmDialog({
-            isOpen: true,
-            title: 'Permanent Deletion',
-            message: 'This will PERMANENTLY delete the user and cannot be undone. Continue?',
-            confirmText: 'Permanently Delete',
-            onConfirm: async () => {
-                setConfirmDialog({ isOpen: false });
-                try {
-                    await Axios.delete(`${API_URL}/api/admin/users/${userId}/permanent`);
-                    setUsers(users.filter(u => u.id !== userId));
-                } catch (error) {
-                    console.error("Error deleting user:", error);
-                }
-            }
-        });
+        openAdminModal();
     };
 
     const handleSave = async () => {
         try {
             if (selectedUser) {
-                // Update existing user via API
                 await Axios.put(`${API_URL}/api/admin/users/${selectedUser.id}`, {
-                    name: formData.name,
-                    email: formData.email,
-                    type: formData.user_type,
-                    phone: formData.phone,
-                    status: formData.status
+                    name: formData.name, email: formData.email, type: formData.user_type,
+                    phone: formData.phone, status: formData.status
                 });
                 showAlert("Success", "User updated successfully!", "success");
-            } else {
-                // Add new user via API
-                if (!formData.password) {
-                    showAlert("Password Required", "Password is required for new users", "warning");
-                    return;
-                }
-                await Axios.post(`${API_URL}/api/admin/users`, {
-                    name: formData.name,
-                    email: formData.email,
-                    password: formData.password,
-                    type: formData.user_type,
-                    phone: formData.phone,
-                    status: formData.status
-                });
-                showAlert("Success", "User added successfully!", "success");
             }
-            fetchUsers(); // Refresh list from database
-            closeModal();
+            fetchUsers();
+            closeAdminModal();
             setSelectedUser(null);
-            setFormData({
-                name: '',
-                email: '',
-                phone: '',
-                user_type: 'customer',
-                status: 'active',
-                password: ''
-            });
         } catch (error) {
             console.error("Error saving user:", error);
             showAlert("Error", 'Error saving user: ' + (error.response?.data?.message || error.message), "danger");
         }
     };
 
-    const handleAddNew = () => {
-        setSelectedUser(null);
-        setFormData({
-            name: '',
-            email: '',
-            phone: '',
-            user_type: 'customer',
-            status: 'active',
-            password: ''
+    // ═══════════════════════════════════════════════════════════
+    // DELETE / RESTORE / PERMANENT DELETE (existing)
+    // ═══════════════════════════════════════════════════════════
+
+    const handleDelete = (userId) => {
+        setConfirmDialog({
+            isOpen: true, title: 'Deactivate User', message: 'Are you sure you want to deactivate this user?',
+            onConfirm: async () => {
+                setConfirmDialog({ isOpen: false });
+                try { await Axios.delete(`${API_URL}/api/admin/users/${userId}`); setUsers(users.filter(u => u.id !== userId)); }
+                catch (error) { console.error("Error deactivating user:", error); }
+            }
         });
-        openModal();
     };
 
-    // Compute autocomplete suggestions dynamically from the dataset
+    const handleRestore = async (userId) => {
+        try { await Axios.put(`${API_URL}/api/admin/users/${userId}/restore`); setUsers(users.filter(u => u.id !== userId)); }
+        catch (error) { console.error("Error restoring user:", error); }
+    };
+
+    const handlePermanentDelete = (userId) => {
+        setConfirmDialog({
+            isOpen: true, title: 'Permanent Deletion', message: 'This will PERMANENTLY delete the user and cannot be undone. Continue?',
+            confirmText: 'Permanently Delete',
+            onConfirm: async () => {
+                setConfirmDialog({ isOpen: false });
+                try { await Axios.delete(`${API_URL}/api/admin/users/${userId}/permanent`); setUsers(users.filter(u => u.id !== userId)); }
+                catch (error) { console.error("Error deleting user:", error); }
+            }
+        });
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // CLIENT (CUSTOMER) MODAL — from AdminClients.js
+    // ═══════════════════════════════════════════════════════════
+
+    const openClientManageModal = async (client) => {
+        setSelectedClient(client);
+        openClientModalAnim();
+        setLoadingClientDetails(true);
+        setClientActiveTab('profile');
+
+        try {
+            const [profileRes, historyRes, posRes] = await Promise.all([
+                Axios.get(`${API_URL}/api/customer/profile/${client.id}`),
+                Axios.get(`${API_URL}/api/customer/${client.id}/appointments`),
+                Axios.get(`${API_URL}/api/admin/invoices`)
+            ]);
+
+            const profile = profileRes.data.success ? profileRes.data.profile : {};
+            const appointments = (historyRes.data.success ? historyRes.data.appointments : []).map(a => ({ ...a, recordType: 'Session' }));
+            const posSales = (posRes.data.success ? posRes.data.data : [])
+                .filter(inv => inv.customer_id === client.id)
+                .map(inv => ({ ...inv, appointment_date: inv.created_at, design_title: inv.service_type, status: inv.status, recordType: 'Retail' }));
+
+            const combinedHistory = [...appointments, ...posSales].sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
+            setClientDetails({ profile, appointments: combinedHistory, notes: profile.notes || '' });
+            setClientFormData(profile);
+        } catch (error) {
+            console.error("Error fetching client details:", error);
+        }
+        setLoadingClientDetails(false);
+    };
+
+    const handleSaveClient = async () => {
+        if (!selectedClient) return;
+        try {
+            await Axios.put(`${API_URL}/api/customer/profile/${selectedClient.id}`, clientFormData);
+            showAlert("Success", "Client profile updated!", "success");
+            closeClientModal();
+            fetchUsers();
+        } catch (error) {
+            console.error("Error updating client:", error);
+            showAlert("Error", "Failed to update client profile", "danger");
+        }
+    };
+
+    const handleDeactivateClient = () => {
+        if (!selectedClient) return;
+        setConfirmDialog({
+            isOpen: true, title: 'Deactivate Client',
+            message: `Are you sure you want to deactivate ${selectedClient.name}?`,
+            type: 'danger',
+            onConfirm: async () => {
+                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                await Axios.delete(`${API_URL}/api/admin/users/${selectedClient.id}`);
+                closeClientModal();
+                fetchUsers();
+            }
+        });
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // ARTIST MODAL — from AdminStaff.js
+    // ═══════════════════════════════════════════════════════════
+
+    const openArtistManageModal = async (artist) => {
+        setSelectedArtist(artist);
+        setLoadingArtistDetails(true);
+        setArtistActiveTab('profile');
+        openArtistModalAnim();
+
+        try {
+            const [dashboardRes, portfolioRes] = await Promise.all([
+                Axios.get(`${API_URL}/api/artist/dashboard/${artist.id}`),
+                Axios.get(`${API_URL}/api/artist/${artist.id}/portfolio`)
+            ]);
+
+            if (dashboardRes.data.success && portfolioRes.data.success) {
+                const data = dashboardRes.data;
+                setArtistDetails({
+                    profile: data.artist, appointments: data.appointments || [],
+                    portfolio: portfolioRes.data.works || [], stats: data.stats || {}
+                });
+                setArtistFormData({
+                    name: data.artist.name, specialization: data.artist.specialization,
+                    hourly_rate: data.artist.hourly_rate, experience_years: data.artist.experience_years,
+                    commission_rate: data.artist.commission_rate
+                });
+            } else {
+                throw new Error(dashboardRes.data.message || portfolioRes.data.message || 'Failed to fetch artist details.');
+            }
+        } catch (error) {
+            console.error("Error fetching artist details:", error);
+            showAlert("Load Failed", `Could not load artist details: ${error.response?.data?.message || error.message}`, "danger");
+            closeArtistModal();
+        } finally {
+            setLoadingArtistDetails(false);
+        }
+    };
+
+    const handleUpdateArtistProfile = async () => {
+        try {
+            await Axios.put(`${API_URL}/api/artist/profile/${selectedArtist.id}`, artistFormData);
+            showAlert("Success", "Profile updated successfully", "success");
+            setArtistDetails(prev => ({ ...prev, profile: { ...prev.profile, ...artistFormData } }));
+            fetchUsers();
+        } catch (error) {
+            console.error("Error updating profile:", error);
+            showAlert("Error", "Failed to update profile", "danger");
+        }
+    };
+
+    const handleSaveWork = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            await Axios.put(`${API_URL}/api/artist/portfolio/${selectedWork.id}`, {
+                title: workFormData.title, description: workFormData.description,
+                category: workFormData.category, priceEstimate: workFormData.priceEstimate,
+                isPublic: workFormData.isPublic
+            });
+            setArtistDetails(prev => ({
+                ...prev,
+                portfolio: prev.portfolio.map(w => w.id === selectedWork.id ? { ...w, ...workFormData, is_public: workFormData.isPublic ? 1 : 0 } : w)
+            }));
+            closeEditWork();
+            showAlert("Success", "Portfolio item updated", "success");
+        } catch (error) {
+            console.error("Error updating portfolio work:", error);
+            showAlert("Error", "Failed to update portfolio item", "danger");
+        }
+    };
+
+    const handleDeleteWork = (workId) => {
+        setConfirmDialog({
+            isOpen: true, title: 'Delete Portfolio Item', message: 'Delete this portfolio item?',
+            onConfirm: async () => {
+                setConfirmDialog({ isOpen: false });
+                try {
+                    await Axios.delete(`${API_URL}/api/artist/portfolio/${workId}`);
+                    setArtistDetails(prev => ({ ...prev, portfolio: prev.portfolio.filter(w => w.id !== workId) }));
+                } catch (error) { console.error("Error deleting work:", error); }
+            }
+        });
+    };
+
+    const handleBlockDate = async () => {
+        const date = prompt("Enter date to block (YYYY-MM-DD):");
+        if (date) {
+            try {
+                await Axios.post(`${API_URL}/api/admin/appointments`, {
+                    customerId: selectedArtist.id, artistId: selectedArtist.id,
+                    date, startTime: '09:00', endTime: '17:00',
+                    designTitle: 'BLOCKED', status: 'cancelled', notes: 'Day off / Unavailable'
+                });
+                showAlert("Success", "Date blocked successfully", "success");
+            } catch (error) {
+                console.error("Error blocking date:", error);
+                showAlert("Error", "Failed to block date", "danger");
+            }
+        }
+    };
+
+    // ─── Artist Tab Renderers ───
+
+    const renderArtistProfileTab = () => (
+        <div className="tab-content">
+            <div className="form-grid">
+                <div className="form-group">
+                    <label>Name</label>
+                    <input type="text" className="form-input" value={artistFormData.name || ''} onChange={e => setArtistFormData({ ...artistFormData, name: e.target.value })} />
+                </div>
+                <div className="form-group">
+                    <label>Specialization</label>
+                    <select className="form-input" value={artistFormData.specialization || ''} onChange={e => setArtistFormData({ ...artistFormData, specialization: e.target.value })}>
+                        <option value="">Select a specialization</option>
+                        {TATTOO_STYLES.map(style => (<option key={style} value={style}>{style}</option>))}
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Experience (Years)</label>
+                    <input type="number" className="form-input" value={artistFormData.experience_years || 0} onChange={e => setArtistFormData({ ...artistFormData, experience_years: e.target.value })} />
+                </div>
+                <div className="form-group">
+                    <label>Commission Rate (%)</label>
+                    <input className="form-input admin-st-10bc60ad" type="text" value="30" disabled />
+                </div>
+            </div>
+            <button className="btn btn-primary admin-st-194b571d" onClick={handleUpdateArtistProfile}>
+                <Save size={18} className="admin-st-7f4ee4f3" /> Save Changes
+            </button>
+            <div className="stats-row admin-st-40088812">
+                <div className="stat-item">
+                    <span className="stat-label">Total Appointments</span>
+                    <span className="stat-count">{artistDetails.stats.total_appointments}</span>
+                </div>
+                <div className="stat-item">
+                    <span className="stat-label">Est. Revenue</span>
+                    <span className="stat-count">₱{artistDetails.stats.total_earnings?.toLocaleString()}</span>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderScheduleTab = () => (
+        <div className="tab-content">
+            <div className="admin-st-07952507">
+                <h3>Upcoming Schedule</h3>
+                <button className="btn btn-secondary" onClick={handleBlockDate}>Block Date</button>
+            </div>
+            <div className="table-responsive">
+                <table className="data-table">
+                    <thead><tr><th>Date</th><th>Time</th><th>Client</th><th>Service</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {artistDetails.appointments.map(apt => (
+                            <tr key={apt.id}>
+                                <td>{new Date(apt.appointment_date).toLocaleDateString()}</td>
+                                <td>{apt.start_time}</td>
+                                <td>{apt.client_name}</td>
+                                <td>{apt.design_title}</td>
+                                <td><span className={`badge status-${apt.status}`}>{apt.status}</span></td>
+                            </tr>
+                        ))}
+                        {artistDetails.appointments.length === 0 && <tr><td colSpan="5" className="no-data">No appointments found</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+
+    const renderPortfolioTab = () => (
+        <div className="tab-content">
+            <div className="gallery-grid-admin">
+                {artistDetails.portfolio.map(work => (
+                    <div key={work.id} className="gallery-item-admin admin-st-24b531c6" onClick={() => openEditWork(work)}>
+                        <img src={work.image_url} alt={work.title} />
+                        <div className="gallery-overlay">
+                            <button className="delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteWork(work.id); }}>
+                                <Trash2 size={16} />
+                            </button>
+                            <span>{work.title}</span>
+                            {work.price_estimate && <span className="admin-st-1998107d">₱{Number(work.price_estimate).toLocaleString()}</span>}
+                        </div>
+                    </div>
+                ))}
+                {artistDetails.portfolio.length === 0 && <p className="no-data">Portfolio is empty.</p>}
+            </div>
+        </div>
+    );
+
+    const renderEarningsTab = () => {
+        const earnings = artistDetails.appointments
+            .filter(a => a.status === 'completed')
+            .map(a => ({
+                ...a, amount: a.price || 0,
+                commission: (a.price || 0) * (artistDetails.profile.commission_rate || 0.6)
+            }));
+
+        return (
+            <div className="tab-content">
+                <div className="stats-row admin-st-129729d4">
+                    <div className="stat-item">
+                        <span className="stat-label">Total Commission</span>
+                        <span className="stat-count">₱{earnings.reduce((sum, e) => sum + e.commission, 0).toLocaleString()}</span>
+                    </div>
+                </div>
+                <table className="data-table">
+                    <thead><tr><th>Date</th><th>Client</th><th>Total Amount</th><th>Artist Commission ({((artistDetails.profile.commission_rate || 0.6) * 100)}%)</th></tr></thead>
+                    <tbody>
+                        {earnings.map(e => (
+                            <tr key={e.id}>
+                                <td>{new Date(e.appointment_date).toLocaleDateString()}</td>
+                                <td>{e.client_name}</td>
+                                <td>₱{e.amount.toLocaleString()}</td>
+                                <td className="admin-st-9e10b928">₱{Number(e.commission).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // CREATE USER MODAL — with inline validations
+    // ═══════════════════════════════════════════════════════════
+
+    const handleAddNew = () => {
+        setCreateFormData({ name: '', email: '', phone: '', password: '', user_type: 'customer' });
+        setCreateErrors({});
+        openCreateModalAnim();
+    };
+
+    const validateCreateField = (name, value) => {
+        let error = '';
+        if (name === 'name') {
+            if (!value.trim()) error = 'Name is required';
+            else if (!/^[a-zA-Z\s-]+$/.test(value)) error = 'Letters, spaces, and hyphens only';
+        }
+        if (name === 'email') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!value) error = 'Email is required';
+            else if (!emailRegex.test(value)) error = 'Please enter a valid email';
+        }
+        if (name === 'phone' && value) {
+            if (!/^\d+$/.test(value)) error = 'Digits only';
+            else if (value.length > 11) error = 'Max 11 digits';
+        }
+        if (name === 'password') {
+            if (!value) error = 'Password is required';
+            else if (value.length < 8) error = 'Must be at least 8 characters';
+        }
+        setCreateErrors(prev => ({ ...prev, [name]: error }));
+        return error === '';
+    };
+
+    const handleCreateFieldChange = (name, value) => {
+        let sanitized = value;
+        if (name === 'name') sanitized = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '').slice(0, 50);
+        else if (name === 'email') sanitized = value.replace(/\s/g, '');
+        else if (name === 'phone') sanitized = value.replace(/[^0-9]/g, '').slice(0, 11);
+        else if (name === 'password') sanitized = value.slice(0, 50);
+        setCreateFormData(prev => ({ ...prev, [name]: sanitized }));
+        if (createErrors[name]) setCreateErrors(prev => ({ ...prev, [name]: '' }));
+    };
+
+    const handleCreateBlur = (name) => {
+        validateCreateField(name, createFormData[name]);
+    };
+
+    const isCreateFormValid = () => {
+        return createFormData.name.trim() &&
+            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createFormData.email) &&
+            createFormData.password.length >= 8;
+    };
+
+    const handleCreateSave = async () => {
+        // Validate all fields
+        const nameOk = validateCreateField('name', createFormData.name);
+        const emailOk = validateCreateField('email', createFormData.email);
+        const passOk = validateCreateField('password', createFormData.password);
+        if (!nameOk || !emailOk || !passOk) return;
+
+        try {
+            await Axios.post(`${API_URL}/api/admin/users`, {
+                name: createFormData.name, email: createFormData.email,
+                password: createFormData.password, type: createFormData.user_type,
+                phone: createFormData.phone, status: 'active'
+            });
+            showAlert("Success", "User added successfully!", "success");
+            fetchUsers();
+            closeCreateModal();
+        } catch (error) {
+            console.error("Error creating user:", error);
+            showAlert("Error", 'Error creating user: ' + (error.response?.data?.message || error.message), "danger");
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // SEARCH SUGGESTIONS
+    // ═══════════════════════════════════════════════════════════
+
     const searchSuggestions = Array.from(new Set([
         ...users.map(u => (u.id || '').toString()),
         ...users.map(u => (u.name || '').trim()),
         ...users.map(u => (u.email || '').trim())
     ])).filter(Boolean);
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════
 
     return (
         <div className="admin-page-with-sidenav">
@@ -265,59 +645,35 @@ function AdminUsers() {
                     </div>
                 </header>
 
+                {/* Filter Bar */}
                 <div className="premium-filter-bar premium-filter-bar--stacked">
                     <div className="premium-search-box premium-search-box--full">
                         <Search size={16} className="text-muted" />
-                        <input
-                            type="text"
-                            list="search-suggestions-users"
-                            placeholder="Search by name, email, id..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                        <input type="text" list="search-suggestions-users" placeholder="Search by name, email, id..."
+                            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         <datalist id="search-suggestions-users">
-                            {searchSuggestions.map(suggestion => (
-                                <option key={suggestion} value={suggestion} />
-                            ))}
+                            {searchSuggestions.map(s => <option key={s} value={s} />)}
                         </datalist>
                     </div>
-
                     <div className="premium-filters-row">
                         <div className="premium-filter-item">
-                            <Filter size={16} />
-                            <span>Filter by:</span>
-                            <select
-                                value={filterRole}
-                                onChange={(e) => setFilterRole(e.target.value)}
-                                className="premium-select-v2"
-                            >
+                            <Filter size={16} /><span>Filter by:</span>
+                            <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="premium-select-v2">
                                 <option value="all">All Roles</option>
                                 <option value="admin">Admin</option>
                                 <option value="artist">Artist</option>
-                                <option value="manager">Manager</option>
                                 <option value="customer">Customer</option>
                             </select>
                         </div>
-
                         <div className="premium-filter-item">
-                            <select
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                className="premium-select-v2"
-                            >
+                            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="premium-select-v2">
                                 <option value="active">Active Users</option>
                                 <option value="deleted">Deactivated Users</option>
                             </select>
                         </div>
-
                         <div className="premium-filter-item">
-                            <SlidersHorizontal size={16} />
-                            <span>Sort:</span>
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                                className="premium-select-v2"
-                            >
+                            <SlidersHorizontal size={16} /><span>Sort:</span>
+                            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="premium-select-v2">
                                 <option value="name">Name</option>
                                 <option value="email">Email</option>
                                 <option value="role">Role</option>
@@ -326,11 +682,10 @@ function AdminUsers() {
                     </div>
                 </div>
 
+                {/* Stats Grid */}
                 <div className="users-stats-grid">
                     <div className="stat-card-v2 glass-card">
-                        <div className="stat-icon-wrapper blue">
-                            <Users size={24} />
-                        </div>
+                        <div className="stat-icon-wrapper blue"><Users size={24} /></div>
                         <div className="stat-info-v2">
                             <span className="stat-label-v2">Total Users</span>
                             <h3 className="stat-value-v2">{users.length}</h3>
@@ -338,9 +693,7 @@ function AdminUsers() {
                         </div>
                     </div>
                     <div className="stat-card-v2 glass-card">
-                        <div className="stat-icon-wrapper green">
-                            <CheckCircle size={24} />
-                        </div>
+                        <div className="stat-icon-wrapper green"><CheckCircle size={24} /></div>
                         <div className="stat-info-v2">
                             <span className="stat-label-v2">Filtered Results</span>
                             <h3 className="stat-value-v2">{filteredUsers.length}</h3>
@@ -348,9 +701,7 @@ function AdminUsers() {
                         </div>
                     </div>
                     <div className="stat-card-v2 glass-card">
-                        <div className="stat-icon-wrapper purple">
-                            <Palette size={24} />
-                        </div>
+                        <div className="stat-icon-wrapper purple"><Palette size={24} /></div>
                         <div className="stat-info-v2">
                             <span className="stat-label-v2">Active Artists</span>
                             <h3 className="stat-value-v2">{users.filter(u => u.user_type === 'artist').length}</h3>
@@ -358,9 +709,7 @@ function AdminUsers() {
                         </div>
                     </div>
                     <div className="stat-card-v2 glass-card">
-                        <div className="stat-icon-wrapper orange">
-                            <UserCircle size={24} />
-                        </div>
+                        <div className="stat-icon-wrapper orange"><UserCircle size={24} /></div>
                         <div className="stat-info-v2">
                             <span className="stat-label-v2">Total Customers</span>
                             <h3 className="stat-value-v2">{users.filter(u => u.user_type === 'customer').length}</h3>
@@ -369,19 +718,12 @@ function AdminUsers() {
                     </div>
                 </div>
 
+                {/* Data Table */}
                 <div className="table-card-container glass-card">
                     <div className="table-responsive">
                         <table className="data-table">
                             <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
+                                <tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th>Actions</th></tr>
                             </thead>
                             <tbody>
                                 {loading ? (
@@ -393,24 +735,12 @@ function AdminUsers() {
                                             <td>{user.name}</td>
                                             <td>{user.email}</td>
                                             <td>{user.phone || '-'}</td>
-                                            <td>
-                                                <span className={`badge role-${user.user_type}`}>
-                                                    {user.user_type}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className={`badge status-${user.is_deleted ? 'inactive' : 'active'}`}>
-                                                    {user.is_deleted ? 'Inactive' : 'Active'}
-                                                </span>
-                                            </td>
+                                            <td><span className={`badge role-${user.user_type}`}>{user.user_type}</span></td>
+                                            <td><span className={`badge status-${user.is_deleted ? 'inactive' : 'active'}`}>{user.is_deleted ? 'Inactive' : 'Active'}</span></td>
                                             <td className="actions-cell">
-                                                <button className="action-btn edit-btn" onClick={() => handleEdit(user)}>
-                                                    Review
-                                                </button>
+                                                <button className="action-btn edit-btn" onClick={() => handleManage(user)}>Review</button>
                                                 {!user.is_deleted ? (
-                                                    <button className="action-btn delete-btn" onClick={() => handleDelete(user.id)}>
-                                                        Deactivate
-                                                    </button>
+                                                    <button className="action-btn delete-btn" onClick={() => handleDelete(user.id)}>Deactivate</button>
                                                 ) : (
                                                     <>
                                                         <button className="action-btn view-btn admin-st-f1f5ea52" onClick={() => handleRestore(user.id)}>Restore</button>
@@ -421,148 +751,373 @@ function AdminUsers() {
                                         </tr>
                                     ))
                                 ) : (
-                                    <tr>
-                                        <td colSpan="7" className="no-data">No users found</td>
-                                    </tr>
+                                    <tr><td colSpan="7" className="no-data">No users found</td></tr>
                                 )}
                             </tbody>
                         </table>
                     </div>
-
                     <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={setCurrentPage}
+                        currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage}
                         itemsPerPage={itemsPerPage}
-                        onItemsPerPageChange={(newVal) => {
-                            setItemsPerPage(newVal);
-                            setCurrentPage(1);
-                        }}
-                        totalItems={filteredUsers.length}
-                        unit="users"
+                        onItemsPerPageChange={(newVal) => { setItemsPerPage(newVal); setCurrentPage(1); }}
+                        totalItems={filteredUsers.length} unit="users"
                     />
                 </div>
 
-                {/* Modal */}
+                {/* ═══════════════════════════════════════════════════ */}
+                {/* ADMIN EDIT MODAL (existing flat form) */}
+                {/* ═══════════════════════════════════════════════════ */}
                 {userModal.mounted && (
-                    <div className={`modal-overlay ${userModal.visible ? 'open' : ''}`} onClick={closeModal}>
+                    <div className={`modal-overlay ${userModal.visible ? 'open' : ''}`} onClick={closeAdminModal}>
                         <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>{selectedUser ? 'Edit User Profile' : 'Create New User'}</h2>
-                                <button className="close-btn" onClick={closeModal}><X size={24} /></button>
+                                <h2>Edit User Profile</h2>
+                                <button className="close-btn" onClick={closeAdminModal}><X size={24} /></button>
                             </div>
                             <div className="modal-body">
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">Full Name *</label>
-                                        <input
-                                            type="text"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            className="form-input"
-                                            placeholder="Full Name"
-                                        />
+                                        <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="form-input" placeholder="Full Name" />
                                     </div>
                                     <div className="form-group">
                                         <label className="premium-label">Email Address *</label>
-                                        <input
-                                            type="email"
-                                            value={formData.email}
-                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                            className="form-input"
-                                            placeholder="email@example.com"
-                                        />
+                                        <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="form-input" placeholder="email@example.com" />
                                     </div>
                                 </div>
-
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">Phone Number</label>
-                                        <input
-                                            type="tel"
-                                            value={formData.phone}
-                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                            className="form-input"
-                                            placeholder="Phone"
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="premium-label">User Role *</label>
-                                        <select
-                                            value={formData.user_type}
-                                            onChange={(e) => setFormData({ ...formData, user_type: e.target.value })}
-                                            className="form-input"
-                                            disabled={selectedUser?.email === 'admin@inkvistar.com'}
-                                        >
-                                            <option value="customer">Customer (Client)</option>
-                                            <option value="artist">Artist (Staff)</option>
-                                            <option value="manager">Manager</option>
-                                            <option value="admin">System Admin</option>
-                                        </select>
-                                        {selectedUser?.email === 'admin@inkvistar.com' && (
-                                            <small className="admin-st-d0cf404f">Primary admin role protected</small>
-                                        )}
+                                        <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="form-input" placeholder="Phone" />
                                     </div>
                                 </div>
-
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">Account Status</label>
-                                        <select
-                                            value={formData.status}
-                                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                            className="form-input"
-                                        >
+                                        <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="form-input">
                                             <option value="active">Active</option>
                                             <option value="inactive">Inactive / Deactivated</option>
                                             <option value="suspended">Suspended</option>
                                         </select>
                                     </div>
-                                    {!selectedUser && (
-                                        <div className="form-group">
-                                            <label className="premium-label">Initial Password *</label>
-                                            <input
-                                                type="password"
-                                                value={formData.password || ''}
-                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                                className="form-input"
-                                                placeholder="Secure password"
-                                            />
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                             <div className="modal-footer">
                                 <div className="admin-st-c6588e1a">
                                     {selectedUser && selectedUser.email !== 'admin@inkvistar.com' && (
-                                        <button
-                                            className="action-btn delete-btn admin-st-af6a31d1"
-                                            onClick={() => {
-                                                handlePermanentDelete(selectedUser.id);
-                                                closeModal();
-                                            }}
-                                        >
+                                        <button className="action-btn delete-btn admin-st-af6a31d1" onClick={() => { handlePermanentDelete(selectedUser.id); closeAdminModal(); }}>
                                             Delete Forever
                                         </button>
                                     )}
                                 </div>
-                                <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
-                                <button className="btn btn-primary admin-st-9be3106b" onClick={handleSave} >
-                                    {selectedUser ? 'Save Changes' : 'Create User'}
+                                <button className="btn btn-secondary" onClick={closeAdminModal}>Cancel</button>
+                                <button className="btn btn-primary admin-st-9be3106b" onClick={handleSave}>Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ═══════════════════════════════════════════════════ */}
+                {/* CLIENT (CUSTOMER) MODAL — 2 tabs */}
+                {/* ═══════════════════════════════════════════════════ */}
+                {clientModal.mounted && selectedClient && (
+                    <div className={`modal-overlay ${clientModal.visible ? 'open' : ''}`} onClick={closeClientModal}>
+                        <div className="modal-content large" onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <div className="admin-flex-center admin-gap-15">
+                                    <div className="admin-st-c911153f">
+                                        <User size={20} className="text-bronze" />
+                                    </div>
+                                    <div>
+                                        <h2 className="admin-m-0">Client Profile: {selectedClient.name}</h2>
+                                        <p className="admin-st-925e4e02">Account ID: #CLI-{selectedClient.id.toString().padStart(5, '0')}</p>
+                                    </div>
+                                </div>
+                                <button className="close-btn" onClick={closeClientModal}><X size={24} /></button>
+                            </div>
+
+                            <div className="settings-tabs admin-st-13b83aa7">
+                                <button className={`tab-button ${clientActiveTab === 'profile' ? 'active' : ''}`} onClick={() => setClientActiveTab('profile')}>
+                                    <User size={16} /> Personal Information
+                                </button>
+                                <button className={`tab-button ${clientActiveTab === 'history' ? 'active' : ''}`} onClick={() => setClientActiveTab('history')}>
+                                    <Calendar size={16} /> Visit History
+                                </button>
+                            </div>
+
+                            <div className="modal-body admin-st-d6e6b0a9">
+                                {loadingClientDetails ? (
+                                    <div className="admin-st-e70dab8d"><div className="loading-spinner"></div></div>
+                                ) : (
+                                    <div className="fade-in">
+                                        {clientActiveTab === 'profile' ? (
+                                            <div className="admin-st-e7646dcc">
+                                                <div className="admin-st-ff43421e">
+                                                    <div className="form-group">
+                                                        <label className="admin-st-19644797">Legal Name</label>
+                                                        <input type="text" className="form-input" value={clientFormData.name || ''} onChange={e => setClientFormData({ ...clientFormData, name: e.target.value })} />
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label className="admin-st-19644797">Direct Link (Email)</label>
+                                                        <input type="email" className="form-input" value={clientFormData.email || ''} onChange={e => setClientFormData({ ...clientFormData, email: e.target.value })} />
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label className="admin-st-19644797">Primary Contact</label>
+                                                        <input type="text" className="form-input" value={clientFormData.phone || ''} onChange={e => setClientFormData({ ...clientFormData, phone: e.target.value })} />
+                                                    </div>
+                                                </div>
+                                                <div className="admin-st-ff43421e">
+                                                    <div className="form-group">
+                                                        <label className="admin-st-19644797">Internal Confidential Notes</label>
+                                                        <textarea
+                                                            className="form-input admin-st-6c845e15" rows="8"
+                                                            placeholder="Record specific sensitivities, design preferences, or billing history notes..."
+                                                            value={clientFormData.notes || ''}
+                                                            onChange={e => setClientFormData({ ...clientFormData, notes: e.target.value })}
+                                                        ></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="table-responsive admin-st-59cb08dc">
+                                                <table className="portal-table">
+                                                    <thead><tr><th>Procedure Date</th><th>Artist</th><th>Design Project</th><th>Outcome</th></tr></thead>
+                                                    <tbody>
+                                                        {clientDetails.appointments.length > 0 ? clientDetails.appointments.map(apt => (
+                                                            <tr key={apt.id}>
+                                                                <td className="admin-fw-600">{new Date(apt.appointment_date).toLocaleDateString()}</td>
+                                                                <td>{apt.artist_name}</td>
+                                                                <td>{apt.design_title}</td>
+                                                                <td><span className={`status-badge ${apt.status}`}>{apt.status.toUpperCase()}</span></td>
+                                                            </tr>
+                                                        )) : (
+                                                            <tr><td colSpan="4" className="no-data">This client has no recorded procedures in the archive.</td></tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button className="action-btn delete-btn admin-st-47451e19" onClick={handleDeactivateClient}>
+                                    <Trash2 size={16} /> Archive Account
+                                </button>
+                                <button className="btn btn-secondary" onClick={closeClientModal}>Cancel</button>
+                                <button className="btn btn-primary admin-st-f9a92399" onClick={handleSaveClient}>
+                                    <Save size={18} /> Commit Changes
                                 </button>
                             </div>
                         </div>
                     </div>
                 )}
+
+                {/* ═══════════════════════════════════════════════════ */}
+                {/* ARTIST MODAL — 4 tabs */}
+                {/* ═══════════════════════════════════════════════════ */}
+                {artistModal.mounted && selectedArtist && (
+                    <div className={`modal-overlay ${artistModal.visible ? 'open' : ''}`} onClick={closeArtistModal}>
+                        <div className="modal-content xl admin-st-980ed307" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <div className="admin-flex-center admin-gap-20">
+                                    <div className="admin-st-d84f98fc">
+                                        <User size={28} />
+                                    </div>
+                                    <div>
+                                        <h2 className="admin-m-0">{selectedArtist.name}</h2>
+                                        <div className="admin-st-df628aac">
+                                            <span className={`badge role-${selectedArtist.user_type} admin-st-500d49ab`}>{selectedArtist.user_type.charAt(0).toUpperCase() + selectedArtist.user_type.slice(1)}</span>
+                                            <span className="admin-st-3bf8f64b">Staff ID: #STR-{selectedArtist.id.toString().padStart(4, '0')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button className="close-btn" onClick={closeArtistModal}><X size={24} /></button>
+                            </div>
+
+                            <div className="settings-tabs admin-st-23c98a22">
+                                <button className={`tab-button ${artistActiveTab === 'profile' ? 'active' : ''}`} onClick={() => setArtistActiveTab('profile')}>
+                                    <UserCircle size={16} /> Profile Information
+                                </button>
+                                <button className={`tab-button ${artistActiveTab === 'schedule' ? 'active' : ''}`} onClick={() => setArtistActiveTab('schedule')}>
+                                    <Calendar size={16} /> Procedure Schedule
+                                </button>
+                                <button className={`tab-button ${artistActiveTab === 'portfolio' ? 'active' : ''}`} onClick={() => setArtistActiveTab('portfolio')}>
+                                    <Palette size={16} /> Media Portfolio
+                                </button>
+                                <button className={`tab-button ${artistActiveTab === 'earnings' ? 'active' : ''}`} onClick={() => setArtistActiveTab('earnings')}>
+                                    <DollarSign size={16} /> Remittance Log
+                                </button>
+                            </div>
+
+                            <div className="modal-body admin-st-89c672df">
+                                {loadingArtistDetails ? (
+                                    <div className="admin-st-578fa77f">
+                                        <div className="loading-spinner"></div>
+                                        <p>Fetching performance metrics...</p>
+                                    </div>
+                                ) : (
+                                    <div className="fade-in">
+                                        {artistActiveTab === 'profile' && renderArtistProfileTab()}
+                                        {artistActiveTab === 'schedule' && renderScheduleTab()}
+                                        {artistActiveTab === 'portfolio' && renderPortfolioTab()}
+                                        {artistActiveTab === 'earnings' && renderEarningsTab()}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button className="btn btn-secondary" onClick={closeArtistModal}>Close Management Portal</button>
+                                {artistActiveTab === 'profile' && (
+                                    <button className="btn btn-primary admin-st-f9a92399" onClick={handleUpdateArtistProfile}>
+                                        <Save size={18} /> Sync Account Updates
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ═══════════════════════════════════════════════════ */}
+                {/* PORTFOLIO EDITOR SUB-MODAL */}
+                {/* ═══════════════════════════════════════════════════ */}
+                {editWorkModal.mounted && selectedWork && (
+                    <div className={`modal-overlay ${editWorkModal.visible ? 'open' : ''} admin-st-63d3f2c7`} onClick={closeEditWork}>
+                        <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <div>
+                                    <h2 className="admin-m-0">Review Portfolio Asset</h2>
+                                    <p className="admin-st-9b9985a8">Update display metadata and gallery positioning</p>
+                                </div>
+                                <button className="close-btn" onClick={closeEditWork}><X size={24} /></button>
+                            </div>
+                            <form onSubmit={handleSaveWork}>
+                                <div className="modal-body admin-st-cc3b3598">
+                                    <div className="admin-st-ede7eeea">
+                                        <div className="admin-st-52f745d6">
+                                            <div className="admin-st-721d662a">
+                                                <img src={selectedWork.image_url} alt="Preview" className="admin-st-2aa2aed6" />
+                                            </div>
+                                            <div className="form-group admin-st-cd631299">
+                                                <label className="admin-st-32231f0d">
+                                                    <input type="checkbox" className="admin-st-95e08695" checked={workFormData.isPublic}
+                                                        onChange={e => setWorkFormData({ ...workFormData, isPublic: e.target.checked })} />
+                                                    Visible in Public Studio Gallery
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div className="admin-st-ff43421e">
+                                            <div className="form-group">
+                                                <label className="admin-st-19644797">Asset Title</label>
+                                                <input type="text" className="form-input" value={workFormData.title}
+                                                    onChange={e => setWorkFormData({ ...workFormData, title: e.target.value })} required />
+                                            </div>
+                                            <div className="admin-st-2f580e88">
+                                                <div className="form-group">
+                                                    <label className="admin-st-19644797">Style Category</label>
+                                                    <select className="form-input" value={workFormData.category}
+                                                        onChange={e => setWorkFormData({ ...workFormData, category: e.target.value })}>
+                                                        {TATTOO_STYLES.map(style => <option key={style} value={style}>{style}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div className="form-group">
+                                                    <label className="admin-st-19644797">Market Valuation (₱)</label>
+                                                    <input type="number" className="form-input" value={workFormData.priceEstimate}
+                                                        onChange={e => setWorkFormData({ ...workFormData, priceEstimate: e.target.value })} />
+                                                </div>
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="admin-st-19644797">Project Narrative</label>
+                                                <textarea className="form-input admin-st-7b393fc7" rows="6" value={workFormData.description}
+                                                    onChange={e => setWorkFormData({ ...workFormData, description: e.target.value })} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" onClick={closeEditWork}>Discard Changes</button>
+                                    <button type="submit" className="btn btn-primary admin-st-6948e5f9"><Save size={18} /> Update Content</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* ═══════════════════════════════════════════════════ */}
+                {/* CREATE USER MODAL — with inline validations */}
+                {/* ═══════════════════════════════════════════════════ */}
+                {createModal.mounted && (
+                    <div className={`modal-overlay ${createModal.visible ? 'open' : ''}`} onClick={closeCreateModal}>
+                        <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2>Create New User</h2>
+                                <button className="close-btn" onClick={closeCreateModal}><X size={24} /></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="premium-label">Full Name *</label>
+                                        <input type="text" className={`form-input ${createErrors.name ? 'error' : ''}`}
+                                            placeholder="Full Name" value={createFormData.name}
+                                            onChange={(e) => handleCreateFieldChange('name', e.target.value)}
+                                            onBlur={() => handleCreateBlur('name')} />
+                                        {createErrors.name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.name}</small>}
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="premium-label">Email Address *</label>
+                                        <input type="email" className={`form-input ${createErrors.email ? 'error' : ''}`}
+                                            placeholder="email@example.com" value={createFormData.email}
+                                            onChange={(e) => handleCreateFieldChange('email', e.target.value)}
+                                            onBlur={() => handleCreateBlur('email')} />
+                                        {createErrors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.email}</small>}
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="premium-label">Phone Number</label>
+                                        <input type="tel" className={`form-input ${createErrors.phone ? 'error' : ''}`}
+                                            placeholder="Phone" value={createFormData.phone}
+                                            onChange={(e) => handleCreateFieldChange('phone', e.target.value)}
+                                            onBlur={() => handleCreateBlur('phone')} />
+                                        {createErrors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.phone}</small>}
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="premium-label">Password *</label>
+                                        <input type="password" className={`form-input ${createErrors.password ? 'error' : ''}`}
+                                            placeholder="Secure password (min 8 chars)" value={createFormData.password}
+                                            onChange={(e) => handleCreateFieldChange('password', e.target.value)}
+                                            onBlur={() => handleCreateBlur('password')}
+                                            onPaste={(e) => e.preventDefault()} />
+                                        {createErrors.password && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.password}</small>}
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="premium-label">User Role *</label>
+                                        <select value={createFormData.user_type}
+                                            onChange={(e) => setCreateFormData({ ...createFormData, user_type: e.target.value })} className="form-input">
+                                            <option value="customer">Customer (Client)</option>
+                                            <option value="artist">Artist (Staff)</option>
+                                            <option value="admin">System Admin</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button className="btn btn-secondary" onClick={closeCreateModal}>Cancel</button>
+                                <button className="btn btn-primary admin-st-9be3106b" onClick={handleCreateSave} disabled={!isCreateFormValid()}>
+                                    Create User
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Confirm Modal */}
                 <ConfirmModal
-                    isOpen={confirmDialog.isOpen}
-                    title={confirmDialog.title}
-                    message={confirmDialog.message}
-                    confirmText={confirmDialog.confirmText}
-                    onConfirm={confirmDialog.onConfirm}
+                    isOpen={confirmDialog.isOpen} title={confirmDialog.title} message={confirmDialog.message}
+                    confirmText={confirmDialog.confirmText} onConfirm={confirmDialog.onConfirm}
                     onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-                    type={confirmDialog.type}
-                    isAlert={confirmDialog.isAlert}
+                    type={confirmDialog.type} isAlert={confirmDialog.isAlert}
                 />
             </div>
         </div>
