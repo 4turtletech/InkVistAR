@@ -70,7 +70,7 @@ function Register() {
 
     // Hard sanitization for names (letters, spaces, hyphens only)
     if (name === 'firstName' || name === 'lastName') {
-      sanitizedValue = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '');
+      sanitizedValue = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '').slice(0, 50);
     } else if (name === 'suffix') {
       // Allow letters, periods, and spaces
       sanitizedValue = value.replace(/[^a-zA-Z.\s]/g, '').replace(/^\s+/, '');
@@ -332,10 +332,6 @@ function Register() {
                         )}
                     </button>
                     {errors.password && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.password}</small>}
-                    {/* Inline Password Strength Meter */}
-                    <div style={{ overflow: 'hidden', maxHeight: passwordFocused ? '200px' : '0', opacity: passwordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: passwordFocused ? '8px' : '0' }}>
-                        <PasswordStrengthMeter feedback={passwordFeedback} />
-                    </div>
                 </div>
                 <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                     <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} />
@@ -368,6 +364,10 @@ function Register() {
                     </button>
                     {errors.confirmPassword && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.confirmPassword}</small>}
                 </div>
+            </div>
+            {/* Full-width Password Strength Meter */}
+            <div style={{ overflow: 'hidden', maxHeight: passwordFocused ? '200px' : '0', opacity: passwordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: passwordFocused ? '4px' : '0' }}>
+                <PasswordStrengthMeter feedback={passwordFeedback} />
             </div>
 
 
