@@ -82,6 +82,7 @@ function Register() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -250,7 +251,7 @@ function Register() {
                 <select
                     name="countryCode"
                     className="form-input"
-                    style={{ width: '110px' }}
+                    style={{ width: '130px' }}
                     value={formData.countryCode}
                     onChange={handleChange}
                 >
@@ -258,17 +259,75 @@ function Register() {
                     <option value="+1">US/CA (+1)</option>
                     <option value="+44">UK (+44)</option>
                     <option value="+61">AU (+61)</option>
+                    <option value="+64">NZ (+64)</option>
                     <option value="+81">JP (+81)</option>
                     <option value="+82">KR (+82)</option>
                     <option value="+65">SG (+65)</option>
-                    <option value="+64">NZ (+64)</option>
+                    <option value="+60">MY (+60)</option>
+                    <option value="+66">TH (+66)</option>
+                    <option value="+62">ID (+62)</option>
+                    <option value="+84">VN (+84)</option>
+                    <option value="+91">IN (+91)</option>
+                    <option value="+86">CN (+86)</option>
+                    <option value="+852">HK (+852)</option>
+                    <option value="+853">MO (+853)</option>
+                    <option value="+886">TW (+886)</option>
+                    <option value="+971">AE (+971)</option>
+                    <option value="+966">SA (+966)</option>
+                    <option value="+974">QA (+974)</option>
+                    <option value="+968">OM (+968)</option>
+                    <option value="+973">BH (+973)</option>
+                    <option value="+965">KW (+965)</option>
+                    <option value="+972">IL (+972)</option>
+                    <option value="+90">TR (+90)</option>
+                    <option value="+7">RU (+7)</option>
+                    <option value="+49">DE (+49)</option>
+                    <option value="+33">FR (+33)</option>
+                    <option value="+34">ES (+34)</option>
+                    <option value="+39">IT (+39)</option>
+                    <option value="+31">NL (+31)</option>
+                    <option value="+32">BE (+32)</option>
+                    <option value="+41">CH (+41)</option>
+                    <option value="+43">AT (+43)</option>
+                    <option value="+46">SE (+46)</option>
+                    <option value="+47">NO (+47)</option>
+                    <option value="+45">DK (+45)</option>
+                    <option value="+358">FI (+358)</option>
+                    <option value="+48">PL (+48)</option>
+                    <option value="+351">PT (+351)</option>
+                    <option value="+353">IE (+353)</option>
+                    <option value="+30">GR (+30)</option>
+                    <option value="+36">HU (+36)</option>
+                    <option value="+420">CZ (+420)</option>
+                    <option value="+40">RO (+40)</option>
+                    <option value="+380">UA (+380)</option>
+                    <option value="+55">BR (+55)</option>
+                    <option value="+52">MX (+52)</option>
+                    <option value="+54">AR (+54)</option>
+                    <option value="+56">CL (+56)</option>
+                    <option value="+57">CO (+57)</option>
+                    <option value="+51">PE (+51)</option>
+                    <option value="+27">ZA (+27)</option>
+                    <option value="+234">NG (+234)</option>
+                    <option value="+254">KE (+254)</option>
+                    <option value="+233">GH (+233)</option>
+                    <option value="+20">EG (+20)</option>
+                    <option value="+212">MA (+212)</option>
+                    <option value="+880">BD (+880)</option>
+                    <option value="+92">PK (+92)</option>
+                    <option value="+94">LK (+94)</option>
+                    <option value="+977">NP (+977)</option>
+                    <option value="+95">MM (+95)</option>
+                    <option value="+855">KH (+855)</option>
+                    <option value="+856">LA (+856)</option>
+                    <option value="+673">BN (+673)</option>
                 </select>
                 <input type="tel" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} style={{ flex: 1 }} value={formData.phone} onChange={handleChange} placeholder="Phone Number" />
             </div>
             {errors.phone && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.phone}</small>}
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
                 <div className="form-group" style={{ flex: 1, position: 'relative' }}>
-                    <input type={showPassword ? "text" : "password"} name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Password" value={formData.password} onChange={handleChange} onBlur={handleBlur} />
+                    <input type={showPassword ? "text" : "password"} name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Password" value={formData.password} onChange={handleChange} onFocus={() => setPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!formData.password) setPasswordFocused(false); }} />
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
@@ -297,6 +356,10 @@ function Register() {
                         )}
                     </button>
                     {errors.password && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.password}</small>}
+                    {/* Inline Password Strength Meter */}
+                    <div style={{ overflow: 'hidden', maxHeight: passwordFocused ? '200px' : '0', opacity: passwordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: passwordFocused ? '8px' : '0' }}>
+                        <PasswordStrengthMeter feedback={passwordFeedback} />
+                    </div>
                 </div>
                 <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                     <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} />
@@ -331,8 +394,7 @@ function Register() {
                 </div>
             </div>
 
-            {/* Live Password Requirements Feedback */}
-            <PasswordStrengthMeter feedback={passwordFeedback} />
+
 
             <button type="submit" className="login-btn" disabled={!isPasswordValid()}>Register</button>
         </form>
