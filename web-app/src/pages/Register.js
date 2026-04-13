@@ -7,55 +7,31 @@ import './Login.css'; // Using Login styles for consistency
 
 const PasswordStrengthMeter = ({ feedback }) => {
   const criteria = [
-    feedback.hasUppercase && feedback.hasLowercase, // Bar 1: Upper & lowercase
-    feedback.hasNumber,                             // Bar 2: Numbers
-    feedback.hasSymbol,                             // Bar 3: Special characters
-    feedback.hasMinLength                           // Bar 4: Min length 8+
+    feedback.hasUppercase && feedback.hasLowercase,
+    feedback.hasNumber,
+    feedback.hasSymbol,
+    feedback.hasMinLength
   ];
   
   const score = criteria.filter(Boolean).length;
   
-  // Calculate color based on score for a dynamic premium feel
-  let color = '#e2e8f0'; // Gray (0 met)
-  let text = '';
-  if (score === 1) { color = '#ef4444'; text = 'Weak'; }        // Red
-  else if (score === 2) { color = '#f59e0b'; text = 'Fair'; }   // Orange
-  else if (score === 3) { color = '#eab308'; text = 'Good'; }   // Yellow
-  else if (score === 4) { color = '#10b981'; text = 'Strong'; } // Green
+  let color = '#e2e8f0';
+  if (score === 1) color = '#ef4444';
+  else if (score === 2) color = '#f59e0b';
+  else if (score === 3) color = '#eab308';
+  else if (score === 4) color = '#10b981';
 
   return (
-    <div style={{
-      backgroundColor: '#f8fafc',
-      borderRadius: '8px',
-      padding: '16px',
-      marginBottom: '1rem',
-      border: '1px solid #e2e8f0'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-        <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#1e293b', margin: 0 }}>Password Strength</p>
-        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: color }}>{text}</span>
-      </div>
-      
-      {/* 4 Horizontal Bars */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-        {[0, 1, 2, 3].map((index) => (
-          <div key={index} style={{
-            flex: 1,
-            height: '4px',
-            borderRadius: '2px',
-            backgroundColor: index < score ? color : '#e2e8f0',
-            transition: 'background-color 0.3s ease'
-          }} />
-        ))}
-      </div>
-      
-      {/* Criteria Breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.7rem', color: '#64748b' }}>
-        <div style={{ color: criteria[0] ? '#10b981' : '#64748b', transition: 'color 0.2s' }}>• Upper & lowercase</div>
-        <div style={{ color: criteria[1] ? '#10b981' : '#64748b', transition: 'color 0.2s' }}>• Number (0-9)</div>
-        <div style={{ color: criteria[2] ? '#10b981' : '#64748b', transition: 'color 0.2s' }}>• Special character</div>
-        <div style={{ color: criteria[3] ? '#10b981' : '#64748b', transition: 'color 0.2s' }}>• 8+ characters</div>
-      </div>
+    <div style={{ display: 'flex', gap: '6px' }}>
+      {[0, 1, 2, 3].map((index) => (
+        <div key={index} style={{
+          flex: 1,
+          height: '4px',
+          borderRadius: '2px',
+          backgroundColor: index < score ? color : '#e2e8f0',
+          transition: 'background-color 0.3s ease'
+        }} />
+      ))}
     </div>
   );
 };
