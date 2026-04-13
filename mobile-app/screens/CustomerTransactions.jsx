@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getCustomerTransactions } from '../src/utils/api';
@@ -41,7 +41,7 @@ export const CustomerTransactions = ({ navigation }) => {
       </View>
       <Text style={styles.title}>{item.description}</Text>
       <View style={styles.footer}>
-        <Text style={styles.amount}>₱{item.amount}</Text>
+        <Text style={styles.amount}>â‚±{item.amount}</Text>
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
         </View>
@@ -80,21 +80,23 @@ export const CustomerTransactions = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff' },
   backButton: { marginRight: 15 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   listContent: { padding: 20 },
-  card: { backgroundColor: '#1f2937', padding: 16, borderRadius: 12, marginBottom: 15 },
+  card: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 15 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  typeTag: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#374151', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  typeTag: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   typeText: { color: '#f59e0b', fontSize: 10, fontWeight: 'bold' },
-  dateText: { color: '#9ca3af', fontSize: 12 },
-  title: { fontSize: 16, color: 'white', fontWeight: 'bold', marginBottom: 12 },
+  dateText: { color: '#6b7280', fontSize: 12 },
+  title: { fontSize: 16, color: '#111827', fontWeight: 'bold', marginBottom: 12 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   amount: { fontSize: 20, color: '#10b981', fontWeight: 'bold' },
   statusBadge: { backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusText: { color: '#10b981', fontSize: 12, fontWeight: 'bold' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { color: '#9ca3af', marginTop: 10, fontSize: 16 }
+  emptyText: { color: '#6b7280', marginTop: 10, fontSize: 16 }
 });
+
+

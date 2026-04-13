@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -28,11 +28,11 @@ export const AdminServices = ({ navigation }) => {
       </View>
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardSubtitle}>{item.duration} • {item.category}</Text>
+        <Text style={styles.cardSubtitle}>{item.duration} â€¢ {item.category}</Text>
       </View>
       <Text style={styles.cardPrice}>{item.price}</Text>
       <TouchableOpacity style={styles.moreButton}>
-        <Ionicons name="ellipsis-vertical" size={20} color="#9ca3af" />
+        <Ionicons name="ellipsis-vertical" size={20} color="#6b7280" />
       </TouchableOpacity>
     </View>
   );
@@ -65,18 +65,20 @@ export const AdminServices = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 50, backgroundColor: '#1f2937', borderBottomWidth: 1, borderBottomColor: '#374151' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   backButton: { padding: 8, marginRight: 8 },
   headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   addButton: { padding: 8 },
   content: { padding: 20 },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1f2937', padding: 16, borderRadius: 12, marginBottom: 12 },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 12 },
   cardIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(245, 158, 11, 0.1)', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   cardContent: { flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: 'bold', color: 'white', marginBottom: 4 },
-  cardSubtitle: { fontSize: 14, color: '#9ca3af' },
+  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#111827', marginBottom: 4 },
+  cardSubtitle: { fontSize: 14, color: '#6b7280' },
   cardPrice: { fontSize: 16, fontWeight: 'bold', color: '#10b981', marginRight: 12 },
   moreButton: { padding: 4 },
 });
+
+

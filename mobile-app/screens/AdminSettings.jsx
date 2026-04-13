@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAdminSettings, updateAdminSettings } from '../src/utils/api';
@@ -46,14 +46,14 @@ export const AdminSettings = ({ navigation }) => {
   const renderSettingItem = (icon, title, key, type = 'arrow') => (
     <View style={styles.settingItem}>
       <View style={styles.settingLeft}>
-        <Ionicons name={icon} size={24} color="#9ca3af" style={styles.settingIcon} />
+        <Ionicons name={icon} size={24} color="#6b7280" style={styles.settingIcon} />
         <Text style={styles.settingText}>{title}</Text>
       </View>
       {type === 'arrow' ? (
         <Ionicons name="chevron-forward" size={20} color="#6b7280" />
       ) : (
         <Switch 
-           trackColor={{ false: "#374151", true: "#f59e0b" }} 
+           trackColor={{ false: "#f3f4f6", true: "#f59e0b" }} 
            thumbColor="white" 
            value={settings[key]} 
            onValueChange={() => handleToggle(key)} 
@@ -81,7 +81,7 @@ export const AdminSettings = ({ navigation }) => {
         <Text style={styles.sectionHeader}>General</Text>
         <TouchableOpacity style={styles.settingItem}>
            <View style={styles.settingLeft}>
-             <Ionicons name="business" size={24} color="#9ca3af" style={styles.settingIcon} />
+             <Ionicons name="business" size={24} color="#6b7280" style={styles.settingIcon} />
              <Text style={styles.settingText}>{settings.studio_name}</Text>
            </View>
         </TouchableOpacity>
@@ -105,15 +105,17 @@ export const AdminSettings = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937', borderBottomWidth: 1, borderBottomColor: '#374151' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   backButton: { padding: 8, marginRight: 8 },
   headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   content: { padding: 20 },
   sectionHeader: { color: '#f59e0b', fontSize: 14, fontWeight: 'bold', marginTop: 16, marginBottom: 8, textTransform: 'uppercase' },
-  settingItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1f2937', padding: 16, borderRadius: 12, marginBottom: 8 },
+  settingItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 8 },
   settingLeft: { flexDirection: 'row', alignItems: 'center' },
   settingIcon: { marginRight: 16 },
-  settingText: { color: 'white', fontSize: 16 },
+  settingText: { color: '#111827', fontSize: 16 },
 });
+
+

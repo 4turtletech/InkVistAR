@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getNotifications, markNotificationAsRead } from '../src/utils/api';
@@ -79,7 +79,7 @@ export const AdminNotifications = ({ navigation }) => {
       {loading ? (
         <ActivityIndicator size="large" color="#f59e0b" style={{ marginTop: 50 }} />
       ) : notifications.length === 0 ? (
-        <Text style={{ color: '#9ca3af', textAlign: 'center', marginTop: 50 }}>No new notifications.</Text>
+        <Text style={{ color: '#6b7280', textAlign: 'center', marginTop: 50 }}>No new notifications.</Text>
       ) : (
         notifications.map(notif => {
           const style = getNotifStyle(notif.type);
@@ -105,17 +105,19 @@ export const AdminNotifications = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937', borderBottomWidth: 1, borderBottomColor: '#374151' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   backButton: { padding: 8, marginRight: 8 },
   headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   content: { padding: 20 },
-  card: { flexDirection: 'row', backgroundColor: '#1f2937', padding: 16, borderRadius: 12, marginBottom: 12 },
+  card: { flexDirection: 'row', backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 12 },
   iconContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   cardContent: { flex: 1 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  cardTitle: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-  cardTime: { color: '#9ca3af', fontSize: 12 },
-  cardMessage: { color: '#d1d5db', fontSize: 14, lineHeight: 20 },
+  cardTitle: { color: '#111827', fontSize: 16, fontWeight: 'bold' },
+  cardTime: { color: '#6b7280', fontSize: 12 },
+  cardMessage: { color: '#4b5563', fontSize: 14, lineHeight: 20 },
 });
+
+

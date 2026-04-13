@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, SafeAreaView, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAdminAppointments, createAdminManualPayment } from '../src/utils/api';
@@ -78,11 +78,11 @@ export const AdminPOS = ({ navigation }) => {
       </View>
 
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#9ca3af" style={{ marginRight: 10 }} />
+        <Ionicons name="search" size={20} color="#6b7280" style={{ marginRight: 10 }} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by client or design..."
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor="#6b7280"
           value={search}
           onChangeText={setSearch}
         />
@@ -95,7 +95,7 @@ export const AdminPOS = ({ navigation }) => {
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           {filtered.length === 0 ? (
-            <Text style={{color: '#9ca3af', textAlign: 'center', marginTop: 20}}>No appointments awaiting payment.</Text>
+            <Text style={{color: '#6b7280', textAlign: 'center', marginTop: 20}}>No appointments awaiting payment.</Text>
           ) : (
             filtered.map(appt => {
               // Calculate rough remaining locally for UI filtering (backend strictly enforces exact amount)
@@ -107,7 +107,7 @@ export const AdminPOS = ({ navigation }) => {
                     <View style={[styles.badge, { backgroundColor: statusPill }]}><Text style={styles.badgeText}>{appt.payment_status?.toUpperCase() || 'UNPAID'}</Text></View>
                   </View>
                   <Text style={styles.designTitle}>{appt.design_title}</Text>
-                  <Text style={styles.priceData}>Price: ₱{appt.price}</Text>
+                  <Text style={styles.priceData}>Price: â‚±{appt.price}</Text>
                   <Text style={styles.artistData}>Artist: {appt.artist_name}</Text>
                 </TouchableOpacity>
               )
@@ -135,7 +135,7 @@ export const AdminPOS = ({ navigation }) => {
                   <Text style={styles.infoLabel}>Design</Text>
                   <Text style={styles.infoValue}>{selectedAppt.design_title}</Text>
                   <Text style={styles.infoLabel}>Total Price</Text>
-                  <Text style={styles.infoValue}>₱{selectedAppt.price}</Text>
+                  <Text style={styles.infoValue}>â‚±{selectedAppt.price}</Text>
                   {/* Note: In a full app, we'd fetch exact remaining balance here. Relying on Admin constraint for now. */}
                 </View>
 
@@ -152,12 +152,12 @@ export const AdminPOS = ({ navigation }) => {
                   ))}
                 </View>
 
-                <Text style={styles.inputLabel}>Amount (₱)</Text>
+                <Text style={styles.inputLabel}>Amount (â‚±)</Text>
                 <TextInput
                   style={styles.amountInput}
                   keyboardType="numeric"
                   placeholder="0.00"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor="#6b7280"
                   value={paymentAmount}
                   onChangeText={setPaymentAmount}
                 />
@@ -179,44 +179,46 @@ export const AdminPOS = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937', borderBottomWidth: 1, borderBottomColor: '#374151' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   backButton: { padding: 8, marginRight: 8 },
   headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#374151', margin: 15, marginBottom: 5, borderRadius: 10, paddingHorizontal: 10 },
-  searchInput: { flex: 1, height: 50, color: 'white' },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', margin: 15, marginBottom: 5, borderRadius: 10, paddingHorizontal: 10 },
+  searchInput: { flex: 1, height: 50, color: '#111827' },
   
   content: { padding: 15 },
-  card: { backgroundColor: '#1f2937', padding: 15, borderRadius: 12, marginBottom: 10 },
+  card: { backgroundColor: '#ffffff', padding: 15, borderRadius: 12, marginBottom: 10 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
-  clientName: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  clientName: { color: '#111827', fontWeight: 'bold', fontSize: 16 },
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-  badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
-  designTitle: { color: '#9ca3af', marginBottom: 5 },
+  badgeText: { color: '#111827', fontSize: 10, fontWeight: 'bold' },
+  designTitle: { color: '#6b7280', marginBottom: 5 },
   priceData: { color: '#8b5cf6', fontWeight: 'bold', marginBottom: 2 },
   artistData: { color: '#6b7280', fontSize: 12 },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#1f2937', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, maxHeight: '80%' },
+  modalContent: { backgroundColor: '#ffffff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, maxHeight: '80%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   
-  infoBox: { backgroundColor: '#374151', padding: 15, borderRadius: 10, marginBottom: 20 },
-  infoLabel: { color: '#9ca3af', fontSize: 12, marginBottom: 2 },
-  infoValue: { color: 'white', fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
+  infoBox: { backgroundColor: '#f3f4f6', padding: 15, borderRadius: 10, marginBottom: 20 },
+  infoLabel: { color: '#6b7280', fontSize: 12, marginBottom: 2 },
+  infoValue: { color: '#111827', fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
   
-  inputLabel: { color: 'white', fontSize: 14, marginBottom: 10 },
+  inputLabel: { color: '#111827', fontSize: 14, marginBottom: 10 },
   methodRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  methodBtn: { flex: 1, padding: 12, backgroundColor: '#374151', borderRadius: 8, alignItems: 'center' },
+  methodBtn: { flex: 1, padding: 12, backgroundColor: '#f3f4f6', borderRadius: 8, alignItems: 'center' },
   methodBtnActive: { backgroundColor: '#8b5cf6' },
-  methodText: { color: '#9ca3af', fontWeight: 'bold' },
-  methodTextActive: { color: 'white' },
+  methodText: { color: '#6b7280', fontWeight: 'bold' },
+  methodTextActive: { color: '#111827' },
   
-  amountInput: { backgroundColor: '#374151', color: 'white', padding: 15, borderRadius: 8, fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  amountInput: { backgroundColor: '#f3f4f6', color: '#111827', padding: 15, borderRadius: 8, fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   
   processBtn: { backgroundColor: '#8b5cf6', padding: 15, borderRadius: 8, alignItems: 'center' },
-  processBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
+  processBtnText: { color: '#111827', fontWeight: 'bold', fontSize: 16 }
 });
+
+

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAdminDashboard } from '../src/utils/api';
@@ -78,21 +78,22 @@ const MenuButton = ({ title, icon, color, onPress }) => (
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937' },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
   logoutButton: { padding: 8 },
   content: { padding: 20 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 30 },
-  card: { width: '48%', backgroundColor: '#1f2937', padding: 15, borderRadius: 12, marginBottom: 15, flexDirection: 'row', alignItems: 'center' },
+  card: { width: '48%', backgroundColor: '#ffffff', padding: 15, borderRadius: 12, marginBottom: 15, flexDirection: 'row', alignItems: 'center' },
   iconContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  cardValue: { fontSize: 20, fontWeight: 'bold', color: 'white' },
-  cardTitle: { fontSize: 12, color: '#9ca3af' },
-  section: { backgroundColor: '#1f2937', padding: 20, borderRadius: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: 'white', marginBottom: 10 },
-  placeholderText: { color: '#9ca3af' },
+  cardValue: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
+  cardTitle: { fontSize: 12, color: '#6b7280' },
+  section: { backgroundColor: '#ffffff', padding: 20, borderRadius: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 10 },
+  placeholderText: { color: '#6b7280' },
   menuGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginBottom: 30 },
-  menuButton: { width: '31%', backgroundColor: '#1f2937', padding: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10 },
+  menuButton: { width: '31%', backgroundColor: '#ffffff', padding: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10 },
   menuIconContainer: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  menuText: { color: 'white', fontSize: 12, fontWeight: 'bold', textAlign: 'center' }
+  menuText: { color: '#111827', fontSize: 12, fontWeight: 'bold', textAlign: 'center' }
 });
+

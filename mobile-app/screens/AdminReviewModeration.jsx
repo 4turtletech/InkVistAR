@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAdminReviews, updateReviewStatus } from '../src/utils/api';
@@ -104,27 +104,29 @@ export const AdminReviewModeration = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff' },
   backButton: { marginRight: 15 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   listContent: { padding: 20 },
-  card: { backgroundColor: '#1f2937', padding: 16, borderRadius: 12, marginBottom: 15 },
+  card: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 15 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  customerName: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-  artistName: { color: '#9ca3af', fontSize: 12 },
+  customerName: { color: '#111827', fontWeight: 'bold', fontSize: 16 },
+  artistName: { color: '#6b7280', fontSize: 12 },
   ratingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(245, 158, 11, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   ratingText: { color: '#f59e0b', fontWeight: 'bold', marginLeft: 4, fontSize: 12 },
-  comment: { color: '#e5e7eb', fontSize: 14, fontStyle: 'italic', marginBottom: 10 },
+  comment: { color: '#374151', fontSize: 14, fontStyle: 'italic', marginBottom: 10 },
   noComment: { color: '#6b7280', fontSize: 14, fontStyle: 'italic', marginBottom: 10 },
   date: { color: '#64748b', fontSize: 10, marginBottom: 15 },
-  actionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#374151', paddingTop: 12 },
+  actionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 12 },
   statusTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusText: { fontSize: 10, fontWeight: 'bold' },
   buttons: { flexDirection: 'row', gap: 10 },
   rejectBtn: { backgroundColor: '#ef4444', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, gap: 4 },
   approveBtn: { backgroundColor: '#10b981', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, gap: 4 },
-  btnText: { color: 'white', fontWeight: 'bold', fontSize: 12 },
+  btnText: { color: '#111827', fontWeight: 'bold', fontSize: 12 },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { color: '#9ca3af', marginTop: 10, fontSize: 16 }
+  emptyText: { color: '#6b7280', marginTop: 10, fontSize: 16 }
 });
+
+

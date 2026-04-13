@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -72,16 +72,16 @@ export const AdminSettings = ({ navigation }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: '#f9fafb',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
     paddingTop: 50,
-    backgroundColor: '#1f2937',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#374151',
+    borderBottomColor: '#f3f4f6',
   },
   backButton: {
     padding: 8,
@@ -94,15 +94,16 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#111827',
   },
   content: {
     padding: 20,
   },
   placeholder: {
-    color: '#9ca3af',
+    color: '#6b7280',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 50,
   },
 });
+

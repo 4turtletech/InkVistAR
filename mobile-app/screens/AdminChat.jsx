@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
@@ -106,7 +106,7 @@ export const AdminChat = ({ navigation }) => {
     return (
       <View style={[styles.msgWrapper, isAdmin ? styles.msgRight : styles.msgLeft]}>
         <View style={[styles.msgBubble, isAdmin ? styles.msgBubbleAdmin : styles.msgBubbleCustomer]}>
-          <Text style={[styles.msgText, isAdmin && {color: 'white'}]}>{item.text}</Text>
+          <Text style={[styles.msgText, isAdmin && {color: '#111827'}]}>{item.text}</Text>
         </View>
       </View>
     );
@@ -129,7 +129,7 @@ export const AdminChat = ({ navigation }) => {
             style={{backgroundColor: '#ef4444', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6}}
             onPress={handleCloseSession}
           >
-            <Text style={{color: 'white', fontWeight: 'bold', fontSize: 12}}>Close Session</Text>
+            <Text style={{color: '#111827', fontWeight: 'bold', fontSize: 12}}>Close Session</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -139,7 +139,7 @@ export const AdminChat = ({ navigation }) => {
         <View style={{flex: 1}}>
           {liveSessions.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="chatbubbles-outline" size={48} color="#374151" />
+              <Ionicons name="chatbubbles-outline" size={48} color="#f3f4f6" />
               <Text style={styles.emptyText}>No active support sessions.</Text>
             </View>
           ) : (
@@ -168,7 +168,7 @@ export const AdminChat = ({ navigation }) => {
               value={inputValue}
               onChangeText={setInputValue}
               placeholder="Type a message..."
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor="#6b7280"
             />
             <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
               <Ionicons name="send" size={20} color="white" />
@@ -181,32 +181,34 @@ export const AdminChat = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937', borderBottomWidth: 1, borderBottomColor: '#374151' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   backButton: { marginRight: 15, padding: 5 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   
   // List Styles
-  sessionCard: { backgroundColor: '#1f2937', padding: 15, borderRadius: 12, marginBottom: 12 },
+  sessionCard: { backgroundColor: '#ffffff', padding: 15, borderRadius: 12, marginBottom: 12 },
   sessionCardActive: { borderColor: '#0ea5e9', borderWidth: 1 },
   sessionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
-  sessionName: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  sessionName: { color: '#111827', fontWeight: 'bold', fontSize: 16 },
   liveBadge: { backgroundColor: 'rgba(16, 185, 129, 0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   liveBadgeText: { color: '#10b981', fontSize: 10, fontWeight: 'bold' },
-  sessionPreview: { color: '#9ca3af', fontSize: 14, marginBottom: 5 },
+  sessionPreview: { color: '#6b7280', fontSize: 14, marginBottom: 5 },
   sessionTime: { color: '#6b7280', fontSize: 12, textAlign: 'right' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { color: '#9ca3af', marginTop: 10 },
+  emptyText: { color: '#6b7280', marginTop: 10 },
 
   // Chat Styles
   msgWrapper: { marginBottom: 10, flexDirection: 'row' },
   msgLeft: { justifyContent: 'flex-start' },
   msgRight: { justifyContent: 'flex-end' },
   msgBubble: { maxWidth: '80%', padding: 12, borderRadius: 15 },
-  msgBubbleCustomer: { backgroundColor: '#374151', borderBottomLeftRadius: 0 },
+  msgBubbleCustomer: { backgroundColor: '#f3f4f6', borderBottomLeftRadius: 0 },
   msgBubbleAdmin: { backgroundColor: '#0ea5e9', borderBottomRightRadius: 0 },
   msgText: { color: '#f3f4f6', fontSize: 15 },
-  inputArea: { flexDirection: 'row', padding: 15, backgroundColor: '#1f2937', alignItems: 'center' },
-  textInput: { flex: 1, backgroundColor: '#374151', color: 'white', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 20, marginRight: 10 },
+  inputArea: { flexDirection: 'row', padding: 15, backgroundColor: '#ffffff', alignItems: 'center' },
+  textInput: { flex: 1, backgroundColor: '#f3f4f6', color: '#111827', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 20, marginRight: 10 },
   sendButton: { backgroundColor: '#0ea5e9', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }
 });
+
+

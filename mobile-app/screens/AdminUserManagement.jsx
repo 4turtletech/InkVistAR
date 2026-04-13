@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ActivityIndicator, Platform, Modal, KeyboardAvoidingView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAllUsersForAdmin, deleteUserByAdmin, createUserByAdmin, updateUserByAdmin } from '../src/utils/api';
@@ -92,9 +92,9 @@ export const AdminUserManagement = () => {
   };
 
   const performDelete = async (userId) => {
-    console.log('🗑️ Sending delete request...');
+    console.log('ðŸ—‘ï¸ Sending delete request...');
     const result = await deleteUserByAdmin(userId);
-    console.log('🗑️ Delete result:', result);
+    console.log('ðŸ—‘ï¸ Delete result:', result);
     if (result.success) {
       if (Platform.OS !== 'web') Alert.alert('Success', 'User deleted');
       else alert('User deleted');
@@ -140,11 +140,11 @@ export const AdminUserManagement = () => {
       </View>
       
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search users..."
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor="#6b7280"
           value={search}
           onChangeText={setSearch}
         />
@@ -171,14 +171,14 @@ export const AdminUserManagement = () => {
             <TextInput
               style={styles.input}
               placeholder="Full Name"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor="#6b7280"
               value={formData.name}
               onChangeText={t => setFormData({...formData, name: t})}
             />
             <TextInput
               style={styles.input}
               placeholder="Email"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor="#6b7280"
               value={formData.email}
               onChangeText={t => setFormData({...formData, email: t})}
               autoCapitalize="none"
@@ -186,7 +186,7 @@ export const AdminUserManagement = () => {
             <TextInput
               style={styles.input}
               placeholder="Phone Number (Optional)"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor="#6b7280"
               value={formData.phone}
               onChangeText={t => setFormData({...formData, phone: t})}
             />
@@ -222,7 +222,7 @@ export const AdminUserManagement = () => {
               <TextInput
                 style={styles.input}
                 placeholder="Password"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor="#6b7280"
                 value={formData.password}
                 onChangeText={t => setFormData({...formData, password: t})}
                 secureTextEntry
@@ -245,38 +245,39 @@ export const AdminUserManagement = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937' },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
   addButton: { backgroundColor: '#f59e0b', padding: 8, borderRadius: 8 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#374151', margin: 20, borderRadius: 10, paddingHorizontal: 10 },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', margin: 20, borderRadius: 10, paddingHorizontal: 10 },
   searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, height: 50, color: 'white' },
+  searchInput: { flex: 1, height: 50, color: '#111827' },
   listContent: { paddingHorizontal: 20 },
-  userRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1f2937', padding: 15, borderRadius: 12, marginBottom: 10 },
+  userRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: 15, borderRadius: 12, marginBottom: 10 },
   userInfo: { flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#4b5563', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-  avatarText: { color: 'white', fontWeight: 'bold', fontSize: 18 },
-  userName: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-  userEmail: { color: '#9ca3af', fontSize: 12 },
+  avatarText: { color: '#111827', fontWeight: 'bold', fontSize: 18 },
+  userName: { color: '#111827', fontWeight: 'bold', fontSize: 16 },
+  userEmail: { color: '#6b7280', fontSize: 12 },
   userType: { fontSize: 10, fontWeight: 'bold', marginTop: 2 },
   actionButtons: { flexDirection: 'row' },
   iconButton: { padding: 8, borderRadius: 8, marginLeft: 8 },
   editButton: { backgroundColor: 'rgba(245, 158, 11, 0.1)' },
   deleteButton: { backgroundColor: 'rgba(239, 68, 68, 0.1)' },
-  emptyText: { color: '#9ca3af', textAlign: 'center', marginTop: 20 },
+  emptyText: { color: '#6b7280', textAlign: 'center', marginTop: 20 },
   // Modal Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#1f2937', borderRadius: 16, padding: 20 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: 'white', marginBottom: 20, textAlign: 'center' },
-  input: { backgroundColor: '#374151', color: 'white', padding: 12, borderRadius: 8, marginBottom: 12 },
+  modalContent: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827', marginBottom: 20, textAlign: 'center' },
+  input: { backgroundColor: '#f3f4f6', color: '#111827', padding: 12, borderRadius: 8, marginBottom: 12 },
   typeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  typeButton: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#374151', marginHorizontal: 4, borderRadius: 8 },
+  typeButton: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#f3f4f6', marginHorizontal: 4, borderRadius: 8 },
   typeButtonActive: { backgroundColor: '#f59e0b' },
-  typeText: { color: '#9ca3af', fontSize: 12, fontWeight: 'bold' },
-  typeTextActive: { color: 'white' },
+  typeText: { color: '#6b7280', fontSize: 12, fontWeight: 'bold' },
+  typeTextActive: { color: '#111827' },
   modalButtons: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   cancelButton: { flex: 1, padding: 12, backgroundColor: '#4b5563', borderRadius: 8, marginRight: 8, alignItems: 'center' },
   saveButton: { flex: 1, padding: 12, backgroundColor: '#f59e0b', borderRadius: 8, marginLeft: 8, alignItems: 'center' },
-  buttonText: { color: 'white', fontWeight: 'bold' }
+  buttonText: { color: '#111827', fontWeight: 'bold' }
 });
+

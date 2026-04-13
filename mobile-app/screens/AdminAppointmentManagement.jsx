@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, TextInput, Modal, ScrollView, SafeAreaView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAdminAppointments, updateAppointmentByAdmin, deleteAppointmentByAdmin, API_URL } from '../src/utils/api';
@@ -115,11 +115,11 @@ export const AdminAppointmentManagement = () => {
       </View>
       <Text style={styles.title}>{item.design_title || 'Tattoo Session'}</Text>
       <View style={styles.row}>
-        <Ionicons name="person" size={14} color="#9ca3af" />
+        <Ionicons name="person" size={14} color="#6b7280" />
         <Text style={styles.detail}>Client: {item.client_name}</Text>
       </View>
       <View style={styles.row}>
-        <Ionicons name="brush" size={14} color="#9ca3af" />
+        <Ionicons name="brush" size={14} color="#6b7280" />
         <Text style={styles.detail}>Artist: {item.artist_name}</Text>
       </View>
     </TouchableOpacity>
@@ -132,11 +132,11 @@ export const AdminAppointmentManagement = () => {
       </View>
 
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search client, artist, or design..."
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor="#6b7280"
           value={search}
           onChangeText={setSearch}
         />
@@ -193,7 +193,7 @@ export const AdminAppointmentManagement = () => {
                       <Text style={styles.label}>Reference Image</Text>
                       <Image 
                         source={{ uri: selectedAppt.before_photo.startsWith('http') ? selectedAppt.before_photo : `${API_URL.replace('/api', '')}${selectedAppt.before_photo}` }}
-                        style={{ width: '100%', height: 200, borderRadius: 8, marginTop: 5, backgroundColor: '#111827' }}
+                        style={{ width: '100%', height: 200, borderRadius: 8, marginTop: 5, backgroundColor: '#f9fafb' }}
                         resizeMode="contain"
                       />
                     </View>
@@ -208,7 +208,7 @@ export const AdminAppointmentManagement = () => {
                 <Text style={styles.inputLabel}>Time (HH:MM:SS)</Text>
                 <TextInput style={styles.input} value={editTime} onChangeText={setEditTime} />
 
-                <Text style={styles.inputLabel}>Price (₱)</Text>
+                <Text style={styles.inputLabel}>Price (â‚±)</Text>
                 <TextInput 
                   style={styles.input} 
                   value={editPrice} 
@@ -225,7 +225,7 @@ export const AdminAppointmentManagement = () => {
                       style={[styles.statusBtn, editStatus === s && { backgroundColor: getStatusColor(s) }]}
                       onPress={() => setEditStatus(s)}
                     >
-                      <Text style={[styles.statusBtnText, editStatus === s && { color: 'white' }]}>
+                      <Text style={[styles.statusBtnText, editStatus === s && { color: '#111827' }]}>
                         {s.charAt(0).toUpperCase() + s.slice(1)}
                       </Text>
                     </TouchableOpacity>
@@ -252,42 +252,43 @@ export const AdminAppointmentManagement = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937' },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#374151', margin: 15, marginBottom: 5, borderRadius: 10, paddingHorizontal: 10 },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', margin: 15, marginBottom: 5, borderRadius: 10, paddingHorizontal: 10 },
   searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, height: 50, color: 'white' },
+  searchInput: { flex: 1, height: 50, color: '#111827' },
   filterRow: { flexDirection: 'row', padding: 15, gap: 10 },
-  filterBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#374151' },
+  filterBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#f3f4f6' },
   filterBtnActive: { backgroundColor: '#f59e0b' },
-  filterText: { color: '#9ca3af', fontSize: 12 },
-  filterTextActive: { color: 'white', fontWeight: 'bold' },
+  filterText: { color: '#6b7280', fontSize: 12 },
+  filterTextActive: { color: '#111827', fontWeight: 'bold' },
   list: { padding: 15 },
-  card: { backgroundColor: '#1f2937', padding: 15, borderRadius: 12, marginBottom: 10 },
+  card: { backgroundColor: '#ffffff', padding: 15, borderRadius: 12, marginBottom: 10 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   date: { color: '#f59e0b', fontWeight: 'bold' },
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, backgroundColor: '#4b5563' },
-  badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
-  title: { color: 'white', fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
+  badgeText: { color: '#111827', fontSize: 10, fontWeight: 'bold' },
+  title: { color: '#111827', fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  detail: { color: '#d1d5db', marginLeft: 8, fontSize: 14 },
+  detail: { color: '#4b5563', marginLeft: 8, fontSize: 14 },
   // Modal Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#1f2937', borderRadius: 16, padding: 20, maxHeight: '80%' },
+  modalContent: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, maxHeight: '80%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
-  infoSection: { marginBottom: 20, backgroundColor: '#374151', padding: 15, borderRadius: 10 },
-  label: { color: '#9ca3af', fontSize: 12, marginBottom: 2 },
-  value: { color: 'white', fontSize: 16, marginBottom: 12, fontWeight: '500' },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
+  infoSection: { marginBottom: 20, backgroundColor: '#f3f4f6', padding: 15, borderRadius: 10 },
+  label: { color: '#6b7280', fontSize: 12, marginBottom: 2 },
+  value: { color: '#111827', fontSize: 16, marginBottom: 12, fontWeight: '500' },
   sectionHeader: { color: '#f59e0b', fontSize: 18, fontWeight: 'bold', marginBottom: 15, marginTop: 10 },
-  inputLabel: { color: '#9ca3af', marginBottom: 5 },
-  input: { backgroundColor: '#374151', color: 'white', padding: 12, borderRadius: 8, marginBottom: 15 },
+  inputLabel: { color: '#6b7280', marginBottom: 5 },
+  input: { backgroundColor: '#f3f4f6', color: '#111827', padding: 12, borderRadius: 8, marginBottom: 15 },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  statusBtn: { padding: 10, borderRadius: 8, backgroundColor: '#374151', minWidth: '45%', alignItems: 'center' },
-  statusBtnText: { color: '#9ca3af', fontWeight: 'bold' },
+  statusBtn: { padding: 10, borderRadius: 8, backgroundColor: '#f3f4f6', minWidth: '45%', alignItems: 'center' },
+  statusBtnText: { color: '#6b7280', fontWeight: 'bold' },
   actionButtons: { flexDirection: 'row', gap: 15, marginTop: 10 },
   deleteBtn: { flex: 1, backgroundColor: '#dc2626', padding: 15, borderRadius: 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   saveBtn: { flex: 1, backgroundColor: '#059669', padding: 15, borderRadius: 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  btnText: { color: 'white', fontWeight: 'bold' }
+  btnText: { color: '#111827', fontWeight: 'bold' }
 });
+

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,7 +17,7 @@ export function AdminStudio({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#1f2937', '#111827']} style={styles.header}>
+      <LinearGradient colors={['#ffffff', '#f9fafb']} style={styles.header}>
         <Text style={styles.headerTitle}>Studio Command Center</Text>
         <Text style={styles.headerSubtitle}>Manage all operational modules</Text>
       </LinearGradient>
@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
     marginBottom: 16,
   },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: 'white', marginBottom: 4 },
-  headerSubtitle: { fontSize: 14, color: '#9ca3af' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 4 },
+  headerSubtitle: { fontSize: 14, color: '#6b7280' },
   scrollContent: { padding: 16, paddingBottom: 40 },
   grid: {
     flexDirection: 'row',
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '48%',
-    backgroundColor: 'white',
+    backgroundcolor: '#111827',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -77,6 +77,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1f2937', marginBottom: 4 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#ffffff', marginBottom: 4 },
   cardDesc: { fontSize: 12, color: '#6b7280', lineHeight: 16 }
 });
+
+

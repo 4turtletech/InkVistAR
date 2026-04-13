@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, SafeAreaView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAdminInventory, createAdminInventory, updateAdminInventory, deleteAdminInventory } from '../src/utils/api';
@@ -143,7 +143,7 @@ export const AdminInventory = ({ navigation }) => {
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>{item.name}</Text>
                   <Text style={styles.itemStock}>Stock: {item.current_stock} {item.unit} (Min: {item.min_stock})</Text>
-                  <Text style={styles.itemStock}>Cost: ₱{item.cost}</Text>
+                  <Text style={styles.itemStock}>Cost: â‚±{item.cost}</Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
                   <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
@@ -225,29 +225,31 @@ export const AdminInventory = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 50, backgroundColor: '#1f2937', borderBottomWidth: 1, borderBottomColor: '#374151' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   backButton: { padding: 8 },
   headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   addButton: { padding: 8 },
   content: { padding: 20 },
-  itemCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1f2937', padding: 16, borderRadius: 12, marginBottom: 12 },
+  itemCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 12 },
   itemInfo: { flex: 1 },
-  itemName: { color: 'white', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-  itemStock: { color: '#9ca3af', fontSize: 14 },
+  itemName: { color: '#111827', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  itemStock: { color: '#6b7280', fontSize: 14 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 12, fontWeight: 'bold' },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#1f2937', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, paddingBottom: 40 },
+  modalContent: { backgroundColor: '#ffffff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, paddingBottom: 40 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
-  inputLabel: { color: '#9ca3af', marginBottom: 5, fontSize: 14 },
-  input: { backgroundColor: '#374151', color: 'white', padding: 12, borderRadius: 8, marginBottom: 15 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
+  inputLabel: { color: '#6b7280', marginBottom: 5, fontSize: 14 },
+  input: { backgroundColor: '#f3f4f6', color: '#111827', padding: 12, borderRadius: 8, marginBottom: 15 },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   actionButtons: { flexDirection: 'row', gap: 10, marginTop: 10 },
   deleteBtn: { backgroundColor: '#dc2626', padding: 15, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   saveBtn: { flex: 1, backgroundColor: '#ec4899', padding: 15, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  btnText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
+  btnText: { color: '#111827', fontWeight: 'bold', fontSize: 16 }
 });
+
+

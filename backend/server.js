@@ -75,12 +75,12 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     // Check if the origin is in our allowed list or matches our patterns
-    const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed)) || 
-                     origin.includes('vercel.app') || 
-                     origin.includes('localhost');
-                     
+    const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed)) ||
+      origin.includes('vercel.app') ||
+      origin.includes('localhost');
+
     if (isAllowed) {
       callback(null, true);
     } else {
@@ -136,7 +136,7 @@ const db = mysql.createPool({
 // Generate Kiosk-style Booking Code
 function generateBookingCode(origin, serviceType) {
   const originCode = origin === 'W' ? 'W' : 'O';
-  
+
   let serviceCode = 'C';
   const typeStr = String(serviceType || '').toLowerCase();
   // Ensure "Tattoo + Piercing" matches "TP" before generic "tattoo"
@@ -144,13 +144,13 @@ function generateBookingCode(origin, serviceType) {
   else if (typeStr.includes('tattoo')) serviceCode = 'T';
   else if (typeStr.includes('piercing')) serviceCode = 'P';
   else if (typeStr.includes('follow') || typeStr.includes('touch')) serviceCode = 'F';
-  
+
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   let randomCode = '';
   for (let i = 0; i < 4; i++) {
     randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  
+
   return `${originCode}-${serviceCode}-${randomCode}`;
 }
 
@@ -2338,13 +2338,13 @@ app.get('/api/artist/:artistId/availability', (req, res) => {
 // Get global studio concurrency availability (Whole-Day Limit)
 app.get('/api/public/calendar-availability', (req, res) => {
   const artistQuery = `SELECT COUNT(id) as totalArtists FROM users WHERE user_type = 'artist' AND is_deleted = 0`;
-  
+
   db.query(artistQuery, (artistErr, artistRes) => {
     if (artistErr) return res.status(500).json({ success: false, message: 'DB Error fetching artists' });
-    
+
     // Ensure capacity is at least 1 (representing the generic "Studio Pool") if no physical artists exist yet
     const totalArtists = Math.max(1, artistRes[0].totalArtists);
-    
+
     // Fetch all non-cancelled appointments globally
     const bookingQuery = `
       SELECT appointment_date, start_time, status
@@ -2353,7 +2353,7 @@ app.get('/api/public/calendar-availability', (req, res) => {
       AND is_deleted = 0
       AND appointment_date >= CURDATE()
     `;
-    
+
     db.query(bookingQuery, (bookingErr, bookingRes) => {
       if (bookingErr) return res.status(500).json({ success: false, message: 'DB Error fetching bookings' });
       res.json({ success: true, totalArtists, bookings: bookingRes });
@@ -2423,14 +2423,14 @@ app.post('/api/customer/appointments', (req, res) => {
       SELECT id FROM appointments 
       WHERE appointment_date = ? AND start_time = ? AND status != 'cancelled' AND is_deleted = 0
       AND (`;
-      
+
       let queryParams = [date, finalStartTime];
-      
+
       if (artistId) { // Only check artist collision if they specifically requested an artist
         checkQuery += ` artist_id = ? OR `;
         queryParams.push(artistId);
       }
-      
+
       checkQuery += ` customer_id = ? ) `;
       queryParams.push(customerId);
 
@@ -2570,8 +2570,8 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
       // 5. New date must be AFTER the current appointment date (can only move forward)
       const newDateObj = new Date(newDate);
       const currentDateNorm = new Date(appt.appointment_date);
-      newDateObj.setHours(0,0,0,0);
-      currentDateNorm.setHours(0,0,0,0);
+      newDateObj.setHours(0, 0, 0, 0);
+      currentDateNorm.setHours(0, 0, 0, 0);
       if (newDateObj <= currentDateNorm) {
         return res.status(400).json({ success: false, message: 'You can only reschedule to a later date than your current appointment.' });
       }
@@ -2586,33 +2586,33 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
             return res.status(400).json({ success: false, message: 'You already have another session booked on this date. Please choose a different date.' });
           }
 
-      // 7. Perform the reschedule
-      db.query(
-        `UPDATE appointments SET appointment_date = ?, start_time = COALESCE(?, start_time), reschedule_count = reschedule_count + 1 WHERE id = ?`,
-        [newDate, newTime || null, id],
-        (updateErr, result) => {
-          if (updateErr) return res.status(500).json({ success: false, message: 'Failed to reschedule: ' + updateErr.message });
+          // 7. Perform the reschedule
+          db.query(
+            `UPDATE appointments SET appointment_date = ?, start_time = COALESCE(?, start_time), reschedule_count = reschedule_count + 1 WHERE id = ?`,
+            [newDate, newTime || null, id],
+            (updateErr, result) => {
+              if (updateErr) return res.status(500).json({ success: false, message: 'Failed to reschedule: ' + updateErr.message });
 
-          console.log(`📅 Customer ${customerId} rescheduled Appt #${id} to ${newDate} ${newTime || ''}`);
+              console.log(`📅 Customer ${customerId} rescheduled Appt #${id} to ${newDate} ${newTime || ''}`);
 
-          // Notify artist
-          if (appt.artist_id && appt.artist_id !== 1) {
-            createNotification(appt.artist_id, 'Appointment Rescheduled 📅', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
-          }
-          // Notify admins
-          db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
-            if (!adminErr && admins.length > 0) {
-              admins.forEach(admin => {
-                createNotification(admin.id, 'Appointment Rescheduled', `Customer rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+              // Notify artist
+              if (appt.artist_id && appt.artist_id !== 1) {
+                createNotification(appt.artist_id, 'Appointment Rescheduled 📅', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+              }
+              // Notify admins
+              db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
+                if (!adminErr && admins.length > 0) {
+                  admins.forEach(admin => {
+                    createNotification(admin.id, 'Appointment Rescheduled', `Customer rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+                  });
+                }
               });
-            }
-          });
-          // Notify customer
-          createNotification(customerId, 'Reschedule Confirmed', `Your appointment #${id} has been rescheduled to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+              // Notify customer
+              createNotification(customerId, 'Reschedule Confirmed', `Your appointment #${id} has been rescheduled to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
 
-          res.json({ success: true, message: 'Appointment rescheduled successfully.', remainingReschedules: 2 - (currentCount + 1) });
-        }
-      );
+              res.json({ success: true, message: 'Appointment rescheduled successfully.', remainingReschedules: 2 - (currentCount + 1) });
+            }
+          );
         } // end conflict check callback
       ); // end conflict check query
     }
@@ -2873,25 +2873,25 @@ app.post('/api/admin/appointments', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, ?)
       `;
       db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, bookingCode], (err, result) => {
-      if (err) {
-        console.error('❌ Error creating admin appointment:', err);
-        return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
-      }
-      // If securely routed from the public frontend wizard, alert the Admin
-      if (isFromWizard) {
-        const clientNameStr = customerName || 'a guest';
-        createNotification(customerId, 'Booking Request Received', `We have received your booking request [${bookingCode}] for ${date} and will calculate a quote for you shortly.`, 'appointment_request', result.insertId);
-        createNotification(artistId, 'New Booking Request', `${serviceType || 'Consultation'} requested by ${clientNameStr} ("${designTitle}"). Ref Code: [${bookingCode}]. Pending review.`, 'appointment_request', result.insertId);
-      } else {
-        createNotification(customerId, 'Appointment Scheduled', `Your appointment [${bookingCode}] has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
-        if (artistId && artistId !== 1) {
-            createNotification(artistId, 'New Session Assigned', `You have been scheduled for a new session [${bookingCode}] on ${date}.`, 'appointment_confirmed', result.insertId);
+        if (err) {
+          console.error('❌ Error creating admin appointment:', err);
+          return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
         }
-      }
-      
-      res.json({ success: true, message: 'Appointment created successfully', id: result.insertId, bookingCode: bookingCode });
+        // If securely routed from the public frontend wizard, alert the Admin
+        if (isFromWizard) {
+          const clientNameStr = customerName || 'a guest';
+          createNotification(customerId, 'Booking Request Received', `We have received your booking request [${bookingCode}] for ${date} and will calculate a quote for you shortly.`, 'appointment_request', result.insertId);
+          createNotification(artistId, 'New Booking Request', `${serviceType || 'Consultation'} requested by ${clientNameStr} ("${designTitle}"). Ref Code: [${bookingCode}]. Pending review.`, 'appointment_request', result.insertId);
+        } else {
+          createNotification(customerId, 'Appointment Scheduled', `Your appointment [${bookingCode}] has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
+          if (artistId && artistId !== 1) {
+            createNotification(artistId, 'New Session Assigned', `You have been scheduled for a new session [${bookingCode}] on ${date}.`, 'appointment_confirmed', result.insertId);
+          }
+        }
+
+        res.json({ success: true, message: 'Appointment created successfully', id: result.insertId, bookingCode: bookingCode });
+      });
     });
-  });
   });
 });
 
@@ -2899,7 +2899,7 @@ app.post('/api/admin/appointments', (req, res) => {
 app.put('/api/admin/appointments/:id', (req, res) => {
   const { id } = req.params;
   const body = req.body || {};
-  
+
   // SANITIZE INPUTS to prevent DB conversion errors (e.g. empty strings for numbers/dates)
   const customerId = body.customerId ? parseInt(body.customerId) : undefined;
   const artistId = body.artistId ? (body.artistId === 'null' || body.artistId === '' ? null : parseInt(body.artistId)) : undefined;
@@ -2907,7 +2907,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const commissionSplit = body.commissionSplit !== undefined ? (body.commissionSplit === '' ? 50 : parseInt(body.commissionSplit)) : undefined;
   const price = body.price !== undefined ? (body.price === '' ? 0 : parseFloat(body.price)) : undefined;
   const manualPaidAmount = body.manualPaidAmount !== undefined ? (body.manualPaidAmount === '' ? 0 : parseFloat(body.manualPaidAmount)) : undefined;
-  
+
   const serviceType = body.serviceType;
   const designTitle = body.designTitle;
   const status = body.status;
@@ -2916,7 +2916,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const rejectionReason = body.rejectionReason;
   const manualPaymentMethod = body.manualPaymentMethod;
   const beforePhoto = body.beforePhoto;
-  
+
   // Date/Time Sanitization: convert empty strings to null for MySQL
   const date = body.date === '' ? null : body.date;
   const startTime = body.startTime === '' ? null : body.startTime;
@@ -2929,10 +2929,10 @@ app.put('/api/admin/appointments/:id', (req, res) => {
 
   if (customerId !== undefined) { updates.push('customer_id = ?'); params.push(customerId); }
   if (artistId !== undefined && artistId !== null && String(artistId) !== 'null') { updates.push('artist_id = ?'); params.push(artistId); }
-  
-  if (secondaryArtistId !== undefined) { 
-    updates.push('secondary_artist_id = ?'); 
-    params.push(secondaryArtistId); 
+
+  if (secondaryArtistId !== undefined) {
+    updates.push('secondary_artist_id = ?');
+    params.push(secondaryArtistId);
   }
   if (commissionSplit !== undefined) { updates.push('commission_split = ?'); params.push(commissionSplit); }
   if (date !== undefined) { updates.push('appointment_date = ?'); params.push(date); }
@@ -2980,13 +2980,13 @@ app.put('/api/admin/appointments/:id', (req, res) => {
           if (paymentStatus !== undefined) { safeUpdates.push('payment_status = ?'); safeParams.push(paymentStatus); }
           if (notes !== undefined) { safeUpdates.push('notes = ?'); safeParams.push(notes); }
           if (price !== undefined) { safeUpdates.push('price = ?'); safeParams.push(price); }
-          
+
           if (safeUpdates.length === 0) {
             return res.status(400).json({ success: false, message: 'No valid base fields to update.' });
           }
           const safeQuery = 'UPDATE appointments SET ' + safeUpdates.join(', ') + ' WHERE id = ? AND is_deleted = 0';
           safeParams.push(id);
-          
+
           return db.query(safeQuery, safeParams, (retryErr, retryResult) => {
             if (retryErr) {
               console.error('❌ Migration-safe retry also failed:', retryErr);
@@ -3011,7 +3011,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
 function processAdminPostUpdate(res, db, id, oldAppt, fields) {
   const { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason } = fields;
 
-    // Auto-recalculate payment_status based on updated price and manual_paid_amount
+  // Auto-recalculate payment_status based on updated price and manual_paid_amount
   const recalculateStatusQuery = `
     UPDATE appointments 
     SET payment_status = CASE 
@@ -3031,7 +3031,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
       if (!e && r.length) {
         const currentData = r[0];
         let notificationsSent = false;
-        
+
         // Safer Date Parsing
         const parseDateOnly = (d) => {
           if (!d) return null;
@@ -3047,42 +3047,42 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
         // Helper to avoid notifying user 1 (Admin/Unassigned) since Admin has a separate dashboard
         const notifyArtist = (title, msg, type) => {
-           if (currentData.artist_id && currentData.artist_id !== 1) {
-               createNotification(currentData.artist_id, title, msg, type, id);
-           }
+          if (currentData.artist_id && currentData.artist_id !== 1) {
+            createNotification(currentData.artist_id, title, msg, type, id);
+          }
         };
 
         // 1. Check for Rescheduling
         if ((newDate && oldDate && newDate !== oldDate) || (startTime !== undefined && startTime !== oldAppt.start_time)) {
-           createNotification(currentData.customer_id, 'Appointment Rescheduled 📅', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.`, 'appointment_rescheduled', id);
-           notifyArtist('Session Rescheduled', `Details for session #${id} have been updated.`, 'system');
-           notificationsSent = true;
+          createNotification(currentData.customer_id, 'Appointment Rescheduled 📅', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.`, 'appointment_rescheduled', id);
+          notifyArtist('Session Rescheduled', `Details for session #${id} have been updated.`, 'system');
+          notificationsSent = true;
         }
 
         // 2. Check for Approval/Rejection
         if (status !== undefined && status !== oldAppt.status) {
           if (status === 'confirmed' && oldAppt.status === 'pending') {
-             const priceMsg = price > 0 ? ` The quoted price is ₱${parseFloat(price).toLocaleString()}.` : '';
-             createNotification(currentData.customer_id, 'Booking Request Approved ✅', `Great news! Your booking request #${id} has been approved.${priceMsg} We look forward to seeing you.`, 'appointment_confirmed', id);
-             notifyArtist('Appointment Confirmed', `Appointment #${id} has been accepted and confirmed.`, 'appointment_confirmed');
-             notificationsSent = true;
+            const priceMsg = price > 0 ? ` The quoted price is ₱${parseFloat(price).toLocaleString()}.` : '';
+            createNotification(currentData.customer_id, 'Booking Request Approved ✅', `Great news! Your booking request #${id} has been approved.${priceMsg} We look forward to seeing you.`, 'appointment_confirmed', id);
+            notifyArtist('Appointment Confirmed', `Appointment #${id} has been accepted and confirmed.`, 'appointment_confirmed');
+            notificationsSent = true;
           } else if (status === 'rejected' && oldAppt.status === 'pending') {
-             const reasonMsg = rejectionReason ? `\n\nReason: ${rejectionReason}` : ' Please contact the studio for alternatives.';
-             createNotification(currentData.customer_id, 'Booking Request Rejected ❌', `Notice: Your booking request #${id} was unfortunately rejected.${reasonMsg}`, 'appointment_rejected', id);
-             notifyArtist('Request Rejected', `Booking request #${id} has been rejected.`, 'appointment_rejected');
-             notificationsSent = true;
+            const reasonMsg = rejectionReason ? `\n\nReason: ${rejectionReason}` : ' Please contact the studio for alternatives.';
+            createNotification(currentData.customer_id, 'Booking Request Rejected ❌', `Notice: Your booking request #${id} was unfortunately rejected.${reasonMsg}`, 'appointment_rejected', id);
+            notifyArtist('Request Rejected', `Booking request #${id} has been rejected.`, 'appointment_rejected');
+            notificationsSent = true;
           } else if (status === 'cancelled') {
-             createNotification(currentData.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
-             notifyArtist('Session Cancelled', `Session #${id} was cancelled.`, 'appointment_cancelled');
-             notificationsSent = true;
+            createNotification(currentData.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
+            notifyArtist('Session Cancelled', `Session #${id} was cancelled.`, 'appointment_cancelled');
+            notificationsSent = true;
           } else if (status === 'completed') {
-             createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
-             notifyArtist('Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed');
-             notificationsSent = true;
+            createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
+            notifyArtist('Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed');
+            notificationsSent = true;
           } else {
-             createNotification(currentData.customer_id, 'Appointment Update', `Your appointment #${id} has been updated to ${status}.`, 'system', id);
-             notifyArtist('Appointment Update', `Appointment #${id} status changed to ${status}.`, 'system');
-             notificationsSent = true;
+            createNotification(currentData.customer_id, 'Appointment Update', `Your appointment #${id} has been updated to ${status}.`, 'system', id);
+            notifyArtist('Appointment Update', `Appointment #${id} status changed to ${status}.`, 'system');
+            notificationsSent = true;
           }
         }
 
@@ -3094,7 +3094,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
         // 4. Action Required for New Assignment
         if (currentData.status === 'pending' && currentData.artist_id !== 1 && oldAppt.artist_id !== currentData.artist_id) {
-           notifyArtist('Action Required: New Assignment', `You have been assigned a new session #${id}. Please accept or decline.`, 'action_required');
+          notifyArtist('Action Required: New Assignment', `You have been assigned a new session #${id}. Please accept or decline.`, 'action_required');
         }
       }
     } catch (err) {
@@ -3167,7 +3167,7 @@ app.get('/api/admin/invoices', (req, res) => {
     LEFT JOIN users u ON a.customer_id = u.id
     ORDER BY p.created_at DESC
   `;
-  
+
   db.query(query, (err, results) => {
     if (err) {
       console.error("Error fetching invoices:", err);
@@ -3233,16 +3233,16 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
               if (!ce && cr.length) {
                 const updatedAppt = cr[0];
                 const isConfirmedNow = updatedAppt.status === 'confirmed';
-                
+
                 const customerMsg = `We have recorded a manual payment of ₱${parseFloat(amount).toLocaleString()} for your session #${id}. ${isConfirmedNow ? 'Your appointment is confirmed!' : ''}`;
                 createNotification(updatedAppt.customer_id, 'Payment Recorded', customerMsg.trim(), 'payment_success', id);
-                
+
                 if (updatedAppt.artist_id && updatedAppt.artist_id !== 1 && isConfirmedNow) {
                   const apptDate = new Date(updatedAppt.appointment_date || Date.now());
                   const dateStr = !isNaN(apptDate) ? apptDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the scheduled date';
                   createNotification(updatedAppt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr}.`, 'appointment_confirmed', id);
                 }
-                
+
                 sendReceiptEmail(updatedAppt.cx_email, { id: paymentId, amount, method });
               }
             });
@@ -3451,11 +3451,11 @@ app.put('/api/appointments/:id/status', (req, res) => {
             if (invErr) console.error('❌ Failed to auto-generate invoice:', invErr.message);
             else console.log(`✅ Auto-generated invoice for Client: ${clientName}`);
           });
-          
+
           if (appointment.artist_id && appointment.artist_id > 1) {
-              const artistCommission = currentPrice * 0.70;
-              db.query('INSERT INTO payouts (artist_id, amount, payout_method, status, reference_no, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
-                  [appointment.artist_id, artistCommission, 'System Default', 'Pending', `Commission Session #${id}`]);
+            const artistCommission = currentPrice * 0.70;
+            db.query('INSERT INTO payouts (artist_id, amount, payout_method, status, reference_no, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+              [appointment.artist_id, artistCommission, 'System Default', 'Pending', `Commission Session #${id}`]);
           }
         });
       }
@@ -3845,7 +3845,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
       FROM appointments ap 
       JOIN users u ON ap.customer_id = u.id 
       WHERE ap.id = ?`, [appointmentId], async (err, results) => {
-      
+
       if (err || results.length === 0) return res.status(404).json({ success: false, message: 'Not found' });
 
       let appt = results[0];
@@ -3863,7 +3863,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                 if (!nErr && nRes.length === 0) {
                   // Admin hasn't been notified yet — send now
                   createNotification(admin.id, 'Payment Received', `Payment for appointment #${appointmentId} from ${appt.customer_name} has been confirmed.`, 'payment_success', appointmentId);
-                  
+
                   const dateObj = new Date(appt.appointment_date);
                   const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the scheduled date';
                   createNotification(admin.id, 'Appointment Scheduled', `Appointment #${appointmentId} for ${appt.customer_name} on ${dateStr} at ${appt.start_time || 'TBD'} is confirmed.`, 'appointment_confirmed', appointmentId);
@@ -3910,48 +3910,48 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
 
             db.query("UPDATE appointments SET payment_status = ?, status = ? WHERE id = ?", [newPaymentStatus, newAptStatus, appointmentId], (updErr) => {
               if (updErr) {
-                  console.error(`❌ Failed to update appointments status to paid for ${appointmentId}:`, updErr.message);
+                console.error(`❌ Failed to update appointments status to paid for ${appointmentId}:`, updErr.message);
               } else {
-                  console.log(`💾 Appointment ${appointmentId} updated to '${newPaymentStatus}' in DB.`);
-                  
-                  // If state changed to paid, manually trigger what the webhook would normally do
-                  if (currentPaymentStatus !== newPaymentStatus) {
-                      const customerAmtStr = (amountCentavos / 100).toLocaleString();
-                      const paymentTypeStr = paymentType === 'deposit' ? 'Downpayment' : paymentType === 'custom' ? 'Partial Payment' : 'Full Payment';
-                      createNotification(appt.customer_id, 'Payment Received', `Your payment of ₱${customerAmtStr} for appointment #${appointmentId} (${paymentTypeStr}) has been successfully confirmed.`, 'payment_success', appointmentId);
-                      // Artist only gets Appointment Scheduled, not Payment Received
-                      
-                      const wasPending = currentAptStatus?.toLowerCase() === 'pending';
-                      
-                      if (wasPending) {
-                          const dateObj = new Date(appt.appointment_date);
-                          const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'your chosen date';
-                          const timeStr = appt.start_time || 'your chosen time';
-                          
-                          createNotification(appt.customer_id, 'Appointment Scheduled', `Your appointment has been scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
-                          createNotification(appt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
-                      }
-                      
-                      if (typeof sendReceiptEmail === 'function' && appt.cx_email) {
-                          const paymentId = (Array.isArray(paymentList) && paymentList.length > 0) ? paymentList[0].id : null;
-                          sendReceiptEmail(appt.cx_email, { id: paymentId, amount: amountCentavos/100, method: 'PayMongo' });
-                      }
-                      
-                      db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
-                          if (!adminErr && admins.length > 0) {
-                              const adminMsg = `Payment of ₱${(amountCentavos / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
-                              admins.forEach(admin => {
-                                  createNotification(admin.id, 'Payment Received', adminMsg, 'payment_success', appointmentId);
-                                  
-                                  if (wasPending) {
-                                      const dateObj = new Date(appt.appointment_date);
-                                      const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the chosen date';
-                                      createNotification(admin.id, 'Appointment Scheduled', `Appointment #${appointmentId} has been scheduled for ${appt.customer_name} on ${dateStr} at ${appt.start_time || 'TBD'}.`, 'appointment_confirmed', appointmentId);
-                                  }
-                              });
-                          }
-                      });
+                console.log(`💾 Appointment ${appointmentId} updated to '${newPaymentStatus}' in DB.`);
+
+                // If state changed to paid, manually trigger what the webhook would normally do
+                if (currentPaymentStatus !== newPaymentStatus) {
+                  const customerAmtStr = (amountCentavos / 100).toLocaleString();
+                  const paymentTypeStr = paymentType === 'deposit' ? 'Downpayment' : paymentType === 'custom' ? 'Partial Payment' : 'Full Payment';
+                  createNotification(appt.customer_id, 'Payment Received', `Your payment of ₱${customerAmtStr} for appointment #${appointmentId} (${paymentTypeStr}) has been successfully confirmed.`, 'payment_success', appointmentId);
+                  // Artist only gets Appointment Scheduled, not Payment Received
+
+                  const wasPending = currentAptStatus?.toLowerCase() === 'pending';
+
+                  if (wasPending) {
+                    const dateObj = new Date(appt.appointment_date);
+                    const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'your chosen date';
+                    const timeStr = appt.start_time || 'your chosen time';
+
+                    createNotification(appt.customer_id, 'Appointment Scheduled', `Your appointment has been scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
+                    createNotification(appt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
                   }
+
+                  if (typeof sendReceiptEmail === 'function' && appt.cx_email) {
+                    const paymentId = (Array.isArray(paymentList) && paymentList.length > 0) ? paymentList[0].id : null;
+                    sendReceiptEmail(appt.cx_email, { id: paymentId, amount: amountCentavos / 100, method: 'PayMongo' });
+                  }
+
+                  db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
+                    if (!adminErr && admins.length > 0) {
+                      const adminMsg = `Payment of ₱${(amountCentavos / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
+                      admins.forEach(admin => {
+                        createNotification(admin.id, 'Payment Received', adminMsg, 'payment_success', appointmentId);
+
+                        if (wasPending) {
+                          const dateObj = new Date(appt.appointment_date);
+                          const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the chosen date';
+                          createNotification(admin.id, 'Appointment Scheduled', `Appointment #${appointmentId} has been scheduled for ${appt.customer_name} on ${dateStr} at ${appt.start_time || 'TBD'}.`, 'appointment_confirmed', appointmentId);
+                        }
+                      });
+                    }
+                  });
+                }
               }
             });
 
@@ -4068,21 +4068,21 @@ app.post('/api/payments/webhook', (req, res) => {
             const paymentTypeStr = paymentType === 'deposit' ? 'Downpayment' : paymentType === 'custom' ? 'Partial Payment' : 'Full Payment';
             const customerMsg = `Your payment of ₱${customerAmtStr} for appointment #${appointmentId} (${paymentTypeStr}) has been successfully confirmed.`;
             const artistMsg = `Payment for appointment #${appointmentId} is confirmed.`;
-            
+
             createNotification(appt.customer_id, 'Payment Received', customerMsg.trim(), 'payment_success', appointmentId);
             // Artist only gets Appointment Scheduled (below), not payment notifications
-            
+
             if (wasPending) {
-                const dateObj = new Date(appt.appointment_date);
-                const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'your chosen date';
-                const timeStr = appt.start_time || 'your chosen time';
-                
-                createNotification(appt.customer_id, 'Appointment Scheduled', `Your appointment has been scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
-                createNotification(appt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
+              const dateObj = new Date(appt.appointment_date);
+              const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'your chosen date';
+              const timeStr = appt.start_time || 'your chosen time';
+
+              createNotification(appt.customer_id, 'Appointment Scheduled', `Your appointment has been scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
+              createNotification(appt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr} at ${timeStr}.`, 'appointment_confirmed', appointmentId);
             }
-            
+
             // SEND EMAILED RECEIPT
-            sendReceiptEmail(appt.cx_email, { id: paymongoPaymentId, amount: amount/100, method: 'PayMongo' });
+            sendReceiptEmail(appt.cx_email, { id: paymongoPaymentId, amount: amount / 100, method: 'PayMongo' });
 
             // Notify Admins and Managers
             db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
@@ -4090,11 +4090,11 @@ app.post('/api/payments/webhook', (req, res) => {
                 const adminMsg = `Payment of ₱${(amount / 100).toLocaleString()} received from ${appt.customer_name} for appointment #${appointmentId} (${paymentType === 'deposit' ? 'Downpayment' : 'Full Payment'}).`;
                 admins.forEach(admin => {
                   createNotification(admin.id, 'Payment Received', adminMsg.trim(), 'payment_success', appointmentId);
-                  
+
                   if (wasPending) {
-                      const dateObj = new Date(appt.appointment_date);
-                      const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the chosen date';
-                      createNotification(admin.id, 'Appointment Scheduled', `Appointment #${appointmentId} has been scheduled for ${appt.customer_name} on ${dateStr} at ${appt.start_time || 'TBD'}.`, 'appointment_confirmed', appointmentId);
+                    const dateObj = new Date(appt.appointment_date);
+                    const dateStr = !isNaN(dateObj) ? dateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the chosen date';
+                    createNotification(admin.id, 'Appointment Scheduled', `Appointment #${appointmentId} has been scheduled for ${appt.customer_name} on ${dateStr} at ${appt.start_time || 'TBD'}.`, 'appointment_confirmed', appointmentId);
                   }
                 });
               }
@@ -5515,7 +5515,7 @@ app.get('/api/artists/:id/reviews', (req, res) => {
 app.post('/api/reviews', (req, res) => {
   const { customer_id, artist_id, appointment_id, rating, comment } = req.body;
   console.log('[REVIEW] Submission attempt:', { customer_id, artist_id, appointment_id, rating, comment: comment?.substring(0, 50) });
-  
+
   if (!customer_id || !artist_id || !appointment_id || !rating) {
     return res.status(400).json({ success: false, message: 'Missing fields' });
   }
@@ -5534,7 +5534,7 @@ app.post('/api/reviews', (req, res) => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `;
-  
+
   db.query(ensureTable, (tableErr) => {
     if (tableErr) {
       console.error('[REVIEW] Table creation error:', tableErr.message);
@@ -5626,16 +5626,16 @@ app.get('/api/reviews', (req, res) => {
 // PUT review status (Admin)
 app.put('/api/admin/reviews/:id', (req, res) => {
   const { id } = req.params;
-  const { status, is_showcased } = req.body; 
-  
+  const { status, is_showcased } = req.body;
+
   let updateQuery = 'UPDATE reviews SET status = ?';
   let params = [status];
-  
+
   if (is_showcased !== undefined) {
     updateQuery += ', is_showcased = ?';
     params.push(is_showcased ? 1 : 0);
   }
-  
+
   updateQuery += ' WHERE id = ?';
   params.push(id);
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { submitReview } from '../src/utils/api';
@@ -102,18 +102,20 @@ export const CustomerReview = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff' },
   backButton: { marginRight: 15 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   content: { padding: 20, flex: 1, justifyContent: 'center' },
-  ratingCard: { backgroundColor: '#1f2937', padding: 20, borderRadius: 16, marginBottom: 20, alignItems: 'center' },
-  promptText: { color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  ratingCard: { backgroundColor: '#ffffff', padding: 20, borderRadius: 16, marginBottom: 20, alignItems: 'center' },
+  promptText: { color: '#111827', fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   starsContainer: { flexDirection: 'row', gap: 10, marginBottom: 30 },
   inputContainer: { width: '100%' },
-  label: { color: '#9ca3af', marginBottom: 8, fontSize: 14 },
-  textInput: { backgroundColor: '#374151', color: 'white', borderRadius: 12, padding: 15, height: 120, textAlignVertical: 'top' },
+  label: { color: '#6b7280', marginBottom: 8, fontSize: 14 },
+  textInput: { backgroundColor: '#f3f4f6', color: '#111827', borderRadius: 12, padding: 15, height: 120, textAlignVertical: 'top' },
   submitButton: { backgroundColor: '#f59e0b', padding: 16, borderRadius: 12, alignItems: 'center' },
   submitButtonDisabled: { opacity: 0.7 },
-  submitButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
+  submitButtonText: { color: '#111827', fontWeight: 'bold', fontSize: 16 }
 });
+
+

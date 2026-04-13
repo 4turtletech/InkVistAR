@@ -1,4 +1,4 @@
-// mobile-app/screens/AdminAuditLogs.jsx
+﻿// mobile-app/screens/AdminAuditLogs.jsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -57,7 +57,7 @@ export function AdminAuditLogs({ onLogout }) {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#1f2937', '#111827']}
+        colors={['#ffffff', '#f9fafb']}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -93,12 +93,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f3f4f6' },
   header: { padding: 20, paddingTop: 50, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
   headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
   content: { flex: 1 },
   list: { padding: 16 },
   logCard: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundcolor: '#111827',
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
@@ -111,11 +111,13 @@ const styles = StyleSheet.create({
   indicator: { width: 6 },
   logContent: { flex: 1, padding: 12 },
   logHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  actionText: { fontWeight: 'bold', fontSize: 14, color: '#1f2937' },
-  dateText: { fontSize: 12, color: '#9ca3af' },
+  actionText: { fontWeight: 'bold', fontSize: 14, color: '#ffffff' },
+  dateText: { fontSize: 12, color: '#6b7280' },
   detailsText: { fontSize: 14, color: '#4b5563', marginBottom: 8 },
   metaRow: { flexDirection: 'row', alignItems: 'center' },
   metaText: { fontSize: 12, color: '#6b7280', marginLeft: 4, marginRight: 8 },
-  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#d1d5db', marginRight: 8 },
+  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#4b5563', marginRight: 8 },
   emptyText: { textAlign: 'center', marginTop: 20, color: '#6b7280' },
 });
+
+

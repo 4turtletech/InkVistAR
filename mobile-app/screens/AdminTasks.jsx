@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -42,17 +42,19 @@ export const AdminTasks = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937', borderBottomWidth: 1, borderBottomColor: '#374151' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   backButton: { padding: 8, marginRight: 8 },
   headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   content: { padding: 20 },
-  taskCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1f2937', padding: 16, borderRadius: 12, marginBottom: 12 },
+  taskCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 12 },
   checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: '#f59e0b', marginRight: 16, justifyContent: 'center', alignItems: 'center' },
   checkboxChecked: { backgroundColor: '#f59e0b' },
   taskContent: { flex: 1 },
-  taskTitle: { color: 'white', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  taskTitle: { color: '#111827', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
   taskTitleCompleted: { textDecorationLine: 'line-through', color: '#6b7280' },
-  taskAssignee: { color: '#9ca3af', fontSize: 12 },
+  taskAssignee: { color: '#6b7280', fontSize: 12 },
 });
+
+

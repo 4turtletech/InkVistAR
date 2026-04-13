@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAdminAnalytics } from '../src/utils/api';
@@ -38,9 +38,9 @@ export const AdminAnalytics = ({ navigation }) => {
   const apptCancelled = parseInt(data?.appointments?.cancelled || 0);
   
   const pieData = [
-    { name: 'Completed', count: apptCompleted, color: '#10b981', legendFontColor: '#9ca3af', legendFontSize: 12 },
-    { name: 'Scheduled', count: apptScheduled, color: '#3b82f6', legendFontColor: '#9ca3af', legendFontSize: 12 },
-    { name: 'Cancelled', count: apptCancelled, color: '#ef4444', legendFontColor: '#9ca3af', legendFontSize: 12 },
+    { name: 'Completed', count: apptCompleted, color: '#10b981', legendFontColor: '#6b7280', legendFontSize: 12 },
+    { name: 'Scheduled', count: apptScheduled, color: '#3b82f6', legendFontColor: '#6b7280', legendFontSize: 12 },
+    { name: 'Cancelled', count: apptCancelled, color: '#ef4444', legendFontColor: '#6b7280', legendFontSize: 12 },
   ].filter(d => d.count > 0);
 
   const artistNames = (data?.artists || []).slice(0, 4).map(a => a.name.split(' ')[0]);
@@ -67,7 +67,7 @@ export const AdminAnalytics = ({ navigation }) => {
         <View style={styles.cardRow}>
            <View style={[styles.statCard, { borderLeftColor: '#0ea5e9', borderLeftWidth: 4 }]}>
              <Text style={styles.statLabel}>Total Revenue</Text>
-             <Text style={styles.statValue}>₱{revValue}</Text>
+             <Text style={styles.statValue}>â‚±{revValue}</Text>
            </View>
            <View style={[styles.statCard, { borderLeftColor: '#f59e0b', borderLeftWidth: 4 }]}>
              <Text style={styles.statLabel}>Total Appts</Text>
@@ -92,7 +92,7 @@ export const AdminAnalytics = ({ navigation }) => {
             />
           </View>
         ) : (
-          <View style={styles.emptyCard}><Text style={{color:'#9ca3af'}}>No appointment data</Text></View>
+          <View style={styles.emptyCard}><Text style={{color:'#6b7280'}}>No appointment data</Text></View>
         )}
 
         <View style={styles.chartTitleContainer}>
@@ -103,11 +103,11 @@ export const AdminAnalytics = ({ navigation }) => {
             data={barData}
             width={screenWidth}
             height={220}
-            yAxisLabel="₱"
+            yAxisLabel="â‚±"
             chartConfig={{
-              backgroundColor: '#1f2937',
-              backgroundGradientFrom: '#1f2937',
-              backgroundGradientTo: '#1f2937',
+              backgroundColor: '#ffffff',
+              backgroundGradientFrom: '#ffffff',
+              backgroundGradientTo: '#ffffff',
               decimalPlaces: 0,
               color: (opacity = 1) => `rgba(14, 165, 233, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
@@ -122,7 +122,7 @@ export const AdminAnalytics = ({ navigation }) => {
         </View>
         <View style={styles.chartCard}>
           {(data?.inventory || []).length === 0 ? (
-             <Text style={{color:'#9ca3af', textAlign:'center', padding: 20}}>No inventory transactions yet</Text>
+             <Text style={{color:'#6b7280', textAlign:'center', padding: 20}}>No inventory transactions yet</Text>
           ) : (
             (data?.inventory || []).slice(0, 5).map((item, idx) => (
               <View key={idx} style={styles.listRow}>
@@ -139,21 +139,23 @@ export const AdminAnalytics = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937', borderBottomWidth: 1, borderBottomColor: '#374151' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   backButton: { padding: 8, marginRight: 8 },
   headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   content: { padding: 20, paddingBottom: 50 },
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  statCard: { backgroundColor: '#1f2937', padding: 20, borderRadius: 12, width: '48%' },
-  statLabel: { color: '#9ca3af', fontSize: 13, marginBottom: 8 },
-  statValue: { color: 'white', fontSize: 22, fontWeight: 'bold' },
+  statCard: { backgroundColor: '#ffffff', padding: 20, borderRadius: 12, width: '48%' },
+  statLabel: { color: '#6b7280', fontSize: 13, marginBottom: 8 },
+  statValue: { color: '#111827', fontSize: 22, fontWeight: 'bold' },
   chartTitleContainer: { marginBottom: 10, marginTop: 10 },
-  chartTitle: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-  chartCard: { backgroundColor: '#1f2937', borderRadius: 12, paddingVertical: 15, marginBottom: 20, alignItems: 'center' },
-  emptyCard: { backgroundColor: '#1f2937', borderRadius: 12, paddingVertical: 30, marginBottom: 20, alignItems: 'center' },
-  listRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#374151', width: '100%' },
-  listName: { color: '#d1d5db', fontSize: 14, flex: 1 },
+  chartTitle: { color: '#111827', fontSize: 16, fontWeight: 'bold' },
+  chartCard: { backgroundColor: '#ffffff', borderRadius: 12, paddingVertical: 15, marginBottom: 20, alignItems: 'center' },
+  emptyCard: { backgroundColor: '#ffffff', borderRadius: 12, paddingVertical: 30, marginBottom: 20, alignItems: 'center' },
+  listRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6', width: '100%' },
+  listName: { color: '#4b5563', fontSize: 14, flex: 1 },
   listValue: { color: '#10b981', fontSize: 14, fontWeight: 'bold' },
 });
+
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAdminStaff } from '../src/utils/api';
@@ -38,7 +38,7 @@ export const AdminStaffScheduling = ({ navigation }) => {
     ) : (
       <ScrollView contentContainerStyle={styles.content}>
         {artists.length === 0 ? (
-          <Text style={{color: '#9ca3af', textAlign: 'center', marginTop: 20}}>No staff found.</Text>
+          <Text style={{color: '#6b7280', textAlign: 'center', marginTop: 20}}>No staff found.</Text>
         ) : (
           artists.map(staff => (
             <View key={staff.id} style={styles.shiftCard}>
@@ -65,20 +65,22 @@ export const AdminStaffScheduling = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#1f2937', borderBottomWidth: 1, borderBottomColor: '#374151' },
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   backButton: { padding: 8, marginRight: 8 },
   headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: 'white' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
   content: { padding: 20 },
-  shiftCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1f2937', padding: 16, borderRadius: 12, marginBottom: 12 },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#374151', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
-  avatarText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+  shiftCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 12 },
+  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  avatarText: { color: '#111827', fontSize: 18, fontWeight: 'bold' },
   shiftInfo: { flex: 1 },
-  artistName: { color: 'white', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-  shiftTime: { color: '#9ca3af', fontSize: 14 },
+  artistName: { color: '#111827', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  shiftTime: { color: '#6b7280', fontSize: 14 },
   shiftMeta: { alignItems: 'flex-end', width: 80 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginBottom: 4 },
-  statusText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
+  statusText: { color: '#111827', fontSize: 10, fontWeight: 'bold' },
   stationText: { color: '#6b7280', fontSize: 12 },
 });
+
+
