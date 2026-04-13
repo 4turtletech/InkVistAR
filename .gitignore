@@ -6,7 +6,11 @@ node_modules/
 .env.local
 .env.*.local
 
-# Ignore build outputs
+# Build outputs
 build/
 dist/
 .DS_Store
+
+# Local App development and IDE settings
+TattooARApp/
+.vscode/

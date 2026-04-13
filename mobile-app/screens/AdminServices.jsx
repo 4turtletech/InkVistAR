@@ -2,13 +2,24 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { getServices } from '../src/utils/api';
+
 export const AdminServices = ({ navigation }) => {
-  const [services, setServices] = useState([
-    { id: '1', name: 'Tattoo Consultation', price: 'Free', duration: '30 min', category: 'General' },
-    { id: '2', name: 'Custom Tattoo Session', price: '$150/hr', duration: 'Varies', category: 'Tattoo' },
-    { id: '3', name: 'Basic Piercing', price: '$50', duration: '30 min', category: 'Piercing' },
-    { id: '4', name: 'Touch-up Session', price: '$80', duration: '1 hr', category: 'Tattoo' },
-  ]);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  const loadServices = async () => {
+    setLoading(true);
+    const res = await getServices();
+    if(res.success) {
+      setServices(res.services || []);
+    }
+    setLoading(false);
+  };
 
   const renderService = ({ item }) => (
     <View style={styles.card}>
@@ -44,8 +55,10 @@ export const AdminServices = ({ navigation }) => {
     <FlatList
       data={services}
       renderItem={renderService}
-      keyExtractor={item => item.id}
+      keyExtractor={item => item.id.toString()}
       contentContainerStyle={styles.content}
+      onRefresh={loadServices}
+      refreshing={loading}
     />
   </View>
   );

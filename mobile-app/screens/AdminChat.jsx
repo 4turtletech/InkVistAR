@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
-import { API_URL } from '../src/utils/api';
+import { API_URL, getChatHistory } from '../src/utils/api';
 
 export const AdminChat = ({ navigation }) => {
   const [liveSessions, setLiveSessions] = useState([]);
@@ -19,8 +19,8 @@ export const AdminChat = ({ navigation }) => {
   }, [selectedSession]);
 
   useEffect(() => {
-    // Connect to tracking socket to get sessions
-    const socket = io(API_URL);
+    // Connect to tracking socket to get sessions on root URL
+    const socket = io(API_URL.replace(/\/api\/?$/, ''));
     socketRef.current = socket;
 
     socket.emit('join_admin_tracking');
@@ -43,6 +43,15 @@ export const AdminChat = ({ navigation }) => {
   useEffect(() => {
     if (selectedSession && socketRef.current) {
       setMessages([]);
+      
+      const loadHistory = async () => {
+        const res = await getChatHistory(selectedSession.id);
+        if (res.success && res.messages) {
+          setMessages(res.messages.map(m => ({ sender: m.sender, text: m.text })));
+        }
+      };
+      loadHistory();
+      
       socketRef.current.emit('join_room', selectedSession.id);
       
       socketRef.current.on('receive_message', (data) => {

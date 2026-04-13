@@ -485,7 +485,7 @@ export const deleteUserByAdmin = async (userId) => {
 };
 
 // Admin: Get All Appointments
-export const getAllAppointmentsForAdmin = async () => {
+export const getAdminAppointments = async () => {
   return fetchAPI('/admin/appointments');
 };
 
@@ -576,4 +576,44 @@ export const updateAdminSettings = async (data) => {
     method: 'POST',
     body: JSON.stringify(data),
   });
+};
+
+// =================================================================
+// NEW ADDITIONS FOR FEATURES AND PARITY
+// =================================================================
+
+// Services
+export const getServices = async () => {
+  return fetchAPI('/services');
+};
+
+// Customer Transactions
+export const getCustomerTransactions = async (customerId) => {
+  return fetchAPI(`/customer/${customerId}/transactions`);
+};
+
+// Submit Review
+export const submitReview = async (reviewData) => {
+  return fetchAPI('/reviews', {
+    method: 'POST',
+    body: JSON.stringify(reviewData)
+  });
+};
+
+// Admin: Get Reviews
+export const getAdminReviews = async () => {
+  return fetchAPI('/admin/reviews');
+};
+
+// Admin: Approve/Reject Review
+export const updateReviewStatus = async (reviewId, status) => {
+  return fetchAPI(`/admin/reviews/${reviewId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status })
+  });
+};
+
+// Chat: Get History
+export const getChatHistory = async (room) => {
+  return fetchAPI(`/chat/${room}`);
 };

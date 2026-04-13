@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, TextInput, Modal, ScrollView, SafeAreaView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getAllAppointmentsForAdmin, updateAppointmentByAdmin, deleteAppointmentByAdmin, API_URL } from '../src/utils/api';
+import { getAdminAppointments, updateAppointmentByAdmin, deleteAppointmentByAdmin, API_URL } from '../src/utils/api';
 
 export const AdminAppointmentManagement = () => {
   const [appointments, setAppointments] = useState([]);
@@ -19,7 +19,7 @@ export const AdminAppointmentManagement = () => {
 
   const loadData = async () => {
     setLoading(true);
-    const result = await getAllAppointmentsForAdmin();
+    const result = await getAdminAppointments();
     if (result.success) {
       setAppointments(result.data || []);
     }

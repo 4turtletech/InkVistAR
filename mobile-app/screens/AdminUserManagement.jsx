@@ -11,7 +11,7 @@ export const AdminUserManagement = () => {
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', type: 'customer', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', type: 'customer', password: '', phone: '', status: 'active' });
 
   const loadUsers = async () => {
     setLoading(true);
@@ -32,10 +32,10 @@ export const AdminUserManagement = () => {
   const handleOpenModal = (user = null) => {
     if (user) {
       setEditingUser(user);
-      setFormData({ name: user.name, email: user.email, type: user.user_type || 'customer', password: '' });
+      setFormData({ name: user.name, email: user.email, type: user.user_type || 'customer', password: '', phone: user.phone || '', status: user.is_deleted ? 'suspended' : 'active' });
     } else {
       setEditingUser(null);
-      setFormData({ name: '', email: '', type: 'customer', password: '' });
+      setFormData({ name: '', email: '', type: 'customer', password: '', phone: '', status: 'active' });
     }
     setModalVisible(true);
   };
@@ -183,6 +183,13 @@ export const AdminUserManagement = () => {
               onChangeText={t => setFormData({...formData, email: t})}
               autoCapitalize="none"
             />
+            <TextInput
+              style={styles.input}
+              placeholder="Phone Number (Optional)"
+              placeholderTextColor="#9ca3af"
+              value={formData.phone}
+              onChangeText={t => setFormData({...formData, phone: t})}
+            />
             
             {/* Simple Type Selector */}
             <View style={styles.typeRow}>
@@ -196,6 +203,20 @@ export const AdminUserManagement = () => {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {editingUser && (
+              <View style={styles.typeRow}>
+                {['active', 'suspended'].map(status => (
+                  <TouchableOpacity 
+                    key={status} 
+                    style={[styles.typeButton, formData.status === status && { backgroundColor: status === 'active' ? '#10b981' : '#ef4444' }]}
+                    onPress={() => setFormData({...formData, status})}
+                  >
+                    <Text style={[styles.typeText, formData.status === status && styles.typeTextActive]}>{status.toUpperCase()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 
             {!editingUser && (
               <TextInput

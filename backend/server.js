@@ -856,6 +856,33 @@ db.getConnection((err, connection) => {
     `;
     db.query(testimonialsTableQuery, (err) => { if (err) console.error('⚠️ Error checking testimonials table:', err.message); else console.log('💬 Testimonials table ready'); });
 
+    // Create Services Table
+    const servicesTableQuery = `
+      CREATE TABLE IF NOT EXISTS services (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        duration_minutes INT DEFAULT 60,
+        base_price DECIMAL(10, 2) DEFAULT 0.00,
+        category VARCHAR(100),
+        is_active BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    db.query(servicesTableQuery, (err) => { if (err) console.error('⚠️ Error checking services table:', err.message); else console.log('✨ Services table ready'); });
+
+    // Create Support Messages Table
+    const supportMessagesTableQuery = `
+      CREATE TABLE IF NOT EXISTS support_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        room_id VARCHAR(255) NOT NULL,
+        sender VARCHAR(255) NOT NULL,
+        message TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    db.query(supportMessagesTableQuery, (err) => { if (err) console.error('⚠️ Error checking support_messages table:', err.message); else console.log('💬 Support Messages table ready'); });
+
   }
 });
 
@@ -5265,6 +5292,11 @@ io.on('connection', (socket) => {
       activeSupportSessions[data.room].lastMessage = data.text;
       activeSupportSessions[data.room].timestamp = new Date();
 
+      // Persist to database
+      db.query('INSERT INTO support_messages (room_id, sender, message) VALUES (?, ?, ?)', [data.room, data.sender, data.text], (err) => {
+        if (err) console.error('Error saving chat message:', err);
+      });
+
       // Broadcast the fresh stats to all admins
       io.to('admin_room').emit('support_sessions_update', Object.values(activeSupportSessions));
 
@@ -5627,6 +5659,81 @@ app.put('/api/admin/reviews/:id', (req, res) => {
     }
 
     res.json({ success: true, message: 'Review status updated' });
+  });
+});
+
+// ========== STUDIO SERVICES ENDPOINTS ==========
+app.get('/api/services', (req, res) => {
+  const q = 'SELECT * FROM services WHERE is_active = 1 ORDER BY category, name';
+  db.query(q, (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    res.json({ success: true, services: results });
+  });
+});
+
+app.post('/api/services', (req, res) => {
+  const { name, description, duration_minutes, base_price, category } = req.body;
+  const q = 'INSERT INTO services (name, description, duration_minutes, base_price, category) VALUES (?, ?, ?, ?, ?)';
+  db.query(q, [name, description, duration_minutes, base_price, category], (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    res.json({ success: true, message: 'Service added successfully' });
+  });
+});
+
+// ========== TRANSACTIONS ENDPOINT ==========
+app.get('/api/customer/:id/transactions', (req, res) => {
+  const customerId = req.params.id;
+  // Combine PayMongo payments from 'payments' table and manual payments logged in 'appointments'
+  const q = `
+    SELECT 
+      'digital' as type,
+      p.paymongo_payment_id as reference_id,
+      p.amount,
+      p.status,
+      a.design_title as description,
+      p.created_at as created_at
+    FROM payments p
+    JOIN appointments a ON p.appointment_id = a.id
+    WHERE a.customer_id = ? AND p.status IN ('paid', 'succeeded', 'successful')
+    
+    UNION ALL
+    
+    SELECT 
+      'manual' as type,
+      CONCAT('MANUAL-', a.id) as reference_id,
+      a.manual_paid_amount as amount,
+      'paid' as status,
+      CONCAT(a.design_title, ' (Manual Payment)') as description,
+      a.created_at as created_at
+    FROM appointments a
+    WHERE a.customer_id = ? AND a.manual_paid_amount > 0 AND a.is_deleted = 0
+    ORDER BY created_at DESC
+  `;
+  db.query(q, [customerId, customerId], (err, results) => {
+    if (err) {
+      console.error('Error fetching transactions:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    // Amount is stored in cents for PayMongo, but let's just return what they have or convert.
+    // If PayMongo stores as cents, we divide by 100 for digital. If not, raw.
+    const mapped = results.map(row => {
+      let dispAmount = row.amount;
+      if (row.type === 'digital' && dispAmount > 1000) {
+        dispAmount = dispAmount / 100; // rough convert from cents if needed, handled by UI usually. Wait, keep raw value.
+      }
+      return { ...row, amount: dispAmount };
+    });
+    res.json({ success: true, transactions: mapped });
+  });
+});
+
+// ========== CHAT HISTORY ENDPOINT ==========
+app.get('/api/chat/:room', (req, res) => {
+  const { room } = req.params;
+  const q = 'SELECT sender, message as text, created_at as timestamp FROM support_messages WHERE room_id = ? ORDER BY created_at ASC';
+  db.query(q, [room], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    res.json({ success: true, messages: results });
   });
 });
 

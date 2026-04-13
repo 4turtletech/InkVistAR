@@ -48,12 +48,16 @@ import { AdminAnalytics } from './screens/AdminAnalytics.jsx';
 import { AdminSettings } from './screens/AdminSettings.jsx';
 import { AdminChat } from './screens/AdminChat.jsx';
 import { AdminPOS } from './screens/AdminPOS.jsx';
+import { AdminReviewModeration } from './screens/AdminReviewModeration.jsx';
 
 // Import SIMPLE components (no dependency conflicts)
 import { SimpleARPreview } from './components/Mobile/SimpleARPreview';
+import { ARDesignPicker } from './components/Mobile/ARDesignPicker';
 import { SimpleChatbot } from './components/Mobile/SimpleChatbot';
 import { CustomerBooking } from './screens/CustomerBooking.jsx';
 import { CustomerGallery } from './screens/CustomerGallery.jsx';
+import { CustomerTransactions } from './screens/CustomerTransactions.jsx';
+import { CustomerReview } from './screens/CustomerReview.jsx';
 
 // Import OTP Component
 import { OTPVerification } from './components/OTPVerification';
@@ -363,6 +367,28 @@ export default function App() {
     return registerResult;
   };
 
+  // AR Tab Wrapper — manages design picker → AR camera flow
+  const ARTabWrapper = ({ onNavigateHome }) => {
+    const [selectedDesign, setSelectedDesign] = useState(null);
+    
+    if (!selectedDesign) {
+      return (
+        <ARDesignPicker
+          onSelectDesign={(design) => setSelectedDesign(design)}
+          onBack={onNavigateHome}
+        />
+      );
+    }
+    
+    return (
+      <SimpleARPreview
+        selectedDesign={selectedDesign}
+        onBack={() => setSelectedDesign(null)}
+        onChangeDesign={() => setSelectedDesign(null)}
+      />
+    );
+  };
+
   // Customer Tab Navigator
   const CustomerTabs = () => (
     <Tab.Navigator
@@ -396,7 +422,7 @@ export default function App() {
         {(props) => <CustomerGallery {...props} userId={user?.id} onBack={() => props.navigation.navigate('Home')} />}
       </Tab.Screen>
       <Tab.Screen name="AR">
-        {(props) => <SimpleARPreview {...props} selectedDesign={{ name: 'Sample', type: 'Preview' }} onBack={() => props.navigation.navigate('Home')} />}
+        {(props) => <ARTabWrapper {...props} onNavigateHome={() => props.navigation.navigate('Home')} />}
       </Tab.Screen>
       <Tab.Screen name="Chat">
         {(props) => <CustomerChatbotPage {...props} userId={user.id} userName={user.name} onBack={() => props.navigation.navigate('Home')} />}
@@ -506,6 +532,7 @@ export default function App() {
               <Stack.Screen name="admin-settings" component={AdminSettings} />
               <Stack.Screen name="admin-chat" component={AdminChat} />
               <Stack.Screen name="admin-pos" component={AdminPOS} />
+              <Stack.Screen name="admin-reviews" component={AdminReviewModeration} />
               </>
             
             ) : user.type === 'artist' ? (
@@ -607,6 +634,9 @@ export default function App() {
                     />
                   )}
                 </Stack.Screen>
+
+                <Stack.Screen name="customer-transactions" component={CustomerTransactions} />
+                <Stack.Screen name="customer-review" component={CustomerReview} />
               </>
             )
           ) : showOTP ? (
