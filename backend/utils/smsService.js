@@ -32,15 +32,18 @@ async function sendSMS(phone, message) {
   if (!normalized.startsWith('+')) normalized = '+63' + normalized;
 
   try {
+    // Build payload — sendername is optional (skip to avoid needing paid custom sender name)
+    const payload = {
+      apikey: SEMAPHORE_API_KEY,
+      number: normalized,
+      message,
+    };
+    if (SEMAPHORE_SENDER_NAME) payload.sendername = SEMAPHORE_SENDER_NAME;
+
     const response = await fetch(SEMAPHORE_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        apikey: SEMAPHORE_API_KEY,
-        number: normalized,
-        message,
-        sendername: SEMAPHORE_SENDER_NAME,
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
