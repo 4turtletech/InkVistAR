@@ -238,14 +238,19 @@ function CustomerBookings(){
         maxDate.setMonth(today.getMonth() + 3);
         maxDate.setHours(23, 59, 59, 999);
 
-        // Only block dates where the customer has a PENDING (unapproved) appointment
-        const myBookedDates = new Set();
+        // Only block dates where the customer has a PENDING tattoo-type appointment.
+        // Consultations & piercings use time slots, so they don't block the whole date.
+        const myTattooBlockedDates = new Set();
+        const tattooTypeServices = ['tattoo session', 'follow-up', 'touch-up', 'tattoo + piercing'];
         appointments.forEach(a => {
             if (['pending'].includes(a.status)) {
-                const d = typeof a.appointment_date === 'string' 
-                    ? a.appointment_date.substring(0, 10) 
-                    : new Date(a.appointment_date).toISOString().split('T')[0];
-                myBookedDates.add(d);
+                const sType = (a.service_type || '').toLowerCase();
+                if (tattooTypeServices.includes(sType)) {
+                    const d = typeof a.appointment_date === 'string' 
+                        ? a.appointment_date.substring(0, 10) 
+                        : new Date(a.appointment_date).toISOString().split('T')[0];
+                    myTattooBlockedDates.add(d);
+                }
             }
         });
 
@@ -257,14 +262,18 @@ function CustomerBookings(){
             const isSelected = bookingData.date === dateStr;
             const isPast = dateObj <= today;
             const isTooFar = dateObj > maxDate;
-            const hasMySession = myBookedDates.has(dateStr);
+
+            // For tattoo-type services, block if customer already has a pending tattoo on this date
+            // For consultation/piercing, never block the whole date (time slot picker handles it)
+            const selectedService = (bookingData.serviceType || '').toLowerCase();
+            const isSlotBasedService = ['consultation', 'piercing'].includes(selectedService);
+            const hasMySession = !isSlotBasedService && myTattooBlockedDates.has(dateStr);
 
             const dateData = bookedDates[dateStr] || { consultationTimes: [], piercingTimes: [], sessionCount: 0 };
 
             // Dynamic evaluation based on selected service type — three independent pools
             let isFull = false;
             let isBusy = false;
-            const selectedService = (bookingData.serviceType || '').toLowerCase();
 
             if (selectedService === 'consultation') {
                 // Consultation pool: 7 time slots (1PM–7PM)
