@@ -64,6 +64,7 @@ import { OTPVerification } from './components/OTPVerification';
 
 // Import API
 import { loginUser, registerUser, sendOTP, resetUserPassword, deleteArtistWork, saveAuthToken, updatePushToken } from './src/utils/api';
+import { registerForPushNotifications, addNotificationTapListener } from './src/utils/pushNotifications';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -292,6 +293,8 @@ export default function App() {
         await saveAuthToken(result.token);
       }
       setUser(result.user);
+      // Register push token after login
+      registerForPushNotifications(result.user.id).catch(e => console.warn('[PUSH] Registration failed:', e.message));
     } else {
       console.log('❌ INVALID login - NOT setting user');
       if (result?.requireVerification) {

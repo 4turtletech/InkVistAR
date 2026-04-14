@@ -12,6 +12,7 @@ require('dotenv').config();
 
 const app = express();
 const { sendResendEmail } = require('./utils/emailService');
+const { sendSMS, otpMessage, appointmentConfirmedSMS, appointmentCancelledSMS, appointmentRequestedAdminSMS } = require('./utils/smsService');
 const server = http.createServer(app);
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
@@ -905,6 +906,21 @@ db.getConnection((err, connection) => {
     `;
     db.query(supportMessagesTableQuery, (err) => { if (err) console.error('⚠️ Error checking support_messages table:', err.message); else console.log('💬 Support Messages table ready'); });
 
+    // Push notification tokens table
+    const pushTokensTableQuery = `
+      CREATE TABLE IF NOT EXISTS user_push_tokens (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        token VARCHAR(512) NOT NULL,
+        platform VARCHAR(20) DEFAULT 'android',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_user_platform (user_id, platform),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `;
+    db.query(pushTokensTableQuery, (err) => { if (err) console.error('⚠️ Error checking user_push_tokens table:', err.message); else console.log('🔔 Push Tokens table ready'); });
+
   }
 });
 
@@ -1539,48 +1555,95 @@ app.get('/api/debug/users', (req, res) => {
 // ========== OTP ENDPOINTS ==========
 
 app.post('/api/send-otp', (req, res) => {
-  const { email, user_type } = req.body;
-  console.log('📧 SEND OTP:', email);
+  // otp_method: 'email' (default) or 'sms'
+  const { email, user_type, otp_method = 'email' } = req.body;
+  console.log(`📧 SEND OTP: ${email} via ${otp_method}`);
 
-  // Verify email/password first (reuse login logic check)
   db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
     if (err || !results.length) {
-      return res.json({ success: false, message: 'Invalid credentials' });
+      return res.json({ success: false, message: 'Account not found' });
     }
 
+    const user = results[0];
+
     // Skip verification check for artists and admins
-    if (results[0].user_type !== 'artist' && results[0].user_type !== 'admin' && results[0].is_verified === 0) {
+    if (user.user_type !== 'artist' && user.user_type !== 'admin' && user.is_verified === 0) {
       return res.json({ success: false, message: 'Please verify email first' });
+    }
+
+    // Validate SMS method requires a phone number
+    if (otp_method === 'sms' && !user.phone) {
+      return res.json({ success: false, message: 'No phone number on file. Please use email OTP.' });
     }
 
     // Generate 6-digit OTP + 5min expiry
     const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
-    const otp_expires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const otp_expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    // Save to DB
     db.query(
       'UPDATE users SET otp_code = ?, otp_expires = ? WHERE email = ?',
       [otp_code, otp_expires, email],
       (updateErr) => {
         if (updateErr) return res.json({ success: false, message: 'DB error' });
 
-        // LOG OTP FOR DEBUGGING (Essential if email fails)
         console.log('🔑 [DEBUG] OTP for', email, ':', otp_code);
 
-        // 🚀 OPTIMIZATION: Respond to app IMMEDIATELY, don't wait for email
-        res.json({ success: true, message: 'OTP sent to your email!' });
-
-        // Send email in background
-        const html = `
-          <h2>Your InkVistAR OTP</h2>
-          <p><strong>${otp_code}</strong></p>
-          <p>This code expires in 5 minutes.</p>
-        `;
-        sendEmail(email, 'InkVistAR Login - Your OTP Code', html);
+        if (otp_method === 'sms') {
+          res.json({ success: true, message: 'OTP sent to your phone!' });
+          sendSMS(user.phone, otpMessage(otp_code));
+        } else {
+          res.json({ success: true, message: 'OTP sent to your email!' });
+          const html = `
+            <h2 style="color:#1a1a1a;">Your InkVistAR OTP</h2>
+            <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#DAA520;">${otp_code}</p>
+            <p>This code expires in <strong>5 minutes</strong>. Do not share it with anyone.</p>
+          `;
+          sendEmail(email, 'InkVistAR - Your OTP Code', html);
+        }
       }
     );
   });
 });
+
+// ── Push Token Registration ──────────────────────────────────────
+app.post('/api/push/register', (req, res) => {
+  const { user_id, token, platform } = req.body;
+  if (!user_id || !token) return res.json({ success: false, message: 'user_id and token required' });
+
+  db.query(
+    `INSERT INTO user_push_tokens (user_id, token, platform)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE token = VALUES(token), updated_at = CURRENT_TIMESTAMP`,
+    [user_id, token, platform || 'android'],
+    (err) => {
+      if (err) {
+        console.error('[PUSH] Token registration error:', err.message);
+        return res.json({ success: false, message: err.message });
+      }
+      console.log(`[PUSH] ✅ Token registered for user ${user_id} (${platform})`);
+      res.json({ success: true });
+    }
+  );
+});
+
+// ── Send Expo Push Notification (internal helper) ────────────────
+async function sendPushNotification(userId, title, body, data = {}) {
+  db.query('SELECT token FROM user_push_tokens WHERE user_id = ?', [userId], async (err, rows) => {
+    if (err || !rows.length) return;
+    const token = rows[0].token;
+    if (!token.startsWith('ExponentPushToken')) return;
+    try {
+      await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ to: token, title, body, data, sound: 'default' }),
+      });
+      console.log(`[PUSH] ✅ Sent to user ${userId}: ${title}`);
+    } catch (e) {
+      console.error('[PUSH] ❌ Send error:', e.message);
+    }
+  });
+}
 
 app.post('/api/verify-otp', (req, res) => {
   const { email, otp, user_type } = req.body;
@@ -3087,19 +3150,36 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
             const priceMsg = price > 0 ? ` The quoted price is ₱${parseFloat(price).toLocaleString()}.` : '';
             createNotification(currentData.customer_id, 'Booking Request Approved ✅', `Great news! Your booking request #${id} has been approved.${priceMsg} We look forward to seeing you.`, 'appointment_confirmed', id);
             notifyArtist('Appointment Confirmed', `Appointment #${id} has been accepted and confirmed.`, 'appointment_confirmed');
+            // SMS + Push
+            db.query('SELECT u.phone, a.name as artist_name, ap.appointment_date FROM users u JOIN appointments ap ON ap.customer_id = u.id LEFT JOIN users a ON a.id = ap.artist_id WHERE ap.id = ?', [id], (e2, r2) => {
+              if (!e2 && r2.length) {
+                const { phone, artist_name, appointment_date } = r2[0];
+                if (phone) sendSMS(phone, appointmentConfirmedSMS(artist_name || 'your artist', appointment_date));
+              }
+            });
+            sendPushNotification(currentData.customer_id, '✅ Booking Approved!', `Your appointment #${id} has been confirmed.${priceMsg}`, { screen: 'customer-notifications' });
             notificationsSent = true;
           } else if (status === 'rejected' && oldAppt.status === 'pending') {
             const reasonMsg = rejectionReason ? `\n\nReason: ${rejectionReason}` : ' Please contact the studio for alternatives.';
             createNotification(currentData.customer_id, 'Booking Request Rejected ❌', `Notice: Your booking request #${id} was unfortunately rejected.${reasonMsg}`, 'appointment_rejected', id);
             notifyArtist('Request Rejected', `Booking request #${id} has been rejected.`, 'appointment_rejected');
+            sendPushNotification(currentData.customer_id, '❌ Booking Rejected', `Your appointment #${id} could not be approved. ${rejectionReason || ''}`.trim(), { screen: 'customer-notifications' });
             notificationsSent = true;
           } else if (status === 'cancelled') {
             createNotification(currentData.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
             notifyArtist('Session Cancelled', `Session #${id} was cancelled.`, 'appointment_cancelled');
+            // SMS + Push
+            db.query('SELECT u.phone, ap.appointment_date FROM users u JOIN appointments ap ON ap.customer_id = u.id WHERE ap.id = ?', [id], (e2, r2) => {
+              if (!e2 && r2.length && r2[0].phone) {
+                sendSMS(r2[0].phone, appointmentCancelledSMS(r2[0].appointment_date, rejectionReason));
+              }
+            });
+            sendPushNotification(currentData.customer_id, '❌ Appointment Cancelled', `Your appointment #${id} has been cancelled.`, { screen: 'customer-notifications' });
             notificationsSent = true;
           } else if (status === 'completed') {
             createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
             notifyArtist('Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed');
+            sendPushNotification(currentData.customer_id, '✨ Session Complete!', `Your InkVistAR session #${id} is done! We hope you love your new ink.`, { screen: 'customer-notifications' });
             notificationsSent = true;
           } else {
             createNotification(currentData.customer_id, 'Appointment Update', `Your appointment #${id} has been updated to ${status}.`, 'system', id);

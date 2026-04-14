@@ -1,7 +1,8 @@
 // src/utils/api.js - UPDATED VERSION
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_URL = 'https://inkvistar-api.onrender.com/api';
+export const API_BASE_URL = 'https://api.inkvictusstudio.com';
+export const API_URL = `${API_BASE_URL}/api`;
 
 // Enhanced fetch helper with better error handling
 export const fetchAPI = async (endpoint, options = {}) => {
@@ -295,11 +296,11 @@ export const deleteArtistClient = async (clientId) => {
   });
 };
 
-// Update Push Token
+// Update Push Token (now points to the correct endpoint)
 export const updatePushToken = async (userId, pushToken) => {
-  return fetchAPI(`/users/${userId}/push-token`, {
-    method: 'PUT',
-    body: JSON.stringify({ pushToken })
+  return fetchAPI('/push/register', {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId, token: pushToken, platform: 'android' })
   });
 };
 
@@ -409,11 +410,11 @@ export const markNotificationAsUnread = async (notificationId) => {
   });
 };
 
-// Send OTP
-export const sendOTP = async (email, userType) => {
+// Send OTP — otp_method: 'email' (default) | 'sms'
+export const sendOTP = async (email, userType, otp_method = 'email') => {
   return fetchAPI('/send-otp', {
     method: 'POST',
-    body: JSON.stringify({ email, user_type: userType })
+    body: JSON.stringify({ email, user_type: userType, otp_method })
   });
 };
 
