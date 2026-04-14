@@ -1629,21 +1629,43 @@ app.post('/api/push/register', (req, res) => {
 // ── Send Expo Push Notification (internal helper) ────────────────
 async function sendPushNotification(userId, title, body, data = {}) {
   db.query('SELECT token FROM user_push_tokens WHERE user_id = ?', [userId], async (err, rows) => {
-    if (err || !rows.length) return;
+    if (err) { console.error('[PUSH] ❌ DB error fetching token:', err.message); return; }
+    if (!rows.length) { console.warn(`[PUSH] ⚠️ No token found for user ${userId} — skipping push`); return; }
     const token = rows[0].token;
-    if (!token.startsWith('ExponentPushToken')) return;
+    console.log(`[PUSH] 📲 Token for user ${userId}: ${token.substring(0, 40)}...`);
+    if (!token.startsWith('ExponentPushToken')) {
+      console.warn('[PUSH] ⚠️ Token is not an Expo push token — skipping');
+      return;
+    }
     try {
-      await fetch('https://exp.host/--/api/v2/push/send', {
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ to: token, title, body, data, sound: 'default' }),
       });
-      console.log(`[PUSH] ✅ Sent to user ${userId}: ${title}`);
+      const result = await response.json();
+      console.log(`[PUSH] ✅ Expo API response for user ${userId}:`, JSON.stringify(result));
     } catch (e) {
       console.error('[PUSH] ❌ Send error:', e.message);
     }
   });
 }
+
+// ── Push Debug Endpoint (test manually) ──────────────────────────
+app.get('/api/push/debug/:userId', (req, res) => {
+  const { userId } = req.params;
+  db.query('SELECT token, platform, updated_at FROM user_push_tokens WHERE user_id = ?', [userId], (err, rows) => {
+    if (err) return res.json({ success: false, error: err.message });
+    if (!rows.length) return res.json({ success: false, message: `No push token registered for user ${userId}` });
+    res.json({ success: true, token: rows[0].token, platform: rows[0].platform, updated_at: rows[0].updated_at });
+  });
+});
+
+app.post('/api/push/test-send/:userId', async (req, res) => {
+  const { userId } = req.params;
+  await sendPushNotification(userId, '🔔 Test Notification', 'Push notifications are working!', {});
+  res.json({ success: true, message: `Push attempted for user ${userId}. Check Railway logs.` });
+});
 
 app.post('/api/verify-otp', (req, res) => {
   const { email, otp, user_type } = req.body;
