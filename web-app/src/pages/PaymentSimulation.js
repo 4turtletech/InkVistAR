@@ -124,7 +124,7 @@ const PaymentSimulation = () => {
                     <h2 style={{ margin: '0 0 8px 0' }}>InkVistAR</h2>
                     <p style={{ margin: 0, color: '#6b7280' }}>Appointment ID: {appointmentId || 'N/A'}</p>
                     <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '16px 0 0 0' }}>
-                        PHP {Number(price || 0).toFixed(2)}
+                        PHP {Number(price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                 </div>
 
@@ -146,7 +146,7 @@ const PaymentSimulation = () => {
                     disabled={status !== 'ready' && status !== 'failed'}
                     style={buttonStyles}
                 >
-                    {status === 'ready' && `Pay PHP ${Number(price || 0).toFixed(2)}`}
+                    {status === 'ready' && `Pay PHP ${Number(price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     {status === 'redirecting' && 'Redirecting...'}
                     {status === 'failed' && 'Retry'}
                     {status !== 'ready' && status !== 'redirecting' && status !== 'failed' && 'Initializing...'}

@@ -158,7 +158,7 @@ function ArtistPortal() {
                                     <DollarSign className="stat-icon" size={32} />
                                     <div className="stat-info">
                                         <p className="stat-label">Total Earnings</p>
-                                        <p className="stat-value">₱{artist?.earnings ? artist.earnings.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 0}</p>
+                                        <p className="stat-value">₱{Number(artist?.earnings || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     </div>
                                 </div>
 
