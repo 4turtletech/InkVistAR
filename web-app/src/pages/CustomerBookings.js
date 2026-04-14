@@ -254,25 +254,35 @@ function CustomerBookings(){
 
             let bgColor = 'white';
             let textColor = '#1e293b';
+            let borderColor = '#e2e8f0';
 
             if (isPast || isTooFar) {
                 bgColor = '#f8fafc';
                 textColor = '#cbd5e1';
+                borderColor = 'transparent';
             } else if (hasMySession || isFull) {
-                bgColor = '#ef4444'; // Red
-                textColor = 'white';
+                bgColor = '#fee2e2';
+                textColor = '#991b1b';
+                borderColor = '#fecaca';
             } else if (isBusy) {
-                bgColor = '#fef08a'; // Yellow
-                textColor = '#92400e';
+                bgColor = '#fef9c3';
+                textColor = '#854d0e';
+                borderColor = '#fde68a';
             } else {
-                bgColor = '#10b981'; // Green
-                textColor = 'white';
+                bgColor = '#dcfce7';
+                textColor = '#166534';
+                borderColor = '#bbf7d0';
+            }
+
+            if (isSelected) {
+                borderColor = '#C19A6B';
             }
 
             days.push(
                 <div 
-                    className={`${`calendar-day ${isDisabled ? 'disabled' : ''} customer-st-cdfe5ca9`} key={i} ${isSelected ? 'selected' : ''}`} 
-                    style={{ backgroundColor: bgColor, color: textColor, borderColor: isSelected ? '#1e293b' : '#f1f5f9', borderWidth: isSelected ? '3px' : '1px', borderStyle: 'solid', opacity: (hasMySession || isFull) ? 0.7 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                    className={`calendar-day ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`} 
+                    key={i}
+                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #C19A6B' : `1px solid ${borderColor}`, opacity: isPast || isTooFar ? 0.4 : (hasMySession || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
                     onClick={() => { 
                         if (isDisabled) { 
                             if (hasMySession) {
@@ -285,7 +295,7 @@ function CustomerBookings(){
                         setBookingData({...bookingData, date: dateStr, startTime: ''}); 
                     }} 
                 >
-                    <span className="customer-st-b4dfcc0b" style={{ fontWeight: isSelected ? '800' : '600' }} >{i}</span>
+                    <span style={{ fontWeight: isSelected ? '700' : '500' }}>{i}</span>
                 </div>
             );
         }
@@ -448,7 +458,6 @@ function CustomerBookings(){
             const isBeforeOrSameAsCurrentAppt = currentApptDate ? dateObj <= currentApptDate : false;
             const isAlreadyBooked = bookedDateSet.has(dateStr);
             
-            // Check studio capacity for reschedule as well
             const dateData = bookedDates[dateStr] || { count: 0, times: [] };
             const isFull = dateData.count >= 7;
             const isBusy = dateData.count >= 4;
@@ -457,28 +466,37 @@ function CustomerBookings(){
 
             let bgColor = 'white';
             let textColor = '#1e293b';
+            let borderColor = '#e2e8f0';
 
             if (isPast || isTooFar || isBeforeOrSameAsCurrentAppt) {
                 bgColor = '#f8fafc';
                 textColor = '#cbd5e1';
+                borderColor = 'transparent';
             } else if (isAlreadyBooked || isFull) {
-                bgColor = '#ef4444'; // Red
-                textColor = 'white';
+                bgColor = '#fee2e2';
+                textColor = '#991b1b';
+                borderColor = '#fecaca';
             } else if (isBusy) {
-                bgColor = '#fef08a'; // Yellow
-                textColor = '#92400e';
+                bgColor = '#fef9c3';
+                textColor = '#854d0e';
+                borderColor = '#fde68a';
             } else {
-                bgColor = '#10b981'; // Green
-                textColor = 'white';
+                bgColor = '#dcfce7';
+                textColor = '#166534';
+                borderColor = '#bbf7d0';
+            }
+
+            if (isSelected) {
+                borderColor = '#C19A6B';
             }
 
             days.push(
                 <div key={i} className={`calendar-day ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
-                    style={{ position: 'relative', backgroundColor: bgColor, color: textColor, borderColor: isSelected ? '#1e293b' : '#f1f5f9', borderWidth: isSelected ? '3px' : '1px', borderStyle: 'solid', opacity: (isAlreadyBooked || isFull) ? 0.7 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #C19A6B' : `1px solid ${borderColor}`, opacity: isPast || isTooFar || isBeforeOrSameAsCurrentAppt ? 0.4 : (isAlreadyBooked || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
                     onClick={() => { if (!isDisabled) setRescheduleDate(dateStr); }}
                     title={isAlreadyBooked ? 'You already have a session on this date' : isBeforeOrSameAsCurrentAppt ? 'You can only reschedule to a later date' : isFull ? 'This date is fully booked' : ''}
                 >
-                    <span style={{ fontWeight: isSelected ? '800' : '600' }}>{i}</span>
+                    <span style={{ fontWeight: isSelected ? '700' : '500' }}>{i}</span>
                 </div>
             );
         }
@@ -1165,10 +1183,11 @@ function CustomerBookings(){
                     cursor: pointer;
                     border-radius: 8px;
                     transition: all 0.2s;
+                    font-family: 'Inter', sans-serif;
                 }
-                .calendar-day:hover:not(.disabled) { background: #f1f5f9; }
-                .calendar-day.selected { background: #daa520 !important; color: white !important; font-weight: bold; }
-                .calendar-day.disabled { opacity: 0.2; cursor: not-allowed; }
+                .calendar-day:hover:not(.disabled):not(.selected) { filter: brightness(0.95); }
+                .calendar-day.selected { border: 2px solid #C19A6B !important; box-shadow: 0 0 0 3px rgba(193, 154, 107, 0.2) !important; font-weight: 700; }
+                .calendar-day.disabled { cursor: not-allowed; pointer-events: none; }
                 .fade-in { animation: fadeIn 0.3s ease-in-out; }
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
             `}</style>

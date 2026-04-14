@@ -232,19 +232,28 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
             let bgColor = 'white';
             let textColor = '#1e293b';
+            let borderColor = '#e2e8f0';
 
             if (isPast || isTooFar) {
                 bgColor = '#f8fafc';
                 textColor = '#cbd5e1';
+                borderColor = 'transparent';
             } else if (isFull) {
-                bgColor = '#ef4444'; // Red
-                textColor = 'white';
+                bgColor = '#fee2e2';
+                textColor = '#991b1b';
+                borderColor = '#fecaca';
             } else if (isBusy) {
-                bgColor = '#fef08a'; // Yellow
-                textColor = '#92400e';
+                bgColor = '#fef9c3';
+                textColor = '#854d0e';
+                borderColor = '#fde68a';
             } else {
-                bgColor = '#10b981'; // Green
-                textColor = 'white';
+                bgColor = '#dcfce7';
+                textColor = '#166534';
+                borderColor = '#bbf7d0';
+            }
+
+            if (isSelected) {
+                borderColor = '#C19A6B';
             }
 
             days.push(            
@@ -259,8 +268,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     }}
                     disabled={isPast || isTooFar || isFull}
                     style={{
-                        padding: '12px',
-                        border: isSelected ? '3px solid #1e293b' : '1px solid #f1f5f9',
+                        padding: '10px 4px',
+                        border: isSelected ? '2px solid #C19A6B' : `1px solid ${borderColor}`,
                         backgroundColor: bgColor,
                         color: textColor,
                         borderRadius: '10px',
@@ -269,12 +278,13 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '2px',
+                        fontFamily: "'Inter', sans-serif",
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                        opacity: isFull ? 0.7 : 1
+                        opacity: isPast || isTooFar ? 0.4 : (isFull ? 0.65 : 1),
+                        boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none'
                     }}
                 >
-                    <span style={{fontWeight: isSelected ? '800' : '600', fontSize: '1rem'}}>{i}</span>
+                    <span style={{fontWeight: isSelected ? '700' : '500', fontSize: '0.95rem'}}>{i}</span>
                 </button>
             );
         }
@@ -292,10 +302,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px'}}>
                     {days}
                 </div>
-                <div style={{display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '24px', fontSize: '0.85rem', color: '#64748b', fontWeight: '500'}}>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '8px', height: '8px', borderRadius: '4px', backgroundColor: '#10b981'}}/> Available</div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '8px', height: '8px', borderRadius: '4px', backgroundColor: '#f59e0b'}}/> Busy</div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '8px', height: '8px', borderRadius: '4px', backgroundColor: '#ef4444'}}/> Full</div>
+                <div style={{display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '24px', fontSize: '0.8rem', color: '#64748b', fontWeight: '500', fontFamily: "'Inter', sans-serif"}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#dcfce7', border: '1px solid #bbf7d0'}}/> Available</div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#fef9c3', border: '1px solid #fde68a'}}/> Limited</div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#fee2e2', border: '1px solid #fecaca'}}/> Full</div>
                 </div>
             </div>
         );
