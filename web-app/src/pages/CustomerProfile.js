@@ -6,6 +6,39 @@ import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
 
+const PasswordStrengthMeter = ({ feedback }) => {
+  const steps = [
+    { met: feedback.hasMinLength, hint: 'At least 8 characters' },
+    { met: feedback.hasNumber, hint: 'Add a number' },
+    { met: feedback.hasUppercase && feedback.hasLowercase, hint: 'Add upper & lowercase letters' },
+    { met: feedback.hasSymbol, hint: 'Add a special characters: !@#$%^&*()_+' }
+  ];
+
+  const score = steps.filter(s => s.met).length;
+  const nextHint = steps.find(s => !s.met);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+        {[0, 1, 2, 3].map((index) => (
+          <div key={index} style={{
+            flex: 1,
+            height: '4px',
+            borderRadius: '2px',
+            backgroundColor: index < score ? '#be9055' : '#e2e8f0',
+            transition: 'background-color 0.3s ease'
+          }} />
+        ))}
+      </div>
+      {nextHint && (
+        <div style={{ fontSize: '0.7rem', color: '#ef4444', transition: 'color 0.2s' }}>
+          {nextHint.hint}
+        </div>
+      )}
+    </div>
+  );
+};
+
 function CustomerProfile() {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const customerId = user ? user.id : null;
@@ -26,6 +59,13 @@ function CustomerProfile() {
         confirmPassword: ''
     });
     const [showPassword, setShowPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [passwordFocused, setPasswordFocused] = useState(false);
+    const [passwordFeedback, setPasswordFeedback] = useState({
+        hasMinLength: false, hasUppercase: false, hasLowercase: false,
+        hasNumber: false, hasSymbol: false
+    });
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -87,8 +127,13 @@ function CustomerProfile() {
                     setSaving(false);
                     return;
                 }
-                if (passwords.newPassword.length < 6) {
-                    setMessage({ type: 'error', text: 'Password must be at least 6 characters' });
+                const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+                if (passwords.newPassword.length < 8) {
+                    setMessage({ type: 'error', text: 'Password must be at least 8 characters' });
+                    setSaving(false);
+                    return;
+                } else if (!strongRegex.test(passwords.newPassword)) {
+                    setMessage({ type: 'error', text: 'Password needs uppercase, lowercase, number, and symbol' });
                     setSaving(false);
                     return;
                 }
@@ -331,29 +376,64 @@ function CustomerProfile() {
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <div className="customer-st-e66d54ba" >
-                                                    <div className="form-group">
+                                                <div className="customer-st-e66d54ba" style={{ display: 'flex', gap: '1rem' }} >
+                                                    <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                                                         <label style={formLabel}><Lock size={16} /> New Password</label>
                                                         <input
-                                                            type="password"
+                                                            type={showNewPassword ? "text" : "password"}
                                                             className="form-input"
                                                             value={passwords.newPassword}
-                                                            onChange={e => setPasswords({ ...passwords, newPassword: e.target.value })}
-                                                            placeholder="Min. 6 characters"
+                                                            onChange={e => {
+                                                                const val = e.target.value.slice(0, 50);
+                                                                setPasswords({ ...passwords, newPassword: val });
+                                                                setPasswordFeedback({
+                                                                    hasMinLength: val.length >= 8,
+                                                                    hasUppercase: /[A-Z]/.test(val),
+                                                                    hasLowercase: /[a-z]/.test(val),
+                                                                    hasNumber: /[0-9]/.test(val),
+                                                                    hasSymbol: /[@$!%*?&#]/.test(val)
+                                                                });
+                                                            }}
+                                                            onFocus={() => setPasswordFocused(true)}
+                                                            onBlur={() => { if (!passwords.newPassword) setPasswordFocused(false); }}
+                                                            placeholder="Min. 8 characters"
                                                             style={inputStyle}
                                                         />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowNewPassword(!showNewPassword)}
+                                                            style={{
+                                                                position: 'absolute',right: '12px',bottom: '10px',
+                                                                background: 'none',border: 'none',cursor: 'pointer',color: '#64748b'
+                                                            }}
+                                                        >
+                                                            {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                        </button>
                                                     </div>
-                                                    <div className="form-group">
+                                                    <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                                                         <label style={formLabel}><Lock size={16} /> Confirm New Password</label>
                                                         <input
-                                                            type="password"
+                                                            type={showConfirmPassword ? "text" : "password"}
                                                             className="form-input"
                                                             value={passwords.confirmPassword}
                                                             onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
                                                             placeholder="Re-enter new password"
                                                             style={inputStyle}
                                                         />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                            style={{
+                                                                position: 'absolute',right: '12px',bottom: '10px',
+                                                                background: 'none',border: 'none',cursor: 'pointer',color: '#64748b'
+                                                            }}
+                                                        >
+                                                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                        </button>
                                                     </div>
+                                                </div>
+                                                <div style={{ overflow: 'hidden', maxHeight: passwordFocused ? '200px' : '0', opacity: passwordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: passwordFocused ? '4px' : '0' }}>
+                                                  <PasswordStrengthMeter feedback={passwordFeedback} />
                                                 </div>
                                             </div>
                                         )}
