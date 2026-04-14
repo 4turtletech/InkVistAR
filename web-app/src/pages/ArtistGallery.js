@@ -282,7 +282,7 @@ function ArtistGallery() {
                                         {selectedWork.price_estimate && (
                                             <div style={{ marginTop: '24px', padding: '20px', backgroundColor: '#fdf4ff', borderRadius: '16px', border: '1px solid #fae8ff' }}>
                                                 <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#a21caf', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Market Valuation</label>
-                                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#701a75' }}>₱{Number(selectedWork.price_estimate).toLocaleString()}</div>
+                                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#701a75' }}>₱{Number(selectedWork.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                             </div>
                                         )}
                                     </div>

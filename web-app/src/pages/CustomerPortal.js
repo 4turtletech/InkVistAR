@@ -497,7 +497,7 @@ function CustomerPortal() {
                                 {selectedApt.price > 0 && (
                                     <div className="customer-st-6edb6e51" >
                                         <span className="customer-st-d4f78aa8" >Estimated Cost</span>
-                                        <span className="customer-st-8cb6763e" >₱{selectedApt.price.toLocaleString()}</span>
+                                        <span className="customer-st-8cb6763e" >₱{selectedApt.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 )}
                             </div>

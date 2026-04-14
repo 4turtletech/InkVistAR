@@ -144,7 +144,7 @@ function CustomerTransactions() {
                                             </td>
                                             <td>
                                                 <div className="customer-st-d6dc26a1" >
-                                                    ₱{(t.amount / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                    ₱{(t.amount / 100).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </div>
                                             </td>
                                             <td>

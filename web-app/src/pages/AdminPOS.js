@@ -322,7 +322,7 @@ function AdminPOS() {
                                         <h3>{item.name}</h3>
                                         <span className="pos-category">{item.category}</span>
                                         <div className="pos-card-footer">
-                                            <span className="pos-price">₱{Number(item.retail_price || item.cost).toLocaleString()}</span>
+                                            <span className="pos-price">₱{Number(item.retail_price || item.cost).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             <span className={`pos-stock ${item.current_stock <= item.min_stock ? 'low' : ''}`}>
                                                 {item.current_stock} {item.unit}
                                             </span>
@@ -358,7 +358,7 @@ function AdminPOS() {
                                     <div key={item.id} className="cart-item">
                                         <div className="cart-item-info">
                                             <h4>{item.name}</h4>
-                                            <span>₱{Number(item.retail_price || item.cost).toLocaleString()}</span>
+                                            <span>₱{Number(item.retail_price || item.cost).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                         <div className="cart-item-actions">
                                             <div className="qty-controls">
@@ -376,7 +376,7 @@ function AdminPOS() {
                                 <div className="cart-summary">
                                     <div className="summary-row" style={{ fontSize: '0.9rem', color: '#64748b' }}>
                                         <span>{cart.length} item{cart.length !== 1 ? 's' : ''}</span>
-                                        <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1.1rem' }}>₱{cartSubtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                        <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1.1rem' }}>₱{cartSubtotal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
                                 <button 
@@ -420,7 +420,7 @@ function AdminPOS() {
                                                     <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, minWidth: '24px' }}>{item.quantity}×</span>
                                                     <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#1e293b' }}>{item.name}</span>
                                                 </div>
-                                                <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem' }}>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                                <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem' }}>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -462,17 +462,17 @@ function AdminPOS() {
                                 <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#64748b', marginBottom: '6px' }}>
                                         <span>Subtotal</span>
-                                        <span>₱{cartSubtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                        <span>₱{cartSubtotal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     {discountAmount > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#ef4444', marginBottom: '6px' }}>
                                             <span>Discount</span>
-                                            <span>-₱{discountAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                            <span>-₱{discountAmount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.3rem', fontWeight: 800, color: '#1e293b', paddingTop: '8px', borderTop: '2px solid #e2e8f0' }}>
                                         <span>Total Due</span>
-                                        <span>₱{cartTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                        <span>₱{cartTotal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
 
@@ -547,7 +547,7 @@ function AdminPOS() {
                                                     {(parseFloat(amountTendered) || 0) >= cartTotal ? 'Change Due' : 'Insufficient Amount'}
                                                 </span>
                                                 <span style={{ fontWeight: 800, fontSize: '1.1rem', color: (parseFloat(amountTendered) || 0) >= cartTotal ? '#16a34a' : '#ef4444' }}>
-                                                    ₱{Math.max(0, (parseFloat(amountTendered) || 0) - cartTotal).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                                    ₱{Math.max(0, (parseFloat(amountTendered) || 0) - cartTotal).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </span>
                                             </div>
                                         )}
@@ -623,7 +623,7 @@ function AdminPOS() {
                                                 <span style={{ fontWeight: 500, color: '#1e293b' }}>{item.name}</span>
                                                 <div style={{ display: 'flex', gap: '40px' }}>
                                                     <span style={{ minWidth: '30px', textAlign: 'center', color: '#64748b' }}>{item.quantity}</span>
-                                                    <span style={{ minWidth: '80px', textAlign: 'right', fontWeight: 600, color: '#1e293b' }}>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                                    <span style={{ minWidth: '80px', textAlign: 'right', fontWeight: 600, color: '#1e293b' }}>₱{((item.retail_price || item.cost) * item.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 </div>
                                             </div>
                                         ))}
@@ -633,17 +633,17 @@ function AdminPOS() {
                                     <div style={{ padding: '14px 20px', borderTop: '1px dashed #e2e8f0', background: '#fafbfc' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#64748b', marginBottom: '4px' }}>
                                             <span>Subtotal</span>
-                                            <span>₱{lastOrder.subtotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                            <span>₱{lastOrder.subtotal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                         {lastOrder.discount_amount > 0 && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#ef4444', marginBottom: '4px' }}>
                                                 <span>Discount</span>
-                                                <span>-₱{lastOrder.discount_amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                                <span>-₱{lastOrder.discount_amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                         )}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.15rem', fontWeight: 800, color: '#1e293b', paddingTop: '8px', borderTop: '1px solid #e2e8f0', marginTop: '4px' }}>
                                             <span>Total</span>
-                                            <span>₱{lastOrder.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                            <span>₱{lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                     </div>
 
@@ -660,11 +660,11 @@ function AdminPOS() {
                                             <>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#475569', marginBottom: '4px' }}>
                                                     <span>Amount Tendered</span>
-                                                    <span style={{ fontWeight: 600 }}>₱{lastOrder.amountTendered.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                                    <span style={{ fontWeight: 600 }}>₱{lastOrder.amountTendered.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 800, color: '#16a34a', paddingTop: '6px', borderTop: '1px solid #bbf7d0', marginTop: '4px' }}>
                                                     <span>Change Given</span>
-                                                    <span>₱{lastOrder.changeGiven.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                                                    <span>₱{lastOrder.changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 </div>
                                             </>
                                         )}

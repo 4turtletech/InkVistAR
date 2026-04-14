@@ -239,11 +239,11 @@ function AdminBilling() {
                         <div className="stats-row">
                             <div className="stat-item">
                                 <span className="stat-label">Total Revenue</span>
-                                <span className="stat-count">₱{invoices.filter(i => i.status?.toLowerCase() === 'paid').reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString()}</span>
+                                <span className="stat-count">₱{invoices.filter(i => i.status?.toLowerCase() === 'paid').reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className="stat-item">
                                 <span className="stat-label">Pending Receivable</span>
-                                <span className="stat-count">₱{invoices.filter(i => i.status?.toLowerCase() === 'pending').reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString()}</span>
+                                <span className="stat-count">₱{invoices.filter(i => i.status?.toLowerCase() === 'pending').reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className="stat-item">
                                 <span className="stat-label">Invoices Issued</span>
@@ -323,7 +323,7 @@ function AdminBilling() {
                                                 <td>{inv.client_name}</td>
                                                 <td>{inv.service_type}</td>
                                                 <td>{new Date(inv.created_at).toLocaleDateString()}</td>
-                                                <td>₱{Number(inv.amount).toLocaleString()}</td>
+                                                <td>₱{Number(inv.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>
                                                     {(() => {
                                                         try {
@@ -442,7 +442,7 @@ function AdminBilling() {
                         <div className="stats-row admin-st-2579959f">
                             <div className="stat-item glass-card">
                                 <span className="stat-label" >Total Paid to Artists</span>
-                                <span className="stat-count">₱{payouts.reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString()}</span>
+                                <span className="stat-count">₱{payouts.reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div className="stat-item">
                                 <span className="stat-label">Pending Payouts (Est.)</span>
@@ -474,7 +474,7 @@ function AdminBilling() {
                                         <tr key={p.id}>
                                             <td>{new Date(p.created_at).toLocaleDateString()}</td>
                                             <td>{p.artist_name || 'Artist #' + p.artist_id}</td>
-                                            <td>₱{Number(p.amount).toLocaleString()}</td>
+                                            <td>₱{Number(p.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td>{p.payout_method}</td>
                                             <td>{p.reference_no}</td>
                                             <td><span className="badge status-active">{p.status}</span></td>
@@ -607,13 +607,13 @@ function AdminBilling() {
                                     <tbody>
                                         <tr className="admin-st-bd4d1d67">
                                             <td className="admin-st-34eca13f">{previewModal.invoice.service_type}</td>
-                                            <td className="admin-st-cd7ba92a">₱{Number(previewModal.invoice.amount).toLocaleString()}</td>
+                                            <td className="admin-st-cd7ba92a">₱{Number(previewModal.invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         </tr>
                                     </tbody>
                                     <tfoot>
                                         <tr>
                                             <td className="admin-st-6bcbfc83">Total Settlement Amount:</td>
-                                            <td className="admin-st-b88baa1e">₱{Number(previewModal.invoice.amount).toLocaleString()}</td>
+                                            <td className="admin-st-b88baa1e">₱{Number(previewModal.invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         </tr>
                                     </tfoot>
                                 </table>

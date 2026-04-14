@@ -105,7 +105,7 @@ function ManagerPortal() {
                                 <TrendingUp className="stat-icon" size={32} />
                                 <div className="stat-info">
                                     <p className="stat-label">Monthly Revenue</p>
-                                    <p className="stat-value">₱{stats.revenue ? stats.revenue.toLocaleString() : 0}</p>
+                                    <p className="stat-value">₱{stats.revenue ? stats.revenue.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 0}</p>
                                 </div>
                             </div>
 
@@ -138,7 +138,7 @@ function ManagerPortal() {
                                                 <tr key={artist.id}>
                                                     <td>{artist.name}</td>
                                                     <td>{artist.appointments}</td>
-                                                    <td>₱{artist.revenue ? artist.revenue.toLocaleString() : 0}</td>
+                                                    <td>₱{artist.revenue ? artist.revenue.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 0}</td>
                                                     <td><span className="role-badge artist">{artist.status || 'Active'}</span></td>
                                                     <td>
                                                         <button className="action-btn">View Details</button>

@@ -460,7 +460,7 @@ function AdminUsers() {
                 </div>
                 <div className="stat-item">
                     <span className="stat-label">Est. Revenue</span>
-                    <span className="stat-count">₱{artistDetails.stats.total_earnings?.toLocaleString()}</span>
+                    <span className="stat-count">₱{artistDetails.stats.total_earnings?.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
             </div>
         </div>
@@ -503,7 +503,7 @@ function AdminUsers() {
                                 <Trash2 size={16} />
                             </button>
                             <span>{work.title}</span>
-                            {work.price_estimate && <span className="admin-st-1998107d">₱{Number(work.price_estimate).toLocaleString()}</span>}
+                            {work.price_estimate && <span className="admin-st-1998107d">₱{Number(work.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                         </div>
                     </div>
                 ))}
@@ -525,7 +525,7 @@ function AdminUsers() {
                 <div className="stats-row admin-st-129729d4">
                     <div className="stat-item">
                         <span className="stat-label">Total Commission</span>
-                        <span className="stat-count">₱{earnings.reduce((sum, e) => sum + e.commission, 0).toLocaleString()}</span>
+                        <span className="stat-count">₱{earnings.reduce((sum, e) => sum + e.commission, 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                 </div>
                 <table className="data-table">
@@ -535,8 +535,8 @@ function AdminUsers() {
                             <tr key={e.id}>
                                 <td>{new Date(e.appointment_date).toLocaleDateString()}</td>
                                 <td>{e.client_name}</td>
-                                <td>₱{e.amount.toLocaleString()}</td>
-                                <td className="admin-st-9e10b928">₱{Number(e.commission).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>₱{e.amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="admin-st-9e10b928">₱{Number(e.commission).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -959,11 +959,11 @@ function AdminUsers() {
                                                                                             </div>
                                                                                             <div>
                                                                                                 <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Price</div>
-                                                                                                <div style={{ color: '#1e293b', fontWeight: 600 }}>₱{Number(record.price || 0).toLocaleString()}</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 600 }}>₱{Number(record.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                                                             </div>
                                                                                             <div>
                                                                                                 <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Amount Paid</div>
-                                                                                                <div style={{ color: '#10b981', fontWeight: 600 }}>₱{Number(record.total_paid || 0).toLocaleString()}</div>
+                                                                                                <div style={{ color: '#10b981', fontWeight: 600 }}>₱{Number(record.total_paid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                                                             </div>
                                                                                             <div>
                                                                                                 <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Payment Method</div>
@@ -1004,7 +1004,7 @@ function AdminUsers() {
                                                                                             </div>
                                                                                             <div>
                                                                                                 <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Amount</div>
-                                                                                                <div style={{ color: '#1e293b', fontWeight: 600 }}>₱{Number(record.amount || record.price || 0).toLocaleString()}</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 600 }}>₱{Number(record.amount || record.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                                                             </div>
                                                                                             <div>
                                                                                                 <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Payment Status</div>

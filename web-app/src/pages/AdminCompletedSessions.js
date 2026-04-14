@@ -212,11 +212,11 @@ function AdminCompletedSessions() {
                                                     <td>{session.designTitle || 'N/A'}</td>
                                                     <td>
                                                         <span className="admin-st-2599643e">
-                                                            ₱{session.totalCost?.toLocaleString() || '0'}
+                                                            ₱{session.totalCost?.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0'}
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <span className="admin-fw-600">₱{session.price.toLocaleString()}</span>
+                                                        <span className="admin-fw-600">₱{session.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     </td>
                                                     <td>
                                                         <button
@@ -284,7 +284,7 @@ function AdminCompletedSessions() {
                                             </div>
                                             <div className="admin-st-306fe11e">
                                                 <label className="admin-st-e634a3e2">Revenue Item</label>
-                                                <div className="admin-st-7626e003">₱{selectedSession.price.toLocaleString()}</div>
+                                                <div className="admin-st-7626e003">₱{selectedSession.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                 <div className="admin-st-f6d8a8be">Payment Confirmed</div>
                                             </div>
                                         </div>
@@ -361,7 +361,7 @@ function AdminCompletedSessions() {
                                             <div className="admin-st-0e3ab090">
                                                 <div>
                                                     <div className="admin-st-3de2cbb8">Logistics Cost</div>
-                                                    <div className="admin-st-0481d00f">₱{selectedSession.totalCost?.toLocaleString() || 0}</div>
+                                                    <div className="admin-st-0481d00f">₱{selectedSession.totalCost?.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 0}</div>
                                                 </div>
                                                 <div className="admin-st-7851dbc0">
                                                     <div className="admin-st-def2f630">{selectedSession.materials ? selectedSession.materials.length : 0}</div>

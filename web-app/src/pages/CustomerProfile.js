@@ -7,36 +7,36 @@ import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
 
 const PasswordStrengthMeter = ({ feedback }) => {
-  const steps = [
-    { met: feedback.hasMinLength, hint: 'At least 8 characters' },
-    { met: feedback.hasNumber, hint: 'Add a number' },
-    { met: feedback.hasUppercase && feedback.hasLowercase, hint: 'Add upper & lowercase letters' },
-    { met: feedback.hasSymbol, hint: 'Add a special characters: !@#$%^&*()_+' }
-  ];
+    const steps = [
+        { met: feedback.hasMinLength, hint: 'New Password' },
+        { met: feedback.hasNumber, hint: 'Add a number' },
+        { met: feedback.hasUppercase && feedback.hasLowercase, hint: 'Add upper & lowercase letters' },
+        { met: feedback.hasSymbol, hint: 'Add a special characters: !@#$%^&*()_+' }
+    ];
 
-  const score = steps.filter(s => s.met).length;
-  const nextHint = steps.find(s => !s.met);
+    const score = steps.filter(s => s.met).length;
+    const nextHint = steps.find(s => !s.met);
 
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-        {[0, 1, 2, 3].map((index) => (
-          <div key={index} style={{
-            flex: 1,
-            height: '4px',
-            borderRadius: '2px',
-            backgroundColor: index < score ? '#be9055' : '#e2e8f0',
-            transition: 'background-color 0.3s ease'
-          }} />
-        ))}
-      </div>
-      {nextHint && (
-        <div style={{ fontSize: '0.7rem', color: '#ef4444', transition: 'color 0.2s' }}>
-          {nextHint.hint}
+    return (
+        <div>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                {[0, 1, 2, 3].map((index) => (
+                    <div key={index} style={{
+                        flex: 1,
+                        height: '4px',
+                        borderRadius: '2px',
+                        backgroundColor: index < score ? '#be9055' : '#e2e8f0',
+                        transition: 'background-color 0.3s ease'
+                    }} />
+                ))}
+            </div>
+            {nextHint && (
+                <div style={{ fontSize: '0.7rem', color: '#ef4444', transition: 'color 0.2s' }}>
+                    {nextHint.hint}
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
 function CustomerProfile() {
@@ -221,7 +221,7 @@ function CustomerProfile() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <button className="btn btn-secondary customer-st-929a545b" onClick={() => { setOriginalProfile({...profile}); setIsEditing(true); }} >
+                                        <button className="btn btn-secondary customer-st-929a545b" onClick={() => { setOriginalProfile({ ...profile }); setIsEditing(true); }} >
                                             <Edit2 size={16} /> Edit Profile
                                         </button>
                                     </div>
@@ -274,7 +274,7 @@ function CustomerProfile() {
 
                                     <div className="customer-st-a65ac038" >
                                         <h2 className="customer-st-03930596" >Edit Profile</h2>
-                                        <button type="button" className="close-btn" onClick={() => { if(originalProfile) setProfile(originalProfile); setIsEditing(false); }}><X size={24} /></button>
+                                        <button type="button" className="close-btn" onClick={() => { if (originalProfile) setProfile(originalProfile); setIsEditing(false); }}><X size={24} /></button>
                                     </div>
 
                                     {/* Section 1: Personal Information */}
@@ -403,8 +403,8 @@ function CustomerProfile() {
                                                             type="button"
                                                             onClick={() => setShowNewPassword(!showNewPassword)}
                                                             style={{
-                                                                position: 'absolute',right: '12px',bottom: '10px',
-                                                                background: 'none',border: 'none',cursor: 'pointer',color: '#64748b'
+                                                                position: 'absolute', right: '12px', bottom: '10px',
+                                                                background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'
                                                             }}
                                                         >
                                                             {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -424,8 +424,8 @@ function CustomerProfile() {
                                                             type="button"
                                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                                             style={{
-                                                                position: 'absolute',right: '12px',bottom: '10px',
-                                                                background: 'none',border: 'none',cursor: 'pointer',color: '#64748b'
+                                                                position: 'absolute', right: '12px', bottom: '10px',
+                                                                background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'
                                                             }}
                                                         >
                                                             {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -433,14 +433,14 @@ function CustomerProfile() {
                                                     </div>
                                                 </div>
                                                 <div style={{ overflow: 'hidden', maxHeight: passwordFocused ? '200px' : '0', opacity: passwordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: passwordFocused ? '4px' : '0' }}>
-                                                  <PasswordStrengthMeter feedback={passwordFeedback} />
+                                                    <PasswordStrengthMeter feedback={passwordFeedback} />
                                                 </div>
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="customer-st-9ef284c9" >
-                                        <button className="btn btn-secondary customer-st-282aded5" type="button" onClick={() => { if(originalProfile) setProfile(originalProfile); setIsEditing(false); }} >
+                                        <button className="btn btn-secondary customer-st-282aded5" type="button" onClick={() => { if (originalProfile) setProfile(originalProfile); setIsEditing(false); }} >
                                             Cancel
                                         </button>
                                         <button className="btn btn-primary customer-st-68632107" type="submit" disabled={saving} >

@@ -692,7 +692,7 @@ function ArtistSessions() {
                                                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px 15px', borderRadius: '12px' }}>
                                                         <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Total Cost</span>
-                                                        <span style={{ fontWeight: 800, color: '#10b981' }}>₱{sessionCost.toLocaleString()}</span>
+                                                        <span style={{ fontWeight: 800, color: '#10b981' }}>₱{sessionCost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     </div>
 
                                                     <div style={{ display: 'flex', gap: '8px' }}>

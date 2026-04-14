@@ -327,7 +327,7 @@ function AdminStaff() {
                 </div>
                 <div className="stat-item">
                     <span className="stat-label">Est. Revenue</span>
-                    <span className="stat-count">₱{artistDetails.stats.total_earnings?.toLocaleString()}</span>
+                    <span className="stat-count">₱{artistDetails.stats.total_earnings?.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
             </div>
         </div>
@@ -378,7 +378,7 @@ function AdminStaff() {
                                 <Trash2 size={16} />
                             </button>
                             <span>{work.title}</span>
-                            {work.price_estimate && <span className="admin-st-1998107d">₱{Number(work.price_estimate).toLocaleString()}</span>}
+                            {work.price_estimate && <span className="admin-st-1998107d">₱{Number(work.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                         </div>
                     </div>
                 ))}
@@ -401,7 +401,7 @@ function AdminStaff() {
                 <div className="stats-row admin-st-129729d4">
                     <div className="stat-item">
                         <span className="stat-label">Total Commission</span>
-                        <span className="stat-count">₱{earnings.reduce((sum, e) => sum + e.commission, 0).toLocaleString()}</span>
+                        <span className="stat-count">₱{earnings.reduce((sum, e) => sum + e.commission, 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                 </div>
                 <table className="data-table">
@@ -418,8 +418,8 @@ function AdminStaff() {
                             <tr key={e.id}>
                                 <td>{new Date(e.appointment_date).toLocaleDateString()}</td>
                                 <td>{e.client_name}</td>
-                                <td>₱{e.amount.toLocaleString()}</td>
-                                <td className="admin-st-9e10b928">₱{Number(e.commission).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td>₱{e.amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="admin-st-9e10b928">₱{Number(e.commission).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             </tr>
                         ))}
                     </tbody>

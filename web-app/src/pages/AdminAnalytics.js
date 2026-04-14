@@ -209,7 +209,7 @@ function AdminAnalytics() {
                     <DollarSign className="metric-icon" size={32} />
                     <div className="metric-content">
                         <p className="metric-label">Total Revenue</p>
-                        <p className="metric-value">₱{Number(analytics.revenue.total).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</p>
+                        <p className="metric-value">₱{Number(analytics.revenue.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                 </div>
 
@@ -298,7 +298,7 @@ function AdminAnalytics() {
                                 </div>
                                 <div className="artist-stats" style={{ display: 'flex', gap: '2rem', width: '50%', justifyContent: 'flex-end', paddingRight: '1rem' }}>
                                     <div className="stat">
-                                        <span className="stat-value">₱{Number(artist.revenue || 0).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span>
+                                        <span className="stat-value">₱{Number(artist.revenue || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         <span className="stat-label">Revenue</span>
                                     </div>
                                     <div className="stat">
@@ -347,7 +347,7 @@ function AdminAnalytics() {
                                         className={`trend-bar ${Number(data.value) === 0 ? 'empty-trend-bar' : ''}`}
                                         style={{ height: Number(data.value) === 0 ? '24px' : `${Math.max(15, Math.min((Number(data.value) / 5000) * 100, 100))}%` }}
                                     >
-                                        {Number(data.value) > 0 && <span className="bar-value">₱{Number(data.value).toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2})}</span>}
+                                        {Number(data.value) > 0 && <span className="bar-value">₱{Number(data.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                                     </div>
                                 </div>
                                 <div className="trend-info">
@@ -393,7 +393,7 @@ function AdminAnalytics() {
                     </div>
                     <div className="breakdown-item">
                         <div className="breakdown-stat">
-                            <span className="stat-number">₱{analytics.appointments.total > 0 ? Number((analytics.revenue.total / analytics.appointments.total).toFixed(0)).toLocaleString() : 0}</span>
+                            <span className="stat-number">₱{analytics.appointments.total > 0 ? Number((analytics.revenue.total / analytics.appointments.total).toFixed(0)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 0}</span>
                             <span className="stat-label">Avg per Appointment</span>
                         </div>
                         <div className="breakdown-percentage info">

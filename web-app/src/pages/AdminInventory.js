@@ -530,7 +530,7 @@ function AdminInventory() {
                     </div>
                     <div className="admin-st-7851dbc0">
                         <p className="admin-st-c4858c02">Date: {new Date().toLocaleDateString()}</p>
-                        <p className="admin-st-c4858c02">Total Value: ₱{totalValue.toLocaleString()}</p>
+                        <p className="admin-st-c4858c02">Total Value: ₱{totalValue.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                 </div>
             </div>
@@ -659,7 +659,7 @@ function AdminInventory() {
                     </div>
                     <div className="stat-info-v2">
                         <span className="stat-label-v2">Inventory Value</span>
-                        <h3 className="stat-value-v2">₱{totalValue.toLocaleString()}</h3>
+                        <h3 className="stat-value-v2">₱{totalValue.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
                         <div className="stat-trend-v2">Current market cost</div>
                     </div>
                 </div>
@@ -707,7 +707,7 @@ function AdminInventory() {
                                         </td>
                                         <td className="text-muted text-center admin-st-e7992da2">{item.minStock}</td>
                                         <td>{item.unit}</td>
-                                <td>₱{item.retailPrice ? item.retailPrice.toLocaleString() : item.cost.toLocaleString()}</td>
+                                <td>₱{item.retailPrice ? item.retailPrice.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : item.cost.toLocaleString()}</td>
                                         <td>
                                             <span className={`badge stock-${getStockStatus(item.currentStock, item.minStock, item.maxStock)}`}>
                                                 {getStockStatus(item.currentStock, item.minStock, item.maxStock)}

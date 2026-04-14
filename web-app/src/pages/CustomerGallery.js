@@ -339,7 +339,7 @@ function CustomerGallery(){
                                     {selectedWork.price_estimate && viewMode !== 'My Tattoos' && (
                                         <div className="price-estimate-box">
                                             <p className="price-label">Estimated Price</p>
-                                            <p className="price-value">₱{Number(selectedWork.price_estimate).toLocaleString()}</p>
+                                            <p className="price-value">₱{Number(selectedWork.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                         </div>
                                     )}
                                 </div>

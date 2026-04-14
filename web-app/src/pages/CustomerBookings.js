@@ -498,7 +498,7 @@ function CustomerBookings(){
                                                     <td><span className={`status-badge ${a.status.toLowerCase()}`}>{a.status}</span></td>
                                                     <td>
                                                         {a.price > 0 ? (
-                                                            <div className="customer-st-52ddb992" >₱{Number(a.price).toLocaleString()}</div>
+                                                            <div className="customer-st-52ddb992" >₱{Number(a.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                         ) : (
                                                             <span className="customer-st-b8eb7d87" >Pending Quote</span>
                                                         )}
@@ -625,19 +625,19 @@ function CustomerBookings(){
                                     <div className="billing-summary customer-st-aa822c5e" >
                                         <div className="customer-st-56da6dbd" >
                                             <span className="customer-st-504f25fa" >Total Service Price:</span>
-                                            <span className="customer-st-c6cdc897" >₱{selectedApt.price.toLocaleString()}</span>
+                                            <span className="customer-st-c6cdc897" >₱{selectedApt.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                         <div className="customer-st-56da6dbd" >
                                             <span className="customer-st-504f25fa" >Amount Paid:</span>
                                             <span className="customer-st-49af0fbb" >
-                                                ₱{Number(selectedApt.total_paid || 0).toLocaleString()}
+                                                ₱{Number(selectedApt.total_paid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                         <hr className="customer-st-b45fb1af" />
                                         <div className="customer-st-4110ceca" >
                                             <span className="customer-st-e7b1617c" >Remaining Balance:</span>
                                             <span className="customer-st-58e71408" >
-                                                ₱{Math.max(0, selectedApt.price - (selectedApt.total_paid || 0)).toLocaleString()}
+                                                ₱{Math.max(0, selectedApt.price - (selectedApt.total_paid || 0)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                         
@@ -681,7 +681,7 @@ function CustomerBookings(){
                                                         </span>
                                                     </div>
                                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                                                        <span style={{ fontWeight: 700, color: t.status.toLowerCase() === 'paid' ? '#10b981' : '#f59e0b', fontSize: '1.1rem' }}>₱{(t.amount/100).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                                        <span style={{ fontWeight: 700, color: t.status.toLowerCase() === 'paid' ? '#10b981' : '#f59e0b', fontSize: '1.1rem' }}>₱{(t.amount/100).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                         <span style={{ fontSize: '0.7rem', padding: '2px 8px', background: t.status.toLowerCase()==='paid'? '#ecfdf5' : '#fff7ed', color: t.status.toLowerCase()==='paid'?'#059669':'#ea580c', borderRadius: '12px', fontWeight: 600 }}>{t.status.toUpperCase()}</span>
                                                     </div>
                                                 </div>

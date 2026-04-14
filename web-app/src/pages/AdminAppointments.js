@@ -891,7 +891,7 @@ function AdminAppointments() {
                                                             appointment.totalPaid >= appointment.price ? (
                                                                 <span className="badge status-confirmed admin-st-4c344c9a">Fully Paid</span>
                                                             ) : appointment.totalPaid > 0 ? (
-                                                                <span className="badge admin-st-4a6cc9f0">Balance: ₱{(appointment.price - appointment.totalPaid).toLocaleString()}</span>
+                                                                <span className="badge admin-st-4a6cc9f0">Balance: ₱{(appointment.price - appointment.totalPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                             ) : (
                                                                 <span className="badge admin-st-07684bc7">Unpaid</span>
                                                             )
@@ -899,7 +899,7 @@ function AdminAppointments() {
                                                             <span className="badge admin-st-2d1fd819">No Charge</span>
                                                         )}
                                                     </td>
-                                                    <td>₱{Number(appointment.price).toLocaleString()}</td>
+                                                    <td>₱{Number(appointment.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                     <td className="actions-cell">
                                                         {appointment.status === 'pending' && (
                                                             <>
@@ -987,9 +987,9 @@ function AdminAppointments() {
                                         <span className={`badge status-${getStatusColor(formData.status)}`}>{formData.status}</span>
                                         {selectedAppointment && selectedAppointment.price > 0 && (
                                             <div className="badge admin-st-d2713882">
-                                                <span>Paid: ₱{selectedAppointment.totalPaid.toLocaleString()} / ₱{formData.price.toLocaleString()}</span>
+                                                <span>Paid: ₱{Number(selectedAppointment.totalPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ₱{Number(formData.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 {selectedAppointment.totalPaid < formData.price && (
-                                                    <span className="admin-st-14a76a5d">(Bal: ₱{(formData.price - selectedAppointment.totalPaid).toLocaleString()})</span>
+                                                    <span className="admin-st-14a76a5d">(Bal: ₱{(Number(formData.price) - Number(selectedAppointment.totalPaid)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
                                                 )}
                                             </div>
                                         )}
@@ -1224,11 +1224,11 @@ function AdminAppointments() {
                                                 <div className="admin-st-4344b743">
                                                     <div className="admin-st-7c85a4a1">
                                                         <span className="admin-st-9e124000">Total Collected:</span>
-                                                        <span className="admin-st-3947f0f7">₱{selectedAppointment.totalPaid.toLocaleString()}</span>
+                                                        <span className="admin-st-3947f0f7">₱{Number(selectedAppointment.totalPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     </div>
                                                     <div className="admin-st-ddde571d">
                                                         <span className="admin-st-9e124000">Remaining Balance:</span>
-                                                        <span className="admin-st-da5d65cf">₱{Math.max(0, formData.price - selectedAppointment.totalPaid).toLocaleString()}</span>
+                                                        <span className="admin-st-da5d65cf">₱{Math.max(0, Number(formData.price) - Number(selectedAppointment.totalPaid)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     </div>
                                                 </div>
                                             )}

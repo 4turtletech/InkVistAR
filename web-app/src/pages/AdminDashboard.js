@@ -360,9 +360,9 @@ function AdminDashboard() {
                                 </div>
                                 <div className="stat-info-v2">
                                     <span className="stat-label-v2">Revenue (Month)</span>
-                                    <h3 className="stat-value-v2">₱{revenueData.monthly.toLocaleString()}</h3>
+                                    <h3 className="stat-value-v2">₱{revenueData.monthly.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
                                     <div className="stat-trend-v2">
-                                        +₱{revenueData.daily.toLocaleString()} today
+                                        +₱{revenueData.daily.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} today
                                     </div>
                                 </div>
                             </div>
@@ -669,12 +669,12 @@ function AdminDashboard() {
                                 )}
                                 <div className="detail-item admin-st-0ce7012c">
                                     <span className="admin-st-2591d288">Valuation (Total)</span>
-                                    <span className="admin-st-362525e0">₱{Number(selectedAppointment.price || 0).toLocaleString()}</span>
+                                    <span className="admin-st-362525e0">₱{Number(selectedAppointment.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div className="detail-item admin-st-1c711d5e">
                                     <span className="admin-st-e26908b3">Financial Clearance (Paid)</span>
                                     <span className="admin-st-da64dae6">
-                                        ₱{Number(selectedAppointment.total_paid || 0).toLocaleString()}
+                                        ₱{Number(selectedAppointment.total_paid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 </div>
                             </div>

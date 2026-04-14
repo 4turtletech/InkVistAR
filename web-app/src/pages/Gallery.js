@@ -222,7 +222,7 @@ const Gallery = () => {
               <div className="price-info">
                 <span className="price-label">ESTIMATED PRICE RANGE</span>
                 <span className="price-values">
-                  ₱{priceRange.min.toLocaleString()} - ₱{priceRange.max.toLocaleString()}{priceRange.max >= 500000 ? '+' : ''}
+                  ₱{priceRange.min.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - ₱{priceRange.max.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{priceRange.max >= 500000 ? '+' : ''}
                 </span>
               </div>
               

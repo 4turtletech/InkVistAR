@@ -141,7 +141,7 @@ const PayMongoPayment = () => {
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontWeight: 700, fontSize: '1rem', color: paymentType === optType ? '#1e293b' : '#64748b' }}>{label}</span>
-                <span style={{ fontWeight: 800, fontSize: '1.25rem', color: '#1e293b' }}>₱{amount.toLocaleString()}</span>
+                <span style={{ fontWeight: 800, fontSize: '1.25rem', color: '#1e293b' }}>₱{amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b', lineHeight: '1.5' }}>{description}</p>
             {optType === 'custom' && paymentType === 'custom' && (
@@ -210,7 +210,7 @@ const PayMongoPayment = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ color: '#64748b', fontWeight: '500' }}>Amount to Pay:</span>
                                 <span style={{ fontWeight: '800', fontSize: '1.75rem', color: '#1e293b' }}>
-                                    ₱{(paymentType === 'deposit' ? depositPrice : paymentType === 'custom' ? Number(customAmount) : location.state?.remainingBalance || price).toLocaleString()}
+                                    ₱{(paymentType === 'deposit' ? depositPrice : paymentType === 'custom' ? Number(customAmount) : location.state?.remainingBalance || price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
                         </div>

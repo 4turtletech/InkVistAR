@@ -74,7 +74,7 @@ function ArtistEarnings() {
                                     <DollarSign className="stat-icon" size={32} />
                                     <div className="stat-info">
                                         <p className="stat-label">Today's Earnings</p>
-                                        <p className="stat-value">₱{stats.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                        <p className="stat-value">₱{stats.totalEarnings.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     </div>
                                 </div>
                                 <div className="stat-card">
@@ -88,7 +88,7 @@ function ArtistEarnings() {
                                     <CreditCard className="stat-icon" size={32} />
                                     <div className="stat-info">
                                         <p className="stat-label">Current Month Payout</p>
-                                        <p className="stat-value">₱{stats.pendingPayout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                        <p className="stat-value">₱{stats.pendingPayout.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     </div>
                                 </div>
                             </div>
@@ -115,9 +115,9 @@ function ArtistEarnings() {
                                                             <td>{new Date(session.appointment_date).toLocaleDateString()}</td>
                                                             <td>{session.client_name}</td>
                                                             <td>{session.design_title}</td>
-                                                            <td>₱{(session.basePrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                            <td>₱{(session.basePrice || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                             <td style={{ color: session.payment_status === 'paid' ? '#10b981' : '#f59e0b', fontWeight: 'bold' }}>
-                                                                ₱{Number(session.artistShare || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                ₱{Number(session.artistShare || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                                 <span style={{ fontSize: '0.7rem', display: 'block', color: session.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>
                                                                     {session.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
                                                                 </span>
@@ -161,7 +161,7 @@ function ArtistEarnings() {
                                                     {payoutHistory.map((payout, i) => (
                                                         <tr key={i}>
                                                             <td>{payout.month}</td>
-                                                            <td>₱{(payout.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                            <td>₱{(payout.amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                             <td><span className="status-badge completed">{payout.status}</span></td>
                                                         </tr>
                                                     ))}
