@@ -101,9 +101,13 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     const dateStr = typeof b.appointment_date === 'string' 
                         ? b.appointment_date.substring(0, 10) 
                         : new Date(b.appointment_date).toISOString().split('T')[0];
-                    if (!bookings[dateStr]) bookings[dateStr] = { count: 0, times: [] };
-                    bookings[dateStr].count += 1;
-                    if (b.start_time) bookings[dateStr].times.push(b.start_time.substring(0, 5));
+                    if (!bookings[dateStr]) bookings[dateStr] = { consultationTimes: [], sessionCount: 0 };
+                    const sType = (b.service_type || '').toLowerCase();
+                    if (sType === 'consultation') {
+                        if (b.start_time) bookings[dateStr].consultationTimes.push(b.start_time.substring(0, 5));
+                    } else {
+                        bookings[dateStr].sessionCount += 1;
+                    }
                 });
                 setBookedDates(bookings);
             }
@@ -226,9 +230,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             const isPast = checkDate <= today;
             const isTooFar = checkDate > maxDate;
             
-            const dateData = bookedDates[dateStr] || { count: 0, times: [] };
-            const isFull = dateData.count >= studioCapacity; 
-            const isBusy = dateData.count >= Math.max(1, studioCapacity - 1);
+            const dateData = bookedDates[dateStr] || { consultationTimes: [], sessionCount: 0 };
+            // Wizard is Consultation-only: evaluate only consultation time slots (7 max: 13:00–19:00)
+            const consultationSlotsTaken = dateData.consultationTimes.length;
+            const isFull = consultationSlotsTaken >= 7;
+            const isBusy = consultationSlotsTaken >= 5;
 
             let bgColor = 'white';
             let textColor = '#1e293b';
@@ -431,7 +437,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             if (formData.date) {
                                 const checkDate = new Date(`${formData.date}T${t}:00`);
                                 if (checkDate <= new Date()) isDisabled = true;
-                                if (bookedDates[formData.date] && bookedDates[formData.date].times.includes(t)) isDisabled = true;
+                                if (bookedDates[formData.date] && bookedDates[formData.date].consultationTimes.includes(t)) isDisabled = true;
                             } else {
                                 isDisabled = true; // Wait for date selection
                             }

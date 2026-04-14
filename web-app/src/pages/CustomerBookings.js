@@ -27,6 +27,7 @@ function CustomerBookings(){
     const [artists, setArtists] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [studioCapacity, setStudioCapacity] = useState(1);
     const [bookedDates, setBookedDates] = useState({});
     const serviceOptions = ['Tattoo Session', 'Consultation', 'Piercing', 'Tattoo + Piercing', 'Follow-up', 'Touch-up'];
     
@@ -84,16 +85,21 @@ function CustomerBookings(){
         };
         const fetchAvailability = async () => {
             try {
-                const response = await Axios.get(`${API_URL}/api/artist/1/availability`);
+                const response = await Axios.get(`${API_URL}/api/public/calendar-availability`);
                 if (response.data.success) {
+                    setStudioCapacity(response.data.totalArtists || 1);
                     const bookings = {};
                     response.data.bookings.forEach(b => {
                         const dateStr = typeof b.appointment_date === 'string' 
                             ? b.appointment_date.substring(0, 10) 
                             : new Date(b.appointment_date).toISOString().split('T')[0];
-                        if (!bookings[dateStr]) bookings[dateStr] = { count: 0, times: [] };
-                        bookings[dateStr].count += 1;
-                        if (b.start_time) bookings[dateStr].times.push(b.start_time.substring(0, 5));
+                        if (!bookings[dateStr]) bookings[dateStr] = { consultationTimes: [], sessionCount: 0 };
+                        const sType = (b.service_type || '').toLowerCase();
+                        if (sType === 'consultation') {
+                            if (b.start_time) bookings[dateStr].consultationTimes.push(b.start_time.substring(0, 5));
+                        } else {
+                            bookings[dateStr].sessionCount += 1;
+                        }
                     });
                     setBookedDates(bookings);
                 }
@@ -225,10 +231,10 @@ function CustomerBookings(){
         maxDate.setMonth(today.getMonth() + 3);
         maxDate.setHours(23, 59, 59, 999);
 
-        // Collect dates where this customer already has an active appointment
+        // Only block dates where the customer has a PENDING (unapproved) appointment
         const myBookedDates = new Set();
         appointments.forEach(a => {
-            if (!['completed', 'cancelled', 'rejected'].includes(a.status)) {
+            if (['pending'].includes(a.status)) {
                 const d = typeof a.appointment_date === 'string' 
                     ? a.appointment_date.substring(0, 10) 
                     : new Date(a.appointment_date).toISOString().split('T')[0];
@@ -246,9 +252,24 @@ function CustomerBookings(){
             const isTooFar = dateObj > maxDate;
             const hasMySession = myBookedDates.has(dateStr);
 
-            const dateData = bookedDates[dateStr] || { count: 0, times: [] };
-            const isFull = dateData.count >= 7; // Up to 7 time blocks maximum
-            const isBusy = dateData.count >= 4;
+            const dateData = bookedDates[dateStr] || { consultationTimes: [], sessionCount: 0 };
+
+            // Dynamic evaluation based on selected service type
+            let isFull = false;
+            let isBusy = false;
+            const selectedService = (bookingData.serviceType || '').toLowerCase();
+
+            if (selectedService === 'consultation') {
+                // Consultation: evaluate only consultation time slots (7 max)
+                const slotsTaken = dateData.consultationTimes.length;
+                isFull = slotsTaken >= 7;
+                isBusy = slotsTaken >= 5;
+            } else if (selectedService) {
+                // Tattoo Session / Piercing / etc: evaluate only session count vs artist capacity
+                isFull = dateData.sessionCount >= studioCapacity;
+                isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1);
+            }
+            // If no service selected yet, show all dates as available (no blocking)
 
             const isDisabled = isPast || isTooFar || hasMySession || isFull;
 
@@ -458,9 +479,18 @@ function CustomerBookings(){
             const isBeforeOrSameAsCurrentAppt = currentApptDate ? dateObj <= currentApptDate : false;
             const isAlreadyBooked = bookedDateSet.has(dateStr);
             
-            const dateData = bookedDates[dateStr] || { count: 0, times: [] };
-            const isFull = dateData.count >= 7;
-            const isBusy = dateData.count >= 4;
+            const dateData = bookedDates[dateStr] || { consultationTimes: [], sessionCount: 0 };
+            // Evaluate based on the service type of the appointment being rescheduled
+            let isFull = false;
+            let isBusy = false;
+            const apptService = (selectedApt?.service_type || '').toLowerCase();
+            if (apptService === 'consultation') {
+                isFull = dateData.consultationTimes.length >= 7;
+                isBusy = dateData.consultationTimes.length >= 5;
+            } else {
+                isFull = dateData.sessionCount >= studioCapacity;
+                isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1);
+            }
 
             const isDisabled = isPast || isTooFar || isBeforeOrSameAsCurrentAppt || isAlreadyBooked || isFull;
 
@@ -1114,7 +1144,7 @@ function CustomerBookings(){
                                                             if (bookingData.date) {
                                                                 const checkDate = new Date(`${bookingData.date}T${t}:00`);
                                                                 if (checkDate <= new Date()) isDisabled = true;
-                                                                if (bookedDates[bookingData.date] && bookedDates[bookingData.date].times.includes(t)) isDisabled = true;
+                                                                if (bookedDates[bookingData.date] && bookedDates[bookingData.date].consultationTimes.includes(t)) isDisabled = true;
                                                             } else {
                                                                 isDisabled = true; // Wait for date selection
                                                             }

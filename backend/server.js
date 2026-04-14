@@ -2406,7 +2406,7 @@ app.get('/api/artist/:artistId/availability', (req, res) => {
   const { artistId } = req.params;
 
   const query = `
-    SELECT appointment_date, start_time, status
+    SELECT appointment_date, start_time, status, service_type
     FROM appointments
     WHERE artist_id = ? 
     AND status != 'cancelled' 
@@ -2432,7 +2432,7 @@ app.get('/api/public/calendar-availability', (req, res) => {
 
     // Fetch all non-cancelled appointments globally
     const bookingQuery = `
-      SELECT appointment_date, start_time, status
+      SELECT appointment_date, start_time, status, service_type
       FROM appointments
       WHERE status NOT IN ('cancelled', 'rejected')
       AND is_deleted = 0
