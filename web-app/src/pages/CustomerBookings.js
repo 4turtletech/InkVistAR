@@ -250,19 +250,42 @@ function CustomerBookings(){
             const isFull = dateData.count >= 7; // Up to 7 time blocks maximum
             const isBusy = dateData.count >= 4;
 
-            let statusColor = '#10b981'; 
-            if (hasMySession) statusColor = '#ef4444';
-            else if (isFull) statusColor = '#ef4444';
-            else if (isBusy) statusColor = '#f59e0b';
+            const isDisabled = isPast || isTooFar || hasMySession || isFull;
 
-            const isDisabled = isPast || isTooFar || hasMySession;
+            let bgColor = 'white';
+            let textColor = '#1e293b';
+
+            if (isPast || isTooFar) {
+                bgColor = '#f8fafc';
+                textColor = '#cbd5e1';
+            } else if (hasMySession || isFull) {
+                bgColor = '#ef4444'; // Red
+                textColor = 'white';
+            } else if (isBusy) {
+                bgColor = '#fef08a'; // Yellow
+                textColor = '#92400e';
+            } else {
+                bgColor = '#10b981'; // Green
+                textColor = 'white';
+            }
 
             days.push(
-                <div className={`${`calendar-day ${isDisabled ? 'disabled' : ''} customer-st-cdfe5ca9`} key={i} ${isSelected ? 'selected' : ''}`} onClick={() => { if (isDisabled) { if (hasMySession) showAlert("Date Unavailable", "You already have a session booked on this date. Please choose another date.", "warning"); return; } if (isFull) { showAlert("Fully Booked", "This date is fully booked. Please choose another date.", "warning"); return; } setBookingData({...bookingData, date: dateStr, startTime: ''}); }} >
-                    <span className="customer-st-b4dfcc0b" >{i}</span>
-                    {!isPast && !isTooFar && (
-                        <div style={{ width: '4px', height: '4px', borderRadius: '2px', backgroundColor: statusColor, marginTop: '2px' }} />
-                    )}
+                <div 
+                    className={`${`calendar-day ${isDisabled ? 'disabled' : ''} customer-st-cdfe5ca9`} key={i} ${isSelected ? 'selected' : ''}`} 
+                    style={{ backgroundColor: bgColor, color: textColor, borderColor: isSelected ? '#1e293b' : '#f1f5f9', borderWidth: isSelected ? '3px' : '1px', borderStyle: 'solid', opacity: (hasMySession || isFull) ? 0.7 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                    onClick={() => { 
+                        if (isDisabled) { 
+                            if (hasMySession) {
+                                showAlert("Date Unavailable", "You already have a session booked on this date. Please choose another date.", "warning"); 
+                            } else if (isFull) { 
+                                showAlert("Fully Booked", "This date is fully booked. Please choose another date.", "warning"); 
+                            }
+                            return; 
+                        } 
+                        setBookingData({...bookingData, date: dateStr, startTime: ''}); 
+                    }} 
+                >
+                    <span className="customer-st-b4dfcc0b" style={{ fontWeight: isSelected ? '800' : '600' }} >{i}</span>
                 </div>
             );
         }
@@ -424,18 +447,38 @@ function CustomerBookings(){
             const isTooFar = dateObj > maxDate;
             const isBeforeOrSameAsCurrentAppt = currentApptDate ? dateObj <= currentApptDate : false;
             const isAlreadyBooked = bookedDateSet.has(dateStr);
-            const isDisabled = isPast || isTooFar || isBeforeOrSameAsCurrentAppt || isAlreadyBooked;
+            
+            // Check studio capacity for reschedule as well
+            const dateData = bookedDates[dateStr] || { count: 0, times: [] };
+            const isFull = dateData.count >= 7;
+            const isBusy = dateData.count >= 4;
+
+            const isDisabled = isPast || isTooFar || isBeforeOrSameAsCurrentAppt || isAlreadyBooked || isFull;
+
+            let bgColor = 'white';
+            let textColor = '#1e293b';
+
+            if (isPast || isTooFar || isBeforeOrSameAsCurrentAppt) {
+                bgColor = '#f8fafc';
+                textColor = '#cbd5e1';
+            } else if (isAlreadyBooked || isFull) {
+                bgColor = '#ef4444'; // Red
+                textColor = 'white';
+            } else if (isBusy) {
+                bgColor = '#fef08a'; // Yellow
+                textColor = '#92400e';
+            } else {
+                bgColor = '#10b981'; // Green
+                textColor = 'white';
+            }
 
             days.push(
                 <div key={i} className={`calendar-day ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
-                    style={{ flexDirection: 'column', position: 'relative' }}
+                    style={{ position: 'relative', backgroundColor: bgColor, color: textColor, borderColor: isSelected ? '#1e293b' : '#f1f5f9', borderWidth: isSelected ? '3px' : '1px', borderStyle: 'solid', opacity: (isAlreadyBooked || isFull) ? 0.7 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                     onClick={() => { if (!isDisabled) setRescheduleDate(dateStr); }}
-                    title={isAlreadyBooked ? 'You already have a session on this date' : isBeforeOrSameAsCurrentAppt ? 'You can only reschedule to a later date' : ''}
+                    title={isAlreadyBooked ? 'You already have a session on this date' : isBeforeOrSameAsCurrentAppt ? 'You can only reschedule to a later date' : isFull ? 'This date is fully booked' : ''}
                 >
-                    <span>{i}</span>
-                    {isAlreadyBooked && !isPast && !isTooFar && (
-                        <div style={{ width: '4px', height: '4px', borderRadius: '2px', backgroundColor: '#ef4444', marginTop: '2px' }} />
-                    )}
+                    <span style={{ fontWeight: isSelected ? '800' : '600' }}>{i}</span>
                 </div>
             );
         }

@@ -230,9 +230,22 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             const isFull = dateData.count >= studioCapacity; 
             const isBusy = dateData.count >= Math.max(1, studioCapacity - 1);
 
-            let statusColor = '#10b981'; 
-            if (isFull) statusColor = '#ef4444';
-            else if (isBusy) statusColor = '#f59e0b';
+            let bgColor = 'white';
+            let textColor = '#1e293b';
+
+            if (isPast || isTooFar) {
+                bgColor = '#f8fafc';
+                textColor = '#cbd5e1';
+            } else if (isFull) {
+                bgColor = '#ef4444'; // Red
+                textColor = 'white';
+            } else if (isBusy) {
+                bgColor = '#fef08a'; // Yellow
+                textColor = '#92400e';
+            } else {
+                bgColor = '#10b981'; // Green
+                textColor = 'white';
+            }
 
             days.push(            
                 <button
@@ -244,26 +257,24 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         }
                         setFormData({ ...formData, date: dateStr, time: '' });
                     }}
-                    disabled={isPast || isTooFar}
+                    disabled={isPast || isTooFar || isFull}
                     style={{
                         padding: '12px',
-                        border: isSelected ? '2px solid #C19A6B' : '1px solid #f1f5f9',
-                        backgroundColor: isSelected ? '#fffcf0' : (isPast || isTooFar ? '#f8fafc' : 'white'),
-                        color: isPast || isTooFar ? '#cbd5e1' : (isFull ? '#ef4444' : '#1e293b'),
+                        border: isSelected ? '3px solid #1e293b' : '1px solid #f1f5f9',
+                        backgroundColor: bgColor,
+                        color: textColor,
                         borderRadius: '10px',
-                        cursor: isPast || isTooFar ? 'default' : 'pointer',
+                        cursor: isPast || isTooFar || isFull ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '2px',
-                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        opacity: isFull ? 0.7 : 1
                     }}
                 >
-                    <span style={{fontWeight: isSelected ? '700' : '500', fontSize: '1rem'}}>{i}</span>
-                    {!isPast && !isTooFar && (
-                        <div style={{width: '4px', height: '4px', borderRadius: '2px', backgroundColor: statusColor}} />
-                    )}
+                    <span style={{fontWeight: isSelected ? '800' : '600', fontSize: '1rem'}}>{i}</span>
                 </button>
             );
         }
