@@ -464,7 +464,7 @@ function AdminAppointments() {
         if (!inputAmount || inputAmount <= 0) return;
 
         if (inputAmount > remainingBalance) {
-            showAlert('Invalid Amount', `Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString()}`, 'warning');
+            showAlert('Invalid Amount', `Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'warning');
             return;
         }
 
@@ -536,7 +536,7 @@ function AdminAppointments() {
                 <td>${a.date || 'N/A'}</td>
                 <td>${a.time || 'N/A'}</td>
                 <td>${(a.status || '').toUpperCase()}</td>
-                <td>₱${parseFloat(a.price || 0).toLocaleString()}</td>
+                <td>₱${parseFloat(a.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             </tr>`
         ).join('');
 
@@ -1241,7 +1241,7 @@ function AdminAppointments() {
                                                         type="button"
                                                         className="btn btn-primary admin-st-2b208132"
                                                         onClick={() => {
-                                                            showAlert('Payment Link Sent', `A digital payment checkout link for ₱${formData.price.toLocaleString()} has been routed to the client.`, 'success');
+                                                            showAlert('Payment Link Sent', `A digital payment checkout link for ₱${formData.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has been routed to the client.`, 'success');
                                                         }}
                                                     >
                                                         <CreditCard size={20} /> Request Digital Payment

@@ -164,7 +164,7 @@ function CustomerTransactions() {
                                                 </span>
                                             </td>
                                             <td>
-                                                <button className="btn-view customer-st-ff1cca66" title="View Receipt" onClick={() => alert(`Payment Reference: ${t.paymongo_payment_id || t.session_id}\nAmount: ₱${(t.amount/100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\nStatus: ${t.status}`)} >
+                                                <button className="btn-view customer-st-ff1cca66" title="View Receipt" onClick={() => alert(`Payment Reference: ${t.paymongo_payment_id || t.session_id}\nAmount: ₱${(t.amount/100).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\nStatus: ${t.status}`)} >
                                                     <ExternalLink size={18} />
                                                 </button>
                                             </td>

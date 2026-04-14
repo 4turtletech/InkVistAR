@@ -46,13 +46,13 @@ function AdminAnalytics() {
         // Prepare CSV data
         const rows = [
             ['Report Type', 'Metric', 'Value'],
-            ['Revenue', 'Total Revenue', `₱${Number(analytics.revenue.total).toLocaleString()}`],
+            ['Revenue', 'Total Revenue', `₱${Number(analytics.revenue.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
             ['Appointments', 'Total', analytics.appointments.total],
             ['Appointments', 'Completed', analytics.appointments.completed],
             ['Appointments', 'Cancelled', analytics.appointments.cancelled],
             [],
             ['Artist Performance', 'Name', 'Revenue', 'Appointments'],
-            ...analytics.artists.map(a => ['Artist', a.name, `₱${Number(a.revenue).toLocaleString()}`, a.appointments]),
+            ...analytics.artists.map(a => ['Artist', a.name, `₱${Number(a.revenue).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, a.appointments]),
             [],
             ['Inventory Consumption', 'Item', 'Used Qty'],
             ...analytics.inventory.map(i => ['Inventory', i.name, `${i.used} ${i.unit}`])
@@ -76,7 +76,7 @@ function AdminAnalytics() {
         const artistRows = analytics.artists.map(a => `
             <tr>
                 <td>${escapeCsv(a.name).replace(/"/g, '')}</td>
-                <td>₱${(Number(a.revenue) || 0).toLocaleString()}</td>
+                <td>₱${(Number(a.revenue) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td>${a.appointments || 0}</td>
             </tr>
         `).join('');
@@ -110,7 +110,7 @@ function AdminAnalytics() {
                     <div class="metric-grid">
                         <div class="metric-card">
                             <small>Total Revenue</small>
-                            <p>₱${(Number(analytics.revenue.total) || 0).toLocaleString()}</p>
+                            <p>₱${(Number(analytics.revenue.total) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div class="metric-card">
                             <small>Total Appointments</small>

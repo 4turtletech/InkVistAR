@@ -42,13 +42,13 @@ const PayMongoPayment = () => {
         try {
             // Validation for custom amount
             if (paymentType === 'custom' && (!customAmount || Number(customAmount) < depositPrice)) {
-                alert(`Please enter a valid amount (minimum deposit: ₱${depositPrice.toLocaleString()}).`);
+                alert(`Please enter a valid amount (minimum deposit: ₱${depositPrice.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}).`);
                 setStatus('selection');
                 return;
             }
 
             if (paymentType === 'custom' && Number(customAmount) > remainingBalance) {
-                alert(`Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString()}. Please enter a lower amount.`);
+                alert(`Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Please enter a lower amount.`);
                 setStatus('selection');
                 return;
             }
@@ -149,7 +149,7 @@ const PayMongoPayment = () => {
                     <input 
                         type="number" 
                         className="form-input" 
-                        placeholder={`Enter amount (min ₱${depositPrice.toLocaleString()})`} 
+                        placeholder={`Enter amount (min ₱${depositPrice.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`} 
                         value={customAmount}
                         onChange={e => setCustomAmount(e.target.value)}
                         style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #C19A6B' }}

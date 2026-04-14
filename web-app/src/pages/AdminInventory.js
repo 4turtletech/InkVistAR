@@ -248,7 +248,7 @@ function AdminInventory() {
                 <td>${item.category || 'N/A'}</td>
                 <td>${item.currentStock || '0'}</td>
                 <td>${item.unit || 'N/A'}</td>
-                <td>₱${parseFloat(item.cost || 0).toLocaleString()}</td>
+                <td>₱${parseFloat(item.cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td>${getStockStatus(item.currentStock, item.minStock, item.maxStock)}</td>
             </tr>`
         ).join('');
