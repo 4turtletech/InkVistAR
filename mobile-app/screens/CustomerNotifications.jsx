@@ -132,12 +132,12 @@ export function CustomerNotifications({ onBack, userId }) {
 
         <View style={styles.contentContainer}>
           <View style={styles.cardHeader}>
-            <Text style={[styles.title, !item.is_read && styles.unreadText]}>{item.title}</Text>
+            <Text style={[styles.title, !item.is_read && styles.unreadText]} numberOfLines={2}>{item.title || ''}</Text>
             <Text style={styles.time}>{timeAgo(item.created_at)}</Text>
           </View>
           <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
         </View>
-        {item.is_read && (
+        {!!item.is_read && (
           <TouchableOpacity 
             style={styles.unreadAction} 
             onPress={() => handleUnread(item)}
