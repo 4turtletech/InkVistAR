@@ -93,11 +93,18 @@ function CustomerBookings(){
                         const dateStr = typeof b.appointment_date === 'string' 
                             ? b.appointment_date.substring(0, 10) 
                             : new Date(b.appointment_date).toISOString().split('T')[0];
-                        if (!bookings[dateStr]) bookings[dateStr] = { consultationTimes: [], sessionCount: 0 };
+                        if (!bookings[dateStr]) bookings[dateStr] = { consultationTimes: [], piercingTimes: [], sessionCount: 0 };
                         const sType = (b.service_type || '').toLowerCase();
                         if (sType === 'consultation') {
                             if (b.start_time) bookings[dateStr].consultationTimes.push(b.start_time.substring(0, 5));
+                        } else if (sType === 'piercing') {
+                            if (b.start_time) bookings[dateStr].piercingTimes.push(b.start_time.substring(0, 5));
+                        } else if (sType === 'tattoo + piercing') {
+                            // Bundle: consumes from both tattoo AND piercing pools
+                            bookings[dateStr].sessionCount += 1;
+                            if (b.start_time) bookings[dateStr].piercingTimes.push(b.start_time.substring(0, 5));
                         } else {
+                            // Tattoo Session, Follow-up, Touch-up
                             bookings[dateStr].sessionCount += 1;
                         }
                     });
@@ -252,20 +259,31 @@ function CustomerBookings(){
             const isTooFar = dateObj > maxDate;
             const hasMySession = myBookedDates.has(dateStr);
 
-            const dateData = bookedDates[dateStr] || { consultationTimes: [], sessionCount: 0 };
+            const dateData = bookedDates[dateStr] || { consultationTimes: [], piercingTimes: [], sessionCount: 0 };
 
-            // Dynamic evaluation based on selected service type
+            // Dynamic evaluation based on selected service type — three independent pools
             let isFull = false;
             let isBusy = false;
             const selectedService = (bookingData.serviceType || '').toLowerCase();
 
             if (selectedService === 'consultation') {
-                // Consultation: evaluate only consultation time slots (7 max)
+                // Consultation pool: 7 time slots (1PM–7PM)
                 const slotsTaken = dateData.consultationTimes.length;
                 isFull = slotsTaken >= 7;
                 isBusy = slotsTaken >= 5;
+            } else if (selectedService === 'piercing') {
+                // Piercing pool: 7 time slots (1PM–7PM)
+                const slotsTaken = dateData.piercingTimes.length;
+                isFull = slotsTaken >= 7;
+                isBusy = slotsTaken >= 5;
+            } else if (selectedService === 'tattoo + piercing') {
+                // Bundle: must check BOTH tattoo pool AND piercing pool
+                const tattooFull = dateData.sessionCount >= studioCapacity;
+                const piercingFull = dateData.piercingTimes.length >= 7;
+                isFull = tattooFull || piercingFull;
+                isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1) || dateData.piercingTimes.length >= 5;
             } else if (selectedService) {
-                // Tattoo Session / Piercing / etc: evaluate only session count vs artist capacity
+                // Tattoo Session, Follow-up, Touch-up: artist capacity pool
                 isFull = dateData.sessionCount >= studioCapacity;
                 isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1);
             }
@@ -479,7 +497,7 @@ function CustomerBookings(){
             const isBeforeOrSameAsCurrentAppt = currentApptDate ? dateObj <= currentApptDate : false;
             const isAlreadyBooked = bookedDateSet.has(dateStr);
             
-            const dateData = bookedDates[dateStr] || { consultationTimes: [], sessionCount: 0 };
+            const dateData = bookedDates[dateStr] || { consultationTimes: [], piercingTimes: [], sessionCount: 0 };
             // Evaluate based on the service type of the appointment being rescheduled
             let isFull = false;
             let isBusy = false;
@@ -487,6 +505,12 @@ function CustomerBookings(){
             if (apptService === 'consultation') {
                 isFull = dateData.consultationTimes.length >= 7;
                 isBusy = dateData.consultationTimes.length >= 5;
+            } else if (apptService === 'piercing') {
+                isFull = dateData.piercingTimes.length >= 7;
+                isBusy = dateData.piercingTimes.length >= 5;
+            } else if (apptService === 'tattoo + piercing') {
+                isFull = dateData.sessionCount >= studioCapacity || dateData.piercingTimes.length >= 7;
+                isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1) || dateData.piercingTimes.length >= 5;
             } else {
                 isFull = dateData.sessionCount >= studioCapacity;
                 isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1);
@@ -1135,16 +1159,18 @@ function CustomerBookings(){
                                                     {renderCalendarDays()}
                                                 </div>
                                             </div>
-                                            {bookingData.serviceType === 'Consultation' && (
+                                            {['Consultation', 'Piercing', 'Tattoo + Piercing'].includes(bookingData.serviceType) && (
                                                 <div className="time-slots">
-                                                    <label className="customer-st-36716a21" >Preferred Time Slot</label>
+                                                    <label className="customer-st-36716a21" >Preferred Time Slot {bookingData.serviceType === 'Tattoo + Piercing' ? '(for piercing)' : ''}</label>
                                                     <div className="customer-st-caa523c7" >
                                                         {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => {
                                                             let isDisabled = false;
                                                             if (bookingData.date) {
                                                                 const checkDate = new Date(`${bookingData.date}T${t}:00`);
                                                                 if (checkDate <= new Date()) isDisabled = true;
-                                                                if (bookedDates[bookingData.date] && bookedDates[bookingData.date].consultationTimes.includes(t)) isDisabled = true;
+                                                                // Check the correct pool based on service type
+                                                                const pool = bookingData.serviceType === 'Consultation' ? 'consultationTimes' : 'piercingTimes';
+                                                                if (bookedDates[bookingData.date] && bookedDates[bookingData.date][pool].includes(t)) isDisabled = true;
                                                             } else {
                                                                 isDisabled = true; // Wait for date selection
                                                             }
@@ -1156,8 +1182,8 @@ function CustomerBookings(){
                                                                     if (!isDisabled) setBookingData({...bookingData, startTime: t});
                                                                 }}
                                                                 style={{
-                                                                    padding: '12px', borderRadius: '8px', border: `1px solid ${bookingData.startTime === t ? '#daa520' : '#e2e8f0'}`,
-                                                                    background: bookingData.startTime === t ? '#daa520' : (isDisabled ? '#f8fafc' : 'white'),
+                                                                    padding: '12px', borderRadius: '8px', border: `1px solid ${bookingData.startTime === t ? '#C19A6B' : '#e2e8f0'}`,
+                                                                    background: bookingData.startTime === t ? '#C19A6B' : (isDisabled ? '#f8fafc' : 'white'),
                                                                     color: bookingData.startTime === t ? 'white' : (isDisabled ? '#cbd5e1' : '#1e293b'),
                                                                     textAlign: 'center', cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.9rem',
                                                                     opacity: isDisabled ? 0.6 : 1
