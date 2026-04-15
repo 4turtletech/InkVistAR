@@ -30,6 +30,7 @@ function ArtistSessions() {
     const [showAbortModal, setShowAbortModal] = useState(false);
     const [abortReason, setAbortReason] = useState('');
     const [isAborting, setIsAborting] = useState(false);
+    const [sessionTab, setSessionTab] = useState('overview');
 
     const [sessionModal, setSessionModal] = useState({ mounted: false, visible: false });
     const [inventoryModal, setInventoryModal] = useState({ mounted: false, visible: false });
@@ -251,6 +252,7 @@ function ArtistSessions() {
             beforePhoto: session.before_photo || null,
             afterPhoto: session.after_photo || null
         });
+        setSessionTab('overview');
         openSessionModal();
     };
 
@@ -616,10 +618,36 @@ function ArtistSessions() {
                                 </div>
                             </div>
 
-                            <div className="artist-session-grid">
-                                {/* Left Column: Visual Documentation & Notes */}
-                                <div className="artist-session-col">
-                                    {/* Visual Documentation */}
+                            {/* Session Tabs */}
+                            <div style={{ display: 'flex', gap: '4px', padding: '0 0 16px 0', borderBottom: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                                {[{id:'overview',label:'Overview'},{id:'documentation',label:'Documentation'},{id:'supplies',label:'Supplies'}].map(tab => (
+                                    <button key={tab.id} onClick={() => setSessionTab(tab.id)} style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s', background: sessionTab === tab.id ? '#1e293b' : '#f1f5f9', color: sessionTab === tab.id ? '#fff' : '#64748b' }}>
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* TAB: Overview */}
+                            {sessionTab === 'overview' && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    {[{label:'Client', value: activeSession.client_name}, {label:'Email', value: activeSession.client_email || 'N/A'}, {label:'Design / Project', value: activeSession.design_title}, {label:'Scheduled Time', value: activeSession.start_time || 'N/A'}, {label:'Date', value: activeSession.appointment_date ? new Date(activeSession.appointment_date).toLocaleDateString() : 'Today'}, {label:'Service Type', value: activeSession.service_type || 'Tattoo Session'}].map(item => (
+                                        <div key={item.label} style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px', border: '1px solid #e2e8f0' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>{item.label}</span>
+                                            <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{item.value}</span>
+                                        </div>
+                                    ))}
+                                    {activeSession.reference_image && (
+                                        <div style={{ gridColumn: '1 / -1', background: '#f8fafc', borderRadius: '12px', padding: '14px', border: '1px solid #e2e8f0' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '10px' }}>Reference Image</span>
+                                            <img src={activeSession.reference_image.startsWith('data:') ? activeSession.reference_image : activeSession.reference_image.startsWith('http') ? activeSession.reference_image : `${API_URL}${activeSession.reference_image}`} alt="Reference" style={{ width: '100%', maxHeight: '280px', objectFit: 'contain', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }} />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* TAB: Documentation */}
+                            {sessionTab === 'documentation' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: activeSession.draft_image ? '1fr 1fr 1fr' : '1fr 1fr', gap: '15px' }}>
                                         {activeSession.draft_image && (
                                             <div className="artist-session-card" style={{ padding: '15px' }}>
@@ -642,13 +670,7 @@ function ArtistSessions() {
                                                 <input id="before-photo-input" type="file" hidden accept="image/*" onChange={(e) => handlePhotoUpload(e, 'beforePhoto')} />
                                             </div>
                                         </div>
-                                        <div style={{ 
-                                            background: '#f8fafc',
-                                            borderRadius: '16px',
-                                            border: '1px solid #e2e8f0',
-                                            padding: '15px',
-                                            textAlign: 'center'
-                                        }}>
+                                        <div style={{ background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '15px', textAlign: 'center' }}>
                                             <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Post Procedure</label>
                                             <div style={{ height: '180px', borderRadius: '12px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 {sessionData.afterPhoto ? (
@@ -662,8 +684,6 @@ function ArtistSessions() {
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Artist Notes */}
                                     <div className="form-group">
                                         <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <FileText size={14}/> Procedure Notes & Observations
@@ -678,115 +698,69 @@ function ArtistSessions() {
                                         />
                                     </div>
                                 </div>
+                            )}
 
-                                {/* Right Column: Supplies & Logistics */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                    <div style={{ 
-                                        background: '#fff',
-                                        borderRadius: '24px',
-                                        border: '1px solid #e2e8f0',
-                                        padding: '24px',
-                                        height: '100%',
-                                        display: 'flex',
-                                        flexDirection: 'column'
-                                    }}>
-                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Package size={14}/> Consumption Log
-                                        </label>
-
-                                        {isCompletingSession || activeSession.status === 'in_progress' ? (
-                                            <>
-                                                <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px' }}>
-                                                    {sessionMaterials.length === 0 ? (
-                                                        <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
-                                                            <Package size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
-                                                            <p style={{ margin: 0, fontSize: '0.85rem' }}>No supplies logged yet.</p>
-                                                        </div>
-                                                    ) : (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                            {sessionMaterials.map((mat, idx) => (
-                                                                <div key={idx} style={{ 
-                                                                    display: 'flex', 
-                                                                    justifyContent: 'space-between', 
-                                                                    alignItems: 'center', 
-                                                                    padding: '10px 12px', 
-                                                                    background: '#f8fafc',
-                                                                    borderRadius: '12px',
-                                                                    border: '1px solid #f1f5f9'
-                                                                }}>
-                                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                                        <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{mat.quantity}x {mat.item_name}</span>
-                                                                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{mat.category}</span>
-                                                                    </div>
-                                                                    {mat.status === 'hold' && (
-                                                                        <button
-                                                                            onClick={() => handleReleaseMaterial(mat.id)}
-                                                                            style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius: '8px' }}
-                                                                        >
-                                                                            <X size={14} />
-                                                                        </button>
-                                                                    )}
+                            {/* TAB: Supplies */}
+                            {sessionTab === 'supplies' && (
+                                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Package size={14}/> Consumption Log
+                                    </label>
+                                    {isCompletingSession || activeSession.status === 'in_progress' ? (
+                                        <>
+                                            <div style={{ flex: 1, overflowY: 'auto' }}>
+                                                {sessionMaterials.length === 0 ? (
+                                                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
+                                                        <Package size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
+                                                        <p style={{ margin: 0, fontSize: '0.85rem' }}>No supplies logged yet.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                        {sessionMaterials.map((mat, idx) => (
+                                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{mat.quantity}x {mat.item_name}</span>
+                                                                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{mat.category}</span>
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '10px 15px', borderRadius: '12px' }}>
-                                                        <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Total Cost</span>
-                                                        <span style={{ fontWeight: 800, color: '#10b981' }}>₱{sessionCost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                {mat.status === 'hold' && (
+                                                                    <button onClick={() => handleReleaseMaterial(mat.id)} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius: '8px' }}>
+                                                                        <X size={14} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))}
                                                     </div>
-
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button 
-                                                            className="btn-glass" 
-                                                            style={{ flex: 1, fontSize: '0.75rem', justifyContent: 'center', padding: '8px' }}
-                                                            onClick={openInventoryModal}
-                                                            disabled={addingMaterial}
-                                                        >
-                                                            <Plus size={14}/> Add Item
-                                                        </button>
-                                                        {Object.keys(serviceKits).length > 0 && (
-                                                            <select
-                                                                disabled={addingMaterial}
-                                                                className="premium-select-v2"
-                                                                style={{ flex: 1.2, fontSize: '0.75rem', background: '#f8fafc' }}
-                                                                onChange={(e) => {
-                                                                    if (e.target.value) {
-                                                                        handleQuickAddKit(serviceKits[e.target.value]);
-                                                                        e.target.value = '';
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <option value="">Apply Kit</option>
-                                                                {Object.keys(serviceKits).map(kitName => (
-                                                                    <option key={kitName} value={kitName}>{kitName}</option>
-                                                                ))}
-                                                            </select>
-                                                        )}
-                                                    </div>
-
-                                                    {isCompletingSession && (
-                                                        <button 
-                                                            className="btn btn-primary" 
-                                                            onClick={confirmCompletion}
-                                                            style={{ marginTop: '5px', justifyContent: 'center', fontWeight: 800 }}
-                                                        >
-                                                            Finalize Session
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                                                <Clock size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
-                                                <p style={{ margin: 0, fontSize: '0.85rem' }}>{activeSession.status === 'confirmed' ? 'Start procedure to log supplies.' : 'Supply log archived.'}</p>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
+                                            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0fdf4', padding: '10px 15px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Total Material Cost</span>
+                                                    <span style={{ fontWeight: 800, color: '#10b981' }}>₱{sessionCost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button className="btn-glass" style={{ flex: 1, fontSize: '0.75rem', justifyContent: 'center', padding: '8px' }} onClick={openInventoryModal} disabled={addingMaterial}>
+                                                        <Plus size={14}/> Add Item
+                                                    </button>
+                                                    {Object.keys(serviceKits).length > 0 && (
+                                                        <select disabled={addingMaterial} className="premium-select-v2" style={{ flex: 1.2, fontSize: '0.75rem', background: '#f8fafc' }} onChange={(e) => { if (e.target.value) { handleQuickAddKit(serviceKits[e.target.value]); e.target.value = ''; } }}>
+                                                            <option value="">Apply Kit</option>
+                                                            {Object.keys(serviceKits).map(kitName => (<option key={kitName} value={kitName}>{kitName}</option>))}
+                                                        </select>
+                                                    )}
+                                                </div>
+                                                {isCompletingSession && (
+                                                    <button className="btn btn-primary" onClick={confirmCompletion} style={{ marginTop: '5px', justifyContent: 'center', fontWeight: 800 }}>Finalize Session</button>
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                                            <Clock size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
+                                            <p style={{ margin: 0, fontSize: '0.85rem' }}>{activeSession.status === 'confirmed' ? 'Start procedure to log supplies.' : 'Supply log archived.'}</p>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         <div className="modal-footer">

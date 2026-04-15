@@ -145,7 +145,7 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 
 1. **Auto-Migrations:** Server adds missing columns on startup (profile_image, studio_name, phone, commission_rate)
 2. **Image Storage:** Base64/LONGTEXT in database
-3. **Commission:** Artists have `commission_rate` (default 0.60 = 60%)
+3. **Commission:** Artists have `commission_rate` (default 0.30 = 30%)
 4. **Material Tracking:** `session_materials` tracks hold→consumed→released lifecycle
 5. **Service Kits:** Predefined material bundles for quick session setup
 6. **Payment Flow:** PayMongo webhook → `/api/payments/webhook` → updates appointments.payment_status

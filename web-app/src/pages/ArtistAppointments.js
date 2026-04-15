@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Axios from 'axios';
-import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox, Play } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -26,6 +26,7 @@ function ArtistAppointments(){
         return saved ? JSON.parse(saved) : null;
     });
     const artistId = user ? user.id : 1;
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetch();
@@ -408,6 +409,10 @@ function ArtistAppointments(){
                                                                 <span style={{ fontWeight: 'bold', color: '#0f172a' }}>₱{parseFloat(selectedAppointment.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                             </div>
                                                             <div>
+                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Your Cut</span>
+                                                                <span style={{ fontWeight: 'bold', color: '#10b981' }}>₱{(parseFloat(selectedAppointment.price || 0) * parseFloat(selectedAppointment.commission_rate || 0.7)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                            <div>
                                                                 <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Payment</span>
                                                                 <span className={`status-badge ${selectedAppointment.payment_status === 'paid' ? 'completed' : selectedAppointment.payment_status === 'pending' ? 'pending' : 'cancelled'}`} style={{ backgroundColor: selectedAppointment.payment_status === 'paid' ? '#dcfce7' : selectedAppointment.payment_status === 'pending' ? '#fef3c7' : '#f3f4f6', color: selectedAppointment.payment_status === 'paid' ? '#16a34a' : selectedAppointment.payment_status === 'pending' ? '#b45309' : '#64748b' }}>
                                                                     {selectedAppointment.payment_status ? selectedAppointment.payment_status.charAt(0).toUpperCase() + selectedAppointment.payment_status.slice(1) : 'Unpaid'}
@@ -469,6 +474,15 @@ function ArtistAppointments(){
                                                             <button onClick={() => { setConfirmModal({ visible: true, title: 'Decline Assignment', message: 'Are you sure you want to decline this assignment? It will be reverted back to the Admin for reassignment.', onConfirm: () => { handleReject(selectedAppointment.id); setSelectedAppointment(null); } }); }} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', color: '#ef4444', border: '1px solid #ef4444', backgroundColor: '#fef2f2' }}>Decline</button>
                                                             <button onClick={() => { setConfirmModal({ visible: true, title: 'Confirm Availability', message: 'Ready to take on this assignment? Confirming will notify the manager to generate a quote for the client.', onConfirm: () => { handleAccept(selectedAppointment.id); setSelectedAppointment(null); } }); }} className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', backgroundColor: '#10b981', color: 'white', border: 'none' }}>Confirm Availability</button>
                                                         </>
+                                                    )}
+                                                    {['confirmed', 'in_progress'].includes(selectedAppointment.status) && (
+                                                        <button
+                                                            onClick={() => { setSelectedAppointment(null); navigate(`/artist/sessions?appointment=${selectedAppointment.id}`); }}
+                                                            className="btn btn-primary"
+                                                            style={{ padding: '8px 16px', borderRadius: '8px', backgroundColor: '#6366f1', border: 'none', cursor: 'pointer', fontWeight: '500', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                        >
+                                                            <Play size={14} /> Manage Session
+                                                        </button>
                                                     )}
                                                     <button onClick={() => setSelectedAppointment(null)} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: '500', color: '#334155' }}>Close</button>
                                                 </div>
