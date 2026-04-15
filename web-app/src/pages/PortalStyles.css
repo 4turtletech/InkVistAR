@@ -1346,7 +1346,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 }
 
 .notification-record.unread {
-    background: rgba(190, 144, 85, 0.03);
+    background: rgba(183, 149, 78, 0.08);
 }
 
 .notif-id-marker {
@@ -1359,7 +1359,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 }
 
 .notification-record.unread .notif-id-marker {
-    background: var(--accent-color, #be9055);
+    background: #b7954e;
 }
 
 .notif-main {

@@ -245,17 +245,14 @@ function CustomerNotifications() {
 
                 <div className="portal-content">
                     {/* Search Bar */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <div style={{ position: 'relative', maxWidth: '400px' }}>
-                            <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none' }} />
-                            <input
-                                type="text"
-                                placeholder="Search notifications..."
-                                value={searchTerm}
-                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                                style={{ width: '100%', padding: '10px 14px 10px 40px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#1e293b', fontSize: '0.88rem', outline: 'none', fontFamily: 'Inter, sans-serif' }}
-                            />
-                        </div>
+                    <div className="premium-search-box" style={{ marginBottom: '20px' }}>
+                        <Search size={16} className="premium-search-icon" />
+                        <input
+                            type="text"
+                            placeholder="Search notifications..."
+                            value={searchTerm}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                        />
                     </div>
 
                     {loading ? (
@@ -272,7 +269,7 @@ function CustomerNotifications() {
                                             const Icon = style.icon;
                                             
                                             return (
-                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? '3px solid #b7954e' : '3px solid transparent', background: !n.is_read ? 'rgba(183, 149, 78, 0.08)' : 'transparent', cursor: 'pointer' }} onClick={(e) => { 
+                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', cursor: 'pointer', position: 'relative' }} onClick={(e) => { 
                                                     if (!e.target.closest('.notif-actions')) {
                                                         setSelectedNotification({ ...n, style });
                                                         if (!n.is_read) markRead(n.id);
