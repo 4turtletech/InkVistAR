@@ -429,7 +429,7 @@ function ArtistAppointments(){
                                                         <div style={{ marginBottom: '20px' }}>
                                                             <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#64748b' }}>Reference Image</p>
                                                             <img 
-                                                                src={selectedAppointment.reference_image.startsWith('http') ? selectedAppointment.reference_image : `${API_URL}${selectedAppointment.reference_image}`} 
+                                                                src={selectedAppointment.reference_image.startsWith('data:') ? selectedAppointment.reference_image : selectedAppointment.reference_image.startsWith('http') ? selectedAppointment.reference_image : `${API_URL}${selectedAppointment.reference_image}`} 
                                                                 alt="Reference" 
                                                                 style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0' }} 
                                                             />

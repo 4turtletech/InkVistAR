@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive } from 'lucide-react';
+import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive, AlertTriangle } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -27,6 +27,9 @@ function ArtistSessions() {
     const [addingMaterial, setAddingMaterial] = useState(false);
     const [inventorySearch, setInventorySearch] = useState('');
     const [isCompletingSession, setIsCompletingSession] = useState(false);
+    const [showAbortModal, setShowAbortModal] = useState(false);
+    const [abortReason, setAbortReason] = useState('');
+    const [isAborting, setIsAborting] = useState(false);
 
     const [sessionModal, setSessionModal] = useState({ mounted: false, visible: false });
     const [inventoryModal, setInventoryModal] = useState({ mounted: false, visible: false });
@@ -370,6 +373,40 @@ function ArtistSessions() {
         }
     };
 
+    const handleAbortSession = async () => {
+        if (!activeSession || abortReason.trim().length < 10) return;
+        setIsAborting(true);
+        try {
+            // Save current session details before aborting
+            if (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto) {
+                await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/details`, {
+                    notes: sessionData.notes + `\n\n--- SESSION ABORTED ---\nReason: ${abortReason.trim()}`,
+                    beforePhoto: sessionData.beforePhoto,
+                    afterPhoto: sessionData.afterPhoto
+                });
+            }
+
+            const res = await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/status`, {
+                status: 'incomplete',
+                abortReason: abortReason.trim()
+            });
+            if (res.data.success) {
+                setActiveSession(prev => ({ ...prev, status: 'incomplete' }));
+                setShowAbortModal(false);
+                setAbortReason('');
+                showAlert('Session Stopped', 'The session has been marked as incomplete. The customer and studio have been notified.', 'info');
+                fetchSessions();
+            } else {
+                showAlert('Error', res.data.message || 'Failed to abort session.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error aborting session:', error);
+            showAlert('Connection Error', 'Failed to connect to the server.', 'danger');
+        } finally {
+            setIsAborting(false);
+        }
+    };
+
     return (
         <div className="portal-layout">
             <ArtistSideNav />
@@ -495,7 +532,7 @@ function ArtistSessions() {
                                             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
                                                 <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase' }}>Reference Image</p>
                                                 <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
-                                                    <img src={viewingApt.reference_image} alt="Reference" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', background: '#f8fafc' }} />
+                                                    <img src={viewingApt.reference_image.startsWith('data:') ? viewingApt.reference_image : viewingApt.reference_image.startsWith('http') ? viewingApt.reference_image : `${API_URL}${viewingApt.reference_image}`} alt="Reference" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', background: '#f8fafc' }} />
                                                 </div>
                                             </div>
                                         )}
@@ -545,7 +582,8 @@ function ArtistSessions() {
                                     <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
                                         {activeSession.status === 'confirmed' ? 'Ready for procedure' : 
                                          activeSession.status === 'in_progress' ? 'Session currently active' : 
-                                         activeSession.status === 'completed' ? 'Session complete — ready to archive' : 'Session archived'}
+                                         activeSession.status === 'completed' ? 'Session complete — ready to archive' :
+                                         activeSession.status === 'incomplete' ? 'Session stopped early — follow-up needed' : 'Session archived'}
                                     </div>
                                 </div>
                                 
@@ -556,9 +594,14 @@ function ArtistSessions() {
                                         </button>
                                     )}
                                     {activeSession.status === 'in_progress' && !isCompletingSession && (
+                                        <>
                                         <button className="btn btn-primary" style={{ backgroundColor: '#10b981', padding: '10px 24px' }} onClick={() => handleUpdateStatus('completed')}>
                                             <CheckCircle size={18} /> Complete Work
                                         </button>
+                                        <button className="btn btn-secondary" style={{ padding: '10px 24px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => setShowAbortModal(true)}>
+                                            <AlertTriangle size={18} /> Abort Session
+                                        </button>
+                                        </>
                                     )}
                                     {isCompletingSession && (
                                         <button className="btn btn-secondary" style={{ padding: '10px 20px' }} onClick={() => setIsCompletingSession(false)}>
@@ -827,6 +870,99 @@ function ArtistSessions() {
                                     })()
                                 )}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Abort Session Reason Modal */}
+            {showAbortModal && (
+                <div className="modal-overlay open" onClick={() => { if (!isAborting) { setShowAbortModal(false); setAbortReason(''); } }}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                        <div className="modal-header" style={{ borderBottom: '2px solid #fecaca' }}>
+                            <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#dc2626', margin: 0 }}>
+                                <AlertTriangle size={22} /> Abort Session
+                            </h3>
+                            <button className="close-btn" onClick={() => { if (!isAborting) { setShowAbortModal(false); setAbortReason(''); } }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            {/* Warning Banner */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, #fef2f2, #fff1f2)',
+                                border: '1px solid #fecaca',
+                                borderRadius: '12px',
+                                padding: '16px',
+                                marginBottom: '20px',
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '12px'
+                            }}>
+                                <AlertTriangle size={20} style={{ color: '#dc2626', flexShrink: 0, marginTop: '2px' }} />
+                                <div>
+                                    <p style={{ margin: '0 0 4px 0', fontWeight: 700, color: '#991b1b', fontSize: '0.9rem' }}>This will stop the session immediately</p>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c', lineHeight: 1.5 }}>
+                                        The customer will be notified that their session was stopped early. Used materials will be recorded. A follow-up will be coordinated by the studio.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Reason Input */}
+                            <div className="form-group">
+                                <label style={{ fontWeight: 700, fontSize: '0.8rem', color: '#475569', display: 'block', marginBottom: '8px' }}>
+                                    Reason for aborting <span style={{ color: '#dc2626' }}>*</span>
+                                </label>
+                                <textarea
+                                    className="form-input"
+                                    rows="4"
+                                    value={abortReason}
+                                    onChange={(e) => setAbortReason(e.target.value.slice(0, 500))}
+                                    placeholder="e.g., Customer could not tolerate the pain, medical concern arose, allergic reaction..."
+                                    style={{
+                                        borderRadius: '12px',
+                                        borderColor: abortReason.length > 0 && abortReason.trim().length < 10 ? '#f87171' : '#e2e8f0',
+                                        transition: 'border-color 0.2s'
+                                    }}
+                                    disabled={isAborting}
+                                    autoFocus
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+                                    <span style={{ fontSize: '0.75rem', color: abortReason.length > 0 && abortReason.trim().length < 10 ? '#ef4444' : '#94a3b8' }}>
+                                        {abortReason.length > 0 && abortReason.trim().length < 10 ? `At least 10 characters required (${abortReason.trim().length}/10)` : 'Provide a clear reason for the customer record'}
+                                    </span>
+                                    <span style={{ fontSize: '0.75rem', color: abortReason.length > 450 ? '#f59e0b' : '#94a3b8' }}>
+                                        {abortReason.length}/500
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer" style={{ borderTop: '1px solid #f1f5f9' }}>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => { setShowAbortModal(false); setAbortReason(''); }}
+                                disabled={isAborting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="btn"
+                                style={{
+                                    backgroundColor: abortReason.trim().length >= 10 ? '#dc2626' : '#fca5a5',
+                                    color: '#fff',
+                                    padding: '10px 24px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    cursor: abortReason.trim().length >= 10 && !isAborting ? 'pointer' : 'not-allowed',
+                                    opacity: abortReason.trim().length >= 10 && !isAborting ? 1 : 0.6,
+                                    transition: 'all 0.2s'
+                                }}
+                                onClick={handleAbortSession}
+                                disabled={abortReason.trim().length < 10 || isAborting}
+                            >
+                                <AlertTriangle size={16} />
+                                {isAborting ? 'Stopping Session...' : 'Confirm Abort'}
+                            </button>
                         </div>
                     </div>
                 </div>

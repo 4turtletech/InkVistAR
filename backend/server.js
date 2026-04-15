@@ -3537,6 +3537,17 @@ app.put('/api/appointments/:id/status', (req, res) => {
           });
         }
       });
+    } else if (status === 'incomplete' && appointment.status === 'in_progress') {
+      // 4. Session Aborted/Incomplete: Consume used materials (they can't be reused)
+      db.query('SELECT sm.id, sm.inventory_id, sm.quantity, i.cost, i.name FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ? AND sm.status = \'hold\'', [id], (matErr, mats) => {
+        if (!matErr && mats.length > 0) {
+          mats.forEach(mat => {
+            db.query('UPDATE session_materials SET status = ? WHERE id = ?', ['consumed', mat.id]);
+            db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason) VALUES (?, ?, ?, ?)',
+              [mat.inventory_id, 'out', mat.quantity, `Consumed in incomplete session #${id}`]);
+          });
+        }
+      });
     }
 
     // UPDATE APPOINTMENT
@@ -3596,6 +3607,17 @@ app.put('/api/appointments/:id/status', (req, res) => {
             const artistCommission = currentPrice * 0.70;
             db.query('INSERT INTO payouts (artist_id, amount, payout_method, status, reference_no, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
               [appointment.artist_id, artistCommission, 'System Default', 'Pending', `Commission Session #${id}`]);
+          }
+        });
+      } else if (status === 'incomplete') {
+        const abortReason = req.body.abortReason || '';
+        createNotification(appointment.customer_id, 'Session Stopped Early ⚠️', `Your session for "${designTitle}" on ${dateStr} was marked as incomplete by your artist.${abortReason ? ' Reason: ' + abortReason : ''} The studio will follow up with you to reschedule.`, 'session_incomplete', id);
+        // Notify all admins
+        db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (adminErr, admins) => {
+          if (!adminErr && admins.length > 0) {
+            admins.forEach(admin => {
+              createNotification(admin.id, 'Session Aborted ⚠️', `Appointment #${id} for "${designTitle}" was marked incomplete by the artist.${abortReason ? ' Reason: ' + abortReason : ''}`, 'session_incomplete', id);
+            });
           }
         });
       }

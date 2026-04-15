@@ -217,6 +217,8 @@ body.sidenav-collapsed .portal-layout .portal-container {
 .status-badge-v2.scheduled { background: #dcfce7; color: #16a34a; }
 .status-badge-v2.completed { background: #dbeafe; color: #2563eb; }
 .status-badge-v2.cancelled { background: #fee2e2; color: #dc2626; }
+.status-badge-v2.incomplete { background: #fff7ed; color: #c2410c; }
+.status-badge-v2.in_progress { background: #e0f2fe; color: #0369a1; }
 
 .portal-content {
     flex: 1;
@@ -354,6 +356,22 @@ body.sidenav-collapsed .portal-layout .portal-container {
 .status-badge.completed {
     background: rgba(76, 175, 80, 0.2);
     color: #4caf50;
+}
+
+.status-badge.incomplete {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.status-badge.in_progress {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.badge.incomplete {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
 }
 
 .role-badge {
