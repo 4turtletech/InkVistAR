@@ -58,6 +58,7 @@ function AdminInventory() {
     
     const [formData, setFormData] = useState({
         name: '',
+        image: '',
         category: 'ink',
         currentStock: 0,
         unit: 'pcs',
@@ -96,6 +97,17 @@ function AdminInventory() {
             isAlert: true,
             onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
         });
+    };
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData({ ...formData, image: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const confirmDeleteKit = async (serviceType) => {
@@ -339,6 +351,7 @@ function AdminInventory() {
         setSelectedItem(item);
         setFormData({
             name: item.name,
+            image: item.image || '',
             category: item.category,
             currentStock: item.currentStock,
             unit: item.unit,
@@ -399,6 +412,7 @@ function AdminInventory() {
         setSelectedItem(null);
         setFormData({
             name: '',
+            image: '',
             category: 'ink',
             currentStock: 0,
             unit: 'pcs',
@@ -431,6 +445,7 @@ function AdminInventory() {
             // Ensure numbers are valid before sending
             const payload = {
                 ...formData,
+                image: formData.image || '',
                 currentStock: Number(formData.currentStock) || 0,
                 cost: Number(formData.cost) || 0,
                 retailPrice: Number(formData.retailPrice) || 0,
@@ -771,6 +786,11 @@ function AdminInventory() {
                                 <div className="admin-st-6e0f6c6a">
                                     {/* Left Column: Basic Info */}
                                     <div className="admin-st-ff43421e">
+                                        <div className="form-group">
+                                            <label className="premium-label">Product Image</label>
+                                            <input type="file" accept="image/*" onChange={handleImageUpload} className="form-input" style={{padding: '8px'}} />
+                                            {formData.image && <img src={formData.image} alt="Preview" style={{marginTop: '10px', width: '100px', height: '100px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0'}} />}
+                                        </div>
                                         <div className="form-group">
                                             <label className="premium-label">Product Identity</label>
                                             <input

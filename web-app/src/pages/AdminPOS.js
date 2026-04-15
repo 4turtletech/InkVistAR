@@ -314,8 +314,12 @@ function AdminPOS() {
                                     className={`pos-card ${item.current_stock <= 0 ? 'out-of-stock' : ''}`} 
                                     onClick={() => item.current_stock > 0 && addToCart(item)}
                                 >
-                                    <div className="pos-card-icon">
-                                        {item.category?.toLowerCase() === 'ink' ? <Tag size={20} /> : <Package size={20} />}
+                                    <div className="pos-card-icon" style={{ padding: item.image ? '0' : '', overflow: 'hidden' }}>
+                                        {item.image ? (
+                                            <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            item.category?.toLowerCase() === 'ink' ? <Tag size={20} /> : <Package size={20} />
+                                        )}
                                     </div>
                                     <div className="pos-card-info">
                                         {item.current_stock <= item.min_stock && item.current_stock > 0 && <span className="low-stock-indicator"><AlertCircle size={10} /> Low Stock</span>}

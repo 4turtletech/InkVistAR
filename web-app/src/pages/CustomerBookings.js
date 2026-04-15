@@ -14,7 +14,7 @@ function CustomerBookings(){
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('upcoming');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const navigate = useNavigate();
@@ -167,9 +167,21 @@ function CustomerBookings(){
         const matchesSearch = displayCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
                               (apt.booking_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                               (apt.design_title || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || apt.status.toLowerCase() === statusFilter.toLowerCase();
+                              
+        let matchesStatus = false;
+        const status = (apt.status || '').toLowerCase();
+        if (statusFilter === 'all') {
+            matchesStatus = true;
+        } else if (statusFilter === 'upcoming') {
+            matchesStatus = ['pending', 'confirmed', 'in_progress', 'scheduled'].includes(status);
+        } else if (statusFilter === 'history') {
+            matchesStatus = ['completed', 'finished', 'cancelled', 'rejected'].includes(status);
+        } else {
+            matchesStatus = status === statusFilter.toLowerCase();
+        }
+        
         return matchesSearch && matchesStatus;
-    });
+    }).sort((a, b) => b.id - a.id); // Default to most recently added (highest ID)
 
     // Pagination Logic
     const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
@@ -642,11 +654,11 @@ function CustomerBookings(){
                                     <div className="customer-st-1910a4be" >
                                         <Filter size={18} color="#64748b" />
                                         <select className="pagination-select customer-st-03930596" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} >
-                                            <option value="all">All Status</option>
-                                            <option value="confirmed">Confirmed</option>
-                                            <option value="pending">Pending</option>
-                                            <option value="completed">Completed</option>
-                                            <option value="cancelled">Cancelled</option>
+                                            <option value="upcoming">Active / Upcoming</option>
+                                            <option value="history">History (Done / Cancelled)</option>
+                                            <option value="all">All Bookings</option>
+                                            <option value="confirmed">Confirmed Only</option>
+                                            <option value="pending">Pending Only</option>
                                         </select>
                                     </div>
                                     <div className="customer-st-e64759bd" >

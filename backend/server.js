@@ -438,6 +438,7 @@ db.getConnection((err, connection) => {
       CREATE TABLE IF NOT EXISTS inventory (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        image LONGTEXT,
         category VARCHAR(50),
         current_stock INT DEFAULT 0,
         min_stock INT DEFAULT 10,
@@ -460,6 +461,14 @@ db.getConnection((err, connection) => {
           if (!err && results.length === 0) {
             console.log('🔄 Migrating inventory: Adding current_stock column...');
             db.query("ALTER TABLE inventory ADD COLUMN current_stock INT DEFAULT 0");
+          }
+        });
+
+        // MIGRATION: Check for image column
+        db.query("SHOW COLUMNS FROM inventory LIKE 'image'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating inventory: Adding image column...');
+            db.query("ALTER TABLE inventory ADD COLUMN image LONGTEXT");
           }
         });
 
@@ -4626,7 +4635,7 @@ app.get('/api/customer/:userId/my-tattoos', (req, res) => {
     // Fallback to reference image if after_photo is missing
     const tattoos = results.map(t => ({
       ...t,
-      image_url: t.after_photo || t.reference_image
+      image_url: t.after_photo || null
     }));
 
     res.json({ success: true, tattoos });

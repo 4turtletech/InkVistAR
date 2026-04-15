@@ -14,3 +14,5 @@ dist/
 # Local App development and IDE settings
 TattooARApp/
 .vscode/
+# AI Rules
+gemini.md
