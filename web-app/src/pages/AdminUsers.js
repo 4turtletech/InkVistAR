@@ -10,7 +10,8 @@ import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
-import { COUNTRY_CODES, getPhoneParts } from '../constants/countryCodes';
+import { getPhoneParts } from '../constants/countryCodes';
+import CountryCodeSelect from '../components/CountryCodeSelect';
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
     User, Calendar, DollarSign, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
@@ -896,15 +897,11 @@ function AdminUsers() {
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">Phone Number</label>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                            <select className="form-input" style={{ width: '160px' }}
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                            <CountryCodeSelect
                                                 value={formData.countryCode || '+63'}
-                                                onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}>
-                                                <option value="+63">Philippines (+63)</option>
-                                                {COUNTRY_CODES.filter(c => c.code !== '+63').map(c => (
-                                                    <option key={c.code} value={c.code}>{c.country} ({c.code})</option>
-                                                ))}
-                                            </select>
+                                                onChange={(code) => setFormData({ ...formData, countryCode: code })}
+                                            />
                                             <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '') })} className="form-input" style={{ flex: 1 }} placeholder="9123456789" />
                                         </div>
                                     </div>
@@ -1379,15 +1376,11 @@ function AdminUsers() {
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">Phone Number *</label>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                            <select name="countryCode" className="form-input" style={{ width: '130px' }}
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                            <CountryCodeSelect
                                                 value={createFormData.countryCode}
-                                                onChange={(e) => setCreateFormData({ ...createFormData, countryCode: e.target.value })}>
-                                                <option value="+63">Philippines (+63)</option>
-                                                {COUNTRY_CODES.filter(c => c.code !== '+63').map(c => (
-                                                    <option key={c.code} value={c.code}>{c.country} ({c.code})</option>
-                                                ))}
-                                            </select>
+                                                onChange={(code) => setCreateFormData({ ...createFormData, countryCode: code })}
+                                            />
                                             <input type="tel" className={`form-input ${createErrors.phone ? 'error' : ''}`}
                                                 style={{ flex: 1 }} placeholder="09XXXXXXXXX" value={createFormData.phone}
                                                 onChange={(e) => handleCreateFieldChange('phone', e.target.value)}

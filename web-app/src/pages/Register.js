@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { API_URL } from '../config';
 import Navbar from '../components/Navbar';
 import './Login.css'; // Using Login styles for consistency
-import { COUNTRY_CODES } from '../constants/countryCodes';
+import CountryCodeSelect from '../components/CountryCodeSelect';
 
 const PasswordStrengthMeter = ({ feedback }) => {
   // Ordered steps: each must be met before the next hint appears
@@ -230,19 +230,11 @@ function Register() {
               <input type="email" name="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="Email Address" value={formData.email} onChange={handleChange} onBlur={handleBlur} />
               {errors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.email}</small>}
             </div>
-            <div className="form-group" style={{ display: 'flex', gap: '10px' }}>
-              <select
-                name="countryCode"
-                className="form-input"
-                style={{ width: '130px' }}
+            <div className="form-group" style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+              <CountryCodeSelect
                 value={formData.countryCode}
-                onChange={handleChange}
-              >
-                <option value="+63">Philippines (+63)</option>
-                {COUNTRY_CODES.filter(c => c.code !== '+63').map(c => (
-                  <option key={c.code} value={c.code}>{c.country} ({c.code})</option>
-                ))}
-              </select>
+                onChange={(code) => setFormData(prev => ({ ...prev, countryCode: code }))}
+              />
               <input type="tel" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} style={{ flex: 1 }} value={formData.phone} onChange={handleChange} placeholder="Phone Number" />
             </div>
             {errors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.phone}</small>}

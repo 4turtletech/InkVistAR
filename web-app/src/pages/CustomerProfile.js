@@ -5,7 +5,8 @@ import { User, Mail, Phone, MapPin, Save, Edit2, X, FileText, Lock, Eye, EyeOff,
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
-import { COUNTRY_CODES, getPhoneParts } from '../constants/countryCodes';
+import { getPhoneParts } from '../constants/countryCodes';
+import CountryCodeSelect from '../components/CountryCodeSelect';
 
 const PasswordStrengthMeter = ({ feedback }) => {
     const steps = [
@@ -301,24 +302,20 @@ function CustomerProfile() {
                                             </div>
                                             <div className="form-group">
                                                 <label style={formLabel}><Phone size={16} /> Phone</label>
-                                                <div className="customer-st-4557600f" >
+                                                <div className="customer-st-4557600f" style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                                                     {(() => {
                                                         const { code, currentNo } = getPhoneParts(profile.phone);
                                                         return (
                                                             <>
-                                                                <select className="form-input customer-st-62944d63"
+                                                                <CountryCodeSelect
                                                                     value={code}
-                                                                    onChange={e => {
-                                                                        const newCode = e.target.value;
+                                                                    onChange={newCode => {
                                                                         const { currentNo: num } = getPhoneParts(profile.phone);
                                                                         setProfile({ ...profile, phone: newCode + num });
-                                                                    }}>
-                                                                    <option value="+63">Philippines (+63)</option>
-                                                                    {COUNTRY_CODES.filter(c => c.code !== '+63').map(c => (
-                                                                        <option key={c.code} value={c.code}>{c.country} ({c.code})</option>
-                                                                    ))}
-                                                                </select>
+                                                                    }}
+                                                                />
                                                                 <input className="form-input customer-st-282aded5" type="tel"
+                                                                    style={{ flex: 1 }}
                                                                     value={currentNo}
                                                                     onChange={e => {
                                                                         const digits = e.target.value.replace(/[^\d]/g, '');

@@ -9,7 +9,8 @@ import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
-import { COUNTRY_CODES, getPhoneParts } from '../constants/countryCodes';
+import { getPhoneParts } from '../constants/countryCodes';
+import CountryCodeSelect from '../components/CountryCodeSelect';
 
 const PasswordStrengthMeter = ({ feedback }) => {
   const steps = [
@@ -369,19 +370,14 @@ function ArtistProfile() {
                                             {(() => {
                                                 const { code, currentNo } = getPhoneParts(profile.phone);
                                                 return (
-                                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                                        <select className="form-input artist-profile-input" style={{ width: '160px' }}
+                                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                                        <CountryCodeSelect
                                                             value={code}
-                                                            onChange={e => {
-                                                                const newCode = e.target.value;
+                                                            onChange={newCode => {
                                                                 const { currentNo: num } = getPhoneParts(profile.phone);
                                                                 setProfile({ ...profile, phone: newCode + num });
-                                                            }}>
-                                                            <option value="+63">Philippines (+63)</option>
-                                                            {COUNTRY_CODES.filter(c => c.code !== '+63').map(c => (
-                                                                <option key={c.code} value={c.code}>{c.country} ({c.code})</option>
-                                                            ))}
-                                                        </select>
+                                                            }}
+                                                        />
                                                         <input
                                                             type="tel"
                                                             className="form-input artist-profile-input"
