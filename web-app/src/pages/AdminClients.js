@@ -291,7 +291,7 @@ function AdminClients() {
                                         
                                         <td className="actions-cell">
                                             {filterStatus === 'active' ? (
-                                                <button className="btn-indigo-sm" onClick={() => openManageModal(client)}>
+                                                <button className="btn btn-primary" onClick={() => openManageModal(client)}>
                                                     Manage
                                                 </button>
                                             ) : (

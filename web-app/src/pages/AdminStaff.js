@@ -560,7 +560,7 @@ function AdminStaff() {
                                             <td><span className="badge status-active">Active</span></td>
                                             <td>
                                                 {member.user_type === 'artist' && (
-                                                    <button className="btn-indigo-sm" onClick={() => openArtistManager(member)}>
+                                                    <button className="btn btn-primary" onClick={() => openArtistManager(member)}>
                                                         Manage Artist
                                                     </button>
                                                 )}

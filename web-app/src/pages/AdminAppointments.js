@@ -791,7 +791,7 @@ function AdminAppointments() {
                                             setServiceFilter('all');
                                             setDateFilter('');
                                         }}
-                                        className="btn-glass"
+                                        className="btn btn-secondary"
                                         style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                                     >
                                         <X size={12} /> Clear Filters
