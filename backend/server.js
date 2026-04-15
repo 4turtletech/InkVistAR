@@ -700,6 +700,24 @@ db.getConnection((err, connection) => {
             console.log('✅ Added booking_code column to appointments');
           }
         });
+
+        // MIGRATION: Add 'session_duration' column if it doesn't exist
+        db.query("SHOW COLUMNS FROM appointments LIKE 'session_duration'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding session_duration column...');
+            db.query("ALTER TABLE appointments ADD COLUMN session_duration INT NULL DEFAULT NULL");
+            console.log('✅ Added session_duration column to appointments');
+          }
+        });
+
+        // MIGRATION: Add 'audit_log' column if it doesn't exist
+        db.query("SHOW COLUMNS FROM appointments LIKE 'audit_log'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding audit_log column...');
+            db.query("ALTER TABLE appointments ADD COLUMN audit_log LONGTEXT NULL DEFAULT NULL");
+            console.log('✅ Added audit_log column to appointments');
+          }
+        });
       }
     });
 
@@ -3494,7 +3512,7 @@ app.post('/api/appointments/:id/release-material', (req, res) => {
 // Update appointment status
 app.put('/api/appointments/:id/status', (req, res) => {
   const { id } = req.params;
-  const { status, price, isFullyComplete } = req.body;
+  const { status, price, isFullyComplete, sessionDuration, auditLog } = req.body;
 
   // Fetch appointment first to get user IDs and service_type for inventory logic
   db.query('SELECT * FROM appointments WHERE id = ?', [id], (err, results) => {
@@ -3565,6 +3583,14 @@ app.put('/api/appointments/:id/status', (req, res) => {
     if (price !== undefined && price !== null) {
       updateQuery += ', price = ?';
       queryParams.push(price);
+    }
+    if (sessionDuration !== undefined && sessionDuration !== null) {
+      updateQuery += ', session_duration = ?';
+      queryParams.push(sessionDuration);
+    }
+    if (auditLog !== undefined && auditLog !== null) {
+      updateQuery += ', audit_log = ?';
+      queryParams.push(typeof auditLog === 'string' ? auditLog : JSON.stringify(auditLog));
     }
     updateQuery += ' WHERE id = ?';
     queryParams.push(id);
@@ -5090,7 +5116,8 @@ app.get('/api/admin/analytics', (req, res) => {
       COUNT(*) as total,
       SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
       SUM(CASE WHEN status IN ('scheduled', 'confirmed') THEN 1 ELSE 0 END) as scheduled,
-      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
+      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+      AVG(CASE WHEN status = 'completed' AND session_duration IS NOT NULL AND session_duration > 0 THEN session_duration ELSE NULL END) as avgDuration
     FROM appointments
     WHERE is_deleted = 0
   `;
@@ -5155,7 +5182,8 @@ app.get('/api/admin/analytics', (req, res) => {
       completed: apptData.completed || 0,
       scheduled: apptData.scheduled || 0,
       cancelled: apptData.cancelled || 0,
-      completionRate: apptData.total > 0 ? Math.round((apptData.completed / apptData.total) * 100) : 0
+      completionRate: apptData.total > 0 ? Math.round((apptData.completed / apptData.total) * 100) : 0,
+      avgDuration: apptData.avgDuration ? Math.round(apptData.avgDuration) : null
     };
 
     db.query(revenueQuery, (err, revRes) => {
