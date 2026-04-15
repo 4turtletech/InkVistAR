@@ -158,9 +158,22 @@ function CustomerBookings(){
         fetchAppointments();
     }, [customerId]);
 
+    // Helper: Compute display booking code with sequential suffix from appointment ID
+    const getDisplayCode = (bookingCode, id) => {
+        const seqNum = String((id % 10000)).padStart(4, '0');
+        if (bookingCode && bookingCode.includes('-')) {
+            const parts = bookingCode.split('-');
+            if (parts.length >= 3) {
+                return `${parts[0]}-${parts[1]}-${seqNum}`;
+            }
+        }
+        return `#${seqNum}`;
+    };
+
     // Filter Logic
     const filteredAppointments = appointments.filter(apt => {
-        const matchesSearch = (apt.artist_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        const displayCode = getDisplayCode(apt.booking_code, apt.id);
+        const matchesSearch = displayCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
                               (apt.booking_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                               (apt.design_title || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || apt.status.toLowerCase() === statusFilter.toLowerCase();
@@ -183,7 +196,8 @@ function CustomerBookings(){
                 price: appointment.price,
                 remainingBalance: remainingBalance,
                 type: type,
-                serviceType: appointment.service_type || 'Tattoo Session'
+                serviceType: appointment.service_type || 'Tattoo Session',
+                bookingCode: appointment.booking_code
             } 
         });
     };
@@ -656,15 +670,14 @@ function CustomerBookings(){
                                 <>
                                     <div className="table-responsive">
                                         <table className="portal-table">
-                                            <thead><tr><th>ID</th><th>Staff</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Price</th><th>Payment</th></tr></thead>
+                                            <thead><tr><th>ID</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Price</th><th>Payment</th></tr></thead>
                                             <tbody>{displayedAppointments.map(a=> (
                                                 <tr key={a.id} onClick={() => handleViewDetails(a)} style={{ cursor: 'pointer' }} className="clickable-row hover-bg">
                                                     <td className="customer-st-968fd1b5" >
                                                         <span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b' }}>
-                                                            {a.booking_code || '#' + a.id}
+                                                            {getDisplayCode(a.booking_code, a.id)}
                                                         </span>
                                                     </td>
-                                                    <td className="customer-st-8515177a" >{a.artist_name}</td>
                                                     <td>{a.service_type || 'Tattoo'}</td>
                                                     <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
                                                     <td>{a.start_time}</td>
@@ -765,10 +778,6 @@ function CustomerBookings(){
                             {modalTab === 'details' ? (
                                 <>
                                     <div className="customer-st-5c49f804" >
-                                        <div className="customer-st-e8eceac8" >
-                                            <label className="customer-st-3c5cf8dd" >Staff Assigned</label>
-                                            <p className="customer-st-5d13f831" >{selectedApt.artist_name || 'TBD'}</p>
-                                        </div>
                                         <div className="customer-st-e8eceac8" >
                                             <label className="customer-st-3c5cf8dd" >Service Type</label>
                                             <p className="customer-st-5d13f831" >{selectedApt.service_type || 'General Session'}</p>

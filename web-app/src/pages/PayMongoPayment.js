@@ -8,8 +8,20 @@ import './PortalStyles.css';
 const PayMongoPayment = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const stateData = location.state || { appointmentId: null, price: 0, type: null, remainingBalance: 0, serviceType: 'Tattoo Session' };
-    const { appointmentId, price, type, remainingBalance, serviceType } = stateData;
+    const stateData = location.state || { appointmentId: null, price: 0, type: null, remainingBalance: 0, serviceType: 'Tattoo Session', bookingCode: null };
+    const { appointmentId, price, type, remainingBalance, serviceType, bookingCode } = stateData;
+
+    // Helper: Compute display booking code with sequential suffix from appointment ID
+    const getDisplayCode = () => {
+        const seqNum = String((Number(appointmentId) % 10000)).padStart(4, '0');
+        if (bookingCode && bookingCode.includes('-')) {
+            const parts = bookingCode.split('-');
+            if (parts.length >= 3) {
+                return `${parts[0]}-${parts[1]}-${seqNum}`;
+            }
+        }
+        return `#${seqNum}`;
+    };
 
     const [status, setStatus] = useState(type === 'balance' ? 'initializing' : 'selection'); // selection, initializing, ready, processing, failed
     const [paymentType, setPaymentType] = useState(type === 'balance' ? 'balance' : 'deposit');
@@ -174,7 +186,7 @@ const PayMongoPayment = () => {
                         <ShieldCheck size={28} />
                     </div>
                     <h2 style={{ margin: '0 0 8px 0', fontSize: '1.75rem', fontWeight: '800', color: '#1e293b', letterSpacing: '-0.025em' }}>InkVistAR Checkout</h2>
-                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem', fontWeight: '500' }}>Appointment <span style={{ color: '#1e293b', fontWeight: '700' }}>#{appointmentId}</span></p>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem', fontWeight: '500' }}>Appointment <span style={{ color: '#1e293b', fontWeight: '700' }}>{getDisplayCode()}</span></p>
                 </div>
 
                 {status === 'selection' ? (
