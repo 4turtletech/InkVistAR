@@ -1114,8 +1114,30 @@ function AdminAppointments() {
                                                 )}
                                             </div>
 
+                                            <div>
+                                                <label className="premium-input-label">Service Details</label>
+                                                <div className="admin-st-efc8b70e">
+                                                    <div className="admin-st-fefecdf0">
+                                                        <div className="premium-input-group">
+                                                            <label className="admin-st-b8618eb2">Service Type *</label>
+                                                            <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2">
+                                                                <option value="Tattoo Session">Tattoo Session</option>
+                                                                <option value="Consultation">Consultation</option>
+                                                                <option value="Piercing">Piercing</option>
+                                                                <option value="Tattoo + Piercing">Tattoo + Piercing</option>
+                                                                <option value="Touch-up">Touch-up</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="premium-input-group">
+                                                            <label className="admin-st-b8618eb2">Design / Idea</label>
+                                                            <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
 
+                                        {/* Column 2: Staff & Schedule */}
                                         <div className="admin-st-d295c8d6">
                                             <div>
                                                 <label className="premium-input-label">Staff Assignment</label>
@@ -1165,7 +1187,7 @@ function AdminAppointments() {
                                                     </div>
                                                 </div>
                                             )}
-                                        </div>          </div>
+                                        </div>
 
                                         {/* Column 3: Status */}
                                         <div className="admin-st-d295c8d6">
@@ -1435,15 +1457,19 @@ function AdminAppointments() {
                                         {selectedAppointment && (
                                             <>
                                                 <button
-                                                    className="btn btn-danger admin-st-ce9b8932"
+                                                    type="button"
+                                                    className="btn"
                                                     onClick={() => {
-                                                        handleDelete(selectedAppointment.id);
-                                                        closeModal();
+                                                        setRescheduleModal({
+                                                            isOpen: true,
+                                                            date: formData.date || '',
+                                                            time: formData.time || '',
+                                                            reason: ''
+                                                        });
                                                     }}
-                                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
-                                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#fef3c7', color: '#92400e', borderColor: '#fcd34d' }}
                                                 >
-                                                    <X size={16} /> Delete Appointment
+                                                    <Calendar size={16} /> Reschedule
                                                 </button>
 
                                                 <button
