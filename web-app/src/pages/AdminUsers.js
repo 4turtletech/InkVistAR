@@ -12,7 +12,8 @@ import { API_URL } from '../config';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
-    User, Calendar, DollarSign, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText
+    User, Calendar, DollarSign, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
+    Eye, EyeOff, Camera
 } from 'lucide-react';
 
 function AdminUsers() {
@@ -66,9 +67,12 @@ function AdminUsers() {
     // ─── Create User Modal ───
     const [createModal, setCreateModal] = useState({ mounted: false, visible: false });
     const [createFormData, setCreateFormData] = useState({
-        firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer'
+        firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer',
+        profileImage: '', age: '', gender: ''
     });
     const [createErrors, setCreateErrors] = useState({});
+    const [showCreatePassword, setShowCreatePassword] = useState(false);
+    const [profileImagePreview, setProfileImagePreview] = useState(null);
 
     // ─── Confirm Dialog ───
     const [confirmDialog, setConfirmDialog] = useState({
@@ -125,8 +129,10 @@ function AdminUsers() {
         setCreateModal(prev => ({ ...prev, visible: false }));
         setTimeout(() => {
             setCreateModal({ mounted: false, visible: false });
-            setCreateFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer' });
+            setCreateFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer', profileImage: '', age: '', gender: '' });
             setCreateErrors({});
+            setShowCreatePassword(false);
+            setProfileImagePreview(null);
         }, 400);
     };
 
@@ -550,9 +556,27 @@ function AdminUsers() {
     // ═══════════════════════════════════════════════════════════
 
     const handleAddNew = () => {
-        setCreateFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer' });
+        setCreateFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer', profileImage: '', age: '', gender: '' });
         setCreateErrors({});
+        setShowCreatePassword(false);
+        setProfileImagePreview(null);
         openCreateModalAnim();
+    };
+
+    const handleProfileImageChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            setCreateErrors(prev => ({ ...prev, profileImage: 'Image must be under 5MB' }));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setProfileImagePreview(ev.target.result);
+            setCreateFormData(prev => ({ ...prev, profileImage: ev.target.result }));
+            setCreateErrors(prev => ({ ...prev, profileImage: '' }));
+        };
+        reader.readAsDataURL(file);
     };
 
     const validateCreateField = (name, value) => {
@@ -578,6 +602,10 @@ function AdminUsers() {
             if (!value) error = 'Password is required';
             else if (value.length < 8) error = 'Must be at least 8 characters';
         }
+        if (name === 'age' && value) {
+            const num = parseInt(value);
+            if (isNaN(num) || num < 1 || num > 120) error = 'Enter a valid age (1–120)';
+        }
         setCreateErrors(prev => ({ ...prev, [name]: error }));
         return error === '';
     };
@@ -588,6 +616,7 @@ function AdminUsers() {
         else if (name === 'email') sanitized = value.replace(/\s/g, '');
         else if (name === 'phone') sanitized = value.replace(/[^0-9]/g, '').slice(0, 11);
         else if (name === 'password') sanitized = value.slice(0, 50);
+        else if (name === 'age') sanitized = value.replace(/[^0-9]/g, '').slice(0, 3);
         setCreateFormData(prev => ({ ...prev, [name]: sanitized }));
         if (createErrors[name]) setCreateErrors(prev => ({ ...prev, [name]: '' }));
     };
@@ -617,7 +646,10 @@ function AdminUsers() {
             await Axios.post(`${API_URL}/api/admin/users`, {
                 name: fullName, email: createFormData.email,
                 password: createFormData.password, type: createFormData.user_type,
-                phone: createFormData.phone, status: 'active'
+                phone: createFormData.phone, status: 'active',
+                profileImage: createFormData.profileImage || null,
+                age: createFormData.age ? parseInt(createFormData.age) : null,
+                gender: createFormData.gender || null
             });
             showAlert("Success", "User added successfully!", "success");
             fetchUsers();
@@ -1195,6 +1227,38 @@ function AdminUsers() {
                                 <button className="close-btn" onClick={closeCreateModal}><X size={24} /></button>
                             </div>
                             <div className="modal-body">
+                                {/* Profile Image Upload */}
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+                                    <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => document.getElementById('create-user-avatar-input').click()}>
+                                        <div style={{
+                                            width: '100px', height: '100px', borderRadius: '50%',
+                                            background: profileImagePreview ? 'transparent' : 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+                                            border: '3px dashed #cbd5e1', overflow: 'hidden',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            transition: 'all 0.2s ease'
+                                        }}>
+                                            {profileImagePreview ? (
+                                                <img src={profileImagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <Camera size={32} color="#94a3b8" />
+                                            )}
+                                        </div>
+                                        <div style={{
+                                            position: 'absolute', bottom: '0', right: '0',
+                                            width: '30px', height: '30px', borderRadius: '50%',
+                                            background: '#6366f1', border: '2px solid white',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                                        }}>
+                                            <Camera size={14} color="white" />
+                                        </div>
+                                        <input id="create-user-avatar-input" type="file" accept="image/*" style={{ display: 'none' }}
+                                            onChange={handleProfileImageChange} />
+                                    </div>
+                                </div>
+                                {createErrors.profileImage && <small style={{ color: '#ef4444', display: 'block', textAlign: 'center', marginTop: '-16px', marginBottom: '12px', fontSize: '0.8rem' }}>{createErrors.profileImage}</small>}
+                                <p style={{ textAlign: 'center', margin: '-12px 0 20px', fontSize: '0.8rem', color: '#94a3b8' }}>Click to upload profile photo (optional)</p>
+
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">First Name *</label>
@@ -1233,12 +1297,46 @@ function AdminUsers() {
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
+                                        <label className="premium-label">Age</label>
+                                        <input type="text" inputMode="numeric" className={`form-input ${createErrors.age ? 'error' : ''}`}
+                                            placeholder="e.g. 25" value={createFormData.age}
+                                            onChange={(e) => handleCreateFieldChange('age', e.target.value)}
+                                            onBlur={() => handleCreateBlur('age')} />
+                                        {createErrors.age && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.age}</small>}
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="premium-label">Gender</label>
+                                        <select value={createFormData.gender}
+                                            onChange={(e) => setCreateFormData({ ...createFormData, gender: e.target.value })} className="form-input">
+                                            <option value="">Prefer not to say</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Non-binary">Non-binary</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
                                         <label className="premium-label">Password *</label>
-                                        <input type="password" className={`form-input ${createErrors.password ? 'error' : ''}`}
-                                            placeholder="Secure password (min 8 chars)" value={createFormData.password}
-                                            onChange={(e) => handleCreateFieldChange('password', e.target.value)}
-                                            onBlur={() => handleCreateBlur('password')}
-                                            onPaste={(e) => e.preventDefault()} />
+                                        <div style={{ position: 'relative' }}>
+                                            <input type={showCreatePassword ? 'text' : 'password'} className={`form-input ${createErrors.password ? 'error' : ''}`}
+                                                style={{ paddingRight: '44px' }}
+                                                placeholder="Secure password (min 8 chars)" value={createFormData.password}
+                                                onChange={(e) => handleCreateFieldChange('password', e.target.value)}
+                                                onBlur={() => handleCreateBlur('password')}
+                                                onPaste={(e) => e.preventDefault()} />
+                                            <button type="button" onClick={() => setShowCreatePassword(!showCreatePassword)}
+                                                style={{
+                                                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                                                    background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                                                    color: '#94a3b8', display: 'flex', alignItems: 'center'
+                                                }}
+                                                title={showCreatePassword ? 'Hide password' : 'Show password'}
+                                            >
+                                                {showCreatePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
                                         {createErrors.password && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.password}</small>}
                                     </div>
                                     <div className="form-group">

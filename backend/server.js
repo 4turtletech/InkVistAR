@@ -331,6 +331,22 @@ db.getConnection((err, connection) => {
           db.query("ALTER TABLE customers ADD COLUMN profile_image LONGTEXT NULL");
         }
       });
+
+      // MIGRATION: Check if 'gender' column exists in customers
+      db.query("SHOW COLUMNS FROM customers LIKE 'gender'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('🔄 Migrating customers table: Adding gender column...');
+          db.query("ALTER TABLE customers ADD COLUMN gender VARCHAR(20) NULL");
+        }
+      });
+
+      // MIGRATION: Check if 'age' column exists in customers
+      db.query("SHOW COLUMNS FROM customers LIKE 'age'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('🔄 Migrating customers table: Adding age column...');
+          db.query("ALTER TABLE customers ADD COLUMN age INT NULL");
+        }
+      });
     });
 
     // Create Portfolio Table if not exists (Ensuring category and visibility support)
@@ -4605,7 +4621,7 @@ app.get('/api/admin/users', (req, res) => {
 
 // Admin: Create User
 app.post('/api/admin/users', async (req, res) => {
-  const { name, email, password, type, phone, status } = req.body;
+  const { name, email, password, type, phone, status, profileImage, age, gender } = req.body;
   try {
     const password_hash = await bcrypt.hash(password, 10);
     const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
@@ -4614,9 +4630,19 @@ app.post('/api/admin/users', async (req, res) => {
     db.query(query, [name, email, password_hash, type, phone, isDeleted], (err, result) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
 
-      // If artist, create profile
+      const newUserId = result.insertId;
+
+      // If artist, create artist profile
       if (type === 'artist') {
-        db.query('INSERT INTO artists (user_id, studio_name) VALUES (?, ?)', [result.insertId, 'New Studio']);
+        db.query('INSERT INTO artists (user_id, studio_name, profile_image) VALUES (?, ?, ?)', [newUserId, 'New Studio', profileImage || null]);
+      }
+
+      // Create customer profile with extra fields (profileImage, age, gender)
+      if (profileImage || age || gender) {
+        db.query(
+          'INSERT INTO customers (user_id, phone, profile_image, age, gender) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE profile_image = VALUES(profile_image), age = VALUES(age), gender = VALUES(gender)',
+          [newUserId, phone || null, profileImage || null, age || null, gender || null]
+        );
       }
 
       logAction(null, 'CREATE_USER', `Created user ${email} (${type})`, req.ip);
