@@ -9,7 +9,7 @@ import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
 
-function ArtistAppointments(){
+function ArtistAppointments() {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('upcoming');
@@ -19,8 +19,8 @@ function ArtistAppointments(){
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', onConfirm: null });
     const [selectedAppointment, setSelectedAppointment] = useState(null);
-    
-    
+
+
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
         return saved ? JSON.parse(saved) : null;
@@ -86,7 +86,7 @@ function ArtistAppointments(){
         const headers = ['Client', 'Service', 'Date', 'Time', 'Status'];
         const csvContent = [
             headers.join(','),
-            ...filteredAppointments.map(a => 
+            ...filteredAppointments.map(a =>
                 `${escapeCsv(a.client_name)},${escapeCsv(a.design_title)},${escapeCsv(new Date(a.appointment_date).toLocaleDateString())},${escapeCsv(a.start_time)},${escapeCsv(a.status)}`
             )
         ].join('\n');
@@ -100,7 +100,7 @@ function ArtistAppointments(){
 
     const handlePrint = () => {
         const printWindow = window.open('', '_blank');
-        const printData = filteredAppointments.map(a => 
+        const printData = filteredAppointments.map(a =>
             `<tr>
                 <td>${a.client_name || 'N/A'}</td>
                 <td>${a.design_title || 'N/A'}</td>
@@ -231,9 +231,9 @@ function ArtistAppointments(){
         return appointments.filter(a => {
             const apptDate = new Date(a.appointment_date);
             return apptDate.getDate() === day &&
-                   apptDate.getMonth() === currentDate.getMonth() &&
-                   apptDate.getFullYear() === currentDate.getFullYear() &&
-                   a.status !== 'cancelled';
+                apptDate.getMonth() === currentDate.getMonth() &&
+                apptDate.getFullYear() === currentDate.getFullYear() &&
+                a.status !== 'cancelled';
         });
     };
 
@@ -253,14 +253,14 @@ function ArtistAppointments(){
                         Print
                     </button>
                     <div className="view-toggle" style={{ display: 'flex', gap: '10px' }}>
-                        <button 
+                        <button
                             className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
                             onClick={() => setViewMode('list')}
                             style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.5rem 1rem' }}
                         >
                             <List size={16} /> List
                         </button>
-                        <button 
+                        <button
                             className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
                             onClick={() => setViewMode('calendar')}
                             style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.5rem 1rem' }}
@@ -269,7 +269,7 @@ function ArtistAppointments(){
                         </button>
                     </div>
                 </header>
-                
+
                 <div className="portal-content">
                     {loading ? <div className="no-data">Loading...</div> : (
                         <>
@@ -277,11 +277,11 @@ function ArtistAppointments(){
                                 <div className="data-card">
                                     <div className="artist-calendar-header">
                                         <div className="artist-calendar-nav">
-                                            <button onClick={() => changeMonth(-1)} className="artist-calendar-nav-btn"><ChevronLeft size={20}/></button>
+                                            <button onClick={() => changeMonth(-1)} className="artist-calendar-nav-btn"><ChevronLeft size={20} /></button>
                                             <button onClick={() => setCurrentDate(new Date())} className="artist-calendar-nav-btn">Today</button>
-                                            <button onClick={() => changeMonth(1)} className="artist-calendar-nav-btn"><ChevronRight size={20}/></button>
+                                            <button onClick={() => changeMonth(1)} className="artist-calendar-nav-btn"><ChevronRight size={20} /></button>
                                         </div>
-                                        <h2 style={{margin:0, border: 'none'}}>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
+                                        <h2 style={{ margin: 0, border: 'none' }}>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
                                         <div style={{ width: '150px' }}></div>
                                     </div>
                                     <div className="artist-calendar-grid">
@@ -293,17 +293,17 @@ function ArtistAppointments(){
                                             const day = i + 1;
                                             const dayAppts = getAppointmentsForDate(day);
                                             const isToday = new Date().getDate() === day && new Date().getMonth() === currentDate.getMonth() && new Date().getFullYear() === currentDate.getFullYear();
-                                            
+
                                             return (
                                                 <div key={day} className={`artist-calendar-cell ${isToday ? 'today' : ''}`}>
                                                     <div className="artist-calendar-date-number">{day}</div>
                                                     {dayAppts.map(apt => (
-                                                        <div key={apt.id} 
-                                                             className={`artist-calendar-event ${apt.status === 'confirmed' ? 'confirmed' : (apt.status === 'pending' ? 'pending' : 'other')}`}
-                                                             title={`${apt.start_time || 'N/A'} - ${apt.client_name}`}
-                                                             onClick={() => setSelectedAppointment(apt)}
+                                                        <div key={apt.id}
+                                                            className={`artist-calendar-event ${apt.status === 'confirmed' ? 'confirmed' : (apt.status === 'pending' ? 'pending' : 'other')}`}
+                                                            title={`${apt.start_time || 'N/A'} - ${apt.client_name}`}
+                                                            onClick={() => setSelectedAppointment(apt)}
                                                         >
-                                                            {(apt.start_time || '').slice(0,5)} {apt.client_name}
+                                                            {(apt.start_time || '').slice(0, 5)} {apt.client_name}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -324,7 +324,7 @@ function ArtistAppointments(){
                                             <>
                                                 <div className="table-responsive">
                                                     <table className="portal-table">
-                                                        <thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Time</th><th>Price</th><th>Status</th><th>Payment</th>{activeTab === 'pending' && <th>Actions</th>}</tr></thead>
+                                                        <thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Time</th><th>Price</th>{activeTab === 'history' && <th>Materials Cost</th>}<th>Status</th><th>Payment</th>{activeTab === 'pending' && <th>Actions</th>}</tr></thead>
                                                         <tbody>{currentItems.map(a => (
                                                             <tr key={a.id} onClick={() => setSelectedAppointment(a)} style={{ cursor: 'pointer' }} className="clickable-row hover-bg">
                                                                 <td style={{ fontWeight: '600' }}>{a.client_name}</td>
@@ -332,6 +332,9 @@ function ArtistAppointments(){
                                                                 <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
                                                                 <td>{a.start_time || 'N/A'}</td>
                                                                 <td style={{ fontWeight: 'bold' }}>₱{parseFloat(a.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                                {activeTab === 'history' && (
+                                                                    <td style={{ color: '#f59e0b', fontWeight: '500' }}>₱{parseFloat(a.total_material_cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                                )}
                                                                 <td><span className={`status-badge ${a.status}`}>{a.status}</span></td>
                                                                 <td>
                                                                     <span className={`status-badge ${a.payment_status === 'paid' ? 'completed' : a.payment_status === 'pending' ? 'pending' : 'cancelled'}`} style={{ backgroundColor: a.payment_status === 'paid' ? '#dcfce7' : a.payment_status === 'pending' ? '#fef3c7' : '#f3f4f6', color: a.payment_status === 'paid' ? '#16a34a' : a.payment_status === 'pending' ? '#b45309' : '#64748b' }}>
@@ -350,7 +353,7 @@ function ArtistAppointments(){
                                                         ))}</tbody>
                                                     </table>
                                                 </div>
-                                                <Pagination 
+                                                <Pagination
                                                     currentPage={currentPage}
                                                     totalPages={totalPages}
                                                     onPageChange={setCurrentPage}
@@ -367,15 +370,15 @@ function ArtistAppointments(){
                                             </div>
                                         )}
                                     </div>
-                                    
-                                    <ConfirmModal 
+
+                                    <ConfirmModal
                                         isOpen={confirmModal.visible}
                                         title={confirmModal.title}
                                         message={confirmModal.message}
                                         onConfirm={() => { confirmModal.onConfirm(); setConfirmModal({ ...confirmModal, visible: false }); }}
                                         onClose={() => setConfirmModal({ ...confirmModal, visible: false })}
                                     />
-                                    
+
                                     {selectedAppointment && (
                                         <div className="modal-overlay" onClick={() => setSelectedAppointment(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}>
                                             <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: '600px', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
@@ -394,11 +397,11 @@ function ArtistAppointments(){
                                                             <p style={{ margin: 0, fontWeight: '600', color: '#0f172a' }}>{new Date(selectedAppointment.appointment_date).toLocaleDateString()} at {selectedAppointment.start_time || 'N/A'}</p>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     <div style={{ margin: '20px 0', padding: '15px', background: '#f8fafc', borderRadius: '12px' }}>
                                                         <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Service Requested</p>
                                                         <p style={{ margin: 0, fontWeight: '600', color: '#0f172a' }}>{selectedAppointment.design_title || 'Tattoo Session'}</p>
-                                                        
+
                                                         <div style={{ display: 'flex', gap: '30px', marginTop: '15px' }}>
                                                             <div>
                                                                 <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Status</span>
@@ -431,6 +434,12 @@ function ArtistAppointments(){
                                                                     {selectedAppointment.payment_status ? selectedAppointment.payment_status.charAt(0).toUpperCase() + selectedAppointment.payment_status.slice(1) : 'Unpaid'}
                                                                 </span>
                                                             </div>
+                                                            {selectedAppointment.status === 'completed' && (
+                                                                <div>
+                                                                    <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Materials Cost</span>
+                                                                    <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>₱{parseFloat(selectedAppointment.total_material_cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
 
@@ -446,10 +455,10 @@ function ArtistAppointments(){
                                                     {selectedAppointment.reference_image && (
                                                         <div style={{ marginBottom: '20px' }}>
                                                             <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#64748b' }}>Reference Image</p>
-                                                            <img 
-                                                                src={selectedAppointment.reference_image.startsWith('data:') ? selectedAppointment.reference_image : selectedAppointment.reference_image.startsWith('http') ? selectedAppointment.reference_image : `${API_URL}${selectedAppointment.reference_image}`} 
-                                                                alt="Reference" 
-                                                                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0' }} 
+                                                            <img
+                                                                src={selectedAppointment.reference_image.startsWith('data:') ? selectedAppointment.reference_image : selectedAppointment.reference_image.startsWith('http') ? selectedAppointment.reference_image : `${API_URL}${selectedAppointment.reference_image}`}
+                                                                alt="Reference"
+                                                                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0' }}
                                                             />
                                                         </div>
                                                     )}
@@ -460,19 +469,19 @@ function ArtistAppointments(){
                                                             <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>Artist Draft Design</p>
                                                             <label className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '6px', margin: 0 }}>
                                                                 {selectedAppointment.draft_image ? 'Update Draft' : 'Upload Draft'}
-                                                                <input 
-                                                                    type="file" 
-                                                                    accept="image/*" 
-                                                                    style={{ display: 'none' }} 
-                                                                    onChange={(e) => handleUploadDraft(e, selectedAppointment.id)} 
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    style={{ display: 'none' }}
+                                                                    onChange={(e) => handleUploadDraft(e, selectedAppointment.id)}
                                                                 />
                                                             </label>
                                                         </div>
                                                         {selectedAppointment.draft_image ? (
-                                                            <img 
-                                                                src={selectedAppointment.draft_image} 
-                                                                alt="Draft Design" 
-                                                                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#fff' }} 
+                                                            <img
+                                                                src={selectedAppointment.draft_image}
+                                                                alt="Draft Design"
+                                                                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#fff' }}
                                                             />
                                                         ) : (
                                                             <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem', border: '1px dashed #cbd5e1', borderRadius: '8px', background: '#fff' }}>

@@ -2056,7 +2056,12 @@ app.get('/api/artist/:artistId/appointments', (req, res) => {
   const { status, date } = req.query;
 
   let query = `
-    SELECT ap.*, u.name as client_name, u.email as client_email, ar.commission_rate
+    SELECT 
+      ap.*, 
+      u.name as client_name, 
+      u.email as client_email, 
+      ar.commission_rate,
+      (SELECT COALESCE(SUM(sm.quantity * i.cost), 0) FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ap.id AND sm.status != 'released') as total_material_cost
     FROM appointments ap
     JOIN users u ON ap.customer_id = u.id
     LEFT JOIN artists ar ON ap.artist_id = ar.user_id
@@ -2928,7 +2933,8 @@ app.get('/api/admin/appointments', (req, res) => {
       ar.commission_rate,
       ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
       ap.manual_payment_method,
-      cust.profile_image as client_avatar
+      cust.profile_image as client_avatar,
+      (SELECT COALESCE(SUM(sm.quantity * i.cost), 0) FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ap.id AND sm.status != 'released') as total_material_cost
     FROM appointments ap
     JOIN users u_cust ON ap.customer_id = u_cust.id
     JOIN users u_art ON ap.artist_id = u_art.id

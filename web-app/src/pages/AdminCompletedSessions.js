@@ -62,7 +62,8 @@ function AdminCompletedSessions() {
                         beforePhoto: apt.before_photo,
                         afterPhoto: apt.after_photo,
                         price: apt.price || 0,
-                        totalPaid: apt.total_paid || 0
+                        totalPaid: apt.total_paid || 0,
+                        totalCost: apt.total_material_cost || 0
                     }));
                 setSessions(completedSessions);
                 setFilteredSessions(completedSessions);
@@ -322,7 +323,7 @@ function AdminCompletedSessions() {
                                         {/* Artist Notes Archive */}
                                         <div className="admin-st-02ffc1e1">
                                             <label className="admin-st-f7d8f00c">
-                                                <FileText size={14}/> Procedure Narrative
+                                                <FileText size={14} /> Procedure Narrative
                                             </label>
                                             <div className="admin-st-a5a703dd">
                                                 {selectedSession.notes || 'No notes were recorded for this session.'}
@@ -334,9 +335,9 @@ function AdminCompletedSessions() {
                                     <div className="admin-st-ff43421e">
                                         <div className="admin-st-8f4d2ab5">
                                             <label className="admin-st-3092c0d2">
-                                                <Package size={14}/> Logistics & Consumables
+                                                <Package size={14} /> Logistics & Consumables
                                             </label>
-                                            
+
                                             <div className="admin-st-6ece488c">
                                                 {selectedSession.materials && selectedSession.materials.length > 0 ? (
                                                     <div className="admin-st-b8aaf979">
