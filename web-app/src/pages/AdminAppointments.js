@@ -1131,8 +1131,8 @@ function AdminAppointments() {
                                                             </select>
                                                         </div>
                                                         <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Secondary Artist</label>
-                                                            <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2">
+                                                            <label className="admin-st-b8618eb2">Secondary Artist {selectedAppointment?.status === 'completed' && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>(Locked)</span>}</label>
+                                                            <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2" disabled={selectedAppointment?.status === 'completed'}>
                                                                 <option value="">None (Solo)</option>
                                                                 {artists.filter(a => a.id != formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                                             </select>
@@ -1141,7 +1141,7 @@ function AdminAppointments() {
                                                     {formData.secondaryArtistId && (
                                                         <div className="admin-st-953ba7ac">
                                                             <label className="admin-st-15b3be7e">Split % (Pri/Sec):</label>
-                                                            <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: parseInt(e.target.value) })} className="premium-input-v2 admin-st-e070afd8" />
+                                                            <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: parseInt(e.target.value) })} className="premium-input-v2 admin-st-e070afd8" disabled={selectedAppointment?.status === 'completed'} />
                                                             <span className="admin-st-7206c648">/ {100 - (formData.commissionSplit || 0)}</span>
                                                         </div>
                                                     )}

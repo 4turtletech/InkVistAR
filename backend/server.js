@@ -2957,6 +2957,7 @@ app.get('/api/admin/appointments', (req, res) => {
       u_cust.name as client_name, 
       u_cust.email as client_email,
       u_art.name as artist_name,
+      u_sec.name as secondary_artist_name,
       ar.commission_rate,
       ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
       ap.manual_payment_method,
@@ -2965,6 +2966,7 @@ app.get('/api/admin/appointments', (req, res) => {
     FROM appointments ap
     JOIN users u_cust ON ap.customer_id = u_cust.id
     JOIN users u_art ON ap.artist_id = u_art.id
+    LEFT JOIN users u_sec ON ap.secondary_artist_id = u_sec.id
     LEFT JOIN artists ar ON ap.artist_id = ar.user_id
     LEFT JOIN customers cust ON ap.customer_id = cust.user_id
     WHERE ap.is_deleted = 0
@@ -3688,9 +3690,16 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
 
   // 2. Get Completed Appointments
   const apptsQuery = `
-    SELECT id, appointment_date, design_title, price, payment_status, status, artist_id, secondary_artist_id, commission_split
-    FROM appointments 
-    WHERE (artist_id = ? OR secondary_artist_id = ?) AND status = 'completed' AND is_deleted = 0
+    SELECT ap.id, ap.appointment_date, ap.design_title, ap.price, ap.payment_status, ap.status, 
+           ap.artist_id, ap.secondary_artist_id, ap.commission_split,
+           u_cust.name as client_name,
+           u_sec.name as secondary_artist_name,
+           u_pri.name as primary_artist_name
+    FROM appointments ap
+    LEFT JOIN users u_cust ON ap.customer_id = u_cust.id
+    LEFT JOIN users u_sec ON ap.secondary_artist_id = u_sec.id
+    LEFT JOIN users u_pri ON ap.artist_id = u_pri.id
+    WHERE (ap.artist_id = ? OR ap.secondary_artist_id = ?) AND ap.status = 'completed' AND ap.is_deleted = 0
   `;
   db.query(apptsQuery, [id, id], (apptsErr, appts) => {
     if (apptsErr) return res.status(500).json({ success: false, message: 'Database error fetching appointments' });
@@ -3705,12 +3714,21 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
       // e.g. commission_split=60 means primary gets 18%, secondary gets 12%
       const calculations = appts.map(a => {
         let artistShare;
-        if (a.secondary_artist_id) {
+        const isCollab = !!a.secondary_artist_id;
+        const isPrimary = Number(a.artist_id) === Number(id);
+        let splitPercent = 100;
+        let collabPartnerName = null;
+
+        if (isCollab) {
           const split = a.commission_split || 50; // default 50/50
-          if (Number(a.artist_id) === Number(id)) {
+          if (isPrimary) {
             artistShare = a.price * ARTIST_RATE * (split / 100);
+            splitPercent = split;
+            collabPartnerName = a.secondary_artist_name;
           } else {
             artistShare = a.price * ARTIST_RATE * ((100 - split) / 100);
+            splitPercent = 100 - split;
+            collabPartnerName = a.primary_artist_name;
           }
         } else {
           artistShare = a.price * ARTIST_RATE;
@@ -3718,7 +3736,12 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
         return {
           ...a,
           artistShare,
-          studioShare: a.price - artistShare
+          basePrice: a.price,
+          studioShare: a.price - artistShare,
+          isCollab,
+          isPrimary,
+          splitPercent,
+          collabPartnerName
         };
       });
 
@@ -5139,16 +5162,34 @@ app.get('/api/admin/analytics', (req, res) => {
     WHERE ap.status != 'cancelled' AND ap.is_deleted = 0
   `;
 
-  // 3. Artist Productivity
+  // 3. Artist Productivity (proportional split for collaborative sessions)
   const artistQuery = `
-    SELECT 
-      u.name, 
-      COUNT(ap.id) as appointments, 
-      SUM(((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)) as revenue
-    FROM appointments ap
-    JOIN users u ON ap.artist_id = u.id
-    WHERE ap.status != 'cancelled' AND ap.is_deleted = 0
-    GROUP BY u.id, u.name
+    SELECT name, SUM(appointments) as appointments, SUM(revenue) as revenue FROM (
+      SELECT 
+        u.name,
+        COUNT(ap.id) as appointments,
+        SUM(
+          (((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0))
+          * CASE WHEN ap.secondary_artist_id IS NOT NULL THEN COALESCE(ap.commission_split, 50) / 100.0 ELSE 1 END
+        ) as revenue
+      FROM appointments ap
+      JOIN users u ON ap.artist_id = u.id
+      WHERE ap.status != 'cancelled' AND ap.is_deleted = 0
+      GROUP BY u.id, u.name
+      UNION ALL
+      SELECT 
+        u.name,
+        COUNT(ap.id) as appointments,
+        SUM(
+          (((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0))
+          * (100 - COALESCE(ap.commission_split, 50)) / 100.0
+        ) as revenue
+      FROM appointments ap
+      JOIN users u ON ap.secondary_artist_id = u.id
+      WHERE ap.status != 'cancelled' AND ap.is_deleted = 0 AND ap.secondary_artist_id IS NOT NULL
+      GROUP BY u.id, u.name
+    ) combined
+    GROUP BY name
     ORDER BY revenue DESC
     LIMIT 5
   `;

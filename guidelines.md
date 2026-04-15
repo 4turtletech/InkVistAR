@@ -49,8 +49,16 @@ This document serves as the primary ground truth for the InkVistAR project. When
 | **users** | id, name, email, password_hash, user_type (admin/manager/artist/customer), phone, is_verified, is_deleted |
 | **artists** | user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate, rating, total_reviews, profile_image, phone |
 | **customers** | user_id, phone, location, notes |
-| **appointments** | id, booking_code, customer_id, artist_id, appointment_date, start_time, end_time, design_title, price, status, payment_status, before_photo, after_photo, session_duration, audit_log, is_deleted |
+| **appointments** | id, booking_code, customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, end_time, design_title, price, status, payment_status, before_photo, after_photo, session_duration, audit_log, is_deleted |
 | **portfolio_works** | id, artist_id, image_url, title, description, category, price_estimate, is_public |
+
+### Commission & Revenue Split Rules
+- **Studio Cut:** 70% of the customer's total payment goes to the studio.
+- **Artist Commission Pool:** 30% of the customer's total payment is the "Artist Commission Pool."
+- **Material Costs:** Covered entirely by the studio; they do NOT affect artist earnings.
+- **Solo Sessions:** 100% of the Artist Commission Pool goes to the primary artist.
+- **Collaborative Sessions (Dual-Artist):** The Artist Commission Pool is split between the primary and secondary artist based on `commission_split` (default: 50/50). The primary artist receives `commission_split`% and the collaborator receives `(100 - commission_split)`%.
+- **Lock Rule:** The `secondary_artist_id` and `commission_split` fields become **read-only** once an appointment reaches `completed` status. The admin cannot modify the split after finalization.
 | **notifications** | id, user_id, title, message, type, related_id, is_read |
 | **inventory** | id, name, category, current_stock, min_stock, max_stock, unit, cost, supplier |
 | **inventory_transactions** | id, inventory_id, type (in/out), quantity, reason |
