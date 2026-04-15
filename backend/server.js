@@ -4401,6 +4401,88 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
   });
 });
 
+// ========== CUSTOMER SELF-SERVICE CANCELLATION ==========
+
+// Customer: Cancel a pending booking with reason
+app.put('/api/customer/appointments/:id/cancel', (req, res) => {
+  const { id } = req.params;
+  const { customerId, reason } = req.body;
+
+  if (!customerId || !reason || reason.trim().length < 10) {
+    return res.status(400).json({ success: false, message: 'A cancellation reason (min 10 characters) is required.' });
+  }
+
+  // 1. Verify the appointment belongs to this customer and is pending
+  db.query('SELECT * FROM appointments WHERE id = ? AND customer_id = ?', [id, customerId], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    if (results.length === 0) return res.status(404).json({ success: false, message: 'Appointment not found or does not belong to you.' });
+
+    const appointment = results[0];
+
+    if (appointment.status !== 'pending') {
+      return res.status(403).json({ success: false, message: 'Only pending bookings can be cancelled. Please contact the studio for confirmed appointments.' });
+    }
+
+    // 2. Check cancellation limit (max 3 in last 30 days)
+    db.query(
+      "SELECT COUNT(*) as cancelCount FROM appointments WHERE customer_id = ? AND status = 'cancelled' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
+      [customerId],
+      (countErr, countResults) => {
+        if (countErr) return res.status(500).json({ success: false, message: 'Database error checking limits.' });
+
+        const recentCancellations = countResults[0]?.cancelCount || 0;
+        if (recentCancellations >= 3) {
+          return res.status(429).json({ success: false, message: 'You have reached the maximum of 3 cancellations in the last 30 days. Please contact the studio directly for assistance.' });
+        }
+
+        // 3. Cancel the appointment
+        const appendedNotes = `${appointment.notes || ''}\n\n--- Customer Cancellation Reason ---\n${reason.trim()}`;
+        db.query(
+          'UPDATE appointments SET status = ?, notes = ?, updated_at = NOW() WHERE id = ?',
+          ['cancelled', appendedNotes, id],
+          (updateErr) => {
+            if (updateErr) return res.status(500).json({ success: false, message: 'Failed to cancel appointment.' });
+
+            // 4. Get customer name for notification
+            db.query('SELECT name FROM users WHERE id = ?', [customerId], (nameErr, nameResults) => {
+              const customerName = nameResults?.[0]?.name || 'A customer';
+
+              // 5. Notify all admins
+              db.query("SELECT id FROM users WHERE user_type = 'admin' AND is_deleted = 0", (admErr, admins) => {
+                if (!admErr && admins.length > 0) {
+                  admins.forEach(admin => {
+                    createNotification(
+                      admin.id,
+                      'Booking Cancelled by Customer',
+                      `${customerName} cancelled appointment #${id}.\n\nReason: ${reason.trim()}`,
+                      'appointment_cancelled',
+                      parseInt(id)
+                    );
+                  });
+                }
+              });
+
+              // 6. Notify the assigned artist (if any)
+              if (appointment.artist_id) {
+                createNotification(
+                  appointment.artist_id,
+                  'Client Cancelled Booking',
+                  `${customerName} cancelled their pending appointment #${id}.\n\nReason: ${reason.trim()}`,
+                  'appointment_cancelled',
+                  parseInt(id)
+                );
+              }
+
+              logAction(customerId, 'CANCEL_BOOKING', `Customer cancelled appointment #${id}: ${reason.trim().substring(0, 100)}`, req.ip);
+              res.json({ success: true, message: 'Booking cancelled successfully. The studio has been notified.' });
+            });
+          }
+        );
+      }
+    );
+  });
+});
+
 // ========== CUSTOMER FEATURES: FAVORITES & MY TATTOOS ==========
 
 // Toggle favorite status

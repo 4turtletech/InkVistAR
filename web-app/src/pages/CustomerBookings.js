@@ -65,6 +65,10 @@ function CustomerBookings(){
     const [rescheduleMonth, setRescheduleMonth] = useState(new Date());
     const [isRescheduling, setIsRescheduling] = useState(false);
 
+    // Cancellation states
+    const [cancelModal, setCancelModal] = useState({ isOpen: false, appointmentId: null, reason: '' });
+    const [isCancelling, setIsCancelling] = useState(false);
+
     const showAlert = (title, message, type = 'info') => {
         setConfirmModal({
             isOpen: true,
@@ -470,6 +474,51 @@ function CustomerBookings(){
         }
     };
 
+    // ────── Cancellation Logic ──────
+    const handleCancelBooking = (appt) => {
+        if (appt.status !== 'pending') {
+            showAlert('Cannot Cancel', 'Only pending bookings that haven\'t been confirmed by the studio can be cancelled.', 'warning');
+            return;
+        }
+        // Check recent cancellations (client-side pre-check)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const recentCancels = appointments.filter(a => 
+            a.status === 'cancelled' && new Date(a.updated_at || a.appointment_date) >= thirtyDaysAgo
+        ).length;
+        if (recentCancels >= 3) {
+            showAlert('Cancellation Limit Reached', 'You have cancelled 3 bookings in the last 30 days. Please contact the studio directly for assistance.', 'warning');
+            return;
+        }
+        setCancelModal({ isOpen: true, appointmentId: appt.id, reason: '' });
+    };
+
+    const submitCancellation = async () => {
+        if (cancelModal.reason.trim().length < 10) {
+            showAlert('Reason Required', 'Please provide at least 10 characters explaining why you are cancelling.', 'warning');
+            return;
+        }
+        setIsCancelling(true);
+        try {
+            const res = await Axios.put(`${API_URL}/api/customer/appointments/${cancelModal.appointmentId}/cancel`, {
+                customerId,
+                reason: cancelModal.reason.trim()
+            });
+            if (res.data.success) {
+                showAlert('Booking Cancelled', res.data.message, 'success');
+                setCancelModal({ isOpen: false, appointmentId: null, reason: '' });
+                setIsModalOpen(false);
+                // Refresh appointments
+                const fetchRes = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
+                if (fetchRes.data.success) setAppointments(fetchRes.data.appointments.map(a => ({ ...a, price: parseFloat(a.price) || 0 })));
+            }
+        } catch (err) {
+            showAlert('Cancellation Failed', err.response?.data?.message || 'An error occurred while cancelling.', 'danger');
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
     const renderRescheduleCalendar = () => {
         const days = [];
         const today = new Date();
@@ -830,6 +879,16 @@ function CustomerBookings(){
                                     onClick={() => handleOpenReschedule(selectedApt)}
                                 >
                                     <CalendarDays size={16}/> Reschedule
+                                </button>
+                            )}
+                            
+                            {selectedApt.status.toLowerCase() === 'pending' && (
+                                <button 
+                                    className="btn btn-secondary" 
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #ef4444', color: '#ef4444', background: '#fef2f2' }}
+                                    onClick={() => handleCancelBooking(selectedApt)}
+                                >
+                                    <X size={16}/> Cancel Booking
                                 </button>
                             )}
                             
@@ -1256,6 +1315,104 @@ function CustomerBookings(){
                 .fade-in { animation: fadeIn 0.3s ease-in-out; }
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
             `}</style>
+
+            {/* Cancellation Reason Modal */}
+            {cancelModal.isOpen && (
+                <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={() => !isCancelling && setCancelModal({ isOpen: false, appointmentId: null, reason: '' })}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                        <div className="modal-header">
+                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', color: '#dc2626' }}>
+                                <AlertTriangle size={22} color="#dc2626" /> Cancel Booking
+                            </h3>
+                            <button className="close-btn" onClick={() => !isCancelling && setCancelModal({ isOpen: false, appointmentId: null, reason: '' })}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '20px' }}>
+                            {/* Warning Banner */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, #fef2f2, #fff1f2)',
+                                border: '1px solid #fecaca',
+                                borderRadius: '12px',
+                                padding: '14px 16px',
+                                marginBottom: '20px',
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '10px'
+                            }}>
+                                <AlertTriangle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                <div>
+                                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#991b1b', fontWeight: 600 }}>This action cannot be undone</p>
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#b91c1c' }}>
+                                        Once cancelled, you'll need to create a new booking. Excessive cancellations (3+ per month) may result in temporary restrictions.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', marginBottom: '8px' }}>
+                                Why are you cancelling this booking?
+                            </label>
+                            <textarea
+                                value={cancelModal.reason}
+                                onChange={(e) => setCancelModal(prev => ({ ...prev, reason: e.target.value }))}
+                                placeholder="Please describe your reason for cancelling (e.g., schedule conflict, change of mind, emergency)..."
+                                rows={4}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    borderRadius: '10px',
+                                    border: `1px solid ${cancelModal.reason.length >= 10 ? '#a7f3d0' : cancelModal.reason.length > 0 ? '#fde68a' : '#e2e8f0'}`,
+                                    fontSize: '0.9rem',
+                                    resize: 'vertical',
+                                    fontFamily: 'inherit',
+                                    outline: 'none',
+                                    transition: 'border-color 0.2s',
+                                    background: '#f8fafc',
+                                    boxSizing: 'border-box'
+                                }}
+                                maxLength={500}
+                                disabled={isCancelling}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+                                <span style={{ fontSize: '0.75rem', color: cancelModal.reason.length < 10 && cancelModal.reason.length > 0 ? '#f59e0b' : '#94a3b8' }}>
+                                    {cancelModal.reason.length < 10 ? `${10 - cancelModal.reason.length} more characters needed` : '✓ Reason is valid'}
+                                </span>
+                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                    {cancelModal.reason.length}/500
+                                </span>
+                            </div>
+                        </div>
+                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid #e2e8f0' }}>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setCancelModal({ isOpen: false, appointmentId: null, reason: '' })}
+                                disabled={isCancelling}
+                                style={{ padding: '8px 20px' }}
+                            >
+                                Back
+                            </button>
+                            <button
+                                className="btn btn-primary"
+                                onClick={submitCancellation}
+                                disabled={isCancelling || cancelModal.reason.trim().length < 10}
+                                style={{
+                                    padding: '8px 20px',
+                                    background: cancelModal.reason.trim().length >= 10 ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#cbd5e1',
+                                    color: 'white',
+                                    border: 'none',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    cursor: cancelModal.reason.trim().length >= 10 ? 'pointer' : 'not-allowed',
+                                    opacity: isCancelling ? 0.7 : 1
+                                }}
+                            >
+                                {isCancelling ? 'Cancelling...' : <><X size={16}/> Confirm Cancellation</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <ConfirmModal 
                 isOpen={confirmModal.isOpen}

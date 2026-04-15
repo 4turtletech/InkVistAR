@@ -25,6 +25,7 @@ import {
     CheckCircle
 } from 'lucide-react';
 import io from 'socket.io-client';
+import Axios from 'axios';
 import { API_URL } from '../config';
 import ConfirmModal from './ConfirmModal';
 import '../styles/AdminSideNav.css';
@@ -42,6 +43,10 @@ function AdminSideNav() {
         return stored === 'true';
     });
     const [unreadChatCount, setUnreadChatCount] = useState(0);
+    const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+
+    const adminUser = JSON.parse(localStorage.getItem('user') || 'null');
+    const adminId = adminUser ? adminUser.id : null;
 
     useEffect(() => {
         if (collapsed) {
@@ -86,6 +91,22 @@ function AdminSideNav() {
         });
 
         return () => socket.disconnect();
+    }, []);
+
+    // Fetch unread notification count with polling
+    useEffect(() => {
+        if (!adminId) return;
+        const fetchCount = async () => {
+            try {
+                const res = await Axios.get(`${API_URL}/api/notifications/${adminId}?limit=100`);
+                if (res.data.success) {
+                    setUnreadNotifCount(res.data.unreadCount || 0);
+                }
+            } catch (e) { /* silent */ }
+        };
+        fetchCount();
+        const interval = setInterval(fetchCount, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const toggleUserManagement = () => {
@@ -204,6 +225,9 @@ function AdminSideNav() {
                                         <span className="menu-text">{action.label}</span>
                                         {action.label === 'Chat' && unreadChatCount > 0 && (
                                             <span className="notification-dot"></span>
+                                        )}
+                                        {action.label === 'Notifications' && unreadNotifCount > 0 && (
+                                            <span className="notification-badge">{unreadNotifCount > 99 ? '99+' : unreadNotifCount}</span>
                                         )}
                                         {active && <div className="active-indicator" />}
                                     </button>

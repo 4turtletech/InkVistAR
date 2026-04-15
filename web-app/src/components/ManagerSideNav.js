@@ -11,8 +11,11 @@ import {
     ChevronLeft,
     ChevronRight,
     LogOut,
-    Building2
+    Building2,
+    Bell
 } from 'lucide-react';
+import Axios from 'axios';
+import { API_URL } from '../config';
 import '../styles/ManagerSideNav.css';
 
 function ManagerSideNav() {
@@ -22,6 +25,10 @@ function ManagerSideNav() {
         const stored = localStorage.getItem('managerSidenavCollapsed');
         return stored === 'true';
     });
+    const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+
+    const managerUser = JSON.parse(localStorage.getItem('user') || 'null');
+    const managerId = managerUser ? managerUser.id : null;
 
     useEffect(() => {
         if (collapsed) {
@@ -38,6 +45,22 @@ function ManagerSideNav() {
         localStorage.setItem('managerSidenavCollapsed', next ? 'true' : 'false');
     };
 
+    // Fetch unread notification count with polling
+    useEffect(() => {
+        if (!managerId) return;
+        const fetchCount = async () => {
+            try {
+                const res = await Axios.get(`${API_URL}/api/notifications/${managerId}?limit=100`);
+                if (res.data.success) {
+                    setUnreadNotifCount(res.data.unreadCount || 0);
+                }
+            } catch (e) { /* silent */ }
+        };
+        fetchCount();
+        const interval = setInterval(fetchCount, 30000);
+        return () => clearInterval(interval);
+    }, [managerId]);
+
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/manager' },
         { label: 'Appointments', icon: Calendar, path: '/manager/appointments' },
@@ -45,6 +68,7 @@ function ManagerSideNav() {
         { label: 'Analytics', icon: LayoutDashboard, path: '/manager/analytics' },
         { label: 'Inventory', icon: Package, path: '/manager/inventory' },
         { label: 'Staff', icon: Users2, path: '/manager/staff' },
+        { label: 'Notifications', icon: Bell, path: '/manager/notifications' },
     ];
 
     const handleLogout = () => {
@@ -81,6 +105,9 @@ function ManagerSideNav() {
                                     >
                                         <Icon size={20} />
                                         <span className="menu-text">{item.label}</span>
+                                        {item.label === 'Notifications' && unreadNotifCount > 0 && (
+                                            <span className="notification-badge">{unreadNotifCount > 99 ? '99+' : unreadNotifCount}</span>
+                                        )}
                                     </button>
                                 </li>
                             );

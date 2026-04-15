@@ -15,6 +15,8 @@ import {
     Home
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
+import Axios from 'axios';
+import { API_URL } from '../config';
 import '../styles/ArtistSideNav.css';
 
 function ArtistSideNav() {
@@ -25,6 +27,10 @@ function ArtistSideNav() {
         const stored = localStorage.getItem('artistSidenavCollapsed');
         return stored === 'true';
     });
+    const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+
+    const artistUser = JSON.parse(localStorage.getItem('user') || 'null');
+    const artistId = artistUser ? artistUser.id : null;
 
     useEffect(() => {
         if (collapsed) {
@@ -40,6 +46,22 @@ function ArtistSideNav() {
         setCollapsed(next);
         localStorage.setItem('artistSidenavCollapsed', next ? 'true' : 'false');
     };
+
+    // Fetch unread notification count with polling
+    useEffect(() => {
+        if (!artistId) return;
+        const fetchCount = async () => {
+            try {
+                const res = await Axios.get(`${API_URL}/api/notifications/${artistId}?limit=100`);
+                if (res.data.success) {
+                    setUnreadNotifCount(res.data.unreadCount || 0);
+                }
+            } catch (e) { /* silent */ }
+        };
+        fetchCount();
+        const interval = setInterval(fetchCount, 30000);
+        return () => clearInterval(interval);
+    }, [artistId]);
 
     const menuItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/artist' },
@@ -82,6 +104,9 @@ function ArtistSideNav() {
                                     >
                                         <Icon size={20} />
                                         <span className="menu-text">{item.label}</span>
+                                        {item.label === 'Notifications' && unreadNotifCount > 0 && (
+                                            <span className="notification-badge">{unreadNotifCount > 99 ? '99+' : unreadNotifCount}</span>
+                                        )}
                                         {isActive && <div className="active-indicator" />}
                                     </button>
                                 </li>

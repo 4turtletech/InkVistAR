@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Axios from 'axios';
 import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
@@ -52,6 +53,24 @@ function ArtistAppointments(){
     useEffect(() => {
         setCurrentPage(1);
     }, [activeTab]);
+
+    // Deep-link: auto-open appointment from notification
+    const location = useLocation();
+    useEffect(() => {
+        if (location.state?.openAppointmentId && appointments.length > 0) {
+            const targetId = parseInt(location.state.openAppointmentId);
+            const target = appointments.find(a => a.id === targetId);
+            if (target) {
+                setSelectedAppointment(target);
+                // Switch to the correct tab
+                if (target.status === 'pending') setActiveTab('pending');
+                else if (['completed', 'cancelled'].includes(target.status)) setActiveTab('history');
+                else setActiveTab('upcoming');
+            }
+            // Clear state to prevent re-opening on re-render
+            window.history.replaceState({}, '', location.pathname);
+        }
+    }, [appointments, location.state]);
 
     const escapeCsv = (str) => {
         if (str === null || str === undefined) return '""';

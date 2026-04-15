@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import { 
     Bell, 
@@ -19,6 +20,7 @@ import './ArtistStyles.css';
 import { API_URL } from '../config';
 
 function ArtistNotifications() {
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('unread');
@@ -215,8 +217,13 @@ function ArtistNotifications() {
                                         return (
                                             <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600', cursor: 'pointer' }} onClick={(e) => { 
                                                 if (!e.target.closest('.notif-actions')) {
-                                                    setSelectedNotification({ ...n, style });
                                                     if (!n.is_read) markRead(n.id);
+                                                    // Deep-link: navigate to appointments and auto-open the relevant one
+                                                    if (n.related_id) {
+                                                        navigate('/artist/appointments', { state: { openAppointmentId: n.related_id } });
+                                                    } else {
+                                                        setSelectedNotification({ ...n, style });
+                                                    }
                                                 }
                                             }}>
                                                 <div className="notif-id-marker"></div>
@@ -320,7 +327,7 @@ function ArtistNotifications() {
                                     </>
                                 )}
                                 {selectedNotification.related_id && (
-                                    <a href={`/artist/sessions?appointment=${selectedNotification.related_id}`} className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#3b82f6', color: '#fff', borderRadius: '6px' }}>Take Action</a>
+                                    <button onClick={() => { setSelectedNotification(null); navigate('/artist/appointments', { state: { openAppointmentId: selectedNotification.related_id } }); }} className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#3b82f6', color: '#fff', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>View Appointment</button>
                                 )}
                                 <button className="notif-btn ghost" onClick={() => setSelectedNotification(null)} style={{ padding: '6px 12px', fontSize: '0.85rem', cursor: 'pointer', background: 'none', border: 'none', color: '#64748b' }}>Close</button>
                             </div>
