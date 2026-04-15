@@ -36,7 +36,7 @@ function AdminNotifications() {
     const unreadCount = notifications.filter(n => !n.is_read).length;
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('all'); // This is category type
-    const [readStateFilter, setReadStateFilter] = useState('unread'); // default to unread
+    const [readStateFilter, setReadStateFilter] = useState('all'); // default to all
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
@@ -301,9 +301,9 @@ function AdminNotifications() {
                         <span className="admin-st-24a5143d">Total Updates</span>
                         <span className="admin-st-780e31e0">{notifications.length}</span>
                     </div>
-                    <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center', borderLeft: unreadCount > 0 ? '4px solid #f59e0b' : 'none' }}>
+                    <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center' }}>
                         <span className="admin-st-24a5143d">Unread Alerts</span>
-                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#f59e0b' : 'inherit' }}>{unreadCount}</span>
+                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#b7954e' : 'inherit' }}>{unreadCount}</span>
                     </div>
                 </div>
 
@@ -376,7 +376,7 @@ function AdminNotifications() {
                                             const Icon = getIcon(n.type);
                                             const style = getNotificationStyle(n.type);
                                             return (
-                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600', cursor: 'pointer' }} onClick={(e) => {
+                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? '3px solid #b7954e' : '3px solid transparent', background: !n.is_read ? 'rgba(183, 149, 78, 0.08)' : 'transparent', cursor: 'pointer' }} onClick={(e) => {
                                                     if (!e.target.closest('.notif-actions')) {
                                                         setSelectedNotification(n);
                                                         if (!n.is_read && n.id && typeof n.id === 'number') markAsRead(n.id);

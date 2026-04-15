@@ -18,7 +18,10 @@ import {
     Sun,
     Activity,
     ShieldAlert,
-    RefreshCw
+    RefreshCw,
+    Search,
+    Star,
+    CreditCard
 } from 'lucide-react';
 import CustomerSideNav from '../components/CustomerSideNav';
 import Pagination from '../components/Pagination';
@@ -28,13 +31,14 @@ import { API_URL } from '../config';
 function CustomerNotifications() {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeFilter, setActiveFilter] = useState('unread');
+    const [activeFilter, setActiveFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
     const [isAftercareModalOpen, setIsAftercareModalOpen] = useState(false);
     const [reviewedAppointments, setReviewedAppointments] = useState(new Set());
     const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
@@ -147,25 +151,28 @@ function CustomerNotifications() {
                 return { icon: CheckCircle, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)', label: 'Completed' };
             case 'payment_received':
             case 'payment_success':
-                return { icon: Check, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Payment' };
+                return { icon: CreditCard, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Payment' };
             case 'system':
                 return { icon: Info, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'System' };
             case 'pos_invoice':
-                return { icon: Check, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Invoice' };
+                return { icon: CreditCard, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Invoice' };
 
             case 'aftercare_reminder':
                 return { icon: Info, color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)', label: 'Aftercare' };
             case 'review_prompt':
-                return { icon: CheckCheck, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Review' };
+                return { icon: Star, color: '#b7954e', bg: 'rgba(183, 149, 78, 0.1)', label: 'Review' };
             default:
                 return { icon: Bell, color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', label: 'Notification' };
         }
     };
 
     const filteredNotifs = notifications.filter(n => {
-        if (activeFilter === 'unread') return !n.is_read;
-        if (activeFilter === 'read') return n.is_read;
-        return true;
+        const matchesSearch = !searchTerm || 
+            n.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            n.message.toLowerCase().includes(searchTerm.toLowerCase());
+        if (activeFilter === 'unread') return !n.is_read && matchesSearch;
+        if (activeFilter === 'read') return n.is_read && matchesSearch;
+        return matchesSearch;
     });
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -206,9 +213,9 @@ function CustomerNotifications() {
                         <span className="customer-st-dd32c518" >Total Updates</span>
                         <span className="customer-st-05fe7b62" >{notifications.length}</span>
                     </div>
-                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '20px', textAlign: 'center', borderLeft: unreadCount > 0 ? '4px solid #f59e0b' : 'none' }}>
+                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '20px', textAlign: 'center' }}>
                         <span className="customer-st-dd32c518" >Unread Alerts</span>
-                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#f59e0b' : 'inherit' }}>{unreadCount}</span>
+                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#b7954e' : 'inherit' }}>{unreadCount}</span>
                     </div>
                 </div>
 
@@ -237,6 +244,20 @@ function CustomerNotifications() {
                 </div>
 
                 <div className="portal-content">
+                    {/* Search Bar */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <div style={{ position: 'relative', maxWidth: '400px' }}>
+                            <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none' }} />
+                            <input
+                                type="text"
+                                placeholder="Search notifications..."
+                                value={searchTerm}
+                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                                style={{ width: '100%', padding: '10px 14px 10px 40px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#1e293b', fontSize: '0.88rem', outline: 'none', fontFamily: 'Inter, sans-serif' }}
+                            />
+                        </div>
+                    </div>
+
                     {loading ? (
                         <div className="dashboard-loader-container">
                             <div className="premium-loader"></div>
@@ -251,7 +272,7 @@ function CustomerNotifications() {
                                             const Icon = style.icon;
                                             
                                             return (
-                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600', cursor: 'pointer' }} onClick={(e) => { 
+                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? '3px solid #b7954e' : '3px solid transparent', background: !n.is_read ? 'rgba(183, 149, 78, 0.08)' : 'transparent', cursor: 'pointer' }} onClick={(e) => { 
                                                     if (!e.target.closest('.notif-actions')) {
                                                         setSelectedNotification({ ...n, style });
                                                         if (!n.is_read) markRead(n.id);
