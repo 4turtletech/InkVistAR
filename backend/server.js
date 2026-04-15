@@ -1364,23 +1364,24 @@ app.post('/api/login', async (req, res) => {
         });
       }
 
-      // Skip verification check for artists and admins (admin managed)
-      if (user.user_type !== 'artist' && user.user_type !== 'admin' && user.is_verified === 0) {
-        return res.status(403).json({
-          success: false,
-          message: 'Please verify your email first. Check your inbox!',
-          requireVerification: true
-        });
-      }
-
       console.log('✅ User found:', user.name);
 
-      // Verify password
+      // Verify password FIRST (before verification check to prevent email enumeration)
       const valid = await bcrypt.compare(password, user.password_hash);
       if (!valid) {
         return res.status(401).json({
           success: false,
           message: 'Invalid email or password'
+        });
+      }
+
+      // Check verification for ALL user types (first-login OTP flow)
+      if (user.is_verified === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account requires verification. An OTP will be sent to your email.',
+          requireVerification: true,
+          verificationEmail: user.email
         });
       }
 
@@ -1609,10 +1610,8 @@ app.post('/api/send-otp', (req, res) => {
 
     const user = results[0];
 
-    // Skip verification check for artists and admins
-    if (user.user_type !== 'artist' && user.user_type !== 'admin' && user.is_verified === 0) {
-      return res.json({ success: false, message: 'Please verify email first' });
-    }
+    // Allow OTP for both verified users (password reset) and unverified users (account verification)
+    // No verification gate — OTP is the verification mechanism itself
 
     // Validate SMS method requires a phone number
     if (otp_method === 'sms' && !user.phone) {
@@ -1733,6 +1732,12 @@ app.post('/api/verify-otp', (req, res) => {
 
     // Clear OTP after success
     db.query('UPDATE users SET otp_code = NULL, otp_expires = NULL WHERE email = ?', [email]);
+
+    // If purpose is account verification, mark user as verified
+    if (req.body.purpose === 'account-verification') {
+      db.query('UPDATE users SET is_verified = 1 WHERE email = ?', [email]);
+      console.log('✅ Account verified via OTP:', email);
+    }
 
     console.log('✅ OTP VERIFIED:', email);
     res.json({
@@ -4819,7 +4824,7 @@ app.post('/api/admin/users', async (req, res) => {
   try {
     const password_hash = await bcrypt.hash(password, 10);
     const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
-    const query = 'INSERT INTO users (name, email, password_hash, user_type, phone, is_deleted, is_verified) VALUES (?, ?, ?, ?, ?, ?, 1)';
+    const query = 'INSERT INTO users (name, email, password_hash, user_type, phone, is_deleted, is_verified) VALUES (?, ?, ?, ?, ?, ?, 0)';
 
     db.query(query, [name, email, password_hash, type, phone, isDeleted], (err, result) => {
       if (err) return res.status(500).json({ success: false, message: err.message });

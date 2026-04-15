@@ -59,6 +59,12 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - **Solo Sessions:** 100% of the Artist Commission Pool goes to the primary artist.
 - **Collaborative Sessions (Dual-Artist):** The Artist Commission Pool is split between the primary and secondary artist based on `commission_split` (default: 50/50). The primary artist receives `commission_split`% and the collaborator receives `(100 - commission_split)`%.
 - **Lock Rule:** The `secondary_artist_id` and `commission_split` fields become **read-only** once an appointment reaches `completed` status. The admin cannot modify the split after finalization.
+
+### Admin User Verification Flow
+- **Admin-Created Users:** Users created via the Admin "Create New User" modal are created with `is_verified = 0`. No OTP is sent at creation time.
+- **First-Login Verification:** Upon first login attempt, if a user's credentials are correct but `is_verified = 0`, the system generates and sends an OTP to the user's email. The user is routed to an OTP verification screen. Upon successful verification, `is_verified` is set to `1` and the user is redirected to login.
+- **Applies to All Roles:** The first-login OTP verification applies to all user types (Customer, Artist, Admin) equally.
+- **Password Requirements:** All user creation (admin or self-register) enforces: minimum 8 characters, at least one uppercase letter, one lowercase letter, one number, and one special character (`@$!%*?&#`).
 | **notifications** | id, user_id, title, message, type, related_id, is_read |
 | **inventory** | id, name, category, current_stock, min_stock, max_stock, unit, cost, supplier |
 | **inventory_transactions** | id, inventory_id, type (in/out), quantity, reason |

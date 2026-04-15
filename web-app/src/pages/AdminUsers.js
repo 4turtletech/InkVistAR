@@ -67,11 +67,18 @@ function AdminUsers() {
     // ─── Create User Modal ───
     const [createModal, setCreateModal] = useState({ mounted: false, visible: false });
     const [createFormData, setCreateFormData] = useState({
-        firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer',
-        profileImage: '', age: '', gender: ''
+        firstName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63',
+        password: '', confirmPassword: '', user_type: 'customer',
+        profileImage: '', age: ''
     });
     const [createErrors, setCreateErrors] = useState({});
     const [showCreatePassword, setShowCreatePassword] = useState(false);
+    const [showCreateConfirmPassword, setShowCreateConfirmPassword] = useState(false);
+    const [createPasswordFocused, setCreatePasswordFocused] = useState(false);
+    const [createPasswordFeedback, setCreatePasswordFeedback] = useState({
+        hasMinLength: false, hasUppercase: false, hasLowercase: false,
+        hasNumber: false, hasSymbol: false
+    });
     const [profileImagePreview, setProfileImagePreview] = useState(null);
 
     // ─── Confirm Dialog ───
@@ -129,9 +136,12 @@ function AdminUsers() {
         setCreateModal(prev => ({ ...prev, visible: false }));
         setTimeout(() => {
             setCreateModal({ mounted: false, visible: false });
-            setCreateFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer', profileImage: '', age: '', gender: '' });
+            setCreateFormData({ firstName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63', password: '', confirmPassword: '', user_type: 'customer', profileImage: '', age: '' });
             setCreateErrors({});
             setShowCreatePassword(false);
+            setShowCreateConfirmPassword(false);
+            setCreatePasswordFocused(false);
+            setCreatePasswordFeedback({ hasMinLength: false, hasUppercase: false, hasLowercase: false, hasNumber: false, hasSymbol: false });
             setProfileImagePreview(null);
         }, 400);
     };
@@ -556,9 +566,12 @@ function AdminUsers() {
     // ═══════════════════════════════════════════════════════════
 
     const handleAddNew = () => {
-        setCreateFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer', profileImage: '', age: '', gender: '' });
+        setCreateFormData({ firstName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63', password: '', confirmPassword: '', user_type: 'customer', profileImage: '', age: '' });
         setCreateErrors({});
         setShowCreatePassword(false);
+        setShowCreateConfirmPassword(false);
+        setCreatePasswordFocused(false);
+        setCreatePasswordFeedback({ hasMinLength: false, hasUppercase: false, hasLowercase: false, hasNumber: false, hasSymbol: false });
         setProfileImagePreview(null);
         openCreateModalAnim();
     };
@@ -594,17 +607,27 @@ function AdminUsers() {
             if (!value) error = 'Email is required';
             else if (!emailRegex.test(value)) error = 'Please enter a valid email';
         }
-        if (name === 'phone' && value) {
-            if (!/^\d+$/.test(value)) error = 'Digits only';
-            else if (value.length > 11) error = 'Max 11 digits';
+        if (name === 'phone') {
+            if (!value) error = 'Phone number is required';
+            else if (!/^\d+$/.test(value)) error = 'Digits only';
+            else if (value.length !== 11) error = 'Phone number must be exactly 11 digits';
         }
         if (name === 'password') {
+            const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
             if (!value) error = 'Password is required';
             else if (value.length < 8) error = 'Must be at least 8 characters';
+            else if (!strongRegex.test(value)) error = 'Needs uppercase, lowercase, number, and symbol';
+        }
+        if (name === 'confirmPassword') {
+            if (!value) error = 'Please confirm your password';
+            else if (value !== createFormData.password) error = 'Passwords do not match';
         }
         if (name === 'age' && value) {
             const num = parseInt(value);
             if (isNaN(num) || num < 1 || num > 120) error = 'Enter a valid age (1–120)';
+        }
+        if (name === 'countryCode') {
+            if (!value) error = 'Country code is required';
         }
         setCreateErrors(prev => ({ ...prev, [name]: error }));
         return error === '';
@@ -613,11 +636,24 @@ function AdminUsers() {
     const handleCreateFieldChange = (name, value) => {
         let sanitized = value;
         if (name === 'firstName' || name === 'lastName') sanitized = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '').slice(0, 50);
+        else if (name === 'suffix') sanitized = value.replace(/[^a-zA-Z.\s]/g, '').replace(/^\s+/, '').slice(0, 5);
         else if (name === 'email') sanitized = value.replace(/\s/g, '');
         else if (name === 'phone') sanitized = value.replace(/[^0-9]/g, '').slice(0, 11);
-        else if (name === 'password') sanitized = value.slice(0, 50);
+        else if (name === 'password' || name === 'confirmPassword') sanitized = value.slice(0, 50);
         else if (name === 'age') sanitized = value.replace(/[^0-9]/g, '').slice(0, 3);
         setCreateFormData(prev => ({ ...prev, [name]: sanitized }));
+
+        // Live password strength feedback
+        if (name === 'password') {
+            setCreatePasswordFeedback({
+                hasMinLength: value.length >= 8,
+                hasUppercase: /[A-Z]/.test(value),
+                hasLowercase: /[a-z]/.test(value),
+                hasNumber: /[0-9]/.test(value),
+                hasSymbol: /[@$!%*?&#]/.test(value)
+            });
+        }
+
         if (createErrors[name]) setCreateErrors(prev => ({ ...prev, [name]: '' }));
     };
 
@@ -625,11 +661,22 @@ function AdminUsers() {
         validateCreateField(name, createFormData[name]);
     };
 
+    const isCreatePasswordStrong = () => {
+        return createPasswordFeedback.hasMinLength &&
+            createPasswordFeedback.hasUppercase &&
+            createPasswordFeedback.hasLowercase &&
+            createPasswordFeedback.hasNumber &&
+            createPasswordFeedback.hasSymbol;
+    };
+
     const isCreateFormValid = () => {
         return createFormData.firstName.trim() &&
             createFormData.lastName.trim() &&
             /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createFormData.email) &&
-            createFormData.password.length >= 8;
+            createFormData.phone.length === 11 &&
+            createFormData.countryCode &&
+            isCreatePasswordStrong() &&
+            createFormData.confirmPassword === createFormData.password;
     };
 
     const handleCreateSave = async () => {
@@ -637,26 +684,38 @@ function AdminUsers() {
         const firstOk = validateCreateField('firstName', createFormData.firstName);
         const lastOk = validateCreateField('lastName', createFormData.lastName);
         const emailOk = validateCreateField('email', createFormData.email);
+        const phoneOk = validateCreateField('phone', createFormData.phone);
         const passOk = validateCreateField('password', createFormData.password);
-        if (!firstOk || !lastOk || !emailOk || !passOk) return;
+        const confirmOk = validateCreateField('confirmPassword', createFormData.confirmPassword);
+        const codeOk = validateCreateField('countryCode', createFormData.countryCode);
+        if (!firstOk || !lastOk || !emailOk || !phoneOk || !passOk || !confirmOk || !codeOk) return;
 
-        const fullName = `${createFormData.firstName.trim()} ${createFormData.lastName.trim()}`;
+        const suffixPart = createFormData.suffix.trim();
+        const fullName = suffixPart
+            ? `${createFormData.firstName.trim()} ${createFormData.lastName.trim()} ${suffixPart}`
+            : `${createFormData.firstName.trim()} ${createFormData.lastName.trim()}`;
+
+        const fullPhone = createFormData.countryCode + createFormData.phone.trim();
 
         try {
             await Axios.post(`${API_URL}/api/admin/users`, {
                 name: fullName, email: createFormData.email,
                 password: createFormData.password, type: createFormData.user_type,
-                phone: createFormData.phone, status: 'active',
+                phone: fullPhone, status: 'active',
                 profileImage: createFormData.profileImage || null,
-                age: createFormData.age ? parseInt(createFormData.age) : null,
-                gender: createFormData.gender || null
+                age: createFormData.age ? parseInt(createFormData.age) : null
             });
-            showAlert("Success", "User added successfully!", "success");
+            showAlert("Success", "User added successfully! They will need to verify via OTP on first login.", "success");
             fetchUsers();
             closeCreateModal();
         } catch (error) {
             console.error("Error creating user:", error);
-            showAlert("Error", 'Error creating user: ' + (error.response?.data?.message || error.message), "danger");
+            const message = error.response?.data?.message || error.message;
+            if (message.toLowerCase().includes('email')) {
+                setCreateErrors(prev => ({ ...prev, email: message }));
+            } else {
+                showAlert("Error", 'Error creating user: ' + message, "danger");
+            }
         }
     };
 
@@ -1259,8 +1318,8 @@ function AdminUsers() {
                                 {createErrors.profileImage && <small style={{ color: '#ef4444', display: 'block', textAlign: 'center', marginTop: '-16px', marginBottom: '12px', fontSize: '0.8rem' }}>{createErrors.profileImage}</small>}
                                 <p style={{ textAlign: 'center', margin: '-12px 0 20px', fontSize: '0.8rem', color: '#94a3b8' }}>Click to upload profile photo (optional)</p>
 
-                                <div className="form-row">
-                                    <div className="form-group">
+                                <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
+                                    <div className="form-group" style={{ flex: 1 }}>
                                         <label className="premium-label">First Name *</label>
                                         <input type="text" className={`form-input ${createErrors.firstName ? 'error' : ''}`}
                                             placeholder="e.g. Juan" value={createFormData.firstName}
@@ -1268,13 +1327,20 @@ function AdminUsers() {
                                             onBlur={() => handleCreateBlur('firstName')} />
                                         {createErrors.firstName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.firstName}</small>}
                                     </div>
-                                    <div className="form-group">
+                                    <div className="form-group" style={{ flex: 1 }}>
                                         <label className="premium-label">Last Name *</label>
                                         <input type="text" className={`form-input ${createErrors.lastName ? 'error' : ''}`}
                                             placeholder="e.g. dela Cruz" value={createFormData.lastName}
                                             onChange={(e) => handleCreateFieldChange('lastName', e.target.value)}
                                             onBlur={() => handleCreateBlur('lastName')} />
                                         {createErrors.lastName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.lastName}</small>}
+                                    </div>
+                                    <div className="form-group" style={{ width: '90px', flexShrink: 0 }}>
+                                        <label className="premium-label">Suffix</label>
+                                        <input type="text" className="form-input"
+                                            placeholder="Jr." value={createFormData.suffix}
+                                            onChange={(e) => handleCreateFieldChange('suffix', e.target.value)}
+                                            maxLength={5} />
                                     </div>
                                 </div>
                                 <div className="form-row">
@@ -1287,15 +1353,60 @@ function AdminUsers() {
                                         {createErrors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.email}</small>}
                                     </div>
                                     <div className="form-group">
-                                        <label className="premium-label">Phone Number</label>
-                                        <input type="tel" className={`form-input ${createErrors.phone ? 'error' : ''}`}
-                                            placeholder="09XXXXXXXXX" value={createFormData.phone}
-                                            onChange={(e) => handleCreateFieldChange('phone', e.target.value)}
-                                            onBlur={() => handleCreateBlur('phone')} />
-                                        {createErrors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.phone}</small>}
+                                        <label className="premium-label">User Role *</label>
+                                        <select value={createFormData.user_type}
+                                            onChange={(e) => setCreateFormData({ ...createFormData, user_type: e.target.value })} className="form-input">
+                                            <option value="customer">Customer (Client)</option>
+                                            <option value="artist">Artist (Staff)</option>
+                                            <option value="admin">System Admin</option>
+                                        </select>
                                     </div>
                                 </div>
                                 <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="premium-label">Phone Number *</label>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <select name="countryCode" className="form-input" style={{ width: '130px' }}
+                                                value={createFormData.countryCode}
+                                                onChange={(e) => setCreateFormData({ ...createFormData, countryCode: e.target.value })}>
+                                                <option value="+63">PH (+63)</option>
+                                                <option value="+1">US/CA (+1)</option>
+                                                <option value="+44">UK (+44)</option>
+                                                <option value="+61">AU (+61)</option>
+                                                <option value="+64">NZ (+64)</option>
+                                                <option value="+81">JP (+81)</option>
+                                                <option value="+82">KR (+82)</option>
+                                                <option value="+65">SG (+65)</option>
+                                                <option value="+60">MY (+60)</option>
+                                                <option value="+66">TH (+66)</option>
+                                                <option value="+62">ID (+62)</option>
+                                                <option value="+84">VN (+84)</option>
+                                                <option value="+91">IN (+91)</option>
+                                                <option value="+86">CN (+86)</option>
+                                                <option value="+852">HK (+852)</option>
+                                                <option value="+853">MO (+853)</option>
+                                                <option value="+886">TW (+886)</option>
+                                                <option value="+971">AE (+971)</option>
+                                                <option value="+966">SA (+966)</option>
+                                                <option value="+974">QA (+974)</option>
+                                                <option value="+49">DE (+49)</option>
+                                                <option value="+33">FR (+33)</option>
+                                                <option value="+34">ES (+34)</option>
+                                                <option value="+39">IT (+39)</option>
+                                                <option value="+55">BR (+55)</option>
+                                                <option value="+52">MX (+52)</option>
+                                                <option value="+27">ZA (+27)</option>
+                                                <option value="+234">NG (+234)</option>
+                                                <option value="+254">KE (+254)</option>
+                                                <option value="+20">EG (+20)</option>
+                                            </select>
+                                            <input type="tel" className={`form-input ${createErrors.phone ? 'error' : ''}`}
+                                                style={{ flex: 1 }} placeholder="09XXXXXXXXX" value={createFormData.phone}
+                                                onChange={(e) => handleCreateFieldChange('phone', e.target.value)}
+                                                onBlur={() => handleCreateBlur('phone')} />
+                                        </div>
+                                        {createErrors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.phone}</small>}
+                                    </div>
                                     <div className="form-group">
                                         <label className="premium-label">Age</label>
                                         <input type="text" inputMode="numeric" className={`form-input ${createErrors.age ? 'error' : ''}`}
@@ -1304,17 +1415,6 @@ function AdminUsers() {
                                             onBlur={() => handleCreateBlur('age')} />
                                         {createErrors.age && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.age}</small>}
                                     </div>
-                                    <div className="form-group">
-                                        <label className="premium-label">Gender</label>
-                                        <select value={createFormData.gender}
-                                            onChange={(e) => setCreateFormData({ ...createFormData, gender: e.target.value })} className="form-input">
-                                            <option value="">Prefer not to say</option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
-                                            <option value="Non-binary">Non-binary</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
@@ -1322,9 +1422,10 @@ function AdminUsers() {
                                         <div style={{ position: 'relative' }}>
                                             <input type={showCreatePassword ? 'text' : 'password'} className={`form-input ${createErrors.password ? 'error' : ''}`}
                                                 style={{ paddingRight: '44px' }}
-                                                placeholder="Secure password (min 8 chars)" value={createFormData.password}
+                                                placeholder="Secure password" value={createFormData.password}
                                                 onChange={(e) => handleCreateFieldChange('password', e.target.value)}
-                                                onBlur={() => handleCreateBlur('password')}
+                                                onFocus={() => setCreatePasswordFocused(true)}
+                                                onBlur={() => { handleCreateBlur('password'); if (!createFormData.password) setCreatePasswordFocused(false); }}
                                                 onPaste={(e) => e.preventDefault()} />
                                             <button type="button" onClick={() => setShowCreatePassword(!showCreatePassword)}
                                                 style={{
@@ -1340,13 +1441,46 @@ function AdminUsers() {
                                         {createErrors.password && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.password}</small>}
                                     </div>
                                     <div className="form-group">
-                                        <label className="premium-label">User Role *</label>
-                                        <select value={createFormData.user_type}
-                                            onChange={(e) => setCreateFormData({ ...createFormData, user_type: e.target.value })} className="form-input">
-                                            <option value="customer">Customer (Client)</option>
-                                            <option value="artist">Artist (Staff)</option>
-                                            <option value="admin">System Admin</option>
-                                        </select>
+                                        <label className="premium-label">Confirm Password *</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <input type={showCreateConfirmPassword ? 'text' : 'password'} className={`form-input ${createErrors.confirmPassword ? 'error' : ''}`}
+                                                style={{ paddingRight: '44px' }}
+                                                placeholder="Re-enter password" value={createFormData.confirmPassword}
+                                                onChange={(e) => handleCreateFieldChange('confirmPassword', e.target.value)}
+                                                onBlur={() => handleCreateBlur('confirmPassword')}
+                                                onPaste={(e) => e.preventDefault()} />
+                                            <button type="button" onClick={() => setShowCreateConfirmPassword(!showCreateConfirmPassword)}
+                                                style={{
+                                                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                                                    background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                                                    color: '#94a3b8', display: 'flex', alignItems: 'center'
+                                                }}
+                                                title={showCreateConfirmPassword ? 'Hide password' : 'Show password'}
+                                            >
+                                                {showCreateConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                        {createErrors.confirmPassword && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.confirmPassword}</small>}
+                                    </div>
+                                </div>
+                                {/* Password Strength Meter */}
+                                <div style={{ overflow: 'hidden', maxHeight: createPasswordFocused ? '200px' : '0', opacity: createPasswordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: createPasswordFocused ? '4px' : '0', marginBottom: '8px' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                                            {[createPasswordFeedback.hasMinLength, createPasswordFeedback.hasNumber, createPasswordFeedback.hasUppercase && createPasswordFeedback.hasLowercase, createPasswordFeedback.hasSymbol].map((met, i) => (
+                                                <div key={i} style={{ flex: 1, height: '4px', borderRadius: '2px', backgroundColor: met ? '#be9055' : '#e2e8f0', transition: 'background-color 0.3s ease' }} />
+                                            ))}
+                                        </div>
+                                        {(() => {
+                                            const steps = [
+                                                { met: createPasswordFeedback.hasMinLength, hint: 'At least 8 characters' },
+                                                { met: createPasswordFeedback.hasNumber, hint: 'Add a number' },
+                                                { met: createPasswordFeedback.hasUppercase && createPasswordFeedback.hasLowercase, hint: 'Add upper & lowercase letters' },
+                                                { met: createPasswordFeedback.hasSymbol, hint: 'Add a special character: !@#$%^&*()_+' }
+                                            ];
+                                            const nextHint = steps.find(s => !s.met);
+                                            return nextHint ? <div style={{ fontSize: '0.7rem', color: '#ef4444' }}>{nextHint.hint}</div> : null;
+                                        })()}
                                     </div>
                                 </div>
                             </div>

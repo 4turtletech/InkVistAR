@@ -17,7 +17,8 @@ function Login() {
     const [loading, setLoading] = useState(false);
     
     // Forgot Password States
-    const [view, setView] = useState('login'); // 'login', 'forgot-email', 'forgot-otp', 'reset-password'
+    const [view, setView] = useState('login'); // 'login', 'forgot-email', 'forgot-otp', 'reset-password', 'verify-account'
+    const [verificationEmail, setVerificationEmail] = useState('');
     const [resetEmail, setResetEmail] = useState("");
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const otpRefs = useRef([]);
@@ -120,9 +121,25 @@ function Login() {
             }
         } catch (error) {
             const errData = error.response?.data;
-            setError(errData?.message || "Error logging in");
-            if (errData?.requireVerification) {
-                setShowResend(true);
+            if (errData?.requireVerification && errData?.verificationEmail) {
+                // Auto-send OTP and route to verify-account view
+                setVerificationEmail(errData.verificationEmail);
+                setError('');
+                setOtp(['', '', '', '', '', '']);
+                try {
+                    await Axios.post(`${API_URL}/api/send-otp`, {
+                        email: errData.verificationEmail,
+                        purpose: 'account-verification'
+                    });
+                    setView('verify-account');
+                } catch (otpErr) {
+                    setError('Failed to send verification OTP. Please try again.');
+                }
+            } else {
+                setError(errData?.message || "Error logging in");
+                if (errData?.requireVerification) {
+                    setShowResend(true);
+                }
             }
         } finally {
             setLoading(false);
@@ -435,6 +452,107 @@ function Login() {
                     </form>
                     </>
                 )}
+
+                {view === 'verify-account' && (
+                    <>
+                    <h2 className="login-title" style={{ fontSize: '1.1rem', marginTop: '1.5rem' }}>Verify Your Account</h2>
+                    <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
+                        An OTP has been sent to <strong>{verificationEmail}</strong>.
+                        Please enter it below to activate your account.
+                    </p>
+                    {error && <p className="error-message">{error}</p>}
+                    <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        setError('');
+                        setLoading(true);
+                        try {
+                            const response = await Axios.post(`${API_URL}/api/verify-otp`, {
+                                email: verificationEmail,
+                                otp: otp.join(''),
+                                purpose: 'account-verification'
+                            });
+                            if (response.data.success) {
+                                setSuccessModal({ mounted: true, visible: false });
+                                setTimeout(() => setSuccessModal({ mounted: true, visible: true }), 10);
+                            } else {
+                                setError('Incorrect OTP. Please try again.');
+                                setOtp(['', '', '', '', '', '']);
+                                otpRefs.current[0]?.focus();
+                            }
+                        } catch (err) {
+                            setError('Incorrect OTP. Please try again.');
+                            setOtp(['', '', '', '', '', '']);
+                            otpRefs.current[0]?.focus();
+                        } finally {
+                            setLoading(false);
+                        }
+                    }} className="login-form">
+                        <div className="form-group">
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                {otp.map((digit, idx) => (
+                                    <input
+                                        key={idx}
+                                        ref={el => otpRefs.current[idx] = el}
+                                        type="tel"
+                                        inputMode="numeric"
+                                        maxLength={1}
+                                        value={digit}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
+                                            const newOtp = [...otp];
+                                            newOtp[idx] = val;
+                                            setOtp(newOtp);
+                                            if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
+                                                otpRefs.current[idx - 1]?.focus();
+                                            }
+                                        }}
+                                        onPaste={(e) => {
+                                            e.preventDefault();
+                                            const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+                                            if (pasted) {
+                                                const newOtp = [...otp];
+                                                for (let i = 0; i < 6; i++) newOtp[i] = pasted[i] || '';
+                                                setOtp(newOtp);
+                                                const focusIdx = Math.min(pasted.length, 5);
+                                                otpRefs.current[focusIdx]?.focus();
+                                            }
+                                        }}
+                                        style={{
+                                            width: '44px', height: '52px', textAlign: 'center',
+                                            fontSize: '1.4rem', fontWeight: '700', borderRadius: '10px',
+                                            border: digit ? '2px solid #be9055' : '1px solid #ddd',
+                                            backgroundColor: 'white', color: '#1e293b', outline: 'none',
+                                            transition: 'border-color 0.2s'
+                                        }}
+                                        onFocus={(e) => e.target.style.borderColor = '#be9055'}
+                                        onBlur={(e) => { if (!digit) e.target.style.borderColor = '#ddd'; }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <button type="submit" className="login-btn" disabled={loading || otp.join('').length < 6}>
+                            {loading ? 'Verifying...' : 'Verify Account'}
+                        </button>
+                        <div className="login-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                            <button type="button" onClick={async () => {
+                                setError('');
+                                try {
+                                    await Axios.post(`${API_URL}/api/send-otp`, { email: verificationEmail, purpose: 'account-verification' });
+                                    setError('');
+                                    setOtp(['', '', '', '', '', '']);
+                                    otpRefs.current[0]?.focus();
+                                } catch (err) {
+                                    setError('Failed to resend OTP.');
+                                }
+                            }} style={{background: 'none', border: 'none', color: '#C19A6B', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'}}>Resend OTP</button>
+                            <button type="button" onClick={() => { setView('login'); setError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '0.85rem'}}>Back to Login</button>
+                        </div>
+                    </form>
+                    </>
+                )}
             </div>
         </div>
 
@@ -475,9 +593,11 @@ function Login() {
                     }}>
                         <CheckCircle size={32} style={{ color: '#C19A6B' }} />
                     </div>
-                    <h2 style={{ color: '#1e293b', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 8px' }}>Password Reset Successful</h2>
+                    <h2 style={{ color: '#1e293b', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 8px' }}>{view === 'verify-account' ? 'Account Verified!' : 'Password Reset Successful'}</h2>
                     <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 28px' }}>
-                        Your password has been updated. You can now log in with your new password.
+                        {view === 'verify-account'
+                            ? 'Your account has been successfully verified. You can now log in.'
+                            : 'Your password has been updated. You can now log in with your new password.'}
                     </p>
                     <button
                         onClick={() => {
