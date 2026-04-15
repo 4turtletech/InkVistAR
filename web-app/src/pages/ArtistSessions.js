@@ -101,7 +101,7 @@ function ArtistSessions() {
         if (activeSession) {
             fetchInventory();
             fetchServiceKits();
-            if (activeSession.status === 'in_progress' || activeSession.status === 'completed') {
+            if (activeSession.status === 'confirmed' || activeSession.status === 'in_progress' || activeSession.status === 'completed') {
                 fetchSessionMaterials(activeSession.id);
             }
         }
@@ -752,7 +752,7 @@ function ArtistSessions() {
                                     <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <Package size={14}/> Consumption Log
                                     </label>
-                                    {isCompletingSession || activeSession.status === 'in_progress' ? (
+                                    {isCompletingSession || activeSession.status === 'confirmed' || activeSession.status === 'in_progress' ? (
                                         <>
                                             <div style={{ flex: 1, overflowY: 'auto' }}>
                                                 {sessionMaterials.length === 0 ? (
