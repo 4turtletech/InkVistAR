@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, Palette, Clock, CreditCard, DollarSign, Info, FileText, Image } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, DollarSign, Info, FileText, Image } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
@@ -317,7 +317,9 @@ function AdminAppointments() {
         openModal();
     };
 
-    const handleDelete = (id) => {
+    // handleDelete deprecated — replaced by Reschedule flow
+    // eslint-disable-next-line no-unused-vars
+    const _handleDeleteDeprecated = (id) => {
         showConfirm('Are you sure you want to delete this appointment? This cannot be undone.', () => {
             setAppointments(appointments.filter(a => a.id !== id));
             Axios.delete(`${API_URL}/api/admin/appointments/${id}`)
