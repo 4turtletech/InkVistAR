@@ -766,7 +766,7 @@ function AdminAppointments() {
                     </div>
                 ) : (
                     <>
-                        <div className="premium-filter-bar premium-filter-bar--stacked">
+                        <div className="premium-filter-bar premium-filter-bar--stacked" style={{ margin: '0 0 2rem 0' }}>
                             <div className="premium-search-box premium-search-box--full" style={{ position: 'relative' }}>
                                 <Search size={16} className="text-muted" />
                                 <input
@@ -861,7 +861,7 @@ function AdminAppointments() {
                             </div>
                         </div>
 
-                        <div className="stats-row" style={{ margin: '0 2rem 2rem' }}>
+                        <div className="stats-row">
                             <div className="stat-item">
                                 <span className="stat-label">Total Appointments</span>
                                 <span className="stat-count">{appointments.length}</span>
@@ -880,7 +880,7 @@ function AdminAppointments() {
                             </div>
                         </div>
 
-                        <div className="table-card-container" style={{ margin: '0 2rem 2rem' }}>
+                        <div className="table-card-container">
                             <div className="table-responsive">
                                 <table className="data-table">
                                     <thead>
