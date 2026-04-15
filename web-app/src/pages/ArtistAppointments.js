@@ -20,6 +20,7 @@ function ArtistAppointments() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', onConfirm: null });
     const [selectedAppointment, setSelectedAppointment] = useState(null);
+    const [publishStatus, setPublishStatus] = useState({});
 
 
     const [user] = useState(() => {
@@ -169,6 +170,32 @@ function ArtistAppointments() {
                 alert('Appointment rejected. It has been reverted back to the Admin.');
             }
         } catch (e) { console.error(e); }
+    };
+
+    const handlePublishToPortfolio = async (appt) => {
+        if (!appt || !appt.after_photo) return;
+        setPublishStatus(prev => ({ ...prev, [appt.id]: 'publishing' }));
+        try {
+            const res = await Axios.post(`${API_URL}/api/artist/portfolio`, {
+                artistId: artistId,
+                imageUrl: appt.after_photo.startsWith('data:') ? appt.after_photo : (appt.after_photo.startsWith('http') ? appt.after_photo : `${API_URL}${appt.after_photo}`),
+                title: appt.design_title || 'Tattoo Session',
+                description: `Completed piece for ${appt.client_name}. ${appt.notes || ''}`.trim(),
+                category: appt.service_type || 'Tattoo Session',
+                isPublic: 1,
+                priceEstimate: appt.price
+            });
+            if (res.data.success) {
+                setPublishStatus(prev => ({ ...prev, [appt.id]: 'success' }));
+            } else {
+                alert(res.data.message || 'Failed to publish to portfolio');
+                setPublishStatus(prev => ({ ...prev, [appt.id]: 'idle' }));
+            }
+        } catch (error) {
+            console.error("Error publishing to portfolio:", error);
+            alert('An error occurred while publishing. Please try again.');
+            setPublishStatus(prev => ({ ...prev, [appt.id]: 'idle' }));
+        }
     };
 
     const compressImage = (file, maxWidth = 1200, quality = 0.7) => {
@@ -491,6 +518,41 @@ function ArtistAppointments() {
                                                             </div>
                                                         )}
                                                     </div>
+
+                                                    {/* Audit / Completed Image Section */}
+                                                    {selectedAppointment.status === 'completed' && selectedAppointment.after_photo && (
+                                                        <div style={{ background: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(10px)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.8)', marginTop: '20px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>Session Audit (Completed Tattoo)</p>
+                                                            </div>
+                                                            <img
+                                                                src={selectedAppointment.after_photo.startsWith('data:') ? selectedAppointment.after_photo : (selectedAppointment.after_photo.startsWith('http') ? selectedAppointment.after_photo : `${API_URL}${selectedAppointment.after_photo}`)}
+                                                                alt="Completed Tattoo"
+                                                                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.5)', background: '#fff' }}
+                                                            />
+                                                            <div style={{ marginTop: '15px', textAlign: 'center' }}>
+                                                                <button
+                                                                    className="btn"
+                                                                    disabled={publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing'}
+                                                                    onClick={() => handlePublishToPortfolio(selectedAppointment)}
+                                                                    style={{ 
+                                                                        padding: '10px 24px', 
+                                                                        borderRadius: '20px', 
+                                                                        background: publishStatus[selectedAppointment.id] === 'success' ? '#10b981' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
+                                                                        color: 'white', 
+                                                                        border: 'none', 
+                                                                        cursor: publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing' ? 'not-allowed' : 'pointer', 
+                                                                        fontWeight: '600',
+                                                                        boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
+                                                                        transition: 'all 0.3s'
+                                                                    }}
+                                                                >
+                                                                    {publishStatus[selectedAppointment.id] === 'success' ? '✓ Published to Portfolio' : publishStatus[selectedAppointment.id] === 'publishing' ? 'Publishing...' : '✨ Publish to Portfolio'}
+                                                                </button>
+                                                                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '8px' }}>This will push the image to your public Gallery.</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div style={{ padding: '15px 20px', borderTop: '1px solid #e2e8f0', textAlign: 'right', background: '#f8fafc', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                                                     {selectedAppointment.status === 'pending' && (
