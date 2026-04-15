@@ -13,6 +13,7 @@ import './AdminStaff.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
+import MultiSelectDropdown from '../components/MultiSelectDropdown';
 
 function AdminStaff() {
     const navigate = useNavigate();
@@ -291,27 +292,12 @@ function AdminStaff() {
                 </div>
                 <div className="form-group">
                     <label>Specialization / Styles</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
-                        {TATTOO_STYLES.map(style => {
-                            const isSelected = (formData.specialization || '').split(',').map(s=>s.trim()).includes(style);
-                            return (
-                                <label key={style} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
-                                    <input 
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={(e) => {
-                                            let specs = (formData.specialization || '').split(',').map(s=>s.trim()).filter(s=>s);
-                                            if (e.target.checked) specs.push(style);
-                                            else specs = specs.filter(s => s !== style);
-                                            setFormData({...formData, specialization: specs.join(', ')});
-                                        }}
-                                        style={{ accentColor: '#daa520' }}
-                                    />
-                                    {style}
-                                </label>
-                            );
-                        })}
-                    </div>
+                    <MultiSelectDropdown 
+                        options={TATTOO_STYLES}
+                        selectedStr={formData.specialization}
+                        onChange={(newVal) => setFormData({ ...formData, specialization: newVal })}
+                        placeholder="Select styles"
+                    />
                 </div>
                 <div className="form-group">
                     <label>Experience (Years)</label>
@@ -710,27 +696,12 @@ function AdminStaff() {
                                             <div className="admin-st-2f580e88">
                                                 <div className="form-group">
                                                     <label className="admin-st-19644797">Style Category</label>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px', background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                                                        {TATTOO_STYLES.map(style => {
-                                                            const isSelected = (workFormData.category || '').split(',').map(s=>s.trim()).includes(style);
-                                                            return (
-                                                                <label key={style} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
-                                                                    <input 
-                                                                        type="checkbox"
-                                                                        checked={isSelected}
-                                                                        onChange={(e) => {
-                                                                            let cats = (workFormData.category || '').split(',').map(s=>s.trim()).filter(s=>s);
-                                                                            if (e.target.checked) cats.push(style);
-                                                                            else cats = cats.filter(c => c !== style);
-                                                                            setWorkFormData({...workFormData, category: cats.join(', ')});
-                                                                        }}
-                                                                        style={{ accentColor: '#daa520' }}
-                                                                    />
-                                                                    {style}
-                                                                </label>
-                                                            );
-                                                        })}
-                                                    </div>
+                                                    <MultiSelectDropdown 
+                                                        options={TATTOO_STYLES}
+                                                        selectedStr={workFormData.category}
+                                                        onChange={(newVal) => setWorkFormData({ ...workFormData, category: newVal })}
+                                                        placeholder="Select categories"
+                                                    />
                                                 </div>
                                                 <div className="form-group">
                                                     <label className="admin-st-19644797">Market Valuation (₱)</label>
