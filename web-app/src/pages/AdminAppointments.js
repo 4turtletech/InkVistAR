@@ -766,122 +766,98 @@ function AdminAppointments() {
                     </div>
                 ) : (
                     <>
-                        <div className="premium-filter-bar admin-st-a0e60838">
-                            <div className="admin-st-c67f566c">
-                                <div className="premium-search-box admin-st-8c2b2854">
-                                    <Search size={18} className="text-muted" />
-                                    <input
-                                        type="text"
-                                        list="search-suggestions-appointments"
-                                        placeholder="Search appointments..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                    <datalist id="search-suggestions-appointments">
-                                        {searchSuggestions.map(suggestion => (
-                                            <option key={suggestion} value={suggestion} />
-                                        ))}
-                                    </datalist>
-                                </div>
-
-                                <div className="quick-filters admin-st-70e52978">
-                                    {[
-                                        { id: 'all', label: 'All', icon: <Filter size={14} /> },
-                                        { id: 'upcoming', label: 'Upcoming', icon: <Plus size={14} /> },
-                                        { id: 'latest', label: 'Latest Added', icon: <Plus size={14} className="admin-st-554a34d7" /> }
-                                    ].map(filter => (
-                                        <button
-                                            key={filter.id}
-                                            onClick={() => setQuickFilter(filter.id)}
-                                            className={`badge ${quickFilter === filter.id ? 'status-confirmed' : ''}`}
-                                            style={{
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '6px',
-                                                padding: '8px 16px',
-                                                background: quickFilter === filter.id ? '' : 'transparent',
-                                                color: quickFilter === filter.id ? '' : '#64748b',
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            {filter.icon}
-                                            {filter.label}
-                                        </button>
+                        <div className="premium-filter-bar premium-filter-bar--stacked">
+                            <div className="premium-search-box premium-search-box--full" style={{ position: 'relative' }}>
+                                <Search size={16} className="text-muted" />
+                                <input
+                                    type="text"
+                                    list="search-suggestions-appointments"
+                                    placeholder="Search appointments by ID, client, or artist..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ width: '100%', paddingRight: '120px' }}
+                                />
+                                <datalist id="search-suggestions-appointments">
+                                    {searchSuggestions.map(suggestion => (
+                                        <option key={suggestion} value={suggestion} />
                                     ))}
-                                    {(searchTerm || quickFilter !== 'all' || statusFilter !== 'all' || serviceFilter !== 'all' || dateFilter) && (
-                                        <button
-                                            onClick={() => {
-                                                setSearchTerm('');
-                                                setQuickFilter('all');
-                                                setStatusFilter('all');
-                                                setServiceFilter('all');
-                                                setDateFilter('');
-                                            }}
-                                            className="badge admin-st-8dd03aaa"
-                                        >
-                                            <X size={14} />
-                                            Clear Filters
-                                        </button>
-                                    )}
-                                </div>
+                                </datalist>
+                                {(searchTerm || statusFilter !== 'all' || serviceFilter !== 'all' || dateFilter) && (
+                                    <button
+                                        onClick={() => {
+                                            setSearchTerm('');
+                                            setQuickFilter('all');
+                                            setStatusFilter('all');
+                                            setServiceFilter('all');
+                                            setDateFilter('');
+                                        }}
+                                        className="btn-glass"
+                                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                        <X size={12} /> Clear Filters
+                                    </button>
+                                )}
                             </div>
 
-                            <div className="premium-filters-group admin-st-d6f83f6a">
-                                <div className="admin-st-fa9239cc">
+                            <div className="premium-filters-row">
+                                <div className="premium-filter-item">
                                     <Filter size={16} />
-                                    <span>Refine:</span>
+                                    <span>Filter:</span>
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                        className="premium-select-v2"
+                                    >
+                                        <option value="all">All Status</option>
+                                        <option value="confirmed">Confirmed</option>
+                                        <option value="scheduled">Scheduled</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                        <option value="rejected">Rejected</option>
+                                    </select>
                                 </div>
 
-                                <select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="premium-select-v2 admin-st-8a8a8b6a"
-                                >
-                                    <option value="all">All Status</option>
-                                    <option value="confirmed">Confirmed</option>
-                                    <option value="scheduled">Scheduled</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                    <option value="rejected">Rejected</option>
-                                </select>
+                                <div className="premium-filter-item">
+                                    <select
+                                        value={serviceFilter}
+                                        onChange={(e) => setServiceFilter(e.target.value)}
+                                        className="premium-select-v2"
+                                    >
+                                        <option value="all">All Services</option>
+                                        <option value="Tattoo Session">Tattoo Session</option>
+                                        <option value="Consultation">Consultation</option>
+                                        <option value="Piercing">Piercing</option>
+                                        <option value="Follow-up">Follow-up</option>
+                                        <option value="Touch-up">Touch-up</option>
+                                    </select>
+                                </div>
 
-                                <select
-                                    value={serviceFilter}
-                                    onChange={(e) => setServiceFilter(e.target.value)}
-                                    className="premium-select-v2 admin-st-8b224a6c"
-                                >
-                                    <option value="all">All Services</option>
-                                    <option value="Tattoo Session">Tattoo Session</option>
-                                    <option value="Consultation">Consultation</option>
-                                    <option value="Piercing">Piercing</option>
-                                    <option value="Follow-up">Follow-up</option>
-                                    <option value="Touch-up">Touch-up</option>
-                                </select>
+                                <div className="premium-filter-item">
+                                    <Calendar size={16} />
+                                    <input
+                                        type="date"
+                                        value={dateFilter}
+                                        onChange={(e) => setDateFilter(e.target.value)}
+                                        className="premium-select-v2"
+                                        style={{ height: '38px', padding: '0 12px' }}
+                                    />
+                                </div>
 
-                                <input
-                                    type="date"
-                                    value={dateFilter}
-                                    onChange={(e) => setDateFilter(e.target.value)}
-                                    className="premium-select-v2 admin-st-b63c52d4"
-                                />
-
-                                <div className="admin-st-a8cc8c61">
+                                <div className="premium-filter-item">
                                     <SlidersHorizontal size={16} />
                                     <span>Sort:</span>
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        className="premium-select-v2"
+                                    >
+                                        <option value="date">Date</option>
+                                        <option value="client">Client</option>
+                                        <option value="artist">Artist</option>
+                                        <option value="status">Status</option>
+                                    </select>
                                 </div>
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="premium-select-v2"
-                                >
-                                    <option value="date">Date</option>
-                                    <option value="client">Client</option>
-                                    <option value="artist">Artist</option>
-                                    <option value="status">Status</option>
-                                </select>
                             </div>
                         </div>
 
