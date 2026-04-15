@@ -46,7 +46,7 @@ function ArtistAppointments(){
     const filteredAppointments = appointments.filter(apt => {
         if (activeTab === 'pending') return apt.status === 'pending';
         if (activeTab === 'upcoming') return ['confirmed', 'scheduled'].includes(apt.status);
-        if (activeTab === 'history') return ['completed', 'cancelled'].includes(apt.status);
+        if (activeTab === 'history') return ['completed', 'cancelled', 'incomplete'].includes(apt.status);
         return true;
     });
 
@@ -64,7 +64,7 @@ function ArtistAppointments(){
                 setSelectedAppointment(target);
                 // Switch to the correct tab
                 if (target.status === 'pending') setActiveTab('pending');
-                else if (['completed', 'cancelled'].includes(target.status)) setActiveTab('history');
+                else if (['completed', 'cancelled', 'incomplete'].includes(target.status)) setActiveTab('history');
                 else setActiveTab('upcoming');
             }
             // Clear state to prevent re-opening on re-render
