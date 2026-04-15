@@ -6,7 +6,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 ### 1. Anti-Hallucination Rules
 - **Do NOT hallucinate database fields, APIs, or files.** Always refer to the exact Database Tables and API Endpoints documented below.
 - **Read Before Modifying:** Always use `view_file` to read the target code before writing an update. Do not guess the structure of a component.
-- **Soft Deletes Only:** Never DELETE rows from the database. Always use the `is_deleted` flag for appointments, portfolio_works, inventory, and users.
+- **Soft Deletes Only:** Never DELETE rows from the database. Always use the `is_deleted` flag for appointments, portfolio_works, inventory, and users. For Admin appointments, the 'Delete' UI action is officially deprecated; strictly use the notification-driven 'Reschedule' workflow.
 - **System Flow Accuracy:** Refer to the `Updated_Activity_Diagram.md` for the correct booking, payment, and scheduling flows.
 
 ### 2. Theming & UI Standards (Web App)
@@ -33,7 +33,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 | **users** | id, name, email, password_hash, user_type (admin/manager/artist/customer), phone, is_verified, is_deleted |
 | **artists** | user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate, rating, total_reviews, profile_image, phone |
 | **customers** | user_id, phone, location, notes |
-| **appointments** | id, customer_id, artist_id, appointment_date, start_time, end_time, design_title, price, status, payment_status, before_photo, after_photo, is_deleted |
+| **appointments** | id, booking_code, customer_id, artist_id, appointment_date, start_time, end_time, design_title, price, status, payment_status, before_photo, after_photo, is_deleted |
 | **portfolio_works** | id, artist_id, image_url, title, description, category, price_estimate, is_public |
 | **notifications** | id, user_id, title, message, type, related_id, is_read |
 | **inventory** | id, name, category, current_stock, min_stock, max_stock, unit, cost, supplier |
@@ -149,6 +149,7 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 4. **Material Tracking:** `session_materials` tracks hold→consumed→released lifecycle
 5. **Service Kits:** Predefined material bundles for quick session setup
 6. **Payment Flow:** PayMongo webhook → `/api/payments/webhook` → updates appointments.payment_status
+7. **Booking Code Standardization:** All portals MUST display the formatted booking ID via `src/utils/formatters.js` (e.g., `O-T-0012`). Do NOT use raw numeric IDs. PayMongo checkout strictly enforces the presence of `booking_code`.
 
 ---
 
