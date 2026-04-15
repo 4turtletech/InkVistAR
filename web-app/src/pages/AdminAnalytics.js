@@ -174,10 +174,10 @@ function AdminAnalytics() {
                                 <option value="year">This Year</option>
                             </select>
                         </div>
-                        <button className="btn-glass" onClick={handlePrint}>
+                        <button className="btn btn-secondary" onClick={handlePrint}>
                             <Printer size={18} /> Print
                         </button>
-                        <button className="btn-primary-glass" onClick={handleExport}>
+                        <button className="btn btn-primary" onClick={handleExport}>
                             <Download size={18} /> Export
                         </button>
                     </div>

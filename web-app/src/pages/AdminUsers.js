@@ -684,7 +684,7 @@ function AdminUsers() {
                         <p>Manage platform users, roles, and account status</p>
                     </div>
                     <div className="header-actions-group">
-                        <button className="btn-indigo" onClick={handleAddNew}>
+                        <button className="btn btn-primary" onClick={handleAddNew}>
                             <UserPlus size={18} /> Add New User
                         </button>
                     </div>

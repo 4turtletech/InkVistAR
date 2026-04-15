@@ -555,19 +555,19 @@ function AdminInventory() {
                     <p>Track, manage, and audit studio supplies</p>
                 </div>
                 <div className="header-actions-group">
-                    <button className="header-btn-glass" onClick={handlePrint} title="Print Report">
+                    <button className="btn btn-secondary" onClick={handlePrint} title="Print Report">
                         <Printer size={18}/> Print
                     </button>
-                    <button className="header-btn-glass" onClick={handleExportCSV} title="Download CSV">
+                    <button className="btn btn-secondary" onClick={handleExportCSV} title="Download CSV">
                         <Download size={18}/> Export
                     </button>
-                    <button className="header-btn-glass" onClick={handleManageKits}>
+                    <button className="btn btn-secondary" onClick={handleManageKits}>
                         <Package size={18}/> Kits
                     </button>
-                    <button className="header-btn-glass" onClick={fetchHistory}>
+                    <button className="btn btn-secondary" onClick={fetchHistory}>
                         <History size={18}/> History
                     </button>
-                    <button className="header-btn-solid" onClick={handleAddNew}>
+                    <button className="btn btn-primary" onClick={handleAddNew}>
                         <Plus size={18}/> Add Item
                     </button>
                 </div>
