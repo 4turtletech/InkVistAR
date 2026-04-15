@@ -314,13 +314,13 @@ function ArtistAppointments() {
                                 </div>
                             ) : (
                                 <>
-                                    <div className="settings-tabs" style={{ marginBottom: '20px' }}>
-                                        <button className={`tab-button ${activeTab === 'upcoming' ? 'active' : ''}`} onClick={() => setActiveTab('upcoming')}>Upcoming</button>
-                                        <button className={`tab-button ${activeTab === 'pending' ? 'active' : ''}`} onClick={() => setActiveTab('pending')}>Pending Requests</button>
-                                        <button className={`tab-button ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>History</button>
+                                    <div style={{ marginBottom: '20px', display: 'flex', gap: '8px', background: 'rgba(255, 255, 255, 0.5)', padding: '6px', borderRadius: '30px', backdropFilter: 'blur(10px)', width: 'fit-content', border: '1px solid rgba(255, 255, 255, 0.8)' }}>
+                                        <button style={{ padding: '8px 20px', borderRadius: '24px', border: 'none', background: activeTab === 'upcoming' ? '#1e293b' : 'transparent', color: activeTab === 'upcoming' ? 'white' : '#64748b', fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveTab('upcoming')}>Upcoming</button>
+                                        <button style={{ padding: '8px 20px', borderRadius: '24px', border: 'none', background: activeTab === 'pending' ? '#1e293b' : 'transparent', color: activeTab === 'pending' ? 'white' : '#64748b', fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveTab('pending')}>Pending Requests</button>
+                                        <button style={{ padding: '8px 20px', borderRadius: '24px', border: 'none', background: activeTab === 'history' ? '#1e293b' : 'transparent', color: activeTab === 'history' ? 'white' : '#64748b', fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveTab('history')}>History</button>
                                     </div>
 
-                                    <div className="table-card-container" style={{ minHeight: '600px' }}>
+                                    <div className="table-card-container" style={{ minHeight: '600px', background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.6)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.05)', borderRadius: '16px' }}>
                                         {currentItems.length ? (
                                             <>
                                                 <div className="table-responsive">
@@ -382,9 +382,9 @@ function ArtistAppointments() {
                                     />
 
                                     {selectedAppointment && (
-                                        <div className="modal-overlay" onClick={() => setSelectedAppointment(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                                            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: '600px', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-                                                <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div className="modal-overlay" onClick={() => setSelectedAppointment(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)' }}>
+                                            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: '600px', background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.6)', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                                                <div style={{ padding: '20px', borderBottom: '1px solid rgba(226, 232, 240, 0.6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <h3 style={{ margin: 0, color: '#1e293b' }}>Appointment {getDisplayCode(selectedAppointment.booking_code, selectedAppointment.id)}</h3>
                                                     <button onClick={() => setSelectedAppointment(null)} className="close-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
                                                 </div>

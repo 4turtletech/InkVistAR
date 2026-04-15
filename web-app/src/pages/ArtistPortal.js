@@ -230,11 +230,11 @@ function ArtistPortal() {
                                     </div>
                                     <div className="artist-portal-notif-list">
                                         {notifications.length > 0 ? notifications.map(notif => (
-                                            <div key={notif.id} className="artist-portal-notif-item">
-                                                <AlertCircle size={16} color="#6366f1" style={{ marginTop: '3px' }} />
-                                                <div>
-                                                    <p className="artist-portal-notif-item-title">{notif.title}</p>
-                                                    <p className="artist-portal-notif-item-message">{notif.message}</p>
+                                            <div key={notif.id} className="artist-portal-notif-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                                <AlertCircle size={18} color="#6366f1" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <p className="artist-portal-notif-item-title" style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>{notif.title}</p>
+                                                    <p className="artist-portal-notif-item-message" style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>{notif.message}</p>
                                                 </div>
                                             </div>
                                         )) : <p className="no-data">No new notifications</p>}
