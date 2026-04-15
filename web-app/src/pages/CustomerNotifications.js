@@ -245,14 +245,16 @@ function CustomerNotifications() {
 
                 <div className="portal-content">
                     {/* Search Bar */}
-                    <div className="premium-search-box" style={{ marginBottom: '20px' }}>
-                        <Search size={16} className="premium-search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Search notifications..."
-                            value={searchTerm}
-                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                        />
+                    <div className="premium-filter-bar" style={{ marginBottom: '20px' }}>
+                        <div className="premium-search-box premium-search-box--full" style={{ margin: 0, width: '100%' }}>
+                            <Search size={16} className="text-muted" />
+                            <input
+                                type="text"
+                                placeholder="Search notifications..."
+                                value={searchTerm}
+                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                            />
+                        </div>
                     </div>
 
                     {loading ? (

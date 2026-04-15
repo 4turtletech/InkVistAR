@@ -334,31 +334,32 @@ function AdminNotifications() {
                 </div>
 
                 <div className="portal-content">
-                    <div className="premium-search-box" style={{ marginBottom: '20px' }}>
-                        <Search size={16} className="premium-search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Search notifications..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="premium-filters-group" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div>
-                            <Filter size={16} style={{ color: '#64748b', marginRight: '6px', verticalAlign: 'middle' }} />
-                            <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '600' }}>Type:</span>
+                    <div className="premium-filter-bar" style={{ marginBottom: '20px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+                        <div className="premium-search-box" style={{ flex: '0 0 75%', margin: 0 }}>
+                            <Search size={16} className="text-muted" />
+                            <input
+                                type="text"
+                                placeholder="Search notifications..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                        <select
-                            value={activeFilter}
-                            onChange={(e) => setActiveFilter(e.target.value)}
-                            className="premium-select-v2"
-                        >
-                            <option value="all">All Notifications</option>
-                            <option value="inventory">Inventory Alerts</option>
-                            <option value="appointment">Booking Requests</option>
-                            <option value="system">System Updates</option>
-                        </select>
+
+                        <div className="premium-filter-item" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                            <Filter size={16} style={{ color: '#64748b' }} />
+                            <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '600', whiteSpace: 'nowrap' }}>Type:</span>
+                            <select
+                                value={activeFilter}
+                                onChange={(e) => setActiveFilter(e.target.value)}
+                                className="premium-select-v2"
+                                style={{ flex: 1, minWidth: 0 }}
+                            >
+                                <option value="all">All Notifications</option>
+                                <option value="inventory">Inventory Alerts</option>
+                                <option value="appointment">Booking Requests</option>
+                                <option value="system">System Updates</option>
+                            </select>
+                        </div>
                     </div>
 
                     {loading ? (
