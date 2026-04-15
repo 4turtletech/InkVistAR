@@ -643,17 +643,22 @@ function ArtistSessions() {
                                 <h2 style={{ margin: 0 }}>Active Session: {activeSession.client_name}</h2>
                                 <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.9rem' }}>Project: {activeSession.design_title}</p>
                             </div>
-                            <button className="close-btn" onClick={closeSessionModal}><X size={24} /></button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                {isCompletingSession && (
+                                    <button className="btn btn-primary" onClick={confirmCompletion} style={{ fontWeight: 800 }}>Finalize Session</button>
+                                )}
+                                <button className="close-btn" onClick={closeSessionModal}><X size={24} /></button>
+                            </div>
                         </div>
 
                         <div className="modal-body" style={{ maxHeight: '75vh' }}>
                             {/* Timer Banner — visible when in_progress */}
                             {(activeSession.status === 'in_progress' || activeSession.status === 'completed') && (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: isSessionPaused ? '#fefce8' : '#f0fdf4', borderRadius: '12px', border: `1px solid ${isSessionPaused ? '#fde68a' : '#bbf7d0'}`, marginBottom: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: isSessionPaused ? '#fefce8' : 'rgba(183, 149, 78, 0.1)', borderRadius: '12px', border: `1px solid ${isSessionPaused ? '#fde68a' : 'rgba(183, 149, 78, 0.4)'}`, marginBottom: '16px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <Clock size={20} style={{ color: isSessionPaused ? '#f59e0b' : '#10b981' }} />
+                                        <Clock size={20} style={{ color: isSessionPaused ? '#f59e0b' : '#b7954e' }} />
                                         <div>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{isSessionPaused ? 'Paused' : activeSession.status === 'completed' ? 'Final Duration' : 'Session Timer'}</span>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isSessionPaused ? '#64748b' : '#b7954e', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{isSessionPaused ? 'Paused' : activeSession.status === 'completed' ? 'Final Duration' : 'Session Timer'}</span>
                                             <div style={{ fontFamily: 'monospace', fontSize: '1.3rem', fontWeight: 800, color: '#1e293b' }}>{formatDuration(sessionElapsed)}</div>
                                         </div>
                                     </div>
@@ -780,9 +785,9 @@ function ArtistSessions() {
                                                 )}
                                             </div>
                                             <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0fdf4', padding: '10px 15px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(183, 149, 78, 0.05)', padding: '10px 15px', borderRadius: '12px', border: '1px solid rgba(183, 149, 78, 0.2)' }}>
                                                     <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Total Material Cost</span>
-                                                    <span style={{ fontWeight: 800, color: '#10b981' }}>₱{sessionCost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    <span style={{ fontWeight: 800, color: '#b7954e' }}>₱{sessionCost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     <button className="btn-glass" style={{ flex: 1, fontSize: '0.75rem', justifyContent: 'center', padding: '8px' }} onClick={openInventoryModal} disabled={addingMaterial}>
@@ -795,9 +800,6 @@ function ArtistSessions() {
                                                         </select>
                                                     )}
                                                 </div>
-                                                {isCompletingSession && (
-                                                    <button className="btn btn-primary" onClick={confirmCompletion} style={{ marginTop: '5px', justifyContent: 'center', fontWeight: 800 }}>Finalize Session</button>
-                                                )}
                                             </div>
                                         </>
                                     ) : (
