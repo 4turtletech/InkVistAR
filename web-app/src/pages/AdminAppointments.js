@@ -861,7 +861,7 @@ function AdminAppointments() {
                             </div>
                         </div>
 
-                        <div className="stats-row">
+                        <div className="stats-row" style={{ margin: '0 2rem 2rem' }}>
                             <div className="stat-item">
                                 <span className="stat-label">Total Appointments</span>
                                 <span className="stat-count">{appointments.length}</span>
@@ -880,7 +880,7 @@ function AdminAppointments() {
                             </div>
                         </div>
 
-                        <div className="table-card-container">
+                        <div className="table-card-container" style={{ margin: '0 2rem 2rem' }}>
                             <div className="table-responsive">
                                 <table className="data-table">
                                     <thead>
