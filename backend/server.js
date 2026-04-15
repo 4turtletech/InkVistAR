@@ -3043,6 +3043,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   // Date/Time Sanitization: convert empty strings to null for MySQL
   const date = body.date === '' ? null : body.date;
   const startTime = body.startTime === '' ? null : body.startTime;
+  const rescheduleReason = body.rescheduleReason;
 
   const combinedTitle = serviceType && designTitle ? `${serviceType}: ${designTitle}` : (designTitle || serviceType || null);
 
@@ -3126,13 +3127,13 @@ app.put('/api/admin/appointments/:id', (req, res) => {
         return res.status(404).json({ success: false, message: 'Appointment not found.' });
       }
 
-      processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason });
+      processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason, rescheduleReason });
     });
   });
 });
 
 function processAdminPostUpdate(res, db, id, oldAppt, fields) {
-  const { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason } = fields;
+  const { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason, rescheduleReason } = fields;
 
   // Auto-recalculate payment_status based on updated price and manual_paid_amount
   const recalculateStatusQuery = `
@@ -3177,7 +3178,8 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
         // 1. Check for Rescheduling
         if ((newDate && oldDate && newDate !== oldDate) || (startTime !== undefined && startTime !== oldAppt.start_time)) {
-          createNotification(currentData.customer_id, 'Appointment Rescheduled 📅', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.`, 'appointment_rescheduled', id);
+          const reasonText = rescheduleReason ? `\n\nReason: ${rescheduleReason}` : '';
+          createNotification(currentData.customer_id, 'Appointment Rescheduled 📅', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.${reasonText}`, 'appointment_rescheduled', id);
           notifyArtist('Session Rescheduled', `Details for session #${id} have been updated.`, 'system');
           notificationsSent = true;
         }

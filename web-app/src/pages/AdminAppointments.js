@@ -51,9 +51,11 @@ function AdminAppointments() {
         referenceImage: null,
         manualPaidAmount: 0,
         manualPaymentMethod: 'Cash',
-        rejectionReason: ''
+        rejectionReason: '',
+        rescheduleReason: ''
     });
     const [dayViewModal, setDayViewModal] = useState({ isOpen: false, date: '', appointments: [] });
+    const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, date: '', time: '', reason: '' });
 
     // Modal animation handlers
     const openModal = () => {
@@ -308,7 +310,8 @@ function AdminAppointments() {
             referenceImage: appointment.referenceImage,
             manualPaidAmount: appointment.manualPaidAmount || 0,
             manualPaymentMethod: appointment.manualPaymentMethod || 'Cash',
-            rejectionReason: appointment.rejectionReason || ''
+            rejectionReason: appointment.rejectionReason || '',
+            rescheduleReason: ''
         });
         setClientSearch(appointment.clientName);
         openModal();
@@ -343,7 +346,8 @@ function AdminAppointments() {
             referenceImage: null,
             manualPaidAmount: 0,
             manualPaymentMethod: 'Cash',
-            rejectionReason: ''
+            rejectionReason: '',
+            rescheduleReason: ''
         });
         setClientSearch('');
         openModal();
@@ -369,7 +373,8 @@ function AdminAppointments() {
             referenceImage: appointment.referenceImage || '',
             manualPaidAmount: 0,
             manualPaymentMethod: 'Cash',
-            rejectionReason: ''
+            rejectionReason: '',
+            rescheduleReason: ''
         });
         setClientSearch(appointment.clientName);
 
@@ -432,7 +437,8 @@ function AdminAppointments() {
                     beforePhoto: formData.beforePhoto,
                     manualPaidAmount: parseFloat(formData.manualPaidAmount) || 0,
                     manualPaymentMethod: formData.manualPaymentMethod,
-                    rejectionReason: formData.status === 'rejected' ? formData.rejectionReason : null
+                    rejectionReason: formData.status === 'rejected' ? formData.rejectionReason : null,
+                    rescheduleReason: formData.rescheduleReason
                 };
 
                 if (selectedAppointment) {
@@ -455,6 +461,56 @@ function AdminAppointments() {
             selectedAppointment ? 'Save changes to this appointment?' : 'Create this new appointment?',
             doSave
         );
+    };
+
+    const handleConfirmReschedule = async () => {
+        if (!rescheduleModal.date) return showAlert('Date Required', 'Please select a new date.', 'warning');
+        if (formData.serviceType === 'Consultation' && !rescheduleModal.time) return showAlert('Time Required', 'Please select a new time.', 'warning');
+        
+        try {
+            const payload = {
+                customerId: formData.clientId,
+                artistId: formData.artistId,
+                secondaryArtistId: formData.secondaryArtistId || null,
+                commissionSplit: formData.commissionSplit || 50,
+                serviceType: formData.serviceType,
+                designTitle: formData.designTitle,
+                date: rescheduleModal.date,
+                startTime: rescheduleModal.time,
+                status: formData.status,
+                paymentStatus: formData.paymentStatus,
+                notes: formData.notes,
+                price: formData.price,
+                beforePhoto: formData.beforePhoto,
+                manualPaidAmount: parseFloat(formData.manualPaidAmount) || 0,
+                manualPaymentMethod: formData.manualPaymentMethod,
+                rescheduleReason: rescheduleModal.reason
+            };
+            
+            await Axios.put(`${API_URL}/api/admin/appointments/${selectedAppointment.id}`, payload);
+            
+            setFormData(prev => ({
+                ...prev,
+                date: rescheduleModal.date,
+                time: rescheduleModal.time,
+                rescheduleReason: rescheduleModal.reason
+            }));
+            
+            setRescheduleModal(prev => ({...prev, isOpen: false}));
+            closeModal();
+            fetchAppointments();
+            setConfirmDialog({ 
+                isOpen: true, 
+                title: 'Success', 
+                message: 'Appointment successfully rescheduled.', 
+                type: 'info', 
+                isAlert: true,
+                onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false })) 
+            });
+        } catch (err) {
+            console.error('Error rescheduling appointment:', err);
+            showAlert('Error', 'Failed to reschedule appointment.', 'danger');
+        }
     };
 
     const handleApplyManualPayment = async () => {
@@ -923,9 +979,6 @@ function AdminAppointments() {
                                                         <button className="action-btn edit-btn" onClick={() => handleEdit(appointment)}>
                                                             Edit
                                                         </button>
-                                                        <button className="action-btn delete-btn" onClick={() => handleDelete(appointment.id)}>
-                                                            Delete
-                                                        </button>
                                                     </td>
                                                 </tr>
                                             ))
@@ -999,7 +1052,7 @@ function AdminAppointments() {
                             </div>
                             <div className="modal-body">
                                 {modalTab === 'details' && (
-                                    <div className="admin-st-b97f1a79">
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
                                         {/* Left Column: People & Service */}
                                         <div className="admin-st-d295c8d6">
                                             <div>
@@ -1061,6 +1114,9 @@ function AdminAppointments() {
                                                 )}
                                             </div>
 
+                                        </div>
+
+                                        <div className="admin-st-d295c8d6">
                                             <div>
                                                 <label className="premium-input-label">Staff Assignment</label>
                                                 <div className="admin-st-efc8b70e">
@@ -1090,46 +1146,32 @@ function AdminAppointments() {
                                                 </div>
                                             </div>
 
-                                            <div>
-                                                <label className="premium-input-label">Service Details</label>
-                                                <div className="admin-st-efc8b70e">
-                                                    <div className="admin-st-fefecdf0">
-                                                        <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Service Type *</label>
-                                                            <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2">
-                                                                <option value="Tattoo Session">Tattoo Session</option>
-                                                                <option value="Consultation">Consultation</option>
-                                                                <option value="Piercing">Piercing</option>
-                                                                <option value="Tattoo + Piercing">Tattoo + Piercing</option>
-                                                                <option value="Touch-up">Touch-up</option>
-                                                            </select>
-                                                        </div>
-                                                        <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Design / Idea</label>
-                                                            <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
+                                            {!selectedAppointment && (
+                                                <div>
+                                                    <label className="premium-input-label">Booking Date & Time</label>
+                                                    <div className="admin-st-efc8b70e">
+                                                        <div className="admin-st-fefecdf0">
+                                                            <div className="premium-input-group">
+                                                                <label className="admin-st-b8618eb2">Date *</label>
+                                                                <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="premium-input-v2" />
+                                                            </div>
+                                                            {formData.serviceType === 'Consultation' && (
+                                                                <div className="premium-input-group">
+                                                                    <label className="admin-st-b8618eb2">Time *</label>
+                                                                    <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-input-v2" />
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
+                                            )}
+                                        </div>          </div>
 
-                                        {/* Right Column: Schedule & Status */}
+                                        {/* Column 3: Status */}
                                         <div className="admin-st-d295c8d6">
                                             <div>
-                                                <label className="premium-input-label">Schedule & Status</label>
+                                                <label className="premium-input-label">Booking Status</label>
                                                 <div className="admin-st-efc8b70e">
-                                                    <div className="admin-st-fefecdf0">
-                                                        <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Date *</label>
-                                                            <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="premium-input-v2" />
-                                                        </div>
-                                                        {formData.serviceType === 'Consultation' && (
-                                                            <div className="premium-input-group">
-                                                                <label className="admin-st-b8618eb2">Time *</label>
-                                                                <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-input-v2" />
-                                                            </div>
-                                                        )}
-                                                    </div>
                                                     <div className="premium-input-group">
                                                         <label className="admin-st-b8618eb2">Booking Status</label>
                                                         <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="premium-select-v2">
@@ -1260,7 +1302,7 @@ function AdminAppointments() {
 
                                 {modalTab === 'notes' && (
                                     /* Session Log Tab View */
-                                    <div className="admin-st-b97f1a79">
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
                                         {/* Left Column: Session Summary & Notes */}
                                         <div className="admin-st-d295c8d6">
                                             <div>
@@ -1546,6 +1588,45 @@ function AdminAppointments() {
                     </div>
                 )}
             </div>
+
+            
+            {/* Reschedule Modal */}
+            {rescheduleModal.isOpen && (
+                <div className="modal-overlay admin-st-032d51d4" onClick={() => setRescheduleModal({ ...rescheduleModal, isOpen: false })}>
+                    <div className="modal-content premium-modal admin-st-eabe81b2" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Reschedule Session</h3>
+                            <button className="close-btn" onClick={() => setRescheduleModal({ ...rescheduleModal, isOpen: false })}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="premium-input-group">
+                                <label className="admin-st-b8618eb2">New Date</label>
+                                <input type="date" value={rescheduleModal.date} onChange={e => setRescheduleModal({ ...rescheduleModal, date: e.target.value })} className="premium-input-v2" />
+                            </div>
+                            <div className="premium-input-group" style={{ marginTop: '16px' }}>
+                                <label className="admin-st-b8618eb2">New Time</label>
+                                <input type="time" value={rescheduleModal.time} onChange={e => setRescheduleModal({ ...rescheduleModal, time: e.target.value })} className="premium-input-v2" />
+                            </div>
+                            <div className="premium-input-group" style={{ marginTop: '16px' }}>
+                                <label className="admin-st-b8618eb2">Reason for Reschedule (Optional)</label>
+                                <textarea
+                                    className="premium-input-v2"
+                                    value={rescheduleModal.reason}
+                                    onChange={e => setRescheduleModal({ ...rescheduleModal, reason: e.target.value })}
+                                    placeholder="Explain to the customer why the schedule is changed..."
+                                    rows="3"
+                                    style={{ resize: 'vertical', minHeight: '80px' }}
+                                ></textarea>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-primary" onClick={handleConfirmReschedule} style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                                <Calendar size={18} /> Confirm Reschedule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Confirmation Modal */}
             <ConfirmModal
