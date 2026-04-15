@@ -979,7 +979,7 @@ function AdminAppointments() {
                                                 className={`modal-tab-btn ${modalTab === 'notes' ? 'active' : ''}`}
                                                 onClick={() => setModalTab('notes')}
                                             >
-                                                <FileText size={16} /> Notes
+                                                <FileText size={16} /> Session Log
                                             </button>
                                         </div>
                                     </div>
@@ -1259,7 +1259,7 @@ function AdminAppointments() {
                                 )}
 
                                 {modalTab === 'notes' && (
-                                    /* Notes Tab View */
+                                    /* Session Log Tab View */
                                     <div className="admin-st-b97f1a79">
                                         {/* Left Column: Session Summary & Notes */}
                                         <div className="admin-st-d295c8d6">
@@ -1267,27 +1267,63 @@ function AdminAppointments() {
                                                 <label className="admin-st-739a1b05">Session Details Summary</label>
                                                 <div className="admin-st-ae64ad42">
                                                     <div className="admin-flex-between">
-                                                        <span className="admin-st-26b52dcd">Service Type:</span>
-                                                        <span className="admin-st-0e40c814">{formData.serviceType}</span>
+                                                        <span className="admin-st-26b52dcd">Client:</span>
+                                                        <span className="admin-st-0e40c814">
+                                                            {formData.clientId
+                                                                ? (clients.find(c => c.id == formData.clientId)?.name || clientSearch || 'Selected')
+                                                                : <span style={{ color: '#94a3b8', fontWeight: 500, fontStyle: 'italic' }}>Not assigned yet</span>
+                                                            }
+                                                        </span>
                                                     </div>
                                                     <div className="admin-flex-between">
-                                                        <span className="admin-st-26b52dcd">Design Idea:</span>
-                                                        <span className="admin-st-0e40c814">{formData.designTitle || 'N/A'}</span>
+                                                        <span className="admin-st-26b52dcd">Artist:</span>
+                                                        <span className="admin-st-0e40c814">
+                                                            {formData.artistId
+                                                                ? (artists.find(a => String(a.id) === String(formData.artistId))?.name || 'Assigned')
+                                                                : <span style={{ color: '#94a3b8', fontWeight: 500, fontStyle: 'italic' }}>Not assigned yet</span>
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                    <div className="admin-flex-between">
+                                                        <span className="admin-st-26b52dcd">Service Type:</span>
+                                                        <span className="admin-st-0e40c814">{formData.serviceType || <span style={{ color: '#94a3b8', fontWeight: 500, fontStyle: 'italic' }}>Not selected</span>}</span>
+                                                    </div>
+                                                    <div className="admin-flex-between">
+                                                        <span className="admin-st-26b52dcd">Design / Idea:</span>
+                                                        <span className="admin-st-0e40c814">{formData.designTitle || <span style={{ color: '#94a3b8', fontWeight: 500, fontStyle: 'italic' }}>N/A</span>}</span>
                                                     </div>
                                                     <div className="admin-flex-between">
                                                         <span className="admin-st-26b52dcd">Scheduled For:</span>
-                                                        <span className="admin-st-afc165d9">{formData.date} at {formData.time}</span>
+                                                        <span className="admin-st-afc165d9">
+                                                            {formData.date
+                                                                ? `${formData.date}${formData.time ? ` at ${formData.time}` : ''}`
+                                                                : <span style={{ color: '#94a3b8', fontWeight: 500, fontStyle: 'italic' }}>No date set</span>
+                                                            }
+                                                        </span>
                                                     </div>
+                                                    <div className="admin-flex-between">
+                                                        <span className="admin-st-26b52dcd">Status:</span>
+                                                        <span className={`badge status-${getStatusColor(formData.status)}`} style={{ fontSize: '0.8rem' }}>{formData.status || 'pending'}</span>
+                                                    </div>
+                                                    {formData.price > 0 && (
+                                                        <div className="admin-flex-between">
+                                                            <span className="admin-st-26b52dcd">Price:</span>
+                                                            <span className="admin-st-0e40c814">₱{Number(formData.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
                                             <div>
                                                 <label className="admin-st-739a1b05">Internal Session Notes</label>
                                                 <textarea
-                                                    value={formData.notes}
+                                                    value={formData.notes || ''}
                                                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                                                     className="premium-select-v2 admin-st-ef6586d6"
-                                                    placeholder="Add detailed internal notes, placement instructions, or specific client requests..."
+                                                    placeholder={selectedAppointment
+                                                        ? "Add detailed internal notes, placement instructions, or specific client requests..."
+                                                        : "Add any notes about this new appointment — placement preferences, client requests, design specifics, scheduling notes, etc."
+                                                    }
                                                 />
                                             </div>
                                         </div>
@@ -1321,10 +1357,28 @@ function AdminAppointments() {
                                                         </div>
                                                     ) : null}
 
-                                                    {!(formData.referenceImage || selectedAppointment?.referenceImage || formData.beforePhoto || selectedAppointment?.beforePhoto) && (
+                                                    {/* After Photo */}
+                                                    {selectedAppointment?.afterPhoto ? (
+                                                        <div style={{ width: '100%', borderTop: '1px dashed #e2e8f0', paddingTop: '20px' }}>
+                                                            <label className="admin-st-e7eee706">Result Photo (After)</label>
+                                                            <img
+                                                                src={selectedAppointment.afterPhoto}
+                                                                alt="After"
+                                                                className="admin-st-ab1ba3de"
+                                                            />
+                                                        </div>
+                                                    ) : null}
+
+                                                    {!(formData.referenceImage || selectedAppointment?.referenceImage || formData.beforePhoto || selectedAppointment?.beforePhoto || selectedAppointment?.afterPhoto) && (
                                                         <div className="admin-st-28e6a799">
                                                             <Image size={48} className="admin-st-04217666" />
-                                                            <p>No reference image uploaded</p>
+                                                            <p style={{ margin: '0 0 4px 0', fontWeight: 600, color: '#94a3b8' }}>No reference images</p>
+                                                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#cbd5e1' }}>
+                                                                {selectedAppointment
+                                                                    ? 'No images were attached to this appointment.'
+                                                                    : 'Reference images can be attached by clients during booking or added later.'
+                                                                }
+                                                            </p>
                                                         </div>
                                                     )}
                                                 </div>

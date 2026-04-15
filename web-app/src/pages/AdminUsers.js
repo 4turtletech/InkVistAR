@@ -66,7 +66,7 @@ function AdminUsers() {
     // ─── Create User Modal ───
     const [createModal, setCreateModal] = useState({ mounted: false, visible: false });
     const [createFormData, setCreateFormData] = useState({
-        name: '', email: '', phone: '', password: '', user_type: 'customer'
+        firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer'
     });
     const [createErrors, setCreateErrors] = useState({});
 
@@ -125,7 +125,7 @@ function AdminUsers() {
         setCreateModal(prev => ({ ...prev, visible: false }));
         setTimeout(() => {
             setCreateModal({ mounted: false, visible: false });
-            setCreateFormData({ name: '', email: '', phone: '', password: '', user_type: 'customer' });
+            setCreateFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer' });
             setCreateErrors({});
         }, 400);
     };
@@ -550,15 +550,19 @@ function AdminUsers() {
     // ═══════════════════════════════════════════════════════════
 
     const handleAddNew = () => {
-        setCreateFormData({ name: '', email: '', phone: '', password: '', user_type: 'customer' });
+        setCreateFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', user_type: 'customer' });
         setCreateErrors({});
         openCreateModalAnim();
     };
 
     const validateCreateField = (name, value) => {
         let error = '';
-        if (name === 'name') {
-            if (!value.trim()) error = 'Name is required';
+        if (name === 'firstName') {
+            if (!value.trim()) error = 'First name is required';
+            else if (!/^[a-zA-Z\s-]+$/.test(value)) error = 'Letters, spaces, and hyphens only';
+        }
+        if (name === 'lastName') {
+            if (!value.trim()) error = 'Last name is required';
             else if (!/^[a-zA-Z\s-]+$/.test(value)) error = 'Letters, spaces, and hyphens only';
         }
         if (name === 'email') {
@@ -580,7 +584,7 @@ function AdminUsers() {
 
     const handleCreateFieldChange = (name, value) => {
         let sanitized = value;
-        if (name === 'name') sanitized = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '').slice(0, 50);
+        if (name === 'firstName' || name === 'lastName') sanitized = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '').slice(0, 50);
         else if (name === 'email') sanitized = value.replace(/\s/g, '');
         else if (name === 'phone') sanitized = value.replace(/[^0-9]/g, '').slice(0, 11);
         else if (name === 'password') sanitized = value.slice(0, 50);
@@ -593,21 +597,25 @@ function AdminUsers() {
     };
 
     const isCreateFormValid = () => {
-        return createFormData.name.trim() &&
+        return createFormData.firstName.trim() &&
+            createFormData.lastName.trim() &&
             /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createFormData.email) &&
             createFormData.password.length >= 8;
     };
 
     const handleCreateSave = async () => {
         // Validate all fields
-        const nameOk = validateCreateField('name', createFormData.name);
+        const firstOk = validateCreateField('firstName', createFormData.firstName);
+        const lastOk = validateCreateField('lastName', createFormData.lastName);
         const emailOk = validateCreateField('email', createFormData.email);
         const passOk = validateCreateField('password', createFormData.password);
-        if (!nameOk || !emailOk || !passOk) return;
+        if (!firstOk || !lastOk || !emailOk || !passOk) return;
+
+        const fullName = `${createFormData.firstName.trim()} ${createFormData.lastName.trim()}`;
 
         try {
             await Axios.post(`${API_URL}/api/admin/users`, {
-                name: createFormData.name, email: createFormData.email,
+                name: fullName, email: createFormData.email,
                 password: createFormData.password, type: createFormData.user_type,
                 phone: createFormData.phone, status: 'active'
             });
@@ -1189,13 +1197,23 @@ function AdminUsers() {
                             <div className="modal-body">
                                 <div className="form-row">
                                     <div className="form-group">
-                                        <label className="premium-label">Full Name *</label>
-                                        <input type="text" className={`form-input ${createErrors.name ? 'error' : ''}`}
-                                            placeholder="Full Name" value={createFormData.name}
-                                            onChange={(e) => handleCreateFieldChange('name', e.target.value)}
-                                            onBlur={() => handleCreateBlur('name')} />
-                                        {createErrors.name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.name}</small>}
+                                        <label className="premium-label">First Name *</label>
+                                        <input type="text" className={`form-input ${createErrors.firstName ? 'error' : ''}`}
+                                            placeholder="e.g. Juan" value={createFormData.firstName}
+                                            onChange={(e) => handleCreateFieldChange('firstName', e.target.value)}
+                                            onBlur={() => handleCreateBlur('firstName')} />
+                                        {createErrors.firstName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.firstName}</small>}
                                     </div>
+                                    <div className="form-group">
+                                        <label className="premium-label">Last Name *</label>
+                                        <input type="text" className={`form-input ${createErrors.lastName ? 'error' : ''}`}
+                                            placeholder="e.g. dela Cruz" value={createFormData.lastName}
+                                            onChange={(e) => handleCreateFieldChange('lastName', e.target.value)}
+                                            onBlur={() => handleCreateBlur('lastName')} />
+                                        {createErrors.lastName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.lastName}</small>}
+                                    </div>
+                                </div>
+                                <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">Email Address *</label>
                                         <input type="email" className={`form-input ${createErrors.email ? 'error' : ''}`}
@@ -1204,16 +1222,16 @@ function AdminUsers() {
                                             onBlur={() => handleCreateBlur('email')} />
                                         {createErrors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.email}</small>}
                                     </div>
-                                </div>
-                                <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">Phone Number</label>
                                         <input type="tel" className={`form-input ${createErrors.phone ? 'error' : ''}`}
-                                            placeholder="Phone" value={createFormData.phone}
+                                            placeholder="09XXXXXXXXX" value={createFormData.phone}
                                             onChange={(e) => handleCreateFieldChange('phone', e.target.value)}
                                             onBlur={() => handleCreateBlur('phone')} />
                                         {createErrors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.phone}</small>}
                                     </div>
+                                </div>
+                                <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">Password *</label>
                                         <input type="password" className={`form-input ${createErrors.password ? 'error' : ''}`}
@@ -1223,8 +1241,6 @@ function AdminUsers() {
                                             onPaste={(e) => e.preventDefault()} />
                                         {createErrors.password && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.password}</small>}
                                     </div>
-                                </div>
-                                <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">User Role *</label>
                                         <select value={createFormData.user_type}
