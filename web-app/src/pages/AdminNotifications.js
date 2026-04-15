@@ -387,8 +387,8 @@ function AdminNotifications() {
                                                         {Icon}
                                                     </div>
 
-                                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                                        <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? '#64748b' : '#1e293b' }}>{n.title}</span>
+                                                    <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                                        <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? '#64748b' : '#1e293b', display: 'block' }}>{n.title}</span>
                                                         <p className="notif-body" style={{ margin: 0, fontSize: '0.9rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</p>
                                                     </div>
 

@@ -278,22 +278,22 @@ function CustomerNotifications() {
                                                     }
                                                 }}>
                                                     <div className="notif-id-marker"></div>
-                                                    <div className="notif-main customer-st-c060295c" >
+                                                    <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '20px', overflow: 'hidden' }}>
                                                         <div className="icon-badge" style={{ background: style.bg, padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
-                                                            <Icon size={16} color={style.color}/>
+                                                            <Icon size={20} color={style.color}/>
                                                         </div>
                                                         
-                                                        <div className="customer-st-3229fd12" >
-                                                            <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? '#64748b' : '#1e293b' }}>{n.title}</span>
-                                                            <p className="notif-body customer-st-bab5df7a" >{n.message}</p>
+                                                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                                            <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? '#64748b' : '#1e293b', display: 'block' }}>{n.title}</span>
+                                                            <p className="notif-body" style={{ margin: 0, fontSize: '0.9rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</p>
                                                         </div>
 
-                                                        <div className="customer-st-7c19c2d3" >
-                                                            <span className="notif-time customer-st-02404bb8" >
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                                                            <span className="notif-time" style={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: '80px', textAlign: 'right' }}>
                                                                 {formatNotificationTime(n.created_at)}
                                                             </span>
                                                             
-                                                            <div className="notif-actions customer-st-4557600f" >
+                                                            <div className="notif-actions" style={{ display: 'flex', gap: '8px' }}>
                                                                 {!n.is_read ? (
                                                                     <button className="notif-btn ghost customer-st-1b8f69ba" onClick={() => markRead(n.id)} title="Mark as Read">
                                                                         <Check size={14}/>

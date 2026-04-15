@@ -270,18 +270,18 @@ function ArtistNotifications() {
                                                 }
                                             }}>
                                                 <div className="notif-id-marker"></div>
-                                                <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '20px', overflow: 'hidden' }}>
                                                     <div className="icon-badge" style={{ background: style.bg, padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
-                                                        <Icon size={16} color={style.color}/>
+                                                        <Icon size={20} color={style.color}/>
                                                     </div>
                                                     
-                                                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '20px', overflow: 'hidden' }}>
-                                                        <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? '#64748b' : '#1e293b' }}>{n.title}</span>
+                                                    <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                                        <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? '#64748b' : '#1e293b', display: 'block' }}>{n.title}</span>
                                                         <p className="notif-body" style={{ margin: 0, fontSize: '0.9rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</p>
                                                     </div>
 
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexShrink: 0 }}>
-                                                        <span className="notif-time" style={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: '100px', textAlign: 'right' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                                                        <span className="notif-time" style={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: '80px', textAlign: 'right' }}>
                                                             {formatNotificationTime(n.created_at)}
                                                         </span>
                                                         
