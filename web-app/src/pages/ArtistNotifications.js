@@ -5,6 +5,7 @@ import {
     Bell, 
     Check, 
     CalendarPlus, 
+    CalendarCheck,
     XCircle, 
     CheckCircle, 
     Info, 
@@ -12,7 +13,10 @@ import {
     Clock,
     CheckCheck,
     RotateCcw,
-    RefreshCw
+    RefreshCw,
+    Search,
+    Star,
+    CreditCard
 } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import Pagination from '../components/Pagination';
@@ -24,11 +28,12 @@ function ArtistNotifications() {
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeFilter, setActiveFilter] = useState('unread');
+    const [activeFilter, setActiveFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
     const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
     
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
@@ -129,13 +134,21 @@ function ArtistNotifications() {
             case 'appointment_reminder':
                 return { icon: Clock, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Upcoming' };
             case 'appointment_confirmed': 
-                return { icon: CheckCircle, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Confirmed' };
+                return { icon: CalendarCheck, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Confirmed' };
             case 'appointment_cancelled': 
                 return { icon: XCircle, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', label: 'Cancelled' };
             case 'appointment_completed':
-                return { icon: Check, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Completed' };
+                return { icon: CheckCircle, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Completed' };
+            case 'payment_success':
+            case 'payment_received':
+                return { icon: CreditCard, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Payment' };
+            case 'pos_invoice':
+                return { icon: CreditCard, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Invoice' };
             case 'action_required':
                 return { icon: AlertTriangle, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Action Needed' };
+            case 'new_review':
+            case 'review_prompt':
+                return { icon: Star, color: '#b7954e', bg: 'rgba(183, 149, 78, 0.1)', label: 'Review' };
             case 'system':
                 return { icon: Info, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'System' };
             default:
@@ -144,9 +157,12 @@ function ArtistNotifications() {
     };
 
     const filteredNotifs = notifications.filter(n => {
-        if (activeFilter === 'unread') return !n.is_read;
-        if (activeFilter === 'read') return n.is_read;
-        return true;
+        const matchesSearch = !searchTerm || 
+            n.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            n.message.toLowerCase().includes(searchTerm.toLowerCase());
+        if (activeFilter === 'unread') return !n.is_read && matchesSearch;
+        if (activeFilter === 'read') return n.is_read && matchesSearch;
+        return matchesSearch;
     });
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -184,9 +200,9 @@ function ArtistNotifications() {
                         <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '5px' }}>Total Updates</span>
                         <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b' }}>{notifications.length}</span>
                     </div>
-                    <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center', borderLeft: unreadCount > 0 ? '4px solid #f59e0b' : 'none' }}>
+                    <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center' }}>
                         <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '5px' }}>Unread Alerts</span>
-                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#f59e0b' : 'inherit' }}>{unreadCount}</span>
+                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#b7954e' : 'inherit' }}>{unreadCount}</span>
                     </div>
                 </div>
 
@@ -215,6 +231,17 @@ function ArtistNotifications() {
                 </div>
 
                 <div className="portal-content">
+                    {/* Search Bar */}
+                    <div className="premium-search-box" style={{ marginBottom: '20px' }}>
+                        <Search size={16} className="premium-search-icon" />
+                        <input
+                            type="text"
+                            placeholder="Search notifications..."
+                            value={searchTerm}
+                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                        />
+                    </div>
+
                     {loading ? (
                         <div className="dashboard-loader-container">
                             <div className="premium-loader"></div>
@@ -229,7 +256,7 @@ function ArtistNotifications() {
                                         const Icon = style.icon;
                                         
                                         return (
-                                            <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600', cursor: 'pointer' }} onClick={(e) => { 
+                                            <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', cursor: 'pointer', position: 'relative' }} onClick={(e) => { 
                                                 if (!e.target.closest('.notif-actions')) {
                                                     if (!n.is_read) markRead(n.id);
                                                     // Deep-link: navigate to appointments and auto-open the relevant one

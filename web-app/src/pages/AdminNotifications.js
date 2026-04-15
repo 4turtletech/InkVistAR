@@ -36,7 +36,7 @@ function AdminNotifications() {
     const unreadCount = notifications.filter(n => !n.is_read).length;
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('all'); // This is category type
-    const [readStateFilter, setReadStateFilter] = useState('unread'); // default to unread
+    const [readStateFilter, setReadStateFilter] = useState('all'); // default to all
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
@@ -301,9 +301,9 @@ function AdminNotifications() {
                         <span className="admin-st-24a5143d">Total Updates</span>
                         <span className="admin-st-780e31e0">{notifications.length}</span>
                     </div>
-                    <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center', borderLeft: unreadCount > 0 ? '4px solid #f59e0b' : 'none' }}>
+                    <div className="glass-card" style={{ flex: 1, padding: '20px', textAlign: 'center' }}>
                         <span className="admin-st-24a5143d">Unread Alerts</span>
-                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#f59e0b' : 'inherit' }}>{unreadCount}</span>
+                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#b7954e' : 'inherit' }}>{unreadCount}</span>
                     </div>
                 </div>
 
@@ -333,34 +333,31 @@ function AdminNotifications() {
 
                 <main className="dashboard-main-content">
                     <div className="glass-card table-card-v2 full-width">
-                        <div className="premium-filter-bar admin-st-64c9f606">
-                            <div className="premium-search-box admin-st-90530afc">
-                                <Search size={18} className="admin-st-80066d40" />
-                                <input
-                                    type="text"
-                                    placeholder="Search notifications..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="admin-st-f6234f9f"
-                                />
-                            </div>
+                        <div className="premium-search-box" style={{ marginBottom: '20px' }}>
+                            <Search size={16} className="premium-search-icon" />
+                            <input
+                                type="text"
+                                placeholder="Search notifications..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
 
-                            <div className="premium-filters-group">
-                                <div className="admin-st-0d9f88e7">
-                                    <Filter size={16} />
-                                    <span>Type:</span>
-                                </div>
-                                <select
-                                    value={activeFilter}
-                                    onChange={(e) => setActiveFilter(e.target.value)}
-                                    className="premium-select-v2 admin-st-15f46c68"
-                                >
-                                    <option value="all" className="admin-st-66e41284">All Notifications</option>
-                                    <option value="inventory" className="admin-st-66e41284">Inventory Alerts</option>
-                                    <option value="appointment" className="admin-st-66e41284">Booking Requests</option>
-                                    <option value="system" className="admin-st-66e41284">System Updates</option>
-                                </select>
+                        <div className="premium-filters-group" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="admin-st-0d9f88e7">
+                                <Filter size={16} />
+                                <span>Type:</span>
                             </div>
+                            <select
+                                value={activeFilter}
+                                onChange={(e) => setActiveFilter(e.target.value)}
+                                className="premium-select-v2 admin-st-15f46c68"
+                            >
+                                <option value="all" className="admin-st-66e41284">All Notifications</option>
+                                <option value="inventory" className="admin-st-66e41284">Inventory Alerts</option>
+                                <option value="appointment" className="admin-st-66e41284">Booking Requests</option>
+                                <option value="system" className="admin-st-66e41284">System Updates</option>
+                            </select>
                         </div>
 
                         {loading ? (
@@ -376,7 +373,7 @@ function AdminNotifications() {
                                             const Icon = getIcon(n.type);
                                             const style = getNotificationStyle(n.type);
                                             return (
-                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', borderLeft: !n.is_read ? `4px solid ${style.color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: n.is_read ? 'normal' : '600', cursor: 'pointer' }} onClick={(e) => {
+                                                <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', cursor: 'pointer', position: 'relative' }} onClick={(e) => {
                                                     if (!e.target.closest('.notif-actions')) {
                                                         setSelectedNotification(n);
                                                         if (!n.is_read && n.id && typeof n.id === 'number') markAsRead(n.id);

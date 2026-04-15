@@ -3589,6 +3589,15 @@ app.put('/api/appointments/:id/status', (req, res) => {
           // Trigger Review Prompt
           createNotification(appointment.customer_id, 'How did we do? ⭐', `Please take a moment to leave a review for your artist! We value your feedback on your latest session.`, 'review_prompt', id);
 
+          // Notify all admins about session completion
+          db.query('SELECT id FROM users WHERE user_type = \'admin\'', (adminErr, admins) => {
+            if (!adminErr && admins.length > 0) {
+              admins.forEach(admin => {
+                createNotification(admin.id, 'Session Completed ✅', `Appointment #${id} for "${designTitle}" on ${dateStr} has been completed.`, 'appointment_completed', id);
+              });
+            }
+          });
+
         } else {
           createNotification(appointment.customer_id, 'Session Complete! ⏳', `Your session for "${designTitle}" today is finished. We will coordinate with you soon for your next session to continue your piece!`, 'appointment_partial_complete', id);
         }
