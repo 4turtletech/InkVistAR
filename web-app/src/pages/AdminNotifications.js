@@ -335,7 +335,7 @@ function AdminNotifications() {
 
                 <div className="portal-content">
                     <div className="premium-filter-bar" style={{ marginBottom: '20px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-                        <div className="premium-search-box" style={{ flex: '0 0 75%', margin: 0 }}>
+                        <div className="premium-search-box premium-search-box--full" style={{ flex: '0 0 75%', margin: 0 }}>
                             <Search size={16} className="text-muted" />
                             <input
                                 type="text"

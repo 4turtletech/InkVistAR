@@ -233,7 +233,7 @@ function ArtistNotifications() {
                 <div className="portal-content">
                     {/* Search Bar */}
                     <div className="premium-filter-bar" style={{ marginBottom: '20px', display: 'flex' }}>
-                        <div className="premium-search-box premium-search-box--full" style={{ margin: 0, flex: '0 0 75%' }}>
+                        <div className="premium-search-box premium-search-box--full" style={{ margin: 0, flex: 1, width: '100%' }}>
                             <Search size={16} className="text-muted" />
                             <input
                                 type="text"
