@@ -17,7 +17,8 @@ import {
     Droplets,
     Sun,
     Activity,
-    ShieldAlert
+    ShieldAlert,
+    RefreshCw
 } from 'lucide-react';
 import CustomerSideNav from '../components/CustomerSideNav';
 import Pagination from '../components/Pagination';
@@ -33,6 +34,7 @@ function CustomerNotifications() {
     const [selectedNotification, setSelectedNotification] = useState(null);
     const [isAftercareModalOpen, setIsAftercareModalOpen] = useState(false);
     const [reviewedAppointments, setReviewedAppointments] = useState(new Set());
+    const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
 
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
@@ -42,6 +44,11 @@ function CustomerNotifications() {
 
     useEffect(() => {
         if (customerId) fetchNotifications();
+        // Auto-poll every 30 seconds
+        const interval = setInterval(() => {
+            if (customerId) fetchNotifications();
+        }, 30000);
+        return () => clearInterval(interval);
     }, [customerId]);
 
     // Check which review_prompt appointments already have reviews
@@ -178,6 +185,13 @@ function CustomerNotifications() {
                         <h1>Updates & Alerts</h1>
                     </div>
                     <div className="header-actions">
+                        <button className="premium-btn secondary" onClick={async () => {
+                            setIsRefreshingNotifs(true);
+                            await fetchNotifications();
+                            setIsRefreshingNotifs(false);
+                        }} title="Refresh notifications" style={{ marginRight: '10px' }}>
+                            <RefreshCw size={16} style={isRefreshingNotifs ? { animation: 'spin 1s linear infinite' } : {}} /> Refresh
+                        </button>
                         <button className="premium-btn primary" onClick={markAllRead}>
                             <CheckCheck size={18} />
                             Mark All Read

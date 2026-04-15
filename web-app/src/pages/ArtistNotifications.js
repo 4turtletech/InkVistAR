@@ -11,7 +11,8 @@ import {
     AlertTriangle, 
     Clock,
     CheckCheck,
-    RotateCcw
+    RotateCcw,
+    RefreshCw
 } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import Pagination from '../components/Pagination';
@@ -27,6 +28,7 @@ function ArtistNotifications() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
+    const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
     
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
@@ -36,6 +38,11 @@ function ArtistNotifications() {
 
     useEffect(() => {
         fetchNotifications();
+        // Auto-poll every 30 seconds
+        const interval = setInterval(() => {
+            fetchNotifications();
+        }, 30000);
+        return () => clearInterval(interval);
     }, [artistId]);
 
     const fetchNotifications = async () => {
@@ -156,6 +163,13 @@ function ArtistNotifications() {
                         <h1>Notification Center</h1>
                     </div>
                     <div className="header-actions">
+                        <button className="premium-btn secondary" onClick={async () => {
+                            setIsRefreshingNotifs(true);
+                            await fetchNotifications();
+                            setIsRefreshingNotifs(false);
+                        }} title="Refresh notifications" style={{ marginRight: '10px' }}>
+                            <RefreshCw size={16} style={isRefreshingNotifs ? { animation: 'spin 1s linear infinite' } : {}} /> Refresh
+                        </button>
                         <button className="premium-btn primary" onClick={markAllRead}>
                             <CheckCheck size={18} />
                             Mark All as Read

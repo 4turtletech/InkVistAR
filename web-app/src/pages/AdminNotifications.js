@@ -19,6 +19,7 @@ import {
     Info, // Added for system notifications
     RotateCcw, // Added for mark as unread
     Star, // Added for new reviews
+    RefreshCw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminSideNav from '../components/AdminSideNav';
@@ -39,10 +40,16 @@ function AdminNotifications() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
+    const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchNotifications();
+        // Auto-poll every 30 seconds
+        const interval = setInterval(() => {
+            fetchNotifications();
+        }, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const fetchNotifications = async () => {
@@ -259,6 +266,17 @@ function AdminNotifications() {
                         <p>System alerts and direct updates</p>
                     </div>
                     <div className="header-actions-group">
+                        <button
+                            className="premium-btn secondary"
+                            onClick={async () => {
+                                setIsRefreshingNotifs(true);
+                                await fetchNotifications();
+                                setIsRefreshingNotifs(false);
+                            }}
+                            title="Refresh notifications"
+                        >
+                            <RefreshCw size={16} style={isRefreshingNotifs ? { animation: 'spin 1s linear infinite' } : {}} /> Refresh
+                        </button>
                         <button
                             className="premium-btn primary"
                             onClick={markAllRead}

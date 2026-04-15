@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, DollarSign, Users, BarChart3, Clock, LogOut, Bell, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, DollarSign, Users, BarChart3, Clock, LogOut, Bell, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import ArtistSideNav from '../components/ArtistSideNav';
@@ -22,6 +22,7 @@ function ArtistPortal() {
     const [loading, setLoading] = useState(true);
     const [unreadCount, setUnreadCount] = useState(0);
     const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+    const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
     const notifRef = useRef(null);
 
     const [user] = useState(() => {
@@ -56,6 +57,12 @@ function ArtistPortal() {
         } catch (error) {
             console.error("Error fetching notifications:", error);
         }
+    };
+
+    const refreshNotifications = async () => {
+        setIsRefreshingNotifs(true);
+        await fetchNotifications();
+        setIsRefreshingNotifs(false);
     };
 
     const fetchArtistData = async () => {
@@ -116,8 +123,15 @@ function ArtistPortal() {
 
                             {showNotifDropdown && (
                                 <div className="notif-dropdown-v2 glass-card">
-                                    <div className="notif-dropdown-header">
+                                    <div className="notif-dropdown-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <h3>Notifications</h3>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); refreshNotifications(); }}
+                                            title="Refresh notifications"
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }}
+                                        >
+                                            <RefreshCw size={16} style={isRefreshingNotifs ? { animation: 'spin 1s linear infinite' } : {}} />
+                                        </button>
                                     </div>
                                     <div className="notif-dropdown-list">
                                         {notifications.length > 0 ? (

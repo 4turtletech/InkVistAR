@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, DollarSign, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Info, SlidersHorizontal } from 'lucide-react';
+import { Users, Calendar, DollarSign, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Info, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import './AdminDashboard.css';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminStyles.css';
@@ -26,6 +26,7 @@ function AdminDashboard() {
     const [unreadNotifications, setUnreadNotifications] = useState(0);
     const [notifications, setNotifications] = useState([]);
     const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+    const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
     const notifRef = useRef(null);
 
     // Audit Logs State
@@ -57,6 +58,24 @@ function AdminDashboard() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const refreshNotifications = async () => {
+        try {
+            setIsRefreshingNotifs(true);
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.id) {
+                const res = await Axios.get(`${API_URL}/api/notifications/${user.id}`);
+                if (res.data.success) {
+                    setNotifications(res.data.notifications || []);
+                    setUnreadNotifications(res.data.unreadCount);
+                }
+            }
+        } catch (error) {
+            console.error("Error refreshing notifications:", error);
+        } finally {
+            setIsRefreshingNotifs(false);
+        }
+    };
 
     const fetchDashboardData = async () => {
         try {
@@ -294,8 +313,15 @@ function AdminDashboard() {
 
                             {showNotifDropdown && (
                                 <div className="notif-dropdown-v2 glass-card">
-                                    <div className="notif-dropdown-header">
+                                    <div className="notif-dropdown-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <h3>Notifications</h3>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); refreshNotifications(); }}
+                                            title="Refresh notifications"
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }}
+                                        >
+                                            <RefreshCw size={16} style={isRefreshingNotifs ? { animation: 'spin 1s linear infinite' } : {}} />
+                                        </button>
                                     </div>
                                     <div className="notif-dropdown-list">
                                         {notifications.length > 0 ? (
