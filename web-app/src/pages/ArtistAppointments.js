@@ -409,8 +409,21 @@ function ArtistAppointments(){
                                                                 <span style={{ fontWeight: 'bold', color: '#0f172a' }}>₱{parseFloat(selectedAppointment.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                             </div>
                                                             <div>
-                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Your Cut</span>
-                                                                <span style={{ fontWeight: 'bold', color: '#10b981' }}>₱{(parseFloat(selectedAppointment.price || 0) * parseFloat(selectedAppointment.commission_rate || 0.7)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                                                                    Your Cut ({(() => {
+                                                                        if (!selectedAppointment.secondary_artist_id) return '30%';
+                                                                        const split = selectedAppointment.commission_split || 50;
+                                                                        const myPct = Number(selectedAppointment.artist_id) === Number(artistId) ? split : (100 - split);
+                                                                        return `${(myPct * 0.3).toFixed(0)}% — collab split`;
+                                                                    })()})
+                                                                </span>
+                                                                <span style={{ fontWeight: 'bold', color: '#10b981' }}>₱{(() => {
+                                                                    const price = parseFloat(selectedAppointment.price || 0);
+                                                                    if (!selectedAppointment.secondary_artist_id) return (price * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                    const split = selectedAppointment.commission_split || 50;
+                                                                    const myShare = Number(selectedAppointment.artist_id) === Number(artistId) ? (split / 100) : ((100 - split) / 100);
+                                                                    return (price * 0.30 * myShare).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                })()}</span>
                                                             </div>
                                                             <div>
                                                                 <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Payment</span>

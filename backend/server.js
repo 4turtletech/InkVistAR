@@ -3613,7 +3613,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
           });
 
           if (appointment.artist_id && appointment.artist_id > 1) {
-            const artistCommission = currentPrice * 0.70;
+            const artistCommission = currentPrice * 0.30;
             db.query('INSERT INTO payouts (artist_id, amount, payout_method, status, reference_no, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
               [appointment.artist_id, artistCommission, 'System Default', 'Pending', `Commission Session #${id}`]);
           }
@@ -3640,63 +3640,66 @@ app.put('/api/appointments/:id/status', (req, res) => {
 app.get('/api/artist/:id/earnings-ledger', (req, res) => {
   const { id } = req.params;
 
-  // 1. Get Commission Rate
-  db.query('SELECT commission_rate FROM artists WHERE user_id = ?', [id], (err, rateRes) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error' });
-    const rate = rateRes.length > 0 ? rateRes[0].commission_rate : 0.6;
+  // Artist cut is always 30% of price. In collabs the 30% is split between artists.
+  const ARTIST_RATE = 0.30;
 
-    // 2. Get Completed Appointments
-    const apptsQuery = `
-      SELECT id, appointment_date, design_title, price, payment_status, status, artist_id, secondary_artist_id, commission_split
-      FROM appointments 
-      WHERE (artist_id = ? OR secondary_artist_id = ?) AND status = 'completed' AND is_deleted = 0
-    `;
-    db.query(apptsQuery, [id, id], (apptsErr, appts) => {
-      if (apptsErr) return res.status(500).json({ success: false, message: 'Database error fetching appointments' });
+  // 2. Get Completed Appointments
+  const apptsQuery = `
+    SELECT id, appointment_date, design_title, price, payment_status, status, artist_id, secondary_artist_id, commission_split
+    FROM appointments 
+    WHERE (artist_id = ? OR secondary_artist_id = ?) AND status = 'completed' AND is_deleted = 0
+  `;
+  db.query(apptsQuery, [id, id], (apptsErr, appts) => {
+    if (apptsErr) return res.status(500).json({ success: false, message: 'Database error fetching appointments' });
 
-      // 3. Get Payout History
-      db.query('SELECT * FROM payouts WHERE artist_id = ? ORDER BY created_at DESC', [id], (payErr, payouts) => {
-        if (payErr) return res.status(500).json({ success: false, message: 'Database error fetching payouts' });
+    // 3. Get Payout History
+    db.query('SELECT * FROM payouts WHERE artist_id = ? ORDER BY created_at DESC', [id], (payErr, payouts) => {
+      if (payErr) return res.status(500).json({ success: false, message: 'Database error fetching payouts' });
 
-        // Calculate Totals
-        const calculations = appts.map(a => {
-          let effectivePrice = a.price;
-          if (a.secondary_artist_id) {
-            if (Number(a.artist_id) === Number(id)) {
-              effectivePrice = a.price * (a.commission_split / 100);
-            } else if (Number(a.secondary_artist_id) === Number(id)) {
-              effectivePrice = a.price * ((100 - a.commission_split) / 100);
-            }
+      // Calculate Totals
+      // For collabs: commission_split is the primary artist's % share of the 30% pool
+      // e.g. commission_split=50 means primary gets 15%, secondary gets 15%
+      // e.g. commission_split=60 means primary gets 18%, secondary gets 12%
+      const calculations = appts.map(a => {
+        let artistShare;
+        if (a.secondary_artist_id) {
+          const split = a.commission_split || 50; // default 50/50
+          if (Number(a.artist_id) === Number(id)) {
+            artistShare = a.price * ARTIST_RATE * (split / 100);
+          } else {
+            artistShare = a.price * ARTIST_RATE * ((100 - split) / 100);
           }
-          return {
-            ...a,
-            artistShare: effectivePrice * rate,
-            studioShare: effectivePrice * (1 - rate)
-          };
-        });
+        } else {
+          artistShare = a.price * ARTIST_RATE;
+        }
+        return {
+          ...a,
+          artistShare,
+          studioShare: a.price - artistShare
+        };
+      });
 
-        const totalEarned = calculations
-          .filter(a => a.payment_status === 'paid')
-          .reduce((sum, a) => sum + a.artistShare, 0);
+      const totalEarned = calculations
+        .filter(a => a.payment_status === 'paid')
+        .reduce((sum, a) => sum + a.artistShare, 0);
 
-        const pendingFromUnpaid = calculations
-          .filter(a => a.payment_status !== 'paid')
-          .reduce((sum, a) => sum + a.artistShare, 0);
+      const pendingFromUnpaid = calculations
+        .filter(a => a.payment_status !== 'paid')
+        .reduce((sum, a) => sum + a.artistShare, 0);
 
-        const totalPaidOut = payouts.reduce((sum, p) => sum + Number(p.amount), 0);
+      const totalPaidOut = payouts.reduce((sum, p) => sum + Number(p.amount), 0);
 
-        res.json({
-          success: true,
-          commissionRate: rate,
-          stats: {
-            totalEarned,
-            pendingFromUnpaid,
-            totalPaidOut,
-            balanceToPay: totalEarned - totalPaidOut
-          },
-          sessions: calculations,
-          payouts: payouts
-        });
+      res.json({
+        success: true,
+        commissionRate: ARTIST_RATE,
+        stats: {
+          totalEarned,
+          pendingFromUnpaid,
+          totalPaidOut,
+          balanceToPay: totalEarned - totalPaidOut
+        },
+        sessions: calculations,
+        payouts: payouts
       });
     });
   });
