@@ -76,7 +76,8 @@ function ArtistSessions() {
                 const todaySessions = res.data.appointments.filter(a => {
                     const d = new Date(a.appointment_date);
                     const appointmentDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                    return appointmentDate === today && a.status !== 'cancelled';
+                    const hasPaid = !!a.payment_status && a.payment_status !== 'unpaid' && a.payment_status !== 'pending';
+                    return appointmentDate === today && a.status !== 'cancelled' && hasPaid;
                 });
                 setSessions(todaySessions);
             }
@@ -591,9 +592,29 @@ function ArtistSessions() {
                                 
                                 <div style={{ display: 'flex', gap: '12px' }}>
                                     {activeSession.status === 'confirmed' && (
-                                        <button className="btn btn-primary" style={{ padding: '10px 24px' }} onClick={() => handleUpdateStatus('in_progress')}>
-                                            <Play size={18} /> Start Procedure
-                                        </button>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <button 
+                                                className="btn btn-primary" 
+                                                style={{ 
+                                                    padding: '10px 24px',
+                                                    opacity: (!activeSession.payment_status || activeSession.payment_status === 'unpaid' || activeSession.payment_status === 'pending') ? 0.6 : 1,
+                                                    cursor: (!activeSession.payment_status || activeSession.payment_status === 'unpaid' || activeSession.payment_status === 'pending') ? 'not-allowed' : 'pointer'
+                                                }} 
+                                                title={(!activeSession.payment_status || activeSession.payment_status === 'unpaid' || activeSession.payment_status === 'pending') ? "Downpayment required to start session" : "Start Session"}
+                                                onClick={() => {
+                                                    if (!activeSession.payment_status || activeSession.payment_status === 'unpaid' || activeSession.payment_status === 'pending') {
+                                                        showAlert('Payment Required', 'This tattoo session cannot be started until the client\'s downpayment has been verified and marked as paid.', 'warning');
+                                                        return;
+                                                    }
+                                                    handleUpdateStatus('in_progress');
+                                                }}
+                                            >
+                                                <Play size={18} /> Start Procedure
+                                            </button>
+                                            {(!activeSession.payment_status || activeSession.payment_status === 'unpaid' || activeSession.payment_status === 'pending') && (
+                                                <span style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600 }}>* Payment required to begin</span>
+                                            )}
+                                        </div>
                                     )}
                                     {activeSession.status === 'in_progress' && !isCompletingSession && (
                                         <>
