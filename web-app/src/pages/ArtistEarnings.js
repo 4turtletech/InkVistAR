@@ -37,7 +37,7 @@ function ArtistEarnings() {
                         totalCommission: (res.data.commissionRate * 100).toFixed(0),
                         pendingPayout: res.data.stats.balanceToPay
                     });
-                    setSessionEarnings(res.data.sessions);
+                    setSessionEarnings(res.data.sessions.sort((a, b) => b.id - a.id));
                     setPayoutHistory(res.data.payouts.map(p => ({
                         month: new Date(p.created_at).toLocaleString('default', { month: 'long', year: 'numeric' }),
                         amount: Number(p.amount),
