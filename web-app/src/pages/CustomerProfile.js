@@ -5,6 +5,7 @@ import { User, Mail, Phone, MapPin, Save, Edit2, X, FileText, Lock, Eye, EyeOff,
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
+import { COUNTRY_CODES, getPhoneParts } from '../constants/countryCodes';
 
 const PasswordStrengthMeter = ({ feedback }) => {
     const steps = [
@@ -301,17 +302,33 @@ function CustomerProfile() {
                                             <div className="form-group">
                                                 <label style={formLabel}><Phone size={16} /> Phone</label>
                                                 <div className="customer-st-4557600f" >
-                                                    <select className="form-input customer-st-62944d63" value={profile.phone.startsWith('+') ? profile.phone.substring(0, 3) : '+63'} onChange={e => { const code = e.target.value; const currentNo = profile.phone.replace(/^\+\d+/, ''); setProfile({ ...profile, phone: code + currentNo }); }} >
-                                                        <option value="+63">PH (+63)</option>
-                                                        <option value="+1">US/CA (+1)</option>
-                                                        <option value="+44">UK (+44)</option>
-                                                        <option value="+61">AU (+61)</option>
-                                                        <option value="+81">JP (+81)</option>
-                                                        <option value="+82">KR (+82)</option>
-                                                        <option value="+65">SG (+65)</option>
-                                                        <option value="+64">NZ (+64)</option>
-                                                    </select>
-                                                    <input className="form-input customer-st-282aded5" type="tel" value={profile.phone.replace(/^\+\d+/, '')} onChange={e => { const prefix = profile.phone.match(/^\+\d+/) ? profile.phone.match(/^\+\d+/)[0] : '+63'; setProfile({ ...profile, phone: prefix + e.target.value.replace(/[^\d]/g, '') }); }} placeholder="9123456789" />
+                                                    {(() => {
+                                                        const { code, currentNo } = getPhoneParts(profile.phone);
+                                                        return (
+                                                            <>
+                                                                <select className="form-input customer-st-62944d63"
+                                                                    value={code}
+                                                                    onChange={e => {
+                                                                        const newCode = e.target.value;
+                                                                        const { currentNo: num } = getPhoneParts(profile.phone);
+                                                                        setProfile({ ...profile, phone: newCode + num });
+                                                                    }}>
+                                                                    <option value="+63">Philippines (+63)</option>
+                                                                    {COUNTRY_CODES.filter(c => c.code !== '+63').map(c => (
+                                                                        <option key={c.code} value={c.code}>{c.country} ({c.code})</option>
+                                                                    ))}
+                                                                </select>
+                                                                <input className="form-input customer-st-282aded5" type="tel"
+                                                                    value={currentNo}
+                                                                    onChange={e => {
+                                                                        const digits = e.target.value.replace(/[^\d]/g, '');
+                                                                        const { code: currentCode } = getPhoneParts(profile.phone);
+                                                                        setProfile({ ...profile, phone: currentCode + digits });
+                                                                    }}
+                                                                    placeholder="9123456789" />
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                             <div className="form-group">

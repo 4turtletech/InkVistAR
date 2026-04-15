@@ -9,6 +9,7 @@ import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
+import { COUNTRY_CODES, getPhoneParts } from '../constants/countryCodes';
 
 const PasswordStrengthMeter = ({ feedback }) => {
   const steps = [
@@ -365,14 +366,37 @@ function ArtistProfile() {
                                         </div>
                                         <div className="form-group">
                                             <label className="artist-profile-form-label"><Phone size={16} /> Phone Number</label>
-                                            <input
-                                                type="tel"
-                                                className="form-input artist-profile-input"
-                                                value={profile.phone || ''}
-                                                onChange={e => setProfile({ ...profile, phone: e.target.value.replace(/[^0-9+\s()-]/g, '') })}
-                                                placeholder="+1 (555) 123-4567"
-                                                
-                                            />
+                                            {(() => {
+                                                const { code, currentNo } = getPhoneParts(profile.phone);
+                                                return (
+                                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                                        <select className="form-input artist-profile-input" style={{ width: '160px' }}
+                                                            value={code}
+                                                            onChange={e => {
+                                                                const newCode = e.target.value;
+                                                                const { currentNo: num } = getPhoneParts(profile.phone);
+                                                                setProfile({ ...profile, phone: newCode + num });
+                                                            }}>
+                                                            <option value="+63">Philippines (+63)</option>
+                                                            {COUNTRY_CODES.filter(c => c.code !== '+63').map(c => (
+                                                                <option key={c.code} value={c.code}>{c.country} ({c.code})</option>
+                                                            ))}
+                                                        </select>
+                                                        <input
+                                                            type="tel"
+                                                            className="form-input artist-profile-input"
+                                                            style={{ flex: 1 }}
+                                                            value={currentNo}
+                                                            onChange={e => {
+                                                                const digits = e.target.value.replace(/[^0-9]/g, '');
+                                                                const { code: currentCode } = getPhoneParts(profile.phone);
+                                                                setProfile({ ...profile, phone: currentCode + digits });
+                                                            }}
+                                                            placeholder="9123456789"
+                                                        />
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                         <div className="form-group">
                                             <label className="artist-profile-form-label"><Building size={16} /> Studio Name</label>

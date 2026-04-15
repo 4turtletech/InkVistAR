@@ -10,6 +10,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
+import { COUNTRY_CODES, getPhoneParts } from '../constants/countryCodes';
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
     User, Calendar, DollarSign, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
@@ -223,8 +224,10 @@ function AdminUsers() {
 
     const handleEdit = (user) => {
         setSelectedUser(user);
+        const { code, currentNo } = getPhoneParts(user.phone || '');
         setFormData({
-            name: user.name, email: user.email, phone: user.phone || '',
+            name: user.name, email: user.email, phone: currentNo,
+            countryCode: code,
             user_type: user.user_type, status: user.is_deleted ? 'inactive' : 'active', password: ''
         });
         openAdminModal();
@@ -233,9 +236,10 @@ function AdminUsers() {
     const handleSave = async () => {
         try {
             if (selectedUser) {
+                const fullPhone = (formData.countryCode || '+63') + (formData.phone || '').replace(/^0+/, '');
                 await Axios.put(`${API_URL}/api/admin/users/${selectedUser.id}`, {
                     name: formData.name, email: formData.email, type: formData.user_type,
-                    phone: formData.phone, status: formData.status
+                    phone: fullPhone, status: formData.status
                 });
                 showAlert("Success", "User updated successfully!", "success");
             }
@@ -892,7 +896,17 @@ function AdminUsers() {
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">Phone Number</label>
-                                        <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="form-input" placeholder="Phone" />
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <select className="form-input" style={{ width: '160px' }}
+                                                value={formData.countryCode || '+63'}
+                                                onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}>
+                                                <option value="+63">Philippines (+63)</option>
+                                                {COUNTRY_CODES.filter(c => c.code !== '+63').map(c => (
+                                                    <option key={c.code} value={c.code}>{c.country} ({c.code})</option>
+                                                ))}
+                                            </select>
+                                            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '') })} className="form-input" style={{ flex: 1 }} placeholder="9123456789" />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="form-row">
@@ -1369,36 +1383,10 @@ function AdminUsers() {
                                             <select name="countryCode" className="form-input" style={{ width: '130px' }}
                                                 value={createFormData.countryCode}
                                                 onChange={(e) => setCreateFormData({ ...createFormData, countryCode: e.target.value })}>
-                                                <option value="+63">PH (+63)</option>
-                                                <option value="+1">US/CA (+1)</option>
-                                                <option value="+44">UK (+44)</option>
-                                                <option value="+61">AU (+61)</option>
-                                                <option value="+64">NZ (+64)</option>
-                                                <option value="+81">JP (+81)</option>
-                                                <option value="+82">KR (+82)</option>
-                                                <option value="+65">SG (+65)</option>
-                                                <option value="+60">MY (+60)</option>
-                                                <option value="+66">TH (+66)</option>
-                                                <option value="+62">ID (+62)</option>
-                                                <option value="+84">VN (+84)</option>
-                                                <option value="+91">IN (+91)</option>
-                                                <option value="+86">CN (+86)</option>
-                                                <option value="+852">HK (+852)</option>
-                                                <option value="+853">MO (+853)</option>
-                                                <option value="+886">TW (+886)</option>
-                                                <option value="+971">AE (+971)</option>
-                                                <option value="+966">SA (+966)</option>
-                                                <option value="+974">QA (+974)</option>
-                                                <option value="+49">DE (+49)</option>
-                                                <option value="+33">FR (+33)</option>
-                                                <option value="+34">ES (+34)</option>
-                                                <option value="+39">IT (+39)</option>
-                                                <option value="+55">BR (+55)</option>
-                                                <option value="+52">MX (+52)</option>
-                                                <option value="+27">ZA (+27)</option>
-                                                <option value="+234">NG (+234)</option>
-                                                <option value="+254">KE (+254)</option>
-                                                <option value="+20">EG (+20)</option>
+                                                <option value="+63">Philippines (+63)</option>
+                                                {COUNTRY_CODES.filter(c => c.code !== '+63').map(c => (
+                                                    <option key={c.code} value={c.code}>{c.country} ({c.code})</option>
+                                                ))}
                                             </select>
                                             <input type="tel" className={`form-input ${createErrors.phone ? 'error' : ''}`}
                                                 style={{ flex: 1 }} placeholder="09XXXXXXXXX" value={createFormData.phone}
