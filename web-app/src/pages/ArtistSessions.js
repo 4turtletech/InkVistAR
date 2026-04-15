@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Play, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive, AlertTriangle } from 'lucide-react';
+import { Play, Pause, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive, AlertTriangle, List } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -31,6 +31,12 @@ function ArtistSessions() {
     const [abortReason, setAbortReason] = useState('');
     const [isAborting, setIsAborting] = useState(false);
     const [sessionTab, setSessionTab] = useState('overview');
+
+    // Timer & Audit Log State
+    const [sessionElapsed, setSessionElapsed] = useState(0); // seconds
+    const [isSessionPaused, setIsSessionPaused] = useState(false);
+    const [auditLog, setAuditLog] = useState([]); // [{timestamp, action}]
+    const timerRef = React.useRef(null);
 
     const [sessionModal, setSessionModal] = useState({ mounted: false, visible: false });
     const [inventoryModal, setInventoryModal] = useState({ mounted: false, visible: false });
@@ -101,6 +107,42 @@ function ArtistSessions() {
         }
     }, [activeSession?.id, activeSession?.status]);
 
+    // Timer interval effect
+    useEffect(() => {
+        if (activeSession && activeSession.status === 'in_progress' && !isSessionPaused) {
+            timerRef.current = setInterval(() => {
+                setSessionElapsed(prev => prev + 1);
+            }, 1000);
+        }
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }, [activeSession?.status, isSessionPaused]);
+
+    // Audit log helper
+    const addAuditEntry = (action) => {
+        const now = new Date();
+        const timestamp = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        setAuditLog(prev => [...prev, { timestamp, action }]);
+    };
+
+    // Format seconds to display string
+    const formatDuration = (totalSeconds) => {
+        const hrs = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+        if (hrs > 0) return `${hrs}h ${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+        return `${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+    };
+
+    const handlePauseResume = () => {
+        if (isSessionPaused) {
+            addAuditEntry('Session Resumed');
+            setIsSessionPaused(false);
+        } else {
+            addAuditEntry('Session Paused');
+            setIsSessionPaused(true);
+        }
+    };
+
     const fetchInventory = async () => {
         try {
             const res = await Axios.get(`${API_URL}/api/admin/inventory`);
@@ -159,6 +201,7 @@ function ArtistSessions() {
             });
             if (res.data.success) {
                 fetchSessionMaterials(activeSession.id);
+                addAuditEntry(`Added ${quantity}x ${inventoryItems.find(i => i.id === inventoryId)?.name || 'item'}`);
             } else {
                 showAlert("Inventory Error", res.data.message || 'Failed to add material. Check stock.', "warning");
             }
@@ -252,6 +295,9 @@ function ArtistSessions() {
             beforePhoto: session.before_photo || null,
             afterPhoto: session.after_photo || null
         });
+        setSessionElapsed(0);
+        setIsSessionPaused(false);
+        setAuditLog([]);
         setSessionTab('overview');
         openSessionModal();
     };
@@ -274,8 +320,9 @@ function ArtistSessions() {
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
-                    const resizedBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% quality jpeg
+                const resizedBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% quality jpeg
                     setSessionData(prev => ({ ...prev, [type]: resizedBase64 }));
+                    addAuditEntry(`Uploaded ${type === 'beforePhoto' ? 'Before' : 'After'} Photo`);
                 };
                 img.src = reader.result;
             };
@@ -284,6 +331,9 @@ function ArtistSessions() {
     };
 
     const handleUpdateStatus = async (newStatus) => {
+        if (newStatus === 'in_progress') {
+            addAuditEntry('Session Started');
+        }
         if (newStatus === 'completed') {
             setIsCompletingSession(true);
         } else {
@@ -313,6 +363,19 @@ function ArtistSessions() {
     };
 
     const processStatusUpdate = async (newStatus, isFullyComplete = true) => {
+        // Finalize audit log before sending
+        const finalLog = [...auditLog];
+        if (newStatus === 'completed') {
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            finalLog.push({ timestamp, action: 'Session Completed' });
+        }
+        if (newStatus === 'incomplete') {
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            finalLog.push({ timestamp, action: 'Session Aborted' });
+        }
+
         try {
             // Save session details (notes, photos) before completing
             if (newStatus === 'completed' && (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto)) {
@@ -323,15 +386,23 @@ function ArtistSessions() {
                 });
             }
 
-            const res = await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/status`, { 
+            const payload = {
                 status: newStatus,
-                isFullyComplete 
-            });
+                isFullyComplete
+            };
+            // Include duration and audit log when completing or aborting
+            if (newStatus === 'completed' || newStatus === 'incomplete') {
+                payload.sessionDuration = sessionElapsed;
+                payload.auditLog = finalLog;
+            }
+
+            const res = await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/status`, payload);
             if (res.data.success) {
                 setActiveSession(prev => ({ ...prev, status: newStatus }));
+                if (timerRef.current) clearInterval(timerRef.current);
 
                 if (newStatus === 'completed') {
-                    showAlert("Session Complete", "Session marked as complete. Review your notes and photos, then click 'Archive Session' when ready.", "success");
+                    showAlert("Session Complete", `Session marked as complete (Duration: ${formatDuration(sessionElapsed)}). Review your notes and photos, then click 'Archive Session' when ready.`, "success");
                     fetchSessions();
                 } else if (newStatus === 'in_progress') {
                     setTimeout(() => fetchSessionMaterials(activeSession.id), 1000);
@@ -575,54 +646,29 @@ function ArtistSessions() {
                         </div>
 
                         <div className="modal-body" style={{ maxHeight: '75vh' }}>
-                            {/* Status Control Panel */}
-                            <div className="artist-session-status-panel">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    <span className={`badge ${activeSession.status}`} style={{ padding: '8px 16px', fontSize: '0.8rem', fontWeight: 800 }}>
-                                        {activeSession.status.toUpperCase()}
-                                    </span>
-                                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                        {activeSession.status === 'confirmed' ? 'Ready for procedure' : 
-                                         activeSession.status === 'in_progress' ? 'Session currently active' : 
-                                         activeSession.status === 'completed' ? 'Session complete — ready to archive' :
-                                         activeSession.status === 'incomplete' ? 'Session stopped early — follow-up needed' : 'Session archived'}
+                            {/* Timer Banner — visible when in_progress */}
+                            {(activeSession.status === 'in_progress' || activeSession.status === 'completed') && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: isSessionPaused ? '#fefce8' : '#f0fdf4', borderRadius: '12px', border: `1px solid ${isSessionPaused ? '#fde68a' : '#bbf7d0'}`, marginBottom: '16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <Clock size={20} style={{ color: isSessionPaused ? '#f59e0b' : '#10b981' }} />
+                                        <div>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{isSessionPaused ? 'Paused' : activeSession.status === 'completed' ? 'Final Duration' : 'Session Timer'}</span>
+                                            <div style={{ fontFamily: 'monospace', fontSize: '1.3rem', fontWeight: 800, color: '#1e293b' }}>{formatDuration(sessionElapsed)}</div>
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <div style={{ display: 'flex', gap: '12px' }}>
-                                    {activeSession.status === 'confirmed' && (
-                                        <button className="btn btn-primary" style={{ padding: '10px 24px' }} onClick={() => handleUpdateStatus('in_progress')}>
-                                            <Play size={18} /> Start Procedure
-                                        </button>
-                                    )}
-                                    {activeSession.status === 'in_progress' && !isCompletingSession && (
-                                        <>
-                                        <button className="btn btn-primary" style={{ backgroundColor: '#10b981', padding: '10px 24px' }} onClick={() => handleUpdateStatus('completed')}>
-                                            <CheckCircle size={18} /> Complete Work
-                                        </button>
-                                        <button className="btn btn-secondary" style={{ padding: '10px 24px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => setShowAbortModal(true)}>
-                                            <AlertTriangle size={18} /> Abort Session
-                                        </button>
-                                        </>
-                                    )}
-                                    {isCompletingSession && (
-                                        <button className="btn btn-secondary" style={{ padding: '10px 20px' }} onClick={() => setIsCompletingSession(false)}>
-                                            Cancel
-                                        </button>
-                                    )}
-                                    {activeSession.status === 'completed' && (
-                                        <button className="btn btn-primary" style={{ padding: '10px 24px', background: '#6366f1', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => { closeSessionModal(); }}>
-                                            <Archive size={18} /> Archive Session
+                                    {activeSession.status === 'in_progress' && (
+                                        <button className="btn btn-secondary" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }} onClick={handlePauseResume}>
+                                            {isSessionPaused ? <><Play size={14} /> Resume</> : <><Pause size={14} /> Pause</>}
                                         </button>
                                     )}
                                 </div>
-                            </div>
+                            )}
 
                             {/* Session Tabs */}
                             <div style={{ display: 'flex', gap: '4px', padding: '0 0 16px 0', borderBottom: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                                {[{id:'overview',label:'Overview'},{id:'documentation',label:'Documentation'},{id:'supplies',label:'Supplies'}].map(tab => (
+                                {[{id:'overview',label:'Overview'},{id:'documentation',label:'Documentation'},{id:'supplies',label:'Supplies'},{id:'auditlog',label:'Audit Log'}].map(tab => (
                                     <button key={tab.id} onClick={() => setSessionTab(tab.id)} style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s', background: sessionTab === tab.id ? '#1e293b' : '#f1f5f9', color: sessionTab === tab.id ? '#fff' : '#64748b' }}>
-                                        {tab.label}
+                                        {tab.label} {tab.id === 'auditlog' && auditLog.length > 0 && <span style={{ background: sessionTab === tab.id ? 'rgba(255,255,255,0.25)' : '#cbd5e1', color: sessionTab === tab.id ? '#fff' : '#475569', padding: '2px 7px', borderRadius: '10px', fontSize: '0.7rem', marginLeft: '4px' }}>{auditLog.length}</span>}
                                     </button>
                                 ))}
                             </div>
@@ -761,20 +807,79 @@ function ArtistSessions() {
                                     )}
                                 </div>
                             )}
+                            {/* TAB: Audit Log */}
+                            {sessionTab === 'auditlog' && (
+                                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px' }}>
+                                    <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                                        <List size={14}/> Session Event Log
+                                    </label>
+                                    {auditLog.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
+                                            <List size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
+                                            <p style={{ margin: 0, fontSize: '0.85rem' }}>No events logged yet. Start the procedure to begin tracking.</p>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                                            {auditLog.map((entry, idx) => (
+                                                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '10px 0', borderBottom: idx < auditLog.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: entry.action.includes('Started') ? '#10b981' : entry.action.includes('Completed') ? '#6366f1' : entry.action.includes('Paused') ? '#f59e0b' : entry.action.includes('Aborted') ? '#ef4444' : '#3b82f6', marginTop: '6px', flexShrink: 0 }} />
+                                                    <div style={{ flex: 1 }}>
+                                                        <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#1e293b' }}>{entry.action}</span>
+                                                    </div>
+                                                    <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>{entry.timestamp}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
-                        <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={closeSessionModal}>{activeSession.status === 'completed' ? 'Close' : 'Close View'}</button>
-                            {activeSession.status !== 'completed' && (
-                                <button className="btn btn-primary" style={{ padding: '10px 32px' }} onClick={handleSaveDetails} disabled={isSaving}>
-                                    <Save size={18} /> {isSaving ? 'Saving...' : 'Sync Progress'}
-                                </button>
-                            )}
-                            {activeSession.status === 'completed' && (
-                                <button className="btn btn-primary" style={{ padding: '10px 32px', background: '#6366f1' }} onClick={() => { closeSessionModal(); }}>
-                                    <Archive size={18} /> Archive Session
-                                </button>
-                            )}
+                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span className={`badge ${activeSession.status}`} style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: 800 }}>
+                                    {activeSession.status.toUpperCase()}
+                                </span>
+                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                                    {activeSession.status === 'confirmed' ? 'Ready for procedure' : 
+                                     activeSession.status === 'in_progress' ? (isSessionPaused ? 'Paused' : 'Active') : 
+                                     activeSession.status === 'completed' ? 'Complete' :
+                                     activeSession.status === 'incomplete' ? 'Stopped early' : 'Archived'}
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                {activeSession.status === 'confirmed' && (
+                                    <button className="btn btn-primary" style={{ padding: '10px 24px' }} onClick={() => handleUpdateStatus('in_progress')}>
+                                        <Play size={16} /> Start Procedure
+                                    </button>
+                                )}
+                                {activeSession.status === 'in_progress' && !isCompletingSession && (
+                                    <>
+                                        <button className="btn btn-secondary" style={{ padding: '10px 18px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }} onClick={() => setShowAbortModal(true)}>
+                                            <AlertTriangle size={14} /> Abort
+                                        </button>
+                                        <button className="btn btn-primary" style={{ backgroundColor: '#10b981', padding: '10px 24px' }} onClick={() => handleUpdateStatus('completed')}>
+                                            <CheckCircle size={16} /> Complete Work
+                                        </button>
+                                    </>
+                                )}
+                                {isCompletingSession && (
+                                    <button className="btn btn-secondary" style={{ padding: '10px 20px' }} onClick={() => setIsCompletingSession(false)}>
+                                        Cancel
+                                    </button>
+                                )}
+                                {activeSession.status !== 'completed' && (
+                                    <button className="btn btn-primary" style={{ padding: '10px 24px' }} onClick={handleSaveDetails} disabled={isSaving}>
+                                        <Save size={16} /> {isSaving ? 'Saving...' : 'Sync Progress'}
+                                    </button>
+                                )}
+                                {activeSession.status === 'completed' && (
+                                    <button className="btn btn-primary" style={{ padding: '10px 24px', background: '#6366f1' }} onClick={() => { closeSessionModal(); }}>
+                                        <Archive size={16} /> Archive Session
+                                    </button>
+                                )}
+                                <button className="btn btn-secondary" onClick={closeSessionModal}>Close</button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, FileText, Image as ImageIcon, Package, Search, Filter, Calendar, Clock, User, DollarSign, X } from 'lucide-react';
+import { CheckCircle, FileText, Image as ImageIcon, Package, Search, Filter, Calendar, Clock, User, DollarSign, X, List } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
 import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
+
+const formatDuration = (totalSeconds) => {
+    if (!totalSeconds || totalSeconds <= 0) return 'N/A';
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    if (hrs > 0) return `${hrs}h ${String(mins).padStart(2, '0')}m`;
+    return `${mins}m`;
+};
 
 function AdminCompletedSessions() {
     const navigate = useNavigate();
@@ -63,7 +71,9 @@ function AdminCompletedSessions() {
                         afterPhoto: apt.after_photo,
                         price: apt.price || 0,
                         totalPaid: apt.total_paid || 0,
-                        totalCost: apt.total_material_cost || 0
+                        totalCost: apt.total_material_cost || 0,
+                        sessionDuration: apt.session_duration || null,
+                        auditLog: apt.audit_log || null
                     }));
                 setSessions(completedSessions);
                 setFilteredSessions(completedSessions);
@@ -196,6 +206,7 @@ function AdminCompletedSessions() {
                                                 <th>Design</th>
                                                 <th>Materials Cost</th>
                                                 <th>Price</th>
+                                                <th>Duration</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -218,6 +229,9 @@ function AdminCompletedSessions() {
                                                     </td>
                                                     <td>
                                                         <span className="admin-fw-600">₱{session.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                    </td>
+                                                    <td>
+                                                        <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#475569' }}>{formatDuration(session.sessionDuration)}</span>
                                                     </td>
                                                     <td>
                                                         <button
@@ -283,6 +297,11 @@ function AdminCompletedSessions() {
                                                 <div className="admin-st-e9a1fb1d">{selectedSession.artistName}</div>
                                                 <div className="admin-st-76f4deed">Senior Tattoo Artist</div>
                                             </div>
+                                            <div className="admin-st-6af16ee8">
+                                                <label className="admin-st-8e71d7c8">Session Duration</label>
+                                                <div className="admin-st-e9a1fb1d" style={{ fontFamily: 'monospace' }}>{formatDuration(selectedSession.sessionDuration)}</div>
+                                                <div className="admin-st-76f4deed">Total active time</div>
+                                            </div>
                                             <div className="admin-st-306fe11e">
                                                 <label className="admin-st-e634a3e2">Revenue Item</label>
                                                 <div className="admin-st-7626e003">₱{selectedSession.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
@@ -333,6 +352,34 @@ function AdminCompletedSessions() {
 
                                     {/* Right Column: Logistics & Supplies */}
                                     <div className="admin-st-ff43421e">
+                                        {/* Audit Trail */}
+                                        {(() => {
+                                            let parsedLog = [];
+                                            try {
+                                                if (selectedSession.auditLog) {
+                                                    parsedLog = typeof selectedSession.auditLog === 'string' ? JSON.parse(selectedSession.auditLog) : selectedSession.auditLog;
+                                                }
+                                            } catch (e) { /* ignore parse errors */ }
+                                            return parsedLog.length > 0 ? (
+                                                <div className="admin-st-8f4d2ab5" style={{ marginBottom: '16px' }}>
+                                                    <label className="admin-st-3092c0d2">
+                                                        <List size={14} /> Session Audit Trail
+                                                    </label>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0', marginTop: '12px' }}>
+                                                        {parsedLog.map((entry, idx) => (
+                                                            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 0', borderBottom: idx < parsedLog.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: entry.action && entry.action.includes('Started') ? '#10b981' : entry.action && entry.action.includes('Completed') ? '#6366f1' : entry.action && entry.action.includes('Paused') ? '#f59e0b' : entry.action && entry.action.includes('Aborted') ? '#ef4444' : '#3b82f6', marginTop: '5px', flexShrink: 0 }} />
+                                                                <div style={{ flex: 1 }}>
+                                                                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#1e293b' }}>{entry.action}</span>
+                                                                </div>
+                                                                <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>{entry.timestamp}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : null;
+                                        })()}
+
                                         <div className="admin-st-8f4d2ab5">
                                             <label className="admin-st-3092c0d2">
                                                 <Package size={14} /> Logistics & Consumables

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { DollarSign, Calendar, Users, Download, Package, Printer, Filter } from 'lucide-react';
+import { DollarSign, Calendar, Users, Download, Package, Printer, Filter, Clock } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminAnalytics.css';
 import './AdminStyles.css';
@@ -253,6 +253,17 @@ function AdminAnalytics() {
                         <p className="metric-value">{analytics.appointments.completionRate}%</p>
                         <p className="metric-info" style={{color: '#ef4444'}}>
                             {analytics.appointments.cancelled} cancelled
+                        </p>
+                    </div>
+                </div>
+
+                <div className="metric-card glass-card">
+                    <Clock className="metric-icon" size={32} />
+                    <div className="metric-content">
+                        <p className="metric-label">Avg Session Duration</p>
+                        <p className="metric-value">{analytics.appointments.avgDuration ? (() => { const hrs = Math.floor(analytics.appointments.avgDuration / 3600); const mins = Math.floor((analytics.appointments.avgDuration % 3600) / 60); return hrs > 0 ? `${hrs}h ${String(mins).padStart(2, '0')}m` : `${mins}m`; })() : 'N/A'}</p>
+                        <p className="metric-info">
+                            Per completed session
                         </p>
                     </div>
                 </div>
