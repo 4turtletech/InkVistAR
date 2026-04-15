@@ -2,45 +2,65 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
-import { CheckCircle, Clock, AlertCircle, ArrowRight, Home } from 'lucide-react';
+import { CheckCircle, Clock, ArrowRight, Home, CreditCard, Calendar } from 'lucide-react';
+
+// Helper: compute the same display code used in CustomerBookings.js
+const getDisplayCode = (bookingCode, id) => {
+    const numericId = parseInt(id, 10);
+    const seqNum = String(numericId % 10000).padStart(4, '0');
+    if (bookingCode && typeof bookingCode === 'string') {
+        const parts = bookingCode.split('-');
+        if (parts.length >= 2) {
+            return `${parts[0]}-${parts[1]}-${seqNum}`;
+        }
+    }
+    return `BK-${seqNum}`;
+};
 
 const BookingConfirmation = () => {
     const location = useLocation();
     const [appointmentId, setAppointmentId] = useState(null);
-    const [expectedType, setExpectedType] = useState(null);
-    const [verificationStatus, setVerificationStatus] = useState('verifying'); // verifying, success, timeout, failed, idle
+    const [bookingDisplayCode, setBookingDisplayCode] = useState(null);
+    const [verificationStatus, setVerificationStatus] = useState('verifying');
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const id = location.state?.appointmentId || params.get('appointmentId');
         const type = location.state?.paymentType || params.get('paymentType');
+        const bookingCodeFromState = location.state?.bookingCode || null;
 
         if (id) {
             setAppointmentId(id);
-            setExpectedType(type);
-            verifyPayment(id, type);
+            if (bookingCodeFromState) {
+                setBookingDisplayCode(getDisplayCode(bookingCodeFromState, id));
+            }
+            verifyPayment(id, type, bookingCodeFromState);
         } else {
             setVerificationStatus('idle');
         }
     }, [location]);
 
-    const verifyPayment = async (id, expectedType) => {
+    const verifyPayment = async (id, expectedType, bookingCodeFromState) => {
         setVerificationStatus('verifying');
         let attempts = 0;
         const maxAttempts = 6;
-        
+
         const poll = async () => {
             try {
                 const res = await axios.get(`${API_URL}/api/appointments/${id}/payment-status`);
                 const currentStatus = res.data.payment_status;
-                
+
+                if (res.data.booking_code && !bookingCodeFromState) {
+                    setBookingDisplayCode(getDisplayCode(res.data.booking_code, id));
+                } else if (!bookingCodeFromState) {
+                    setBookingDisplayCode(getDisplayCode(null, id));
+                }
+
                 let isSuccess = false;
                 if (res.data.success) {
                     if (expectedType === 'balance' || expectedType === 'full') {
-                        // Must be fully paid
                         isSuccess = (currentStatus === 'paid');
                     } else {
-                        // Deposit is enough
                         isSuccess = (currentStatus === 'paid' || currentStatus === 'downpayment_paid');
                     }
                 }
@@ -49,12 +69,15 @@ const BookingConfirmation = () => {
                     setVerificationStatus('success');
                 } else if (attempts < maxAttempts) {
                     attempts++;
-                    setTimeout(poll, 3000); 
+                    setTimeout(poll, 3000);
                 } else {
                     setVerificationStatus('timeout');
                 }
             } catch (err) {
                 console.error("Verification error:", err);
+                if (!bookingCodeFromState) {
+                    setBookingDisplayCode(getDisplayCode(null, id));
+                }
                 setVerificationStatus('failed');
             }
         };
@@ -62,171 +85,231 @@ const BookingConfirmation = () => {
         poll();
     };
 
-    const styles = {
-        pageWrapper: {
-            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+    const isSuccess = verificationStatus === 'success' || verificationStatus === 'idle';
+    const isPending = verificationStatus === 'verifying';
+    const isTimeout = verificationStatus === 'timeout' || verificationStatus === 'failed';
+
+    return (
+        <div style={{
+            background: '#171516',
             minHeight: '100vh',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '24px',
-            position: 'relative',
-            overflow: 'hidden',
-        },
-        blob1: {
-            position: 'absolute',
-            top: '-10%',
-            right: '-10%',
-            width: '400px',
-            height: '400px',
-            background: 'rgba(59, 130, 246, 0.1)',
-            borderRadius: '50%',
-            filter: 'blur(100px)',
-            animation: 'blobFloat 20s infinite alternate',
-        },
-        blob2: {
-            position: 'absolute',
-            bottom: '-10%',
-            left: '-10%',
-            width: '400px',
-            height: '400px',
-            background: 'rgba(16, 185, 129, 0.1)',
-            borderRadius: '50%',
-            filter: 'blur(100px)',
-            animation: 'blobFloat 25s infinite alternate-reverse',
-        },
-        card: {
-            background: 'rgba(255, 255, 255, 0.7)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '32px',
-            padding: '48px 32px',
-            width: '100%',
-            maxWidth: '520px',
-            textAlign: 'center',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)',
-            zIndex: 1,
-            animation: 'cardIn 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
-        },
-        iconWrapper: {
-            width: '80px',
-            height: '80px',
-            borderRadius: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 24px auto',
-            animation: 'iconBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        },
-        idBadge: {
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '0.9rem',
-            fontWeight: '600',
-            color: '#64748b',
-            background: '#ffffff',
-            padding: '8px 16px',
-            borderRadius: '99px',
-            border: '1px solid #e2e8f0',
-            marginBottom: '32px',
-        },
-        actions: {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-        },
-        primaryBtn: {
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            padding: '16px 32px',
-            background: '#0f172a',
-            color: 'white',
-            borderRadius: '16px',
-            textDecoration: 'none',
-            fontWeight: '600',
-            transition: 'all 0.2s',
-            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
-        },
-        secondaryBtn: {
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            padding: '16px 32px',
-            background: 'transparent',
-            color: '#475569',
-            borderRadius: '16px',
-            textDecoration: 'none',
-            fontWeight: '600',
-            transition: 'all 0.2s',
-            border: '1px solid #e2e8f0',
-        }
-    };
-
-    return (
-        <div style={styles.pageWrapper}>
-            <div style={styles.blob1}></div>
-            <div style={styles.blob2}></div>
-            
+            fontFamily: "'Inter', sans-serif",
+        }}>
             <style>{`
-                @keyframes blobFloat { from { transform: translate(0,0); } to { transform: translate(40px, 40px); } }
-                @keyframes cardIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes iconBounce { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
                 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                .btn-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important; filter: brightness(1.1); }
-                .btn-secondary-hover:hover { background: #f8fafc !important; border-color: #cbd5e1 !important; }
             `}</style>
 
-            <div style={styles.card}>
-                {verificationStatus === 'verifying' ? (
-                    <>
-                        <div style={{ ...styles.iconWrapper, background: '#eff6ff', color: '#3b82f6' }}>
-                            <div style={{ width: '40px', height: '40px', border: '3px solid #bfdbfe', borderTop: '3px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                        </div>
-                        <h2 style={{ fontSize: '1.75rem', color: '#0f172a', marginBottom: '12px' }}>Verifying Payment</h2>
-                        <p style={{ color: '#64748b', lineHeight: '1.6', marginBottom: '32px' }}>
-                            We're just confirming your transaction with PayMongo. Hang tight!
-                        </p>
-                    </>
-                ) : (verificationStatus === 'timeout' || verificationStatus === 'failed') ? (
-                    <>
-                        <div style={{ ...styles.iconWrapper, background: '#fffbeb', color: '#f59e0b' }}>
-                            <Clock size={40} />
-                        </div>
-                        <h2 style={{ fontSize: '1.75rem', color: '#0f172a', marginBottom: '12px' }}>Still Verifying</h2>
-                        <p style={{ color: '#64748b', lineHeight: '1.6', marginBottom: '32px' }}>
-                            Confirmation is taking longer than expected. Don't worry, your booking is safe. Please check back later.
-                        </p>
-                    </>
-                ) : (
-                    <>
-                        <div style={{ ...styles.iconWrapper, background: '#ecfdf5', color: '#10b981' }}>
-                            <CheckCircle size={40} />
-                        </div>
-                        <h2 style={{ fontSize: '2rem', color: '#0f172a', marginBottom: '12px' }}>Booking Confirmed!</h2>
-                        <p style={{ color: '#64748b', lineHeight: '1.6', marginBottom: '32px' }}>
-                            Awesome! Your payment was successful and your slot is now reserved. See you soon!
-                        </p>
-                    </>
-                )}
+            <div style={{
+                background: '#262022',
+                border: '1px solid #342e30',
+                borderRadius: '16px',
+                width: '100%',
+                maxWidth: '440px',
+                textAlign: 'center',
+                overflow: 'hidden',
+            }}>
+                {/* Gold top accent */}
+                <div style={{ height: '2px', background: '#b7954e' }} />
 
-                {appointmentId && (
-                    <div style={styles.idBadge}>
-                        <span style={{ color: '#94a3b8' }}>ID</span>
-                        <span>#{appointmentId}</span>
+                <div style={{ padding: '48px 36px 40px' }}>
+
+                    {/* Icon */}
+                    {isPending && (
+                        <div style={{
+                            width: '72px', height: '72px',
+                            margin: '0 auto 32px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <div style={{
+                                width: '40px', height: '40px',
+                                border: '2px solid #342e30',
+                                borderTop: '2px solid #b7954e',
+                                borderRadius: '50%',
+                                animation: 'spin 1s linear infinite',
+                            }} />
+                        </div>
+                    )}
+                    {isTimeout && (
+                        <div style={{
+                            width: '72px', height: '72px',
+                            margin: '0 auto 32px',
+                            borderRadius: '50%',
+                            border: '1px solid #342e30',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <Clock size={32} color="#b7954e" strokeWidth={1.5} />
+                        </div>
+                    )}
+                    {isSuccess && (
+                        <div style={{
+                            width: '72px', height: '72px',
+                            margin: '0 auto 32px',
+                            borderRadius: '50%',
+                            border: '1px solid rgba(183,149,78,0.3)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <CheckCircle size={34} color="#b7954e" strokeWidth={1.5} />
+                        </div>
+                    )}
+
+                    {/* Heading */}
+                    {isPending && (
+                        <>
+                            <h1 style={{
+                                fontFamily: "'Playfair Display', serif",
+                                fontSize: '1.6rem',
+                                fontWeight: '600',
+                                color: '#b7954e',
+                                margin: '0 0 12px',
+                                letterSpacing: '0.02em',
+                            }}>Verifying Payment</h1>
+                            <p style={{
+                                color: '#64748b',
+                                fontSize: '0.88rem',
+                                lineHeight: '1.6',
+                                margin: '0',
+                            }}>Confirming your transaction with PayMongo. This only takes a moment.</p>
+                        </>
+                    )}
+                    {isTimeout && (
+                        <>
+                            <h1 style={{
+                                fontFamily: "'Playfair Display', serif",
+                                fontSize: '1.6rem',
+                                fontWeight: '600',
+                                color: '#b7954e',
+                                margin: '0 0 12px',
+                                letterSpacing: '0.02em',
+                            }}>Taking a Moment</h1>
+                            <p style={{
+                                color: '#64748b',
+                                fontSize: '0.88rem',
+                                lineHeight: '1.6',
+                                margin: '0',
+                            }}>Your booking is safe — confirmation is taking longer than usual. Check your bookings shortly.</p>
+                        </>
+                    )}
+                    {isSuccess && (
+                        <>
+                            <h1 style={{
+                                fontFamily: "'Playfair Display', serif",
+                                fontSize: '1.7rem',
+                                fontWeight: '600',
+                                color: '#b7954e',
+                                margin: '0 0 12px',
+                                letterSpacing: '0.02em',
+                            }}>Booking Confirmed</h1>
+                            <p style={{
+                                color: '#64748b',
+                                fontSize: '0.88rem',
+                                lineHeight: '1.6',
+                                margin: '0',
+                            }}>Payment successful. Your slot is now reserved at InkVictus Studio.</p>
+                        </>
+                    )}
+
+                    {/* Divider */}
+                    <div style={{
+                        height: '1px',
+                        background: '#342e30',
+                        margin: '28px 0',
+                    }} />
+
+                    {/* Booking Reference */}
+                    {(bookingDisplayCode || appointmentId) && (
+                        <div style={{
+                            background: '#1a1416',
+                            border: '1px solid #342e30',
+                            borderRadius: '10px',
+                            padding: '18px 20px',
+                            marginBottom: '28px',
+                            textAlign: 'left',
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                            }}>
+                                <span style={{
+                                    fontSize: '0.72rem',
+                                    color: '#64748b',
+                                    fontWeight: '600',
+                                    letterSpacing: '0.1em',
+                                    textTransform: 'uppercase',
+                                }}>Booking Reference</span>
+                                <span style={{
+                                    fontSize: '1rem',
+                                    fontWeight: '700',
+                                    color: '#b7954e',
+                                    letterSpacing: '0.05em',
+                                }}>{bookingDisplayCode || `#${appointmentId}`}</span>
+                            </div>
+                            {isSuccess && (
+                                <>
+                                    <div style={{ height: '1px', background: '#262022', margin: '14px 0' }} />
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Calendar size={13} color="#64748b" />
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Check bookings for schedule details</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <CreditCard size={13} color="#b7954e" />
+                                            <span style={{ fontSize: '0.8rem', color: '#b7954e' }}>Payment confirmed</span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <Link to="/customer/bookings" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '14px 24px',
+                            background: '#b7954e',
+                            color: '#1a1416',
+                            borderRadius: '10px',
+                            textDecoration: 'none',
+                            fontWeight: '600',
+                            fontSize: '0.9rem',
+                            border: 'none',
+                        }}>
+                            Manage My Bookings <ArrowRight size={16} />
+                        </Link>
+                        <Link to="/" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '14px 24px',
+                            background: 'transparent',
+                            color: '#64748b',
+                            borderRadius: '10px',
+                            textDecoration: 'none',
+                            fontWeight: '500',
+                            fontSize: '0.88rem',
+                            border: '1px solid #342e30',
+                        }}>
+                            <Home size={15} /> Back to Home
+                        </Link>
                     </div>
-                )}
 
-                <div style={styles.actions}>
-                    <Link to="/customer/bookings" className="btn-hover" style={styles.primaryBtn}>
-                        Manage My Bookings <ArrowRight size={18} />
-                    </Link>
-                    <Link to="/" className="btn-secondary-hover" style={styles.secondaryBtn}>
-                        <Home size={18} /> Back to Home
-                    </Link>
+                    {/* Footer */}
+                    <p style={{
+                        fontSize: '0.73rem',
+                        color: '#64748b',
+                        marginTop: '24px',
+                        marginBottom: '0',
+                    }}>A confirmation has been sent to your registered email.</p>
                 </div>
             </div>
         </div>

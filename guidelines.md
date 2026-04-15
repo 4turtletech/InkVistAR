@@ -11,7 +11,9 @@ This document serves as the primary ground truth for the InkVistAR project. When
 
 ### 2. Theming & UI Standards (Web App)
 - **Primary Colors:** 
-  - Brand Bronze/Gold: `#C19A6B`
+  - Dark Background: `#171516`
+  - Dark Surface/Card: `#262022`
+  - Brand Gold: `#b7954e`
   - Slate Dark (Text/Headings): `#1e293b` or `#0f172a`
   - Slate Muted (Subtext): `#64748b`
   - Status Colors: Success (`#10b981`), Warning (`#f59e0b`), Danger (`#ef4444`), Info (`#3b82f6`)
