@@ -333,34 +333,31 @@ function AdminNotifications() {
 
                 <main className="dashboard-main-content">
                     <div className="glass-card table-card-v2 full-width">
-                        <div className="premium-filter-bar admin-st-64c9f606">
-                            <div className="premium-search-box admin-st-90530afc">
-                                <Search size={18} className="admin-st-80066d40" />
-                                <input
-                                    type="text"
-                                    placeholder="Search notifications..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="admin-st-f6234f9f"
-                                />
-                            </div>
+                        <div className="premium-search-box" style={{ marginBottom: '20px' }}>
+                            <Search size={16} className="premium-search-icon" />
+                            <input
+                                type="text"
+                                placeholder="Search notifications..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
 
-                            <div className="premium-filters-group">
-                                <div className="admin-st-0d9f88e7">
-                                    <Filter size={16} />
-                                    <span>Type:</span>
-                                </div>
-                                <select
-                                    value={activeFilter}
-                                    onChange={(e) => setActiveFilter(e.target.value)}
-                                    className="premium-select-v2 admin-st-15f46c68"
-                                >
-                                    <option value="all" className="admin-st-66e41284">All Notifications</option>
-                                    <option value="inventory" className="admin-st-66e41284">Inventory Alerts</option>
-                                    <option value="appointment" className="admin-st-66e41284">Booking Requests</option>
-                                    <option value="system" className="admin-st-66e41284">System Updates</option>
-                                </select>
+                        <div className="premium-filters-group" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div className="admin-st-0d9f88e7">
+                                <Filter size={16} />
+                                <span>Type:</span>
                             </div>
+                            <select
+                                value={activeFilter}
+                                onChange={(e) => setActiveFilter(e.target.value)}
+                                className="premium-select-v2 admin-st-15f46c68"
+                            >
+                                <option value="all" className="admin-st-66e41284">All Notifications</option>
+                                <option value="inventory" className="admin-st-66e41284">Inventory Alerts</option>
+                                <option value="appointment" className="admin-st-66e41284">Booking Requests</option>
+                                <option value="system" className="admin-st-66e41284">System Updates</option>
+                            </select>
                         </div>
 
                         {loading ? (

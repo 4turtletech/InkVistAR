@@ -1023,8 +1023,8 @@
 }
 
 .notification-record.unread {
-    border-left: 4px solid #f59e0b; /* Example color for unread */
-    background: #fffbeb;
+    border-left: none;
+    background: rgba(183, 149, 78, 0.08);
 }
 
 .notification-record:hover {
