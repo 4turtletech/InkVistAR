@@ -1516,3 +1516,15 @@ body.sidenav-collapsed .portal-layout .portal-container {
     letter-spacing: 0.025em;
     margin-bottom: 4px;
 }
+
+/* Global Button Standards Additions */
+.btn.btn-brand-gold {
+    background: #b7954e;
+    color: #fff !important;
+    border: 1px solid #a38240;
+}
+
+.btn.btn-brand-gold:hover {
+    background: #a38240;
+    box-shadow: 0 4px 12px rgba(183, 149, 78, 0.4);
+}

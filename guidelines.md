@@ -24,6 +24,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
   - **Border Radius:** Use soft, modern curves. Standard cards use `16px` or `24px`; generic buttons use `8px` or `10px`.
   - **Icons:** Use `lucide-react` for all UI icons.
 - **CSS Strategy:** 
+  - **Button Standards:** All interactive action buttons across all portals MUST use the global `.btn` classes (e.g., `.btn.btn-primary`, `.btn.btn-secondary`, or `.btn.btn-brand-gold`). Do NOT use inline styles to override background colors or use legacy one-off classes like `.btn-indigo`.
   - **Strict Separation of Concerns:** ALL structural styling and glassmorphism properties MUST be stored in external compiled `.css` files (e.g., `PortalStyles.css`, `AdminStyles.css`, `index.css`). **NEVER** use hardcoded inline `style={{...}}` React props for structural layouts, alignments, or core visual themes.
   - **No Tailwind:** **Do NOT use TailwindCSS** utilities unless the user explicitly introduces it to the project. Use robust semantic class naming instead.
 - **Portal Color Identity:** Each portal has a visually distinct color scheme to orient the user at a glance. These MUST be maintained:

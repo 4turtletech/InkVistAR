@@ -645,31 +645,13 @@ function ArtistSessions() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 {isCompletingSession && (
-                                    <button className="btn btn-primary" onClick={confirmCompletion} style={{ fontWeight: 800 }}>Finalize Session</button>
+                                    <button className="btn btn-brand-gold" onClick={confirmCompletion} style={{ fontWeight: 800 }}>Finalize Session</button>
                                 )}
                                 <button className="close-btn" onClick={closeSessionModal}><X size={24} /></button>
                             </div>
                         </div>
 
                         <div className="modal-body" style={{ maxHeight: '75vh' }}>
-                            {/* Timer Banner — visible when in_progress */}
-                            {(activeSession.status === 'in_progress' || activeSession.status === 'completed') && (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: isSessionPaused ? '#fefce8' : 'rgba(183, 149, 78, 0.1)', borderRadius: '12px', border: `1px solid ${isSessionPaused ? '#fde68a' : 'rgba(183, 149, 78, 0.4)'}`, marginBottom: '16px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <Clock size={20} style={{ color: isSessionPaused ? '#f59e0b' : '#b7954e' }} />
-                                        <div>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isSessionPaused ? '#64748b' : '#b7954e', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{isSessionPaused ? 'Paused' : activeSession.status === 'completed' ? 'Final Duration' : 'Session Timer'}</span>
-                                            <div style={{ fontFamily: 'monospace', fontSize: '1.3rem', fontWeight: 800, color: '#1e293b' }}>{formatDuration(sessionElapsed)}</div>
-                                        </div>
-                                    </div>
-                                    {activeSession.status === 'in_progress' && (
-                                        <button className="btn btn-secondary" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }} onClick={handlePauseResume}>
-                                            {isSessionPaused ? <><Play size={14} /> Resume</> : <><Pause size={14} /> Pause</>}
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-
                             {/* Session Tabs */}
                             <div style={{ display: 'flex', gap: '4px', padding: '0 0 16px 0', borderBottom: '1px solid #e2e8f0', marginBottom: '20px' }}>
                                 {[{id:'overview',label:'Overview'},{id:'documentation',label:'Documentation'},{id:'supplies',label:'Supplies'},{id:'auditlog',label:'Audit Log'}].map(tab => (
@@ -881,7 +863,7 @@ function ArtistSessions() {
                                         <button className="btn btn-secondary" style={{ padding: '10px 18px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }} onClick={() => setShowAbortModal(true)}>
                                             <AlertTriangle size={14} /> Abort
                                         </button>
-                                        <button className="btn btn-primary" style={{ backgroundColor: '#10b981', padding: '10px 24px' }} onClick={() => handleUpdateStatus('completed')}>
+                                        <button className="btn btn-primary" onClick={() => handleUpdateStatus('completed')}>
                                             <CheckCircle size={16} /> Complete Work
                                         </button>
                                     </>
