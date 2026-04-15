@@ -8,6 +8,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - **Read Before Modifying:** Always use `view_file` to read the target code before writing an update. Do not guess the structure of a component.
 - **Soft Deletes Only:** Never DELETE rows from the database. Always use the `is_deleted` flag for appointments, portfolio_works, inventory, and users. For Admin appointments, the 'Delete' UI action is officially deprecated; strictly use the notification-driven 'Reschedule' workflow.
 - **System Flow Accuracy:** Refer to the `Updated_Activity_Diagram.md` for the correct booking, payment, and scheduling flows.
+- **Mandatory Guidelines Sync:** Whenever you create or modify database tables, add new API endpoints, change important patterns, or introduce new system features, you **MUST** update this `guidelines.md` file in the same changeset. This ensures this document remains the single source of truth and prevents future hallucinations.
 
 ### 2. Theming & UI Standards (Web App)
 - **Primary Colors:** 
@@ -19,10 +20,24 @@ This document serves as the primary ground truth for the InkVistAR project. When
   - Status Colors: Success (`#10b981`), Warning (`#f59e0b`), Danger (`#ef4444`), Info (`#3b82f6`)
 - **Typography:** Use `'Inter', sans-serif`. Use modern font weights (`500`, `600`, `700`, `800`) for visual hierarchy.
 - **Design Patterns:**
-  - **Glassmorphism:** Use `rgba(255, 255, 255, 0.8)`, `backdropFilter: 'blur(12px)'`, and subtle borders `border: '1px solid rgba(255, 255, 255, 0.5)'`.
+  - **Glassmorphism (Core Design Language):** The UI must strictly follow a glassmorphic look. Use standard classes like `.glass-card` (which rely on `rgba()`, `backdrop-filter: blur()`, and subtle borders) to achieve this.
   - **Border Radius:** Use soft, modern curves. Standard cards use `16px` or `24px`; generic buttons use `8px` or `10px`.
   - **Icons:** Use `lucide-react` for all UI icons.
-- **CSS Strategy:** The project currently uses standard CSS classes (e.g., `PortalStyles.css`, `AdminStyles.css`) combined with inline React styles. **Do NOT use TailwindCSS** utilities unless the user explicitly introduces it to the project.
+- **CSS Strategy:** 
+  - **Strict Separation of Concerns:** ALL structural styling and glassmorphism properties MUST be stored in external compiled `.css` files (e.g., `PortalStyles.css`, `AdminStyles.css`, `index.css`). **NEVER** use hardcoded inline `style={{...}}` React props for structural layouts, alignments, or core visual themes.
+  - **No Tailwind:** **Do NOT use TailwindCSS** utilities unless the user explicitly introduces it to the project. Use robust semantic class naming instead.
+- **Portal Color Identity:** Each portal has a visually distinct color scheme to orient the user at a glance. These MUST be maintained:
+  - **Admin Portal:** Sidenav bg `#1a1416`, accent `#be9055` (Bronze-Gold), header bg `#1a1416` with `#be9055` border and headings. Content area bg `#f3f4f6`.
+  - **Artist Portal:** Sidenav bg `#1a1416`, accent `#d4af37` (Bright Gold), logo gradient `#d4af37 → #4338ca`. Content area bg `#f3f4f6`.
+  - **Customer Portal:** Sidenav bg `#1a1416`, accent `#d4af37` (Bright Gold), same structure as Artist. Content area bg `#f3f4f6`.
+  - All sidenav CSS lives in `src/styles/AdminSideNav.css`, `ArtistSideNav.css`, `CustomerSideNav.css`. Do NOT merge or break these per-portal distinctions.
+
+### 3. Input Validation & Sanitization
+- **Every input field, dropdown, date picker, textarea, and any other form element that accepts user input MUST include:**
+  - **Client-side validation:** Required checks, format validation (email, phone, dates), min/max length, numeric range constraints, and pattern matching where appropriate.
+  - **Sanitization:** Strip or escape dangerous characters to prevent XSS. Reject or neutralize SQL-injectable patterns on the backend.
+  - **Visual Feedback:** Invalid fields must display clear, inline error messages (red border + helper text). Do NOT use `alert()` for form validation.
+  - **Edge-case Handling:** Empty strings, whitespace-only inputs, negative numbers, past dates for future-only fields, and duplicate entries must all be explicitly handled.
 
 ---
 
@@ -33,7 +48,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 | **users** | id, name, email, password_hash, user_type (admin/manager/artist/customer), phone, is_verified, is_deleted |
 | **artists** | user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate, rating, total_reviews, profile_image, phone |
 | **customers** | user_id, phone, location, notes |
-| **appointments** | id, booking_code, customer_id, artist_id, appointment_date, start_time, end_time, design_title, price, status, payment_status, before_photo, after_photo, is_deleted |
+| **appointments** | id, booking_code, customer_id, artist_id, appointment_date, start_time, end_time, design_title, price, status, payment_status, before_photo, after_photo, session_duration, audit_log, is_deleted |
 | **portfolio_works** | id, artist_id, image_url, title, description, category, price_estimate, is_public |
 | **notifications** | id, user_id, title, message, type, related_id, is_read |
 | **inventory** | id, name, category, current_stock, min_stock, max_stock, unit, cost, supplier |
@@ -143,13 +158,15 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 
 ## Important Patterns
 
-1. **Auto-Migrations:** Server adds missing columns on startup (profile_image, studio_name, phone, commission_rate)
-2. **Image Storage:** Base64/LONGTEXT in database
-3. **Commission:** Artists have `commission_rate` (default 0.30 = 30%)
-4. **Material Tracking:** `session_materials` tracks hold→consumed→released lifecycle
-5. **Service Kits:** Predefined material bundles for quick session setup
-6. **Payment Flow:** PayMongo webhook → `/api/payments/webhook` → updates appointments.payment_status
+1. **Auto-Migrations:** Server automatically checks for and adds missing columns on startup (e.g., `profile_image`, `session_duration`, `audit_log`, `commission_rate`).
+2. **Image Storage:** Base64/LONGTEXT in database.
+3. **Commission:** Artists have `commission_rate` (default 0.30 = 30%).
+4. **Material Tracking:** `session_materials` tracks hold→consumed→released lifecycle.
+5. **Service Kits:** Predefined material bundles for quick session setup.
+6. **Payment Flow:** PayMongo webhook → `/api/payments/webhook` → updates appointments.payment_status.
 7. **Booking Code Standardization:** All portals MUST display the formatted booking ID via `src/utils/formatters.js` (e.g., `O-T-0012`). Do NOT use raw numeric IDs. PayMongo checkout strictly enforces the presence of `booking_code`.
+8. **Session Tracking:** Artist portal uses real-time stopwatches logging elapsed time to `session_duration` (INT seconds) combined with detailed chrono `audit_log` (JSON text logging pauses/completes/items).
+9. **Capacity Pools (Booking):** Schedule validation uses a decoupled three-pool system so that Consultations, Piercings, and Tattoos/Artist bookings calculate distinct concurrent capacities. Combos (e.g., "Tattoo + Piercing") draw from multiple capacity pools simultaneously.
 
 ---
 
