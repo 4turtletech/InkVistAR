@@ -232,8 +232,8 @@ function ArtistNotifications() {
 
                 <div className="portal-content">
                     {/* Search Bar */}
-                    <div className="premium-filter-bar" style={{ marginBottom: '20px' }}>
-                        <div className="premium-search-box premium-search-box--full" style={{ margin: 0, width: '100%' }}>
+                    <div className="premium-filter-bar" style={{ marginBottom: '20px', display: 'flex' }}>
+                        <div className="premium-search-box premium-search-box--full" style={{ margin: 0, flex: '0 0 75%' }}>
                             <Search size={16} className="text-muted" />
                             <input
                                 type="text"
@@ -385,7 +385,7 @@ function ArtistNotifications() {
 const filterButtonStyle = (isActive) => ({
     padding: '8px 20px',
     borderRadius: '20px',
-    border: '1px solid rgba(255,255,255,0.1)',
+    border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1',
     background: isActive ? '#daa520' : 'rgba(255,255,255,0.05)',
     color: isActive ? 'white' : '#64748b',
     cursor: 'pointer',

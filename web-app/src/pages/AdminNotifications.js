@@ -232,7 +232,7 @@ function AdminNotifications() {
     };
 
     const filterButtonStyle = (isActive, type = 'default') => {
-        if (!isActive) return { background: 'rgba(255,255,255,0.05)', color: '#be9055' };
+        if (!isActive) return { background: 'rgba(255,255,255,0.05)', color: '#be9055', border: '1px solid #cbd5e1' };
 
         // Distinguish Unread with a more urgent amber color
         const activeBg = type === 'unread' ? '#f59e0b' : '#daa520';
