@@ -40,32 +40,61 @@
     color: #1f2937 !important;
 }
 
-
-.btn-glass:hover {
-    background: white;
-    transform: translateY(-1px);
-    color: #be9055;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-.btn-indigo {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    color: white;
-    padding: 0.6rem 1.25rem;
-    border-radius: 12px;
-    border: none;
+/* NEW PREMIUM HEADER BUTTONS FOR DARK BACKGROUNDS */
+.header-btn-glass {
+    background: rgba(190, 144, 85, 0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(190, 144, 85, 0.4);
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
     font-weight: 600;
+    color: #f8fafc !important; /* Brighter text for readability */
     display: flex;
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(190, 144, 85, 0.3);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.btn-indigo:hover {
+.header-btn-glass:hover {
+    background: rgba(190, 144, 85, 0.25);
+    border-color: rgba(190, 144, 85, 0.8);
+    color: #ffffff !important;
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(190, 144, 85, 0.4);
+    box-shadow: 0 6px 16px rgba(190, 144, 85, 0.3);
+}
+
+.header-btn-glass svg {
+    color: #be9055;
+    transition: color 0.2s;
+}
+
+.header-btn-glass:hover svg {
+    color: #d4af37;
+}
+
+.header-btn-solid {
+    background: linear-gradient(135deg, #be9055 0%, #8b6420 100%);
+    color: white !important;
+    padding: 0.5rem 1.25rem;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(190, 144, 85, 0.4);
+}
+
+.header-btn-solid:hover {
+    background: linear-gradient(135deg, #d4af37 0%, #a67b27 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(190, 144, 85, 0.6);
 }
 
 .inventory-stats-grid {
