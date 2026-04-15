@@ -257,7 +257,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
           )}
           <div ref={messagesEndRef} />
 
-          {botMessages.length === 1 && !isHumanMode && (
+          {!isHumanMode && (
             <div className="quick-questions">
               <p>Quick questions:</p>
               <div className="quick-buttons">

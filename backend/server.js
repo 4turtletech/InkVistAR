@@ -5554,6 +5554,8 @@ app.post('/api/chat', async (req, res) => {
             - Instructions: ${careInfo.instructions ? careInfo.instructions.split('\n').slice(0, 2).join(' ') : 'Keep it clean and moisturized, and avoid sun/swimming for 2 weeks.'}
 
           - General Rules:
+            - IMPORTANT: Always end your response by directly asking the user a relevant, qualifying follow-up question. Your job is to keep the conversation going and help narrow down what they are looking for (e.g., asking about their preferred style, placement, or budget constraints).
+            - Keep your responses to 1-3 short paragraphs max to be conversational.
             - If you don't know an answer, politely suggest they contact the studio directly at ${studioInfo.phone || 'our contact number'}.
         `.trim().replace(/\s+/g, ' ');
 

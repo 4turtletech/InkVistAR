@@ -430,17 +430,27 @@ function ArtistProfile() {
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                                             <label className="artist-profile-form-label"><Palette size={16} /> Specialization / Styles</label>
-                                            <select
-                                                className="form-input artist-profile-input"
-                                                value={profile.specialization || ''}
-                                                onChange={e => setProfile({ ...profile, specialization: e.target.value })}
-                                            >
-                                                <option value="">Select your primary specialization</option>
-                                                {TATTOO_STYLES.map(style => (
-                                                    <option key={style} value={style}>{style}</option>
-                                                ))}
-                                            </select>
-                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Choose the tattoo style that best represents your work</span>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px', marginTop: '8px' }}>
+                                                {TATTOO_STYLES.map(style => {
+                                                    const isSelected = (profile.specialization || '').split(',').map(s=>s.trim()).includes(style);
+                                                    return (
+                                                    <label key={style} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', color: '#334155', padding: '8px', borderRadius: '6px', backgroundColor: isSelected ? 'rgba(218, 165, 32, 0.1)' : '#f8fafc', border: `1px solid ${isSelected ? '#daa520' : '#e2e8f0'}`, transition: 'all 0.2s' }}>
+                                                        <input 
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={(e) => {
+                                                                let specs = (profile.specialization || '').split(',').map(s=>s.trim()).filter(s=>s);
+                                                                if (e.target.checked) specs.push(style);
+                                                                else specs = specs.filter(s => s !== style);
+                                                                setProfile({...profile, specialization: specs.join(', ')});
+                                                            }}
+                                                            style={{ accentColor: '#daa520', width: '16px', height: '16px', cursor: 'pointer' }}
+                                                        />
+                                                        {style}
+                                                    </label>
+                                                )})}
+                                            </div>
+                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '8px' }}>Choose the tattoo styles that best represent your work</span>
                                         </div>
                                         <div className="form-group">
                                             <label className="artist-profile-form-label"><Clock size={16} /> Years of Experience</label>

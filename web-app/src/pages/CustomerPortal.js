@@ -453,12 +453,11 @@ function CustomerPortal() {
                     )}
                 </div>
             </div>
-            {activeAppointment && (
-                <ChatWidget
-                    room={activeAppointment.id}
-                    currentUser={`customer_${customerId}`}
-                />
-            )}
+            {/* ChatWidget is always available, use activeAppointment.id if available as room, else null */}
+            <ChatWidget
+                room={activeAppointment ? activeAppointment.id : null}
+                currentUser={`customer_${customerId}`}
+            />
 
             {/* Appointment Details Modal */}
             {isModalOpen && selectedApt && (
