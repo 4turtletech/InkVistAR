@@ -91,7 +91,7 @@ const BookingConfirmation = () => {
 
     return (
         <div style={{
-            background: '#111111',
+            background: '#1a1416',
             minHeight: '100vh',
             display: 'flex',
             alignItems: 'center',
@@ -105,8 +105,8 @@ const BookingConfirmation = () => {
             `}</style>
 
             <div style={{
-                background: '#1a1a1a',
-                border: '1px solid #2a2a2a',
+                background: '#262022',
+                border: '1px solid #342e30',
                 borderRadius: '16px',
                 width: '100%',
                 maxWidth: '440px',
@@ -114,7 +114,7 @@ const BookingConfirmation = () => {
                 overflow: 'hidden',
             }}>
                 {/* Gold top accent */}
-                <div style={{ height: '2px', background: '#C19A6B' }} />
+                <div style={{ height: '2px', background: '#b7954e' }} />
 
                 <div style={{ padding: '48px 36px 40px' }}>
 
@@ -127,8 +127,8 @@ const BookingConfirmation = () => {
                         }}>
                             <div style={{
                                 width: '40px', height: '40px',
-                                border: '2px solid #333',
-                                borderTop: '2px solid #C19A6B',
+                                border: '2px solid #342e30',
+                                borderTop: '2px solid #b7954e',
                                 borderRadius: '50%',
                                 animation: 'spin 1s linear infinite',
                             }} />
@@ -139,10 +139,10 @@ const BookingConfirmation = () => {
                             width: '72px', height: '72px',
                             margin: '0 auto 32px',
                             borderRadius: '50%',
-                            border: '1px solid #333',
+                            border: '1px solid #342e30',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                            <Clock size={32} color="#C19A6B" strokeWidth={1.5} />
+                            <Clock size={32} color="#b7954e" strokeWidth={1.5} />
                         </div>
                     )}
                     {isSuccess && (
@@ -150,10 +150,10 @@ const BookingConfirmation = () => {
                             width: '72px', height: '72px',
                             margin: '0 auto 32px',
                             borderRadius: '50%',
-                            border: '1px solid rgba(193,154,107,0.3)',
+                            border: '1px solid rgba(183,149,78,0.3)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                            <CheckCircle size={34} color="#C19A6B" strokeWidth={1.5} />
+                            <CheckCircle size={34} color="#b7954e" strokeWidth={1.5} />
                         </div>
                     )}
 
@@ -164,12 +164,12 @@ const BookingConfirmation = () => {
                                 fontFamily: "'Playfair Display', serif",
                                 fontSize: '1.6rem',
                                 fontWeight: '600',
-                                color: '#C19A6B',
+                                color: '#b7954e',
                                 margin: '0 0 12px',
                                 letterSpacing: '0.02em',
                             }}>Verifying Payment</h1>
                             <p style={{
-                                color: '#666',
+                                color: '#64748b',
                                 fontSize: '0.88rem',
                                 lineHeight: '1.6',
                                 margin: '0',
@@ -182,12 +182,12 @@ const BookingConfirmation = () => {
                                 fontFamily: "'Playfair Display', serif",
                                 fontSize: '1.6rem',
                                 fontWeight: '600',
-                                color: '#C19A6B',
+                                color: '#b7954e',
                                 margin: '0 0 12px',
                                 letterSpacing: '0.02em',
                             }}>Taking a Moment</h1>
                             <p style={{
-                                color: '#666',
+                                color: '#64748b',
                                 fontSize: '0.88rem',
                                 lineHeight: '1.6',
                                 margin: '0',
@@ -200,12 +200,12 @@ const BookingConfirmation = () => {
                                 fontFamily: "'Playfair Display', serif",
                                 fontSize: '1.7rem',
                                 fontWeight: '600',
-                                color: '#C19A6B',
+                                color: '#b7954e',
                                 margin: '0 0 12px',
                                 letterSpacing: '0.02em',
                             }}>Booking Confirmed</h1>
                             <p style={{
-                                color: '#666',
+                                color: '#64748b',
                                 fontSize: '0.88rem',
                                 lineHeight: '1.6',
                                 margin: '0',
@@ -216,15 +216,15 @@ const BookingConfirmation = () => {
                     {/* Divider */}
                     <div style={{
                         height: '1px',
-                        background: '#2a2a2a',
+                        background: '#342e30',
                         margin: '28px 0',
                     }} />
 
                     {/* Booking Reference */}
                     {(bookingDisplayCode || appointmentId) && (
                         <div style={{
-                            background: '#151515',
-                            border: '1px solid #2a2a2a',
+                            background: '#1a1416',
+                            border: '1px solid #342e30',
                             borderRadius: '10px',
                             padding: '18px 20px',
                             marginBottom: '28px',
@@ -237,7 +237,7 @@ const BookingConfirmation = () => {
                             }}>
                                 <span style={{
                                     fontSize: '0.72rem',
-                                    color: '#555',
+                                    color: '#64748b',
                                     fontWeight: '600',
                                     letterSpacing: '0.1em',
                                     textTransform: 'uppercase',
@@ -245,21 +245,21 @@ const BookingConfirmation = () => {
                                 <span style={{
                                     fontSize: '1rem',
                                     fontWeight: '700',
-                                    color: '#C19A6B',
+                                    color: '#b7954e',
                                     letterSpacing: '0.05em',
                                 }}>{bookingDisplayCode || `#${appointmentId}`}</span>
                             </div>
                             {isSuccess && (
                                 <>
-                                    <div style={{ height: '1px', background: '#222', margin: '14px 0' }} />
+                                    <div style={{ height: '1px', background: '#262022', margin: '14px 0' }} />
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Calendar size={13} color="#555" />
-                                            <span style={{ fontSize: '0.8rem', color: '#555' }}>Check bookings for schedule details</span>
+                                            <Calendar size={13} color="#64748b" />
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Check bookings for schedule details</span>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <CreditCard size={13} color="#C19A6B" />
-                                            <span style={{ fontSize: '0.8rem', color: '#C19A6B' }}>Payment confirmed</span>
+                                            <CreditCard size={13} color="#b7954e" />
+                                            <span style={{ fontSize: '0.8rem', color: '#b7954e' }}>Payment confirmed</span>
                                         </div>
                                     </div>
                                 </>
@@ -275,8 +275,8 @@ const BookingConfirmation = () => {
                             justifyContent: 'center',
                             gap: '8px',
                             padding: '14px 24px',
-                            background: '#C19A6B',
-                            color: '#111',
+                            background: '#b7954e',
+                            color: '#1a1416',
                             borderRadius: '10px',
                             textDecoration: 'none',
                             fontWeight: '600',
@@ -292,12 +292,12 @@ const BookingConfirmation = () => {
                             gap: '8px',
                             padding: '14px 24px',
                             background: 'transparent',
-                            color: '#666',
+                            color: '#64748b',
                             borderRadius: '10px',
                             textDecoration: 'none',
                             fontWeight: '500',
                             fontSize: '0.88rem',
-                            border: '1px solid #2a2a2a',
+                            border: '1px solid #342e30',
                         }}>
                             <Home size={15} /> Back to Home
                         </Link>
@@ -306,7 +306,7 @@ const BookingConfirmation = () => {
                     {/* Footer */}
                     <p style={{
                         fontSize: '0.73rem',
-                        color: '#444',
+                        color: '#64748b',
                         marginTop: '24px',
                         marginBottom: '0',
                     }}>A confirmation has been sent to your registered email.</p>
