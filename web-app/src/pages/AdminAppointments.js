@@ -9,6 +9,7 @@ import './AdminAppointments.css';
 import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
+import { getDisplayCode } from '../utils/formatters';
 
 function AdminAppointments() {
     const navigate = useNavigate();
@@ -152,8 +153,9 @@ function AdminAppointments() {
 
     const filterAndSortAppointments = () => {
         let filtered = appointments.filter(apt => {
+            const displayCode = getDisplayCode(apt.bookingCode, apt.id);
             const matchesSearch =
-                (apt.id || '').toString().includes(searchTerm) ||
+                displayCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (apt.bookingCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (apt.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (apt.artistName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -927,7 +929,7 @@ function AdminAppointments() {
                                                 <tr key={appointment.id}>
                                                     <td>
                                                         <span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b' }}>
-                                                            {appointment.bookingCode || '#' + appointment.id}
+                                                            {getDisplayCode(appointment.bookingCode, appointment.id)}
                                                         </span>
                                                     </td>
                                                     <td>{appointment.clientName}</td>
@@ -1016,7 +1018,7 @@ function AdminAppointments() {
                             <div className="modal-header">
                                 <div className="admin-st-15246701">
                                     <div className="admin-st-18a02d52">
-                                        <h2 className="admin-m-0">{selectedAppointment ? `Edit Appointment ${selectedAppointment.bookingCode || '#' + selectedAppointment.id}` : 'New Appointment'}</h2>
+                                        <h2 className="admin-m-0">{selectedAppointment ? `Edit Appointment ${getDisplayCode(selectedAppointment.bookingCode, selectedAppointment.id)}` : 'New Appointment'}</h2>
                                         <div className="modal-tabs">
                                             <button
                                                 className={`modal-tab-btn ${modalTab === 'details' ? 'active' : ''}`}

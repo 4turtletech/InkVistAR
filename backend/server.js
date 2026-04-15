@@ -3854,7 +3854,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
     // 1) Pull appointment to get authoritative price AND total already paid
     const checkoutQuery = `
       SELECT 
-        ap.id, ap.price, ap.customer_id, ap.artist_id, ap.status, ap.design_title, ap.service_type,
+        ap.id, ap.price, ap.customer_id, ap.artist_id, ap.status, ap.design_title, ap.service_type, ap.booking_code,
         (SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') + (COALESCE(ap.manual_paid_amount, 0) * 100) as total_paid_centavos
       FROM appointments ap
       WHERE ap.id = ? AND ap.is_deleted = 0
@@ -3871,6 +3871,17 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
       }
 
       const appointment = results[0];
+
+      // Strict enforcement: block payment if booking_code is missing
+      if (!appointment.booking_code) {
+        return res.status(400).json({ success: false, message: 'Cannot initiate payment: this appointment has no booking code. Please contact admin.' });
+      }
+
+      // Build the display code (mirrors frontend getDisplayCode logic)
+      const seqNum = String(appointment.id % 10000).padStart(4, '0');
+      const codeParts = appointment.booking_code.split('-');
+      const displayCode = codeParts.length >= 2 ? `${codeParts[0]}-${codeParts[1]}-${seqNum}` : appointment.booking_code;
+
       let priceNumber = Number(appointment.price);
       if ((!priceNumber || priceNumber <= 0) && providedPrice) {
         priceNumber = Number(providedPrice);
@@ -3878,20 +3889,20 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
 
       const isLatePayment = (appointment.status === 'completed' || appointment.status === 'finished');
       const description = isLatePayment
-        ? `Late payment for Appointment #${appointmentId}`
-        : `${paymentType === 'deposit' ? 'Deposit' : paymentType === 'custom' ? 'Partial' : 'Booking'} payment for Appointment #${appointmentId}`;
+        ? `Late payment for Booking ${displayCode}`
+        : `${paymentType === 'deposit' ? 'Deposit' : paymentType === 'custom' ? 'Partial' : 'Booking'} payment for Booking ${displayCode}`;
 
       // Use custom amount if provided and paymentType is custom
       if (paymentType === 'custom' && customAmount) {
         const customAmountPesos = Math.max(100, Math.round(Number(customAmount)));
-        await proceedWithSession(Math.round(customAmountPesos * 100), 'Partial Payment', description);
+        await proceedWithSession(Math.round(customAmountPesos * 100), 'Partial Payment', description, displayCode);
         return;
       }
 
       const itemName = isLatePayment
-        ? `Tattoo Service - Balance payment (Appt #${appointmentId})`
+        ? `Tattoo Service - Balance payment (${displayCode})`
         : paymentType === 'custom'
-          ? `Partial Payment (Appt #${appointmentId})`
+          ? `Partial Payment (${displayCode})`
           : (appointment.design_title || 'Tattoo Service') + (paymentType === 'deposit' ? ' (Deposit)' : '');
 
       try {
@@ -3900,7 +3911,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
           let tierPrice = isPiercing ? 500 : 5000;
           tierPrice = Math.min(tierPrice, priceNumber);
           const depositPesos = Math.max(100, Math.round(tierPrice));
-          await proceedWithSession(Math.round(depositPesos * 100), itemName, description);
+          await proceedWithSession(Math.round(depositPesos * 100), itemName, description, displayCode);
         } else if (paymentType === 'balance') {
           const totalPaidCentavos = Number(appointment.total_paid_centavos) || 0;
           const totalAmountCentavos = Math.round(priceNumber * 100);
@@ -3910,9 +3921,9 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
             return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
           }
 
-          await proceedWithSession(remainingCentavos, 'Balance Payment', `Final balance payment for Appointment #${appointmentId}`);
+          await proceedWithSession(remainingCentavos, 'Balance Payment', `Final balance payment for Booking ${displayCode}`, displayCode);
         } else {
-          await proceedWithSession(Math.round(priceNumber * 100), itemName, description);
+          await proceedWithSession(Math.round(priceNumber * 100), itemName, description, displayCode);
         }
       } catch (innerError) {
         console.error('❌ Error in proceedWithSession flow:', innerError.message);
@@ -3921,7 +3932,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         }
       }
 
-      async function proceedWithSession(sessionAmount, sessionName, sessionDesc) {
+      async function proceedWithSession(sessionAmount, sessionName, sessionDesc, bookingDisplayCode) {
         if (!sessionAmount || sessionAmount <= 0) {
           return res.status(400).json({
             success: false,
@@ -3949,6 +3960,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
               statement_descriptor: 'InkVistAR',
               metadata: {
                 appointmentId: String(appointmentId),
+                bookingCode: bookingDisplayCode || '',
                 customerId: String(appointment.customer_id),
                 artistId: String(appointment.artist_id),
                 mode: PAYMONGO_MODE,

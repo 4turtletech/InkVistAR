@@ -8,6 +8,7 @@ import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
+import { getDisplayCode } from '../utils/formatters';
 
 function CustomerBookings(){
     const [appointments, setAppointments] = useState([]);
@@ -158,17 +159,7 @@ function CustomerBookings(){
         fetchAppointments();
     }, [customerId]);
 
-    // Helper: Compute display booking code with sequential suffix from appointment ID
-    const getDisplayCode = (bookingCode, id) => {
-        const seqNum = String((id % 10000)).padStart(4, '0');
-        if (bookingCode && bookingCode.includes('-')) {
-            const parts = bookingCode.split('-');
-            if (parts.length >= 3) {
-                return `${parts[0]}-${parts[1]}-${seqNum}`;
-            }
-        }
-        return `#${seqNum}`;
-    };
+
 
     // Filter Logic
     const filteredAppointments = appointments.filter(apt => {

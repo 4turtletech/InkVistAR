@@ -8,6 +8,7 @@ import Pagination from '../components/Pagination';
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
+import { getDisplayCode } from '../utils/formatters';
 
 function ArtistAppointments() {
     const [appointments, setAppointments] = useState([]);
@@ -324,9 +325,10 @@ function ArtistAppointments() {
                                             <>
                                                 <div className="table-responsive">
                                                     <table className="portal-table">
-                                                        <thead><tr><th>Client</th><th>Service</th><th>Date</th><th>Time</th><th>Price</th>{activeTab === 'history' && <th>Materials Cost</th>}<th>Status</th><th>Payment</th>{activeTab === 'pending' && <th>Actions</th>}</tr></thead>
+                                                        <thead><tr><th>Booking ID</th><th>Client</th><th>Service</th><th>Date</th><th>Time</th><th>Price</th>{activeTab === 'history' && <th>Materials Cost</th>}<th>Status</th><th>Payment</th>{activeTab === 'pending' && <th>Actions</th>}</tr></thead>
                                                         <tbody>{currentItems.map(a => (
                                                             <tr key={a.id} onClick={() => setSelectedAppointment(a)} style={{ cursor: 'pointer' }} className="clickable-row hover-bg">
+                                                                <td><span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b', fontSize: '0.85rem' }}>{getDisplayCode(a.booking_code, a.id)}</span></td>
                                                                 <td style={{ fontWeight: '600' }}>{a.client_name}</td>
                                                                 <td>{a.design_title}</td>
                                                                 <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
@@ -383,7 +385,7 @@ function ArtistAppointments() {
                                         <div className="modal-overlay" onClick={() => setSelectedAppointment(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}>
                                             <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: '600px', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
                                                 <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <h3 style={{ margin: 0, color: '#1e293b' }}>Appointment Details</h3>
+                                                    <h3 style={{ margin: 0, color: '#1e293b' }}>Appointment {getDisplayCode(selectedAppointment.booking_code, selectedAppointment.id)}</h3>
                                                     <button onClick={() => setSelectedAppointment(null)} className="close-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
                                                 </div>
                                                 <div className="artist-modal-body-scroll" style={{ padding: '20px', maxHeight: '70vh', overflowY: 'auto' }}>

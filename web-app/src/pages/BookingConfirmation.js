@@ -3,19 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
 import { CheckCircle, Clock, ArrowRight, Home, CreditCard, Calendar } from 'lucide-react';
-
-// Helper: compute the same display code used in CustomerBookings.js
-const getDisplayCode = (bookingCode, id) => {
-    const numericId = parseInt(id, 10);
-    const seqNum = String(numericId % 10000).padStart(4, '0');
-    if (bookingCode && typeof bookingCode === 'string') {
-        const parts = bookingCode.split('-');
-        if (parts.length >= 2) {
-            return `${parts[0]}-${parts[1]}-${seqNum}`;
-        }
-    }
-    return `BK-${seqNum}`;
-};
+import { getDisplayCode } from '../utils/formatters';
 
 const BookingConfirmation = () => {
     const location = useLocation();
