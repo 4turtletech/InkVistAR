@@ -91,7 +91,7 @@ const BookingConfirmation = () => {
 
     return (
         <div style={{
-            background: '#1a1416',
+            background: '#171516',
             minHeight: '100vh',
             display: 'flex',
             alignItems: 'center',

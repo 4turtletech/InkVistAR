@@ -11,7 +11,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 
 ### 2. Theming & UI Standards (Web App)
 - **Primary Colors:** 
-  - Dark Background: `#1a1416`
+  - Dark Background: `#171516`
   - Dark Surface/Card: `#262022`
   - Brand Gold: `#b7954e`
   - Slate Dark (Text/Headings): `#1e293b` or `#0f172a`
