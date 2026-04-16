@@ -745,10 +745,10 @@ function AdminAppointments() {
                                     >
                                         <p style={{ margin: '0 0 10px', fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Booking Status Legend</p>
                                         {[
-                                            { color: '#14b8a6', label: 'Confirmed' },
+                                            { color: '#38bdf8', label: 'Confirmed' },
                                             { color: '#f59e0b', label: 'Pending' },
-                                            { color: '#6366f1', label: 'Scheduled' },
-                                            { color: '#3b82f6', label: 'In Session' },
+                                            { color: '#7c3aed', label: 'Scheduled' },
+                                            { color: '#0284c7', label: 'In Session' },
                                             { color: '#22c55e', label: 'Completed' },
                                             { color: '#ef4444', label: 'Incomplete' },
                                             { color: '#94a3b8', label: 'Cancelled / Rejected' },
@@ -821,10 +821,10 @@ function AdminAppointments() {
                                             {dayAppts.length > 0 && (
                                                 <div className="admin-st-3c36f78c">
                                                     {dayAppts.slice(0, 5).map(apt => {
-                                                        let dotColor = '#6366f1'; // default: scheduled
-                                                        if (apt.status === 'confirmed') dotColor = '#14b8a6';
+                                                        let dotColor = '#7c3aed'; // default: scheduled (dark purple)
+                                                        if (apt.status === 'confirmed') dotColor = '#38bdf8';
                                                         else if (apt.status === 'pending') dotColor = '#f59e0b';
-                                                        else if (apt.status === 'in_progress') dotColor = '#3b82f6';
+                                                        else if (apt.status === 'in_progress') dotColor = '#0284c7';
                                                         else if (apt.status === 'completed') dotColor = '#22c55e';
                                                         else if (apt.status === 'incomplete') dotColor = '#ef4444';
                                                         else if (apt.status === 'cancelled' || apt.status === 'rejected') dotColor = '#94a3b8';

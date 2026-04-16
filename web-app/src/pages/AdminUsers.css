@@ -322,8 +322,8 @@
 }
 
 .badge.status-scheduled {
-    background-color: #bfdbfe;
-    color: #1e40af;
+    background-color: #ede9fe;
+    color: #5b21b6;
 }
 
 .badge.status-completed {
@@ -332,13 +332,13 @@
 }
 
 .badge.status-confirmed {
-    background-color: #ccfbf1;
-    color: #0f766e;
+    background-color: #e0f2fe;
+    color: #0369a1;
 }
 
 .badge.status-in-progress {
-    background-color: #dbeafe;
-    color: #1d4ed8;
+    background-color: #cffafe;
+    color: #0e7490;
 }
 
 .badge.status-incomplete {
