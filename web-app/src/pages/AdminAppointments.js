@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, DollarSign, Info, FileText, Image } from 'lucide-react';
@@ -58,6 +58,8 @@ function AdminAppointments() {
     const [dayViewModal, setDayViewModal] = useState({ isOpen: false, date: '', appointments: [] });
     const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, date: '', time: '', reason: '' });
     const [showCalendarLegend, setShowCalendarLegend] = useState(false);
+    const [selectedDay, setSelectedDay] = useState(null); // tracks the keyboard-focused day
+    const calendarRef = useRef(null);
 
     // Modal animation handlers
     const openModal = () => {
@@ -140,7 +142,8 @@ function AdminAppointments() {
         }
     };
 
-    const handleDayClick = (dateString) => {
+    const handleDayClick = (dateString, day) => {
+        setSelectedDay(day || null);
         const dayAppts = appointments.filter(apt => {
             const aptDate = apt.date ? (apt.date.includes('T') ? apt.date.split('T')[0] : apt.date.substring(0, 10)) : '';
             return aptDate === dateString;
@@ -199,8 +202,94 @@ function AdminAppointments() {
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
 
     const changeMonth = (offset) => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
+        const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
+        const newDaysInMonth = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0).getDate();
+        // If going forward, land on day 1; if going back, land on last day
+        if (selectedDay !== null) {
+            setSelectedDay(offset > 0 ? 1 : newDaysInMonth);
+        }
+        setCurrentDate(newDate);
     };
+
+    // Navigate the day view modal to prev/next day
+    const navigateDayView = (offset) => {
+        const current = new Date(dayViewModal.date);
+        current.setDate(current.getDate() + offset);
+        const y = current.getFullYear();
+        const m = String(current.getMonth() + 1).padStart(2, '0');
+        const d = String(current.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${d}`;
+
+        // If we moved to a different month, update the calendar month too
+        if (current.getMonth() !== currentDate.getMonth() || current.getFullYear() !== currentDate.getFullYear()) {
+            setCurrentDate(new Date(y, current.getMonth(), 1));
+        }
+        setSelectedDay(current.getDate());
+
+        const dayAppts = appointments.filter(apt => {
+            const aptDate = apt.date ? (apt.date.includes('T') ? apt.date.split('T')[0] : apt.date.substring(0, 10)) : '';
+            return aptDate === dateStr;
+        });
+        setDayViewModal({ isOpen: true, date: dateStr, appointments: dayAppts });
+    };
+
+    // Keyboard arrow-key navigation for calendar
+    useEffect(() => {
+        if (viewMode !== 'calendar') return;
+        // Don't handle keys when the appointment edit modal is open
+        if (appointmentModal.mounted) return;
+
+        const handleKeyDown = (e) => {
+            // Only handle arrow keys and Enter
+            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter'].includes(e.key)) return;
+
+            // If the day view modal is open, let left/right navigate days
+            if (dayViewModal.isOpen) {
+                if (e.key === 'ArrowLeft') { e.preventDefault(); navigateDayView(-1); }
+                else if (e.key === 'ArrowRight') { e.preventDefault(); navigateDayView(1); }
+                return;
+            }
+
+            e.preventDefault();
+            const maxDay = daysInMonth;
+
+            if (selectedDay === null) {
+                // No day selected yet — select today if visible, otherwise day 1
+                const today = new Date();
+                if (today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear()) {
+                    setSelectedDay(today.getDate());
+                } else {
+                    setSelectedDay(1);
+                }
+                return;
+            }
+
+            if (e.key === 'Enter') {
+                const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+                handleDayClick(dateStr, selectedDay);
+                return;
+            }
+
+            let newDay = selectedDay;
+            if (e.key === 'ArrowLeft') newDay = selectedDay - 1;
+            else if (e.key === 'ArrowRight') newDay = selectedDay + 1;
+            else if (e.key === 'ArrowUp') newDay = selectedDay - 7;
+            else if (e.key === 'ArrowDown') newDay = selectedDay + 7;
+
+            if (newDay < 1) {
+                // Navigate to previous month
+                changeMonth(-1);
+            } else if (newDay > maxDay) {
+                // Navigate to next month
+                changeMonth(1);
+            } else {
+                setSelectedDay(newDay);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [viewMode, selectedDay, currentDate, daysInMonth, dayViewModal.isOpen, appointmentModal.mounted]);
 
     const getAppointmentsForDate = (day) => {
         return appointments.filter(a => {
@@ -780,17 +869,20 @@ function AdminAppointments() {
 
                                 return (
                                     <div key={day} style={{
-                                        border: isToday ? '2px solid #6366f1' : '1px solid #e2e8f0',
+                                        border: selectedDay === day
+                                            ? '2px solid #7c3aed'
+                                            : isToday ? '2px solid #6366f1' : '1px solid #e2e8f0',
                                         minHeight: '100px',
                                         padding: '8px',
                                         borderRadius: '8px',
-                                        backgroundColor: 'white',
+                                        backgroundColor: selectedDay === day ? '#f5f3ff' : 'white',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s ease',
-                                        position: 'relative'
+                                        position: 'relative',
+                                        boxShadow: selectedDay === day ? '0 0 0 3px rgba(124,58,237,0.15)' : 'none'
                                     }}
                                         className="calendar-day-cell"
-                                        onClick={() => handleDayClick(`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`) }>
+                                        onClick={() => handleDayClick(`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`, day) }>
                                         <div style={{ fontWeight: 'bold', marginBottom: '5px', color: isToday ? '#6366f1' : '#334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span>{day}</span>
                                             <Plus size={12} className="admin-st-0dbc0f09" />
@@ -1607,7 +1699,25 @@ function AdminAppointments() {
                     <div className="modal-overlay admin-st-032d51d4" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}>
                         <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h2>{dayViewModal.date}</h2>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <button
+                                        className="action-btn admin-m-0"
+                                        onClick={(e) => { e.stopPropagation(); navigateDayView(-1); }}
+                                        title="Previous day"
+                                        style={{ width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', border: '1px solid #e2e8f0', cursor: 'pointer' }}
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
+                                    <h2 style={{ margin: 0 }}>{dayViewModal.date}</h2>
+                                    <button
+                                        className="action-btn admin-m-0"
+                                        onClick={(e) => { e.stopPropagation(); navigateDayView(1); }}
+                                        title="Next day"
+                                        style={{ width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', border: '1px solid #e2e8f0', cursor: 'pointer' }}
+                                    >
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </div>
                                 <button className="close-btn" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}><X size={24} /></button>
                             </div>
                             <div className="modal-body">
