@@ -847,12 +847,6 @@ function AdminAppointments() {
                                                 <span style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 500 }}>{label}</span>
                                             </div>
                                         ))}
-                                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <div style={{ minWidth: '20px', height: '18px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
-                                                <span style={{ fontSize: '0.65rem', color: 'white', fontWeight: 800 }}>3</span>
-                                            </div>
-                                            <span style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 500 }}>Booking count for that day</span>
-                                        </div>
                                     </div>
                                 )}
                             </div>
