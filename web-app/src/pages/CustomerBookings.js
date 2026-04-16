@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
-import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle, RotateCcw, PlusCircle, History, MessageSquare } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
@@ -30,11 +30,13 @@ function CustomerBookings(){
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [studioCapacity, setStudioCapacity] = useState(1);
     const [bookedDates, setBookedDates] = useState({});
-    const serviceOptions = ['Tattoo Session', 'Consultation', 'Piercing', 'Tattoo + Piercing', 'Follow-up', 'Touch-up'];
+    const [completedAppointments, setCompletedAppointments] = useState([]);
     
     const [bookingData, setBookingData] = useState({
-        artistId: null, // Artist selection is now optional for the customer
-        serviceType: '',
+        artistId: null,
+        bookingType: '', // 'new' or 'followup'
+        selectedServices: [], // e.g. ['Tattoo Session', 'Piercing']
+        followupAppointmentId: null,
         date: '',
         startTime: '',
         designTitle: '',
@@ -43,6 +45,13 @@ function CustomerBookings(){
         notes: '',
         referenceImage: null,
     });
+
+    // Derive the composite serviceType string from selectedServices for backend compatibility
+    const getDerivedServiceType = (services) => {
+        if (!services || services.length === 0) return '';
+        if (services.includes('Tattoo Session') && services.includes('Piercing')) return 'Tattoo + Piercing';
+        return services[0]; // Single service
+    };
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalTab, setModalTab] = useState('details');
@@ -262,7 +271,7 @@ function CustomerBookings(){
         // Only block dates where the customer has a PENDING tattoo-type appointment.
         // Consultations & piercings use time slots, so they don't block the whole date.
         const myTattooBlockedDates = new Set();
-        const tattooTypeServices = ['tattoo session', 'follow-up', 'touch-up', 'tattoo + piercing'];
+        const tattooTypeServices = ['tattoo session', 'tattoo + piercing'];
         appointments.forEach(a => {
             if (['pending'].includes(a.status)) {
                 const sType = (a.service_type || '').toLowerCase();
@@ -286,7 +295,7 @@ function CustomerBookings(){
 
             // For tattoo-type services, block if customer already has a pending tattoo on this date
             // For consultation/piercing, never block the whole date (time slot picker handles it)
-            const selectedService = (bookingData.serviceType || '').toLowerCase();
+            const selectedService = getDerivedServiceType(bookingData.selectedServices).toLowerCase();
             const isSlotBasedService = ['consultation', 'piercing'].includes(selectedService);
             const hasMySession = !isSlotBasedService && myTattooBlockedDates.has(dateStr);
 
@@ -373,21 +382,35 @@ function CustomerBookings(){
 
     const closeBookingModal = () => {
         setIsBookingModalOpen(false);
-        setBookingData({ artistId: null, serviceType: '', date: '', startTime: '', designTitle: '', placement: '', piercingPlacement: '', notes: '', referenceImage: null });
+        setBookingData({ artistId: null, bookingType: '', selectedServices: [], followupAppointmentId: null, date: '', startTime: '', designTitle: '', placement: '', piercingPlacement: '', notes: '', referenceImage: null });
         setBookingStep(1);
     };
 
+    const fetchCompletedAppointments = async () => {
+        try {
+            const res = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
+            if (res.data.success) {
+                setCompletedAppointments(
+                    (res.data.appointments || []).filter(a => ['completed', 'finished'].includes((a.status || '').toLowerCase()))
+                );
+            }
+        } catch (e) { console.error('Error fetching completed appointments:', e); }
+    };
+
     const handleNextStep = () => {
-        if (bookingStep === 1 && !bookingData.serviceType) {
-            return showAlert("Required Field", "Please select a service type before proceeding.", "warning");
+        const derivedType = getDerivedServiceType(bookingData.selectedServices);
+        if (bookingStep === 1) {
+            if (!bookingData.bookingType) return showAlert("Required Field", "Please select whether this is a new booking or a follow-up.", "warning");
+            if (bookingData.bookingType === 'followup' && !bookingData.followupAppointmentId) return showAlert("Required Field", "Please select which previous appointment this is a follow-up for.", "warning");
+            if (bookingData.selectedServices.length === 0) return showAlert("Required Field", "Please select at least one service type.", "warning");
         }
-        if (bookingStep === 2 && !bookingData.designTitle && bookingData.serviceType !== 'Consultation') {
+        if (bookingStep === 2 && !bookingData.designTitle && derivedType !== 'Consultation') {
             return showAlert("Required Field", "Please provide a design idea or title.", "warning");
         }
-        if (bookingStep === 3 && !bookingData.placement && !['Consultation', 'Follow-up'].includes(bookingData.serviceType)) {
-            return showAlert("Required Field", "Please select the tattoo placement for your session.", "warning");
+        if (bookingStep === 3 && !bookingData.placement && derivedType !== 'Consultation') {
+            return showAlert("Required Field", "Please select the placement for your session.", "warning");
         }
-        if (bookingStep === 3 && bookingData.serviceType === 'Tattoo + Piercing' && !bookingData.piercingPlacement) {
+        if (bookingStep === 3 && derivedType === 'Tattoo + Piercing' && !bookingData.piercingPlacement) {
             return showAlert("Required Field", "Please also select the piercing location for your bundled session.", "warning");
         }
         setBookingStep(bookingStep + 1);
@@ -395,40 +418,48 @@ function CustomerBookings(){
 
     const handleSubmitBooking = async (e) => {
         if (e) e.preventDefault();
+        const derivedType = getDerivedServiceType(bookingData.selectedServices);
 
-        if (!bookingData.date || (bookingData.serviceType === 'Consultation' && !bookingData.startTime)) {
-            return showAlert("Required Field", "Please select an available date" + (bookingData.serviceType === 'Consultation' ? " and time slot" : "") + " from the calendar.", "warning");
+        if (!bookingData.date || (['Consultation', 'Piercing', 'Tattoo + Piercing'].includes(derivedType) && !bookingData.startTime)) {
+            return showAlert("Required Field", "Please select an available date" + (['Consultation', 'Piercing', 'Tattoo + Piercing'].includes(derivedType) ? " and time slot" : "") + " from the calendar.", "warning");
         }
-        if (!bookingData.date || !bookingData.serviceType || !bookingData.placement) {
+        if (!bookingData.date || !derivedType || (!bookingData.placement && derivedType !== 'Consultation')) {
             showAlert("Missing Info", "Please select a service, placement, and date.", "warning");
             return;
         }
 
-        // Admin handles artist assignment later, allowing the customer to omit selecting an artist here.
-
         setIsSubmitting(true);
         try {
-            const placementNotes = bookingData.serviceType === 'Tattoo + Piercing'
+            const placementNotes = derivedType === 'Tattoo + Piercing'
                 ? `Tattoo Placement: ${bookingData.placement}\nPiercing Location: ${bookingData.piercingPlacement}`
-                : `Placement: ${bookingData.placement}`;
+                : derivedType === 'Piercing'
+                    ? `Piercing Location: ${bookingData.placement}`
+                    : `Placement: ${bookingData.placement}`;
+
+            // Build follow-up reference if applicable
+            let followupNote = '';
+            if (bookingData.bookingType === 'followup' && bookingData.followupAppointmentId) {
+                const refAppt = completedAppointments.find(a => a.id === bookingData.followupAppointmentId);
+                const refCode = refAppt ? getDisplayCode(refAppt.booking_code, refAppt.id) : `#${bookingData.followupAppointmentId}`;
+                followupNote = `\n\n📋 Follow-up of Booking ${refCode}`;
+            }
 
             const res = await Axios.post(`${API_URL}/api/customer/appointments`, {
                 customerId,
                 artistId: bookingData.artistId,
                 date: bookingData.date,
-                startTime: bookingData.serviceType === 'Consultation' ? bookingData.startTime : '13:00',
-                endTime: bookingData.serviceType === 'Consultation' ? bookingData.startTime : '13:00',
-                serviceType: bookingData.serviceType,
+                startTime: ['Consultation', 'Piercing', 'Tattoo + Piercing'].includes(derivedType) ? bookingData.startTime : '13:00',
+                endTime: ['Consultation', 'Piercing', 'Tattoo + Piercing'].includes(derivedType) ? bookingData.startTime : '13:00',
+                serviceType: derivedType,
                 designTitle: bookingData.designTitle,
-                notes: `${placementNotes}\n\nDetails: ${bookingData.notes}`,
+                notes: `${placementNotes}\n\nDetails: ${bookingData.notes}${followupNote}`,
                 referenceImage: bookingData.referenceImage
             });
 
             if (res.data.success) {
                 showAlert("Booking Requested", "Your session request has been sent! A confirmation notification with details has been added to your account.", "success");
                 setIsBookingModalOpen(false);
-                setBookingData({ artistId: '', serviceType: '', date: '', startTime: '', designTitle: '', placement: '', piercingPlacement: '', notes: '', referenceImage: null });
-                // Refresh list
+                setBookingData({ artistId: null, bookingType: '', selectedServices: [], followupAppointmentId: null, date: '', startTime: '', designTitle: '', placement: '', piercingPlacement: '', notes: '', referenceImage: null });
                 const fetchRes = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
                 if (fetchRes.data.success) setAppointments(fetchRes.data.appointments);
             }
@@ -1051,23 +1082,142 @@ function CustomerBookings(){
                                 {bookingStep === 1 && (
                                     <div className="fade-in">
                                         <h3 className="customer-st-69ffca42" >1. Service Type</h3>
+
+                                        {/* Phase A: Booking Type Toggle */}
                                         <div className="form-group">
-                                            <label className="customer-st-36716a21" >What type of service are you looking for?</label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
-                                                {serviceOptions.map(type => (
-                                                    <div 
-                                                        key={type}
-                                                        onClick={() => setBookingData({...bookingData, serviceType: type})}
+                                            <label className="customer-st-36716a21" >Is this a new booking or a follow-up?</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                                                {[
+                                                    { key: 'new', label: 'New Booking', icon: <PlusCircle size={22} />, desc: 'Book a brand new session' },
+                                                    { key: 'followup', label: 'Follow-Up', icon: <History size={22} />, desc: 'Continue from a past booking' }
+                                                ].map(opt => (
+                                                    <div
+                                                        key={opt.key}
+                                                        onClick={() => {
+                                                            setBookingData({...bookingData, bookingType: opt.key, selectedServices: [], followupAppointmentId: null});
+                                                            if (opt.key === 'followup') fetchCompletedAppointments();
+                                                        }}
                                                         style={{
-                                                            padding: '16px', borderRadius: '12px', border: `2px solid ${bookingData.serviceType === type ? '#daa520' : '#e2e8f0'}`,
-                                                            background: bookingData.serviceType === type ? '#fffdf5' : 'white', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'
+                                                            padding: '20px', borderRadius: '14px',
+                                                            border: `2px solid ${bookingData.bookingType === opt.key ? '#daa520' : '#e2e8f0'}`,
+                                                            background: bookingData.bookingType === opt.key ? '#fffdf5' : 'white',
+                                                            cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
+                                                            boxShadow: bookingData.bookingType === opt.key ? '0 4px 12px rgba(218,165,32,0.15)' : 'none'
                                                         }}
                                                     >
-                                                        <span className="customer-st-043152e7" >{type}</span>
+                                                        <div style={{ color: bookingData.bookingType === opt.key ? '#daa520' : '#64748b', marginBottom: '8px' }}>{opt.icon}</div>
+                                                        <span style={{ fontWeight: '700', fontSize: '1rem', color: '#1e293b', display: 'block' }}>{opt.label}</span>
+                                                        <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{opt.desc}</span>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
+
+                                        {/* Follow-Up: Past Appointment Picker */}
+                                        {bookingData.bookingType === 'followup' && (
+                                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                                <label className="customer-st-36716a21" >Which previous appointment is this a follow-up for?</label>
+                                                {completedAppointments.length === 0 ? (
+                                                    <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                        <Inbox size={28} style={{ marginBottom: '8px' }} />
+                                                        <p style={{ margin: 0, fontSize: '0.9rem' }}>No completed appointments found. You don't have any past sessions to follow up on.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
+                                                        {completedAppointments.map(apt => {
+                                                            const isSelected = bookingData.followupAppointmentId === apt.id;
+                                                            return (
+                                                                <div
+                                                                    key={apt.id}
+                                                                    onClick={() => setBookingData({...bookingData, followupAppointmentId: apt.id})}
+                                                                    style={{
+                                                                        padding: '14px 16px', borderRadius: '10px',
+                                                                        border: `2px solid ${isSelected ? '#daa520' : '#e2e8f0'}`,
+                                                                        background: isSelected ? '#fffdf5' : 'white',
+                                                                        cursor: 'pointer', transition: 'all 0.2s',
+                                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                                                    }}
+                                                                >
+                                                                    <div>
+                                                                        <span style={{ fontWeight: '600', color: '#1e293b', fontSize: '0.9rem' }}>
+                                                                            {getDisplayCode(apt.booking_code, apt.id)}
+                                                                        </span>
+                                                                        <span style={{ color: '#64748b', fontSize: '0.85rem', marginLeft: '10px' }}>
+                                                                            {apt.service_type} — {new Date(apt.appointment_date).toLocaleDateString()}
+                                                                        </span>
+                                                                    </div>
+                                                                    {isSelected && <Check size={18} color="#daa520" />}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Phase B: Service Checkboxes (shown after booking type selected) */}
+                                        {bookingData.bookingType && (bookingData.bookingType === 'new' || bookingData.followupAppointmentId) && (
+                                            <div className="form-group">
+                                                <label className="customer-st-36716a21" >Select your services</label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                                                    {[
+                                                        { key: 'Tattoo Session', icon: <Sparkles size={20} />, color: '#daa520' },
+                                                        { key: 'Consultation', icon: <MessageSquare size={20} />, color: '#3b82f6' },
+                                                        { key: 'Piercing', icon: <Scissors size={20} />, color: '#8b5cf6' }
+                                                    ].map(svc => {
+                                                        const isChecked = bookingData.selectedServices.includes(svc.key);
+                                                        // Mutual exclusion: Consultation is exclusive vs Tattoo/Piercing
+                                                        const isDisabled = (
+                                                            (svc.key === 'Consultation' && (bookingData.selectedServices.includes('Tattoo Session') || bookingData.selectedServices.includes('Piercing'))) ||
+                                                            ((svc.key === 'Tattoo Session' || svc.key === 'Piercing') && bookingData.selectedServices.includes('Consultation'))
+                                                        );
+                                                        return (
+                                                            <div
+                                                                key={svc.key}
+                                                                onClick={() => {
+                                                                    if (isDisabled) return;
+                                                                    const current = [...bookingData.selectedServices];
+                                                                    if (isChecked) {
+                                                                        setBookingData({...bookingData, selectedServices: current.filter(s => s !== svc.key)});
+                                                                    } else {
+                                                                        setBookingData({...bookingData, selectedServices: [...current, svc.key]});
+                                                                    }
+                                                                }}
+                                                                style={{
+                                                                    padding: '18px 12px', borderRadius: '12px',
+                                                                    border: `2px solid ${isChecked ? svc.color : isDisabled ? '#f1f5f9' : '#e2e8f0'}`,
+                                                                    background: isChecked ? `${svc.color}08` : isDisabled ? '#f8fafc' : 'white',
+                                                                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                                                    textAlign: 'center', transition: 'all 0.2s',
+                                                                    opacity: isDisabled ? 0.45 : 1,
+                                                                    position: 'relative'
+                                                                }}
+                                                            >
+                                                                {/* Checkbox indicator */}
+                                                                <div style={{
+                                                                    position: 'absolute', top: '8px', right: '8px',
+                                                                    width: '20px', height: '20px', borderRadius: '5px',
+                                                                    border: `2px solid ${isChecked ? svc.color : '#cbd5e1'}`,
+                                                                    background: isChecked ? svc.color : 'white',
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                    transition: 'all 0.2s'
+                                                                }}>
+                                                                    {isChecked && <Check size={14} color="white" strokeWidth={3} />}
+                                                                </div>
+                                                                <div style={{ color: isChecked ? svc.color : (isDisabled ? '#cbd5e1' : '#64748b'), marginBottom: '8px' }}>{svc.icon}</div>
+                                                                <span style={{ fontWeight: '700', fontSize: '0.9rem', color: isDisabled ? '#cbd5e1' : '#1e293b' }}>{svc.key}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {bookingData.selectedServices.includes('Tattoo Session') && bookingData.selectedServices.includes('Piercing') && (
+                                                    <div style={{ marginTop: '12px', padding: '10px 14px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <Sparkles size={16} color="#d97706" />
+                                                        <span style={{ fontSize: '0.85rem', color: '#92400e', fontWeight: '500' }}>Bundled: Tattoo + Piercing in the same session</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
 
                                         <div className="customer-st-59166514" >
                                             <p className="customer-st-7b7d7267" >
@@ -1078,13 +1228,15 @@ function CustomerBookings(){
                                     </div>
                                 )}
 
-                                {bookingStep === 2 && (
+                                {bookingStep === 2 && (() => {
+                                    const derivedType = getDerivedServiceType(bookingData.selectedServices);
+                                    return (
                                     <div className="fade-in">
                                         <h3 className="customer-st-69ffca42" >2. Design Details</h3>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                                 <div className="form-group" style={{ marginBottom: 0 }}>
-                                                    <label className="customer-st-67198c20" >{bookingData.serviceType === 'Tattoo + Piercing' ? 'Tattoo Design Idea / Title' : 'Tattoo Idea / Title'}</label>
+                                                    <label className="customer-st-67198c20" >{derivedType === 'Tattoo + Piercing' ? 'Tattoo Design Idea / Title' : 'Tattoo Idea / Title'}</label>
                                                     <input 
                                                         type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
                                                         value={bookingData.designTitle} onChange={e => setBookingData({...bookingData, designTitle: e.target.value})}
@@ -1094,12 +1246,12 @@ function CustomerBookings(){
                                                 <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0 }}>
                                                     <label className="customer-st-67198c20" >Tell us your story (Optional)</label>
                                                     <textarea 
-                                                        className="form-input" rows={bookingData.serviceType === 'Tattoo + Piercing' ? 3 : 5} placeholder="Describe the size, color preferences, and any meaningful details..."
+                                                        className="form-input" rows={derivedType === 'Tattoo + Piercing' ? 3 : 5} placeholder="Describe the size, color preferences, and any meaningful details..."
                                                         value={bookingData.notes} onChange={e => setBookingData({...bookingData, notes: e.target.value})}
                                                         style={{ resize: 'none' }}
                                                     />
                                                 </div>
-                                                {bookingData.serviceType === 'Tattoo + Piercing' && (
+                                                {derivedType === 'Tattoo + Piercing' && (
                                                     <div style={{ padding: '14px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                                                         <Sparkles size={18} color="#d97706" style={{ marginTop: '2px', flexShrink: 0 }} />
                                                         <div style={{ fontSize: '0.85rem', color: '#92400e', lineHeight: '1.5' }}>
@@ -1132,17 +1284,20 @@ function CustomerBookings(){
                                             </div>
                                         </div>
                                     </div>
-                                )}
+                                    );
+                                })()}
 
-                                {bookingStep === 3 && (
+                                {bookingStep === 3 && (() => {
+                                    const derivedType = getDerivedServiceType(bookingData.selectedServices);
+                                    return (
                                     <div className="fade-in">
                                         <h3 className="customer-st-69ffca42" >3. Placement</h3>
 
-                                        {/* Tattoo Placement (shown for Tattoo Session, Touch-up, Follow-up, and Tattoo + Piercing) */}
-                                        {bookingData.serviceType !== 'Piercing' && (
+                                        {/* Tattoo Placement (shown when Tattoo Session is selected) */}
+                                        {bookingData.selectedServices.includes('Tattoo Session') && (
                                             <>
                                                 <p className="customer-st-b943a453" style={{ marginBottom: '10px' }}>
-                                                    {bookingData.serviceType === 'Tattoo + Piercing' ? '🎨 Where would you like your tattoo?' : 'Where would you like your tattoo?'}
+                                                    {derivedType === 'Tattoo + Piercing' ? '🎨 Where would you like your tattoo?' : 'Where would you like your tattoo?'}
                                                 </p>
                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                                                     {["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"].map(part => (
@@ -1163,25 +1318,25 @@ function CustomerBookings(){
                                             </>
                                         )}
 
-                                        {/* Piercing Placement (shown for Piercing and Tattoo + Piercing) */}
-                                        {(bookingData.serviceType === 'Piercing' || bookingData.serviceType === 'Tattoo + Piercing') && (
+                                        {/* Piercing Placement (shown when Piercing is selected) */}
+                                        {bookingData.selectedServices.includes('Piercing') && (
                                             <>
-                                                {bookingData.serviceType === 'Tattoo + Piercing' && (
+                                                {derivedType === 'Tattoo + Piercing' && (
                                                     <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '20px 0' }} />
                                                 )}
                                                 <p className="customer-st-b943a453" style={{ marginBottom: '10px' }}>
-                                                    {bookingData.serviceType === 'Tattoo + Piercing' ? '💎 Where would you like your piercing?' : 'Where would you like your piercing?'}
+                                                    {derivedType === 'Tattoo + Piercing' ? '💎 Where would you like your piercing?' : 'Where would you like your piercing?'}
                                                 </p>
                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                                                     {["Ear Lobe", "Helix", "Tragus", "Conch", "Industrial", "Nostril", "Septum", "Eyebrow", "Lip/Oral", "Navel", "Nipple", "Other"].map(part => {
-                                                        const isSelected = bookingData.serviceType === 'Piercing'
+                                                        const isSelected = derivedType === 'Piercing'
                                                             ? bookingData.placement === part
                                                             : bookingData.piercingPlacement === part;
                                                         return (
                                                             <button
                                                                 key={`piercing-${part}`} type="button"
                                                                 onClick={() => {
-                                                                    if (bookingData.serviceType === 'Piercing') {
+                                                                    if (derivedType === 'Piercing') {
                                                                         setBookingData({...bookingData, placement: part});
                                                                     } else {
                                                                         setBookingData({...bookingData, piercingPlacement: part});
@@ -1205,13 +1360,13 @@ function CustomerBookings(){
                                         <div className="form-group customer-st-842c3fb4" >
                                             <label className="customer-st-fc6d29da" >Specific location notes</label>
                                             <input 
-                                                type="text" className="form-input" placeholder={bookingData.serviceType === 'Tattoo + Piercing' ? 'e.g. Left inner forearm tattoo, right ear helix piercing' : 'e.g. Left inner forearm, near elbow'}
+                                                type="text" className="form-input" placeholder={derivedType === 'Tattoo + Piercing' ? 'e.g. Left inner forearm tattoo, right ear helix piercing' : 'e.g. Left inner forearm, near elbow'}
                                                 value={bookingData.placementNotes} onChange={e => setBookingData({...bookingData, placementNotes: e.target.value})} 
                                             />
                                         </div>
 
                                         {/* Selection summary for Tattoo + Piercing */}
-                                        {bookingData.serviceType === 'Tattoo + Piercing' && (bookingData.placement || bookingData.piercingPlacement) && (
+                                        {derivedType === 'Tattoo + Piercing' && (bookingData.placement || bookingData.piercingPlacement) && (
                                             <div style={{ marginTop: '12px', padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#166534' }}>
                                                     {bookingData.placement ? <><Check size={14} color="#16a34a" /> <strong>Tattoo:</strong> {bookingData.placement}</> : <span style={{ color: '#94a3b8' }}>Tattoo placement not selected</span>}
@@ -1222,9 +1377,12 @@ function CustomerBookings(){
                                             </div>
                                         )}
                                     </div>
-                                )}
+                                    );
+                                })()}
 
-                                {bookingStep === 4 && (
+                                {bookingStep === 4 && (() => {
+                                    const derivedType = getDerivedServiceType(bookingData.selectedServices);
+                                    return (
                                     <div className="fade-in">
                                         <h3 className="customer-st-69ffca42" >4. Schedule Your Session</h3>
                                         <div className="customer-st-d1b64d7a" >
@@ -1239,9 +1397,9 @@ function CustomerBookings(){
                                                     {renderCalendarDays()}
                                                 </div>
                                             </div>
-                                            {['Consultation', 'Piercing', 'Tattoo + Piercing'].includes(bookingData.serviceType) && (
+                                            {['Consultation', 'Piercing', 'Tattoo + Piercing'].includes(derivedType) && (
                                                 <div className="time-slots">
-                                                    <label className="customer-st-36716a21" >Preferred Time Slot {bookingData.serviceType === 'Tattoo + Piercing' ? '(for piercing)' : ''}</label>
+                                                    <label className="customer-st-36716a21" >Preferred Time Slot {derivedType === 'Tattoo + Piercing' ? '(for piercing)' : ''}</label>
                                                     <div className="customer-st-caa523c7" >
                                                         {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => {
                                                             let isDisabled = false;
@@ -1249,7 +1407,7 @@ function CustomerBookings(){
                                                                 const checkDate = new Date(`${bookingData.date}T${t}:00`);
                                                                 if (checkDate <= new Date()) isDisabled = true;
                                                                 // Check the correct pool based on service type
-                                                                const pool = bookingData.serviceType === 'Consultation' ? 'consultationTimes' : 'piercingTimes';
+                                                                const pool = derivedType === 'Consultation' ? 'consultationTimes' : 'piercingTimes';
                                                                 if (bookedDates[bookingData.date] && bookedDates[bookingData.date][pool].includes(t)) isDisabled = true;
                                                             } else {
                                                                 isDisabled = true; // Wait for date selection
@@ -1287,7 +1445,8 @@ function CustomerBookings(){
                                             </div>
                                         )}
                                     </div>
-                                )}
+                                    );
+                                })()}
                             </div>
 
                             <div className="modal-footer customer-st-a2acee48" >

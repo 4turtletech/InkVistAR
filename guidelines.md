@@ -182,6 +182,12 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 7. **Booking Code Standardization:** All portals MUST display the formatted booking ID via `src/utils/formatters.js` (e.g., `O-T-0012`). Do NOT use raw numeric IDs. PayMongo checkout strictly enforces the presence of `booking_code`.
 8. **Session Tracking:** Artist portal uses real-time stopwatches logging elapsed time to `session_duration` (INT seconds) combined with detailed chrono `audit_log` (JSON text logging pauses/completes/items).
 9. **Capacity Pools (Booking):** Schedule validation uses a decoupled three-pool system so that Consultations, Piercings, and Tattoos/Artist bookings calculate distinct concurrent capacities. Combos (e.g., "Tattoo + Piercing") draw from multiple capacity pools simultaneously.
+10. **Phone Input Standardization:** All phone number inputs across all portals MUST use the reusable `CountryCodeSelect` component (`src/components/CountryCodeSelect.js`) paired with `getPhoneParts()` from `src/constants/countryCodes.js`. The component displays only the dial code (e.g., `+63`) when collapsed and a searchable list of 200+ countries when expanded. Do NOT use native `<select>` elements with hardcoded country lists for phone inputs.
+11. **Valid Service Types:** The only valid `service_type` values stored in `appointments` are: `"Tattoo Session"`, `"Consultation"`, `"Piercing"`, and `"Tattoo + Piercing"`. The obsolete values `"Follow-up"` and `"Touch-up"` have been removed from the booking flow.
+12. **Booking Flow (Customer Portal):** The "Book New Session" modal in `CustomerBookings.js` uses a two-phase Step 1:
+    - **Phase A:** Customer selects "New Booking" or "Follow-Up". Follow-ups require selecting a past completed appointment for traceability (embedded in notes as `📋 Follow-up of Booking INK-XXXX`).
+    - **Phase B:** Three checkbox-based service options appear: Tattoo Session, Consultation, Piercing. **Consultation is exclusive** — selecting it grays out Tattoo/Piercing, and vice versa. Tattoo + Piercing can be combined (stored as `"Tattoo + Piercing"` for backend compatibility).
+    - The `CustomerBookingWizard.js` (public/anonymous wizard) is NOT affected — it remains a consultation-only flow.
 
 ---
 
