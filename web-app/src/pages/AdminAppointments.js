@@ -57,6 +57,7 @@ function AdminAppointments() {
     });
     const [dayViewModal, setDayViewModal] = useState({ isOpen: false, date: '', appointments: [] });
     const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, date: '', time: '', reason: '' });
+    const [showCalendarLegend, setShowCalendarLegend] = useState(false);
 
     // Modal animation handlers
     const openModal = () => {
@@ -711,7 +712,57 @@ function AdminAppointments() {
                                 <button onClick={() => changeMonth(1)} className="action-btn admin-m-0"><ChevronRight size={20} /></button>
                             </div>
                             <h2 className="admin-st-dcacbd6e">{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
-                            <div className="admin-st-c25159cb"></div>
+                            <div style={{ position: 'relative' }}>
+                                <button
+                                    onClick={() => setShowCalendarLegend(v => !v)}
+                                    title="Show color legend"
+                                    style={{
+                                        width: '30px', height: '30px', borderRadius: '50%',
+                                        border: '1.5px solid #cbd5e1',
+                                        background: showCalendarLegend ? '#6366f1' : 'white',
+                                        color: showCalendarLegend ? 'white' : '#64748b',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
+                                        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                                        transition: 'all 0.2s ease', flexShrink: 0
+                                    }}
+                                >
+                                    i
+                                </button>
+                                {showCalendarLegend && (
+                                    <div
+                                        onClick={() => setShowCalendarLegend(false)}
+                                        style={{
+                                            position: 'absolute', top: '38px', right: 0,
+                                            background: 'white', borderRadius: '12px',
+                                            boxShadow: '0 8px 30px rgba(0,0,0,0.14)',
+                                            border: '1px solid #e2e8f0',
+                                            padding: '14px 18px', zIndex: 999,
+                                            minWidth: '200px', cursor: 'default'
+                                        }}
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <p style={{ margin: '0 0 10px', fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Booking Status Legend</p>
+                                        {[
+                                            { color: '#10b981', label: 'Confirmed' },
+                                            { color: '#f59e0b', label: 'Pending' },
+                                            { color: '#6366f1', label: 'Scheduled' },
+                                            { color: '#94a3b8', label: 'Cancelled / Rejected' },
+                                        ].map(({ color, label }) => (
+                                            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0, boxShadow: `0 0 0 2px ${color}33` }} />
+                                                <span style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 500 }}>{label}</span>
+                                            </div>
+                                        ))}
+                                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{ minWidth: '20px', height: '18px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
+                                                <span style={{ fontSize: '0.65rem', color: 'white', fontWeight: 800 }}>3</span>
+                                            </div>
+                                            <span style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 500 }}>Booking count for that day</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div className="calendar-grid admin-st-3d636867">
                             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
@@ -731,20 +782,33 @@ function AdminAppointments() {
                                         borderRadius: '8px',
                                         backgroundColor: 'white',
                                         cursor: 'pointer',
-                                        transition: 'all 0.2s ease'
+                                        transition: 'all 0.2s ease',
+                                        position: 'relative'
                                     }}
                                         className="calendar-day-cell"
-                                        onClick={() => handleDayClick(`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`)}>
-                                        <div style={{ fontWeight: 'bold', marginBottom: '5px', color: isToday ? '#6366f1' : '#334155', display: 'flex', justifyContent: 'space-between' }}>
+                                        onClick={() => handleDayClick(`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`) }>
+                                        <div style={{ fontWeight: 'bold', marginBottom: '5px', color: isToday ? '#6366f1' : '#334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span>{day}</span>
                                             <Plus size={12} className="admin-st-0dbc0f09" />
                                         </div>
+                                        {/* Booking count badge — styled like the sidenav notification-badge */}
+                                        {dayAppts.length > 0 && (
+                                            <div style={{
+                                                position: 'absolute', top: '6px', right: '6px',
+                                                background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+                                                color: '#fff',
+                                                fontSize: '0.62rem', fontWeight: 800,
+                                                minWidth: '18px', height: '18px',
+                                                padding: '0 5px', borderRadius: '9px',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                boxShadow: '0 2px 6px rgba(99,102,241,0.45)',
+                                                lineHeight: 1, letterSpacing: '-0.3px',
+                                                pointerEvents: 'none'
+                                            }}>
+                                                {dayAppts.length > 99 ? '99+' : dayAppts.length}
+                                            </div>
+                                        )}
                                         <div className="admin-st-5e598434">
-                                            {dayAppts.length > 0 && (
-                                                <div className="admin-st-50ce32ce">
-                                                    {dayAppts.length} {dayAppts.length === 1 ? 'Booking' : 'Bookings'}
-                                                </div>
-                                            )}
                                             {dayAppts.length > 0 && (
                                                 <div className="admin-st-3c36f78c">
                                                     {dayAppts.slice(0, 5).map(apt => (
