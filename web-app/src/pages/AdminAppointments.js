@@ -553,11 +553,13 @@ function AdminAppointments() {
     const getStatusColor = (status) => {
         switch (status?.toLowerCase()) {
             case 'scheduled': return 'scheduled';
-            case 'confirmed': return 'scheduled'; // Map confirmed to scheduled color
+            case 'confirmed': return 'confirmed';
             case 'completed': return 'completed';
             case 'pending': return 'pending';
             case 'cancelled': return 'cancelled';
             case 'rejected': return 'cancelled';
+            case 'in_progress': return 'in-progress';
+            case 'incomplete': return 'incomplete';
             default: return 'scheduled';
         }
     };
@@ -731,22 +733,24 @@ function AdminAppointments() {
                                 </button>
                                 {showCalendarLegend && (
                                     <div
-                                        onClick={() => setShowCalendarLegend(false)}
                                         style={{
                                             position: 'absolute', top: '38px', right: 0,
                                             background: 'white', borderRadius: '12px',
                                             boxShadow: '0 8px 30px rgba(0,0,0,0.14)',
                                             border: '1px solid #e2e8f0',
                                             padding: '14px 18px', zIndex: 999,
-                                            minWidth: '200px', cursor: 'default'
+                                            minWidth: '220px', cursor: 'default'
                                         }}
                                         onClick={e => e.stopPropagation()}
                                     >
                                         <p style={{ margin: '0 0 10px', fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Booking Status Legend</p>
                                         {[
-                                            { color: '#10b981', label: 'Confirmed' },
+                                            { color: '#14b8a6', label: 'Confirmed' },
                                             { color: '#f59e0b', label: 'Pending' },
                                             { color: '#6366f1', label: 'Scheduled' },
+                                            { color: '#3b82f6', label: 'In Session' },
+                                            { color: '#22c55e', label: 'Completed' },
+                                            { color: '#ef4444', label: 'Incomplete' },
                                             { color: '#94a3b8', label: 'Cancelled / Rejected' },
                                         ].map(({ color, label }) => (
                                             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
@@ -810,15 +814,29 @@ function AdminAppointments() {
                                         )}
                                         <div className="admin-st-5e598434">
                                             {dayAppts.length > 0 && (
+                                                <div className="admin-st-50ce32ce">
+                                                    {dayAppts.length} {dayAppts.length === 1 ? 'Booking' : 'Bookings'}
+                                                </div>
+                                            )}
+                                            {dayAppts.length > 0 && (
                                                 <div className="admin-st-3c36f78c">
-                                                    {dayAppts.slice(0, 5).map(apt => (
-                                                        <div key={apt.id} style={{
-                                                            width: '8px',
-                                                            height: '8px',
-                                                            borderRadius: '50%',
-                                                            backgroundColor: apt.status === 'confirmed' ? '#10b981' : (apt.status === 'pending' ? '#f59e0b' : (apt.status === 'cancelled' || apt.status === 'rejected' ? '#94a3b8' : '#6366f1'))
-                                                        }} title={apt.status} />
-                                                    ))}
+                                                    {dayAppts.slice(0, 5).map(apt => {
+                                                        let dotColor = '#6366f1'; // default: scheduled
+                                                        if (apt.status === 'confirmed') dotColor = '#14b8a6';
+                                                        else if (apt.status === 'pending') dotColor = '#f59e0b';
+                                                        else if (apt.status === 'in_progress') dotColor = '#3b82f6';
+                                                        else if (apt.status === 'completed') dotColor = '#22c55e';
+                                                        else if (apt.status === 'incomplete') dotColor = '#ef4444';
+                                                        else if (apt.status === 'cancelled' || apt.status === 'rejected') dotColor = '#94a3b8';
+                                                        return (
+                                                            <div key={apt.id} style={{
+                                                                width: '8px',
+                                                                height: '8px',
+                                                                borderRadius: '50%',
+                                                                backgroundColor: dotColor
+                                                            }} title={apt.status} />
+                                                        );
+                                                    })}
                                                     {dayAppts.length > 5 && <span className="admin-st-ba210a9a">+</span>}
                                                 </div>
                                             )}

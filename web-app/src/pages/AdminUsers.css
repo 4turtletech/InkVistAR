@@ -331,6 +331,21 @@
     color: #065f46;
 }
 
+.badge.status-confirmed {
+    background-color: #ccfbf1;
+    color: #0f766e;
+}
+
+.badge.status-in-progress {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+.badge.status-incomplete {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
 .badge.status-pending {
     background-color: #fed7aa;
     color: #92400e;
