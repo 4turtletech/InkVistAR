@@ -1074,6 +1074,7 @@ function AdminInventory() {
                                                 <th>Item</th>
                                                 <th style={{ width: '80px', textAlign: 'center' }}>Type</th>
                                                 <th style={{ width: '80px', textAlign: 'center' }}>Qty</th>
+                                                <th style={{ width: '100px', textAlign: 'right' }}>Price</th>
                                                 <th>Action By</th>
                                                 <th>Reason</th>
                                             </tr>
@@ -1108,6 +1109,9 @@ function AdminInventory() {
                                                     </td>
                                                     <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', color: t.type === 'price_change' ? '#b45309' : (t.type === 'in' ? '#059669' : '#dc2626') }}>
                                                         {t.type === 'price_change' ? '—' : `${t.type === 'in' ? '+' : '-'}${t.quantity} ${t.unit || ''}`}
+                                                    </td>
+                                                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>
+                                                        {t.item_price != null ? `₱${Number(t.item_price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                                                     </td>
                                                     <td>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

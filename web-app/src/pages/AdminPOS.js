@@ -152,7 +152,8 @@ function AdminPOS() {
                 discount_amount: discountAmount,
                 discount_type: discountType !== 'none' ? discountType : null,
                 status: 'Paid',
-                customerId: selectedCustomerId || null
+                customerId: selectedCustomerId || null,
+                items: cart
             });
 
             const tenderedNum = parseFloat(amountTendered) || 0;

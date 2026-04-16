@@ -597,26 +597,66 @@ function AdminBilling() {
                                     <p className="admin-st-a0bdeeca">Client ID: CU-{previewModal.invoice.client_id || 'N/A'}</p>
                                 </div>
 
-                                <table className="admin-st-0c6b9fcd">
-                                    <thead>
-                                        <tr className="admin-st-a7cac501">
-                                            <th className="admin-st-3d480a7a">Description of Services</th>
-                                            <th className="admin-st-528bd0d7">Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr className="admin-st-bd4d1d67">
-                                            <td className="admin-st-34eca13f">{previewModal.invoice.service_type}</td>
-                                            <td className="admin-st-cd7ba92a">₱{Number(previewModal.invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        </tr>
-                                    </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <td className="admin-st-6bcbfc83">Total Settlement Amount:</td>
-                                            <td className="admin-st-b88baa1e">₱{Number(previewModal.invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                {(() => {
+                                    let items = null;
+                                    try {
+                                        items = typeof previewModal.invoice.items === 'string' ? JSON.parse(previewModal.invoice.items) : previewModal.invoice.items;
+                                    } catch(e) {}
+                                    
+                                    if (items && Array.isArray(items) && items.length > 0) {
+                                        return (
+                                            <table className="admin-st-0c6b9fcd">
+                                                <thead>
+                                                    <tr className="admin-st-a7cac501">
+                                                        <th className="admin-st-3d480a7a">Item Description</th>
+                                                        <th style={{ padding: '10px', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '14px', backgroundColor: '#f1f5f9', color: '#475569' }}>Qty</th>
+                                                        <th style={{ padding: '10px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '14px', backgroundColor: '#f1f5f9', color: '#475569' }}>Unit Price</th>
+                                                        <th className="admin-st-528bd0d7" style={{ textAlign: 'right' }}>Subtotal</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {items.map((item, idx) => (
+                                                        <tr key={idx} className="admin-st-bd4d1d67">
+                                                            <td className="admin-st-34eca13f">{item.name}</td>
+                                                            <td style={{ padding: '10px', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '14px' }}>{item.quantity}</td>
+                                                            <td style={{ padding: '10px', border: '1px solid #cbd5e1', textAlign: 'right', fontSize: '14px' }}>₱{Number(item.retail_price || item.cost).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                            <td className="admin-st-cd7ba92a" style={{ textAlign: 'right' }}>₱{(Number(item.retail_price || item.cost) * item.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr>
+                                                        <td colSpan="3" className="admin-st-6bcbfc83" style={{ textAlign: 'right' }}>Total Settlement Amount:</td>
+                                                        <td className="admin-st-b88baa1e" style={{ textAlign: 'right' }}>₱{Number(previewModal.invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        );
+                                    }
+                                    
+                                    return (
+                                        <table className="admin-st-0c6b9fcd">
+                                            <thead>
+                                                <tr className="admin-st-a7cac501">
+                                                    <th className="admin-st-3d480a7a">Description of Services</th>
+                                                    <th className="admin-st-528bd0d7">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr className="admin-st-bd4d1d67">
+                                                    <td className="admin-st-34eca13f">{previewModal.invoice.service_type}</td>
+                                                    <td className="admin-st-cd7ba92a">₱{Number(previewModal.invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                </tr>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td className="admin-st-6bcbfc83">Total Settlement Amount:</td>
+                                                    <td className="admin-st-b88baa1e">₱{Number(previewModal.invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    );
+                                })()}
 
                                 <div className="invoice-footer admin-st-ba43e19b">
                                     <p className="admin-st-4e29dcb8">Thank you for choosing InkVistAR Studio for your creative projects.</p>

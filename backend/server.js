@@ -562,6 +562,15 @@ db.getConnection((err, connection) => {
             });
           }
         });
+
+        // Auto-migrate: add item_price column if missing
+        db.query("SHOW COLUMNS FROM inventory_transactions LIKE 'item_price'", (colErr, colResults) => {
+          if (!colErr && colResults.length === 0) {
+            db.query('ALTER TABLE inventory_transactions ADD COLUMN item_price DECIMAL(10, 2) DEFAULT NULL', (alterErr) => {
+              if (!alterErr) console.log('✅ Added item_price column to inventory_transactions');
+            });
+          }
+        });
       }
     });
 
@@ -792,6 +801,14 @@ db.getConnection((err, connection) => {
         console.log('🔄 Migrating invoices: Adding discount columns...');
         db.query("ALTER TABLE invoices ADD COLUMN discount_amount DECIMAL(10, 2) DEFAULT 0.00 AFTER amount");
         db.query("ALTER TABLE invoices ADD COLUMN discount_type VARCHAR(255) DEFAULT NULL AFTER discount_amount");
+      }
+    });
+
+    // MIGRATION: Add items JSON column to invoices table
+    db.query("SHOW COLUMNS FROM invoices LIKE 'items'", (err, results) => {
+      if (!err && results.length === 0) {
+        console.log('🔄 Migrating invoices: Adding items JSON column...');
+        db.query("ALTER TABLE invoices ADD COLUMN items JSON DEFAULT NULL AFTER status");
       }
     });
 
@@ -5074,26 +5091,28 @@ app.put('/api/admin/inventory/:id', (req, res) => {
         const direction = newCost > oldCost ? 'increased' : 'decreased';
         priceChanges.push({
           reason: `Unit cost ${direction}: ₱${oldCost.toFixed(2)} → ₱${newCost.toFixed(2)}`,
-          quantity: 0
+          quantity: 0,
+          price: newCost
         });
       }
       if (oldRetail !== newRetail) {
         const direction = newRetail > oldRetail ? 'increased' : 'decreased';
         priceChanges.push({
           reason: `Retail price ${direction}: ₱${oldRetail.toFixed(2)} → ₱${newRetail.toFixed(2)}`,
-          quantity: 0
+          quantity: 0,
+          price: newRetail
         });
       }
 
       if (priceChanges.length > 0) {
         const insertValues = priceChanges.map(pc =>
-          [id, 'price_change', pc.quantity, pc.reason, user_id || null]
+          [id, 'price_change', pc.quantity, pc.reason, user_id || null, pc.price]
         );
-        const placeholders = insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ');
+        const placeholders = insertValues.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
         const flatValues = insertValues.flat();
 
         db.query(
-          `INSERT INTO inventory_transactions (inventory_id, type, quantity, reason, user_id) VALUES ${placeholders}`,
+          `INSERT INTO inventory_transactions (inventory_id, type, quantity, reason, user_id, item_price) VALUES ${placeholders}`,
           flatValues,
           (logErr) => {
             if (logErr) console.error('Failed to log price change transaction:', logErr);
@@ -5144,23 +5163,34 @@ app.post('/api/admin/inventory/:id/transaction', (req, res) => {
 
   if (!['in', 'out'].includes(type)) return res.status(400).json({ success: false, message: 'Invalid type' });
 
-  // Update stock
-  const updateQuery = type === 'in'
-    ? 'UPDATE inventory SET current_stock = current_stock + ?, last_restocked = NOW() WHERE id = ?'
-    : 'UPDATE inventory SET current_stock = GREATEST(0, current_stock - ?) WHERE id = ?';
-
-  db.query(updateQuery, [quantity, id], (err, result) => {
+  // First, fetch the current item price/cost
+  db.query('SELECT cost, retail_price FROM inventory WHERE id = ?', [id], (err, invRes) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
+    if (invRes.length === 0) return res.status(404).json({ success: false, message: 'Item not found' });
 
-    // Log transaction
-    db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason, user_id) VALUES (?, ?, ?, ?, ?)',
-      [id, type, quantity, reason, req.body.user_id || null],
-      (logErr) => {
-        if (logErr) console.error('Failed to log transaction:', logErr);
-        logAction(null, 'STOCK_TRANSACTION', `${type.toUpperCase()} ${quantity} for item ${id}: ${reason}`, req.ip);
-        res.json({ success: true, message: 'Stock updated' });
-      }
-    );
+    const itemCost = invRes[0].cost || 0;
+    const itemRetailPrice = invRes[0].retail_price || itemCost;
+    // Use cost for stock-in (Expense), retail_price for stock-out (Revenue / Sale)
+    const item_price = type === 'in' ? itemCost : itemRetailPrice;
+
+    // Update stock
+    const updateQuery = type === 'in'
+      ? 'UPDATE inventory SET current_stock = current_stock + ?, last_restocked = NOW() WHERE id = ?'
+      : 'UPDATE inventory SET current_stock = GREATEST(0, current_stock - ?) WHERE id = ?';
+
+    db.query(updateQuery, [quantity, id], (err, result) => {
+      if (err) return res.status(500).json({ success: false, message: err.message });
+
+      // Log transaction with item_price
+      db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason, user_id, item_price) VALUES (?, ?, ?, ?, ?, ?)',
+        [id, type, quantity, reason, req.body.user_id || null, item_price],
+        (logErr) => {
+          if (logErr) console.error('Failed to log transaction:', logErr);
+          logAction(null, 'STOCK_TRANSACTION', `${type.toUpperCase()} ${quantity} for item ${id}: ${reason}`, req.ip);
+          res.json({ success: true, message: 'Stock updated' });
+        }
+      );
+    });
   });
 });
 
@@ -5202,6 +5232,7 @@ app.get('/api/admin/analytics', (req, res) => {
   const response = {
     revenue: { total: 0, growth: 0, chart: [] },
     appointments: { total: 0, completed: 0, scheduled: 0, cancelled: 0, completionRate: 0 },
+    expenses: { total: 0 },
     artists: [],
     styles: [],
     inventory: []
@@ -5219,12 +5250,21 @@ app.get('/api/admin/analytics', (req, res) => {
     WHERE is_deleted = 0
   `;
 
-  // 2. Revenue (Total Paid = Payments + Manual Paid Amount)
+  // 2. Revenue (Total Paid = Payments + Manual Paid Amount + Retail POS Sales)
   const revenueQuery = `
     SELECT 
-      SUM(((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)) as total
-    FROM appointments ap
-    WHERE ap.status != 'cancelled' AND ap.is_deleted = 0
+      COALESCE((SELECT SUM(((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)) FROM appointments ap WHERE ap.status != 'cancelled' AND ap.is_deleted = 0), 0)
+      + 
+      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid'), 0)
+    as total
+  `;
+  
+  // 2.5 Total Expenses (Inventory Procurements)
+  const expensesQuery = `
+    SELECT COALESCE(SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)), 0) as total
+    FROM inventory_transactions t
+    JOIN inventory i ON t.inventory_id = i.id
+    WHERE t.type = 'in'
   `;
 
   // 3. Artist Productivity (proportional split for collaborative sessions)
@@ -5322,7 +5362,11 @@ app.get('/api/admin/analytics', (req, res) => {
               // Calculate chart value properly
               response.revenue.chart = trendRes.map(t => ({ month: t.month, appointments: t.count, value: t.count * 150 }));
 
-              res.json({ success: true, data: response });
+              db.query(expensesQuery, (err, expRes) => {
+                if (err) return res.status(500).json({ success: false, message: err.message });
+                response.expenses.total = expRes[0].total || 0;
+                res.json({ success: true, data: response });
+              });
             });
           });
         });
@@ -5341,10 +5385,11 @@ app.get('/api/admin/invoices', (req, res) => {
 
 // Admin: Create Invoice
 app.post('/api/admin/invoices', (req, res) => {
-  const { client, type, amount, discount_amount, discount_type, status } = req.body;
+  const { client, type, amount, discount_amount, discount_type, status, items } = req.body;
   const targetDiscount = discount_amount || 0;
-  const query = 'INSERT INTO invoices (client_name, service_type, amount, discount_amount, discount_type, status, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())';
-  db.query(query, [client, type, amount, targetDiscount, discount_type || null, status], (err, result) => {
+  const itemsJson = items ? JSON.stringify(items) : null;
+  const query = 'INSERT INTO invoices (client_name, service_type, amount, discount_amount, discount_type, status, items, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
+  db.query(query, [client, type, amount, targetDiscount, discount_type || null, status, itemsJson], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     res.json({ success: true, message: 'Invoice created', id: result.insertId });
   });
@@ -5353,11 +5398,12 @@ app.post('/api/admin/invoices', (req, res) => {
 // Admin: Update Invoice
 app.put('/api/admin/invoices/:id', (req, res) => {
   const { id } = req.params;
-  const { client, type, amount, discount_amount, discount_type, status } = req.body;
+  const { client, type, amount, discount_amount, discount_type, status, items } = req.body;
   console.log(`[DEBUG] Updating invoice ${id}:`, req.body);
   const targetDiscount = discount_amount || 0;
-  const query = 'UPDATE invoices SET client_name = ?, service_type = ?, amount = ?, discount_amount = ?, discount_type = ?, status = ? WHERE id = ?';
-  db.query(query, [client, type, amount, targetDiscount, discount_type || null, status, id], (err) => {
+  const itemsJson = items ? JSON.stringify(items) : null;
+  const query = 'UPDATE invoices SET client_name = ?, service_type = ?, amount = ?, discount_amount = ?, discount_type = ?, status = ?, items = ? WHERE id = ?';
+  db.query(query, [client, type, amount, targetDiscount, discount_type || null, status, itemsJson, id], (err) => {
     if (err) {
       console.error(`[DEBUG] Update error:`, err);
       return res.status(500).json({ success: false, message: err.message });
