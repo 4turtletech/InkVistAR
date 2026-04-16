@@ -5050,12 +5050,60 @@ app.post('/api/admin/inventory', (req, res) => {
 // Admin: Update Inventory Item
 app.put('/api/admin/inventory/:id', (req, res) => {
   const { id } = req.params;
-  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice } = req.body;
-  const query = 'UPDATE inventory SET name=?, category=?, current_stock=?, min_stock=?, max_stock=?, unit=?, supplier=?, cost=?, retail_price=? WHERE id=?';
-  db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice || 0, id], (err) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'UPDATE_INVENTORY', `Updated item ID ${id} (${name})`, req.ip);
-    res.json({ success: true, message: 'Item updated' });
+  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice, user_id } = req.body;
+
+  // First, fetch the current item to detect price changes
+  db.query('SELECT cost, retail_price, name FROM inventory WHERE id = ?', [id], (fetchErr, rows) => {
+    if (fetchErr) return res.status(500).json({ success: false, message: fetchErr.message });
+    if (!rows || rows.length === 0) return res.status(404).json({ success: false, message: 'Item not found' });
+
+    const oldItem = rows[0];
+    const oldCost = parseFloat(oldItem.cost) || 0;
+    const oldRetail = parseFloat(oldItem.retail_price) || 0;
+    const newCost = parseFloat(cost) || 0;
+    const newRetail = parseFloat(retailPrice) || 0;
+
+    // Perform the update
+    const query = 'UPDATE inventory SET name=?, category=?, current_stock=?, min_stock=?, max_stock=?, unit=?, supplier=?, cost=?, retail_price=? WHERE id=?';
+    db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, newCost, newRetail, id], (err) => {
+      if (err) return res.status(500).json({ success: false, message: err.message });
+
+      // Log price changes as transactions
+      const priceChanges = [];
+      if (oldCost !== newCost) {
+        const direction = newCost > oldCost ? 'increased' : 'decreased';
+        priceChanges.push({
+          reason: `Unit cost ${direction}: ₱${oldCost.toFixed(2)} → ₱${newCost.toFixed(2)}`,
+          quantity: 0
+        });
+      }
+      if (oldRetail !== newRetail) {
+        const direction = newRetail > oldRetail ? 'increased' : 'decreased';
+        priceChanges.push({
+          reason: `Retail price ${direction}: ₱${oldRetail.toFixed(2)} → ₱${newRetail.toFixed(2)}`,
+          quantity: 0
+        });
+      }
+
+      if (priceChanges.length > 0) {
+        const insertValues = priceChanges.map(pc =>
+          [id, 'price_change', pc.quantity, pc.reason, user_id || null]
+        );
+        const placeholders = insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ');
+        const flatValues = insertValues.flat();
+
+        db.query(
+          `INSERT INTO inventory_transactions (inventory_id, type, quantity, reason, user_id) VALUES ${placeholders}`,
+          flatValues,
+          (logErr) => {
+            if (logErr) console.error('Failed to log price change transaction:', logErr);
+          }
+        );
+      }
+
+      logAction(null, 'UPDATE_INVENTORY', `Updated item ID ${id} (${name})`, req.ip);
+      res.json({ success: true, message: 'Item updated' });
+    });
   });
 });
 

@@ -464,7 +464,10 @@ function AdminInventory() {
             };
 
             if (selectedItem) {
-                await Axios.put(`${API_URL}/api/admin/inventory/${selectedItem.id}`, payload);
+                await Axios.put(`${API_URL}/api/admin/inventory/${selectedItem.id}`, {
+                    ...payload,
+                    user_id: adminUser?.id || null
+                });
                 showAlert("Success", "Item updated successfully!", "success");
             } else {
                 await Axios.post(`${API_URL}/api/admin/inventory`, payload);
@@ -1039,6 +1042,7 @@ function AdminInventory() {
                                 <option value="all">All Types</option>
                                 <option value="in">Stock In</option>
                                 <option value="out">Stock Out</option>
+                                <option value="price_change">Price Change</option>
                             </select>
                         </div>
 
@@ -1094,16 +1098,16 @@ function AdminInventory() {
                                                         <span style={{
                                                             display: 'inline-flex', alignItems: 'center', gap: '4px',
                                                             padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
-                                                            background: t.type === 'in' ? '#ecfdf5' : '#fef2f2',
-                                                            color: t.type === 'in' ? '#059669' : '#dc2626',
-                                                            border: `1px solid ${t.type === 'in' ? '#a7f3d0' : '#fecaca'}`
+                                                            background: t.type === 'price_change' ? '#fffbeb' : (t.type === 'in' ? '#ecfdf5' : '#fef2f2'),
+                                                            color: t.type === 'price_change' ? '#b45309' : (t.type === 'in' ? '#059669' : '#dc2626'),
+                                                            border: `1px solid ${t.type === 'price_change' ? '#fde68a' : (t.type === 'in' ? '#a7f3d0' : '#fecaca')}`
                                                         }}>
-                                                            {t.type === 'in' ? <ArrowUpCircle size={13} /> : <ArrowDownCircle size={13} />}
-                                                            {t.type === 'in' ? 'IN' : 'OUT'}
+                                                            {t.type === 'price_change' ? <DollarSign size={13} /> : (t.type === 'in' ? <ArrowUpCircle size={13} /> : <ArrowDownCircle size={13} />)}
+                                                            {t.type === 'price_change' ? 'PRICE' : (t.type === 'in' ? 'IN' : 'OUT')}
                                                         </span>
                                                     </td>
-                                                    <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', color: t.type === 'in' ? '#059669' : '#dc2626' }}>
-                                                        {t.type === 'in' ? '+' : '-'}{t.quantity} {t.unit || ''}
+                                                    <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', color: t.type === 'price_change' ? '#b45309' : (t.type === 'in' ? '#059669' : '#dc2626') }}>
+                                                        {t.type === 'price_change' ? '—' : `${t.type === 'in' ? '+' : '-'}${t.quantity} ${t.unit || ''}`}
                                                     </td>
                                                     <td>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
