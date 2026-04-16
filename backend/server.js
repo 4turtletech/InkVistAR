@@ -552,7 +552,17 @@ db.getConnection((err, connection) => {
     `;
     db.query(invTransTableQuery, (err) => {
       if (err) console.error('⚠️ Error checking inventory transactions table:', err.message);
-      else console.log('📜 Inventory transactions table ready');
+      else {
+        console.log('📜 Inventory transactions table ready');
+        // Auto-migrate: add user_id column if missing
+        db.query("SHOW COLUMNS FROM inventory_transactions LIKE 'user_id'", (colErr, colResults) => {
+          if (!colErr && colResults.length === 0) {
+            db.query('ALTER TABLE inventory_transactions ADD COLUMN user_id INT DEFAULT NULL', (alterErr) => {
+              if (!alterErr) console.log('✅ Added user_id column to inventory_transactions');
+            });
+          }
+        });
+      }
     });
 
     // Create Appointments Table
@@ -5095,8 +5105,8 @@ app.post('/api/admin/inventory/:id/transaction', (req, res) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
 
     // Log transaction
-    db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason) VALUES (?, ?, ?, ?)',
-      [id, type, quantity, reason],
+    db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason, user_id) VALUES (?, ?, ?, ?, ?)',
+      [id, type, quantity, reason, req.body.user_id || null],
       (logErr) => {
         if (logErr) console.error('Failed to log transaction:', logErr);
         logAction(null, 'STOCK_TRANSACTION', `${type.toUpperCase()} ${quantity} for item ${id}: ${reason}`, req.ip);
@@ -5113,9 +5123,11 @@ app.get('/api/admin/inventory/transactions', (req, res) => {
   const offset = (page - 1) * limit;
 
   const dataQuery = `
-    SELECT t.*, i.name as item_name, i.category 
+    SELECT t.*, i.name as item_name, i.category, i.unit,
+           COALESCE(u.name, 'System') as user_name
     FROM inventory_transactions t 
     JOIN inventory i ON t.inventory_id = i.id 
+    LEFT JOIN users u ON t.user_id = u.id
     ORDER BY t.created_at DESC 
     LIMIT ?
     OFFSET ?

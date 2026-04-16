@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, X, RotateCcw, Printer, Download, Search, Filter, SlidersHorizontal, DollarSign, AlertTriangle, Layers } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, X, RotateCcw, Printer, Download, Search, Filter, SlidersHorizontal, DollarSign, AlertTriangle, Layers, Clock, User, Inbox } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminInventory.css';
 import './PortalStyles.css';
@@ -55,6 +55,15 @@ function AdminInventory() {
     const [editingKitMaterials, setEditingKitMaterials] = useState([]);
     const [transactionError, setTransactionError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const adminUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // History modal filter state
+    const [historySearch, setHistorySearch] = useState('');
+    const [historyTypeFilter, setHistoryTypeFilter] = useState('all');
+    const [historyPage, setHistoryPage] = useState(1);
+    const [historyTotalPages, setHistoryTotalPages] = useState(1);
+    const [historyTotal, setHistoryTotal] = useState(0);
+    const [historyLoading, setHistoryLoading] = useState(false);
     
     const [formData, setFormData] = useState({
         name: '',
@@ -500,7 +509,8 @@ function AdminInventory() {
 
             await Axios.post(`${API_URL}/api/admin/inventory/${selectedItem.id}/transaction`, {
                 ...transactionData,
-                quantity: quantity
+                quantity: quantity,
+                user_id: adminUser?.id || null
             });
             closeModal(setTransactionModal);
             fetchInventory();
@@ -510,17 +520,33 @@ function AdminInventory() {
         }
     };
 
-    const fetchHistory = async () => {
+    const fetchHistory = async (page = 1) => {
+        setHistoryLoading(true);
         try {
-            const res = await Axios.get(`${API_URL}/api/admin/inventory/transactions`);
+            const res = await Axios.get(`${API_URL}/api/admin/inventory/transactions?page=${page}&limit=50`);
             if (res.data.success) {
                 setTransactions(res.data.data);
-                openModal(setHistoryModal);
+                setHistoryPage(res.data.pagination?.page || 1);
+                setHistoryTotalPages(res.data.pagination?.totalPages || 1);
+                setHistoryTotal(res.data.pagination?.total || res.data.data.length);
+                if (!historyModal.mounted) openModal(setHistoryModal);
             }
         } catch (error) {
             console.error("Error fetching history:", error);
+        } finally {
+            setHistoryLoading(false);
         }
     };
+
+    // Filtered transactions for the history modal
+    const filteredTransactions = transactions.filter(t => {
+        const matchesSearch = historySearch === '' ||
+            (t.item_name || '').toLowerCase().includes(historySearch.toLowerCase()) ||
+            (t.reason || '').toLowerCase().includes(historySearch.toLowerCase()) ||
+            (t.user_name || '').toLowerCase().includes(historySearch.toLowerCase());
+        const matchesType = historyTypeFilter === 'all' || t.type === historyTypeFilter;
+        return matchesSearch && matchesType;
+    });
 
     const lowStockItems = inventory.filter(i => i.currentStock <= i.minStock).length;
     const totalValue = inventory.reduce((sum, i) => sum + (i.currentStock * i.cost), 0);
@@ -976,48 +1002,149 @@ function AdminInventory() {
 
             {/* History Modal */}
             {historyModal.mounted && (
-                <div className={`modal-overlay ${historyModal.visible ? 'open' : ''}`} onClick={() => closeModal(setHistoryModal)}>
-                    <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                <div className={`modal-overlay ${historyModal.visible ? 'open' : ''}`} onClick={() => { closeModal(setHistoryModal); setHistorySearch(''); setHistoryTypeFilter('all'); }}>
+                    <div className="modal-content large" onClick={(e) => e.stopPropagation()} style={{ height: '85vh', maxHeight: '800px', display: 'flex', flexDirection: 'column' }}>
                         <div className="modal-header">
-                            <h2>Transaction History</h2>
-                            <button className="close-btn" onClick={() => closeModal(setHistoryModal)}><X size={24}/></button>
-                        </div>
-                        <div className="modal-body admin-st-cc3b3598">
-                            <div className="table-responsive">
-                                <table className="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Date & Time</th>
-                                            <th>Item</th>
-                                            <th>Type</th>
-                                            <th>Qty</th>
-                                            <th>Action By</th>
-                                            <th>Reason</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {transactions.map(t => (
-                                            <tr key={t.id}>
-                                                <td className="admin-st-8b921591">{new Date(t.created_at).toLocaleString()}</td>
-                                                <td className="admin-fw-700">{t.item_name}</td>
-                                                <td>
-                                                    <span className={`badge ${t.transaction_type === 'in' ? 'status-active' : 'status-inactive'}`}>
-                                                        {t.transaction_type.toUpperCase()}
-                                                    </span>
-                                                </td>
-                                                <td style={{ fontWeight: 800, color: t.transaction_type === 'in' ? '#10b981' : '#ef4444' }}>
-                                                    {t.transaction_type === 'in' ? '+' : '-'}{t.quantity}
-                                                </td>
-                                                <td className="admin-st-e7992da2">{t.user_name}</td>
-                                                <td className="admin-st-6fff95bb">{t.reason}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <History size={20} color="white" />
+                                </div>
+                                <div>
+                                    <h2 style={{ margin: 0 }}>Transaction History</h2>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>{historyTotal} total transaction{historyTotal !== 1 ? 's' : ''} recorded</p>
+                                </div>
                             </div>
+                            <button className="close-btn" onClick={() => { closeModal(setHistoryModal); setHistorySearch(''); setHistoryTypeFilter('all'); }}><X size={24}/></button>
                         </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={() => closeModal(setHistoryModal)}>Close</button>
+
+                        {/* Filter Bar */}
+                        <div style={{ padding: '12px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', background: '#f8fafc' }}>
+                            <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+                                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                <input
+                                    type="text"
+                                    placeholder="Search by item, reason, or user..."
+                                    value={historySearch}
+                                    onChange={(e) => setHistorySearch(e.target.value)}
+                                    className="form-input"
+                                    style={{ paddingLeft: '32px', fontSize: '0.85rem', height: '36px', borderRadius: '8px' }}
+                                />
+                            </div>
+                            <select
+                                value={historyTypeFilter}
+                                onChange={(e) => setHistoryTypeFilter(e.target.value)}
+                                className="form-input"
+                                style={{ width: 'auto', height: '36px', fontSize: '0.85rem', borderRadius: '8px', cursor: 'pointer' }}
+                            >
+                                <option value="all">All Types</option>
+                                <option value="in">Stock In</option>
+                                <option value="out">Stock Out</option>
+                            </select>
+                        </div>
+
+                        {/* Body */}
+                        <div className="modal-body" style={{ flex: 1, overflow: 'auto', padding: '0' }}>
+                            {historyLoading ? (
+                                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
+                                    <Clock size={32} style={{ marginBottom: '12px', opacity: 0.5 }} />
+                                    <p style={{ margin: 0, fontSize: '0.9rem' }}>Loading transaction history...</p>
+                                </div>
+                            ) : filteredTransactions.length === 0 ? (
+                                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
+                                    <Inbox size={40} style={{ marginBottom: '12px', opacity: 0.4 }} />
+                                    <p style={{ margin: 0, fontSize: '1rem', fontWeight: '600', color: '#64748b' }}>
+                                        {historySearch || historyTypeFilter !== 'all' ? 'No matching transactions' : 'No transactions yet'}
+                                    </p>
+                                    <p style={{ margin: '6px 0 0', fontSize: '0.85rem' }}>
+                                        {historySearch || historyTypeFilter !== 'all'
+                                            ? 'Try adjusting your search or filter criteria.'
+                                            : 'Transactions will appear here when stock is added or deducted.'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="table-responsive">
+                                    <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={{ width: '160px' }}>Date & Time</th>
+                                                <th>Item</th>
+                                                <th style={{ width: '80px', textAlign: 'center' }}>Type</th>
+                                                <th style={{ width: '80px', textAlign: 'center' }}>Qty</th>
+                                                <th>Action By</th>
+                                                <th>Reason</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredTransactions.map(t => (
+                                                <tr key={t.id}>
+                                                    <td style={{ fontSize: '0.8rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <Clock size={13} style={{ flexShrink: 0, opacity: 0.5 }} />
+                                                            {new Date(t.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px', paddingLeft: '19px' }}>
+                                                            {new Date(t.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div style={{ fontWeight: 700, color: '#1e293b' }}>{t.item_name}</div>
+                                                        <span className={`badge category-${t.category}`} style={{ fontSize: '0.7rem', marginTop: '2px' }}>{t.category}</span>
+                                                    </td>
+                                                    <td style={{ textAlign: 'center' }}>
+                                                        <span style={{
+                                                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                            padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
+                                                            background: t.type === 'in' ? '#ecfdf5' : '#fef2f2',
+                                                            color: t.type === 'in' ? '#059669' : '#dc2626',
+                                                            border: `1px solid ${t.type === 'in' ? '#a7f3d0' : '#fecaca'}`
+                                                        }}>
+                                                            {t.type === 'in' ? <ArrowUpCircle size={13} /> : <ArrowDownCircle size={13} />}
+                                                            {t.type === 'in' ? 'IN' : 'OUT'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', color: t.type === 'in' ? '#059669' : '#dc2626' }}>
+                                                        {t.type === 'in' ? '+' : '-'}{t.quantity} {t.unit || ''}
+                                                    </td>
+                                                    <td>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <div style={{
+                                                                width: '26px', height: '26px', borderRadius: '6px',
+                                                                background: t.user_name === 'System' ? '#f1f5f9' : 'linear-gradient(135deg, #be9055, #d4af37)',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                                            }}>
+                                                                <User size={13} color={t.user_name === 'System' ? '#94a3b8' : 'white'} />
+                                                            </div>
+                                                            <span style={{ fontSize: '0.85rem', color: t.user_name === 'System' ? '#94a3b8' : '#1e293b', fontWeight: 500, fontStyle: t.user_name === 'System' ? 'italic' : 'normal' }}>
+                                                                {t.user_name || 'System'}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ color: '#64748b', fontSize: '0.85rem', maxWidth: '200px' }}>
+                                                        {t.reason || <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>No reason</span>}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer with pagination */}
+                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                                Showing {filteredTransactions.length} of {historyTotal} transactions
+                                {historyTotalPages > 1 && ` (page ${historyPage} of ${historyTotalPages})`}
+                            </span>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                {historyPage > 1 && (
+                                    <button className="btn btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }} onClick={() => fetchHistory(historyPage - 1)}>Previous</button>
+                                )}
+                                {historyPage < historyTotalPages && (
+                                    <button className="btn btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }} onClick={() => fetchHistory(historyPage + 1)}>Next</button>
+                                )}
+                                <button className="btn btn-secondary" onClick={() => { closeModal(setHistoryModal); setHistorySearch(''); setHistoryTypeFilter('all'); }}>Close</button>
+                            </div>
                         </div>
                     </div>
                 </div>
