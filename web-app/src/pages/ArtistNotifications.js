@@ -44,25 +44,30 @@ function ArtistNotifications() {
     const artistId = user ? user.id : 1;
 
     useEffect(() => {
-        fetchNotifications();
-        // Auto-poll every 30 seconds
+        fetchNotifications(true);
+        // Auto-poll every 10 seconds (subtle/silent)
         const interval = setInterval(() => {
-            fetchNotifications();
-        }, 30000);
+            fetchNotifications(false);
+        }, 10000);
         return () => clearInterval(interval);
     }, [artistId]);
 
-    const fetchNotifications = async () => {
+    const fetchNotifications = async (showLoader = false) => {
         try {
-            setLoading(true);
+            if (showLoader) setLoading(true);
             const res = await Axios.get(`${API_URL}/api/notifications/${artistId}`);
             if (res.data.success) {
-                setNotifications(res.data.notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+                const sorted = res.data.notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                setNotifications(prev => {
+                    const prevIds = prev.map(n => `${n.id}-${n.is_read}`).join(',');
+                    const newIds = sorted.map(n => `${n.id}-${n.is_read}`).join(',');
+                    return prevIds !== newIds ? sorted : prev;
+                });
             }
-            setLoading(false);
+            if (showLoader) setLoading(false);
         } catch (e) {
             console.error(e);
-            setLoading(false);
+            if (showLoader) setLoading(false);
         }
     };
 

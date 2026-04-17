@@ -49,11 +49,11 @@ function CustomerNotifications() {
     const customerId = user ? user.id : null;
 
     useEffect(() => {
-        if (customerId) fetchNotifications();
-        // Auto-poll every 30 seconds
+        if (customerId) fetchNotifications(true);
+        // Auto-poll every 10 seconds (subtle/silent)
         const interval = setInterval(() => {
-            if (customerId) fetchNotifications();
-        }, 30000);
+            if (customerId) fetchNotifications(false);
+        }, 10000);
         return () => clearInterval(interval);
     }, [customerId]);
 
@@ -75,17 +75,22 @@ function CustomerNotifications() {
         checkReviews();
     }, [notifications]);
 
-    const fetchNotifications = async () => {
+    const fetchNotifications = async (showLoader = false) => {
         try {
-            setLoading(true);
+            if (showLoader) setLoading(true);
             const res = await Axios.get(`${API_URL}/api/notifications/${customerId}`);
             if (res.data.success) {
-                setNotifications(res.data.notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+                const sorted = res.data.notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                setNotifications(prev => {
+                    const prevIds = prev.map(n => `${n.id}-${n.is_read}`).join(',');
+                    const newIds = sorted.map(n => `${n.id}-${n.is_read}`).join(',');
+                    return prevIds !== newIds ? sorted : prev;
+                });
             }
-            setLoading(false);
+            if (showLoader) setLoading(false);
         } catch (e) {
             console.error(e);
-            setLoading(false);
+            if (showLoader) setLoading(false);
         }
     };
 

@@ -28,6 +28,7 @@ import io from 'socket.io-client';
 import Axios from 'axios';
 import { API_URL } from '../config';
 import ConfirmModal from './ConfirmModal';
+import PaymentAlertOverlay from './PaymentAlertOverlay';
 import '../styles/AdminSideNav.css';
 
 function AdminSideNav() {
@@ -44,6 +45,8 @@ function AdminSideNav() {
     });
     const [unreadChatCount, setUnreadChatCount] = useState(0);
     const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+    const [urgentPaymentCount, setUrgentPaymentCount] = useState(0);
+    const prevPaymentCountRef = useRef(0);
 
     const adminUser = JSON.parse(localStorage.getItem('user') || 'null');
     const adminId = adminUser ? adminUser.id : null;
@@ -93,19 +96,53 @@ function AdminSideNav() {
         return () => socket.disconnect();
     }, []);
 
-    // Fetch unread notification count with polling
+    // Fetch unread notification count with polling (10s, silent merge)
     useEffect(() => {
         if (!adminId) return;
         const fetchCount = async () => {
             try {
                 const res = await Axios.get(`${API_URL}/api/notifications/${adminId}?limit=100`);
                 if (res.data.success) {
-                    setUnreadNotifCount(res.data.unreadCount || 0);
+                    setUnreadNotifCount(prev => {
+                        const newCount = res.data.unreadCount || 0;
+                        return newCount !== prev ? newCount : prev;
+                    });
                 }
             } catch (e) { /* silent */ }
         };
         fetchCount();
-        const interval = setInterval(fetchCount, 30000);
+        const interval = setInterval(fetchCount, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Poll for urgent payment alerts (10s) — powers pulsing dot + global overlay
+    useEffect(() => {
+        if (!adminId) return;
+        const fetchPaymentAlerts = async () => {
+            try {
+                const res = await Axios.get(`${API_URL}/api/admin/pending-payment-alerts`);
+                if (res.data.success) {
+                    const alerts = res.data.alerts || [];
+                    const newCount = alerts.length;
+                    setUrgentPaymentCount(prev => {
+                        // Dispatch custom event when new alerts appear
+                        if (newCount > prevPaymentCountRef.current) {
+                            window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts } }));
+                        }
+                        prevPaymentCountRef.current = newCount;
+                        return newCount !== prev ? newCount : prev;
+                    });
+                    // Also dispatch on mount if alerts exist (for login scenario)
+                    if (newCount > 0 && prevPaymentCountRef.current === 0) {
+                        setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts } }));
+                        }, 500);
+                    }
+                }
+            } catch (e) { /* silent */ }
+        };
+        fetchPaymentAlerts();
+        const interval = setInterval(fetchPaymentAlerts, 10000);
         return () => clearInterval(interval);
     }, []);
 
@@ -158,6 +195,7 @@ function AdminSideNav() {
     };
 
     return (
+        <>
         <aside className={`admin-sidenav ${collapsed ? 'collapsed' : ''}`}>
             <div className="sidenav-header">
                 <div className="logo-container" onClick={() => navigate('/')} style={{ cursor: 'pointer', padding: '0 10px' }}>
@@ -229,6 +267,9 @@ function AdminSideNav() {
                                         {action.label === 'Notifications' && unreadNotifCount > 0 && (
                                             <span className="notification-badge">{unreadNotifCount > 99 ? '99+' : unreadNotifCount}</span>
                                         )}
+                                        {action.label === 'Notifications' && urgentPaymentCount > 0 && (
+                                            <span className="urgent-pulse-dot" title={`${urgentPaymentCount} session(s) pending payment`}></span>
+                                        )}
                                         {active && <div className="active-indicator" />}
                                     </button>
                                 </li>
@@ -260,6 +301,8 @@ function AdminSideNav() {
                 onClose={() => setShowLogoutConfirm(false)}
             />
         </aside>
+        <PaymentAlertOverlay />
+        </>
     );
 }
 

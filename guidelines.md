@@ -41,6 +41,28 @@ This document serves as the primary ground truth for the InkVistAR project. When
   - **Visual Feedback:** Invalid fields must display clear, inline error messages (red border + helper text). Do NOT use `alert()` for form validation.
   - **Edge-case Handling:** Empty strings, whitespace-only inputs, negative numbers, past dates for future-only fields, and duplicate entries must all be explicitly handled.
 
+### 4. Payment Resolution Flow
+- **When an artist marks a session as `completed`, the backend MUST check if the appointment has an outstanding balance** (`total_paid < price` or `price <= 0` meaning unquoted).
+- If an outstanding balance exists, a `payment_action_required` notification is fired to **all admin/manager users**.
+- **Admins receive an immediate popup modal** (via `PaymentAlertOverlay` component) on whatever page they are currently on.
+- The popup shows the appointment's financial summary (Total Quoted, Collected, Remaining) and allows inline "Record Payment" or navigation to the appointment.
+- **Dismissing the popup** does NOT resolve the alert — a persistent **toast notification** remains at bottom-right, and a **pulsing red dot** persists on the sidebar's Notifications menu item.
+- The alert fully resolves only when the outstanding balance reaches ₱0.00 (i.e., payment is fully collected).
+- **Artist compensation** (automatic commission payout) is not blocked but the alert ensures admins act immediately.
+- The artist sees an **informational banner** after completing the session, stating the admin has been notified.
+
+### 5. Notification Polling Standard
+- **All sidebar notification polling** (Admin, Artist, Customer `SideNav` components) MUST use a **10-second interval** (`setInterval(fn, 10000)`).
+- **All notification page polling** (`AdminNotifications`, `ArtistNotifications`, `CustomerNotifications`) MUST also use a **10-second interval**.
+- **Refreshes MUST be subtle/silent:** Use a silent merge pattern that compares the incoming notification set against the current state. Only update React state if data has actually changed. Never reset loading spinners, scroll positions, filter states, or open modals during background polls.
+- On initial page load, the first fetch may show a loading spinner. Subsequent polls must be invisible to the user (like receiving a new message in a messaging app).
+
+### 6. Urgent Notification Patterns
+- **Pulsing Red Dot (`.urgent-pulse-dot`):** A 10px red circle with a `@keyframes urgentPulse` animation (scale 1→1.3→1 with expanding box-shadow). Used on the sidebar's Notifications menu item to indicate critical unresolved alerts. It persists until the underlying condition is resolved.
+- **Global Overlay Pattern (`PaymentAlertOverlay`):** A fixed-position overlay component mounted inside `AdminSideNav` (via React fragment) so it renders on every admin page automatically. Listens for `payment-alert` custom events dispatched by the sidebar's polling logic.
+- **Secondary Toast:** When an overlay popup is dismissed, a persistent bottom-right toast remains visible. Clicking the toast re-opens the popup.
+- **Notification Type `payment_action_required`:** Styled with red alert icon (`ShieldAlert`), red background tint, labeled "⚠️ Urgent" in the notification center.
+
 ---
 
 ## Database Tables
@@ -130,6 +152,8 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `GET/POST /api/admin/payouts` - Payout management
 - `GET/POST /api/admin/settings` - App settings
 - `GET /api/admin/audit-logs` - Audit trail
+- `GET /api/admin/pending-payment-alerts` - Completed sessions with outstanding balance (powers PaymentAlertOverlay polling)
+- `POST /api/admin/appointments/:id/manual-payment` - Record manual payment (Cash, GCash, Bank Transfer, etc.)
 
 ### Shared
 - `GET /api/gallery/categories` - Gallery categories

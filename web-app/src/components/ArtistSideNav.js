@@ -47,19 +47,22 @@ function ArtistSideNav() {
         localStorage.setItem('artistSidenavCollapsed', next ? 'true' : 'false');
     };
 
-    // Fetch unread notification count with polling
+    // Fetch unread notification count with polling (10s, silent merge)
     useEffect(() => {
         if (!artistId) return;
         const fetchCount = async () => {
             try {
                 const res = await Axios.get(`${API_URL}/api/notifications/${artistId}?limit=100`);
                 if (res.data.success) {
-                    setUnreadNotifCount(res.data.unreadCount || 0);
+                    setUnreadNotifCount(prev => {
+                        const newCount = res.data.unreadCount || 0;
+                        return newCount !== prev ? newCount : prev;
+                    });
                 }
             } catch (e) { /* silent */ }
         };
         fetchCount();
-        const interval = setInterval(fetchCount, 30000);
+        const interval = setInterval(fetchCount, 10000);
         return () => clearInterval(interval);
     }, [artistId]);
 

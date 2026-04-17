@@ -31,6 +31,7 @@ function ArtistSessions() {
     const [abortReason, setAbortReason] = useState('');
     const [isAborting, setIsAborting] = useState(false);
     const [sessionTab, setSessionTab] = useState('overview');
+    const [paymentInfo, setPaymentInfo] = useState(null); // {hasOutstandingBalance, remaining, isUnquoted}
 
     // Timer & Audit Log State
     const [sessionElapsed, setSessionElapsed] = useState(0); // seconds
@@ -300,6 +301,7 @@ function ArtistSessions() {
         setIsSessionPaused(false);
         setAuditLog([]);
         setSessionTab('overview');
+        setPaymentInfo(null);
         openSessionModal();
     };
 
@@ -405,6 +407,19 @@ function ArtistSessions() {
                 if (newStatus === 'completed') {
                     showAlert("Session Complete", `Session marked as complete (Duration: ${formatDuration(sessionElapsed)}). Review your notes and photos, then click 'Archive Session' when ready.`, "success");
                     fetchSessions();
+                    // Check remaining balance and show info banner
+                    try {
+                        const payRes = await Axios.get(`${API_URL}/api/appointments/${activeSession.id}/payment-status`);
+                        if (payRes.data.success) {
+                            const price = Number(payRes.data.price || 0);
+                            const totalPaid = Number(payRes.data.totalPaid || 0);
+                            const isUnquoted = price <= 0;
+                            const hasOutstandingBalance = price > 0 && totalPaid < price;
+                            if (isUnquoted || hasOutstandingBalance) {
+                                setPaymentInfo({ hasOutstandingBalance, remaining: price - totalPaid, isUnquoted });
+                            }
+                        }
+                    } catch (pErr) { /* silent - non-critical */ }
                 } else if (newStatus === 'in_progress') {
                     setTimeout(() => fetchSessionMaterials(activeSession.id), 1000);
                 }
@@ -819,6 +834,30 @@ function ArtistSessions() {
                                 </div>
                             )}
                         </div>
+
+                        {/* Outstanding Balance Info Banner */}
+                        {activeSession.status === 'completed' && paymentInfo && (
+                            <div style={{
+                                margin: '0 0 16px 0', padding: '14px 18px',
+                                background: paymentInfo.isUnquoted ? 'linear-gradient(135deg, #fffbeb, #fef3c7)' : 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+                                borderRadius: '14px',
+                                border: paymentInfo.isUnquoted ? '1px solid #fcd34d' : '1px solid #93c5fd',
+                                display: 'flex', alignItems: 'flex-start', gap: '12px'
+                            }}>
+                                <AlertTriangle size={18} style={{ color: paymentInfo.isUnquoted ? '#f59e0b' : '#3b82f6', flexShrink: 0, marginTop: '2px' }} />
+                                <div>
+                                    <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.85rem', color: paymentInfo.isUnquoted ? '#92400e' : '#1e40af' }}>
+                                        {paymentInfo.isUnquoted ? 'Session Unquoted' : 'Outstanding Balance Detected'}
+                                    </p>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: paymentInfo.isUnquoted ? '#a16207' : '#1d4ed8', lineHeight: 1.5 }}>
+                                        {paymentInfo.isUnquoted
+                                            ? 'This session has no price set. The studio admin has been notified and will handle pricing and payment collection.'
+                                            : `This session has a remaining balance of ₱${paymentInfo.remaining.toLocaleString("en-PH", { minimumFractionDigits: 2 })}. The studio admin has been notified and will handle payment collection.`
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

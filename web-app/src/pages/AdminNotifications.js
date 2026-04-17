@@ -19,7 +19,8 @@ import {
     Info, // Added for system notifications
     RotateCcw, // Added for mark as unread
     Star, // Added for new reviews
-    RefreshCw
+    RefreshCw,
+    ShieldAlert // Added for payment resolution urgency
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminSideNav from '../components/AdminSideNav';
@@ -43,18 +44,20 @@ function AdminNotifications() {
     const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
     const navigate = useNavigate();
 
+    const isFirstLoadRef = React.useRef(true);
+
     useEffect(() => {
-        fetchNotifications();
-        // Auto-poll every 30 seconds
+        fetchNotifications(true);
+        // Auto-poll every 10 seconds (subtle/silent)
         const interval = setInterval(() => {
-            fetchNotifications();
-        }, 30000);
+            fetchNotifications(false);
+        }, 10000);
         return () => clearInterval(interval);
     }, []);
 
-    const fetchNotifications = async () => {
+    const fetchNotifications = async (showLoader = false) => {
         try {
-            setLoading(true);
+            if (showLoader) setLoading(true);
             const user = JSON.parse(localStorage.getItem('user'));
             const adminId = user ? user.id : 1;
 
@@ -114,7 +117,12 @@ function AdminNotifications() {
                 }))
             ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-            setNotifications(combined);
+            setNotifications(prev => {
+                // Silent merge: only update if data actually changed
+                const prevIds = prev.map(n => `${n.id}-${n.is_read}`).join(',');
+                const newIds = combined.map(n => `${n.id}-${n.is_read}`).join(',');
+                return prevIds !== newIds ? combined : prev;
+            });
             setLoading(false);
         } catch (error) {
             console.error("Error fetching notifications:", error);
@@ -143,6 +151,8 @@ function AdminNotifications() {
                 return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Invoice' };
             case 'new_review':
                 return { color: '#daa520', bg: 'rgba(218, 165, 32, 0.1)', label: 'Review' };
+            case 'payment_action_required':
+                return { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.1)', label: '⚠️ Urgent' };
             default:
                 return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', label: 'Update' };
         }
@@ -160,6 +170,7 @@ function AdminNotifications() {
             case 'pos_invoice': return <Info size={20} className="text-blue" />;
             case 'appointment_request': return <CalendarDays size={20} className="text-orange" />;
             case 'new_review': return <Star size={20} className="text-gold" />;
+            case 'payment_action_required': return <ShieldAlert size={20} style={{ color: '#dc2626' }} />;
             default: return <Bell size={20} />;
         }
     };

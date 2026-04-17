@@ -3953,6 +3953,35 @@ app.put('/api/appointments/:id/status', (req, res) => {
             }
           });
 
+          // 🚨 PAYMENT RESOLUTION CHECK: Fire urgent admin alert if outstanding balance exists
+          const paymentCheckQuery = `
+            SELECT ap.price,
+              ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid
+            FROM appointments ap WHERE ap.id = ?
+          `;
+          db.query(paymentCheckQuery, [id], (pErr, pRes) => {
+            if (!pErr && pRes.length) {
+              const apptPrice = Number(pRes[0].price) || 0;
+              const apptTotalPaid = Number(pRes[0].total_paid) || 0;
+              const hasOutstandingBalance = apptPrice > 0 && apptTotalPaid < apptPrice;
+              const isUnquoted = apptPrice <= 0;
+
+              if (hasOutstandingBalance || isUnquoted) {
+                const alertMsg = isUnquoted
+                  ? `Appointment #${id} for "${designTitle}" has been completed but has NO PRICE SET. The artist cannot be compensated until a quote is finalized and payment is collected.`
+                  : `Appointment #${id} for "${designTitle}" has been completed with an outstanding balance of ₱${(apptPrice - apptTotalPaid).toLocaleString()}. Immediate action is required to process artist compensation.`;
+                
+                db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (aErr, aRes) => {
+                  if (!aErr && aRes.length) {
+                    aRes.forEach(admin => {
+                      createNotification(admin.id, '⚠️ Payment Resolution Required', alertMsg, 'payment_action_required', id);
+                    });
+                  }
+                });
+              }
+            }
+          });
+
         } else {
           createNotification(appointment.customer_id, 'Session Complete! ⏳', `Your session for "${designTitle}" today is finished. We will coordinate with you soon for your next session to continue your piece!`, 'appointment_partial_complete', id);
         }
@@ -3988,6 +4017,44 @@ app.put('/api/appointments/:id/status', (req, res) => {
 
       res.json({ success: true, message: 'Appointment status updated' });
     });
+  });
+});
+
+// GET Admin pending payment alerts (for global overlay polling)
+app.get('/api/admin/pending-payment-alerts', (req, res) => {
+  const query = `
+    SELECT 
+      ap.id,
+      ap.booking_code,
+      ap.design_title,
+      ap.price,
+      ap.status,
+      ap.appointment_date,
+      ap.start_time,
+      ap.service_type,
+      ap.artist_id,
+      ap.customer_id,
+      u.name as client_name,
+      ar.name as artist_name,
+      ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid
+    FROM appointments ap
+    JOIN users u ON ap.customer_id = u.id
+    LEFT JOIN users ar ON ap.artist_id = ar.id
+    WHERE ap.status = 'completed'
+      AND ap.is_deleted = 0
+      AND (
+        (ap.price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) < ap.price)
+        OR (ap.price IS NULL OR ap.price <= 0)
+      )
+    ORDER BY ap.appointment_date DESC
+    LIMIT 20
+  `;
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('❌ Error fetching pending payment alerts:', err.message);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    res.json({ success: true, alerts: results || [] });
   });
 });
 
