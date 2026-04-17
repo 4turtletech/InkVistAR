@@ -522,23 +522,13 @@ function AdminUsers() {
             <div className="gallery-grid-admin">
                 {artistDetails.portfolio.map(work => (
                     <div key={work.id} className="gallery-item-admin admin-st-24b531c6" onClick={() => openEditWork(work)}>
-                        <img src={work.image_url} alt={work.title} style={{ aspectRatio: '4/5', objectFit: 'cover', width: '100%', display: 'block' }} />
-                        <div className="gallery-overlay" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '12px' }}>
-                            <button className="delete-btn" style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(239, 68, 68, 0.9)', color: 'white', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleDeleteWork(work.id); }}>
+                        <img src={work.image_url} alt={work.title} />
+                        <div className="gallery-overlay">
+                            <button className="delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteWork(work.id); }}>
                                 <Trash2 size={14} />
                             </button>
-                            <div style={{ marginTop: 'auto', background: 'rgba(15, 23, 42, 0.75)', padding: '10px 12px', borderRadius: '8px', backdropFilter: 'blur(4px)', width: '100%', boxSizing: 'border-box' }}>
-                                <span style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '2px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{work.title}</span>
-                                {work.price_estimate ? (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#34d399', fontWeight: 700 }}>
-                                        <PhilippinePeso size={12} /> {Number(work.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                ) : (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#fcd34d', fontWeight: 700 }}>
-                                        Price upon request
-                                    </span>
-                                )}
-                            </div>
+                            <h4 style={{ margin: '0 0 3px', fontSize: '0.85rem', fontWeight: 600, color: '#C19A6B', fontFamily: "'Playfair Display', serif" }}>{work.title}</h4>
+                            <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.5px' }}>{work.category || 'Uncategorized'}</span>
                         </div>
                     </div>
                 ))}
@@ -1194,16 +1184,16 @@ function AdminUsers() {
                             </div>
 
                             <div className="settings-tabs admin-st-23c98a22">
-                                <button className={`tab-button ${artistActiveTab === 'profile' ? 'active' : ''}`} onClick={() => setArtistActiveTab('profile')}>
+                                <button className={`tab-button ${artistActiveTab === 'profile' ? 'active' : ''}`} onClick={() => setArtistActiveTab('profile')} style={{ gap: '8px' }}>
                                     <UserCircle size={16} /> Profile Information
                                 </button>
-                                <button className={`tab-button ${artistActiveTab === 'schedule' ? 'active' : ''}`} onClick={() => setArtistActiveTab('schedule')}>
+                                <button className={`tab-button ${artistActiveTab === 'schedule' ? 'active' : ''}`} onClick={() => setArtistActiveTab('schedule')} style={{ gap: '8px' }}>
                                     <Calendar size={16} /> Procedure Schedule
                                 </button>
-                                <button className={`tab-button ${artistActiveTab === 'portfolio' ? 'active' : ''}`} onClick={() => setArtistActiveTab('portfolio')}>
+                                <button className={`tab-button ${artistActiveTab === 'portfolio' ? 'active' : ''}`} onClick={() => setArtistActiveTab('portfolio')} style={{ gap: '8px' }}>
                                     <Palette size={16} /> Media Portfolio
                                 </button>
-                                <button className={`tab-button ${artistActiveTab === 'earnings' ? 'active' : ''}`} onClick={() => setArtistActiveTab('earnings')}>
+                                <button className={`tab-button ${artistActiveTab === 'earnings' ? 'active' : ''}`} onClick={() => setArtistActiveTab('earnings')} style={{ gap: '8px' }}>
                                     <PhilippinePeso size={16} /> Remittance Log
                                 </button>
                             </div>

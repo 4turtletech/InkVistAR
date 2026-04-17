@@ -216,7 +216,7 @@ body {
   overflow: hidden;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-  aspect-ratio: 1/1; /* Square for more compact grid, or 3/4 if preferred */
+  aspect-ratio: 4/5; /* Portrait ratio */
   background-color: #1a1a1a;
 }
 
@@ -238,7 +238,8 @@ body {
   bottom: 15px;
   left: 15px;
   color: rgba(255, 255, 255, 0.4);
-  font-size: 0.85rem;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.7rem;
   font-weight: bold;
   letter-spacing: 2px;
   pointer-events: none;
