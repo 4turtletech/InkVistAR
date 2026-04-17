@@ -23,6 +23,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
   - **Glassmorphism (Core Design Language):** The UI must strictly follow a glassmorphic look. Use standard classes like `.glass-card` (which rely on `rgba()`, `backdrop-filter: blur()`, and subtle borders) to achieve this.
   - **Border Radius:** Use soft, modern curves. Standard cards use `16px` or `24px`; generic buttons use `8px` or `10px`.
   - **Icons:** Use `lucide-react` for all UI icons.
+  - **Browser Tab Branding:** The tab title MUST be `"Inkvictus Tattoo Studio"` and the favicon/tab icon MUST use the custom "V" logo (`public/favicon.ico`, `public/favicon.png`, `public/logo192.png`, `public/logo512.png`). Do NOT revert to the default React logo.
 - **CSS Strategy:** 
   - **Button Standards:** All interactive action buttons across all portals MUST use the global `.btn` classes (e.g., `.btn.btn-primary`, `.btn.btn-secondary`, or `.btn.btn-brand-gold`). Do NOT use inline styles to override background colors or use legacy one-off classes like `.btn-indigo`.
   - **Strict Separation of Concerns:** ALL structural styling and glassmorphism properties MUST be stored in external compiled `.css` files (e.g., `PortalStyles.css`, `AdminStyles.css`, `index.css`). **NEVER** use hardcoded inline `style={{...}}` React props for structural layouts, alignments, or core visual themes.
@@ -84,7 +85,10 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `POST /api/register` - User registration
 - `POST /api/send-otp` / `/api/verify-otp` - OTP verification
 - `POST /api/reset-password` - Password reset
+- `POST /api/customer/change-password` - Customer password change (requires currentPassword)
 - `POST /api/artist/change-password` - Artist password change (requires currentPassword)
+- `POST /api/request-email-change` - Request email change OTP (sends code to current email)
+- `POST /api/confirm-email-change` - Confirm email change with OTP (updates email, revokes session, triggers re-verification)
 - `GET /api/verify` - Verify auth token
 
 ### Artist
@@ -141,6 +145,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `POST /api/appointments/:id/release-material` - Release held materials
 - `POST /api/chat` - AI chatbot
 - `GET /api/ar/config` - AR configuration
+- `GET /api/verify` - Email verification landing page (token + email query params)
 
 ---
 
@@ -188,6 +193,39 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - **Phase A:** Customer selects "New Booking" or "Follow-Up". Follow-ups require selecting a past completed appointment for traceability (embedded in notes as `📋 Follow-up of Booking INK-XXXX`).
     - **Phase B:** Three checkbox-based service options appear: Tattoo Session, Consultation, Piercing. **Consultation is exclusive** — selecting it grays out Tattoo/Piercing, and vice versa. Tattoo + Piercing can be combined (stored as `"Tattoo + Piercing"` for backend compatibility).
     - The `CustomerBookingWizard.js` (public/anonymous wizard) is NOT affected — it remains a consultation-only flow.
+13. **Email Change Flow (Profile Pages):** Both `CustomerProfile.js` and `ArtistProfile.js` implement a consistent two-step modal for email changes:
+    - **Step 1 (Enter Email):** User clicks the `Edit2` pencil icon inside the email field → modal opens → user enters new email → client-side validates format and checks it's different from the current email → calls `POST /api/request-email-change` which checks uniqueness and sends an OTP to the **current** email.
+    - **Step 2 (Verify OTP):** User enters the 6-digit code using individual input slots (see OTP Input Standards below) → calls `POST /api/confirm-email-change` → on success, email is updated, session is revoked (`localStorage` cleared), and a re-verification email is sent to the **new** address.
+    - **State Management:** All modal state is unified into a single `emailModal` object: `{ open, step, newEmail, emailError, otp, otpError, sending, confirming, resendTimer, resendAttempts, resending }`.
+14. **OTP Input UI Standards:** All OTP/verification code inputs across the platform (Login, Registration, Email Change) MUST use the **6-slot individual digit input** pattern:
+    - 6 separate `<input>` elements, each accepting a single digit (`maxLength={1}`).
+    - **Auto-advance:** Focus moves to the next input automatically on entry.
+    - **Backspace navigation:** Pressing Backspace on an empty slot clears and focuses the previous slot.
+    - **Clipboard paste support:** Pasting a 6-digit code distributes digits across all slots and focuses the last one.
+    - Managed via `useRef` array (`otpRefs`) for focus control.
+    - Slots turn gold (`#daa520`) border on focus, red (`#ef4444`) border on error.
+    - Do NOT use a single text input for OTP entry.
+15. **Resend OTP Logic:** The OTP verification step (email change modal) includes a resend mechanism:
+    - **Cooldown Timer:** 5-minute (300 seconds) countdown starts when the OTP step is entered. Displayed as `"Resend code in M:SS"`.
+    - **Resend Button:** Appears only after the timer reaches zero. Clicking it re-calls `POST /api/request-email-change`, resets the timer to 300s, and increments `resendAttempts`.
+    - **Max Attempts:** After 3 resend attempts, the button is permanently replaced with `"Maximum resend attempts reached. Please try again later."` in red.
+    - **Reset:** Going "Back" to Step 1 or closing the modal resets both `resendTimer` and `resendAttempts`.
+16. **Email Template Standards (Backend):** ALL outbound emails MUST use the `buildEmailHtml(contentHtml)` wrapper function. This ensures:
+    - **Dark Luxury Theme:** `#0a0a0a` background, `#111111` card, gold accent bar (`linear-gradient #C19A6B`), `rgba(193,154,107,0.2)` border.
+    - **Logo:** Centered company "V" logo loaded from `${FRONTEND_URL}/images/logo.png` at the top of every email.
+    - **Typography:** Body text in `#e2e8f0`, subtext in `#888` or `#94a3b8`, headings in `#C19A6B`.
+    - **Footer:** "InkVictus Tattoo Studio • BGC, Taguig" + automated message disclaimer.
+    - **Content Patterns:** OTP codes use a dark box (`#1a1a1a`) with gold monospace text. Session/booking details use a bordered detail card with labeled rows (Service, Date, Time). CTA buttons use `linear-gradient(135deg, #C19A6B, #8a6c4a)` with uppercase text.
+    - Do NOT use inline `<div>` wrapper HTML for email bodies. Always pass content through `buildEmailHtml()`.
+17. **Verification Landing Page (`/api/verify`):** The email verification success and error pages use the Dark Luxury theme:
+    - **Success:** Dark background (`#050505`), gold border card, Playfair Display serif heading "Verified", checkmark SVG icon in gold-tinted circle, "Continue to Login" button with gold outline.
+    - **Error:** Same layout but with red (`#ef4444`) accents, alert icon, "Link Expired" heading.
+    - Google Fonts imported: `Playfair Display` (headings) + `Inter` (body).
+18. **Notification Types for Account Changes:** When a user changes their email or password, the backend MUST call `createNotification()` with these types:
+    - `'email_change'` — Title: "Email Changed", routed to `/customer/profile` or `/artist/profile` on click.
+    - `'password_change'` — Title: "Password Changed", routed to `/customer/profile` or `/artist/profile` on click.
+    - Both `CustomerNotifications.js` and `ArtistNotifications.js` have `getNotificationStyle` entries: `email_change` uses `Mail` icon (blue), `password_change` uses `ShieldAlert` icon (amber).
+    - Clicking these notifications navigates directly to the user's profile page instead of opening the notification detail modal.
 
 ---
 
