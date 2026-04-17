@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, Download, Package, Printer, Filter, Clock, X, ChevronRight, TrendingUp, DollarSign, BarChart3, PieChart as PieChartIcon, CheckCircle, Plus, Trash2, Home } from 'lucide-react';
-import PhilippinePeso from '../components/PhilippinePeso';
+import { Download, Package, Printer, Filter, X, BarChart3, PieChart as PieChartIcon, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 import AdminSideNav from '../components/AdminSideNav';
 import ConfirmModal from '../components/ConfirmModal';
+import AnalyticsMetricCards from '../components/AnalyticsMetricCards';
+import AnalyticsAuditModal, { RAINBOW_PALETTE, renderPieLabel } from '../components/AnalyticsAuditModal';
 import './AdminAnalytics.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 
-/* ═══════════════ CHART COLOR PALETTES ═══════════════ */
-// Opposing/contrasting colors — each neighbor is far apart on the color wheel
-const RAINBOW_PALETTE = ['#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#84cc16', '#6366f1', '#14b8a6'];
-const EXPENSE_COLORS = { Inventory: '#f59e0b', Marketing: '#3b82f6', Bills: '#ef4444', Payouts: '#a855f7', Equipment: '#10b981', Licensing: '#06b6d4', Maintenance: '#ec4899', Extras: '#84cc16' };
-const EXPENSE_CATEGORIES = ['Inventory', 'Marketing', 'Bills', 'Payouts', 'Equipment', 'Licensing', 'Maintenance', 'Extras'];
 const DARK_BRAND = '#e2e8f0';
 
 /* ═══════════════ CUSTOM TOOLTIP ═══════════════ */
@@ -33,11 +29,9 @@ const DarkTooltip = ({ active, payload, label }) => {
     );
 };
 
-/* ═══════════════ PIE LABEL ═══════════════ */
-const renderPieLabel = ({ name, percent }) => percent > 0.05 ? `${name} ${(percent * 100).toFixed(0)}%` : '';
-
 function AdminAnalytics() {
     const [dateRange, setDateRange] = useState('month');
+    const [revenueTimeframe, setRevenueTimeframe] = useState('monthly');
     const [analytics, setAnalytics] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -54,12 +48,12 @@ function AdminAnalytics() {
         setConfirmDialog({ isOpen: true, title, message, type, isAlert: true, onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false })) });
     };
 
-    useEffect(() => { fetchAnalytics(); fetchExpenses(); }, []);
+    useEffect(() => { fetchAnalytics(); fetchExpenses(); }, [revenueTimeframe]);
 
     const fetchAnalytics = async () => {
         try {
             setLoading(true);
-            const res = await Axios.get(`${API_URL}/api/admin/analytics`);
+            const res = await Axios.get(`${API_URL}/api/admin/analytics?timeframe=${revenueTimeframe}`);
             if (res.data.success) setAnalytics(res.data.data);
             setLoading(false);
         } catch (error) {
@@ -131,6 +125,18 @@ function AdminAnalytics() {
                     ].filter(b => b.value > 0),
                     total: analytics.appointments.total,
                     source: 'appointments table (is_deleted=0)'
+                };
+                break;
+            case 'users':
+                title = 'User Base Audit';
+                data = {
+                    breakdown: [
+                        { name: 'Customers', value: Number(analytics.users?.customers) || 0 },
+                        { name: 'Artists', value: Number(analytics.users?.artists) || 0 },
+                        { name: 'Admins', value: Number(analytics.users?.admins) || 0 }
+                    ].filter(b => b.value > 0),
+                    total: analytics.users?.total || 0,
+                    source: 'users table (is_deleted=0)'
                 };
                 break;
             case 'artists':
@@ -236,6 +242,8 @@ function AdminAnalytics() {
         return hrs > 0 ? `${hrs}h ${String(mins).padStart(2, '0')}m` : `${mins}m`;
     };
 
+    const timeframeLabel = revenueTimeframe === 'monthly' ? 'This Month' : revenueTimeframe === 'yearly' ? 'This Year' : 'All Time';
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -249,12 +257,11 @@ function AdminAnalytics() {
                         <div className="header-actions-group">
                             <div className="filter-group-glass">
                                 <Filter size={16} color={DARK_BRAND} />
-                                <span>Time Range:</span>
-                                <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="premium-select-glass">
-                                    <option value="week">Last Week</option>
-                                    <option value="month">This Month</option>
-                                    <option value="quarter">This Quarter</option>
-                                    <option value="year">This Year</option>
+                                <span>Revenue:</span>
+                                <select value={revenueTimeframe} onChange={(e) => setRevenueTimeframe(e.target.value)} className="premium-select-glass">
+                                    <option value="monthly">This Month</option>
+                                    <option value="yearly">This Year</option>
+                                    <option value="all">All Time</option>
                                 </select>
                             </div>
                             <button className="btn btn-secondary" onClick={handlePrint}><Printer size={18} /> Print</button>
@@ -269,85 +276,13 @@ function AdminAnalytics() {
                     <div className="no-data" style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>No analytics data available.</div>
                 ) : (
                     <>
-                        {/* ═══════════════ METRIC CARDS ═══════════════ */}
-                        <div className="metrics-section">
-                            <div className="metric-card glass-card metric-clickable primary-metric" onClick={() => openAuditModal('revenue')}>
-                                <PhilippinePeso className="metric-icon" size={32} color={DARK_BRAND} />
-                                <div className="metric-content">
-                                    <p className="metric-label">Total Revenue</p>
-                                    <p className="metric-value">₱{Number(analytics.revenue.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                    <p className="metric-info metric-clickable-hint"><ChevronRight size={12} /> Click to view sources</p>
-                                </div>
-                            </div>
-
-                            <div className="metric-card glass-card metric-clickable" onClick={() => openAuditModal('expenses')}>
-                                <DollarSign className="metric-icon" size={32} color={DARK_BRAND} />
-                                <div className="metric-content">
-                                    <p className="metric-label">Ops Expenses</p>
-                                    <p className="metric-value">₱{Number(analytics.expenses?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                    <p className="metric-info metric-clickable-hint"><ChevronRight size={12} /> View audited transactions</p>
-                                </div>
-                            </div>
-
-                            <div className="metric-card glass-card metric-clickable" onClick={() => openAuditModal('overhead')}>
-                                <Home className="metric-icon" size={32} color={DARK_BRAND} />
-                                <div className="metric-content">
-                                    <p className="metric-label">Overhead / Manual</p>
-                                    <p className="metric-value">₱{Number(analytics.overhead?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                    <p className="metric-info metric-clickable-hint"><ChevronRight size={12} /> Log manual expenses</p>
-                                </div>
-                            </div>
-
-                            <div className="metric-card glass-card metric-clickable" onClick={() => openAuditModal('appointments')}>
-                                <Calendar className="metric-icon" size={32} color={DARK_BRAND} />
-                                <div className="metric-content">
-                                    <p className="metric-label">Total Appointments</p>
-                                    <p className="metric-value">{analytics.appointments.total}</p>
-                                    <p className="metric-info"><span style={{ color: '#10b981', fontWeight: 600 }}>{analytics.appointments.completed} completed</span></p>
-                                </div>
-                            </div>
-
-                            <div className="metric-card glass-card metric-clickable" onClick={() => openAuditModal('artists')}>
-                                <Users className="metric-icon" size={32} color={DARK_BRAND} />
-                                <div className="metric-content">
-                                    <p className="metric-label">Active Artists</p>
-                                    <p className="metric-value">{analytics.artists?.length || 0}</p>
-                                    <p className="metric-info">Producing Revenue</p>
-                                </div>
-                            </div>
-
-                            <div className="metric-card glass-card metric-clickable" onClick={() => openAuditModal('inventory')}>
-                                <Package className="metric-icon" size={32} color={DARK_BRAND} />
-                                <div className="metric-content">
-                                    <p className="metric-label">Inventory Used</p>
-                                    <p className="metric-value">{analytics.inventory.reduce((s, i) => s + Number(i.used || 0), 0).toLocaleString()}</p>
-                                    <p className="metric-info">Items consumed</p>
-                                </div>
-                            </div>
-
-                            <div className="metric-card glass-card metric-clickable" onClick={() => openAuditModal('completion')}>
-                                <CheckCircle className="metric-icon" size={32} color={DARK_BRAND} />
-                                <div className="metric-content">
-                                    <p className="metric-label">Completion Rate</p>
-                                    <p className="metric-value">{analytics.appointments.completionRate}%</p>
-                                    <p className="metric-info" style={{ color: '#ef4444' }}>{analytics.appointments.cancelled} cancelled</p>
-                                </div>
-                            </div>
-
-                            <div className="metric-card glass-card metric-clickable" onClick={() => openAuditModal('duration')}>
-                                <Clock className="metric-icon" size={32} color={DARK_BRAND} />
-                                <div className="metric-content">
-                                    <p className="metric-label">Avg Session Duration</p>
-                                    <p className="metric-value">{formatDuration(analytics.appointments.avgDuration)}</p>
-                                    <p className="metric-info">Per completed session</p>
-                                </div>
-                            </div>
-                        </div>
+                        {/* ═══════════════ METRIC CARDS (shared component) ═══════════════ */}
+                        <AnalyticsMetricCards analytics={analytics} onCardClick={openAuditModal} formatDuration={formatDuration} showAll={true} variant="dark" />
 
                         {/* ═══════════════ CHARTS ROW 1: Trend (wide left) + Sources (narrow right) ═══════════════ */}
                         <div className="analytics-dashboard-layout">
                             <div className="card glass-card card-colspan-2">
-                                <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Monthly Revenue Trend</h2>
+                                <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Trend ({timeframeLabel})</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     <ResponsiveContainer>
                                         <BarChart data={analytics.revenue.chart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -426,7 +361,6 @@ function AdminAnalytics() {
                             </div>
                         </div>
 
-
                         {/* ═══════════════ CHARTS ROW 3: Inventory (wide left) + Appointments (narrow right) ═══════════════ */}
                         <div className="analytics-dashboard-layout">
                             <div className="card glass-card card-colspan-2">
@@ -478,202 +412,20 @@ function AdminAnalytics() {
                     </>
                 )}
 
-                {/* ═══════════════ AUDIT MODAL ═══════════════ */}
-                {auditModal.open && (
-                    <div className="modal-overlay open" onClick={closeAuditModal}>
-                        <div className="modal-content xl" onClick={e => e.stopPropagation()} style={{ maxWidth: '800px' }}>
-                            <div className="modal-header">
-                                <div className="admin-flex-center admin-gap-15">
-                                    <div style={{ width: '40px', height: '40px', background: 'rgba(30,41,59,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <BarChart3 size={20} color={DARK_BRAND} />
-                                    </div>
-                                    <div>
-                                        <h2 className="admin-m-0" style={{ fontSize: '1.1rem' }}>{auditModal.title}</h2>
-                                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Data source verification</p>
-                                    </div>
-                                </div>
-                                <button className="close-btn" onClick={closeAuditModal}><X size={24} /></button>
-                            </div>
-                            <div className="modal-body" style={{ padding: '20px 24px', maxHeight: '70vh', overflowY: 'auto' }}>
-                                {/* Data source badge */}
-                                {auditModal.data?.source && (
-                                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.78rem', color: '#475569' }}>
-                                        <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BarChart3 size={14} /> Audited Origin:</strong> {auditModal.data.source}
-                                    </div>
-                                )}
-
-                                {/* General breakdown pie + list (Revenue/Appointments) */}
-                                {auditModal.data?.breakdown && auditModal.type !== 'expenses' && (
-                                    <>
-                                        <div style={{ width: '100%', height: 220, marginBottom: '16px' }}>
-                                            <ResponsiveContainer>
-                                                <PieChart>
-                                                    <Pie data={auditModal.data.breakdown} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={3} dataKey="value" label={renderPieLabel} labelLine={true}>
-                                                        {auditModal.data.breakdown.map((entry, i) => (
-                                                            <Cell key={i} fill={RAINBOW_PALETTE[i % RAINBOW_PALETTE.length]} />
-                                                        ))}
-                                                    </Pie>
-                                                    <Tooltip formatter={(v) => auditModal.type === 'appointments' || auditModal.type === 'completion' ? v : `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} />
-                                                    <Legend />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                        <table className="data-table" style={{ fontSize: '0.85rem' }}>
-                                            <thead><tr><th>Category</th><th style={{ textAlign: 'right' }}>Value</th></tr></thead>
-                                            <tbody>
-                                                {auditModal.data.breakdown.map((b, i) => (
-                                                    <tr key={i}>
-                                                        <td style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: RAINBOW_PALETTE[i % RAINBOW_PALETTE.length], display: 'inline-block' }}></span>
-                                                            {b.name}
-                                                        </td>
-                                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                                                            {auditModal.type === 'appointments' || auditModal.type === 'completion' ? b.value : `₱${Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                            {auditModal.data.total !== undefined && (
-                                                <tfoot>
-                                                    <tr>
-                                                        <td style={{ fontWeight: 700 }}>Total</td>
-                                                        <td style={{ textAlign: 'right', fontWeight: 700, color: DARK_BRAND }}>
-                                                            {auditModal.type === 'appointments' || auditModal.type === 'completion' ? auditModal.data.total : `₱${Number(auditModal.data.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
-                                                        </td>
-                                                    </tr>
-                                                </tfoot>
-                                            )}
-                                        </table>
-                                    </>
-                                )}
-
-                                {/* Audited EXPENSES View: matches payout + inventory pages */}
-                                {auditModal.type === 'expenses' && (
-                                    <>
-                                        <h3 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>Recent Artist Payouts</h3>
-                                        <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '24px' }}>
-                                            <table className="data-table" style={{ fontSize: '0.8rem' }}>
-                                                <thead><tr><th>Date</th><th>Artist</th><th>Method</th><th style={{ textAlign: 'right' }}>Amount</th></tr></thead>
-                                                <tbody>
-                                                    {auditModal.data.payouts_audit?.length > 0 ? auditModal.data.payouts_audit.map((p, i) => (
-                                                        <tr key={i}>
-                                                            <td>{new Date(p.created_at).toLocaleDateString()}</td>
-                                                            <td style={{ fontWeight: 600 }}>{p.artist_name || 'System Artist'}</td>
-                                                            <td><span className={`status-badge ${p.status === 'paid' ? 'success' : 'pending'}`}>{p.payout_method}</span></td>
-                                                            <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(p.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
-                                                        </tr>
-                                                    )) : <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8' }}>No payouts history</td></tr>}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <h3 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>Recent Inventory Procurements (Stock In)</h3>
-                                        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                                            <table className="data-table" style={{ fontSize: '0.8rem' }}>
-                                                <thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Qty</th><th style={{ textAlign: 'right' }}>Total Cost</th></tr></thead>
-                                                <tbody>
-                                                    {auditModal.data.inventory_in_audit?.length > 0 ? auditModal.data.inventory_in_audit.map((t, i) => (
-                                                        <tr key={i}>
-                                                            <td>{new Date(t.created_at).toLocaleDateString()}</td>
-                                                            <td style={{ fontWeight: 600 }}>{t.name}</td>
-                                                            <td><span className="status-badge success">Restock</span></td>
-                                                            <td>{t.quantity}</td>
-                                                            <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(t.total_cost).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
-                                                        </tr>
-                                                    )) : <tr><td colSpan="5" style={{ textAlign: 'center', color: '#94a3b8' }}>No restock history</td></tr>}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* Overhead Manual Expenses view */}
-                                {auditModal.type === 'overhead' && (
-                                    <div style={{ marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-                                        <h3 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
-                                            <Plus size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                                            Record Manual Expense
-                                        </h3>
-                                        <form onSubmit={handleAddExpense} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                                            <select className="form-input" value={expenseForm.category} onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })} style={{ flex: '0 0 140px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
-                                                {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                            <input type="text" placeholder="Description..." value={expenseForm.description} onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })} style={{ flex: 1, minWidth: '120px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }} />
-                                            <input type="number" placeholder="Amount (₱)" value={expenseForm.amount} onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })} required style={{ flex: '0 0 110px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }} />
-                                            <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                                <Plus size={14} /> Add
-                                            </button>
-                                        </form>
-
-                                        <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>Expense Ledger</h3>
-                                        {expenseLoading ? (
-                                            <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Loading...</p>
-                                        ) : expenseList.length === 0 ? (
-                                            <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No manual expenses recorded yet.</p>
-                                        ) : (
-                                            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                                                <table className="data-table" style={{ fontSize: '0.8rem' }}>
-                                                    <thead><tr><th>Date</th><th>Category</th><th>Description</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr></thead>
-                                                    <tbody>
-                                                        {expenseList.map(exp => (
-                                                            <tr key={exp.id}>
-                                                                <td>{new Date(exp.created_at).toLocaleDateString()}</td>
-                                                                <td>
-                                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: EXPENSE_COLORS[exp.category] || '#64748b' }}></span>
-                                                                        {exp.category}
-                                                                    </span>
-                                                                </td>
-                                                                <td>{exp.description || '—'}</td>
-                                                                <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(exp.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
-                                                                <td><button onClick={() => handleDeleteExpense(exp.id)} className="action-btn delete-btn" title="Delete" style={{ padding: '4px' }}><Trash2 size={14} /></button></td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Artist / Inventory list */}
-                                {auditModal.data?.list && (
-                                    <table className="data-table" style={{ fontSize: '0.85rem' }}>
-                                        <thead>
-                                            <tr>
-                                                <th>#</th>
-                                                <th>Name</th>
-                                                {auditModal.type === 'artists' && <><th style={{ textAlign: 'right' }}>Revenue</th><th style={{ textAlign: 'right' }}>Appointments</th></>}
-                                                {auditModal.type === 'inventory' && <th style={{ textAlign: 'right' }}>Used</th>}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {auditModal.data.list.map((item, i) => (
-                                                <tr key={i}>
-                                                    <td>{i + 1}</td>
-                                                    <td style={{ fontWeight: 600 }}>{item.name}</td>
-                                                    {auditModal.type === 'artists' && <><td style={{ textAlign: 'right', color: '#10b981' }}>₱{Number(item.revenue || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td><td style={{ textAlign: 'right' }}>{item.appointments}</td></>}
-                                                    {auditModal.type === 'inventory' && <td style={{ textAlign: 'right', color: '#f59e0b', fontWeight: 600 }}>{item.used} {item.unit}</td>}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
-
-                                {/* Duration audit */}
-                                {auditModal.type === 'duration' && (
-                                    <div style={{ textAlign: 'center', padding: '24px' }}>
-                                        <p style={{ fontSize: '2.5rem', fontWeight: 800, color: '#1e293b', margin: '0 0 8px' }}>{formatDuration(auditModal.data?.avgDuration)}</p>
-                                        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Average across all completed sessions</p>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={closeAuditModal}>Close</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/* ═══════════════ AUDIT MODAL (shared component) ═══════════════ */}
+                <AnalyticsAuditModal
+                    auditModal={auditModal}
+                    onClose={closeAuditModal}
+                    analytics={analytics}
+                    expenseList={expenseList}
+                    expenseLoading={expenseLoading}
+                    expenseForm={expenseForm}
+                    setExpenseForm={setExpenseForm}
+                    onAddExpense={handleAddExpense}
+                    onDeleteExpense={handleDeleteExpense}
+                    formatDuration={formatDuration}
+                    darkMode={true}
+                />
             </div>
             <ConfirmModal {...confirmDialog} onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))} />
         </div>

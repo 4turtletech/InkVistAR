@@ -5675,6 +5675,24 @@ app.get('/api/admin/inventory/transactions', (req, res) => {
 
 // Admin: Analytics Data
 app.get('/api/admin/analytics', (req, res) => {
+  const timeframe = req.query.timeframe || 'all'; // 'monthly', 'yearly', 'all'
+  
+  // Build date filter clause for revenue queries
+  let revenueDateFilter = '';
+  if (timeframe === 'monthly') {
+    revenueDateFilter = "AND ap.appointment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+  } else if (timeframe === 'yearly') {
+    revenueDateFilter = "AND YEAR(ap.appointment_date) = YEAR(NOW())";
+  }
+  // 'all' = no filter
+  
+  let invoiceDateFilter = '';
+  if (timeframe === 'monthly') {
+    invoiceDateFilter = "AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+  } else if (timeframe === 'yearly') {
+    invoiceDateFilter = "AND YEAR(created_at) = YEAR(NOW())";
+  }
+
   const response = {
     revenue: { total: 0, growth: 0, chart: [], breakdown: [] },
     appointments: { total: 0, completed: 0, scheduled: 0, cancelled: 0, completionRate: 0 },
@@ -5682,7 +5700,14 @@ app.get('/api/admin/analytics', (req, res) => {
     overhead: { total: 0, breakdown: [] },
     artists: [],
     styles: [],
-    inventory: []
+    inventory: [],
+    users: { total: 0, artists: 0, customers: 0, admins: 0 },
+    // Audit log arrays
+    revenue_audit: [],
+    appointments_audit: [],
+    inventory_out_audit: [],
+    users_audit: [],
+    timeframe: timeframe
   };
 
   // 1. Appointment Stats
@@ -5697,12 +5722,12 @@ app.get('/api/admin/analytics', (req, res) => {
     WHERE is_deleted = 0
   `;
 
-  // 2. Revenue breakdown by source (Appointments vs POS)
+  // 2. Revenue breakdown by source (Appointments vs POS) — filtered by timeframe
   const revenueBreakdownQuery = `
     SELECT 
-      COALESCE((SELECT SUM(((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)) FROM appointments ap WHERE ap.status != 'cancelled' AND ap.is_deleted = 0), 0) as appointment_revenue,
-      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND (LOWER(service_type) LIKE '%retail%' OR LOWER(service_type) LIKE '%pos%')), 0) as pos_revenue,
-      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND LOWER(service_type) NOT LIKE '%retail%' AND LOWER(service_type) NOT LIKE '%pos%'), 0) as service_invoice_revenue
+      COALESCE((SELECT SUM(((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)) FROM appointments ap WHERE ap.status != 'cancelled' AND ap.is_deleted = 0 ${revenueDateFilter}), 0) as appointment_revenue,
+      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND (LOWER(service_type) LIKE '%retail%' OR LOWER(service_type) LIKE '%pos%') ${invoiceDateFilter}), 0) as pos_revenue,
+      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND LOWER(service_type) NOT LIKE '%retail%' AND LOWER(service_type) NOT LIKE '%pos%' ${invoiceDateFilter}), 0) as service_invoice_revenue
   `;
 
   // 2.5 Expenses: Inventory procurements + Payouts
@@ -5721,9 +5746,63 @@ app.get('/api/admin/analytics', (req, res) => {
     ORDER BY total DESC
   `;
 
-  // 2.6 Fetch raw data for audits
+  // 2.6 Fetch raw data for expense audits
   const payoutsAuditQuery = `SELECT p.*, u.name as artist_name FROM payouts p JOIN users u ON p.artist_id = u.id ORDER BY p.created_at DESC LIMIT 50`;
   const inventoryInAuditQuery = `SELECT t.*, i.name, (t.quantity * COALESCE(t.item_price, i.cost, 0)) as total_cost FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in' ORDER BY t.created_at DESC LIMIT 50`;
+
+  // 2.7 Revenue Audit Logs (individual payments/invoices)
+  const revenueAuditQuery = `
+    (SELECT p.created_at as date, CONCAT('Payment #', p.id) as description, 'Appointment Payment' as source, (p.amount / 100) as amount
+     FROM payments p WHERE p.status = 'paid' ORDER BY p.created_at DESC LIMIT 30)
+    UNION ALL
+    (SELECT i.created_at as date, CONCAT(i.invoice_number, ' - ', i.client_name) as description, 
+     CASE WHEN LOWER(i.service_type) LIKE '%retail%' OR LOWER(i.service_type) LIKE '%pos%' THEN 'POS Sale' ELSE 'Service Invoice' END as source,
+     i.amount FROM invoices i WHERE LOWER(i.status) = 'paid' ORDER BY i.created_at DESC LIMIT 30)
+    ORDER BY date DESC LIMIT 50
+  `;
+
+  // 2.8 Appointments Audit Logs (individual appointments)
+  const appointmentsAuditQuery = `
+    SELECT ap.id, ap.appointment_date, ap.start_time, ap.status, ap.service_type,
+           c.name as client_name, u.name as artist_name,
+           (((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)) as total_paid
+    FROM appointments ap
+    LEFT JOIN users c ON ap.customer_id = c.id
+    LEFT JOIN users u ON ap.artist_id = u.id
+    WHERE ap.is_deleted = 0
+    ORDER BY ap.appointment_date DESC
+    LIMIT 50
+  `;
+
+  // 2.9 Inventory Out Audit (consumption)
+  const inventoryOutAuditQuery = `
+    SELECT t.created_at, i.name as item_name, i.category, t.quantity, COALESCE(t.item_price, i.cost, 0) as unit_price,
+           (t.quantity * COALESCE(t.item_price, i.cost, 0)) as total_cost, t.reason, u.name as action_by
+    FROM inventory_transactions t
+    JOIN inventory i ON t.inventory_id = i.id
+    LEFT JOIN users u ON t.user_id = u.id
+    WHERE t.type = 'out'
+    ORDER BY t.created_at DESC
+    LIMIT 50
+  `;
+
+  // 2.10 User Stats
+  const userStatsQuery = `
+    SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN user_type = 'artist' THEN 1 ELSE 0 END) as artists,
+      SUM(CASE WHEN user_type = 'customer' THEN 1 ELSE 0 END) as customers,
+      SUM(CASE WHEN user_type = 'admin' THEN 1 ELSE 0 END) as admins
+    FROM users WHERE is_deleted = 0
+  `;
+
+  // 2.11 Users Audit (individual user list)
+  const usersAuditQuery = `
+    SELECT id, name, email, user_type, created_at, is_verified
+    FROM users WHERE is_deleted = 0
+    ORDER BY created_at DESC
+    LIMIT 50
+  `;
 
   // 3. Artist Productivity
   const artistQuery = `
@@ -5862,7 +5941,35 @@ app.get('/api/admin/analytics', (req, res) => {
                     
                     db.query(inventoryInAuditQuery, (err, invInList) => {
                       if (!err) response.expenses.inventory_in_audit = invInList;
-                      res.json({ success: true, data: response });
+
+                      // Chain additional audit queries
+                      db.query(revenueAuditQuery, (err, revAudit) => {
+                        if (!err) response.revenue_audit = revAudit;
+
+                        db.query(appointmentsAuditQuery, (err, apptAudit) => {
+                          if (!err) response.appointments_audit = apptAudit;
+
+                          db.query(inventoryOutAuditQuery, (err, invOutAudit) => {
+                            if (!err) response.inventory_out_audit = invOutAudit;
+
+                            db.query(userStatsQuery, (err, userStats) => {
+                              if (!err && userStats[0]) {
+                                response.users = {
+                                  total: Number(userStats[0].total) || 0,
+                                  artists: Number(userStats[0].artists) || 0,
+                                  customers: Number(userStats[0].customers) || 0,
+                                  admins: Number(userStats[0].admins) || 0
+                                };
+                              }
+
+                              db.query(usersAuditQuery, (err, usersAudit) => {
+                                if (!err) response.users_audit = usersAudit;
+                                res.json({ success: true, data: response });
+                              });
+                            });
+                          });
+                        });
+                      });
                     });
                   });
                 });

@@ -3,6 +3,8 @@ import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Users, Calendar, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Info, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
+import AnalyticsMetricCards from '../components/AnalyticsMetricCards';
+import AnalyticsAuditModal from '../components/AnalyticsAuditModal';
 
 import './AdminDashboard.css';
 import AdminSideNav from '../components/AdminSideNav';
@@ -26,6 +28,13 @@ function AdminDashboard() {
     const [auditLogs, setAuditLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+    // Shared analytics state (for metric cards + audit modal)
+    const [analyticsData, setAnalyticsData] = useState(null);
+    const [auditModal, setAuditModal] = useState({ open: false, title: '', type: '', data: null });
+    const [expenseForm, setExpenseForm] = useState({ category: 'Inventory', description: '', amount: '' });
+    const [expenseList, setExpenseList] = useState([]);
+    const [expenseLoading, setExpenseLoading] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [showNotifDropdown, setShowNotifDropdown] = useState(false);
     const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
@@ -49,6 +58,8 @@ function AdminDashboard() {
 
     useEffect(() => {
         fetchDashboardData();
+        fetchAnalyticsData();
+        fetchExpenseData();
     }, []);
 
     useEffect(() => {
@@ -254,6 +265,98 @@ function AdminDashboard() {
         navigate(path);
     };
 
+    // Shared analytics fetch (same endpoint as AdminAnalytics)
+    const fetchAnalyticsData = async () => {
+        try {
+            const res = await Axios.get(`${API_URL}/api/admin/analytics?timeframe=monthly`);
+            if (res.data.success) setAnalyticsData(res.data.data);
+        } catch (error) { console.error('Error fetching analytics for dashboard:', error); }
+    };
+
+    const fetchExpenseData = async () => {
+        setExpenseLoading(true);
+        try {
+            const res = await Axios.get(`${API_URL}/api/admin/expenses`);
+            if (res.data.success) setExpenseList(res.data.data);
+        } catch (e) { console.error(e); }
+        setExpenseLoading(false);
+    };
+
+    const handleAddExpenseDash = async (e) => {
+        e.preventDefault();
+        if (!expenseForm.amount || parseFloat(expenseForm.amount) <= 0) return;
+        try {
+            const user = JSON.parse(localStorage.getItem('user'));
+            await Axios.post(`${API_URL}/api/admin/expenses`, { ...expenseForm, amount: parseFloat(expenseForm.amount), userId: user?.id });
+            setExpenseForm({ category: 'Inventory', description: '', amount: '' });
+            fetchExpenseData();
+            fetchAnalyticsData();
+        } catch (e) { console.error(e); }
+    };
+
+    const handleDeleteExpenseDash = async (id) => {
+        try {
+            await Axios.delete(`${API_URL}/api/admin/expenses/${id}`);
+            fetchExpenseData();
+            fetchAnalyticsData();
+        } catch (e) { console.error(e); }
+    };
+
+    const openDashAuditModal = (type) => {
+        if (!analyticsData) return;
+        let title = '', data = null;
+        switch (type) {
+            case 'revenue':
+                title = 'Revenue Audit — Source Breakdown';
+                data = { breakdown: analyticsData.revenue.breakdown, total: analyticsData.revenue.total, source: 'payments + invoices + manual_paid_amount' };
+                break;
+            case 'expenses':
+                title = 'Operations Audits — Payouts & Procurements';
+                data = { breakdown: analyticsData.expenses.breakdown, total: analyticsData.expenses.total, source: 'payouts + inventory transactions (type=in)', payouts_audit: analyticsData.expenses.payouts_audit, inventory_in_audit: analyticsData.expenses.inventory_in_audit };
+                break;
+            case 'overhead':
+                title = 'Studio Overhead — Manual Expenses';
+                data = { breakdown: analyticsData.overhead.breakdown, total: analyticsData.overhead.total, source: 'studio_expenses table' };
+                fetchExpenseData();
+                break;
+            case 'appointments':
+                title = 'Appointments Audit';
+                data = { breakdown: [{ name: 'Completed', value: Number(analyticsData.appointments.completed) || 0 }, { name: 'Scheduled', value: Number(analyticsData.appointments.scheduled) || 0 }, { name: 'Cancelled', value: Number(analyticsData.appointments.cancelled) || 0 }].filter(b => b.value > 0), total: analyticsData.appointments.total, source: 'appointments table' };
+                break;
+            case 'users':
+                title = 'User Base Audit';
+                data = { breakdown: [{ name: 'Customers', value: Number(analyticsData.users?.customers) || 0 }, { name: 'Artists', value: Number(analyticsData.users?.artists) || 0 }, { name: 'Admins', value: Number(analyticsData.users?.admins) || 0 }].filter(b => b.value > 0), total: analyticsData.users?.total || 0, source: 'users table' };
+                break;
+            case 'artists':
+                title = 'Artist Performance Audit';
+                data = { list: analyticsData.artists, source: 'appointments joined with users' };
+                break;
+            case 'inventory':
+                title = 'Inventory Consumption Audit';
+                data = { list: analyticsData.inventory, source: 'inventory_transactions (type=out)' };
+                break;
+            case 'completion':
+                title = 'Completion Rate Audit';
+                data = { breakdown: [{ name: 'Completed', value: Number(analyticsData.appointments.completed) || 0 }, { name: 'Cancelled', value: Number(analyticsData.appointments.cancelled) || 0 }].filter(b => b.value > 0), rate: analyticsData.appointments.completionRate, source: 'appointments table' };
+                break;
+            case 'duration':
+                title = 'Avg Session Duration Audit';
+                data = { avgDuration: analyticsData.appointments.avgDuration, source: 'appointments: AVG(session_duration)' };
+                break;
+            default: break;
+        }
+        setAuditModal({ open: true, title, type, data });
+    };
+
+    const closeDashAuditModal = () => setAuditModal({ open: false, title: '', type: '', data: null });
+
+    const formatDuration = (seconds) => {
+        if (!seconds) return 'N/A';
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        return hrs > 0 ? `${hrs}h ${String(mins).padStart(2, '0')}m` : `${mins}m`;
+    };
+
     // Filter and paginate logs
     const filteredLogs = auditLogs.filter(log => // Audit logs are already limited by the API call
         (log.user_name || 'System').toLowerCase().includes(auditSearch.toLowerCase()) ||
@@ -358,56 +461,10 @@ function AdminDashboard() {
                     </div>
                 ) : (
                     <div className="dashboard-content">
-                        {/* Stats Section */}
-                        <div className="stats-section">
-                            <div className="stat-card-v2 glass-card clickable" onClick={() => navigate('/admin/users')}>
-                                <div className="stat-icon-wrapper blue">
-                                    <Users size={24} />
-                                </div>
-                                <div className="stat-info-v2">
-                                    <span className="stat-label-v2">Total Users</span>
-                                    <h3 className="stat-value-v2">{stats.totalUsers}</h3>
-                                    <div className="stat-trend-v2">Platform Wide</div>
-                                </div>
-                            </div>
-
-                            <div className="stat-card-v2 glass-card clickable" onClick={() => navigate('/admin/appointments')}>
-                                <div className="stat-icon-wrapper purple">
-                                    <Calendar size={24} />
-                                </div>
-                                <div className="stat-info-v2">
-                                    <span className="stat-label-v2">Total Appointments</span>
-                                    <h3 className="stat-value-v2">{stats.totalAppointments}</h3>
-                                    <div className="stat-trend-v2">All Time</div>
-                                </div>
-                            </div>
-
-                            <div className="stat-card-v2 glass-card clickable" onClick={() => navigate('/admin/billing')}>
-                                <div className="stat-icon-wrapper green">
-                                    <PhilippinePeso size={24} />
-                                </div>
-                                <div className="stat-info-v2">
-                                    <span className="stat-label-v2">Revenue (Month)</span>
-                                    <h3 className="stat-value-v2">₱{revenueData.monthly.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-                                    <div className="stat-trend-v2">
-                                        +₱{revenueData.daily.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} today
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="stat-card-v2 glass-card clickable" onClick={() => navigate('/admin/staff')}>
-                                <div className="stat-icon-wrapper orange">
-                                    <Palette size={24} />
-                                </div>
-                                <div className="stat-info-v2">
-                                    <span className="stat-label-v2">Active Artists</span>
-                                    <h3 className="stat-value-v2">{stats.activeArtists}</h3>
-                                    <div className="stat-trend-v2">Studio Staff</div>
-                                </div>
-                            </div>
-
-
-                        </div>
+                        {/* Stats Section — Shared Analytics Metric Cards */}
+                        {analyticsData && (
+                            <AnalyticsMetricCards analytics={analyticsData} onCardClick={openDashAuditModal} formatDuration={formatDuration} showAll={false} variant="light" />
+                        )}
 
                         <div className="dashboard-layout-grid">
                             <div className="layout-column">
@@ -640,6 +697,21 @@ function AdminDashboard() {
                     </div>
                 )}
             </div>
+
+            {/* ═══════════════ ANALYTICS AUDIT MODAL (shared) ═══════════════ */}
+            <AnalyticsAuditModal
+                auditModal={auditModal}
+                onClose={closeDashAuditModal}
+                analytics={analyticsData}
+                expenseList={expenseList}
+                expenseLoading={expenseLoading}
+                expenseForm={expenseForm}
+                setExpenseForm={setExpenseForm}
+                onAddExpense={handleAddExpenseDash}
+                onDeleteExpense={handleDeleteExpenseDash}
+                formatDuration={formatDuration}
+                darkMode={false}
+            />
 
             {/* Appointment Detail Modal */}
             {isDetailModalOpen && selectedAppointment && (
