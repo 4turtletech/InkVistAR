@@ -247,7 +247,7 @@ function AdminAnalytics() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter">
+            <div className="admin-page page-container-enter analytics-dark-page">
                 <div className="analytics-sticky-header">
                     <header className="admin-header">
                         <div className="header-title-area">

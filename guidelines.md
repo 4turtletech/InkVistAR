@@ -30,6 +30,8 @@ This document serves as the primary ground truth for the InkVistAR project. When
   - **No Tailwind:** **Do NOT use TailwindCSS** utilities unless the user explicitly introduces it to the project. Use robust semantic class naming instead.
 - **Portal Color Identity:** Each portal has a visually distinct color scheme to orient the user at a glance. These MUST be maintained:
   - **Admin Portal:** Sidenav bg `#1a1416`, accent `#be9055` (Bronze-Gold), header bg `#1a1416` with `#be9055` border and headings. Content area bg `#f3f4f6`.
+  - **Admin Analytics Page:** Uses a dedicated dark glassmorphism theme scoped under `.analytics-dark-page` (gradient `#0f172a → #1e293b`). This class MUST be present on the Analytics page wrapper and MUST NOT be applied to any other admin page. All dark metric/card overrides are scoped under this parent selector to prevent CSS bleeding.
+  - **Admin Dashboard:** Uses the standard light bg (`#f8fafc`). Stat cards include embedded mini Recharts (bar charts, pie charts) for at-a-glance data visualization. These cards open the shared `AnalyticsAuditModal` on click.
   - **Artist Portal:** Sidenav bg `#1a1416`, accent `#d4af37` (Bright Gold), logo gradient `#d4af37 → #4338ca`. Content area bg `#f3f4f6`.
   - **Customer Portal:** Sidenav bg `#1a1416`, accent `#d4af37` (Bright Gold), same structure as Artist. Content area bg `#f3f4f6`.
   - All sidenav CSS lives in `src/styles/AdminSideNav.css`, `ArtistSideNav.css`, `CustomerSideNav.css`. Do NOT merge or break these per-portal distinctions.
@@ -150,7 +152,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `POST /api/admin/inventory/:id/transaction` - Stock transaction
 - `GET /api/admin/inventory/transactions` - Transaction history
 - `GET/POST/PUT/DELETE /api/admin/branches` - Branch management
-- `GET /api/admin/analytics` - Analytics
+- `GET /api/admin/analytics?timeframe=monthly|yearly|all` - Analytics (timeframe filters revenue scope; response includes: revenue, appointments, expenses, overhead, artists, styles, inventory, users stats, and raw audit logs for all widget types)
 - `GET/POST /api/admin/payouts` - Payout management
 - `GET/POST /api/admin/settings` - App settings
 - `GET /api/admin/audit-logs` - Audit trail
@@ -269,6 +271,16 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - After the initial popup is dismissed, it transitions to a **persistent bottom-right toast** that stays visible across page navigations but does NOT re-show the full modal on every page switch.
     - The payment resolution alert also appears as a **notification card** in `AdminNotifications.js` at the top of the list with a light-red tint and a red "Take Action" button that re-opens the full payment modal.
     - The header styling uses a **solid red** background, NOT a gradient.
+22. **Shared Analytics Components:** The analytics widget system uses two shared components that are imported by both `AdminAnalytics.js` and `AdminDashboard.js`:
+    - **`AnalyticsMetricCards.js`** (`src/components/`): Renders the 9 clickable metric cards (Revenue, Ops Expenses, Overhead, Appointments, Total Users, Active Artists, Inventory Used, Completion Rate, Avg Duration). Accepts `showAll` (boolean) and `variant` ('dark'|'light') props.
+    - **`AnalyticsAuditModal.js`** (`src/components/`): Renders the full audit modal overlay when any metric card is clicked. Contains a pie chart + summary table at top, and a **searchable, paginated Transaction Log** table below. Exports shared constants (`RAINBOW_PALETTE`, `EXPENSE_CATEGORIES`, `renderPieLabel`).
+    - Both pages MUST open the same audit modal with the same data source. The Dashboard fetches from `/api/admin/analytics?timeframe=monthly` and Analytics supports a dropdown to switch between Monthly/Yearly/All-Time.
+    - **CSS Scoping Rule:** Dark-themed metric card styles (`.metric-card`, `.glass-card`, `.metric-label`, `.metric-value`) default to light mode colors. Dark overrides are scoped under `.analytics-dark-page` parent.
+23. **Dual-Layer Expense System:** The analytics page tracks two independent expense categories:
+    - **Ops Expenses (Automated):** Sum of inventory procurements (`inventory_transactions WHERE type='in'`) + artist payouts (`payouts` table). These are system-generated and cannot be manually edited.
+    - **Overhead / Manual Expenses:** Logged by admins via the `studio_expenses` table using the overhead audit modal. Categories: Inventory, Marketing, Bills, Payouts, Equipment, Licensing, Maintenance, Extras. Full CRUD via `GET/POST/DELETE /api/admin/expenses`.
+    - These two categories MUST remain strictly separated in the analytics response (`response.expenses` vs `response.overhead`) to prevent double-counting.
+24. **Chart Color Standards (Analytics):** All Recharts charts MUST use the `RAINBOW_PALETTE` array of high-contrast, opposing colors: `['#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#84cc16', '#6366f1', '#14b8a6']`. Adjacent chart segments must be visually distinct (no two adjacent warm/cool colors). The old brand-gold-dominant palette is deprecated.
 
 ---
 
