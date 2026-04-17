@@ -999,6 +999,57 @@ db.getConnection((err, connection) => {
 const EMAIL_API_KEY = process.env.EMAIL_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
+// ========== REUSABLE EMAIL TEMPLATE BUILDER ==========
+// Generates a production-grade, mobile-responsive InkVistAR branded email.
+// `contentHtml` is the inner body (headings, paragraphs, buttons, OTP codes).
+function buildEmailHtml(contentHtml) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>InkVistAR</title>
+  <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <!-- Outer wrapper for background color -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0a0a;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <!-- Main card -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background-color:#111111;border:1px solid rgba(193,154,107,0.2);border-radius:16px;overflow:hidden;">
+          <!-- Gold accent bar -->
+          <tr><td style="height:4px;background:linear-gradient(90deg,#C19A6B,#8a6c4a,#C19A6B);"></td></tr>
+          <!-- Logo -->
+          <tr>
+            <td align="center" style="padding:32px 32px 0;">
+              <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR" width="60" height="60" style="display:block;width:60px;height:auto;border:0;" />
+            </td>
+          </tr>
+          <!-- Content area -->
+          <tr>
+            <td style="padding:24px 32px 32px;color:#e2e8f0;font-size:15px;line-height:1.7;">
+              ${contentHtml}
+            </td>
+          </tr>
+          <!-- Divider -->
+          <tr><td style="padding:0 32px;"><div style="height:1px;background-color:rgba(193,154,107,0.15);"></div></td></tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 32px 28px;text-align:center;">
+              <p style="margin:0 0 6px;font-size:12px;color:#555;">InkVictus Tattoo Studio &bull; BGC, Taguig</p>
+              <p style="margin:0;font-size:11px;color:#444;">This is an automated message. Please do not reply to this email.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 async function sendEmail(to, subject, html) {
   if (!EMAIL_API_KEY) {
     console.log('⚠️ EMAIL_API_KEY missing. Email logged to console.');
@@ -1553,15 +1604,16 @@ app.post('/api/customer/change-password', async (req, res) => {
       const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${user.email}`;
       console.log('🔑 [DEBUG] Re-verification Link:', verifyUrl);
 
-      const html = `
-        <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
-            <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
-            <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Password Changed — Please Re-verify</h2>
-            <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.6;">Your password was successfully updated. For your security, please verify your email address again to re-activate your account.</p>
-            <a href="${verifyUrl}" style="background: linear-gradient(135deg, #C19A6B, #8a6c4a); color: #000000; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(193, 154, 107, 0.2);">Verify Email Address</a>
-            <p style="margin-top: 30px; font-size: 14px; color: #888;">Or copy and paste this link into your browser:<br/><a href="${verifyUrl}" style="color: #C19A6B; text-decoration: none; word-break: break-all;">${verifyUrl}</a></p>
-        </div>
-      `;
+      const html = buildEmailHtml(`
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Re-verification required for your security</p>
+              <p style="margin:0 0 16px;">Your password was successfully updated. To protect your account, we need you to verify your email address before you can log in again.</p>
+              <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;">If you did not make this change, please contact our support team immediately.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
+                <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify Email Address</a>
+              </td></tr></table>
+              <p style="margin:24px 0 0;font-size:12px;color:#555;text-align:center;word-break:break-all;">Or copy this link: <a href="${verifyUrl}" style="color:#C19A6B;text-decoration:none;">${verifyUrl}</a></p>
+      `);
       sendEmail(user.email, 'InkVistAR: Re-verify Your Account', html);
 
       res.json({ success: true, message: 'Password changed. Please check your email to re-verify your account.', requireReverification: true });
@@ -1624,15 +1676,16 @@ app.post('/api/artist/change-password', async (req, res) => {
       const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${user.email}`;
       console.log('🔑 [DEBUG] Re-verification Link:', verifyUrl);
 
-      const html = `
-        <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
-            <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
-            <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Password Changed — Please Re-verify</h2>
-            <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.6;">Your password was successfully updated. For your security, please verify your email address again to re-activate your account.</p>
-            <a href="${verifyUrl}" style="background: linear-gradient(135deg, #C19A6B, #8a6c4a); color: #000000; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(193, 154, 107, 0.2);">Verify Email Address</a>
-            <p style="margin-top: 30px; font-size: 14px; color: #888;">Or copy and paste this link into your browser:<br/><a href="${verifyUrl}" style="color: #C19A6B; text-decoration: none; word-break: break-all;">${verifyUrl}</a></p>
-        </div>
-      `;
+      const html = buildEmailHtml(`
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Re-verification required for your security</p>
+              <p style="margin:0 0 16px;">Your password was successfully updated. To protect your account, we need you to verify your email address before you can log in again.</p>
+              <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;">If you did not make this change, please contact our support team immediately.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
+                <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify Email Address</a>
+              </td></tr></table>
+              <p style="margin:24px 0 0;font-size:12px;color:#555;text-align:center;word-break:break-all;">Or copy this link: <a href="${verifyUrl}" style="color:#C19A6B;text-decoration:none;">${verifyUrl}</a></p>
+      `);
       sendEmail(user.email, 'InkVistAR: Re-verify Your Account', html);
 
       res.json({ success: true, message: 'Password changed. Please check your email to re-verify your account.', requireReverification: true });
@@ -1676,15 +1729,18 @@ app.post('/api/request-email-change', (req, res) => {
           console.log('🔑 [DEBUG] Email Change OTP for', user.email, ':', otp_code);
 
           // Send OTP to the CURRENT email
-          const html = `
-            <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
-                <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
-                <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Email Change Authorization</h2>
-                <p style="font-size: 16px; margin-bottom: 10px; line-height: 1.6;">A request to change your email address was received. Use the code below to authorize this change:</p>
-                <p style="font-size: 42px; font-weight: bold; letter-spacing: 10px; color: #C19A6B; margin: 30px 0;">${otp_code}</p>
-                <p style="font-size: 14px; color: #888;">This code expires in <strong>5 minutes</strong>. If you did not request this change, please ignore this email and secure your account.</p>
-            </div>
-          `;
+          const html = buildEmailHtml(`
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Email Change Request</h2>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Authorization code required</p>
+              <p style="margin:0 0 16px;">We received a request to change the email address on your InkVistAR account. Enter the verification code below to authorize this change:</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:20px 0;">
+                <div style="display:inline-block;background-color:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;padding:16px 32px;">
+                  <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${otp_code}</span>
+                </div>
+              </td></tr></table>
+              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#e2e8f0;">5 minutes</strong>.</p>
+              <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not request this change, you can safely ignore this email. Your account remains secure.</p>
+          `);
           sendEmail(user.email, 'InkVistAR: Email Change Authorization Code', html);
 
           res.json({ success: true, message: 'Authorization code sent to your current email address.' });
@@ -1746,15 +1802,16 @@ app.post('/api/confirm-email-change', (req, res) => {
           const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${newEmail}`;
           console.log('🔑 [DEBUG] New Email Verification Link:', verifyUrl);
 
-          const html = `
-            <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
-                <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
-                <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Verify Your New Email Address</h2>
-                <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.6;">Your email address has been updated. Please verify this new address to re-activate your account.</p>
-                <a href="${verifyUrl}" style="background: linear-gradient(135deg, #C19A6B, #8a6c4a); color: #000000; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(193, 154, 107, 0.2);">Verify New Email</a>
-                <p style="margin-top: 30px; font-size: 14px; color: #888;">Or copy and paste this link into your browser:<br/><a href="${verifyUrl}" style="color: #C19A6B; text-decoration: none; word-break: break-all;">${verifyUrl}</a></p>
-            </div>
-          `;
+          const html = buildEmailHtml(`
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verify Your New Email</h2>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your email address has been updated</p>
+              <p style="margin:0 0 16px;">Your InkVistAR account email has been changed to this address. Please verify it below to re-activate your account.</p>
+              <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;">If you did not make this change, please contact our support team immediately.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
+                <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify New Email</a>
+              </td></tr></table>
+              <p style="margin:24px 0 0;font-size:12px;color:#555;text-align:center;word-break:break-all;">Or copy this link: <a href="${verifyUrl}" style="color:#C19A6B;text-decoration:none;">${verifyUrl}</a></p>
+          `);
           sendEmail(newEmail, 'InkVistAR: Verify Your New Email Address', html);
 
           res.json({ success: true, message: 'Email updated! Please check your new email to verify and re-activate your account.', requireReverification: true });
@@ -1824,11 +1881,18 @@ app.post('/api/send-otp', (req, res) => {
           sendSMS(user.phone, otpMessage(otp_code));
         } else {
           res.json({ success: true, message: 'OTP sent to your email!' });
-          const html = `
-            <h2 style="color:#1a1a1a;">Your InkVistAR OTP</h2>
-            <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#DAA520;">${otp_code}</p>
-            <p>This code expires in <strong>5 minutes</strong>. Do not share it with anyone.</p>
-          `;
+          const html = buildEmailHtml(`
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verification Code</h2>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Account security verification</p>
+              <p style="margin:0 0 16px;">A one-time verification code was requested for your InkVistAR account. Enter the code below to continue:</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:20px 0;">
+                <div style="display:inline-block;background-color:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;padding:16px 32px;">
+                  <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${otp_code}</span>
+                </div>
+              </td></tr></table>
+              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#e2e8f0;">5 minutes</strong>.</p>
+              <p style="margin:0;font-size:12px;color:#555;text-align:center;">Do not share this code with anyone. InkVistAR will never ask for your code via phone or message.</p>
+          `);
           sendEmail(email, 'InkVistAR - Your OTP Code', html);
         }
       }
@@ -2053,16 +2117,16 @@ app.post('/api/register', async (req, res) => {
         // LOG VERIFICATION LINK (Fix for development/Gmail issues)
         console.log('🔑 [DEBUG] Verification Link:', verifyUrl);
 
-        const html = `
-          <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
-              <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
-              <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Welcome to InkVistAR, ${fullName}!</h2>
-              <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.6;">Your creative journey is almost ready to begin. Please verify your email address to activate your account.</p>
-              <a href="${verifyUrl}" style="background: linear-gradient(135deg, #C19A6B, #8a6c4a); color: #000000; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(193, 154, 107, 0.2);">Verify Email Address</a>
-              <p style="margin-top: 30px; font-size: 14px; color: #888;">Or copy and paste this link into your browser:<br/><a href="${verifyUrl}" style="color: #C19A6B; text-decoration: none; word-break: break-all;">${verifyUrl}</a></p>
-              <p style="font-size: 12px; color: #666; margin-top: 20px;">This link will expire in 24 hours.</p>
-          </div>
-        `;
+        const html = buildEmailHtml(`
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Welcome, ${fullName}!</h2>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Just one step to get started</p>
+              <p style="margin:0 0 16px;">Thank you for creating your InkVistAR account. Your creative journey is almost ready to begin — verify your email address below to activate your account.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
+                <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify Email Address</a>
+              </td></tr></table>
+              <p style="margin:20px 0 8px;font-size:12px;color:#555;text-align:center;">This link will expire in 24 hours.</p>
+              <p style="margin:0;font-size:12px;color:#555;text-align:center;word-break:break-all;">Or copy this link: <a href="${verifyUrl}" style="color:#C19A6B;text-decoration:none;">${verifyUrl}</a></p>
+        `);
         sendEmail(email, 'Verify Your InkVistAR Account', html);
 
         // If the user is an artist, create a corresponding entry in the 'artists' table
@@ -5765,15 +5829,15 @@ app.post('/api/resend-verification', (req, res) => {
 
       console.log('🔑 [DEBUG] NEW Verification Link:', verifyUrl);
 
-      const html = `
-        <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
-            <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
-            <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Verify Your InkVistAR Account</h2>
-            <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.6;">A request to resend your verification link was received. Please click below to verify your email.</p>
-            <a href="${verifyUrl}" style="background: linear-gradient(135deg, #C19A6B, #8a6c4a); color: #000000; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(193, 154, 107, 0.2);">Verify Account</a>
-            <p style="margin-top: 30px; font-size: 14px; color: #888;">Or copy and paste this link into your browser:<br/><a href="${verifyUrl}" style="color: #C19A6B; text-decoration: none; word-break: break-all;">${verifyUrl}</a></p>
-        </div>
-      `;
+      const html = buildEmailHtml(`
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verify Your Account</h2>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Verification link resent</p>
+              <p style="margin:0 0 16px;">A new verification link was requested for your InkVistAR account. Click the button below to verify your email and activate your account.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
+                <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify Account</a>
+              </td></tr></table>
+              <p style="margin:24px 0 0;font-size:12px;color:#555;text-align:center;word-break:break-all;">Or copy this link: <a href="${verifyUrl}" style="color:#C19A6B;text-decoration:none;">${verifyUrl}</a></p>
+      `);
       sendEmail(email, 'Resend: Verify Your InkVistAR Account', html);
 
       res.json({ success: true, message: 'Verification link resent! Check your email. (Debug: Check console for link if email fails)' });

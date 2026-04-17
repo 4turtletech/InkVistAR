@@ -82,6 +82,9 @@ function CustomerProfile() {
     const [emailOtpSent, setEmailOtpSent] = useState(false);
     const [emailChanging, setEmailChanging] = useState(false);
 
+    // Success modal state (replaces alert)
+    const [successModal, setSuccessModal] = useState({ mounted: false, visible: false, message: '' });
+
     useEffect(() => {
         const fetch = async () => {
             try {
@@ -167,12 +170,12 @@ function CustomerProfile() {
                     newPassword: passwords.newPassword
                 });
 
-                // If backend requires re-verification, force logout
+                // If backend requires re-verification, show success modal
                 if (pwRes.data.requireReverification) {
                     localStorage.removeItem('user');
                     localStorage.removeItem('token');
-                    alert('Password changed successfully! A verification email has been sent. Please verify your email to log in again.');
-                    window.location.href = '/login';
+                    setSuccessModal({ mounted: true, visible: false, message: 'Password changed successfully! A verification email has been sent. Please verify your email to log in again.' });
+                    setTimeout(() => setSuccessModal(prev => ({ ...prev, visible: true })), 10);
                     return;
                 }
             }
@@ -194,6 +197,7 @@ function CustomerProfile() {
     };
 
     return (
+        <>
         <div className="portal-layout">
             <CustomerSideNav />
             <div className="portal-container customer-portal">
@@ -393,8 +397,8 @@ function CustomerProfile() {
                                                                             if (res.data.requireReverification) {
                                                                                 localStorage.removeItem('user');
                                                                                 localStorage.removeItem('token');
-                                                                                alert('Email changed successfully! A verification link has been sent to your new email. Please verify to log in again.');
-                                                                                window.location.href = '/login';
+                                                                                setSuccessModal({ mounted: true, visible: false, message: 'Email changed successfully! A verification link has been sent to your new email. Please verify to log in again.' });
+                                                                                setTimeout(() => setSuccessModal(prev => ({ ...prev, visible: true })), 10);
                                                                                 return;
                                                                             }
                                                                         } catch (err) {
@@ -495,69 +499,87 @@ function CustomerProfile() {
 
                                         {showChangePassword && (
                                             <div className="customer-st-7cf173a4" >
-                                                <div className="form-group customer-st-c0c93821" >
+                                                <div className="form-group">
                                                     <label style={formLabel}><Lock size={16} /> Current Password</label>
-                                                    <div className="customer-st-c72eaba8" >
-                                                        <input className="form-input customer-st-bfca3145" type={showPassword ? 'text' : 'password'} value={passwords.currentPassword} onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })} placeholder="Enter current password" />
-                                                        <button className="customer-st-22f2a0b4" type="button" onClick={() => setShowPassword(!showPassword)} >
+                                                    <div style={{ position: 'relative' }}>
+                                                        <input 
+                                                            className="form-input" 
+                                                            type={showPassword ? 'text' : 'password'} 
+                                                            value={passwords.currentPassword} 
+                                                            onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })} 
+                                                            placeholder="Enter current password" 
+                                                            style={{ ...inputStyle, paddingRight: '40px' }} 
+                                                        />
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setShowPassword(!showPassword)} 
+                                                            style={{
+                                                                position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                                                                background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'
+                                                            }}
+                                                        >
                                                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                         </button>
                                                     </div>
                                                 </div>
                                                 <div className="customer-st-e66d54ba" style={{ display: 'flex', gap: '1rem' }} >
-                                                    <div className="form-group" style={{ flex: 1, position: 'relative' }}>
+                                                    <div className="form-group" style={{ flex: 1 }}>
                                                         <label style={formLabel}><Lock size={16} /> New Password</label>
-                                                        <input
-                                                            type={showNewPassword ? "text" : "password"}
-                                                            className="form-input"
-                                                            value={passwords.newPassword}
-                                                            onChange={e => {
-                                                                const val = e.target.value.slice(0, 50);
-                                                                setPasswords({ ...passwords, newPassword: val });
-                                                                setPasswordFeedback({
-                                                                    hasMinLength: val.length >= 8,
-                                                                    hasUppercase: /[A-Z]/.test(val),
-                                                                    hasLowercase: /[a-z]/.test(val),
-                                                                    hasNumber: /[0-9]/.test(val),
-                                                                    hasSymbol: /[@$!%*?&#]/.test(val)
-                                                                });
-                                                            }}
-                                                            onFocus={() => setPasswordFocused(true)}
-                                                            onBlur={() => { if (!passwords.newPassword) setPasswordFocused(false); }}
-                                                            placeholder="Min. 8 characters"
-                                                            style={inputStyle}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setShowNewPassword(!showNewPassword)}
-                                                            style={{
-                                                                position: 'absolute', right: '12px', bottom: '10px',
-                                                                background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'
-                                                            }}
-                                                        >
-                                                            {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                                        </button>
+                                                        <div style={{ position: 'relative' }}>
+                                                            <input
+                                                                type={showNewPassword ? "text" : "password"}
+                                                                className="form-input"
+                                                                value={passwords.newPassword}
+                                                                onChange={e => {
+                                                                    const val = e.target.value.slice(0, 50);
+                                                                    setPasswords({ ...passwords, newPassword: val });
+                                                                    setPasswordFeedback({
+                                                                        hasMinLength: val.length >= 8,
+                                                                        hasUppercase: /[A-Z]/.test(val),
+                                                                        hasLowercase: /[a-z]/.test(val),
+                                                                        hasNumber: /[0-9]/.test(val),
+                                                                        hasSymbol: /[@$!%*?&#]/.test(val)
+                                                                    });
+                                                                }}
+                                                                onFocus={() => setPasswordFocused(true)}
+                                                                onBlur={() => { if (!passwords.newPassword) setPasswordFocused(false); }}
+                                                                placeholder="Min. 8 characters"
+                                                                style={{ ...inputStyle, paddingRight: '40px' }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                                                style={{
+                                                                    position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                                                                    background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'
+                                                                }}
+                                                            >
+                                                                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="form-group" style={{ flex: 1, position: 'relative' }}>
+                                                    <div className="form-group" style={{ flex: 1 }}>
                                                         <label style={formLabel}><Lock size={16} /> Confirm New Password</label>
-                                                        <input
-                                                            type={showConfirmPassword ? "text" : "password"}
-                                                            className="form-input"
-                                                            value={passwords.confirmPassword}
-                                                            onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                                                            placeholder="Re-enter new password"
-                                                            style={inputStyle}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                            style={{
-                                                                position: 'absolute', right: '12px', bottom: '10px',
-                                                                background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'
-                                                            }}
-                                                        >
-                                                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                                        </button>
+                                                        <div style={{ position: 'relative' }}>
+                                                            <input
+                                                                type={showConfirmPassword ? "text" : "password"}
+                                                                className="form-input"
+                                                                value={passwords.confirmPassword}
+                                                                onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                                                                placeholder="Re-enter new password"
+                                                                style={{ ...inputStyle, paddingRight: '40px' }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                                style={{
+                                                                    position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                                                                    background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'
+                                                                }}
+                                                            >
+                                                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div style={{ overflow: 'hidden', maxHeight: passwordFocused ? '200px' : '0', opacity: passwordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: passwordFocused ? '4px' : '0' }}>
@@ -582,6 +604,77 @@ function CustomerProfile() {
                 </div>
             </div>
         </div>
+
+        {/* Security Change Success Modal */}
+        {successModal.mounted && (
+            <div
+                style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(15,23,42,0.55)',
+                    backdropFilter: 'blur(6px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 9999,
+                    opacity: successModal.visible ? 1 : 0,
+                    transition: 'opacity 0.35s ease'
+                }}
+            >
+                <div
+                    style={{
+                        background: 'rgba(255,255,255,0.95)',
+                        backdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(255,255,255,0.5)',
+                        borderRadius: '24px',
+                        padding: '40px 36px 32px',
+                        maxWidth: '420px',
+                        width: '90%',
+                        textAlign: 'center',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+                        transform: successModal.visible ? 'scale(1) translateY(0)' : 'scale(0.92) translateY(20px)',
+                        transition: 'transform 0.35s ease, opacity 0.35s ease',
+                        fontFamily: "'Inter', sans-serif"
+                    }}
+                >
+                    <div style={{
+                        width: '64px', height: '64px', borderRadius: '50%',
+                        background: 'rgba(193,154,107,0.12)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        margin: '0 auto 20px'
+                    }}>
+                        <CheckCircle size={32} style={{ color: '#C19A6B' }} />
+                    </div>
+                    <h2 style={{ color: '#1e293b', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 8px' }}>Security Update Complete</h2>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 28px' }}>
+                        {successModal.message}
+                    </p>
+                    <button
+                        onClick={() => {
+                            setSuccessModal(prev => ({ ...prev, visible: false }));
+                            setTimeout(() => {
+                                window.location.href = '/login';
+                            }, 350);
+                        }}
+                        style={{
+                            width: '100%',
+                            padding: '12px 24px',
+                            backgroundColor: '#C19A6B',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '10px',
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s, transform 0.15s',
+                            fontFamily: "'Inter', sans-serif"
+                        }}
+                        onMouseEnter={e => e.target.style.backgroundColor = '#b08a5c'}
+                        onMouseLeave={e => e.target.style.backgroundColor = '#C19A6B'}
+                    >
+                        Go to Login
+                    </button>
+                </div>
+            </div>
+        )}
+        </>
     );
 }
 
