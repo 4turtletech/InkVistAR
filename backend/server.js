@@ -1597,6 +1597,7 @@ app.post('/api/customer/change-password', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Failed to update password' });
       }
       logAction(customerId, 'PASSWORD_CHANGED', 'Customer changed their password — re-verification required', req.ip || '::1');
+      createNotification(customerId, 'Password Changed', 'Your account password was successfully updated.', 'password_change');
 
       // Send re-verification email
       const protocol = getProtocol(req);
@@ -1669,6 +1670,7 @@ app.post('/api/artist/change-password', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Failed to update password' });
       }
       logAction(artistId, 'PASSWORD_CHANGED', 'Artist changed their password — re-verification required', req.ip || '::1');
+      createNotification(artistId, 'Password Changed', 'Your account password was successfully updated.', 'password_change');
 
       // Send re-verification email
       const protocol = getProtocol(req);
@@ -1795,6 +1797,7 @@ app.post('/api/confirm-email-change', (req, res) => {
           }
 
           logAction(userId, 'EMAIL_CHANGED', `Email changed from ${user.email} to ${newEmail} — re-verification required`, req.ip || '::1');
+          createNotification(userId, 'Email Changed', `Your email address has been successfully updated to ${newEmail}.`, 'email_change');
 
           // Send verification email to the NEW address
           const protocol = getProtocol(req);
@@ -2013,28 +2016,67 @@ app.get('/api/verify', (req, res) => {
 
   db.query('UPDATE users SET is_verified = 1, verification_token = NULL WHERE email = ? AND verification_token = ?', [email, token], (err, result) => {
     if (err || result.affectedRows === 0) {
-      return res.send('<h2 style="color: red">Invalid or expired verification link.</h2>');
+      return res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Verification Error</title>
+            <style>
+               @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+              body { font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #050505; color: #f8fafc; margin: 0; padding: 20px; box-sizing: border-box; }
+              .container { text-align: center; background: #111111; padding: 50px 40px; border-radius: 20px; border: 1px solid rgba(239, 68, 68, 0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-width: 440px; width: 100%; position: relative; overflow: hidden; }
+              .container::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #ef4444, #991b1b, #ef4444); }
+              h2 { display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'Playfair Display', serif; color: #ef4444; margin-top: 0; margin-bottom: 16px; font-size: 1.8rem; letter-spacing: 0.5px; }
+              p { color: #94a3b8; margin-bottom: 32px; line-height: 1.6; font-size: 0.95rem; font-weight: 400; }
+              .btn { background: transparent; color: #ef4444; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; transition: all 0.3s ease; border: 1.5px solid #ef4444; letter-spacing: 0.5px; font-size: 0.95rem; }
+              .btn:hover { background: #ef4444; color: #050505; }
+              .icon-wrapper { margin-bottom: 24px; display: inline-flex; justify-content: center; align-items: center; width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="icon-wrapper">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              </div>
+              <h2>Link Expired</h2>
+              <p>This verification link is invalid or has already expired. Please request a new link.</p>
+              <a href="${FRONTEND_URL}/login" class="btn">Return to Login</a>
+            </div>
+          </body>
+        </html>
+      `);
     }
     console.log('VERIFIED:', email);
     const loginUrl = `${FRONTEND_URL}/login`;
 
     res.send(`
-      <html>
+      <!DOCTYPE html>
+      <html lang="en">
         <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Email Verified</title>
           <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6; margin: 0; }
-            .container { text-align: center; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); max-width: 400px; width: 90%; }
-            h2 { color: #059669; margin-top: 0; }
-            p { color: #4b5563; margin-bottom: 24px; line-height: 1.5; }
-            .btn { background-color: #daa520; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; transition: background 0.2s; }
-            .btn:hover { background-color: #b8860b; }
+            @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+            body { font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #050505; color: #f8fafc; margin: 0; padding: 20px; box-sizing: border-box; }
+            .container { text-align: center; background: #111111; padding: 50px 40px; border-radius: 20px; border: 1px solid rgba(218, 165, 32, 0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-width: 440px; width: 100%; position: relative; overflow: hidden; }
+            .container::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #be9055, #daa520, #be9055); }
+            h2 { display: flex; align-items: center; justify-content: center; gap: 10px; font-family: 'Playfair Display', serif; color: #daa520; margin-top: 0; margin-bottom: 16px; font-size: 2rem; letter-spacing: 0.5px; }
+            p { color: #94a3b8; margin-bottom: 32px; line-height: 1.6; font-size: 0.95rem; font-weight: 400; }
+            .btn { background: transparent; color: #daa520; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; transition: all 0.3s ease; border: 1.5px solid #daa520; letter-spacing: 0.5px; font-size: 0.95rem; }
+            .btn:hover { background: #daa520; color: #050505; }
+            .icon-wrapper { margin-bottom: 24px; display: inline-flex; justify-content: center; align-items: center; width: 64px; height: 64px; border-radius: 50%; background: rgba(218, 165, 32, 0.1); border: 1px solid rgba(218, 165, 32, 0.2); color: #daa520; }
           </style>
         </head>
         <body>
           <div class="container">
-            <h2>Email Verified Successfully!</h2>
-            <p>Your account is now active. You can return to the InkVistAR website or app to login.</p>
+            <div class="icon-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <h2>Verified</h2>
+            <p>Your email address has been successfully verified. Your account is now active and ready to use.</p>
             <a href="${loginUrl}" class="btn">Continue to Login</a>
           </div>
         </body>
@@ -2899,16 +2941,23 @@ app.post('/api/customer/appointments', (req, res) => {
 
         db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (err, users) => {
           if (!err && users && users.length > 0 && users[0].email) {
-            const html = `
-          <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2 style="color: #1e293b;">Booking Request Received!</h2>
-            <p style="font-size: 16px;">Hello ${users[0].name},</p>
-            <p style="font-size: 16px;">Your request <strong>[${bookingCode}]</strong> for a <strong>${designTitle || serviceType}</strong> session on <strong>${appointmentDate}</strong> at <strong>${appointmentTime}</strong> has been received perfectly.</p>
-            <p style="font-size: 16px;">Our team will review your request and get back to you shortly to confirm the details and answer any questions!</p>
-            <br/><br/>
-            <p style="color: #64748b; font-size: 14px;">- The InkVistAR Studio Team</p>
-          </div>
-        `;
+            const html = buildEmailHtml(`
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Booking Request Received!</h2>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your request is being reviewed</p>
+              <p style="margin:0 0 16px;">Hello ${users[0].name},</p>
+              <p style="margin:0 0 16px;">We have successfully received your request <strong>[${bookingCode}]</strong> and our team is currently reviewing your details.</p>
+              
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Service:</strong> <span style="color:#C19A6B;">${designTitle || serviceType}</span></p>
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Date:</strong> <span style="color:#C19A6B;">${appointmentDate}</span></p>
+                  <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Time:</strong> <span style="color:#C19A6B;">${appointmentTime}</span></p>
+                </div>
+              </td></tr></table>
+
+              <p style="margin:0 0 16px;line-height:1.6;">Our team will get back to you shortly to assist with next steps and confirm pricing. Expect a call or email from our staff within the next 24 hours.</p>
+              <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
+            `);
             sendResendEmail(users[0].email, 'InkVistAR: Booking Request Received', html);
           }
         });
@@ -6168,15 +6217,29 @@ function startAppointmentReminders() {
           createNotification(appt.customer_id, title, message, 'appointment_reminder', appt.id);
 
           if (appt.customer_email) {
-            const html = `
-               <div style="font-family: Arial, sans-serif; padding: 20px;">
-                 <h2 style="color: #1e293b;">Hello ${appt.customer_name},</h2>
-                 <p style="font-size: 16px;">This is a quick reminder that your tattoo session for <strong>${appt.design_title}</strong> is scheduled for tomorrow at <strong>${appt.start_time}</strong>.</p>
-                 <p style="font-size: 16px;">Please arrive 10 minutes early. Stay hydrated and get plenty of rest!</p>
-                 <br/><br/>
-                 <p style="color: #64748b; font-size: 14px;">- The InkVistAR Team</p>
-               </div>
-             `;
+            const html = buildEmailHtml(`
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Upcoming Session Reminder</h2>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your tattoo appointment is tomorrow!</p>
+              <p style="margin:0 0 16px;">Hello ${appt.customer_name},</p>
+              <p style="margin:0 0 16px;">This is a quick reminder that your tattoo session is happening tomorrow. Please review your session details below:</p>
+              
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Design:</strong> <span style="color:#C19A6B;">${appt.design_title}</span></p>
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Date:</strong> <span style="color:#C19A6B;">Tomorrow</span></p>
+                  <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Time:</strong> <span style="color:#C19A6B;">${appt.start_time}</span></p>
+                </div>
+              </td></tr></table>
+
+              <p style="margin:0 0 16px;line-height:1.6;"><strong>Important reminders before your session:</strong></p>
+              <ul style="margin:0 0 20px;padding-left:20px;color:#94a3b8;font-size:14px;line-height:1.6;">
+                <li style="margin-bottom:8px;"><strong style="color:#e2e8f0;">Stay hydrated</strong> and get plenty of rest tonight.</li>
+                <li style="margin-bottom:8px;"><strong style="color:#e2e8f0;">Eat a good meal</strong> before arriving to keep your blood sugar stable.</li>
+                <li>Please aim to <strong style="color:#e2e8f0;">arrive 10 minutes early</strong>.</li>
+              </ul>
+              
+              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">We can't wait to see you in the studio!</p>
+            `);
             sendResendEmail(appt.customer_email, `Reminder: Upcoming Tattoo Session Tomorrow!`, html);
           }
 

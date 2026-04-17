@@ -16,7 +16,9 @@ import {
     RefreshCw,
     Search,
     Star,
-    CreditCard
+    CreditCard,
+    Mail,
+    ShieldAlert
 } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import Pagination from '../components/Pagination';
@@ -138,6 +140,10 @@ function ArtistNotifications() {
             case 'new_review':
             case 'review_prompt':
                 return { icon: Star, color: '#b7954e', bg: 'rgba(183, 149, 78, 0.1)', label: 'Review' };
+            case 'email_change':
+                return { icon: Mail, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Account' };
+            case 'password_change':
+                return { icon: ShieldAlert, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Security' };
             case 'system':
                 return { icon: Info, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'System' };
             default:
@@ -251,7 +257,9 @@ function ArtistNotifications() {
                                                 if (!e.target.closest('.notif-actions')) {
                                                     if (!n.is_read) markRead(n.id);
                                                     // Deep-link: navigate to appointments and auto-open the relevant one
-                                                    if (n.related_id) {
+                                                    if (n.type === 'email_change' || n.type === 'password_change') {
+                                                        navigate('/artist/profile');
+                                                    } else if (n.related_id) {
                                                         navigate('/artist/appointments', { state: { openAppointmentId: n.related_id } });
                                                     } else {
                                                         setSelectedNotification({ ...n, style });

@@ -1,5 +1,6 @@
 import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import { 
     Bell, 
@@ -29,6 +30,7 @@ import './PortalStyles.css';
 import { API_URL } from '../config';
 
 function CustomerNotifications() {
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('all');
@@ -161,6 +163,10 @@ function CustomerNotifications() {
                 return { icon: Info, color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)', label: 'Aftercare' };
             case 'review_prompt':
                 return { icon: Star, color: '#b7954e', bg: 'rgba(183, 149, 78, 0.1)', label: 'Review' };
+            case 'email_change':
+                return { icon: Mail, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Account' };
+            case 'password_change':
+                return { icon: ShieldAlert, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Security' };
             default:
                 return { icon: Bell, color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', label: 'Notification' };
         }
@@ -273,8 +279,12 @@ function CustomerNotifications() {
                                             return (
                                                 <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', cursor: 'pointer', position: 'relative' }} onClick={(e) => { 
                                                     if (!e.target.closest('.notif-actions')) {
-                                                        setSelectedNotification({ ...n, style });
                                                         if (!n.is_read) markRead(n.id);
+                                                        if (n.type === 'email_change' || n.type === 'password_change') {
+                                                            navigate('/customer/profile');
+                                                        } else {
+                                                            setSelectedNotification({ ...n, style });
+                                                        }
                                                     }
                                                 }}>
                                                     <div className="notif-id-marker"></div>
@@ -381,10 +391,11 @@ function CustomerNotifications() {
                         <div className="customer-st-23aef110" >
                             <span className="customer-st-97b91651" >Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
                             <div className="notif-actions customer-st-7cead41b" >
-                                {selectedNotification.related_id && selectedNotification.type !== 'pos_invoice' && selectedNotification.type !== 'review_prompt' && selectedNotification.type !== 'aftercare_reminder' && (
+                                {selectedNotification.related_id && selectedNotification.type !== 'pos_invoice' && selectedNotification.type !== 'review_prompt' && selectedNotification.type !== 'aftercare_reminder' && selectedNotification.type !== 'email_change' && selectedNotification.type !== 'password_change' && (
                                     <a className="notif-btn primary customer-st-be17fc86" href={`/customer/bookings?appointment=${selectedNotification.related_id}`} >Take Action</a>
                                 )}
                                 {selectedNotification.type === 'pos_invoice' && <a className="notif-btn primary customer-st-be17fc86" href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" >View Invoice</a>}
+                                {(selectedNotification.type === 'email_change' || selectedNotification.type === 'password_change') && <button className="notif-btn primary" onClick={() => navigate('/customer/profile')}>Manage Profile</button>}
                                 {selectedNotification.type === 'aftercare_reminder' && <button className="notif-btn primary customer-st-b55afb9c" onClick={() => { setSelectedNotification(null); setIsAftercareModalOpen(true); }} >View Guide</button>}
                                 {selectedNotification.type === 'review_prompt' && (
                                     reviewedAppointments.has(Number(selectedNotification.related_id)) ? (
