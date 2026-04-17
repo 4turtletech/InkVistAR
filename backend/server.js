@@ -905,6 +905,20 @@ db.getConnection((err, connection) => {
     `;
     db.query(auditLogsTableQuery, (err) => { if (err) console.error('⚠️ Error checking audit_logs table:', err.message); else console.log('📜 Audit Logs table ready'); });
 
+    // Create Studio Expenses Table (for manual expense logging: marketing, bills, equipment, etc.)
+    const studioExpensesTableQuery = `
+      CREATE TABLE IF NOT EXISTS studio_expenses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        category ENUM('Inventory','Marketing','Bills','Payouts','Equipment','Licensing','Maintenance','Extras') NOT NULL,
+        description VARCHAR(255),
+        amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+        reference_id INT DEFAULT NULL,
+        created_by INT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    db.query(studioExpensesTableQuery, (err) => { if (err) console.error('⚠️ Error checking studio_expenses table:', err.message); else console.log('💰 Studio Expenses table ready'); });
+
     // Create Service Kits Table
     const serviceKitsTableQuery = `
       CREATE TABLE IF NOT EXISTS service_kits (
@@ -5662,9 +5676,9 @@ app.get('/api/admin/inventory/transactions', (req, res) => {
 // Admin: Analytics Data
 app.get('/api/admin/analytics', (req, res) => {
   const response = {
-    revenue: { total: 0, growth: 0, chart: [] },
+    revenue: { total: 0, growth: 0, chart: [], breakdown: [] },
     appointments: { total: 0, completed: 0, scheduled: 0, cancelled: 0, completionRate: 0 },
-    expenses: { total: 0 },
+    expenses: { total: 0, breakdown: [] },
     artists: [],
     styles: [],
     inventory: []
@@ -5682,27 +5696,31 @@ app.get('/api/admin/analytics', (req, res) => {
     WHERE is_deleted = 0
   `;
 
-  // 2. Revenue (Total Paid = Payments + Manual Paid Amount + Retail POS Sales)
-  const revenueQuery = `
+  // 2. Revenue breakdown by source (Appointments vs POS)
+  const revenueBreakdownQuery = `
     SELECT 
-      COALESCE((SELECT SUM(((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)) FROM appointments ap WHERE ap.status != 'cancelled' AND ap.is_deleted = 0), 0)
-      + 
-      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid'), 0)
-    as total
-  `;
-  
-  // 2.5 Total Expenses (Inventory Procurements + POS Cost of Goods Sold)
-  const expensesQuery = `
-    SELECT 
-      COALESCE((SELECT SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in'), 0)
-      +
-      COALESCE((SELECT SUM(t.quantity * COALESCE(i.cost, 0)) FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'out' AND t.reason = 'POS Sale'), 0)
-    as total,
-    COALESCE((SELECT SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in'), 0) as procurement,
-    COALESCE((SELECT SUM(t.quantity * COALESCE(i.cost, 0)) FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'out' AND t.reason = 'POS Sale'), 0) as cogs
+      COALESCE((SELECT SUM(((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)) FROM appointments ap WHERE ap.status != 'cancelled' AND ap.is_deleted = 0), 0) as appointment_revenue,
+      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND (LOWER(service_type) LIKE '%retail%' OR LOWER(service_type) LIKE '%pos%')), 0) as pos_revenue,
+      COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND LOWER(service_type) NOT LIKE '%retail%' AND LOWER(service_type) NOT LIKE '%pos%'), 0) as service_invoice_revenue
   `;
 
-  // 3. Artist Productivity (proportional split for collaborative sessions)
+  // 2.5 Expenses: Inventory procurements + studio_expenses table
+  const expensesQuery = `
+    SELECT COALESCE(SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)), 0) as procurement_total
+    FROM inventory_transactions t
+    JOIN inventory i ON t.inventory_id = i.id
+    WHERE t.type = 'in'
+  `;
+
+  // 2.6 Expenses breakdown by category from studio_expenses
+  const expenseBreakdownQuery = `
+    SELECT category, SUM(amount) as total
+    FROM studio_expenses
+    GROUP BY category
+    ORDER BY total DESC
+  `;
+
+  // 3. Artist Productivity
   const artistQuery = `
     SELECT name, SUM(appointments) as appointments, SUM(revenue) as revenue FROM (
       SELECT 
@@ -5745,7 +5763,7 @@ app.get('/api/admin/analytics', (req, res) => {
     LIMIT 5
   `;
 
-  // 5. Popular Styles (from Portfolio)
+  // 5. Popular Styles
   const styleQuery = `
     SELECT category as name, COUNT(*) as count 
     FROM portfolio_works 
@@ -5755,13 +5773,19 @@ app.get('/api/admin/analytics', (req, res) => {
     LIMIT 5
   `;
 
-  // 6. Monthly Trend (Last 6 Months)
+  // 6. Monthly Revenue Trend (Last 6 Months) — actual revenue per month
   const trendQuery = `
-    SELECT DATE_FORMAT(appointment_date, '%b') as month, COUNT(*) as count 
-    FROM appointments 
-    WHERE appointment_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH) AND is_deleted = 0
-    GROUP BY month, DATE_FORMAT(appointment_date, '%Y-%m')
-    ORDER BY DATE_FORMAT(appointment_date, '%Y-%m')
+    SELECT 
+      DATE_FORMAT(ap.appointment_date, '%b') as month,
+      DATE_FORMAT(ap.appointment_date, '%Y-%m') as sort_key,
+      COUNT(ap.id) as appointments,
+      SUM(
+        ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)
+      ) as value
+    FROM appointments ap
+    WHERE ap.appointment_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH) AND ap.is_deleted = 0 AND ap.status != 'cancelled'
+    GROUP BY month, sort_key
+    ORDER BY sort_key
   `;
 
   db.query(apptStatsQuery, (err, apptRes) => {
@@ -5776,9 +5800,18 @@ app.get('/api/admin/analytics', (req, res) => {
       avgDuration: apptData.avgDuration ? Math.round(apptData.avgDuration) : null
     };
 
-    db.query(revenueQuery, (err, revRes) => {
+    db.query(revenueBreakdownQuery, (err, revRes) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
-      response.revenue.total = revRes[0].total || 0;
+      const r = revRes[0];
+      const apptRev = Number(r.appointment_revenue) || 0;
+      const posRev = Number(r.pos_revenue) || 0;
+      const svcRev = Number(r.service_invoice_revenue) || 0;
+      response.revenue.total = apptRev + posRev + svcRev;
+      response.revenue.breakdown = [
+        { name: 'Appointments', value: apptRev },
+        { name: 'POS Sales', value: posRev },
+        { name: 'Service Invoices', value: svcRev }
+      ].filter(b => b.value > 0);
 
       db.query(artistQuery, (err, artRes) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
@@ -5794,23 +5827,64 @@ app.get('/api/admin/analytics', (req, res) => {
 
             db.query(trendQuery, (err, trendRes) => {
               if (err) return res.status(500).json({ success: false, message: err.message });
-              // Calculate chart value properly
-              response.revenue.chart = trendRes.map(t => ({ month: t.month, appointments: t.count, value: t.count * 150 }));
+              response.revenue.chart = trendRes.map(t => ({ month: t.month, appointments: t.appointments || 0, value: Number(t.value) || 0 }));
 
               db.query(expensesQuery, (err, expRes) => {
                 if (err) return res.status(500).json({ success: false, message: err.message });
-                response.expenses = {
-                  total: expRes[0].total || 0,
-                  procurement: expRes[0].procurement || 0,
-                  cogs: expRes[0].cogs || 0
-                };
-                res.json({ success: true, data: response });
+                const procurementTotal = Number(expRes[0].procurement_total) || 0;
+
+                db.query(expenseBreakdownQuery, (err, expBreakdown) => {
+                  if (err) return res.status(500).json({ success: false, message: err.message });
+                  const studioExpensesTotal = expBreakdown.reduce((sum, e) => sum + Number(e.total), 0);
+                  // Check if Inventory category is already in studio_expenses; if not, add procurement
+                  const hasInventoryCategory = expBreakdown.some(e => e.category === 'Inventory');
+                  const breakdown = expBreakdown.map(e => ({ name: e.category, value: Number(e.total) }));
+                  if (!hasInventoryCategory && procurementTotal > 0) {
+                    breakdown.unshift({ name: 'Inventory', value: procurementTotal });
+                  } else if (hasInventoryCategory) {
+                    // Merge procurement into the Inventory bucket
+                    const invEntry = breakdown.find(b => b.name === 'Inventory');
+                    if (invEntry) invEntry.value += procurementTotal;
+                  }
+                  response.expenses = {
+                    total: studioExpensesTotal + procurementTotal,
+                    breakdown: breakdown
+                  };
+                  res.json({ success: true, data: response });
+                });
               });
             });
           });
         });
       });
     });
+  });
+});
+
+// Admin: Get All Studio Expenses (for audit modal)
+app.get('/api/admin/expenses', (req, res) => {
+  db.query('SELECT se.*, u.name as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC', (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, data: results });
+  });
+});
+
+// Admin: Create Studio Expense
+app.post('/api/admin/expenses', (req, res) => {
+  const { category, description, amount, userId } = req.body;
+  if (!category || !amount) return res.status(400).json({ success: false, message: 'Category and amount are required.' });
+  db.query('INSERT INTO studio_expenses (category, description, amount, created_by, created_at) VALUES (?, ?, ?, ?, NOW())', 
+    [category, description || '', parseFloat(amount), userId || null], (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, message: 'Expense recorded', id: result.insertId });
+  });
+});
+
+// Admin: Delete Studio Expense
+app.delete('/api/admin/expenses/:id', (req, res) => {
+  db.query('DELETE FROM studio_expenses WHERE id = ?', [req.params.id], (err) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, message: 'Expense deleted' });
   });
 });
 

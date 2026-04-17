@@ -96,6 +96,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 | **payments** | id, appointment_id, paymongo_payment_id, amount, status |
 | **invoices** | id, invoice_number (INV-XXXXXX), customer_id, appointment_id, client_name, service_type, amount, payment_method, change_given, discount_amount, discount_type, status, items (JSON), created_at |
 | **payouts** | id, artist_id, amount, payout_method, reference_no, status |
+| **studio_expenses** | id, category (Inventory/Marketing/Bills/Payouts/Equipment/Licensing/Maintenance/Extras), description, amount, reference_id, created_by, created_at |
 | **branches** | id, name, address, operating_hours, current_occupancy, capacity |
 | **app_settings** | section (PK), data (JSON) |
 
@@ -172,6 +173,9 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `GET /api/ar/config` - AR configuration
 - `GET /api/verify` - Email verification landing page (token + email query params)
 - `GET /api/invoices/by-number/:invoiceNumber` - Get invoice by invoice number (for customer invoice view)
+- `GET /api/admin/expenses` - List all studio expenses (audit ledger)
+- `POST /api/admin/expenses` - Create a studio expense entry (category, description, amount)
+- `DELETE /api/admin/expenses/:id` - Delete a studio expense entry
 
 ---
 
