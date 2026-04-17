@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import {
@@ -80,7 +80,8 @@ function ArtistProfile() {
     const navigate = useNavigate();
 
     // Email change state
-    const [emailModal, setEmailModal] = useState({ open: false, step: 'enterEmail', newEmail: '', emailError: '', otp: '', otpError: '', sending: false, confirming: false });
+    const [emailModal, setEmailModal] = useState({ open: false, step: 'enterEmail', newEmail: '', emailError: '', otp: Array(6).fill(''), otpError: '', sending: false, confirming: false, resendTimer: 300, resendAttempts: 0, resending: false });
+    const otpRefs = useRef([]);
 
     // Success modal state (replaces alert)
     const [successModal, setSuccessModal] = useState({ mounted: false, visible: false, message: '' });
@@ -119,6 +120,16 @@ function ArtistProfile() {
         };
         fetch();
     }, [artistId]);
+
+    useEffect(() => {
+        let interval;
+        if (emailModal.open && emailModal.step === 'enterOtp' && emailModal.resendTimer > 0) {
+            interval = setInterval(() => {
+                setEmailModal(prev => ({ ...prev, resendTimer: prev.resendTimer - 1 }));
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [emailModal.open, emailModal.step, emailModal.resendTimer]);
 
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
@@ -385,7 +396,7 @@ function ArtistProfile() {
                                                 <button
                                                     type="button"
                                                     title="Change email address"
-                                                    onClick={() => setEmailModal({ open: true, step: 'enterEmail', newEmail: '', emailError: '', otp: '', otpError: '', sending: false, confirming: false })}
+                                                    onClick={() => setEmailModal({ open: true, step: 'enterEmail', newEmail: '', emailError: '', otp: Array(6).fill(''), otpError: '', sending: false, confirming: false, resendTimer: 300, resendAttempts: 0, resending: false })}
                                                     style={{
                                                         position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
                                                         background: 'none', border: 'none', cursor: 'pointer',
@@ -791,39 +802,111 @@ function ArtistProfile() {
                         </>
                     ) : (
                         <>
-                            <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '16px', lineHeight: 1.6 }}>
+                            <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '24px', lineHeight: 1.6 }}>
                                 Enter the 6-digit code sent to <strong style={{ color: '#1e293b' }}>{profile.email}</strong> to confirm changing your address to <strong style={{ color: '#daa520' }}>{emailModal.newEmail}</strong>.
                             </p>
-                            <input
-                                type="text"
-                                autoFocus
-                                value={emailModal.otp}
-                                onChange={e => setEmailModal(prev => ({ ...prev, otp: e.target.value.replace(/[^0-9]/g, '').slice(0, 6), otpError: '' }))}
-                                placeholder="000000"
-                                maxLength={6}
-                                style={{
-                                    width: '100%', padding: '14px', borderRadius: '8px', fontSize: '1.6rem',
-                                    fontWeight: 800, letterSpacing: '16px', textAlign: 'center',
-                                    border: emailModal.otpError ? '1.5px solid #ef4444' : '1.5px solid #e2e8f0',
-                                    outline: 'none', boxSizing: 'border-box', fontFamily: "'Courier New', monospace", marginBottom: '6px'
-                                }}
-                            />
+                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '16px' }}>
+                                {emailModal.otp.map((digit, idx) => (
+                                    <input
+                                        key={idx}
+                                        ref={el => otpRefs.current[idx] = el}
+                                        type="tel"
+                                        inputMode="numeric"
+                                        maxLength={1}
+                                        value={digit}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 1);
+                                            const newOtp = [...emailModal.otp];
+                                            newOtp[idx] = val;
+                                            setEmailModal(prev => ({ ...prev, otp: newOtp, otpError: '' }));
+                                            if (val && idx < 5) otpRefs.current[idx + 1]?.focus();
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Backspace' && !emailModal.otp[idx] && idx > 0) {
+                                                otpRefs.current[idx - 1]?.focus();
+                                            }
+                                        }}
+                                        onPaste={(e) => {
+                                            e.preventDefault();
+                                            const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+                                            if (pasted) {
+                                                const newOtp = [...emailModal.otp];
+                                                for (let i = 0; i < 6; i++) newOtp[i] = pasted[i] || '';
+                                                setEmailModal(prev => ({ ...prev, otp: newOtp, otpError: '' }));
+                                                const focusIdx = Math.min(pasted.length, 5);
+                                                otpRefs.current[focusIdx]?.focus();
+                                            }
+                                        }}
+                                        style={{
+                                            width: '46px',
+                                            height: '56px',
+                                            textAlign: 'center',
+                                            fontSize: '1.4rem',
+                                            fontWeight: '700',
+                                            borderRadius: '10px',
+                                            border: digit ? '2px solid #daa520' : (emailModal.otpError ? '1.5px solid #ef4444' : '1.5px solid #e2e8f0'),
+                                            backgroundColor: 'white',
+                                            color: '#1e293b',
+                                            outline: 'none',
+                                            transition: 'border-color 0.2s',
+                                            boxSizing: 'border-box'
+                                        }}
+                                        onFocus={(e) => e.target.style.borderColor = '#daa520'}
+                                        onBlur={(e) => { if (!digit) e.target.style.borderColor = emailModal.otpError ? '#ef4444' : '#e2e8f0'; }}
+                                    />
+                                ))}
+                            </div>
                             {emailModal.otpError && (
                                 <p style={{ margin: '0 0 12px', fontSize: '0.78rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <AlertCircle size={13} /> {emailModal.otpError}
                                 </p>
                             )}
+                            <div style={{ marginBottom: '16px', textAlign: 'center' }}>
+                                {emailModal.resendTimer > 0 ? (
+                                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
+                                        Resend code in {Math.floor(emailModal.resendTimer / 60)}:{(emailModal.resendTimer % 60).toString().padStart(2, '0')}
+                                    </p>
+                                ) : emailModal.resendAttempts >= 3 ? (
+                                    <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: 0, fontWeight: 500 }}>
+                                        Maximum resend attempts reached. Please try again later.
+                                    </p>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        disabled={emailModal.resending}
+                                        onClick={async () => {
+                                            setEmailModal(prev => ({ ...prev, resending: true, otpError: '' }));
+                                            try {
+                                                const res = await Axios.post(`${API_URL}/api/request-email-change`, { userId: artistId, newEmail: emailModal.newEmail });
+                                                if (res.data.success) {
+                                                    setEmailModal(prev => ({ ...prev, resending: false, resendTimer: 300, resendAttempts: prev.resendAttempts + 1 }));
+                                                }
+                                            } catch (err) {
+                                                const msg = err.response?.data?.message || 'Failed to resend code.';
+                                                setEmailModal(prev => ({ ...prev, resending: false, otpError: msg }));
+                                            }
+                                        }}
+                                        style={{
+                                            background: 'none', border: 'none', color: '#daa520', fontSize: '0.8rem',
+                                            fontWeight: 600, cursor: emailModal.resending ? 'not-allowed' : 'pointer',
+                                            padding: 0, textDecoration: 'underline'
+                                        }}
+                                    >
+                                        {emailModal.resending ? 'Resending...' : 'Didn\'t receive it? Resend Code'}
+                                    </button>
+                                )}
+                            </div>
                             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                                 <button type="button"
-                                    onClick={() => setEmailModal(prev => ({ ...prev, step: 'enterEmail', otp: '', otpError: '' }))}
+                                    onClick={() => setEmailModal(prev => ({ ...prev, step: 'enterEmail', otp: Array(6).fill(''), otpError: '', resendTimer: 300, resendAttempts: 0 }))}
                                     style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
                                 >← Back</button>
                                 <button type="button"
-                                    disabled={emailModal.confirming || emailModal.otp.length !== 6}
+                                    disabled={emailModal.confirming || emailModal.otp.join('').length !== 6}
                                     onClick={async () => {
                                         setEmailModal(prev => ({ ...prev, confirming: true, otpError: '' }));
                                         try {
-                                            const res = await Axios.post(`${API_URL}/api/confirm-email-change`, { userId: artistId, otp: emailModal.otp, newEmail: emailModal.newEmail });
+                                            const res = await Axios.post(`${API_URL}/api/confirm-email-change`, { userId: artistId, otp: emailModal.otp.join(''), newEmail: emailModal.newEmail });
                                             if (res.data.requireReverification) {
                                                 localStorage.removeItem('user');
                                                 localStorage.removeItem('token');
@@ -838,9 +921,9 @@ function ArtistProfile() {
                                     }}
                                     style={{
                                         flex: 2, padding: '10px', borderRadius: '8px',
-                                        backgroundColor: (emailModal.confirming || emailModal.otp.length !== 6) ? '#6ee7b7' : '#059669',
+                                        backgroundColor: (emailModal.confirming || emailModal.otp.join('').length !== 6) ? '#6ee7b7' : '#059669',
                                         color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.85rem',
-                                        cursor: (emailModal.confirming || emailModal.otp.length !== 6) ? 'not-allowed' : 'pointer'
+                                        cursor: (emailModal.confirming || emailModal.otp.join('').length !== 6) ? 'not-allowed' : 'pointer'
                                     }}
                                 >{emailModal.confirming ? 'Confirming...' : 'Confirm Email Change'}</button>
                             </div>
