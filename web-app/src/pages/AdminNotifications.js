@@ -61,10 +61,11 @@ function AdminNotifications() {
             const user = JSON.parse(localStorage.getItem('user'));
             const adminId = user ? user.id : 1;
 
-            const [notifsResponse, appointmentsResponse, inventoryResponse] = await Promise.all([
+            const [notifsResponse, appointmentsResponse, inventoryResponse, paymentAlertsResponse] = await Promise.all([
                 Axios.get(`${API_URL}/api/notifications/${adminId}`), // Admin notifications
                 Axios.get(`${API_URL}/api/admin/appointments`),
-                Axios.get(`${API_URL}/api/admin/inventory?status=active`)
+                Axios.get(`${API_URL}/api/admin/inventory?status=active`),
+                Axios.get(`${API_URL}/api/admin/pending-payment-alerts`).catch(() => ({ data: { success: false } }))
             ]);
 
             // Process Personal/Direct Notifications
@@ -107,8 +108,26 @@ function AdminNotifications() {
                 }
             }
 
-            // Combine and sort
-            const combined = [
+            // 3. Pending Payment Resolution (pinned at top)
+            const pinnedAlerts = [];
+            if (paymentAlertsResponse.data.success) {
+                const pendingPayments = paymentAlertsResponse.data.alerts || [];
+                if (pendingPayments.length > 0) {
+                    pinnedAlerts.push({
+                        id: 'payment-resolution',
+                        title: '⚠️ Payment Resolution Required',
+                        message: `${pendingPayments.length} completed session${pendingPayments.length === 1 ? '' : 's'} with outstanding balance. Artist compensation is pending until payment is collected.`,
+                        type: 'payment_resolution',
+                        severity: 'critical',
+                        created_at: new Date().toISOString(),
+                        is_read: false,
+                        _paymentAlerts: pendingPayments // attach data for the overlay
+                    });
+                }
+            }
+
+            // Combine and sort (pinned alerts stay at very top)
+            const sorted = [
                 ...alerts,
                 ...directNotifs.map(n => ({
                     ...n,
@@ -116,6 +135,7 @@ function AdminNotifications() {
                     path: n.type === 'payment_success' ? '/admin/billing' : (n.type === 'new_review' ? '/admin/reviews' : undefined)
                 }))
             ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const combined = [...pinnedAlerts, ...sorted];
 
             setNotifications(prev => {
                 // Silent merge: only update if data actually changed
@@ -153,6 +173,8 @@ function AdminNotifications() {
                 return { color: '#daa520', bg: 'rgba(218, 165, 32, 0.1)', label: 'Review' };
             case 'payment_action_required':
                 return { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.1)', label: '⚠️ Urgent' };
+            case 'payment_resolution':
+                return { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.12)', label: '⚠️ Action Required' };
             default:
                 return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', label: 'Update' };
         }
@@ -171,6 +193,7 @@ function AdminNotifications() {
             case 'appointment_request': return <CalendarDays size={20} className="text-orange" />;
             case 'new_review': return <Star size={20} className="text-gold" />;
             case 'payment_action_required': return <ShieldAlert size={20} style={{ color: '#dc2626' }} />;
+            case 'payment_resolution': return <ShieldAlert size={20} style={{ color: '#dc2626' }} />;
             default: return <Bell size={20} />;
         }
     };
@@ -385,11 +408,24 @@ function AdminNotifications() {
                                     {currentItems.map((n) => {
                                         const Icon = getIcon(n.type);
                                         const style = getNotificationStyle(n.type);
+                                        const isPaymentResolution = n.type === 'payment_resolution';
                                         return (
-                                            <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{ padding: '12px 20px', cursor: 'pointer', position: 'relative' }} onClick={(e) => {
+                                            <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{
+                                                padding: '12px 20px', cursor: 'pointer', position: 'relative',
+                                                ...(isPaymentResolution ? {
+                                                    background: 'rgba(254, 226, 226, 0.5)',
+                                                    borderLeft: '4px solid #dc2626',
+                                                    border: '1px solid rgba(220, 38, 38, 0.25)'
+                                                } : {})
+                                            }} onClick={(e) => {
                                                 if (!e.target.closest('.notif-actions')) {
-                                                    setSelectedNotification(n);
-                                                    if (!n.is_read && n.id && typeof n.id === 'number') markAsRead(n.id);
+                                                    if (isPaymentResolution && n._paymentAlerts) {
+                                                        window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts: n._paymentAlerts } }));
+                                                        sessionStorage.removeItem('paymentAlertShown');
+                                                    } else {
+                                                        setSelectedNotification(n);
+                                                        if (!n.is_read && n.id && typeof n.id === 'number') markAsRead(n.id);
+                                                    }
                                                 }
                                             }}>
                                                 <div className="notif-id-marker"></div>
@@ -399,8 +435,8 @@ function AdminNotifications() {
                                                     </div>
 
                                                     <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                                                        <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: n.is_read ? '#64748b' : '#1e293b', display: 'block' }}>{n.title}</span>
-                                                        <p className="notif-body" style={{ margin: 0, fontSize: '0.9rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</p>
+                                                        <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: isPaymentResolution ? '#dc2626' : (n.is_read ? '#64748b' : '#1e293b'), display: 'block', fontWeight: isPaymentResolution ? 700 : undefined }}>{n.title}</span>
+                                                        <p className="notif-body" style={{ margin: 0, fontSize: '0.9rem', color: isPaymentResolution ? '#991b1b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</p>
                                                     </div>
 
                                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
@@ -409,7 +445,20 @@ function AdminNotifications() {
                                                         </span>
 
                                                         <div className="notif-actions" style={{ display: 'flex', gap: '8px' }}>
-                                                            {n.path && (
+                                                            {isPaymentResolution ? (
+                                                                <button
+                                                                    className="notif-btn primary"
+                                                                    style={{ padding: '6px 12px', background: '#dc2626', color: 'white', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center' }}
+                                                                    onClick={() => {
+                                                                        if (n._paymentAlerts) {
+                                                                            window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts: n._paymentAlerts } }));
+                                                                            sessionStorage.removeItem('paymentAlertShown');
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    Take Action <ArrowRight size={14} />
+                                                                </button>
+                                                            ) : n.path ? (
                                                                 <button
                                                                     className="notif-btn primary"
                                                                     style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center' }}
@@ -417,15 +466,17 @@ function AdminNotifications() {
                                                                 >
                                                                     Take Action <ArrowRight size={14} />
                                                                 </button>
-                                                            )}
-                                                            {!n.is_read ? (
-                                                                <button className="notif-btn ghost" onClick={() => markAsRead(n.id)} title="Mark as Read" style={{ padding: '6px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>
-                                                                    <Check size={14} />
-                                                                </button>
-                                                            ) : (
-                                                                <button className="notif-btn ghost" onClick={() => markAsUnread(n.id)} title="Mark as Unread" style={{ padding: '6px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>
-                                                                    <RotateCcw size={14} />
-                                                                </button>
+                                                            ) : null}
+                                                            {!isPaymentResolution && (
+                                                                !n.is_read ? (
+                                                                    <button className="notif-btn ghost" onClick={() => markAsRead(n.id)} title="Mark as Read" style={{ padding: '6px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                                                                        <Check size={14} />
+                                                                    </button>
+                                                                ) : (
+                                                                    <button className="notif-btn ghost" onClick={() => markAsUnread(n.id)} title="Mark as Unread" style={{ padding: '6px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                                                                        <RotateCcw size={14} />
+                                                                    </button>
+                                                                )
                                                             )}
                                                         </div>
                                                     </div>
