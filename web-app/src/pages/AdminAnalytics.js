@@ -12,11 +12,11 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 
 /* ═══════════════ CHART COLOR PALETTES ═══════════════ */
-// Rainbow palette for all charts instead of single brand gold
-const RAINBOW_PALETTE = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e'];
-const EXPENSE_COLORS = { Inventory: '#b7954e', Marketing: '#3b82f6', Bills: '#ef4444', Payouts: '#8b5cf6', Equipment: '#f59e0b', Licensing: '#14b8a6', Maintenance: '#ec4899', Extras: '#64748b' };
+// Opposing/contrasting colors — each neighbor is far apart on the color wheel
+const RAINBOW_PALETTE = ['#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#84cc16', '#6366f1', '#14b8a6'];
+const EXPENSE_COLORS = { Inventory: '#f59e0b', Marketing: '#3b82f6', Bills: '#ef4444', Payouts: '#a855f7', Equipment: '#10b981', Licensing: '#06b6d4', Maintenance: '#ec4899', Extras: '#84cc16' };
 const EXPENSE_CATEGORIES = ['Inventory', 'Marketing', 'Bills', 'Payouts', 'Equipment', 'Licensing', 'Maintenance', 'Extras'];
-const DARK_BRAND = '#1e293b';
+const DARK_BRAND = '#e2e8f0';
 
 /* ═══════════════ CUSTOM TOOLTIP ═══════════════ */
 const DarkTooltip = ({ active, payload, label }) => {
@@ -25,7 +25,7 @@ const DarkTooltip = ({ active, payload, label }) => {
         <div className="analytics-custom-tooltip">
             <p className="tooltip-label">{label}</p>
             {payload.map((p, i) => (
-                <p key={i} className="tooltip-value" style={{ color: p.color || DARK_BRAND }}>
+                <p key={i} className="tooltip-value" style={{ color: p.color || '#cbd5e1' }}>
                     {p.name}: {typeof p.value === 'number' && p.name !== 'Appointments' ? `₱${p.value.toLocaleString("en-PH", { minimumFractionDigits: 2 })}` : p.value}
                 </p>
             ))}
@@ -344,27 +344,27 @@ function AdminAnalytics() {
                             </div>
                         </div>
 
-                        {/* ═══════════════ CHARTS ROW 1: Trend (spanning 2) + Sources (spanning 1) ═══════════════ */}
+                        {/* ═══════════════ CHARTS ROW 1: Trend (wide left) + Sources (narrow right) ═══════════════ */}
                         <div className="analytics-dashboard-layout">
                             <div className="card glass-card card-colspan-2">
-                                <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: DARK_BRAND }} />Monthly Revenue Trend</h2>
+                                <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Monthly Revenue Trend</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     <ResponsiveContainer>
                                         <BarChart data={analytics.revenue.chart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                                            <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} />
-                                            <YAxis tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} />
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                            <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                                            <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
                                             <Tooltip content={<DarkTooltip />} />
-                                            <Legend />
+                                            <Legend wrapperStyle={{ color: '#94a3b8' }} />
                                             <Bar dataKey="value" name="Revenue" fill={RAINBOW_PALETTE[0]} radius={[6, 6, 0, 0]} />
-                                            <Bar dataKey="appointments" name="Appointments" fill={RAINBOW_PALETTE[6]} radius={[6, 6, 0, 0]} opacity={0.6} />
+                                            <Bar dataKey="appointments" name="Appointments" fill={RAINBOW_PALETTE[2]} radius={[6, 6, 0, 0]} opacity={0.7} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
                             </div>
 
                             <div className="card glass-card card-colspan-1">
-                                <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: DARK_BRAND }} />Revenue Sources</h2>
+                                <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Sources</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     {analytics.revenue.breakdown.length > 0 ? (
                                         <ResponsiveContainer>
@@ -377,23 +377,42 @@ function AdminAnalytics() {
                                             </PieChart>
                                         </ResponsiveContainer>
                                     ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>No revenue data yet</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No revenue data yet</div>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* ═══════════════ CHARTS ROW 2: Artists (colspan 2) + Styles (colspan 1) ═══════════════ */}
-                        <div className="analytics-dashboard-layout">
+                        {/* ═══════════════ CHARTS ROW 2: Styles (narrow left) + Artists (wide right) — REVERSED ═══════════════ */}
+                        <div className="analytics-dashboard-layout reverse">
+                            <div className="card glass-card card-colspan-1">
+                                <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Popular Styles</h2>
+                                <div style={{ width: '100%', height: 280 }}>
+                                    {analytics.styles.length > 0 ? (
+                                        <ResponsiveContainer>
+                                            <PieChart>
+                                                <Pie data={analytics.styles.map(s => ({ name: s.name, value: s.count }))} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={true}>
+                                                    {analytics.styles.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[(i * 2) % RAINBOW_PALETTE.length]} />)}
+                                                </Pie>
+                                                <Tooltip formatter={(v) => `${v} works`} />
+                                                <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No style data yet</div>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="card glass-card card-colspan-2">
-                                <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: DARK_BRAND }} />Top Artists by Revenue</h2>
+                                <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Top Artists by Revenue</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     {analytics.artists.length > 0 ? (
                                         <ResponsiveContainer>
                                             <BarChart data={analytics.artists} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                                                <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} />
-                                                <YAxis dataKey="name" type="category" tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 600 }} width={100} />
+                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                                <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                                                <YAxis dataKey="name" type="category" tick={{ fill: '#cbd5e1', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
                                                 <Tooltip content={<DarkTooltip />} />
                                                 <Bar dataKey="revenue" name="Revenue" fill={RAINBOW_PALETTE[4]} radius={[0, 6, 6, 0]} barSize={24}>
                                                    {analytics.artists.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[index % RAINBOW_PALETTE.length]} />)}
@@ -401,42 +420,24 @@ function AdminAnalytics() {
                                             </BarChart>
                                         </ResponsiveContainer>
                                     ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>No artist data yet</div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="card glass-card card-colspan-1">
-                                <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: DARK_BRAND }} />Popular Styles</h2>
-                                <div style={{ width: '100%', height: 280 }}>
-                                    {analytics.styles.length > 0 ? (
-                                        <ResponsiveContainer>
-                                            <PieChart>
-                                                <Pie data={analytics.styles.map(s => ({ name: s.name, value: s.count }))} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={true}>
-                                                    {analytics.styles.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[(i + 3) % RAINBOW_PALETTE.length]} />)}
-                                                </Pie>
-                                                <Tooltip formatter={(v) => `${v} works`} />
-                                                <Legend />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>No style data yet</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No artist data yet</div>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* ═══════════════ CHARTS ROW 3: Inventory (colspan 2) + Appointments (colspan 1) ═══════════════ */}
+
+                        {/* ═══════════════ CHARTS ROW 3: Inventory (wide left) + Appointments (narrow right) ═══════════════ */}
                         <div className="analytics-dashboard-layout">
                             <div className="card glass-card card-colspan-2">
-                                <h2><Package size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: DARK_BRAND }} />Inventory Consumption</h2>
+                                <h2><Package size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Inventory Consumption</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     {analytics.inventory.length > 0 ? (
                                         <ResponsiveContainer>
                                             <BarChart data={analytics.inventory} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                                                <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11 }} />
-                                                <YAxis dataKey="name" type="category" tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 600 }} width={100} />
+                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                                                <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                                                <YAxis dataKey="name" type="category" tick={{ fill: '#cbd5e1', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
                                                 <Tooltip formatter={(v, name, props) => `${v} ${props.payload.unit || 'units'}`} />
                                                 <Bar dataKey="used" name="Used" fill={RAINBOW_PALETTE[2]} radius={[0, 6, 6, 0]} barSize={24}>
                                                    {analytics.inventory.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[(index + 5) % RAINBOW_PALETTE.length]} />)}
@@ -444,13 +445,13 @@ function AdminAnalytics() {
                                             </BarChart>
                                         </ResponsiveContainer>
                                     ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>No inventory data yet</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No inventory data yet</div>
                                     )}
                                 </div>
                             </div>
 
                             <div className="card glass-card card-colspan-1">
-                                <h2><Calendar size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: DARK_BRAND }} />Appointment Breakdown</h2>
+                                <h2><Calendar size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Appointment Breakdown</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     <ResponsiveContainer>
                                         <PieChart>
@@ -463,9 +464,9 @@ function AdminAnalytics() {
                                                 cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={3} dataKey="value"
                                                 label={renderPieLabel} labelLine={true}
                                             >
-                                                <Cell fill={RAINBOW_PALETTE[4]} /> {/* Green */}
-                                                <Cell fill={RAINBOW_PALETTE[6]} /> {/* Blue */}
-                                                <Cell fill={RAINBOW_PALETTE[0]} /> {/* Red */}
+                                                <Cell fill={RAINBOW_PALETTE[2]} /> {/* Green - Completed */}
+                                                <Cell fill={RAINBOW_PALETTE[0]} /> {/* Blue - Scheduled */}
+                                                <Cell fill={RAINBOW_PALETTE[1]} /> {/* Red - Cancelled */}
                                             </Pie>
                                             <Tooltip />
                                             <Legend />

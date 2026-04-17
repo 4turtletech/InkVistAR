@@ -20,7 +20,7 @@
 }
 
 .admin-page {
-    background-color: #f5f7fa;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%);
     min-height: 100vh;
     padding-bottom: 2rem;
 }
@@ -33,15 +33,25 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    background: rgba(245, 247, 250, 0.85); /* Matches body with glass effect */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(15, 23, 42, 0.75);
     padding: 1rem 2rem 0;
     margin-bottom: 2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
+/* Scoped overrides for dark analytics page */
+.analytics-sticky-header .header-title-area h1 {
+    color: #f1f5f9;
+}
+.analytics-sticky-header .header-title-area p {
+    color: #94a3b8;
+}
+.analytics-sticky-header .filter-group-glass span {
+    color: #94a3b8;
+}
 .admin-header-glass {
     display: flex;
     justify-content: space-between;
@@ -62,23 +72,28 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: white;
+    background: rgba(255, 255, 255, 0.08);
     padding: 0 1rem;
     height: 40px;
     box-sizing: border-box;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    color: #cbd5e1;
 }
 
 .premium-select-glass {
     border: none;
     background: transparent;
     font-weight: 500;
-    color: #1e293b;
+    color: #e2e8f0;
     outline: none;
     cursor: pointer;
     height: 100%;
+}
+.premium-select-glass option {
+    background: #1e293b;
+    color: #e2e8f0;
 }
 
 .btn-glass {
@@ -125,45 +140,46 @@
 /* Clickable Metric Cards */
 .metric-clickable {
     cursor: pointer;
-    transition: all 0.25s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .metric-clickable:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(30, 41, 59, 0.12);
-    border-color: rgba(30, 41, 59, 0.3);
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.15);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 .metric-clickable-hint {
     display: flex;
     align-items: center;
     gap: 2px;
-    color: #64748b !important;
+    color: rgba(148, 163, 184, 0.8) !important;
     font-weight: 600 !important;
     font-size: 0.75rem !important;
     transition: color 0.2s;
 }
 .metric-clickable:hover .metric-clickable-hint {
-    color: #1e293b !important;
+    color: rgba(255, 255, 255, 0.9) !important;
 }
 
 /* Recharts Custom Tooltip */
 .analytics-custom-tooltip {
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(183, 149, 78, 0.2);
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     padding: 10px 14px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
 .analytics-custom-tooltip .tooltip-label {
     margin: 0 0 4px;
     font-weight: 700;
     font-size: 0.85rem;
-    color: #1e293b;
+    color: #f1f5f9;
 }
 .analytics-custom-tooltip .tooltip-value {
     margin: 2px 0;
     font-size: 0.8rem;
     font-weight: 600;
+    color: #cbd5e1;
 }
 
 .select-input {
@@ -175,116 +191,144 @@
     cursor: pointer;
 }
 
-/* Metrics Section */
+/* Metrics Section — Varied Width Grid */
 .metrics-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: 2fr 1fr 1fr 1.5fr;
+    gap: 1.2rem;
     padding: 2rem;
     padding-top: 1rem;
 }
 
 .metric-card {
-    background: white;
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
     padding: 1.5rem;
     display: flex;
     gap: 1.2rem;
     align-items: flex-start;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    min-width: 0;
 }
 
 .glass-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.03);
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .metric-card.primary {
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
     border-left: none;
+}
+
+/* Metric card grid spans for varied widths */
+.metric-card:nth-child(1) { grid-column: span 1; } /* Revenue - wide */
+.metric-card:nth-child(2) { grid-column: span 1; } /* Ops Expenses */
+.metric-card:nth-child(3) { grid-column: span 1; } /* Overhead */
+.metric-card:nth-child(4) { grid-column: span 1; } /* Appointments */
+/* Row 2: 1fr 1.5fr 1fr 1.5fr */
+.metric-card:nth-child(5) { } /* Artists */
+.metric-card:nth-child(6) { } /* Inventory */
+.metric-card:nth-child(7) { } /* Completion */
+.metric-card:nth-child(8) { } /* Duration */
+
+@media (max-width: 1200px) {
+    .metrics-section {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+@media (max-width: 768px) {
+    .metrics-section {
+        grid-template-columns: 1fr;
+    }
 }
 
 .metric-icon {
     font-size: 2rem;
     min-width: 50px;
     text-align: center;
+    opacity: 0.8;
 }
 
 .metric-content {
     flex: 1;
+    min-width: 0;
 }
 
 .metric-label {
     margin: 0;
-    font-size: 0.85rem;
-    color: #6b7280;
+    font-size: 0.8rem;
+    color: rgba(148, 163, 184, 0.9);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
+    font-weight: 500;
 }
 
 .metric-value {
-    margin: 0.5rem 0;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #1f2937;
+    margin: 0.4rem 0;
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    letter-spacing: -0.5px;
 }
 
 .metric-growth {
     margin: 0;
     font-size: 0.9rem;
-    color: #6b7280;
+    color: rgba(148, 163, 184, 0.7);
 }
 
 .metric-growth.positive {
-    color: #10b981;
+    color: #34d399;
     font-weight: 600;
 }
 
 .metric-info {
     margin: 0;
     font-size: 0.85rem;
-    color: #6b7280;
+    color: rgba(148, 163, 184, 0.7);
 }
 
 /* Analytics Dashboard Asymmetrical Layout */
 .analytics-dashboard-layout {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 2fr 1.2fr;
     gap: 1.5rem;
     padding: 0 2rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.analytics-dashboard-layout.reverse {
+    grid-template-columns: 1.2fr 2fr;
 }
 
 .card-colspan-2 {
-    grid-column: span 2;
+    grid-column: span 1;
 }
 
 .card-colspan-1 {
     grid-column: span 1;
+    min-width: 320px;
 }
 
 @media (max-width: 1200px) {
-    .analytics-dashboard-layout {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .card-colspan-2 {
-        grid-column: span 2;
-    }
-    .card-colspan-1 {
-        grid-column: span 1;
+    .analytics-dashboard-layout,
+    .analytics-dashboard-layout.reverse {
+        grid-template-columns: 1fr 1fr;
     }
 }
 
 @media (max-width: 768px) {
-    .analytics-dashboard-layout {
+    .analytics-dashboard-layout,
+    .analytics-dashboard-layout.reverse {
         grid-template-columns: 1fr;
     }
-    .card-colspan-2, .card-colspan-1 {
-        grid-column: span 1;
+    .card-colspan-1 {
+        min-width: unset;
     }
 }
 
@@ -298,17 +342,19 @@
 }
 
 .card {
-    background: white;
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
 }
 
 .card h2 {
     margin: 0 0 1.5rem;
     font-size: 1.1rem;
-    color: #334155;
+    color: #e2e8f0;
     font-weight: 700;
 }
 
