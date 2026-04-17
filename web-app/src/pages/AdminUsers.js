@@ -522,13 +522,23 @@ function AdminUsers() {
             <div className="gallery-grid-admin">
                 {artistDetails.portfolio.map(work => (
                     <div key={work.id} className="gallery-item-admin admin-st-24b531c6" onClick={() => openEditWork(work)}>
-                        <img src={work.image_url} alt={work.title} />
-                        <div className="gallery-overlay">
-                            <button className="delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteWork(work.id); }}>
-                                <Trash2 size={16} />
+                        <img src={work.image_url} alt={work.title} style={{ aspectRatio: '4/5', objectFit: 'cover', width: '100%', display: 'block' }} />
+                        <div className="gallery-overlay" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '12px' }}>
+                            <button className="delete-btn" style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(239, 68, 68, 0.9)', color: 'white', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleDeleteWork(work.id); }}>
+                                <Trash2 size={14} />
                             </button>
-                            <span>{work.title}</span>
-                            {work.price_estimate && <span className="admin-st-1998107d">₱{Number(work.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                            <div style={{ marginTop: 'auto', background: 'rgba(15, 23, 42, 0.75)', padding: '10px 12px', borderRadius: '8px', backdropFilter: 'blur(4px)', width: '100%', boxSizing: 'border-box' }}>
+                                <span style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '2px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{work.title}</span>
+                                {work.price_estimate ? (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#34d399', fontWeight: 700 }}>
+                                        <PhilippinePeso size={12} /> {Number(work.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                ) : (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#fcd34d', fontWeight: 700 }}>
+                                        Price upon request
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ))}

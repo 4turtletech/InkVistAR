@@ -283,10 +283,16 @@ const Gallery = () => {
                 src={item.image_url} 
                 alt={item.title || item.category || 'Tattoo artwork'} 
                 loading="lazy"
+                style={{ aspectRatio: '4/5', objectFit: 'cover', width: '100%', display: 'block' }}
               />
               <div className="image-card-overlay">
                 {item.title && <h3 className="image-card-title">{item.title}</h3>}
-                {item.artist_name && <p className="image-card-artist">by {item.artist_name}</p>}
+                {item.artist_name && <p className="image-card-artist" style={{ marginBottom: '5px' }}>by {item.artist_name}</p>}
+                {(!item.price_estimate || item.price_estimate <= 0) ? (
+                    <p className="image-card-price" style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#fcd34d' }}>Price upon request</p>
+                ) : (
+                    <p className="image-card-price" style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#10b981' }}>Est. ₱{Number(item.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</p>
+                )}
               </div>
               <div className="watermark">INKVICTUS</div>
               <div className="glow-overlay"></div>
@@ -316,6 +322,11 @@ const Gallery = () => {
               {selectedImage.title && <h2>{selectedImage.title}</h2>}
               {selectedImage.artist_name && <p className="modal-artist">Artist: <strong>{selectedImage.artist_name}</strong></p>}
               {selectedImage.category && <p className="modal-category">Category: <strong>{selectedImage.category}</strong></p>}
+              {(!selectedImage.price_estimate || selectedImage.price_estimate <= 0) ? (
+                <p className="modal-price" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#C19A6B', margin: '10px 0' }}>Price upon request</p>
+              ) : (
+                <p className="modal-price" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#10b981', margin: '10px 0' }}>Est. ₱{Number(selectedImage.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</p>
+              )}
               {selectedImage.description && <p className="modal-description">{selectedImage.description}</p>}
               
               <button 

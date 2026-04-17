@@ -3111,8 +3111,13 @@ app.get('/api/gallery/works', (req, res) => {
   }
 
   if (minPrice !== undefined && maxPrice !== undefined) {
-    query += ` AND pw.price_estimate BETWEEN ? AND ?`;
-    params.push(Number(minPrice), Number(maxPrice));
+    if (Number(minPrice) === 0) {
+      query += ` AND (pw.price_estimate BETWEEN ? AND ? OR pw.price_estimate IS NULL OR pw.price_estimate <= 0)`;
+      params.push(Number(minPrice), Number(maxPrice));
+    } else {
+      query += ` AND pw.price_estimate BETWEEN ? AND ?`;
+      params.push(Number(minPrice), Number(maxPrice));
+    }
   }
 
   if (req.query.artistId) {

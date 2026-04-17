@@ -202,6 +202,7 @@ function ArtistGallery() {
                                     src={work.image_url} 
                                     alt={work.title} 
                                     loading="lazy"
+                                    style={{ aspectRatio: '4/5', objectFit: 'cover', width: '100%', display: 'block' }}
                                 />
                                 <div className="gallery-overlay">
                                     <h3>{work.title}</h3>
@@ -296,8 +297,12 @@ function ArtistGallery() {
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button className="action-btn delete-btn" style={{ marginRight: 'auto', padding: '10px 16px' }} onClick={() => handleDelete(selectedWork.id)}>
-                                <Trash2 size={16} /> Delete Work
+                            <button className="action-btn" style={{ marginRight: 'auto', padding: '10px 16px', background: '#f1f5f9', color: '#475569', borderRadius: '8px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1' }} onClick={() => toggleVisibility(selectedWork)}>
+                                {selectedWork.is_public ? <Globe size={16}/> : <Lock size={16}/>}
+                                {selectedWork.is_public ? 'Archive Work' : 'Unarchive Work'}
+                            </button>
+                            <button className="action-btn delete-btn" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => handleDelete(selectedWork.id)}>
+                                <Trash2 size={16} /> Remove Work
                             </button>
                             <button className="btn btn-secondary" onClick={() => closeModal(setViewWorkModal)}>Close</button>
                         </div>
@@ -342,7 +347,7 @@ function ArtistGallery() {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                             <div className="form-group">
                                                 <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Style Category</label>
-                                                <select className="form-input" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                                                <select className="form-input" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} style={{ height: '44px' }}>
                                                     {TATTOO_STYLES.map(style => (
                                                         <option key={style} value={style}>{style}</option>
                                                     ))}
@@ -356,6 +361,7 @@ function ArtistGallery() {
                                                     placeholder="0"
                                                     value={formData.priceEstimate}
                                                     onChange={e => setFormData({...formData, priceEstimate: e.target.value})}
+                                                    style={{ height: '44px' }}
                                                 />
                                             </div>
                                         </div>
