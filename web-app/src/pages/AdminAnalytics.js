@@ -215,12 +215,17 @@ function AdminAnalytics() {
                     </div>
                 </div>
 
-                <div className="metric-card glass-card" style={{ borderLeft: '4px solid #ef4444' }}>
-                    <PhilippinePeso className="metric-icon" size={32} color="#ef4444" />
+                <div className="metric-card glass-card" style={{ borderLeft: '4px solid #6366f1' }}>
+                    <Package className="metric-icon" size={32} color="#6366f1" />
                     <div className="metric-content">
                         <p className="metric-label">Total Expenses</p>
-                        <p className="metric-value" style={{ color: '#ef4444' }}>₱{Number(analytics.expenses?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                        <p className="metric-info">Inventory procurements</p>
+                        <p className="metric-value">₱{Number(analytics.expenses?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <p className="metric-info">
+                            {analytics.expenses?.cogs > 0 
+                                ? `Procurement: ₱${Number(analytics.expenses.procurement).toLocaleString("en-PH")} · COGS: ₱${Number(analytics.expenses.cogs).toLocaleString("en-PH")}` 
+                                : 'Inventory procurements'
+                            }
+                        </p>
                     </div>
                 </div>
 

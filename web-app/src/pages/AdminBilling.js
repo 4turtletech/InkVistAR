@@ -18,6 +18,7 @@ function AdminBilling() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [sourceFilter, setSourceFilter] = useState('all');
     const [payouts, setPayouts] = useState([]);
     const [artists, setArtists] = useState([]);
     const [payoutModal, setPayoutModal] = useState({ mounted: false, visible: false });
@@ -199,9 +200,14 @@ function AdminBilling() {
 
     const filteredInvoices = invoices.filter(inv => {
         const matchesSearch = inv.client_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              inv.id.toString().includes(searchTerm);
+                              inv.id.toString().includes(searchTerm) ||
+                              (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || inv.status.toLowerCase() === statusFilter.toLowerCase();
-        return matchesSearch && matchesStatus;
+        const isPOS = (inv.service_type || '').toLowerCase().includes('retail') || (inv.service_type || '').toLowerCase().includes('pos');
+        const matchesSource = sourceFilter === 'all' || 
+            (sourceFilter === 'pos' && isPOS) || 
+            (sourceFilter === 'session' && !isPOS);
+        return matchesSearch && matchesStatus && matchesSource;
     });
 
     // Pagination logic
@@ -295,6 +301,20 @@ function AdminBilling() {
                                     </select>
                                 </div>
 
+                                <div className="premium-filter-item">
+                                    <Filter size={16} />
+                                    <span>Source:</span>
+                                    <select 
+                                        value={sourceFilter} 
+                                        onChange={(e) => setSourceFilter(e.target.value)}
+                                        className="premium-select-v2"
+                                    >
+                                        <option value="all">All Sources</option>
+                                        <option value="session">Session Payments</option>
+                                        <option value="pos">POS Sales</option>
+                                    </select>
+                                </div>
+
                                 <button className="btn btn-primary admin-st-4796037d" onClick={openModal} >
                                     <Plus size={18} className="admin-st-c02c7d9c" /> Create Invoice
                                 </button>
@@ -321,9 +341,16 @@ function AdminBilling() {
                                             <tr><td colSpan="8" className="no-data admin-st-3927920f">Loading invoices...</td></tr>
                                         ) : paginatedInvoices.map(inv => (
                                             <tr key={inv.id}>
-                                                <td>INV-{inv.id}</td>
+                                                <td>{inv.invoice_number || `INV-${inv.id}`}</td>
                                                 <td>{inv.client_name}</td>
-                                                <td>{inv.service_type}</td>
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        {inv.service_type}
+                                                        {((inv.service_type || '').toLowerCase().includes('retail') || (inv.service_type || '').toLowerCase().includes('pos')) && (
+                                                            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'rgba(99,102,241,0.1)', color: '#6366f1', whiteSpace: 'nowrap' }}>POS</span>
+                                                        )}
+                                                    </div>
+                                                </td>
                                                 <td>{new Date(inv.created_at).toLocaleDateString()}</td>
                                                 <td>₱{Number(inv.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>

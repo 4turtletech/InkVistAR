@@ -5691,12 +5691,15 @@ app.get('/api/admin/analytics', (req, res) => {
     as total
   `;
   
-  // 2.5 Total Expenses (Inventory Procurements)
+  // 2.5 Total Expenses (Inventory Procurements + POS Cost of Goods Sold)
   const expensesQuery = `
-    SELECT COALESCE(SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)), 0) as total
-    FROM inventory_transactions t
-    JOIN inventory i ON t.inventory_id = i.id
-    WHERE t.type = 'in'
+    SELECT 
+      COALESCE((SELECT SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in'), 0)
+      +
+      COALESCE((SELECT SUM(t.quantity * COALESCE(i.cost, 0)) FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'out' AND t.reason = 'POS Sale'), 0)
+    as total,
+    COALESCE((SELECT SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in'), 0) as procurement,
+    COALESCE((SELECT SUM(t.quantity * COALESCE(i.cost, 0)) FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'out' AND t.reason = 'POS Sale'), 0) as cogs
   `;
 
   // 3. Artist Productivity (proportional split for collaborative sessions)
@@ -5796,7 +5799,11 @@ app.get('/api/admin/analytics', (req, res) => {
 
               db.query(expensesQuery, (err, expRes) => {
                 if (err) return res.status(500).json({ success: false, message: err.message });
-                response.expenses.total = expRes[0].total || 0;
+                response.expenses = {
+                  total: expRes[0].total || 0,
+                  procurement: expRes[0].procurement || 0,
+                  cogs: expRes[0].cogs || 0
+                };
                 res.json({ success: true, data: response });
               });
             });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Axios from 'axios';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag, Send, User, CreditCard, Wallet, Banknote, Receipt, RotateCcw } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag, Send, User, CreditCard, Wallet, Banknote, Receipt, RotateCcw, Printer, Download } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -680,21 +680,102 @@ function AdminPOS() {
                             </div>
 
                             <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
-                                <button 
-                                    className="btn btn-primary"
-                                    onClick={handleSendReceipt} 
-                                    disabled={isSending || !lastOrder.customerId}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '10px', fontWeight: 600, cursor: lastOrder.customerId ? 'pointer' : 'not-allowed', opacity: lastOrder.customerId ? 1 : 0.5 }}
-                                >
-                                    <Send size={16} /> {isSending ? 'Sending...' : 'Send to Customer'}
-                                </button>
-                                <button 
-                                    className="checkout-btn"
-                                    onClick={handleNewSale}
-                                    style={{ width: 'auto', padding: '0 28px', height: '48px', fontSize: '1rem', background: '#10b981', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
-                                >
-                                    <RotateCcw size={18} /> New Sale
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={() => {
+                                            const pw = window.open('', '_blank', 'width=600,height=800');
+                                            pw.document.write(`<html><head><title>Invoice #${lastOrder.orderId}</title>
+                                            <style>
+                                                body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #1e293b; max-width: 520px; margin: 0 auto; }
+                                                .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; }
+                                                .header h2 { margin: 0 0 4px; font-size: 1.4rem; }
+                                                .header p { margin: 0; color: #94a3b8; font-size: 0.85rem; }
+                                                .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; }
+                                                .section { margin-bottom: 12px; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
+                                                .label { color: #64748b; font-size: 0.75rem; text-transform: uppercase; }
+                                                .value { font-weight: 600; }
+                                                .total { font-size: 1.2rem; font-weight: 800; border-top: 2px solid #e2e8f0; margin-top: 8px; padding-top: 12px; }
+                                                .success { color: #10b981; }
+                                                .footer { text-align: center; margin-top: 24px; color: #94a3b8; font-size: 0.8rem; }
+                                                @media print { body { padding: 20px; } }
+                                            </style></head><body>
+                                            <div class="header"><h2>InkVistAR Studio</h2><p>Official Sales Invoice</p></div>
+                                            <div class="section">
+                                                <div class="row"><span class="label">Invoice #</span><span class="value">${lastOrder.orderId}</span></div>
+                                                <div class="row"><span class="label">Date</span><span class="value">${lastOrder.date}</span></div>
+                                                <div class="row"><span class="label">Client</span><span class="value">${lastOrder.customerName}</span></div>
+                                            </div>
+                                            <div class="section">
+                                                ${lastOrder.items.map(i => `<div class="row"><span>${i.quantity}x ${i.name}</span><span class="value">₱${((i.retail_price || i.cost) * i.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>`).join('')}
+                                            </div>
+                                            <div class="section">
+                                                <div class="row"><span>Subtotal</span><span>₱${lastOrder.subtotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+                                                ${lastOrder.discount_amount > 0 ? `<div class="row" style="color:#ef4444"><span>Discount</span><span>-₱${lastOrder.discount_amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>` : ''}
+                                                <div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+                                            </div>
+                                            <div class="section">
+                                                <div class="row"><span class="label">Payment</span><span class="value">${lastOrder.paymentMethod}</span></div>
+                                                ${lastOrder.paymentMethod === 'Cash' ? `
+                                                    <div class="row"><span class="label">Tendered</span><span class="value">₱${lastOrder.amountTendered.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+                                                    <div class="row"><span class="label">Change</span><span class="value success">₱${lastOrder.changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+                                                ` : ''}
+                                            </div>
+                                            <div class="footer"><p>Thank you for shopping at InkVistAR Studio</p></div>
+                                            </body></html>`);
+                                            pw.document.close();
+                                            pw.focus();
+                                            setTimeout(() => pw.print(), 300);
+                                        }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: '10px', fontWeight: 600 }}
+                                    >
+                                        <Printer size={16} /> Print
+                                    </button>
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={() => {
+                                            // Download = same print flow (browser "Save as PDF")
+                                            const pw = window.open('', '_blank', 'width=600,height=800');
+                                            pw.document.write(`<html><head><title>Invoice #${lastOrder.orderId}</title>
+                                            <style>body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #1e293b; max-width: 520px; margin: 0 auto; }
+                                            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #e2e8f0; padding-bottom: 16px; }
+                                            .header h2 { margin: 0 0 4px; } .header p { margin: 0; color: #94a3b8; font-size: 0.85rem; }
+                                            .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; }
+                                            .section { margin-bottom: 12px; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
+                                            .total { font-size: 1.2rem; font-weight: 800; border-top: 2px solid #e2e8f0; margin-top: 8px; padding-top: 12px; }
+                                            .success { color: #10b981; } .footer { text-align: center; margin-top: 24px; color: #94a3b8; }
+                                            </style></head><body>
+                                            <div class="header"><h2>InkVistAR Studio</h2><p>Sales Invoice #${lastOrder.orderId}</p></div>
+                                            <div class="section">${lastOrder.items.map(i => `<div class="row"><span>${i.quantity}x ${i.name}</span><span>₱${((i.retail_price || i.cost) * i.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>`).join('')}</div>
+                                            <div class="section"><div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div></div>
+                                            <div class="footer"><p>Thank you for shopping at InkVistAR Studio</p></div>
+                                            </body></html>`);
+                                            pw.document.close();
+                                            pw.focus();
+                                            setTimeout(() => pw.print(), 300);
+                                        }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 16px', borderRadius: '10px', fontWeight: 600 }}
+                                    >
+                                        <Download size={16} /> Download
+                                    </button>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button 
+                                        className="btn btn-primary"
+                                        onClick={handleSendReceipt} 
+                                        disabled={isSending || !lastOrder.customerId}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '10px', fontWeight: 600, cursor: lastOrder.customerId ? 'pointer' : 'not-allowed', opacity: lastOrder.customerId ? 1 : 0.5 }}
+                                    >
+                                        <Send size={16} /> {isSending ? 'Sending...' : 'Send to Customer'}
+                                    </button>
+                                    <button 
+                                        className="checkout-btn"
+                                        onClick={handleNewSale}
+                                        style={{ width: 'auto', padding: '0 28px', height: '48px', fontSize: '1rem', background: '#10b981', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
+                                    >
+                                        <RotateCcw size={18} /> New Sale
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
