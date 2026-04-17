@@ -94,6 +94,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 | **service_kits** | id, service_type, inventory_id, default_quantity |
 | **session_materials** | id, appointment_id, inventory_id, quantity, status (hold/consumed/released) |
 | **payments** | id, appointment_id, paymongo_payment_id, amount, status |
+| **invoices** | id, invoice_number (INV-XXXXXX), customer_id, appointment_id, client_name, service_type, amount, payment_method, change_given, discount_amount, discount_type, status, items (JSON), created_at |
 | **payouts** | id, artist_id, amount, payout_method, reference_no, status |
 | **branches** | id, name, address, operating_hours, current_occupancy, capacity |
 | **app_settings** | section (PK), data (JSON) |
@@ -170,6 +171,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `POST /api/chat` - AI chatbot
 - `GET /api/ar/config` - AR configuration
 - `GET /api/verify` - Email verification landing page (token + email query params)
+- `GET /api/invoices/by-number/:invoiceNumber` - Get invoice by invoice number (for customer invoice view)
 
 ---
 
@@ -250,6 +252,19 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - `'password_change'` — Title: "Password Changed", routed to `/customer/profile` or `/artist/profile` on click.
     - Both `CustomerNotifications.js` and `ArtistNotifications.js` have `getNotificationStyle` entries: `email_change` uses `Mail` icon (blue), `password_change` uses `ShieldAlert` icon (amber).
     - Clicking these notifications navigates directly to the user's profile page instead of opening the notification detail modal.
+19. **Gallery UI Standards (Cross-Portal):** All portfolio/gallery grids across `Gallery.js`, `ArtistGallery.js`, and `AdminUsers.js` (portfolio tab) MUST follow these rules:
+    - **Aspect Ratio:** `4/5` portrait ratio enforced via CSS `aspect-ratio: 4/5` with `object-fit: cover`.
+    - **Hover Effects:** Gold glow (`box-shadow: 0 0 20px rgba(190, 144, 85, 0.35)`, `border-color: rgba(190, 144, 85, 0.7)`), subtle image scale (`transform: scale(1.04)`), gradient overlay deepening on hover.
+    - **Watermark:** Uses `font-family: 'Playfair Display', serif` at `0.7rem`, matching the header typography. Color remains `rgba(255, 255, 255, 0.4)`.
+    - **Public Gallery Pricing:** The public `Gallery.js` does NOT display pricing (no "Est. ₱X" and no "Price upon request"). Pricing is only visible in admin/artist portals.
+    - **Overlay Title Typography:** Title text uses `color: #C19A6B` with `font-family: 'Playfair Display', serif`. Subtitle/category uses `rgba(255,255,255,0.6)` at `0.72rem`.
+    - **Delete Button Animation:** Delete icons are hidden by default (`opacity: 0, transform: scale(0.8)`) and smoothly appear on hover (`opacity: 1, transform: scale(1)`), using a circular red pill button positioned top-right.
+20. **Email Spam/Junk Advisory:** Any modal, confirmation dialog, or UI element that triggers an outbound email (OTP, invoice, booking confirmation, status update) MUST include a subtle advisory message visible to the user: *"Please also check your Spam/Junk folder for OTPs, invoices, and booking status emails."* This appears as muted helper text below the primary action or in the confirmation footer.
+21. **Payment Resolution Modal Behavior:**
+    - The `PaymentAlertOverlay` popup **appears front-and-center only once** per admin session (on the first page load after the alert is detected).
+    - After the initial popup is dismissed, it transitions to a **persistent bottom-right toast** that stays visible across page navigations but does NOT re-show the full modal on every page switch.
+    - The payment resolution alert also appears as a **notification card** in `AdminNotifications.js` at the top of the list with a light-red tint and a red "Take Action" button that re-opens the full payment modal.
+    - The header styling uses a **solid red** background, NOT a gradient.
 
 ---
 

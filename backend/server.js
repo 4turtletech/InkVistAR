@@ -812,6 +812,38 @@ db.getConnection((err, connection) => {
       }
     });
 
+    // MIGRATION: Add invoice_number to invoices table
+    db.query("SHOW COLUMNS FROM invoices LIKE 'invoice_number'", (err, results) => {
+      if (!err && results.length === 0) {
+        console.log('🔄 Migrating invoices: Adding invoice_number column...');
+        db.query("ALTER TABLE invoices ADD COLUMN invoice_number VARCHAR(20) DEFAULT NULL AFTER id");
+      }
+    });
+
+    // MIGRATION: Add appointment_id to invoices table
+    db.query("SHOW COLUMNS FROM invoices LIKE 'appointment_id'", (err, results) => {
+      if (!err && results.length === 0) {
+        console.log('🔄 Migrating invoices: Adding appointment_id column...');
+        db.query("ALTER TABLE invoices ADD COLUMN appointment_id INT NULL AFTER customer_id");
+      }
+    });
+
+    // MIGRATION: Add payment_method to invoices table
+    db.query("SHOW COLUMNS FROM invoices LIKE 'payment_method'", (err, results) => {
+      if (!err && results.length === 0) {
+        console.log('🔄 Migrating invoices: Adding payment_method column...');
+        db.query("ALTER TABLE invoices ADD COLUMN payment_method VARCHAR(100) DEFAULT NULL AFTER amount");
+      }
+    });
+
+    // MIGRATION: Add change_given to invoices table
+    db.query("SHOW COLUMNS FROM invoices LIKE 'change_given'", (err, results) => {
+      if (!err && results.length === 0) {
+        console.log('🔄 Migrating invoices: Adding change_given column...');
+        db.query("ALTER TABLE invoices ADD COLUMN change_given DECIMAL(10, 2) DEFAULT 0.00 AFTER payment_method");
+      }
+    });
+
     // Create Payouts Table (Artist Payments)
     const payoutsTableQuery = `
       CREATE TABLE IF NOT EXISTS payouts (
@@ -1094,32 +1126,44 @@ function paymongoAuthHeader() {
 
 // Helper: Create Notification
 /** 
- * Mock Email Service Builder (Resend & Nodemailer Stand-in)
- * TODO: Implement API keys once Domain is registered.
- * Usage: sendReceiptEmail(customerEmail, invoiceData, appointmentData)
+ * Receipt Email — Sends a branded invoice email to the customer using buildEmailHtml.
+ * Usage: sendReceiptEmail(customerEmail, invoiceData)
  */
 function sendReceiptEmail(customerEmail, invoiceData) {
-  if (process.env.RESEND_API_KEY) {
-    // resend.emails.send({ ... }) 
-    console.log(`[RESEND] Sending invoice to ${customerEmail}...`);
-  } else {
-    console.log(`
-==================================================
-📬 MOCK EMAIL SENT -> To: ${customerEmail}
---------------------------------------------------
-Subject: Your InkVistAR Studio Receipt (Invoice #${invoiceData.id})
-Hello! Thank you for your payment to InkVistAR Studio.
-    
-🧾 INVOICE DETAILS:
-- Invoice #: ${invoiceData.id}
-- Date: ${new Date().toLocaleDateString()}
-- Amount Paid: ₱${parseFloat(invoiceData.amount).toLocaleString()}
-- Payment Method: ${invoiceData.method}
+  const amount = parseFloat(invoiceData.amount || 0);
+  const changeGiven = parseFloat(invoiceData.changeGiven || 0);
+  const remaining = parseFloat(invoiceData.remaining || 0);
+  
+  const contentHtml = `
+    <h2 style="margin:0 0 6px;font-size:22px;color:#C19A6B;font-weight:700;">Payment Receipt</h2>
+    <p style="margin:0 0 24px;color:#94a3b8;font-size:13px;">Invoice ${invoiceData.id}</p>
 
-Thank you for choosing InkVistAR!
-==================================================
-    `);
-  }
+    <div style="background:#1a1a1a;border:1px solid rgba(193,154,107,0.2);border-radius:12px;padding:20px;margin-bottom:20px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        ${invoiceData.clientName ? `<tr><td style="padding:6px 0;font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Client</td><td style="padding:6px 0;text-align:right;font-weight:600;color:#e2e8f0;">${invoiceData.clientName}</td></tr>` : ''}
+        ${invoiceData.designTitle ? `<tr><td style="padding:6px 0;font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Service</td><td style="padding:6px 0;text-align:right;font-weight:600;color:#e2e8f0;">${invoiceData.designTitle}</td></tr>` : ''}
+        <tr><td style="padding:6px 0;font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Payment Method</td><td style="padding:6px 0;text-align:right;font-weight:600;color:#e2e8f0;">${invoiceData.method}</td></tr>
+        <tr><td style="padding:6px 0;font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Date</td><td style="padding:6px 0;text-align:right;font-weight:600;color:#e2e8f0;">${new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}</td></tr>
+      </table>
+    </div>
+
+    <div style="background:#1a1a1a;border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:20px;margin-bottom:20px;text-align:center;">
+      <p style="margin:0 0 4px;font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Amount Paid</p>
+      <p style="margin:0;font-size:28px;font-weight:800;color:#10b981;">₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</p>
+      ${changeGiven > 0 ? `<p style="margin:8px 0 0;font-size:13px;color:#94a3b8;">Change Given: ₱${changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</p>` : ''}
+      ${remaining > 0 ? `<p style="margin:8px 0 0;font-size:13px;color:#f59e0b;">Remaining Balance: ₱${remaining.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</p>` : ''}
+    </div>
+
+    <p style="margin:0 0 20px;color:#94a3b8;font-size:13px;text-align:center;">Thank you for choosing InkVictus Tattoo Studio. Your invoice is available in your account notifications.</p>
+
+    <p style="margin:16px 0 0;padding:12px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:8px;font-size:12px;color:#f59e0b;text-align:center;">
+      📧 Please also check your Spam/Junk folder for invoices and booking status emails.
+    </p>
+  `;
+
+  const emailHtml = buildEmailHtml(contentHtml);
+  sendEmail(customerEmail, `Your InkVictus Receipt — ${invoiceData.id}`, emailHtml);
+  console.log(`📬 Receipt email queued for ${customerEmail} — ${invoiceData.id}`);
 }
 
 function createNotification(userId, title, message, type, relatedId = null) {
@@ -3673,32 +3717,38 @@ app.get('/api/admin/invoices', (req, res) => {
 // POST record an instant manual payment (Admin)
 app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
   const { id } = req.params;
-  const { amount, method } = req.body;
+  const { amount, method, cashTendered } = req.body;
 
   if (!amount || isNaN(amount) || amount <= 0) {
     return res.status(400).json({ success: false, message: 'Please enter a valid positive amount.' });
   }
 
-  // Fetch current balance to prevent overpayment
+  // Fetch current balance
   const checkQuery = `
-    SELECT price,
-    ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) as total_paid
-    FROM appointments ap WHERE id = ?
+    SELECT ap.price, ap.design_title, ap.customer_id, ap.artist_id, ap.status, ap.appointment_date,
+    ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) as total_paid,
+    u.name as client_name, u.email as cx_email
+    FROM appointments ap
+    JOIN users u ON ap.customer_id = u.id
+    WHERE ap.id = ?
   `;
 
   db.query(checkQuery, [id], (checkErr, results) => {
     if (checkErr || !results.length) return res.status(500).json({ success: false, message: 'Database error' });
 
-    const remaining = results[0].price - results[0].total_paid;
-    if (amount > remaining + 0.01) { // Adding small epsilon for float precision
-      return res.status(400).json({ success: false, message: `Amount exceeds remaining balance of ₱${remaining.toLocaleString()}` });
-    }
+    const apptData = results[0];
+    const remaining = Math.max(0, apptData.price - apptData.total_paid);
+    // Cap payment at remaining balance — excess is just change
+    const actualPayment = Math.min(parseFloat(amount), remaining);
+    const changeGiven = method === 'Cash' && cashTendered ? Math.max(0, parseFloat(cashTendered) - actualPayment) : 0;
 
-    const amountCentavos = Math.round(parseFloat(amount) * 100);
+    const amountCentavos = Math.round(actualPayment * 100);
     const paymentId = `MANUAL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const rawEvent = JSON.stringify({
       type: 'manual_adjustment',
       method: method || 'Cash',
+      cashTendered: cashTendered || null,
+      changeGiven: changeGiven,
       timestamp: new Date().toISOString()
     });
 
@@ -3720,30 +3770,62 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
         WHERE id = ?
       `;
         db.query(updateStatusQuery, [id, id], (upErr) => {
-          if (!upErr) {
-            db.query('SELECT ap.customer_id, ap.artist_id, ap.status, ap.appointment_date, u.email as cx_email FROM appointments ap JOIN users u ON ap.customer_id = u.id WHERE ap.id = ?', [id], (ce, cr) => {
-              if (!ce && cr.length) {
-                const updatedAppt = cr[0];
-                const isConfirmedNow = updatedAppt.status === 'confirmed';
+          // Generate auto-incrementing invoice number
+          db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invErr, invRes) => {
+            const nextNum = (invErr || !invRes[0]?.maxNum) ? 1 : invRes[0].maxNum + 1;
+            const invoiceNumber = `INV-${String(nextNum).padStart(6, '0')}`;
 
-                const customerMsg = `We have recorded a manual payment of ₱${parseFloat(amount).toLocaleString()} for your session #${id}. ${isConfirmedNow ? 'Your appointment is confirmed!' : ''}`;
-                createNotification(updatedAppt.customer_id, 'Payment Recorded', customerMsg.trim(), 'payment_success', id);
+            // Create invoice record
+            const invoiceQuery = `INSERT INTO invoices (invoice_number, customer_id, appointment_id, client_name, service_type, amount, payment_method, change_given, discount_amount, discount_type, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, 'Paid', NOW())`;
+            db.query(invoiceQuery, [invoiceNumber, apptData.customer_id, id, apptData.client_name, apptData.design_title || 'Session Payment', actualPayment, method || 'Cash', changeGiven], (invInsertErr, invInsertRes) => {
+              if (invInsertErr) console.error('⚠️ Invoice creation failed:', invInsertErr.message);
 
-                if (updatedAppt.artist_id && updatedAppt.artist_id !== 1 && isConfirmedNow) {
-                  const apptDate = new Date(updatedAppt.appointment_date || Date.now());
-                  const dateStr = !isNaN(apptDate) ? apptDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the scheduled date';
-                  createNotification(updatedAppt.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr}.`, 'appointment_confirmed', id);
-                }
+              // Send notification and email
+              const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
+              createNotification(apptData.customer_id, 'Payment Received', customerMsg, 'payment_success', invInsertRes?.insertId || id);
 
-                sendReceiptEmail(updatedAppt.cx_email, { id: paymentId, amount, method });
+              const isConfirmedNow = apptData.status === 'confirmed' || apptData.status === 'pending';
+              if (apptData.artist_id && apptData.artist_id !== 1 && isConfirmedNow) {
+                const apptDate = new Date(apptData.appointment_date || Date.now());
+                const dateStr = !isNaN(apptDate) ? apptDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the scheduled date';
+                createNotification(apptData.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr}.`, 'appointment_confirmed', id);
               }
+
+              sendReceiptEmail(apptData.cx_email, {
+                id: invoiceNumber,
+                amount: actualPayment,
+                method: method || 'Cash',
+                clientName: apptData.client_name,
+                designTitle: apptData.design_title,
+                changeGiven: changeGiven,
+                remaining: Math.max(0, remaining - actualPayment)
+              });
+
+              res.json({
+                success: true,
+                message: 'Payment recorded successfully',
+                invoice: {
+                  invoiceNumber,
+                  invoiceId: invInsertRes?.insertId,
+                  clientName: apptData.client_name,
+                  designTitle: apptData.design_title || 'Session Payment',
+                  amountPaid: actualPayment,
+                  paymentMethod: method || 'Cash',
+                  cashTendered: cashTendered ? parseFloat(cashTendered) : actualPayment,
+                  changeGiven,
+                  totalQuoted: apptData.price,
+                  totalPaid: apptData.total_paid + actualPayment,
+                  remainingBalance: Math.max(0, remaining - actualPayment),
+                  date: new Date().toISOString()
+                }
+              });
             });
-          }
-          res.json({ success: true, message: 'Payment recorded successfully' });
+          });
         });
       });
   });
 });
+
 
 // DELETE (soft) an appointment (Admin)
 app.delete('/api/admin/appointments/:id', (req, res) => {
@@ -5817,6 +5899,16 @@ app.get('/api/manager/dashboard', (req, res) => {
   db.query(query, (err, results) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     res.json({ success: true, stats: results[0] });
+  });
+});
+
+// GET invoice by invoice_number (for customer view)
+app.get('/api/invoices/by-number/:invoiceNumber', (req, res) => {
+  const { invoiceNumber } = req.params;
+  db.query('SELECT * FROM invoices WHERE invoice_number = ?', [invoiceNumber], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    if (!results.length) return res.status(404).json({ success: false, message: 'Invoice not found' });
+    res.json({ success: true, data: results[0] });
   });
 });
 

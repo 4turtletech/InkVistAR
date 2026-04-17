@@ -396,9 +396,19 @@ function CustomerNotifications() {
                         <div className="customer-st-23aef110" >
                             <span className="customer-st-97b91651" >Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
                             <div className="notif-actions customer-st-7cead41b" >
-                                {selectedNotification.related_id && selectedNotification.type !== 'pos_invoice' && selectedNotification.type !== 'review_prompt' && selectedNotification.type !== 'aftercare_reminder' && selectedNotification.type !== 'email_change' && selectedNotification.type !== 'password_change' && (
+                                {selectedNotification.related_id && selectedNotification.type !== 'pos_invoice' && selectedNotification.type !== 'review_prompt' && selectedNotification.type !== 'aftercare_reminder' && selectedNotification.type !== 'email_change' && selectedNotification.type !== 'password_change' && selectedNotification.type !== 'payment_success' && (
                                     <a className="notif-btn primary customer-st-be17fc86" href={`/customer/bookings?appointment=${selectedNotification.related_id}`} >Take Action</a>
                                 )}
+                                {selectedNotification.type === 'payment_success' && (() => {
+                                    // Extract invoice number from message (e.g., "Invoice INV-000001 is now available")
+                                    const invoiceMatch = selectedNotification.message?.match(/INV-\d+/);
+                                    const invoiceNum = invoiceMatch ? invoiceMatch[0] : null;
+                                    return invoiceNum ? (
+                                        <button className="notif-btn primary customer-st-be17fc86" onClick={() => window.open(`/customer/invoice/${invoiceNum}`, '_blank')}>View Invoice</button>
+                                    ) : (
+                                        <a className="notif-btn primary customer-st-be17fc86" href={`/customer/bookings?appointment=${selectedNotification.related_id}`}>View Booking</a>
+                                    );
+                                })()}
                                 {selectedNotification.type === 'pos_invoice' && <a className="notif-btn primary customer-st-be17fc86" href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" >View Invoice</a>}
                                 {(selectedNotification.type === 'email_change' || selectedNotification.type === 'password_change') && <button className="notif-btn primary" onClick={() => navigate('/customer/profile')}>Manage Profile</button>}
                                 {selectedNotification.type === 'aftercare_reminder' && <button className="notif-btn primary customer-st-b55afb9c" onClick={() => { setSelectedNotification(null); setIsAftercareModalOpen(true); }} >View Guide</button>}
