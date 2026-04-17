@@ -1,5 +1,6 @@
 import './CustomerStyles.css';
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import { User, Mail, Phone, MapPin, Save, Edit2, X, FileText, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Camera } from 'lucide-react';
 import './PortalStyles.css';
@@ -72,6 +73,14 @@ function CustomerProfile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const navigate = useNavigate();
+
+    // Email change state
+    const [showChangeEmail, setShowChangeEmail] = useState(false);
+    const [newEmail, setNewEmail] = useState('');
+    const [emailOtp, setEmailOtp] = useState('');
+    const [emailOtpSent, setEmailOtpSent] = useState(false);
+    const [emailChanging, setEmailChanging] = useState(false);
 
     useEffect(() => {
         const fetch = async () => {
@@ -152,11 +161,20 @@ function CustomerProfile() {
 
             // Change password if requested and new password is provided
             if (showChangePassword && passwords.newPassword) {
-                await Axios.post(`${API_URL}/api/customer/change-password`, {
+                const pwRes = await Axios.post(`${API_URL}/api/customer/change-password`, {
                     customerId,
                     currentPassword: passwords.currentPassword,
                     newPassword: passwords.newPassword
                 });
+
+                // If backend requires re-verification, force logout
+                if (pwRes.data.requireReverification) {
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('token');
+                    alert('Password changed successfully! A verification email has been sent. Please verify your email to log in again.');
+                    window.location.href = '/login';
+                    return;
+                }
             }
 
             // Update localStorage with new profile image
@@ -299,6 +317,102 @@ function CustomerProfile() {
                                             <div className="form-group">
                                                 <label style={formLabel}><Mail size={16} /> Email</label>
                                                 <input className="form-input customer-st-59f58c25" type="email" value={profile.email} disabled />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setShowChangeEmail(!showChangeEmail); setEmailOtpSent(false); setNewEmail(''); setEmailOtp(''); }}
+                                                    style={{
+                                                        fontSize: '0.75rem', color: '#daa520', background: 'none', border: 'none',
+                                                        cursor: 'pointer', padding: '4px 0', fontWeight: '600', textAlign: 'left'
+                                                    }}
+                                                >
+                                                    {showChangeEmail ? 'Cancel Email Change' : 'Change Email Address'}
+                                                </button>
+
+                                                {showChangeEmail && (
+                                                    <div style={{ marginTop: '10px', padding: '16px', backgroundColor: '#fffbeb', borderRadius: '8px', border: '1px solid #fbbf24' }}>
+                                                        {!emailOtpSent ? (
+                                                            <>
+                                                                <div className="form-group" style={{ marginBottom: '10px' }}>
+                                                                    <label style={{ ...formLabel, fontSize: '0.8rem' }}><Mail size={14} /> New Email Address</label>
+                                                                    <input
+                                                                        type="email"
+                                                                        className="form-input"
+                                                                        value={newEmail}
+                                                                        onChange={e => setNewEmail(e.target.value)}
+                                                                        placeholder="Enter new email address"
+                                                                        style={inputStyle}
+                                                                    />
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={emailChanging || !newEmail}
+                                                                    onClick={async () => {
+                                                                        setEmailChanging(true);
+                                                                        try {
+                                                                            const res = await Axios.post(`${API_URL}/api/request-email-change`, { userId: customerId, newEmail });
+                                                                            if (res.data.success) {
+                                                                                setEmailOtpSent(true);
+                                                                                setMessage({ type: 'success', text: 'An authorization code has been sent to your current email address.' });
+                                                                            }
+                                                                        } catch (err) {
+                                                                            setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to request email change' });
+                                                                        }
+                                                                        setEmailChanging(false);
+                                                                    }}
+                                                                    style={{
+                                                                        width: '100%', padding: '10px', backgroundColor: '#daa520', color: 'white',
+                                                                        border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
+                                                                    }}
+                                                                >
+                                                                    {emailChanging ? 'Sending...' : 'Send Authorization Code'}
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <p style={{ fontSize: '0.8rem', color: '#92400e', marginBottom: '10px', fontWeight: '500' }}>
+                                                                    A 6-digit code was sent to <strong>{profile.email}</strong>. Enter it below to confirm the change.
+                                                                </p>
+                                                                <div className="form-group" style={{ marginBottom: '10px' }}>
+                                                                    <input
+                                                                        type="text"
+                                                                        className="form-input"
+                                                                        value={emailOtp}
+                                                                        onChange={e => setEmailOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                                                                        placeholder="Enter 6-digit code"
+                                                                        maxLength={6}
+                                                                        style={{ ...inputStyle, letterSpacing: '6px', textAlign: 'center', fontSize: '1.2rem', fontWeight: '700' }}
+                                                                    />
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={emailChanging || emailOtp.length !== 6}
+                                                                    onClick={async () => {
+                                                                        setEmailChanging(true);
+                                                                        try {
+                                                                            const res = await Axios.post(`${API_URL}/api/confirm-email-change`, { userId: customerId, otp: emailOtp, newEmail });
+                                                                            if (res.data.requireReverification) {
+                                                                                localStorage.removeItem('user');
+                                                                                localStorage.removeItem('token');
+                                                                                alert('Email changed successfully! A verification link has been sent to your new email. Please verify to log in again.');
+                                                                                window.location.href = '/login';
+                                                                                return;
+                                                                            }
+                                                                        } catch (err) {
+                                                                            setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to confirm email change' });
+                                                                        }
+                                                                        setEmailChanging(false);
+                                                                    }}
+                                                                    style={{
+                                                                        width: '100%', padding: '10px', backgroundColor: '#059669', color: 'white',
+                                                                        border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
+                                                                    }}
+                                                                >
+                                                                    {emailChanging ? 'Confirming...' : 'Confirm Email Change'}
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="form-group">
                                                 <label style={formLabel}><Phone size={16} /> Phone</label>

@@ -1536,16 +1536,35 @@ app.post('/api/customer/change-password', async (req, res) => {
       return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password' });
     }
 
-    // Hash and update
+    // Hash and update — also revoke verification
     const password_hash = await bcrypt.hash(newPassword, 10);
+    const verification_token = crypto.randomBytes(32).toString('hex');
 
-    db.query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, customerId], (updateErr) => {
+    db.query('UPDATE users SET password_hash = ?, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, customerId], (updateErr) => {
       if (updateErr) {
         console.error('❌ Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
       }
-      logAction(customerId, 'PASSWORD_CHANGED', 'Customer changed their password', req.ip || '::1');
-      res.json({ success: true, message: 'Password changed successfully' });
+      logAction(customerId, 'PASSWORD_CHANGED', 'Customer changed their password — re-verification required', req.ip || '::1');
+
+      // Send re-verification email
+      const protocol = getProtocol(req);
+      const host = req.get('host');
+      const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${user.email}`;
+      console.log('🔑 [DEBUG] Re-verification Link:', verifyUrl);
+
+      const html = `
+        <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
+            <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
+            <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Password Changed — Please Re-verify</h2>
+            <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.6;">Your password was successfully updated. For your security, please verify your email address again to re-activate your account.</p>
+            <a href="${verifyUrl}" style="background: linear-gradient(135deg, #C19A6B, #8a6c4a); color: #000000; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(193, 154, 107, 0.2);">Verify Email Address</a>
+            <p style="margin-top: 30px; font-size: 14px; color: #888;">Or copy and paste this link into your browser:<br/><a href="${verifyUrl}" style="color: #C19A6B; text-decoration: none; word-break: break-all;">${verifyUrl}</a></p>
+        </div>
+      `;
+      sendEmail(user.email, 'InkVistAR: Re-verify Your Account', html);
+
+      res.json({ success: true, message: 'Password changed. Please check your email to re-verify your account.', requireReverification: true });
     });
   });
 });
@@ -1588,16 +1607,159 @@ app.post('/api/artist/change-password', async (req, res) => {
       return res.status(400).json({ success: false, message: 'New password cannot be the same as the old password' });
     }
 
-    // Hash and update
+    // Hash and update — also revoke verification
     const password_hash = await bcrypt.hash(newPassword, 10);
+    const verification_token = crypto.randomBytes(32).toString('hex');
 
-    db.query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, artistId], (updateErr) => {
+    db.query('UPDATE users SET password_hash = ?, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, artistId], (updateErr) => {
       if (updateErr) {
         console.error('❌ Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
       }
-      logAction(artistId, 'PASSWORD_CHANGED', 'Artist changed their password', req.ip || '::1');
-      res.json({ success: true, message: 'Password changed successfully' });
+      logAction(artistId, 'PASSWORD_CHANGED', 'Artist changed their password — re-verification required', req.ip || '::1');
+
+      // Send re-verification email
+      const protocol = getProtocol(req);
+      const host = req.get('host');
+      const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${user.email}`;
+      console.log('🔑 [DEBUG] Re-verification Link:', verifyUrl);
+
+      const html = `
+        <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
+            <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
+            <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Password Changed — Please Re-verify</h2>
+            <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.6;">Your password was successfully updated. For your security, please verify your email address again to re-activate your account.</p>
+            <a href="${verifyUrl}" style="background: linear-gradient(135deg, #C19A6B, #8a6c4a); color: #000000; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(193, 154, 107, 0.2);">Verify Email Address</a>
+            <p style="margin-top: 30px; font-size: 14px; color: #888;">Or copy and paste this link into your browser:<br/><a href="${verifyUrl}" style="color: #C19A6B; text-decoration: none; word-break: break-all;">${verifyUrl}</a></p>
+        </div>
+      `;
+      sendEmail(user.email, 'InkVistAR: Re-verify Your Account', html);
+
+      res.json({ success: true, message: 'Password changed. Please check your email to re-verify your account.', requireReverification: true });
+    });
+  });
+});
+
+// ========== REQUEST EMAIL CHANGE (sends OTP to current email) ==========
+app.post('/api/request-email-change', (req, res) => {
+  const { userId, newEmail } = req.body;
+  console.log('📧 Email change requested for user ID:', userId, '→', newEmail);
+
+  if (!userId || !newEmail) {
+    return res.status(400).json({ success: false, message: 'User ID and new email are required' });
+  }
+
+  // Check if new email is already taken
+  db.query('SELECT id FROM users WHERE email = ? AND id != ?', [newEmail, userId], (checkErr, existing) => {
+    if (checkErr) return res.status(500).json({ success: false, message: 'Database error' });
+    if (existing.length > 0) {
+      return res.status(400).json({ success: false, message: 'That email address is already in use by another account' });
+    }
+
+    // Find the user
+    db.query('SELECT * FROM users WHERE id = ?', [userId], (err, results) => {
+      if (err || !results.length) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      const user = results[0];
+      // Generate 6-digit OTP + 5min expiry
+      const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
+      const otp_expires = new Date(Date.now() + 5 * 60 * 1000);
+
+      db.query(
+        'UPDATE users SET otp_code = ?, otp_expires = ? WHERE id = ?',
+        [otp_code, otp_expires, userId],
+        (updateErr) => {
+          if (updateErr) return res.status(500).json({ success: false, message: 'Failed to generate OTP' });
+
+          console.log('🔑 [DEBUG] Email Change OTP for', user.email, ':', otp_code);
+
+          // Send OTP to the CURRENT email
+          const html = `
+            <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
+                <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
+                <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Email Change Authorization</h2>
+                <p style="font-size: 16px; margin-bottom: 10px; line-height: 1.6;">A request to change your email address was received. Use the code below to authorize this change:</p>
+                <p style="font-size: 42px; font-weight: bold; letter-spacing: 10px; color: #C19A6B; margin: 30px 0;">${otp_code}</p>
+                <p style="font-size: 14px; color: #888;">This code expires in <strong>5 minutes</strong>. If you did not request this change, please ignore this email and secure your account.</p>
+            </div>
+          `;
+          sendEmail(user.email, 'InkVistAR: Email Change Authorization Code', html);
+
+          res.json({ success: true, message: 'Authorization code sent to your current email address.' });
+        }
+      );
+    });
+  });
+});
+
+// ========== CONFIRM EMAIL CHANGE (verify OTP, update email, force re-verification) ==========
+app.post('/api/confirm-email-change', (req, res) => {
+  const { userId, otp, newEmail } = req.body;
+  console.log('📧 Confirming email change for user ID:', userId, '→', newEmail);
+
+  if (!userId || !otp || !newEmail) {
+    return res.status(400).json({ success: false, message: 'User ID, OTP, and new email are required' });
+  }
+
+  db.query('SELECT * FROM users WHERE id = ?', [userId], (err, results) => {
+    if (err || !results.length) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const user = results[0];
+
+    // Validate OTP
+    if (user.otp_code !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid authorization code' });
+    }
+
+    if (new Date() > new Date(user.otp_expires)) {
+      return res.status(400).json({ success: false, message: 'Authorization code has expired. Please request a new one.' });
+    }
+
+    // Check if new email is still available
+    db.query('SELECT id FROM users WHERE email = ? AND id != ?', [newEmail, userId], (checkErr, existing) => {
+      if (checkErr) return res.status(500).json({ success: false, message: 'Database error' });
+      if (existing.length > 0) {
+        return res.status(400).json({ success: false, message: 'That email address is already in use' });
+      }
+
+      // Generate new verification token for the new email
+      const verification_token = crypto.randomBytes(32).toString('hex');
+
+      db.query(
+        'UPDATE users SET email = ?, is_verified = 0, verification_token = ?, otp_code = NULL, otp_expires = NULL WHERE id = ?',
+        [newEmail, verification_token, userId],
+        (updateErr) => {
+          if (updateErr) {
+            console.error('❌ Error updating email:', updateErr);
+            return res.status(500).json({ success: false, message: 'Failed to update email' });
+          }
+
+          logAction(userId, 'EMAIL_CHANGED', `Email changed from ${user.email} to ${newEmail} — re-verification required`, req.ip || '::1');
+
+          // Send verification email to the NEW address
+          const protocol = getProtocol(req);
+          const host = req.get('host');
+          const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${newEmail}`;
+          console.log('🔑 [DEBUG] New Email Verification Link:', verifyUrl);
+
+          const html = `
+            <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
+                <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
+                <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Verify Your New Email Address</h2>
+                <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.6;">Your email address has been updated. Please verify this new address to re-activate your account.</p>
+                <a href="${verifyUrl}" style="background: linear-gradient(135deg, #C19A6B, #8a6c4a); color: #000000; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(193, 154, 107, 0.2);">Verify New Email</a>
+                <p style="margin-top: 30px; font-size: 14px; color: #888;">Or copy and paste this link into your browser:<br/><a href="${verifyUrl}" style="color: #C19A6B; text-decoration: none; word-break: break-all;">${verifyUrl}</a></p>
+            </div>
+          `;
+          sendEmail(newEmail, 'InkVistAR: Verify Your New Email Address', html);
+
+          res.json({ success: true, message: 'Email updated! Please check your new email to verify and re-activate your account.', requireReverification: true });
+        }
+      );
     });
   });
 });

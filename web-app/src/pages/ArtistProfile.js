@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import {
     User, Mail, Palette, Save, Lock, DollarSign, Clock, Camera,
@@ -76,6 +77,14 @@ function ArtistProfile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const navigate = useNavigate();
+
+    // Email change state
+    const [showChangeEmail, setShowChangeEmail] = useState(false);
+    const [newEmail, setNewEmail] = useState('');
+    const [emailOtp, setEmailOtp] = useState('');
+    const [emailOtpSent, setEmailOtpSent] = useState(false);
+    const [emailChanging, setEmailChanging] = useState(false);
 
     // Get the real logged-in user ID
     const [user] = useState(() => {
@@ -184,11 +193,20 @@ function ArtistProfile() {
 
             // Change password if requested
             if (showChangePassword && passwords.newPassword) {
-                await Axios.post(`${API_URL}/api/artist/change-password`, {
+                const pwRes = await Axios.post(`${API_URL}/api/artist/change-password`, {
                     artistId,
                     currentPassword: passwords.currentPassword,
                     newPassword: passwords.newPassword
                 });
+
+                // If backend requires re-verification, force logout
+                if (pwRes.data.requireReverification) {
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('token');
+                    alert('Password changed successfully! A verification email has been sent. Please verify your email to log in again.');
+                    window.location.href = '/login';
+                    return;
+                }
             }
 
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
@@ -363,7 +381,101 @@ function ArtistProfile() {
                                                 disabled
                                                 style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}
                                             />
-                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Contact support to change</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setShowChangeEmail(!showChangeEmail); setEmailOtpSent(false); setNewEmail(''); setEmailOtp(''); }}
+                                                style={{
+                                                    fontSize: '0.75rem', color: '#daa520', background: 'none', border: 'none',
+                                                    cursor: 'pointer', padding: '4px 0', fontWeight: '600', textAlign: 'left'
+                                                }}
+                                            >
+                                                {showChangeEmail ? 'Cancel Email Change' : 'Change Email Address'}
+                                            </button>
+
+                                            {showChangeEmail && (
+                                                <div style={{ marginTop: '10px', padding: '16px', backgroundColor: '#fffbeb', borderRadius: '8px', border: '1px solid #fbbf24' }}>
+                                                    {!emailOtpSent ? (
+                                                        <>
+                                                            <div className="form-group" style={{ marginBottom: '10px' }}>
+                                                                <label className="artist-profile-form-label" style={{ fontSize: '0.8rem' }}><Mail size={14} /> New Email Address</label>
+                                                                <input
+                                                                    type="email"
+                                                                    className="form-input artist-profile-input"
+                                                                    value={newEmail}
+                                                                    onChange={e => setNewEmail(e.target.value)}
+                                                                    placeholder="Enter new email address"
+                                                                />
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                disabled={emailChanging || !newEmail}
+                                                                onClick={async () => {
+                                                                    setEmailChanging(true);
+                                                                    try {
+                                                                        const res = await Axios.post(`${API_URL}/api/request-email-change`, { userId: artistId, newEmail });
+                                                                        if (res.data.success) {
+                                                                            setEmailOtpSent(true);
+                                                                            setMessage({ type: 'success', text: 'An authorization code has been sent to your current email address.' });
+                                                                        }
+                                                                    } catch (err) {
+                                                                        setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to request email change' });
+                                                                    }
+                                                                    setEmailChanging(false);
+                                                                }}
+                                                                style={{
+                                                                    width: '100%', padding: '10px', backgroundColor: '#daa520', color: 'white',
+                                                                    border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
+                                                                }}
+                                                            >
+                                                                {emailChanging ? 'Sending...' : 'Send Authorization Code'}
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <p style={{ fontSize: '0.8rem', color: '#92400e', marginBottom: '10px', fontWeight: '500' }}>
+                                                                A 6-digit code was sent to <strong>{profile.email}</strong>. Enter it below to confirm the change.
+                                                            </p>
+                                                            <div className="form-group" style={{ marginBottom: '10px' }}>
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-input artist-profile-input"
+                                                                    value={emailOtp}
+                                                                    onChange={e => setEmailOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                                                                    placeholder="Enter 6-digit code"
+                                                                    maxLength={6}
+                                                                    style={{ letterSpacing: '6px', textAlign: 'center', fontSize: '1.2rem', fontWeight: '700' }}
+                                                                />
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                disabled={emailChanging || emailOtp.length !== 6}
+                                                                onClick={async () => {
+                                                                    setEmailChanging(true);
+                                                                    try {
+                                                                        const res = await Axios.post(`${API_URL}/api/confirm-email-change`, { userId: artistId, otp: emailOtp, newEmail });
+                                                                        if (res.data.requireReverification) {
+                                                                            localStorage.removeItem('user');
+                                                                            localStorage.removeItem('token');
+                                                                            alert('Email changed successfully! A verification link has been sent to your new email. Please verify to log in again.');
+                                                                            window.location.href = '/login';
+                                                                            return;
+                                                                        }
+                                                                    } catch (err) {
+                                                                        setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to confirm email change' });
+                                                                    }
+                                                                    setEmailChanging(false);
+                                                                }}
+                                                                style={{
+                                                                    width: '100%', padding: '10px', backgroundColor: '#059669', color: 'white',
+                                                                    border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
+                                                                }}
+                                                            >
+                                                                {emailChanging ? 'Confirming...' : 'Confirm Email Change'}
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="form-group">
                                             <label className="artist-profile-form-label"><Phone size={16} /> Phone Number</label>
