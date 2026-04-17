@@ -1892,11 +1892,14 @@ app.post('/api/register', async (req, res) => {
         console.log('🔑 [DEBUG] Verification Link:', verifyUrl);
 
         const html = `
-          <h2>Welcome to InkVistAR, ${fullName}!</h2>
-          <p>Your account is almost ready. Please verify your email:</p>
-          <a href="${verifyUrl}" style="background: #daa520; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold">Verify Email Address</a>
-          <p>Or copy-paste: ${verifyUrl}</p>
-          <p>This link expires in 24 hours.</p>
+          <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
+              <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
+              <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Welcome to InkVistAR, ${fullName}!</h2>
+              <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.6;">Your creative journey is almost ready to begin. Please verify your email address to activate your account.</p>
+              <a href="${verifyUrl}" style="background: linear-gradient(135deg, #C19A6B, #8a6c4a); color: #000000; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(193, 154, 107, 0.2);">Verify Email Address</a>
+              <p style="margin-top: 30px; font-size: 14px; color: #888;">Or copy and paste this link into your browser:<br/><a href="${verifyUrl}" style="color: #C19A6B; text-decoration: none; word-break: break-all;">${verifyUrl}</a></p>
+              <p style="font-size: 12px; color: #666; margin-top: 20px;">This link will expire in 24 hours.</p>
+          </div>
         `;
         sendEmail(email, 'Verify Your InkVistAR Account', html);
 
@@ -5600,7 +5603,15 @@ app.post('/api/resend-verification', (req, res) => {
 
       console.log('🔑 [DEBUG] NEW Verification Link:', verifyUrl);
 
-      const html = `<h2>Verify your email</h2><p>Click here: <a href="${verifyUrl}">Verify Account</a></p>`;
+      const html = `
+        <div style="background-color: #050505; padding: 40px 20px; font-family: 'Playfair Display', serif, sans-serif; color: #f8FAFC; text-align: center; border: 1px solid rgba(193, 154, 107, 0.25); border-radius: 12px; max-width: 600px; margin: 0 auto;">
+            <img src="${FRONTEND_URL}/images/logo.png" alt="InkVistAR Logo" style="width: 80px; height: auto; margin-bottom: 20px; display: inline-block;" />
+            <h2 style="color: #C19A6B; font-size: 28px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px;">Verify Your InkVistAR Account</h2>
+            <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.6;">A request to resend your verification link was received. Please click below to verify your email.</p>
+            <a href="${verifyUrl}" style="background: linear-gradient(135deg, #C19A6B, #8a6c4a); color: #000000; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 16px; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(193, 154, 107, 0.2);">Verify Account</a>
+            <p style="margin-top: 30px; font-size: 14px; color: #888;">Or copy and paste this link into your browser:<br/><a href="${verifyUrl}" style="color: #C19A6B; text-decoration: none; word-break: break-all;">${verifyUrl}</a></p>
+        </div>
+      `;
       sendEmail(email, 'Resend: Verify Your InkVistAR Account', html);
 
       res.json({ success: true, message: 'Verification link resent! Check your email. (Debug: Check console for link if email fails)' });
