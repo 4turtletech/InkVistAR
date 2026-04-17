@@ -5987,7 +5987,12 @@ app.get('/api/admin/analytics', (req, res) => {
 
                               db.query(usersAuditQuery, (err, usersAudit) => {
                                 if (!err) response.users_audit = usersAudit;
-                                res.json({ success: true, data: response });
+                                
+                                // Attach overhead/manual expenses audit log to payload
+                                db.query('SELECT se.*, COALESCE(u.name, "System Admin") as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC LIMIT 50', (err, overheadAudit) => {
+                                  if (!err) response.overhead.audit = overheadAudit;
+                                  res.json({ success: true, data: response });
+                                });
                               });
                             });
                           });
@@ -6007,7 +6012,7 @@ app.get('/api/admin/analytics', (req, res) => {
 
 // Admin: Get All Studio Expenses (for audit modal)
 app.get('/api/admin/expenses', (req, res) => {
-  db.query('SELECT se.*, u.name as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC', (err, results) => {
+  db.query('SELECT se.*, COALESCE(u.name, "System Admin") as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC', (err, results) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     res.json({ success: true, data: results });
   });
@@ -6020,6 +6025,7 @@ app.post('/api/admin/expenses', (req, res) => {
   db.query('INSERT INTO studio_expenses (category, description, amount, created_by, created_at) VALUES (?, ?, ?, ?, NOW())', 
     [category, description || '', parseFloat(amount), userId || null], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
+    logAction(userId || null, 'CREATE_MANUAL_EXPENSE', `Logged manual expense: ${category} - ₱${amount}`, req.ip);
     res.json({ success: true, message: 'Expense recorded', id: result.insertId });
   });
 });
@@ -6028,6 +6034,7 @@ app.post('/api/admin/expenses', (req, res) => {
 app.delete('/api/admin/expenses/:id', (req, res) => {
   db.query('DELETE FROM studio_expenses WHERE id = ?', [req.params.id], (err) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
+    logAction(null, 'DELETE_MANUAL_EXPENSE', `Deleted manual expense ID ${req.params.id}`, req.ip);
     res.json({ success: true, message: 'Expense deleted' });
   });
 });

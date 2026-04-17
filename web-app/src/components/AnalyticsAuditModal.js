@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, BarChart3, Plus, Trash2, Search, ChevronLeft, ChevronRight, FileText, PieChart as PieChartIcon } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
@@ -36,6 +36,15 @@ function AnalyticsAuditModal({
     const [auditPage, setAuditPage] = useState(1);
     const [modalTab, setModalTab] = useState('summary');
 
+    // Automatically reset tab to summary whenever the modal is opened
+    useEffect(() => {
+        if (auditModal?.open) {
+            setModalTab('summary');
+            setAuditSearch('');
+            setAuditPage(1);
+        }
+    }, [auditModal?.open]);
+
     if (!auditModal.open || !auditModal.data) return null;
 
     const textPrimary = darkMode ? '#f1f5f9' : '#1e293b';
@@ -43,7 +52,6 @@ function AnalyticsAuditModal({
     const textMuted = darkMode ? '#64748b' : '#94a3b8';
     const brandColor = darkMode ? '#e2e8f0' : '#1e293b';
 
-    // ═══ Determine which audit log to show based on type ═══
     const getAuditLog = () => {
         switch (auditModal.type) {
             case 'revenue': return analytics?.revenue_audit || [];
@@ -53,6 +61,7 @@ function AnalyticsAuditModal({
             case 'inventory': return analytics?.inventory_out_audit || [];
             case 'artists': return []; // handled separately
             case 'users': return analytics?.users_audit || [];
+            case 'overhead': return analytics?.overhead?.audit || [];
             default: return [];
         }
     };
@@ -74,7 +83,7 @@ function AnalyticsAuditModal({
 
     // ═══ Render audit table columns based on type ═══
     const renderAuditTable = () => {
-        if (auditModal.type === 'expenses' || auditModal.type === 'overhead' || auditModal.type === 'artists') return null;
+        if (auditModal.type === 'expenses' || auditModal.type === 'artists') return null;
         if (auditLog.length === 0) return null;
 
         return (
@@ -100,6 +109,7 @@ function AnalyticsAuditModal({
                                 {auditModal.type === 'appointments' && <><th>Date</th><th>Client</th><th>Artist</th><th>Service</th><th>Status</th><th style={{ textAlign: 'right' }}>Paid</th></>}
                                 {(auditModal.type === 'completion' || auditModal.type === 'duration') && <><th>Date</th><th>Client</th><th>Artist</th><th>Status</th><th style={{ textAlign: 'right' }}>Paid</th></>}
                                 {auditModal.type === 'inventory' && <><th>Date</th><th>Item</th><th>Category</th><th>Qty</th><th>Reason</th><th>Action By</th><th style={{ textAlign: 'right' }}>Cost</th></>}
+                                {auditModal.type === 'overhead' && <><th>Date</th><th>Category</th><th>Description</th><th>Action By</th><th style={{ textAlign: 'right' }}>Amount</th></>}
                                 {auditModal.type === 'users' && <><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Verified</th></>}
                             </tr>
                         </thead>
@@ -135,6 +145,13 @@ function AnalyticsAuditModal({
                                         <td>{row.reason || '—'}</td>
                                         <td>{row.action_by || 'System'}</td>
                                         <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(row.total_cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
+                                    </>}
+                                    {auditModal.type === 'overhead' && <>
+                                        <td>{new Date(row.created_at).toLocaleDateString()}</td>
+                                        <td style={{ fontWeight: 600 }}>{row.category}</td>
+                                        <td>{row.description || '—'}</td>
+                                        <td>{row.created_by_name || 'System Admin'}</td>
+                                        <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(row.amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
                                     </>}
                                     {auditModal.type === 'users' && <>
                                         <td style={{ fontWeight: 600 }}>{row.name}</td>
@@ -181,7 +198,7 @@ function AnalyticsAuditModal({
                         <button type="button" onClick={() => setModalTab('summary')} className={`modal-tab-btn ${modalTab === 'summary' ? 'active' : ''}`}>
                             <PieChartIcon size={14} /> Analytics Overview
                         </button>
-                        {(auditModal.type !== 'expenses' && auditModal.type !== 'overhead' && auditModal.type !== 'artists') && (
+                        {(auditModal.type !== 'expenses' && auditModal.type !== 'artists') && (
                             <button type="button" onClick={() => setModalTab('logs')} className={`modal-tab-btn ${modalTab === 'logs' ? 'active' : ''}`}>
                                 <FileText size={14} /> Transaction Log
                             </button>
