@@ -76,11 +76,7 @@ function CustomerProfile() {
     const navigate = useNavigate();
 
     // Email change state
-    const [showChangeEmail, setShowChangeEmail] = useState(false);
-    const [newEmail, setNewEmail] = useState('');
-    const [emailOtp, setEmailOtp] = useState('');
-    const [emailOtpSent, setEmailOtpSent] = useState(false);
-    const [emailChanging, setEmailChanging] = useState(false);
+    const [emailModal, setEmailModal] = useState({ open: false, step: 'enterEmail', newEmail: '', emailError: '', otp: '', otpError: '', sending: false, confirming: false });
 
     // Success modal state (replaces alert)
     const [successModal, setSuccessModal] = useState({ mounted: false, visible: false, message: '' });
@@ -320,103 +316,27 @@ function CustomerProfile() {
                                                 </div>
                                                 <div className="form-group">
                                                     <label style={formLabel}><Mail size={16} /> Email</label>
-                                                    <input className="form-input customer-st-59f58c25" type="email" value={profile.email} disabled />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => { setShowChangeEmail(!showChangeEmail); setEmailOtpSent(false); setNewEmail(''); setEmailOtp(''); }}
-                                                        style={{
-                                                            fontSize: '0.75rem', color: '#daa520', background: 'none', border: 'none',
-                                                            cursor: 'pointer', padding: '4px 0', fontWeight: '600', textAlign: 'left'
-                                                        }}
-                                                    >
-                                                        {showChangeEmail ? 'Cancel Email Change' : 'Change Email Address'}
-                                                    </button>
-
-                                                    {showChangeEmail && (
-                                                        <div style={{ marginTop: '10px', padding: '16px', backgroundColor: '#fffbeb', borderRadius: '8px', border: '1px solid #fbbf24' }}>
-                                                            {!emailOtpSent ? (
-                                                                <>
-                                                                    <div className="form-group" style={{ marginBottom: '10px' }}>
-                                                                        <label style={{ ...formLabel, fontSize: '0.8rem' }}><Mail size={14} /> New Email Address</label>
-                                                                        <input
-                                                                            type="email"
-                                                                            className="form-input"
-                                                                            value={newEmail}
-                                                                            onChange={e => setNewEmail(e.target.value)}
-                                                                            placeholder="Enter new email address"
-                                                                            style={inputStyle}
-                                                                        />
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        disabled={emailChanging || !newEmail}
-                                                                        onClick={async () => {
-                                                                            setEmailChanging(true);
-                                                                            try {
-                                                                                const res = await Axios.post(`${API_URL}/api/request-email-change`, { userId: customerId, newEmail });
-                                                                                if (res.data.success) {
-                                                                                    setEmailOtpSent(true);
-                                                                                    setMessage({ type: 'success', text: 'An authorization code has been sent to your current email address.' });
-                                                                                }
-                                                                            } catch (err) {
-                                                                                setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to request email change' });
-                                                                            }
-                                                                            setEmailChanging(false);
-                                                                        }}
-                                                                        style={{
-                                                                            width: '100%', padding: '10px', backgroundColor: '#daa520', color: 'white',
-                                                                            border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
-                                                                        }}
-                                                                    >
-                                                                        {emailChanging ? 'Sending...' : 'Send Authorization Code'}
-                                                                    </button>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <p style={{ fontSize: '0.8rem', color: '#92400e', marginBottom: '10px', fontWeight: '500' }}>
-                                                                        A 6-digit code was sent to <strong>{profile.email}</strong>. Enter it below to confirm the change.
-                                                                    </p>
-                                                                    <div className="form-group" style={{ marginBottom: '10px' }}>
-                                                                        <input
-                                                                            type="text"
-                                                                            className="form-input"
-                                                                            value={emailOtp}
-                                                                            onChange={e => setEmailOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                                                                            placeholder="Enter 6-digit code"
-                                                                            maxLength={6}
-                                                                            style={{ ...inputStyle, letterSpacing: '6px', textAlign: 'center', fontSize: '1.2rem', fontWeight: '700' }}
-                                                                        />
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        disabled={emailChanging || emailOtp.length !== 6}
-                                                                        onClick={async () => {
-                                                                            setEmailChanging(true);
-                                                                            try {
-                                                                                const res = await Axios.post(`${API_URL}/api/confirm-email-change`, { userId: customerId, otp: emailOtp, newEmail });
-                                                                                if (res.data.requireReverification) {
-                                                                                    localStorage.removeItem('user');
-                                                                                    localStorage.removeItem('token');
-                                                                                    setSuccessModal({ mounted: true, visible: false, message: 'Email changed successfully! A verification link has been sent to your new email. Please verify to log in again.' });
-                                                                                    setTimeout(() => setSuccessModal(prev => ({ ...prev, visible: true })), 10);
-                                                                                    return;
-                                                                                }
-                                                                            } catch (err) {
-                                                                                setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to confirm email change' });
-                                                                            }
-                                                                            setEmailChanging(false);
-                                                                        }}
-                                                                        style={{
-                                                                            width: '100%', padding: '10px', backgroundColor: '#059669', color: 'white',
-                                                                            border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'
-                                                                        }}
-                                                                    >
-                                                                        {emailChanging ? 'Confirming...' : 'Confirm Email Change'}
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                    <div style={{ position: 'relative' }}>
+                                                        <input
+                                                            className="form-input customer-st-59f58c25"
+                                                            type="email"
+                                                            value={profile.email}
+                                                            disabled
+                                                            style={{ ...inputStyle, paddingRight: '44px', backgroundColor: '#f8fafc', color: '#64748b' }}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            title="Change email address"
+                                                            onClick={() => setEmailModal({ open: true, step: 'enterEmail', newEmail: '', emailError: '', otp: '', otpError: '', sending: false, confirming: false })}
+                                                            style={{
+                                                                position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                                                                background: 'none', border: 'none', cursor: 'pointer',
+                                                                color: '#daa520', display: 'flex', alignItems: 'center'
+                                                            }}
+                                                        >
+                                                            <Edit2 size={15} />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <div className="form-group">
                                                     <label style={formLabel}><Phone size={16} /> Phone</label>
@@ -605,7 +525,189 @@ function CustomerProfile() {
                 </div>
             </div>
 
+            {/* Email Change Modal */}
+            {emailModal.open && (
+                <div
+                    style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(6px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+                    }}
+                    onClick={() => setEmailModal(prev => ({ ...prev, open: false }))}
+                >
+                    <div
+                        style={{
+                            background: '#fff', borderRadius: '20px', padding: '36px 32px 28px',
+                            maxWidth: '440px', width: '92%', boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+                            fontFamily: "'Inter', sans-serif"
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                            <div>
+                                <h2 style={{ margin: '0 0 4px', fontSize: '1.2rem', fontWeight: 700, color: '#1e293b' }}>
+                                    {emailModal.step === 'enterEmail' ? 'Change Email Address' : 'Enter Verification Code'}
+                                </h2>
+                                <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+                                    {emailModal.step === 'enterEmail'
+                                        ? 'Enter your new email address below'
+                                        : `Code sent to ${profile.email}`}
+                                </p>
+                            </div>
+                            <button onClick={() => setEmailModal(prev => ({ ...prev, open: false }))}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Step indicator */}
+                        <div style={{ display: 'flex', gap: '6px', marginBottom: '24px' }}>
+                            {['enterEmail', 'enterOtp'].map((s, i) => (
+                                <div key={s} style={{
+                                    flex: 1, height: '3px', borderRadius: '2px',
+                                    background: (emailModal.step === 'enterOtp' ? true : i === 0) ? '#daa520' : '#e2e8f0'
+                                }} />
+                            ))}
+                        </div>
+
+                        {emailModal.step === 'enterEmail' ? (
+                            <>
+                                <div style={{ marginBottom: '16px' }}>
+                                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+                                        New Email Address
+                                    </label>
+                                    <input
+                                        type="email"
+                                        autoFocus
+                                        value={emailModal.newEmail}
+                                        onChange={e => setEmailModal(prev => ({ ...prev, newEmail: e.target.value, emailError: '' }))}
+                                        placeholder="you@example.com"
+                                        style={{
+                                            width: '100%', padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem',
+                                            border: emailModal.emailError ? '1.5px solid #ef4444' : '1.5px solid #e2e8f0',
+                                            outline: 'none', boxSizing: 'border-box', color: '#1e293b',
+                                            transition: 'border-color 0.2s'
+                                        }}
+                                        onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+                                    />
+                                    {emailModal.emailError && (
+                                        <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <AlertCircle size={13} /> {emailModal.emailError}
+                                        </p>
+                                    )}
+                                    <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                                        A 6-digit authorization code will be sent to your <strong>current</strong> email to confirm this change.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    disabled={emailModal.sending}
+                                    onClick={async () => {
+                                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                        if (!emailModal.newEmail.trim()) {
+                                            return setEmailModal(prev => ({ ...prev, emailError: 'Please enter an email address.' }));
+                                        }
+                                        if (!emailRegex.test(emailModal.newEmail)) {
+                                            return setEmailModal(prev => ({ ...prev, emailError: 'Please enter a valid email address.' }));
+                                        }
+                                        if (emailModal.newEmail.toLowerCase() === profile.email.toLowerCase()) {
+                                            return setEmailModal(prev => ({ ...prev, emailError: 'New email must be different from your current email.' }));
+                                        }
+                                        setEmailModal(prev => ({ ...prev, sending: true, emailError: '' }));
+                                        try {
+                                            const res = await Axios.post(`${API_URL}/api/request-email-change`, { userId: customerId, newEmail: emailModal.newEmail });
+                                            if (res.data.success) {
+                                                setEmailModal(prev => ({ ...prev, sending: false, step: 'enterOtp' }));
+                                            }
+                                        } catch (err) {
+                                            const msg = err.response?.data?.message || 'Failed to request email change.';
+                                            setEmailModal(prev => ({ ...prev, sending: false, emailError: msg }));
+                                        }
+                                    }}
+                                    style={{
+                                        width: '100%', padding: '11px', borderRadius: '8px',
+                                        backgroundColor: emailModal.sending ? '#f1c44a' : '#daa520',
+                                        color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.9rem',
+                                        cursor: emailModal.sending ? 'not-allowed' : 'pointer', transition: 'background 0.2s'
+                                    }}
+                                >
+                                    {emailModal.sending ? 'Sending Code...' : 'Send Authorization Code'}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '16px', lineHeight: 1.6 }}>
+                                    Enter the 6-digit code sent to <strong style={{ color: '#1e293b' }}>{profile.email}</strong> to confirm changing your address to <strong style={{ color: '#daa520' }}>{emailModal.newEmail}</strong>.
+                                </p>
+                                <input
+                                    type="text"
+                                    autoFocus
+                                    value={emailModal.otp}
+                                    onChange={e => setEmailModal(prev => ({ ...prev, otp: e.target.value.replace(/[^0-9]/g, '').slice(0, 6), otpError: '' }))}
+                                    placeholder="000000"
+                                    maxLength={6}
+                                    style={{
+                                        width: '100%', padding: '14px', borderRadius: '8px', fontSize: '1.6rem',
+                                        fontWeight: 800, letterSpacing: '16px', textAlign: 'center',
+                                        border: emailModal.otpError ? '1.5px solid #ef4444' : '1.5px solid #e2e8f0',
+                                        outline: 'none', boxSizing: 'border-box', fontFamily: "'Courier New', monospace",
+                                        marginBottom: '6px'
+                                    }}
+                                />
+                                {emailModal.otpError && (
+                                    <p style={{ margin: '0 0 12px', fontSize: '0.78rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <AlertCircle size={13} /> {emailModal.otpError}
+                                    </p>
+                                )}
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEmailModal(prev => ({ ...prev, step: 'enterEmail', otp: '', otpError: '' }))}
+                                        style={{
+                                            flex: 1, padding: '10px', borderRadius: '8px', border: '1.5px solid #e2e8f0',
+                                            background: '#fff', color: '#64748b', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+                                        }}
+                                    >
+                                        ← Back
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={emailModal.confirming || emailModal.otp.length !== 6}
+                                        onClick={async () => {
+                                            setEmailModal(prev => ({ ...prev, confirming: true, otpError: '' }));
+                                            try {
+                                                const res = await Axios.post(`${API_URL}/api/confirm-email-change`, { userId: customerId, otp: emailModal.otp, newEmail: emailModal.newEmail });
+                                                if (res.data.requireReverification) {
+                                                    localStorage.removeItem('user');
+                                                    localStorage.removeItem('token');
+                                                    setEmailModal(prev => ({ ...prev, open: false }));
+                                                    setSuccessModal({ mounted: true, visible: false, message: 'Email changed successfully! A verification link has been sent to your new address. Please verify to log in again.' });
+                                                    setTimeout(() => setSuccessModal(prev => ({ ...prev, visible: true })), 10);
+                                                }
+                                            } catch (err) {
+                                                const msg = err.response?.data?.message || 'Invalid or expired code.';
+                                                setEmailModal(prev => ({ ...prev, confirming: false, otpError: msg }));
+                                            }
+                                        }}
+                                        style={{
+                                            flex: 2, padding: '10px', borderRadius: '8px',
+                                            backgroundColor: (emailModal.confirming || emailModal.otp.length !== 6) ? '#6ee7b7' : '#059669',
+                                            color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.85rem',
+                                            cursor: (emailModal.confirming || emailModal.otp.length !== 6) ? 'not-allowed' : 'pointer'
+                                        }}
+                                    >
+                                        {emailModal.confirming ? 'Confirming...' : 'Confirm Email Change'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Security Change Success Modal */}
+
             {successModal.mounted && (
                 <div
                     style={{
