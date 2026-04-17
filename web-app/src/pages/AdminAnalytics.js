@@ -12,22 +12,6 @@ import './AdminAnalytics.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 
-const DARK_BRAND = '#e2e8f0';
-
-/* ═══════════════ CUSTOM TOOLTIP ═══════════════ */
-const DarkTooltip = ({ active, payload, label }) => {
-    if (!active || !payload?.length) return null;
-    return (
-        <div className="analytics-custom-tooltip">
-            <p className="tooltip-label">{label}</p>
-            {payload.map((p, i) => (
-                <p key={i} className="tooltip-value" style={{ color: p.color || '#cbd5e1' }}>
-                    {p.name}: {typeof p.value === 'number' && p.name !== 'Appointments' ? `₱${p.value.toLocaleString("en-PH", { minimumFractionDigits: 2 })}` : p.value}
-                </p>
-            ))}
-        </div>
-    );
-};
 
 function AdminAnalytics() {
     const [dateRange, setDateRange] = useState('month');
@@ -254,27 +238,25 @@ function AdminAnalytics() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <div className="analytics-sticky-header">
-                    <header className="admin-header">
-                        <div className="header-title-area">
-                            <h1>Analytics & Reports</h1>
-                            <p>Track your studio's performance and inventory</p>
+                <header className="admin-header">
+                    <div className="header-title-area">
+                        <h1>Analytics & Reports</h1>
+                        <p>Track your studio's performance and inventory</p>
+                    </div>
+                    <div className="header-actions-group">
+                        <div className="filter-group-glass">
+                            <Filter size={16} color="#e2e8f0" />
+                            <span style={{ color: '#94a3b8' }}>Revenue:</span>
+                            <select value={revenueTimeframe} onChange={(e) => setRevenueTimeframe(e.target.value)} className="premium-select-glass">
+                                <option value="monthly">This Month</option>
+                                <option value="yearly">This Year</option>
+                                <option value="all">All Time</option>
+                            </select>
                         </div>
-                        <div className="header-actions-group">
-                            <div className="filter-group-glass">
-                                <Filter size={16} color={DARK_BRAND} />
-                                <span>Revenue:</span>
-                                <select value={revenueTimeframe} onChange={(e) => setRevenueTimeframe(e.target.value)} className="premium-select-glass">
-                                    <option value="monthly">This Month</option>
-                                    <option value="yearly">This Year</option>
-                                    <option value="all">All Time</option>
-                                </select>
-                            </div>
-                            <button className="btn btn-secondary" onClick={handlePrint}><Printer size={18} /> Print</button>
-                            <button className="btn btn-primary" onClick={handleExport}><Download size={18} /> Export</button>
-                        </div>
-                    </header>
-                </div>
+                        <button className="btn btn-secondary" onClick={handlePrint}><Printer size={18} /> Print</button>
+                        <button className="btn btn-primary" onClick={handleExport}><Download size={18} /> Export</button>
+                    </div>
+                </header>
 
                 {loading ? (
                     <div className="no-data" style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>Loading analytics...</div>
@@ -292,11 +274,11 @@ function AdminAnalytics() {
                                 <div style={{ width: '100%', height: 280 }}>
                                     <ResponsiveContainer>
                                         <BarChart data={analytics.revenue.chart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                            <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                                            <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                                            <Tooltip content={<DarkTooltip />} />
-                                            <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                            <XAxis dataKey="month" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
+                                            <YAxis tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
+                                            <Tooltip />
+                                            <Legend wrapperStyle={{ color: '#171516' }} />
                                             <Bar dataKey="value" name="Revenue" fill={RAINBOW_PALETTE[0]} radius={[6, 6, 0, 0]} />
                                             <Bar dataKey="appointments" name="Appointments" fill={RAINBOW_PALETTE[2]} radius={[6, 6, 0, 0]} opacity={0.7} />
                                         </BarChart>
@@ -336,7 +318,7 @@ function AdminAnalytics() {
                                                     {analytics.styles.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[(i * 2) % RAINBOW_PALETTE.length]} />)}
                                                 </Pie>
                                                 <Tooltip formatter={(v) => `${v} works`} />
-                                                <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                                                <Legend wrapperStyle={{ color: '#171516' }} />
                                             </PieChart>
                                         </ResponsiveContainer>
                                     ) : (
@@ -351,10 +333,10 @@ function AdminAnalytics() {
                                     {analytics.artists.length > 0 ? (
                                         <ResponsiveContainer>
                                             <BarChart data={analytics.artists} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                                <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                                                <YAxis dataKey="name" type="category" tick={{ fill: '#cbd5e1', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                                                <Tooltip content={<DarkTooltip />} />
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                                <XAxis type="number" tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
+                                                <YAxis dataKey="name" type="category" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
+                                                <Tooltip />
                                                 <Bar dataKey="revenue" name="Revenue" fill={RAINBOW_PALETTE[4]} radius={[0, 6, 6, 0]} barSize={24}>
                                                    {analytics.artists.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[index % RAINBOW_PALETTE.length]} />)}
                                                 </Bar>
@@ -375,9 +357,9 @@ function AdminAnalytics() {
                                     {analytics.inventory.length > 0 ? (
                                         <ResponsiveContainer>
                                             <BarChart data={analytics.inventory} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                                                <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                                                <YAxis dataKey="name" type="category" tick={{ fill: '#cbd5e1', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} tickLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                                <XAxis type="number" tick={{ fill: '#171516', fontSize: 11 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
+                                                <YAxis dataKey="name" type="category" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
                                                 <Tooltip formatter={(v, name, props) => `${v} ${props.payload.unit || 'units'}`} />
                                                 <Bar dataKey="used" name="Used" fill={RAINBOW_PALETTE[2]} radius={[0, 6, 6, 0]} barSize={24}>
                                                    {analytics.inventory.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[(index + 5) % RAINBOW_PALETTE.length]} />)}
