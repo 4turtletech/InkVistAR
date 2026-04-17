@@ -82,18 +82,7 @@ function ArtistNotifications() {
         }
     };
 
-    const handleAssignmentAction = async (notifId, appointmentId, action) => {
-        try {
-            const res = await Axios.put(`${API_URL}/api/artist/appointments/${appointmentId}/${action}`);
-            if (res.data.success) {
-                // Mark this notification as read and hide buttons
-                await markRead(notifId);
-                fetchNotifications(); // Refresh list to get latest state
-            }
-        } catch (e) {
-            console.error("Failed to process assignment action", e);
-        }
-    };
+
 
     const markAllRead = async () => {
         try {
@@ -285,12 +274,7 @@ function ArtistNotifications() {
                                                             {formatNotificationTime(n.created_at)}
                                                         </span>
                                                         
-                                                        {n.type === 'action_required' && !n.is_read && (
-                                                            <div className="notif-actions" style={{ display: 'flex', gap: '8px', marginRight: '10px' }}>
-                                                                <button className="btn btn-primary" onClick={() => handleAssignmentAction(n.id, n.related_id, 'accept')} style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#10b981' }}>Accept</button>
-                                                                <button className="btn btn-secondary" onClick={() => handleAssignmentAction(n.id, n.related_id, 'reject')} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Decline</button>
-                                                            </div>
-                                                        )}
+
 
                                                         <div className="notif-actions" style={{ display: 'flex', gap: '8px' }}>
                                                             {n.type === 'appointment_reminder' && (
@@ -363,12 +347,7 @@ function ArtistNotifications() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
                             <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
                             <div className="notif-actions" style={{ display: 'flex', gap: '10px' }}>
-                                {selectedNotification.type === 'action_required' && !selectedNotification.is_read && (
-                                    <>
-                                        <button className="notif-btn primary" onClick={() => { handleAssignmentAction(selectedNotification.id, selectedNotification.related_id, 'accept'); setSelectedNotification(null); }} style={{ padding: '6px 12px', fontSize: '0.85rem', background: '#10b981', color: '#fff', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>Accept</button>
-                                        <button className="notif-btn secondary" onClick={() => { handleAssignmentAction(selectedNotification.id, selectedNotification.related_id, 'reject'); setSelectedNotification(null); }} style={{ padding: '6px 12px', fontSize: '0.85rem', borderRadius: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', background: 'transparent' }}>Decline</button>
-                                    </>
-                                )}
+
                                 {selectedNotification.related_id && (
                                     <button onClick={() => { setSelectedNotification(null); navigate('/artist/appointments', { state: { openAppointmentId: selectedNotification.related_id } }); }} className="notif-btn primary" style={{ textDecoration: 'none', padding: '6px 12px', fontSize: '0.85rem', backgroundColor: '#3b82f6', color: '#fff', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>View Appointment</button>
                                 )}
