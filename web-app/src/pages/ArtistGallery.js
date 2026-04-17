@@ -202,13 +202,12 @@ function ArtistGallery() {
                                     src={work.image_url} 
                                     alt={work.title} 
                                     loading="lazy"
-                                    style={{ aspectRatio: '4/5', objectFit: 'cover', width: '100%', display: 'block' }}
                                 />
                                 <div className="gallery-overlay">
                                     <h3>{work.title}</h3>
                                     <p>{work.category}</p>
                                     <button className="delete-btn" onClick={(e) => { e.stopPropagation(); handleDelete(work.id); }}>
-                                        <Trash2 size={16} />
+                                        <Trash2 size={14} />
                                     </button>
                                 </div>
                             </div>
