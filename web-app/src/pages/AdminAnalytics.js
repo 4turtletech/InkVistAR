@@ -181,10 +181,14 @@ function AdminAnalytics() {
         const rows = [
             ['Report Type', 'Metric', 'Value'],
             ['Revenue', 'Total Revenue', `₱${Number(analytics.revenue.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
-            ['Expenses', 'Total Expenses', `₱${Number(analytics.expenses.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
+            ['Expenses', 'Ops Expenses', `₱${Number(analytics.expenses.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
+            ['Expenses', 'Overhead / Manual', `₱${Number(analytics.overhead?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
             ['Appointments', 'Total', analytics.appointments.total],
             ['Appointments', 'Completed', analytics.appointments.completed],
             ['Appointments', 'Cancelled', analytics.appointments.cancelled],
+            ['Appointments', 'Scheduled', analytics.appointments.scheduled],
+            ['Users', 'Customers', analytics.users?.customers || 0],
+            ['Users', 'Artists', analytics.users?.artists || 0],
             [],
             ['Artist Performance', 'Name', 'Revenue', 'Appointments'],
             ...analytics.artists.map(a => ['Artist', a.name, `₱${Number(a.revenue).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, a.appointments]),
@@ -195,13 +199,15 @@ function AdminAnalytics() {
             ['Inventory Consumption', 'Item', 'Used Qty'],
             ...analytics.inventory.map(i => ['Inventory', i.name, `${i.used} ${i.unit}`])
         ];
-        let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.map(cell => escapeCsv(cell)).join(",")).join("\n");
+        
+        const csvContent = rows.map(e => e.map(cell => escapeCsv(cell)).join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", `analytics_report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.href = URL.createObjectURL(blob);
+        link.download = `analytics_report_${new Date().toISOString().split('T')[0]}.csv`;
         document.body.appendChild(link);
         link.click();
-        link.remove();
+        document.body.removeChild(link);
     };
 
     const handlePrint = () => {
@@ -247,7 +253,7 @@ function AdminAnalytics() {
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="admin-page page-container-enter analytics-dark-page">
+            <div className="admin-page page-container-enter">
                 <div className="analytics-sticky-header">
                     <header className="admin-header">
                         <div className="header-title-area">
@@ -277,7 +283,7 @@ function AdminAnalytics() {
                 ) : (
                     <>
                         {/* ═══════════════ METRIC CARDS (shared component) ═══════════════ */}
-                        <AnalyticsMetricCards analytics={analytics} onCardClick={openAuditModal} formatDuration={formatDuration} showAll={true} variant="dark" />
+                        <AnalyticsMetricCards analytics={analytics} onCardClick={openAuditModal} formatDuration={formatDuration} showAll={true} variant="light" />
 
                         {/* ═══════════════ CHARTS ROW 1: Trend (wide left) + Sources (narrow right) ═══════════════ */}
                         <div className="analytics-dashboard-layout">
@@ -424,7 +430,7 @@ function AdminAnalytics() {
                     onAddExpense={handleAddExpense}
                     onDeleteExpense={handleDeleteExpense}
                     formatDuration={formatDuration}
-                    darkMode={true}
+                    darkMode={false}
                 />
             </div>
             <ConfirmModal {...confirmDialog} onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))} />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, BarChart3, Plus, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, BarChart3, Plus, Trash2, Search, ChevronLeft, ChevronRight, FileText, PieChart as PieChartIcon } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 /* ═══════════════ SHARED CONSTANTS ═══════════════ */
@@ -34,6 +34,7 @@ function AnalyticsAuditModal({
 }) {
     const [auditSearch, setAuditSearch] = useState('');
     const [auditPage, setAuditPage] = useState(1);
+    const [modalTab, setModalTab] = useState('summary');
 
     if (!auditModal.open || !auditModal.data) return null;
 
@@ -175,18 +176,26 @@ function AnalyticsAuditModal({
                     </div>
                     <button className="close-btn" onClick={onClose}><X size={24} /></button>
                 </div>
-                <div className="modal-body" style={{ padding: '20px 24px', maxHeight: '75vh', overflowY: 'auto' }}>
-                    {/* Data source badge */}
-                    {auditModal.data?.source && (
-                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.78rem', color: '#475569' }}>
-                            <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><BarChart3 size={14} /> Audited Origin:</strong> {auditModal.data.source}
-                        </div>
-                    )}
+                <div className="modal-body" style={{ padding: '0', maxHeight: '75vh', overflowY: 'auto' }}>
+                    <div className="modal-tabs-wrapper-v2" style={{ padding: '20px 24px 0 24px', borderBottom: '1px solid rgba(226,232,240,0.5)', marginBottom: '20px', display: 'flex', gap: '8px' }}>
+                        <button type="button" onClick={() => setModalTab('summary')} className={`modal-tab-btn ${modalTab === 'summary' ? 'active' : ''}`}>
+                            <PieChartIcon size={14} /> Analytics Overview
+                        </button>
+                        {(auditModal.type !== 'expenses' && auditModal.type !== 'overhead' && auditModal.type !== 'artists') && (
+                            <button type="button" onClick={() => setModalTab('logs')} className={`modal-tab-btn ${modalTab === 'logs' ? 'active' : ''}`}>
+                                <FileText size={14} /> Transaction Log
+                            </button>
+                        )}
+                    </div>
+                    
+                    <div style={{ padding: '0 24px 20px 24px' }}>
+                        {modalTab === 'summary' && (
+                            <>
 
                     {/* General breakdown pie + list (Revenue/Appointments/Completion/Users) */}
                     {auditModal.data?.breakdown && auditModal.type !== 'expenses' && (
                         <>
-                            <div style={{ width: '100%', height: 220, marginBottom: '16px' }}>
+                            <div style={{ width: '100%', height: 350, marginBottom: '16px' }}>
                                 <ResponsiveContainer>
                                     <PieChart>
                                         <Pie data={auditModal.data.breakdown} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={3} dataKey="value" label={renderPieLabel} labelLine={true}>
@@ -349,8 +358,16 @@ function AnalyticsAuditModal({
                         </div>
                     )}
 
-                    {/* ═══ TRANSACTION LOG TABLE (appended to all applicable types) ═══ */}
-                    {renderAuditTable()}
+                            </>
+                        )}
+
+                        {modalTab === 'logs' && (
+                            <>
+                                {/* ═══ TRANSACTION LOG TABLE (appended to all applicable types) ═══ */}
+                                {renderAuditTable()}
+                            </>
+                        )}
+                    </div>
                 </div>
                 <div className="modal-footer">
                     <button className="btn btn-secondary" onClick={onClose}>Close</button>
