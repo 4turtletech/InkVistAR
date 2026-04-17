@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -1374,32 +1374,6 @@ function AdminAppointments() {
                                             </div>
                                         </div>
 
-                                        {/* Project Session History Panel */}
-                                        {selectedAppointment && formData.designTitle && (
-                                            <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e2e8f0', gridColumn: '1 / -1' }}>
-                                                <h4 style={{ margin: 0, marginBottom: '12px', fontSize: '0.95rem', color: '#334155' }}>
-                                                    Project Session History: <span style={{ color: '#4338ca' }}>{formData.designTitle}</span>
-                                                </h4>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                    {appointments.filter(a => a.customer_id === selectedAppointment.customer_id && a.design_title === formData.designTitle)
-                                                        .sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date))
-                                                        .map((session, idx) => (
-                                                            <div key={session.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 16px', borderRadius: '6px', background: session.id === selectedAppointment.id ? '#e0e7ff' : '#f8fafc', border: `1px solid ${session.id === selectedAppointment.id ? '#c7d2fe' : '#e2e8f0'}` }}>
-                                                                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                                                    <span style={{ fontWeight: session.id === selectedAppointment.id ? '700' : '600', color: session.id === selectedAppointment.id ? '#4338ca' : '#475569' }}>Session {idx + 1}</span>
-                                                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                                                        {new Date(session.appointment_date).toLocaleDateString()} at {session.start_time}
-                                                                    </span>
-                                                                </div>
-                                                                <span className={`badge status-${session.status.toLowerCase() === 'completed' ? 'active' : session.status.toLowerCase() === 'pending' ? 'pending' : 'expired'}`} style={{ scale: '0.85', transformOrigin: 'right' }}>
-                                                                    {session.status}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                </div>
-                                            </div>
-                                        )}
-
                                     </div>
                                 )}
                                 {modalTab === 'pricing' && (
@@ -1533,12 +1507,50 @@ function AdminAppointments() {
                                                 <textarea
                                                     value={formData.notes || ''}
                                                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                                    className="premium-select-v2 admin-st-ef6586d6"
+                                                    className="premium-input-v2"
+                                                    style={{ minHeight: '120px', resize: 'vertical' }}
                                                     placeholder={selectedAppointment
                                                         ? "Add detailed internal notes, placement instructions, or specific client requests..."
                                                         : "Add any notes about this new appointment — placement preferences, client requests, design specifics, scheduling notes, etc."
                                                     }
                                                 />
+                                            </div>
+                                        </div>
+
+                                        {/* Middle Column: Project Session History */}
+                                        <div className="admin-st-d295c8d6">
+                                            <div className="admin-w-full">
+                                                <h4 className="admin-st-739a1b05" style={{ margin: 0, marginBottom: '12px' }}>
+                                                    Project Session History
+                                                </h4>
+                                                {(selectedAppointment && formData.designTitle) ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    {appointments.filter(a => a.customer_id === selectedAppointment.customer_id && a.design_title === formData.designTitle)
+                                                        .sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date))
+                                                        .map((session, idx) => (
+                                                            <div key={session.id} style={{ display: 'flex', flexDirection: 'column', padding: '10px 14px', borderRadius: '8px', background: session.id === selectedAppointment.id ? '#eff6ff' : '#f8fafc', border: `1px solid ${session.id === selectedAppointment.id ? '#bfdbfe' : '#e2e8f0'}` }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                                    <span style={{ fontWeight: session.id === selectedAppointment.id ? '700' : '600', color: session.id === selectedAppointment.id ? '#2563eb' : '#475569', fontSize: '0.95rem' }}>Session {idx + 1}</span>
+                                                                    <span className={`badge status-${session.status.toLowerCase() === 'completed' ? 'active' : session.status.toLowerCase() === 'pending' ? 'pending' : 'expired'}`} style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                                                                        {session.status}
+                                                                    </span>
+                                                                </div>
+                                                                <div style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                    <Calendar size={12} />
+                                                                    {new Date(session.appointment_date).toLocaleDateString()} at {session.start_time}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                </div>
+                                                ) : (
+                                                    <div className="admin-st-28e6a799">
+                                                        <Clock size={40} className="admin-st-04217666" style={{ marginBottom: '8px', opacity: 0.5 }} />
+                                                        <p style={{ margin: '0 0 4px 0', fontWeight: 600, color: '#94a3b8' }}>No session history</p>
+                                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#cbd5e1', textAlign: 'center' }}>
+                                                            Save this appointment with a design title to track its multiphase session history here.
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
