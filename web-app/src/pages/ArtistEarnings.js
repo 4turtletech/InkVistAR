@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { DollarSign, TrendingUp, CreditCard, Download } from 'lucide-react';
+import { TrendingUp, CreditCard, Download } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
+
 import ArtistSideNav from '../components/ArtistSideNav';
 import Pagination from '../components/Pagination';
 import './PortalStyles.css';
@@ -71,7 +73,7 @@ function ArtistEarnings() {
                             {/* Summary Stats */}
                             <div className="stats-grid">
                                 <div className="stat-card">
-                                    <DollarSign className="stat-icon" size={32} />
+                                    <PhilippinePeso className="stat-icon" size={32} />
                                     <div className="stat-info">
                                         <p className="stat-label">Today's Earnings</p>
                                         <p className="stat-value">₱{stats.totalEarnings.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>

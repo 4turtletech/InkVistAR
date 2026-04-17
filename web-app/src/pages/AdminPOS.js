@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Axios from 'axios';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag, Send, User, CreditCard, Wallet, DollarSign, Banknote, Receipt, RotateCcw } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag, Send, User, CreditCard, Wallet, Banknote, Receipt, RotateCcw } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
+
 import AdminSideNav from '../components/AdminSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import './AdminStyles.css';

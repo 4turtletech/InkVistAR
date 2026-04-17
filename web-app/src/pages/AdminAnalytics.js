@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { DollarSign, Calendar, Users, Download, Package, Printer, Filter, Clock } from 'lucide-react';
+import { Calendar, Users, Download, Package, Printer, Filter, Clock } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
+
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminAnalytics.css';
 import './AdminStyles.css';
@@ -206,7 +208,7 @@ function AdminAnalytics() {
             {/* Key Metrics */}
             <div className="metrics-section">
                 <div className="metric-card glass-card primary-metric">
-                    <DollarSign className="metric-icon" size={32} />
+                    <PhilippinePeso className="metric-icon" size={32} />
                     <div className="metric-content">
                         <p className="metric-label">Total Revenue</p>
                         <p className="metric-value">₱{Number(analytics.revenue.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -214,7 +216,7 @@ function AdminAnalytics() {
                 </div>
 
                 <div className="metric-card glass-card" style={{ borderLeft: '4px solid #ef4444' }}>
-                    <DollarSign className="metric-icon" size={32} color="#ef4444" />
+                    <PhilippinePeso className="metric-icon" size={32} color="#ef4444" />
                     <div className="metric-content">
                         <p className="metric-label">Total Expenses</p>
                         <p className="metric-value" style={{ color: '#ef4444' }}>₱{Number(analytics.expenses?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>

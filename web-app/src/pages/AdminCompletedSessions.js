@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, FileText, Image as ImageIcon, Package, Search, Filter, Calendar, Clock, User, DollarSign, X, List } from 'lucide-react';
+import { CheckCircle, FileText, Image as ImageIcon, Package, Search, Filter, Calendar, Clock, User, X, List } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
+
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
 import './PortalStyles.css';

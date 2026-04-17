@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, DollarSign, Info, FileText, Image } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
+
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
@@ -1174,7 +1176,7 @@ function AdminAppointments() {
                                                 className={`modal-tab-btn ${modalTab === 'pricing' ? 'active' : ''}`}
                                                 onClick={() => setModalTab('pricing')}
                                             >
-                                                <DollarSign size={16} /> Pricing
+                                                <PhilippinePeso size={16} /> Pricing
                                             </button>
                                             <button
                                                 className={`modal-tab-btn ${modalTab === 'notes' ? 'active' : ''}`}
@@ -1462,7 +1464,7 @@ function AdminAppointments() {
 
                                                 {selectedAppointment && (
                                                     <button className="btn btn-primary admin-st-f9f5beee" onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>
-                                                        <DollarSign size={20} /> Record Manual Payment
+                                                        <PhilippinePeso size={20} /> Record Manual Payment
                                                     </button>
                                                 )}
                                             </div>

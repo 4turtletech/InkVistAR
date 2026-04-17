@@ -15,9 +15,10 @@ import CountryCodeSelect from '../components/CountryCodeSelect';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
-    User, Calendar, DollarSign, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
+    User, Calendar, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
     Eye, EyeOff, Camera
 } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
 
 function AdminUsers() {
     const navigate = useNavigate();
@@ -1193,7 +1194,7 @@ function AdminUsers() {
                                     <Palette size={16} /> Media Portfolio
                                 </button>
                                 <button className={`tab-button ${artistActiveTab === 'earnings' ? 'active' : ''}`} onClick={() => setArtistActiveTab('earnings')}>
-                                    <DollarSign size={16} /> Remittance Log
+                                    <PhilippinePeso size={16} /> Remittance Log
                                 </button>
                             </div>
 

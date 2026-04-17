@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Plus, Download, FileText, Settings, CreditCard, DollarSign, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { Plus, Download, FileText, Settings, CreditCard, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, SlidersHorizontal } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
+
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminUsers.css';
 import './AdminSettings.css'; // Reusing form styles
@@ -688,7 +690,7 @@ function AdminBilling() {
                             <div className="modal-header">
                                 <div className="admin-flex-center admin-gap-15">
                                     <div className="admin-st-c911153f">
-                                        <DollarSign size={20} className="text-bronze" />
+                                        <PhilippinePeso size={20} className="text-bronze" />
                                     </div>
                                     <div>
                                         <h2 className="admin-m-0">Artist Remittance</h2>

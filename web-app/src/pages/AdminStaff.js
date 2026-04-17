@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-    User, Mail, Phone, Calendar, Image, DollarSign,
+    User, Mail, Phone, Calendar, Image,
     BarChart3, Clock, Trash2, X, Save, Shield, Briefcase,
     Search, Filter, SlidersHorizontal, Globe, Lock, Users, Palette, UserCircle, Users2
 } from 'lucide-react';
@@ -14,6 +14,7 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
+import PhilippinePeso from '../components/PhilippinePeso';
 
 function AdminStaff() {
     const navigate = useNavigate();
@@ -618,7 +619,7 @@ function AdminStaff() {
                                     <Palette size={16} /> Media Portfolio
                                 </button>
                                 <button className={`tab-button ${activeTab === 'earnings' ? 'active' : ''}`} onClick={() => setActiveTab('earnings')}>
-                                    <DollarSign size={16} /> Remittance Log
+                                    <PhilippinePeso size={16} /> Remittance Log
                                 </button>
                             </div>
 

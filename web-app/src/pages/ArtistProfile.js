@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import {
-    User, Mail, Palette, Save, Lock, DollarSign, Clock, Camera,
+    User, Mail, Palette, Save, Lock, Clock, Camera,
     Phone, Building, Percent, Eye, EyeOff, CheckCircle, AlertCircle, Edit2, X
 } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';

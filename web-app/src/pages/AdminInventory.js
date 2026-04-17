@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, X, RotateCcw, Printer, Download, Search, Filter, SlidersHorizontal, DollarSign, AlertTriangle, Layers, Clock, User, Inbox } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, X, RotateCcw, Printer, Download, Search, Filter, SlidersHorizontal, AlertTriangle, Layers, Clock, User, Inbox } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
+
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminInventory.css';
 import './PortalStyles.css';
@@ -699,7 +701,7 @@ function AdminInventory() {
                 </div>
                 <div className="stat-card-v2 glass-card">
                     <div className="stat-icon-wrapper green">
-                        <DollarSign size={24} />
+                        <PhilippinePeso size={24} />
                     </div>
                     <div className="stat-info-v2">
                         <span className="stat-label-v2">Inventory Value</span>
@@ -1103,7 +1105,7 @@ function AdminInventory() {
                                                             color: t.type === 'price_change' ? '#b45309' : (t.type === 'in' ? '#059669' : '#dc2626'),
                                                             border: `1px solid ${t.type === 'price_change' ? '#fde68a' : (t.type === 'in' ? '#a7f3d0' : '#fecaca')}`
                                                         }}>
-                                                            {t.type === 'price_change' ? <DollarSign size={13} /> : (t.type === 'in' ? <ArrowUpCircle size={13} /> : <ArrowDownCircle size={13} />)}
+                                                            {t.type === 'price_change' ? <PhilippinePeso size={13} /> : (t.type === 'in' ? <ArrowUpCircle size={13} /> : <ArrowDownCircle size={13} />)}
                                                             {t.type === 'price_change' ? 'PRICE' : (t.type === 'in' ? 'IN' : 'OUT')}
                                                         </span>
                                                     </td>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, DollarSign, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Info, SlidersHorizontal, RefreshCw } from 'lucide-react';
+import { Users, Calendar, Palette, Settings, Package, BarChart3, AlertTriangle, Bell, Clock, CheckCircle, FileText, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Info, SlidersHorizontal, RefreshCw } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
+
 import './AdminDashboard.css';
 import AdminSideNav from '../components/AdminSideNav';
 import './AdminStyles.css';
@@ -382,7 +384,7 @@ function AdminDashboard() {
 
                             <div className="stat-card-v2 glass-card clickable" onClick={() => navigate('/admin/billing')}>
                                 <div className="stat-icon-wrapper green">
-                                    <DollarSign size={24} />
+                                    <PhilippinePeso size={24} />
                                 </div>
                                 <div className="stat-info-v2">
                                     <span className="stat-label-v2">Revenue (Month)</span>

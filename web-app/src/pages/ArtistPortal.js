@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, DollarSign, Users, BarChart3, Clock, LogOut, Bell, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { Calendar, Users, BarChart3, Clock, LogOut, Bell, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
+
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import ArtistSideNav from '../components/ArtistSideNav';
@@ -169,7 +171,7 @@ function ArtistPortal() {
                             {/* Stats Grid */}
                             <div className="stats-grid">
                                 <div className="stat-card clickable artist-portal-clickable-card" onClick={() => navigate('/artist/earnings')} style={{ cursor: 'pointer' }}>
-                                    <DollarSign className="stat-icon" size={32} />
+                                    <PhilippinePeso className="stat-icon" size={32} />
                                     <div className="stat-info">
                                         <p className="stat-label">Total Earnings</p>
                                         <p className="stat-value">₱{Number(artist?.earnings || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
