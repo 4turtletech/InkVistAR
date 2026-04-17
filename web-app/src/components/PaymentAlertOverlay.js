@@ -43,28 +43,35 @@ function PaymentAlertOverlay() {
                     const stillExists = newAlerts.find(a => a.id === prev.id);
                     return stillExists || newAlerts[0];
                 });
-                // Show popup on first detection or login
-                if (!hasShownOnLoginRef.current || !popupDismissed) {
+                // Show popup ONLY ONCE per session — after first dismissal, only the toast persists
+                const alreadyShownThisSession = sessionStorage.getItem('paymentAlertShown');
+                if (!alreadyShownThisSession && !hasShownOnLoginRef.current) {
                     setShowPopup(true);
+                    hasShownOnLoginRef.current = true;
+                } else if (!hasShownOnLoginRef.current) {
+                    // Session was already shown before (e.g. page refresh) — go straight to toast
+                    setPopupDismissed(true);
                     hasShownOnLoginRef.current = true;
                 }
             } else {
-                // All resolved
+                // All resolved — reset everything
                 setAlerts([]);
                 setSelectedAlert(null);
                 setShowPopup(false);
                 setPopupDismissed(false);
+                sessionStorage.removeItem('paymentAlertShown');
             }
         };
 
         window.addEventListener('payment-alert', handlePaymentAlert);
         return () => window.removeEventListener('payment-alert', handlePaymentAlert);
-    }, [popupDismissed]);
+    }, []);
 
-    // Handle dismiss popup (secondary alert persists)
+    // Handle dismiss popup — mark as shown in sessionStorage so it won't re-appear
     const handleDismissPopup = () => {
         setShowPopup(false);
         setPopupDismissed(true);
+        sessionStorage.setItem('paymentAlertShown', 'true');
     };
 
     // Navigate to appointment edit
@@ -133,7 +140,7 @@ function PaymentAlertOverlay() {
                     }}>
                         {/* Header */}
                         <div style={{
-                            background: 'linear-gradient(135deg, #dc2626, #991b1b)', padding: '20px 24px',
+                            background: '#dc2626', padding: '20px 24px',
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -289,15 +296,15 @@ function PaymentAlertOverlay() {
                 </div>
             )}
 
-            {/* ===== PERSISTENT TOAST (when popup dismissed but alerts remain) ===== */}
+            {/* ===== PERSISTENT TOAST (always visible when popup is dismissed and alerts remain) ===== */}
             {!showPopup && popupDismissed && alerts.length > 0 && (
                 <div style={{
                     position: 'fixed', bottom: '20px', right: '20px', zIndex: 9998,
-                    background: 'linear-gradient(135deg, #dc2626, #991b1b)', color: '#fff',
+                    background: '#dc2626', color: '#fff',
                     borderRadius: '14px', padding: '14px 20px', boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
                     display: 'flex', alignItems: 'center', gap: '12px', maxWidth: '420px',
                     animation: 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1)', cursor: 'pointer'
-                }} onClick={() => { setShowPopup(true); setPopupDismissed(false); }}>
+                }} onClick={() => { setShowPopup(true); }}>
                     <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '10px', padding: '8px', display: 'flex', flexShrink: 0 }}>
                         <AlertTriangle size={18} />
                     </div>
