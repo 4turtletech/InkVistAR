@@ -5679,6 +5679,7 @@ app.get('/api/admin/analytics', (req, res) => {
     revenue: { total: 0, growth: 0, chart: [], breakdown: [] },
     appointments: { total: 0, completed: 0, scheduled: 0, cancelled: 0, completionRate: 0 },
     expenses: { total: 0, breakdown: [] },
+    overhead: { total: 0, breakdown: [] },
     artists: [],
     styles: [],
     inventory: []
@@ -5704,21 +5705,25 @@ app.get('/api/admin/analytics', (req, res) => {
       COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND LOWER(service_type) NOT LIKE '%retail%' AND LOWER(service_type) NOT LIKE '%pos%'), 0) as service_invoice_revenue
   `;
 
-  // 2.5 Expenses: Inventory procurements + studio_expenses table
+  // 2.5 Expenses: Inventory procurements + Payouts
   const expensesQuery = `
-    SELECT COALESCE(SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)), 0) as procurement_total
-    FROM inventory_transactions t
-    JOIN inventory i ON t.inventory_id = i.id
-    WHERE t.type = 'in'
+    SELECT 
+      (SELECT COALESCE(SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)), 0) 
+       FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in') as procurement_total,
+      (SELECT COALESCE(SUM(amount), 0) FROM payouts) as payouts_total
   `;
 
-  // 2.6 Expenses breakdown by category from studio_expenses
-  const expenseBreakdownQuery = `
+  // 2.5.5 Overhead Expenses (Manual from studio_expenses)
+  const overheadBreakdownQuery = `
     SELECT category, SUM(amount) as total
     FROM studio_expenses
     GROUP BY category
     ORDER BY total DESC
   `;
+
+  // 2.6 Fetch raw data for audits
+  const payoutsAuditQuery = `SELECT p.*, u.name as artist_name FROM payouts p JOIN users u ON p.artist_id = u.id ORDER BY p.created_at DESC LIMIT 50`;
+  const inventoryInAuditQuery = `SELECT t.*, i.name, (t.quantity * COALESCE(t.item_price, i.cost, 0)) as total_cost FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in' ORDER BY t.created_at DESC LIMIT 50`;
 
   // 3. Artist Productivity
   const artistQuery = `
@@ -5832,25 +5837,34 @@ app.get('/api/admin/analytics', (req, res) => {
               db.query(expensesQuery, (err, expRes) => {
                 if (err) return res.status(500).json({ success: false, message: err.message });
                 const procurementTotal = Number(expRes[0].procurement_total) || 0;
+                const payoutsTotal = Number(expRes[0].payouts_total) || 0;
 
-                db.query(expenseBreakdownQuery, (err, expBreakdown) => {
-                  if (err) return res.status(500).json({ success: false, message: err.message });
-                  const studioExpensesTotal = expBreakdown.reduce((sum, e) => sum + Number(e.total), 0);
-                  // Check if Inventory category is already in studio_expenses; if not, add procurement
-                  const hasInventoryCategory = expBreakdown.some(e => e.category === 'Inventory');
-                  const breakdown = expBreakdown.map(e => ({ name: e.category, value: Number(e.total) }));
-                  if (!hasInventoryCategory && procurementTotal > 0) {
-                    breakdown.unshift({ name: 'Inventory', value: procurementTotal });
-                  } else if (hasInventoryCategory) {
-                    // Merge procurement into the Inventory bucket
-                    const invEntry = breakdown.find(b => b.name === 'Inventory');
-                    if (invEntry) invEntry.value += procurementTotal;
+                response.expenses = {
+                  total: procurementTotal + payoutsTotal,
+                  breakdown: [
+                    { name: 'Inventory Procurements', value: procurementTotal },
+                    { name: 'Artist Payouts', value: payoutsTotal }
+                  ].filter(b => b.value > 0),
+                  payouts_audit: [],
+                  inventory_in_audit: []
+                };
+
+                db.query(overheadBreakdownQuery, (err, overheadRes) => {
+                  if (!err) {
+                    const overheadBreakdown = overheadRes.map(e => ({ name: e.category, value: Number(e.total) }));
+                    const overheadTotal = overheadBreakdown.reduce((sum, e) => sum + e.value, 0);
+                    response.overhead = { total: overheadTotal, breakdown: overheadBreakdown };
                   }
-                  response.expenses = {
-                    total: studioExpensesTotal + procurementTotal,
-                    breakdown: breakdown
-                  };
-                  res.json({ success: true, data: response });
+
+                  // Fetch audit logs for expenses
+                  db.query(payoutsAuditQuery, (err, payoutsList) => {
+                    if (!err) response.expenses.payouts_audit = payoutsList;
+                    
+                    db.query(inventoryInAuditQuery, (err, invInList) => {
+                      if (!err) response.expenses.inventory_in_audit = invInList;
+                      res.json({ success: true, data: response });
+                    });
+                  });
                 });
               });
             });

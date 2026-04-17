@@ -129,16 +129,20 @@
 }
 .metric-clickable:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(183, 149, 78, 0.12);
-    border-color: rgba(183, 149, 78, 0.3);
+    box-shadow: 0 8px 24px rgba(30, 41, 59, 0.12);
+    border-color: rgba(30, 41, 59, 0.3);
 }
 .metric-clickable-hint {
     display: flex;
     align-items: center;
     gap: 2px;
-    color: #b7954e !important;
+    color: #64748b !important;
     font-weight: 600 !important;
     font-size: 0.75rem !important;
+    transition: color 0.2s;
+}
+.metric-clickable:hover .metric-clickable-hint {
+    color: #1e293b !important;
 }
 
 /* Recharts Custom Tooltip */
@@ -246,7 +250,45 @@
     color: #6b7280;
 }
 
-/* Analytics Grid */
+/* Analytics Dashboard Asymmetrical Layout */
+.analytics-dashboard-layout {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    padding: 0 2rem;
+    margin-bottom: 2rem;
+}
+
+.card-colspan-2 {
+    grid-column: span 2;
+}
+
+.card-colspan-1 {
+    grid-column: span 1;
+}
+
+@media (max-width: 1200px) {
+    .analytics-dashboard-layout {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .card-colspan-2 {
+        grid-column: span 2;
+    }
+    .card-colspan-1 {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .analytics-dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+    .card-colspan-2, .card-colspan-1 {
+        grid-column: span 1;
+    }
+}
+
+/* Original Grid Fallback */
 .analytics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
