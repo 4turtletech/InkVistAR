@@ -5911,7 +5911,30 @@ app.get('/api/admin/analytics', (req, res) => {
 
             db.query(trendQuery, (err, trendRes) => {
               if (err) return res.status(500).json({ success: false, message: err.message });
-              response.revenue.chart = trendRes.map(t => ({ month: t.month, appointments: t.appointments || 0, value: Number(t.value) || 0 }));
+              // Ensure we have at least the previous 2 months + current month (3 months total)
+              const chartDataMap = {};
+              const now = new Date();
+              for (let i = 2; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                const monthStr = d.toLocaleString('en-US', { month: 'short' });
+                chartDataMap[sortKey] = { month: monthStr, sort_key: sortKey, appointments: 0, value: 0 };
+              }
+
+              // Merge actual DB data
+              trendRes.forEach(t => {
+                chartDataMap[t.sort_key] = {
+                  month: t.month,
+                  sort_key: t.sort_key,
+                  appointments: t.appointments || 0,
+                  value: Number(t.value) || 0
+                };
+              });
+
+              // Convert back to array and sort chronologically
+              response.revenue.chart = Object.values(chartDataMap)
+                .sort((a, b) => a.sort_key.localeCompare(b.sort_key))
+                .map(t => ({ month: t.month, appointments: t.appointments, value: t.value }));
 
               db.query(expensesQuery, (err, expRes) => {
                 if (err) return res.status(500).json({ success: false, message: err.message });

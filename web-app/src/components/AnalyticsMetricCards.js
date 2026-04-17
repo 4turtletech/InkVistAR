@@ -229,57 +229,99 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
     };
 
     return (
-        <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '1.5rem',
-            padding: '0 2rem',
-            marginBottom: '2rem'
-        }}>
-            {visibleCards.map(card => (
-                <div
-                    key={card.type}
-                    onClick={() => onCardClick(card.type)}
-                    style={{
-                        background: 'rgba(255, 255, 255, 0.7)',
-                        backdropFilter: 'blur(16px)',
-                        borderRadius: '16px',
-                        border: '1px solid rgba(255, 255, 255, 0.5)',
-                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
-                        padding: '1.5rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'stretch',
-                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-3px)';
-                        e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.08)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.05)';
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ ...getIconColorStyle(card.colorClass), width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {card.icon}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                            <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: '2px' }}>{card.label}</span>
-                            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.value}</h3>
-                        </div>
-                    </div>
-                    
-                    {card.chart}
+        <>
+            <style>
+            {`
+                .metric-cards-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 1.5rem;
+                    padding: 0 2rem;
+                    margin-bottom: 2rem;
+                }
+                .metric-card-box {
+                    background: rgba(255, 255, 255, 0.7);
+                    backdrop-filter: blur(16px);
+                    border-radius: 16px;
+                    border: 1px solid rgba(255, 255, 255, 0.5);
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+                    padding: 1.5rem;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: stretch;
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
+                .metric-card-box:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+                }
+                .metric-col-wide {
+                    grid-column: span 2;
+                }
+                .metric-col-narrow {
+                    grid-column: span 1;
+                }
+                @media (max-width: 1200px) {
+                    .metric-cards-grid {
+                        grid-template-columns: repeat(2, 1fr);
+                    }
+                    .metric-col-wide, .metric-col-narrow {
+                        grid-column: span 1;
+                    }
+                }
+                @media (max-width: 768px) {
+                    .metric-cards-grid {
+                        grid-template-columns: 1fr;
+                        padding: 0 1rem;
+                    }
+                }
+            `}
+            </style>
+            <div className="metric-cards-grid">
+                {visibleCards.map((card, index) => {
+                    // Create an asymmetrical layout: 2-1, 1-2, 2-1...
+                    // If showAll is false, visibleCards is 4 cards (Revenue, Appointments, Users, Artists).
+                    // we can base it on index.
+                    let colClass = "metric-col-narrow";
+                    if (visibleCards.length > 4) {
+                        // All cards mode
+                        if (index === 0 || index === 3 || index === 4) {
+                            colClass = "metric-col-wide";
+                        }
+                    } else {
+                        // Filtered cards mode (4 cards) - make them 2x2 equal, or 2-1, 1-2
+                        if (index === 0 || index === 3) {
+                            colClass = "metric-col-wide";
+                        }
+                    }
 
-                    <div style={{ marginTop: 'auto', paddingTop: '12px', fontSize: '0.75rem', fontWeight: 600, color: card.colorHex }}>
-                        {card.hint}
-                    </div>
-                </div>
-            ))}
-        </div>
+                    return (
+                        <div
+                            key={card.type}
+                            onClick={() => onCardClick(card.type)}
+                            className={`metric-card-box ${colClass}`}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ ...getIconColorStyle(card.colorClass), width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    {card.icon}
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                    <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: '2px' }}>{card.label}</span>
+                                    <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.value}</h3>
+                                </div>
+                            </div>
+                            
+                            {card.chart}
+
+                            <div style={{ marginTop: 'auto', paddingTop: '12px', fontSize: '0.75rem', fontWeight: 600, color: card.colorHex }}>
+                                {card.hint}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </>
     );
 }
 
