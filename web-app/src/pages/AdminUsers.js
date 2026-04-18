@@ -16,9 +16,10 @@ import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
     User, Calendar, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
-    Eye, EyeOff, Camera
+    Eye, EyeOff, Camera, Mail
 } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
+import MarketingEmailModal from '../components/MarketingEmailModal';
 
 function AdminUsers() {
     const navigate = useNavigate();
@@ -89,6 +90,9 @@ function AdminUsers() {
     const [confirmDialog, setConfirmDialog] = useState({
         isOpen: false, title: '', message: '', onConfirm: null, type: 'danger', isAlert: false
     });
+
+    // ─── Marketing Email Modal ───
+    const [showMarketingModal, setShowMarketingModal] = useState(false);
 
     const showAlert = (title, message, type = 'info') => {
         setConfirmDialog({
@@ -752,6 +756,9 @@ function AdminUsers() {
                         <p>Manage platform users, roles, and account status</p>
                     </div>
                     <div className="header-actions-group">
+                        <button className="btn btn-secondary" onClick={() => setShowMarketingModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Mail size={18} /> Send Promos
+                        </button>
                         <button className="btn btn-primary" onClick={handleAddNew}>
                             <UserPlus size={18} /> Add New User
                         </button>
@@ -1487,6 +1494,11 @@ function AdminUsers() {
                     confirmText={confirmDialog.confirmText} onConfirm={confirmDialog.onConfirm}
                     onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
                     type={confirmDialog.type} isAlert={confirmDialog.isAlert}
+                />
+
+                <MarketingEmailModal
+                    isOpen={showMarketingModal}
+                    onClose={() => setShowMarketingModal(false)}
                 />
             </div>
         </div>

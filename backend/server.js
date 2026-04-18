@@ -316,6 +316,22 @@ db.getConnection((err, connection) => {
         }
       });
 
+      // MIGRATION: Add photo_marketing_consent column if not exists
+      db.query("SHOW COLUMNS FROM users LIKE 'photo_marketing_consent'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('🔄 Migrating users table: Adding photo_marketing_consent column...');
+          db.query("ALTER TABLE users ADD COLUMN photo_marketing_consent TINYINT DEFAULT 1");
+        }
+      });
+
+      // MIGRATION: Add email_promo_consent column if not exists
+      db.query("SHOW COLUMNS FROM users LIKE 'email_promo_consent'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('🔄 Migrating users table: Adding email_promo_consent column...');
+          db.query("ALTER TABLE users ADD COLUMN email_promo_consent TINYINT DEFAULT 0");
+        }
+      });
+
       // MIGRATION: Check if 'phone' column exists in customers
       db.query("SHOW COLUMNS FROM customers LIKE 'phone'", (err, results) => {
         if (!err && results.length === 0) {
@@ -2149,7 +2165,7 @@ app.post('/api/register', async (req, res) => {
     console.log('\n📝 ========== REGISTER REQUEST ==========');
     console.log('📤 Request body:', req.body);
 
-    const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId } = req.body;
+    const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent } = req.body;
 
     // Handle combined name if firstName/lastName not provided (backward compatibility)
     const fullName = (firstName && lastName)
@@ -2191,10 +2207,14 @@ app.post('/api/register', async (req, res) => {
       // Insert user
       const verification_token = crypto.randomBytes(32).toString('hex');
 
-      const insertQuery = 'INSERT INTO users (name, email, password_hash, user_type, is_verified, verification_token) VALUES (?, ?, ?, ?, 0, ?)';
+      // Consent defaults: photo=1 (opted-in unless unchecked), email_promo=0 (opted-out unless checked)
+      const photoConsent = photo_marketing_consent !== undefined ? (photo_marketing_consent ? 1 : 0) : 1;
+      const emailConsent = email_promo_consent !== undefined ? (email_promo_consent ? 1 : 0) : 0;
+
+      const insertQuery = 'INSERT INTO users (name, email, password_hash, user_type, is_verified, verification_token, photo_marketing_consent, email_promo_consent) VALUES (?, ?, ?, ?, 0, ?, ?, ?)';
       console.log('💾 Executing query:', insertQuery);
 
-      db.query(insertQuery, [fullName, email, password_hash, type, verification_token], (insertErr, result) => {
+      db.query(insertQuery, [fullName, email, password_hash, type, verification_token, photoConsent, emailConsent], (insertErr, result) => {
         if (insertErr) {
           console.error('❌ Error inserting user:', insertErr.message);
           return res.status(500).json({
@@ -2292,6 +2312,59 @@ app.post('/api/register', async (req, res) => {
       message: 'Internal server error'
     });
   }
+});
+// ========== MARKETING EMAIL BROADCAST ==========
+app.post('/api/admin/broadcast-marketing-email', (req, res) => {
+  const { subject, body } = req.body;
+  if (!subject || !body) {
+    return res.status(400).json({ success: false, message: 'Subject and body are required.' });
+  }
+
+  // Query all users who opted in to email promos
+  db.query("SELECT email, name FROM users WHERE email_promo_consent = 1 AND is_deleted = 0 AND is_verified = 1", (err, subscribers) => {
+    if (err) {
+      console.error('❌ Error fetching subscribers:', err.message);
+      return res.status(500).json({ success: false, message: 'Database error.' });
+    }
+
+    if (subscribers.length === 0) {
+      return res.json({ success: true, message: 'No subscribed users found.', sent: 0 });
+    }
+
+    let sentCount = 0;
+    let errorCount = 0;
+
+    const promises = subscribers.map(sub => {
+      const html = buildEmailHtml(`
+        <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">${subject}</h2>
+        <p style="margin:0 0 12px;font-size:13px;color:#888;text-align:center;">Exclusive for you, ${sub.name.split(' ')[0]}!</p>
+        <div style="margin:16px 0;font-size:14px;color:#333;line-height:1.7;">${body.replace(/\n/g, '<br/>')}</div>
+        <p style="margin:20px 0 0;font-size:11px;color:#aaa;text-align:center;">You are receiving this email because you opted in to marketing communications from Inkvictus Tattoo & Piercing. To unsubscribe, update your preferences in your account settings.</p>
+      `);
+      return sendEmail(sub.email, subject, html)
+        .then(() => { sentCount++; })
+        .catch(() => { errorCount++; });
+    });
+
+    Promise.all(promises).then(() => {
+      console.log(`📧 Marketing broadcast complete: ${sentCount} sent, ${errorCount} failed`);
+      res.json({ success: true, message: `Broadcast sent to ${sentCount} subscriber(s).`, sent: sentCount, failed: errorCount });
+    });
+  });
+});
+
+// ========== CUSTOMER CONSENT LOOKUP (for artists) ==========
+app.get('/api/customer/:customerId/consent', (req, res) => {
+  const { customerId } = req.params;
+  db.query("SELECT photo_marketing_consent, email_promo_consent FROM users WHERE id = ?", [customerId], (err, results) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Database error.' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    res.json({ success: true, photo_marketing_consent: results[0].photo_marketing_consent === 1, email_promo_consent: results[0].email_promo_consent === 1 });
+  });
 });
 
 // ========== ARTIST DASHBOARD (SIMPLIFIED) ==========

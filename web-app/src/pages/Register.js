@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { API_URL } from '../config';
 import Navbar from '../components/Navbar';
+import TermsOfServiceModal from '../components/TermsOfServiceModal';
 import './Login.css'; // Using Login styles for consistency
 import CountryCodeSelect from '../components/CountryCodeSelect';
 
@@ -67,6 +68,13 @@ function Register() {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // Consent state
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [emailPromoConsent, setEmailPromoConsent] = useState(false);
+  const [photoMarketingConsent, setPhotoMarketingConsent] = useState(true);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -180,8 +188,10 @@ function Register() {
         email: formData.email.trim(),
         phone: formData.countryCode + formData.phone.trim(),
         password: formData.password,
-        type: 'customer', // Defaulting to customer for public registration
-        orphanAppointmentId: orphanAppointmentId
+        type: 'customer',
+        orphanAppointmentId: orphanAppointmentId,
+        photo_marketing_consent: photoMarketingConsent,
+        email_promo_consent: emailPromoConsent
       });
 
       if (response.data.success) {
@@ -307,8 +317,47 @@ function Register() {
             </div>
 
 
+            {/* Consent Checkboxes */}
+            <div style={{ margin: '16px 0 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setAgreedToTerms(checked);
+                    if (checked) {
+                      setPhotoMarketingConsent(true);
+                      setShowTermsModal(true);
+                    }
+                  }}
+                  style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#C19A6B', flexShrink: 0 }}
+                />
+                <span>
+                  I agree to the{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowTermsModal(true)}
+                    style={{ background: 'none', border: 'none', color: '#C19A6B', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: 'inherit' }}
+                  >
+                    Terms of Service &amp; Waiver
+                  </button>
+                  <span style={{ color: '#ef4444' }}> *</span>
+                </span>
+              </label>
 
-            <button type="submit" className="login-btn" disabled={!isPasswordValid()}>Register</button>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+                <input
+                  type="checkbox"
+                  checked={emailPromoConsent}
+                  onChange={(e) => setEmailPromoConsent(e.target.checked)}
+                  style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#C19A6B', flexShrink: 0 }}
+                />
+                <span>I would like to receive marketing promotions and discounts in my inbox.</span>
+              </label>
+            </div>
+
+            <button type="submit" className="login-btn" disabled={!isPasswordValid() || !agreedToTerms}>Register</button>
           </form>
 
           <div className="login-footer">
@@ -347,6 +396,18 @@ function Register() {
             </div>
           </div>
         )}
+
+        {/* Terms of Service Modal */}
+        <TermsOfServiceModal
+          isOpen={showTermsModal}
+          onClose={() => setShowTermsModal(false)}
+          onAccept={() => {
+            setAgreedToTerms(true);
+            setShowTermsModal(false);
+          }}
+          photoConsent={photoMarketingConsent}
+          onPhotoConsentChange={setPhotoMarketingConsent}
+        />
       </div>
     </>
   );

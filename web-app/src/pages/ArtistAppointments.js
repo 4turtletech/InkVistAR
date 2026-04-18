@@ -21,11 +21,25 @@ function ArtistAppointments() {
     const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', onConfirm: null });
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [publishStatus, setPublishStatus] = useState({});
+    const [customerConsent, setCustomerConsent] = useState({});
     const [selectedDay, setSelectedDay] = useState(() => {
         const today = new Date();
         return today.getDate();
     });
     const [showCalendarLegend, setShowCalendarLegend] = useState(false);
+
+    // Fetch customer consent when an appointment is selected
+    useEffect(() => {
+        if (selectedAppointment && selectedAppointment.customer_id && !customerConsent[selectedAppointment.customer_id]) {
+            Axios.get(`${API_URL}/api/customer/${selectedAppointment.customer_id}/consent`)
+                .then(res => {
+                    if (res.data.success) {
+                        setCustomerConsent(prev => ({ ...prev, [selectedAppointment.customer_id]: res.data }));
+                    }
+                })
+                .catch(() => {});
+        }
+    }, [selectedAppointment]);
 
     // Keyboard arrow-key navigation for calendar
     useEffect(() => {
@@ -727,25 +741,34 @@ function ArtistAppointments() {
                                                                 style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.5)', background: '#fff' }}
                                                             />
                                                             <div style={{ marginTop: '15px', textAlign: 'center' }}>
-                                                                <button
-                                                                    className="btn"
-                                                                    disabled={publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing'}
-                                                                    onClick={() => handlePublishToPortfolio(selectedAppointment)}
-                                                                    style={{ 
-                                                                        padding: '10px 24px', 
-                                                                        borderRadius: '20px', 
-                                                                        background: publishStatus[selectedAppointment.id] === 'success' ? '#10b981' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
-                                                                        color: 'white', 
-                                                                        border: 'none', 
-                                                                        cursor: publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing' ? 'not-allowed' : 'pointer', 
-                                                                        fontWeight: '600',
-                                                                        boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
-                                                                        transition: 'all 0.3s'
-                                                                    }}
-                                                                >
-                                                                    {publishStatus[selectedAppointment.id] === 'success' ? '✓ Published to Portfolio' : publishStatus[selectedAppointment.id] === 'publishing' ? 'Publishing...' : '✨ Publish to Portfolio'}
-                                                                </button>
-                                                                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '8px' }}>This will push the image to your public Gallery.</p>
+                                                                {customerConsent[selectedAppointment.customer_id]?.photo_marketing_consent === false ? (
+                                                                    <div style={{ padding: '12px 18px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+                                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                                                                        <span style={{ fontSize: '0.82rem', color: '#991b1b', fontWeight: 600 }}>This client declined photo marketing consent.</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <>
+                                                                        <button
+                                                                            className="btn"
+                                                                            disabled={publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing'}
+                                                                            onClick={() => handlePublishToPortfolio(selectedAppointment)}
+                                                                            style={{ 
+                                                                                padding: '10px 24px', 
+                                                                                borderRadius: '20px', 
+                                                                                background: publishStatus[selectedAppointment.id] === 'success' ? '#10b981' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
+                                                                                color: 'white', 
+                                                                                border: 'none', 
+                                                                                cursor: publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing' ? 'not-allowed' : 'pointer', 
+                                                                                fontWeight: '600',
+                                                                                boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
+                                                                                transition: 'all 0.3s'
+                                                                            }}
+                                                                        >
+                                                                            {publishStatus[selectedAppointment.id] === 'success' ? '✓ Published to Portfolio' : publishStatus[selectedAppointment.id] === 'publishing' ? 'Publishing...' : '✨ Publish to Portfolio'}
+                                                                        </button>
+                                                                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '8px' }}>This will push the image to your public Gallery.</p>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     )}
