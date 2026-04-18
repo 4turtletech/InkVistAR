@@ -300,7 +300,25 @@ function AdminDashboard() {
             await Axios.delete(`${API_URL}/api/admin/expenses/${id}`);
             fetchExpenseData();
             fetchAnalyticsData();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            const msg = e.response?.data?.message || 'Failed to delete expense.';
+            alert(msg);
+        }
+    };
+
+    const handleEditExpenseDash = async (id, data) => {
+        try {
+            await Axios.put(`${API_URL}/api/admin/expenses/${id}`, {
+                category: data.category,
+                description: data.description,
+                amount: parseFloat(data.amount)
+            });
+            fetchExpenseData();
+            fetchAnalyticsData();
+        } catch (e) {
+            const msg = e.response?.data?.message || 'Failed to edit expense.';
+            alert(msg);
+        }
     };
 
     const openDashAuditModal = (type) => {
@@ -842,6 +860,7 @@ function AdminDashboard() {
                 setExpenseForm={setExpenseForm}
                 onAddExpense={handleAddExpenseDash}
                 onDeleteExpense={handleDeleteExpenseDash}
+                onEditExpense={handleEditExpenseDash}
                 formatDuration={formatDuration}
                 darkMode={false}
             />

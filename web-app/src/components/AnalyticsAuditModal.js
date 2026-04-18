@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, BarChart3, Plus, Trash2, Search, ChevronLeft, ChevronRight, FileText, PieChart as PieChartIcon } from 'lucide-react';
+import { X, BarChart3, Plus, Trash2, Edit3, Check, Search, ChevronLeft, ChevronRight, FileText, PieChart as PieChartIcon } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 /* ═══════════════ SHARED CONSTANTS ═══════════════ */
@@ -8,6 +8,13 @@ const EXPENSE_COLORS = { Inventory: '#f59e0b', Marketing: '#3b82f6', Bills: '#ef
 const EXPENSE_CATEGORIES = ['Inventory', 'Marketing', 'Bills', 'Payouts', 'Equipment', 'Licensing', 'Maintenance', 'Extras'];
 const renderPieLabel = ({ name, percent }) => percent > 0.05 ? `${name} ${(percent * 100).toFixed(0)}%` : '';
 const ITEMS_PER_PAGE = 8;
+
+// Check if an expense is within the 1-hour edit window
+const isWithinEditWindow = (createdAt) => {
+    if (!createdAt) return false;
+    const diff = new Date() - new Date(createdAt);
+    return diff < 60 * 60 * 1000; // 1 hour in ms
+};
 
 /**
  * AnalyticsAuditModal — Shared audit modal for widget click-through.
@@ -23,18 +30,21 @@ const ITEMS_PER_PAGE = 8;
  *  - setExpenseForm: setter
  *  - onAddExpense: form submit handler
  *  - onDeleteExpense: (id) => void
+ *  - onEditExpense: (id, data) => void
  *  - formatDuration: (seconds) => string
  *  - darkMode: boolean (true for Analytics dark page, false for Dashboard light page)
  */
 function AnalyticsAuditModal({
     auditModal, onClose, analytics,
     expenseList = [], expenseLoading = false, expenseForm, setExpenseForm,
-    onAddExpense, onDeleteExpense, formatDuration,
+    onAddExpense, onDeleteExpense, onEditExpense, formatDuration,
     darkMode = false
 }) {
     const [auditSearch, setAuditSearch] = useState('');
     const [auditPage, setAuditPage] = useState(1);
     const [modalTab, setModalTab] = useState('summary');
+    const [editingId, setEditingId] = useState(null);
+    const [editData, setEditData] = useState({ category: '', description: '', amount: '' });
 
     // Automatically reset tab to summary whenever the modal is opened
     useEffect(() => {
@@ -42,6 +52,7 @@ function AnalyticsAuditModal({
             setModalTab('summary');
             setAuditSearch('');
             setAuditPage(1);
+            setEditingId(null);
         }
     }, [auditModal?.open]);
 
@@ -106,6 +117,24 @@ function AnalyticsAuditModal({
     const handleSearchChange = (val) => {
         setAuditSearch(val);
         setAuditPage(1);
+    };
+
+    // Edit handlers
+    const startEditing = (exp) => {
+        setEditingId(exp.id);
+        setEditData({ category: exp.category, description: exp.description || '', amount: exp.amount });
+    };
+
+    const cancelEditing = () => {
+        setEditingId(null);
+        setEditData({ category: '', description: '', amount: '' });
+    };
+
+    const saveEdit = () => {
+        if (onEditExpense && editingId) {
+            onEditExpense(editingId, editData);
+            setEditingId(null);
+        }
     };
 
     // ═══ Render audit table columns based on type ═══
@@ -358,29 +387,71 @@ function AnalyticsAuditModal({
                             </form>
 
                             <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>Expense Ledger</h3>
+                            <p style={{ margin: '0 0 12px', fontSize: '0.75rem', color: textMuted }}>
+                                Entries can be edited or deleted within 1 hour of creation.
+                            </p>
                             {expenseLoading ? (
                                 <p style={{ color: textMuted, fontSize: '0.85rem' }}>Loading...</p>
                             ) : expenseList.length === 0 ? (
                                 <p style={{ color: textMuted, fontSize: '0.85rem' }}>No manual expenses recorded yet.</p>
                             ) : (
-                                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
                                     <table className="data-table" style={{ fontSize: '0.8rem' }}>
-                                        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th style={{ textAlign: 'right' }}>Amount</th><th></th></tr></thead>
+                                        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th style={{ textAlign: 'right' }}>Amount</th><th style={{ width: '80px', textAlign: 'center' }}>Actions</th></tr></thead>
                                         <tbody>
-                                            {expenseList.map(exp => (
-                                                <tr key={exp.id}>
-                                                    <td>{new Date(exp.created_at).toLocaleDateString()}</td>
-                                                    <td>
-                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: EXPENSE_COLORS[exp.category] || '#64748b' }}></span>
-                                                            {exp.category}
-                                                        </span>
-                                                    </td>
-                                                    <td>{exp.description || '—'}</td>
-                                                    <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(exp.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
-                                                    <td><button onClick={() => onDeleteExpense(exp.id)} className="action-btn delete-btn" title="Delete" style={{ padding: '4px' }}><Trash2 size={14} /></button></td>
-                                                </tr>
-                                            ))}
+                                            {expenseList.map(exp => {
+                                                const editable = isWithinEditWindow(exp.created_at);
+                                                const isEditing = editingId === exp.id;
+
+                                                return (
+                                                    <tr key={exp.id}>
+                                                        <td>{new Date(exp.created_at).toLocaleDateString()}</td>
+                                                        <td>
+                                                            {isEditing ? (
+                                                                <select value={editData.category} onChange={e => setEditData({ ...editData, category: e.target.value })} style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
+                                                                    {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                                </select>
+                                                            ) : (
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: EXPENSE_COLORS[exp.category] || '#64748b' }}></span>
+                                                                    {exp.category}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            {isEditing ? (
+                                                                <input type="text" value={editData.description} onChange={e => setEditData({ ...editData, description: e.target.value })} style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem', width: '100%' }} />
+                                                            ) : (
+                                                                exp.description || '—'
+                                                            )}
+                                                        </td>
+                                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                                                            {isEditing ? (
+                                                                <input type="number" value={editData.amount} onChange={e => setEditData({ ...editData, amount: e.target.value })} style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem', width: '80px', textAlign: 'right' }} />
+                                                            ) : (
+                                                                `₱${Number(exp.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
+                                                            )}
+                                                        </td>
+                                                        <td style={{ textAlign: 'center' }}>
+                                                            {editable ? (
+                                                                isEditing ? (
+                                                                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                                                        <button onClick={saveEdit} title="Save" style={{ padding: '4px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Check size={13} /></button>
+                                                                        <button onClick={cancelEditing} title="Cancel" style={{ padding: '4px', background: '#94a3b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={13} /></button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                                                        <button onClick={() => startEditing(exp)} title="Edit" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}><Edit3 size={14} /></button>
+                                                                        <button onClick={() => onDeleteExpense(exp.id)} title="Delete" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><Trash2 size={14} /></button>
+                                                                    </div>
+                                                                )
+                                                            ) : (
+                                                                <span style={{ fontSize: '0.7rem', color: textMuted }}>Locked</span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>

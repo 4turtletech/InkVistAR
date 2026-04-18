@@ -73,7 +73,26 @@ function AdminAnalytics() {
             await Axios.delete(`${API_URL}/api/admin/expenses/${id}`);
             fetchExpenses();
             fetchAnalytics();
-        } catch (e) { showAlert('Error', 'Failed to delete expense.', 'danger'); }
+        } catch (e) {
+            const msg = e.response?.data?.message || 'Failed to delete expense.';
+            showAlert('Error', msg, 'danger');
+        }
+    };
+
+    const handleEditExpense = async (id, data) => {
+        try {
+            await Axios.put(`${API_URL}/api/admin/expenses/${id}`, {
+                category: data.category,
+                description: data.description,
+                amount: parseFloat(data.amount)
+            });
+            fetchExpenses();
+            fetchAnalytics();
+            showAlert('Success', 'Expense updated.', 'success');
+        } catch (e) {
+            const msg = e.response?.data?.message || 'Failed to edit expense.';
+            showAlert('Error', msg, 'danger');
+        }
     };
 
     const openAuditModal = (type) => {
@@ -433,6 +452,7 @@ function AdminAnalytics() {
                     setExpenseForm={setExpenseForm}
                     onAddExpense={handleAddExpense}
                     onDeleteExpense={handleDeleteExpense}
+                    onEditExpense={handleEditExpense}
                     formatDuration={formatDuration}
                     darkMode={false}
                 />

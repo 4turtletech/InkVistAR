@@ -5916,16 +5916,16 @@ app.get('/api/admin/analytics', (req, res) => {
 
   // 5. Popular Styles — combines portfolio categories + appointment service types
   const styleQuery = `
-    SELECT name, SUM(count) as count FROM (
-      SELECT category as name, COUNT(*) as count 
+    SELECT name, SUM(cnt) as count FROM (
+      SELECT category as name, COUNT(*) as cnt 
       FROM portfolio_works 
       WHERE is_deleted = 0 AND category IS NOT NULL AND category != ''
       GROUP BY category
       UNION ALL
-      SELECT service_type as name, COUNT(*) as count
-      FROM appointments
-      WHERE is_deleted = 0 AND service_type IS NOT NULL AND service_type != '' ${apptDateFilter}
-      GROUP BY service_type
+      SELECT ap.service_type as name, COUNT(*) as cnt
+      FROM appointments ap
+      WHERE ap.is_deleted = 0 AND ap.service_type IS NOT NULL AND ap.service_type != '' ${apptDateFilter}
+      GROUP BY ap.service_type
     ) combined
     GROUP BY name
     ORDER BY count DESC 
@@ -6193,12 +6193,46 @@ app.post('/api/admin/expenses', (req, res) => {
   });
 });
 
-// Admin: Delete Studio Expense
+// Admin: Delete Studio Expense (only within 1 hour of creation)
 app.delete('/api/admin/expenses/:id', (req, res) => {
-  db.query('DELETE FROM studio_expenses WHERE id = ?', [req.params.id], (err) => {
+  db.query('SELECT created_at FROM studio_expenses WHERE id = ?', [req.params.id], (err, rows) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'DELETE_MANUAL_EXPENSE', `Deleted manual expense ID ${req.params.id}`, req.ip);
-    res.json({ success: true, message: 'Expense deleted' });
+    if (!rows || rows.length === 0) return res.status(404).json({ success: false, message: 'Expense not found.' });
+    const createdAt = new Date(rows[0].created_at);
+    const now = new Date();
+    const diffMs = now - createdAt;
+    const oneHourMs = 60 * 60 * 1000;
+    if (diffMs > oneHourMs) {
+      return res.status(403).json({ success: false, message: 'Cannot delete expenses older than 1 hour.' });
+    }
+    db.query('DELETE FROM studio_expenses WHERE id = ?', [req.params.id], (err) => {
+      if (err) return res.status(500).json({ success: false, message: err.message });
+      logAction(null, 'DELETE_MANUAL_EXPENSE', `Deleted manual expense ID ${req.params.id}`, req.ip);
+      res.json({ success: true, message: 'Expense deleted' });
+    });
+  });
+});
+
+// Admin: Edit Studio Expense (only within 1 hour of creation)
+app.put('/api/admin/expenses/:id', (req, res) => {
+  const { category, description, amount } = req.body;
+  if (!category || !amount) return res.status(400).json({ success: false, message: 'Category and amount are required.' });
+  db.query('SELECT created_at FROM studio_expenses WHERE id = ?', [req.params.id], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    if (!rows || rows.length === 0) return res.status(404).json({ success: false, message: 'Expense not found.' });
+    const createdAt = new Date(rows[0].created_at);
+    const now = new Date();
+    const diffMs = now - createdAt;
+    const oneHourMs = 60 * 60 * 1000;
+    if (diffMs > oneHourMs) {
+      return res.status(403).json({ success: false, message: 'Cannot edit expenses older than 1 hour.' });
+    }
+    db.query('UPDATE studio_expenses SET category = ?, description = ?, amount = ? WHERE id = ?',
+      [category, description || '', parseFloat(amount), req.params.id], (err) => {
+      if (err) return res.status(500).json({ success: false, message: err.message });
+      logAction(null, 'EDIT_MANUAL_EXPENSE', `Edited manual expense ID ${req.params.id}: ${category} - ₱${amount}`, req.ip);
+      res.json({ success: true, message: 'Expense updated' });
+    });
   });
 });
 
