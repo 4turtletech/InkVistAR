@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import Axios from 'axios';
-import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift, Check, Paintbrush, Gem } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift, Check, Paintbrush, Gem, Star, CreditCard, Eye, Shield, Bell, Sparkles, Award } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
 const BodyModelViewer = lazy(() => import('./BodyModelViewer'));
@@ -66,34 +66,46 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
     const features = [
         {
-            icon: <Clock size={48} color="#C19A6B" />,
-            title: "Track Status",
-            desc: "Monitor your consultation request and appointment progress in real-time.",
+            icon: <Eye size={48} color="#C19A6B" />,
+            title: "AR Tattoo Try-On",
+            desc: "Preview your tattoo in augmented reality before committing to the real thing.",
             bgColor: "#fdf2e9"
+        },
+        {
+            icon: <Paintbrush size={48} color="#C19A6B" />,
+            title: "Healing Journey Tracker",
+            desc: "Access customized aftercare guides and track your tattoo's healing process.",
+            bgColor: "#f9ebe0"
+        },
+        {
+            icon: <Award size={48} color="#C19A6B" />,
+            title: "My Tattoo History",
+            desc: "View your completed works and manage your personal tattoo profile.",
+            bgColor: "#faf0e4"
+        },
+        {
+            icon: <Star size={48} color="#C19A6B" />,
+            title: "Gallery & Favorites",
+            desc: "Browse our full portfolio, save favorites, and find your next inspiration.",
+            bgColor: "#f5e6d5"
         },
         {
             icon: <CalendarCheck size={48} color="#C19A6B" />,
             title: "Manage Appointments",
             desc: "Easily view, reschedule, or cancel your past and upcoming sessions.",
-            bgColor: "#f8fafc"
+            bgColor: "#fdf2e9"
         },
         {
             icon: <MessageSquare size={48} color="#C19A6B" />,
             title: "Direct Communication",
-            desc: "Chat securely with your artist and the studio for any questions or updates.",
-            bgColor: "#f0fdf4"
+            desc: "Chat securely with your artist and the studio for questions or updates.",
+            bgColor: "#f9ebe0"
         },
         {
-            icon: <UserCog size={48} color="#C19A6B" />,
-            title: "Personalized Profile",
-            desc: "Manage your personal details, preferences, and tattoo history in one place.",
-            bgColor: "#f5f3ff"
-        },
-        {
-            icon: <Gift size={48} color="#C19A6B" />,
-            title: "Exclusive Benefits",
-            desc: "Receive special offers, loyalty rewards, and early access to new designs.",
-            bgColor: "#fff7ed"
+            icon: <Bell size={48} color="#C19A6B" />,
+            title: "Smart Notifications",
+            desc: "Get reminders for upcoming sessions, aftercare tips, and announcements.",
+            bgColor: "#faf0e4"
         }
     ];
 
@@ -858,6 +870,29 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         >
                             No Thanks
                         </button>
+                    </div>
+
+                    {/* Important Note */}
+                    <div style={{
+                        marginTop: '28px',
+                        padding: '12px 16px',
+                        backgroundColor: '#f8fafc',
+                        borderLeft: '4px solid #C19A6B',
+                        borderRadius: '0 8px 8px 0',
+                        maxWidth: '320px'
+                    }}>
+                        <p style={{
+                            margin: 0,
+                            fontSize: '0.8rem',
+                            lineHeight: '1.5',
+                            color: '#475569',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '8px'
+                        }}>
+                            <Info size={16} color="#C19A6B" style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <span><strong>Please Note:</strong> An account is required to pursue and confirm an actual online session booking for your tattoo.</span>
+                        </p>
                     </div>
                 </div>
 
