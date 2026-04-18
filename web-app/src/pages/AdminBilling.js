@@ -200,10 +200,10 @@ function AdminBilling() {
     };
 
     const filteredInvoices = invoices.filter(inv => {
-        const matchesSearch = inv.client_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        const matchesSearch = (inv.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                               inv.id.toString().includes(searchTerm) ||
                               (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || inv.status.toLowerCase() === statusFilter.toLowerCase();
+        const matchesStatus = statusFilter === 'all' || (inv.status || '').toLowerCase() === statusFilter.toLowerCase();
         const isPOS = (inv.service_type || '').toLowerCase().includes('retail') || (inv.service_type || '').toLowerCase().includes('pos');
         const matchesSource = sourceFilter === 'all' || 
             (sourceFilter === 'pos' && isPOS) || 
@@ -344,7 +344,7 @@ function AdminBilling() {
                                         ) : paginatedInvoices.map(inv => (
                                             <tr key={inv.id}>
                                                 <td>{inv.invoice_number || `INV-${inv.id}`}</td>
-                                                <td>{inv.client_name}</td>
+                                                <td>{inv.client_name || 'Walk-in Customer'}</td>
                                                 <td>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                         {inv.service_type}
@@ -366,8 +366,8 @@ function AdminBilling() {
                                                     })()}
                                                 </td>
                                                 <td>
-                                                    <span className={`badge status-${inv.status.toLowerCase() === 'paid' ? 'active' : 'pending'}`}>
-                                                        {inv.status}
+                                                    <span className={`badge status-${(inv.status || '').toLowerCase() === 'paid' ? 'active' : 'pending'}`}>
+                                                        {inv.status || 'Unknown'}
                                                     </span>
                                                 </td>
                                                 <td>

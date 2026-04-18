@@ -393,7 +393,7 @@ function AdminPOS() {
                                     disabled={cart.length === 0}
                                     onClick={() => { setAmountTendered(''); setShowAssessment(true); }}
                                 >
-                                    Assess Sale
+                                    Review Order
                                     <ArrowRight size={18} />
                                 </button>
                             </div>

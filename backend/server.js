@@ -3785,29 +3785,67 @@ app.put('/api/artist/appointments/:id/draft', (req, res) => {
   });
 });
 
-// GET transaction history (invoices mapping)
+// GET transaction history (invoices mapping) — merges payments + invoices tables
 app.get('/api/admin/invoices', (req, res) => {
-  const query = `
+  // Query 1: Payment-based invoices (from PayMongo / appointment payments)
+  const paymentsQuery = `
     SELECT 
       p.id, 
+      NULL as invoice_number,
       u.name as client_name, 
+      u.id as client_id,
       COALESCE(a.service_type, 'Service') as service_type, 
       p.created_at, 
       (p.amount / 100) as amount, 
       p.status,
-      p.raw_event
+      p.raw_event,
+      NULL as items,
+      NULL as discount_amount,
+      NULL as discount_type
     FROM payments p
     LEFT JOIN appointments a ON p.appointment_id = a.id
     LEFT JOIN users u ON a.customer_id = u.id
     ORDER BY p.created_at DESC
   `;
 
-  db.query(query, (err, results) => {
+  // Query 2: Direct invoices (from POS sales, manual creation, etc.)
+  const invoicesQuery = `
+    SELECT 
+      (id + 100000) as id,
+      invoice_number,
+      client_name,
+      customer_id as client_id,
+      service_type,
+      created_at,
+      amount,
+      status,
+      NULL as raw_event,
+      items,
+      discount_amount,
+      discount_type
+    FROM invoices
+    ORDER BY created_at DESC
+  `;
+
+  db.query(paymentsQuery, (err, paymentResults) => {
     if (err) {
-      console.error("Error fetching invoices:", err);
+      console.error("Error fetching payment invoices:", err);
       return res.status(500).json({ success: false, message: 'Database error fetching invoices' });
     }
-    res.json({ success: true, data: results });
+
+    db.query(invoicesQuery, (err2, invoiceResults) => {
+      if (err2) {
+        console.error("Error fetching direct invoices:", err2);
+        // Still return payment results even if invoices table fails
+        return res.json({ success: true, data: paymentResults || [] });
+      }
+
+      // Merge both arrays and sort by date descending
+      const merged = [...(paymentResults || []), ...(invoiceResults || [])];
+      merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      res.json({ success: true, data: merged });
+    });
   });
 });
 
@@ -6320,13 +6358,7 @@ app.put('/api/admin/expenses/:id', (req, res) => {
   });
 });
 
-// Admin: Get Invoices
-app.get('/api/admin/invoices', (req, res) => {
-  db.query('SELECT * FROM invoices ORDER BY created_at DESC', (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, data: results });
-  });
-});
+// NOTE: GET /api/admin/invoices is handled earlier in this file (merged payments + invoices query)
 
 // Admin: Create Invoice
 app.post('/api/admin/invoices', (req, res) => {
