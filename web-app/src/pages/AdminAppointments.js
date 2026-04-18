@@ -57,7 +57,6 @@ function AdminAppointments() {
         rejectionReason: '',
         rescheduleReason: ''
     });
-    const [dayViewModal, setDayViewModal] = useState({ isOpen: false, date: '', appointments: [] });
     const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, date: '', time: '', reason: '' });
     const [showCalendarLegend, setShowCalendarLegend] = useState(false);
     const [selectedDay, setSelectedDay] = useState(null); // tracks the keyboard-focused day
@@ -146,12 +145,19 @@ function AdminAppointments() {
 
     const handleDayClick = (dateString, day) => {
         setSelectedDay(day || null);
-        const dayAppts = appointments.filter(apt => {
-            const aptDate = apt.date ? (apt.date.includes('T') ? apt.date.split('T')[0] : apt.date.substring(0, 10)) : '';
-            return aptDate === dateString;
-        });
-        setDayViewModal({ isOpen: true, date: dateString, appointments: dayAppts });
     };
+
+    // Keep selectedDay up to date automatically based on the month being viewed
+    useEffect(() => {
+        if (viewMode === 'calendar') {
+            const today = new Date();
+            if (today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear()) {
+                setSelectedDay(today.getDate());
+            } else {
+                setSelectedDay(1);
+            }
+        }
+    }, [currentDate, viewMode]);
 
     useEffect(() => {
         filterAndSortAppointments();
@@ -213,50 +219,19 @@ function AdminAppointments() {
         setCurrentDate(newDate);
     };
 
-    // Navigate the day view modal to prev/next day
-    const navigateDayView = (offset) => {
-        const current = new Date(dayViewModal.date);
-        current.setDate(current.getDate() + offset);
-        const y = current.getFullYear();
-        const m = String(current.getMonth() + 1).padStart(2, '0');
-        const d = String(current.getDate()).padStart(2, '0');
-        const dateStr = `${y}-${m}-${d}`;
-
-        // If we moved to a different month, update the calendar month too
-        if (current.getMonth() !== currentDate.getMonth() || current.getFullYear() !== currentDate.getFullYear()) {
-            setCurrentDate(new Date(y, current.getMonth(), 1));
-        }
-        setSelectedDay(current.getDate());
-
-        const dayAppts = appointments.filter(apt => {
-            const aptDate = apt.date ? (apt.date.includes('T') ? apt.date.split('T')[0] : apt.date.substring(0, 10)) : '';
-            return aptDate === dateStr;
-        });
-        setDayViewModal({ isOpen: true, date: dateStr, appointments: dayAppts });
-    };
-
-    // Keyboard arrow-key navigation for calendar
+    // Navigate the calendar day
     useEffect(() => {
         if (viewMode !== 'calendar') return;
-        // Don't handle keys when the appointment edit modal is open
         if (appointmentModal.mounted) return;
 
         const handleKeyDown = (e) => {
             // Only handle arrow keys and Enter
             if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter'].includes(e.key)) return;
 
-            // If the day view modal is open, let left/right navigate days
-            if (dayViewModal.isOpen) {
-                if (e.key === 'ArrowLeft') { e.preventDefault(); navigateDayView(-1); }
-                else if (e.key === 'ArrowRight') { e.preventDefault(); navigateDayView(1); }
-                return;
-            }
-
             e.preventDefault();
             const maxDay = daysInMonth;
 
             if (selectedDay === null) {
-                // No day selected yet — select today if visible, otherwise day 1
                 const today = new Date();
                 if (today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear()) {
                     setSelectedDay(today.getDate());
@@ -268,7 +243,7 @@ function AdminAppointments() {
 
             if (e.key === 'Enter') {
                 const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
-                handleDayClick(dateStr, selectedDay);
+                handleAddNew(dateStr);
                 return;
             }
 
@@ -279,10 +254,8 @@ function AdminAppointments() {
             else if (e.key === 'ArrowDown') newDay = selectedDay + 7;
 
             if (newDay < 1) {
-                // Navigate to previous month
                 changeMonth(-1);
             } else if (newDay > maxDay) {
-                // Navigate to next month
                 changeMonth(1);
             } else {
                 setSelectedDay(newDay);
@@ -291,7 +264,7 @@ function AdminAppointments() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [viewMode, selectedDay, currentDate, daysInMonth, dayViewModal.isOpen, appointmentModal.mounted]);
+    }, [viewMode, selectedDay, currentDate, daysInMonth, appointmentModal.mounted]);
 
     const getAppointmentsForDate = (day) => {
         return appointments.filter(a => {
@@ -797,7 +770,8 @@ function AdminAppointments() {
                 </header>
 
                 {viewMode === 'calendar' ? (
-                    <div className="data-card admin-st-96be3bbd">
+                    <div className="calendar-split-view">
+                    <div className="data-card admin-st-96be3bbd calendar-main-pane">
                         <div className="calendar-header admin-st-07952507">
                             <div className="admin-st-f21b09cf">
                                 <button onClick={() => changeMonth(-1)} className="action-btn admin-m-0"><ChevronLeft size={20} /></button>
@@ -933,6 +907,76 @@ function AdminAppointments() {
                                 );
                             })}
                         </div>
+                    </div>
+
+                    <div className="day-view-panel data-card">
+                        <div className="day-view-header">
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#1e293b' }}>
+                                {new Date(
+                                    currentDate.getFullYear(),
+                                    currentDate.getMonth(),
+                                    selectedDay || 1
+                                ).toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </h3>
+                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                {getAppointmentsForDate(selectedDay || 1).length} Bookings
+                            </span>
+                        </div>
+                        <div className="day-view-body">
+                            {getAppointmentsForDate(selectedDay || 1).map(apt => (
+                                <div
+                                    key={apt.id}
+                                    className="glass-card day-view-apt-card"
+                                    onClick={() => handleEdit(apt)}
+                                >
+                                    <div className="admin-st-a5c3808d">
+                                        <div style={{
+                                            width: '40px', height: '40px', borderRadius: '50%',
+                                            backgroundColor: '#f1f5f9', overflow: 'hidden',
+                                            border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                        }}>
+                                            {apt.clientAvatar && apt.clientAvatar.length > 10 ? (
+                                                <img 
+                                                    src={apt.clientAvatar} 
+                                                    alt="Profile" 
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                    onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'; }}
+                                                />
+                                            ) : (
+                                                <User size={18} color="#94a3b8" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '0.95rem' }}>{apt.clientName}</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{apt.serviceType || 'Tattoo Session'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                                        <span className={`badge status-${getStatusColor(apt.status)}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
+                                            {apt.status}
+                                        </span>
+                                        <span style={{ color: '#6366f1', fontWeight: '600', fontSize: '0.85rem' }}>{apt.start_time || apt.time}</span>
+                                    </div>
+                                </div>
+                            ))}
+                            {getAppointmentsForDate(selectedDay || 1).length === 0 && (
+                                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem 1rem', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                                    <Calendar size={32} color="#cbd5e1" style={{ margin: '0 auto 10px' }} />
+                                    No appointments scheduled for this date.
+                                </div>
+                            )}
+                        </div>
+                        <div className="day-view-footer">
+                            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => {
+                                handleAddNew(`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDay || 1).padStart(2, '0')}`);
+                            }}>
+                                <Plus size={16} style={{ marginRight: '6px' }} /> Add Appointment
+                            </button>
+                        </div>
+                    </div>
                     </div>
                 ) : (
                     <>
@@ -1702,97 +1746,7 @@ function AdminAppointments() {
                     </div>
                 )}
 
-                {/* Day View Modal */}
-                {dayViewModal.isOpen && (
-                    <div className="modal-overlay admin-st-032d51d4" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}>
-                        <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
-                            <div className="modal-header">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <button
-                                        className="action-btn admin-m-0"
-                                        onClick={(e) => { e.stopPropagation(); navigateDayView(-1); }}
-                                        title="Previous day"
-                                        style={{ width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', border: '1px solid #e2e8f0', cursor: 'pointer' }}
-                                    >
-                                        <ChevronLeft size={16} />
-                                    </button>
-                                    <h2 style={{ margin: 0 }}>{dayViewModal.date}</h2>
-                                    <button
-                                        className="action-btn admin-m-0"
-                                        onClick={(e) => { e.stopPropagation(); navigateDayView(1); }}
-                                        title="Next day"
-                                        style={{ width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', border: '1px solid #e2e8f0', cursor: 'pointer' }}
-                                    >
-                                        <ChevronRight size={16} />
-                                    </button>
-                                </div>
-                                <button className="close-btn" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}><X size={24} /></button>
-                            </div>
-                            <div className="modal-body">
-                                <h4 className="admin-st-48229229">Appointments for this day:</h4>
-                                <div className="admin-st-b8aaf979">
-                                    {dayViewModal.appointments.map(apt => (
-                                        <div
-                                            key={apt.id}
-                                            className="glass-card admin-st-9880e94d"
-                                            onClick={() => {
-                                                setDayViewModal({ ...dayViewModal, isOpen: false });
-                                                handleEdit(apt);
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.borderColor = '#6366f1'}
-                                            onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}
-                                        >
-                                            <div className="admin-st-a5c3808d">
-                                                <div style={{
-                                                    width: '44px', height: '44px', borderRadius: '50%',
-                                                    backgroundColor: '#f1f5f9', overflow: 'hidden',
-                                                    border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                                                }}>
-                                                    {apt.clientAvatar && apt.clientAvatar.length > 10 ? (
-                                                        <img 
-                                                            src={apt.clientAvatar} 
-                                                            alt="Profile" 
-                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                                            onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'; }}
-                                                        />
-                                                    ) : (
-                                                        <User size={20} color="#94a3b8" />
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <div className="admin-st-6ad161f7">{apt.clientName}</div>
-                                                    <div className="admin-st-3bf8f64b" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <span>{apt.serviceType || 'Tattoo Session'}</span>
-                                                        <span style={{ fontSize: '10px', color: '#cbd5e1' }}>•</span>
-                                                        <span style={{ color: '#6366f1', fontWeight: '500' }}>{apt.start_time || apt.time}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="admin-st-7851dbc0">
-                                                <span className={`${`badge status-${getStatusColor(apt.status)} admin-st-af89d6d6`} `} >{apt.status}</span>
-                                                <div className="admin-st-16d46816">Artist: {apt.artist_name}</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {dayViewModal.appointments.length === 0 && (
-                                        <div className="admin-st-555dbe34">No appointments scheduled for this day.</div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={() => setDayViewModal({ ...dayViewModal, isOpen: false })}>Close</button>
-                                <button className="btn btn-primary" onClick={() => {
-                                    setDayViewModal({ ...dayViewModal, isOpen: false });
-                                    handleAddNew();
-                                    setFormData(prev => ({ ...prev, date: dayViewModal.date }));
-                                }}>
-                                    <Plus size={18} /> Add Appointment
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
+
             </div>
 
             
