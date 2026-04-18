@@ -246,7 +246,7 @@ function AdminAnalytics() {
                     <div className="header-actions-group">
                         <div className="filter-group-glass">
                             <Filter size={16} color="#64748b" />
-                            <span style={{ color: '#64748b', fontWeight: 600 }}>Revenue:</span>
+                            <span style={{ color: '#64748b', fontWeight: 600 }}>Period:</span>
                             <select value={revenueTimeframe} onChange={(e) => setRevenueTimeframe(e.target.value)} className="premium-select-glass">
                                 <option value="monthly">This Month</option>
                                 <option value="yearly">This Year</option>

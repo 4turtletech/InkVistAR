@@ -5677,21 +5677,44 @@ app.get('/api/admin/inventory/transactions', (req, res) => {
 app.get('/api/admin/analytics', (req, res) => {
   const timeframe = req.query.timeframe || 'all'; // 'monthly', 'yearly', 'all'
   
-  // Build date filter clause for revenue queries
-  let revenueDateFilter = '';
+  // ─── UNIFIED DATE FILTERS ───
+  // Build date filter clauses for EVERY table so all widgets respect the timeframe.
+  // "All Time" is clamped to April 2026 (project start).
+  const ALL_TIME_START = '2026-04-01';
+
+  let apptDateFilter = '';          // appointments.appointment_date
+  let invTxDateFilter = '';         // inventory_transactions.created_at
+  let studioExpDateFilter = '';     // studio_expenses.created_at
+  let payoutsDateFilter = '';       // payouts.created_at
+  let invoiceDateFilter = '';       // invoices.created_at
+  let revenueDateFilter = '';       // appointments via ap.appointment_date (for revenue)
+
   if (timeframe === 'monthly') {
-    revenueDateFilter = "AND ap.appointment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    apptDateFilter      = "AND ap.appointment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    revenueDateFilter   = "AND ap.appointment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    invTxDateFilter     = "AND t.created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    studioExpDateFilter = "AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    payoutsDateFilter   = "AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    invoiceDateFilter   = "AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
   } else if (timeframe === 'yearly') {
-    revenueDateFilter = "AND YEAR(ap.appointment_date) = YEAR(NOW())";
+    apptDateFilter      = "AND YEAR(ap.appointment_date) = YEAR(NOW())";
+    revenueDateFilter   = "AND YEAR(ap.appointment_date) = YEAR(NOW())";
+    invTxDateFilter     = "AND YEAR(t.created_at) = YEAR(NOW())";
+    studioExpDateFilter = "AND YEAR(created_at) = YEAR(NOW())";
+    payoutsDateFilter   = "AND YEAR(created_at) = YEAR(NOW())";
+    invoiceDateFilter   = "AND YEAR(created_at) = YEAR(NOW())";
+  } else {
+    // 'all' — clamp to project start (April 2026)
+    apptDateFilter      = `AND ap.appointment_date >= '${ALL_TIME_START}'`;
+    revenueDateFilter   = `AND ap.appointment_date >= '${ALL_TIME_START}'`;
+    invTxDateFilter     = `AND t.created_at >= '${ALL_TIME_START}'`;
+    studioExpDateFilter = `AND created_at >= '${ALL_TIME_START}'`;
+    payoutsDateFilter   = `AND created_at >= '${ALL_TIME_START}'`;
+    invoiceDateFilter   = `AND created_at >= '${ALL_TIME_START}'`;
   }
-  // 'all' = no filter
-  
-  let invoiceDateFilter = '';
-  if (timeframe === 'monthly') {
-    invoiceDateFilter = "AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
-  } else if (timeframe === 'yearly') {
-    invoiceDateFilter = "AND YEAR(created_at) = YEAR(NOW())";
-  }
+
+  // How many days to show on mini-trend charts
+  const trendDays = timeframe === 'monthly' ? 30 : timeframe === 'yearly' ? 90 : 30;
 
   const response = {
     revenue: { total: 0, growth: 0, chart: [], breakdown: [] },
@@ -5710,7 +5733,7 @@ app.get('/api/admin/analytics', (req, res) => {
     timeframe: timeframe
   };
 
-  // 1. Appointment Stats
+  // 1. Appointment Stats — filtered by timeframe
   const apptStatsQuery = `
     SELECT 
       COUNT(*) as total,
@@ -5718,8 +5741,8 @@ app.get('/api/admin/analytics', (req, res) => {
       SUM(CASE WHEN status IN ('scheduled', 'confirmed') THEN 1 ELSE 0 END) as scheduled,
       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
       AVG(CASE WHEN status = 'completed' AND session_duration IS NOT NULL AND session_duration > 0 THEN session_duration ELSE NULL END) as avgDuration
-    FROM appointments
-    WHERE is_deleted = 0
+    FROM appointments ap
+    WHERE is_deleted = 0 ${apptDateFilter}
   `;
 
   // 2. Revenue breakdown by source (Appointments vs POS) — filtered by timeframe
@@ -5730,20 +5753,33 @@ app.get('/api/admin/analytics', (req, res) => {
       COALESCE((SELECT SUM(amount) FROM invoices WHERE LOWER(status) = 'paid' AND LOWER(service_type) NOT LIKE '%retail%' AND LOWER(service_type) NOT LIKE '%pos%' ${invoiceDateFilter}), 0) as service_invoice_revenue
   `;
 
-  // 2.5 Expenses: Inventory procurements + Payouts
+  // 2.5 Expenses: Inventory procurements + Payouts — filtered by timeframe
   const expensesQuery = `
     SELECT 
       (SELECT COALESCE(SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)), 0) 
-       FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in') as procurement_total,
-      (SELECT COALESCE(SUM(amount), 0) FROM payouts) as payouts_total
+       FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id WHERE t.type = 'in' ${invTxDateFilter}) as procurement_total,
+      (SELECT COALESCE(SUM(amount), 0) FROM payouts WHERE 1=1 ${payoutsDateFilter}) as payouts_total
   `;
 
-  // 2.5.5 Overhead Expenses (Manual from studio_expenses)
+  // 2.5.5 Overhead Expenses (Manual from studio_expenses) — filtered by timeframe
   const overheadBreakdownQuery = `
     SELECT category, SUM(amount) as total
     FROM studio_expenses
+    WHERE 1=1 ${studioExpDateFilter}
     GROUP BY category
     ORDER BY total DESC
+  `;
+
+  // 2.5.6 Expenses Daily Trend (for Ops Expenses mini-chart)
+  const expensesTrendQuery = `
+    SELECT 
+      DATE(t.created_at) as sort_key,
+      SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) as v
+    FROM inventory_transactions t 
+    JOIN inventory i ON t.inventory_id = i.id
+    WHERE t.type = 'in' ${invTxDateFilter}
+    GROUP BY sort_key
+    ORDER BY sort_key ASC
   `;
 
   // 2.6 Fetch raw data for expense audits
@@ -5819,7 +5855,7 @@ app.get('/api/admin/analytics', (req, res) => {
     LIMIT 50
   `;
 
-  // 3. Artist Productivity
+  // 3. Artist Productivity — filtered by timeframe
   const artistQuery = `
     SELECT name, SUM(appointments) as appointments, SUM(revenue) as revenue FROM (
       SELECT 
@@ -5831,7 +5867,7 @@ app.get('/api/admin/analytics', (req, res) => {
         ) as revenue
       FROM appointments ap
       JOIN users u ON ap.artist_id = u.id
-      WHERE ap.status != 'cancelled' AND ap.is_deleted = 0
+      WHERE ap.status != 'cancelled' AND ap.is_deleted = 0 ${apptDateFilter}
       GROUP BY u.id, u.name
       UNION ALL
       SELECT 
@@ -5843,7 +5879,7 @@ app.get('/api/admin/analytics', (req, res) => {
         ) as revenue
       FROM appointments ap
       JOIN users u ON ap.secondary_artist_id = u.id
-      WHERE ap.status != 'cancelled' AND ap.is_deleted = 0 AND ap.secondary_artist_id IS NOT NULL
+      WHERE ap.status != 'cancelled' AND ap.is_deleted = 0 AND ap.secondary_artist_id IS NOT NULL ${apptDateFilter}
       GROUP BY u.id, u.name
     ) combined
     GROUP BY name
@@ -5851,26 +5887,25 @@ app.get('/api/admin/analytics', (req, res) => {
     LIMIT 5
   `;
 
-  // 4. Inventory Consumption
+  // 4. Inventory Consumption — filtered by timeframe
   const inventoryQuery = `
     SELECT i.name, SUM(t.quantity) as used, i.unit
     FROM inventory_transactions t
     JOIN inventory i ON t.inventory_id = i.id
-    WHERE t.type = 'out'
+    WHERE t.type = 'out' ${invTxDateFilter}
     GROUP BY i.id, i.name, i.unit
     ORDER BY used DESC
     LIMIT 5
   `;
 
-  // 4b. Inventory Daily Trend (last 30 days)
+  // 4b. Inventory Daily Trend (last N days based on timeframe)
   const inventoryTrendQuery = `
     SELECT 
-      DATE_FORMAT(created_at, '%e') as label,
-      DATE(created_at) as sort_key,
-      SUM(quantity) as v
-    FROM inventory_transactions
-    WHERE type = 'out' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-    GROUP BY label, sort_key
+      DATE(t.created_at) as sort_key,
+      SUM(t.quantity) as v
+    FROM inventory_transactions t
+    WHERE t.type = 'out' AND t.created_at >= DATE_SUB(NOW(), INTERVAL ${trendDays} DAY)
+    GROUP BY sort_key
     ORDER BY sort_key ASC
   `;
 
@@ -5935,13 +5970,13 @@ app.get('/api/admin/analytics', (req, res) => {
           db.query(inventoryTrendQuery, (err, trendInvRes) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
             
-            // Build a 30-day trend array, filling missing days with 0
+            // Build a N-day trend array, filling missing days with 0
             const inventoryTrendMap = {};
             const today = new Date();
-            for (let i = 29; i >= 0; i--) {
+            for (let i = trendDays - 1; i >= 0; i--) {
               const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
               const sortKey = d.toISOString().split('T')[0];
-              const label = String(d.getDate());
+              const label = d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
               inventoryTrendMap[sortKey] = { label, v: 0 };
             }
             if (trendInvRes) {
@@ -5953,6 +5988,27 @@ app.get('/api/admin/analytics', (req, res) => {
               });
             }
             response.inventory_trend = Object.values(inventoryTrendMap);
+
+            // Expenses daily trend
+            db.query(expensesTrendQuery, (err, expTrendRes) => {
+              if (err) return res.status(500).json({ success: false, message: err.message });
+              
+              const expensesTrendMap = {};
+              for (let i = trendDays - 1; i >= 0; i--) {
+                const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+                const sortKey = d.toISOString().split('T')[0];
+                const label = d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+                expensesTrendMap[sortKey] = { label, v: 0 };
+              }
+              if (expTrendRes) {
+                expTrendRes.forEach(t => {
+                  const sk = typeof t.sort_key === 'string' ? t.sort_key : new Date(t.sort_key).toISOString().split('T')[0];
+                  if (expensesTrendMap[sk]) {
+                    expensesTrendMap[sk].v = Number(t.v) || 0;
+                  }
+                });
+              }
+              response.expenses_trend = Object.values(expensesTrendMap);
 
             db.query(styleQuery, (err, styleRes) => {
               if (err) return res.status(500).json({ success: false, message: err.message });
@@ -6044,24 +6100,25 @@ app.get('/api/admin/analytics', (req, res) => {
                                   db.query('SELECT se.*, COALESCE(u.name, "System Admin") as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC LIMIT 50', (err, overheadAudit) => {
                                     if (!err) response.overhead.audit = overheadAudit;
                                     res.json({ success: true, data: response });
-                                  });
-                                });
-                              });
-                            });
-                          });
-                        });
-                      });
-                    });
-                  });
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-  });
-});
+                                  });  // overheadAudit inline
+                                });  // usersAuditQuery
+                              });  // userStatsQuery
+                            });  // inventoryOutAuditQuery
+                          });  // durationAuditQuery
+                        });  // appointmentsAuditQuery
+                      });  // revenueAuditQuery
+                    });  // inventoryInAuditQuery
+                  });  // payoutsAuditQuery
+                });  // overheadBreakdownQuery
+              });  // expensesQuery
+            });  // trendQuery
+          });  // styleQuery
+          });  // expensesTrendQuery
+          });  // inventoryTrendQuery
+        });  // inventoryQuery
+      });  // artistQuery
+    });  // revenueBreakdownQuery
+  });  // apptStatsQuery
 });
 
 // Admin: Get All Studio Expenses (for audit modal)

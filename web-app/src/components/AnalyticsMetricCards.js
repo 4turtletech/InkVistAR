@@ -49,16 +49,21 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
             label: 'Ops Expenses',
             value: `₱${Number(analytics.expenses?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             hint: 'View audited transactions →',
-            chart: (
+            chart: ((analytics.expenses_trend || []).length > 0 ? (
                 <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px' }}>
                     <ResponsiveContainer>
-                        <AreaChart data={[{v: 0}, {v: Number(analytics.expenses?.total || 0) * 0.2}, {v: Number(analytics.expenses?.total || 0) * 0.4}, {v: Number(analytics.expenses?.total || 0) * 0.65}, {v: Number(analytics.expenses?.total || 0)}]}>
-                            <Area type="monotone" dataKey="v" stroke="#f59e0b" fill="#fef3c7" strokeWidth={2} />
-                            <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
+                        <AreaChart data={analytics.expenses_trend} margin={{ top: 10, right: 5, left: 5, bottom: 0 }}>
+                            <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
+                            <Area type="monotone" dataKey="v" stroke="#f59e0b" fill="#fef3c7" strokeWidth={2} activeDot={{ r: 4 }} />
+                            <Tooltip
+                                formatter={(value) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, 'Expense']}
+                                labelFormatter={(label) => label}
+                                contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }}
+                            />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
-            )
+            ) : null)
         },
         {
             type: 'overhead',
