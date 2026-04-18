@@ -1,5 +1,5 @@
 import './CustomerStyles.css';
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
 import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle, RotateCcw, PlusCircle, History, MessageSquare, Paintbrush, Gem } from 'lucide-react';
@@ -33,6 +33,7 @@ function CustomerBookings(){
     const [bookedDates, setBookedDates] = useState({});
     const [completedAppointments, setCompletedAppointments] = useState([]);
     
+    const placementNotesRef = useRef(null);
     const [bookingData, setBookingData] = useState({
         artistId: null,
         bookingType: '', // 'new' or 'followup'
@@ -404,7 +405,13 @@ function CustomerBookings(){
     const togglePlacementItem = (field, item) => {
         setBookingData(prev => {
             const arr = prev[field] || [];
-            return { ...prev, [field]: arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item] };
+            const isAdding = !arr.includes(item);
+            if (isAdding && item === 'Other') {
+                setTimeout(() => {
+                    if (placementNotesRef.current) placementNotesRef.current.focus();
+                }, 50);
+            }
+            return { ...prev, [field]: isAdding ? [...arr, item] : arr.filter(x => x !== item) };
         });
     };
 
@@ -1451,16 +1458,6 @@ function CustomerBookings(){
                                             </div>
                                         )}
 
-                                        {/* "Other" selected note */}
-                                        {(bookingData.placement.includes('Other') || bookingData.piercingPlacement.includes('Other')) && (
-                                            <div style={{ padding: '12px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '4px' }}>
-                                                <Info size={16} color="#d97706" style={{ marginTop: '2px', flexShrink: 0 }} />
-                                                <span style={{ fontSize: '0.85rem', color: '#92400e', lineHeight: '1.5' }}>
-                                                    You selected <strong>"Other"</strong> — please describe the exact body area you have in mind in the <strong>Specific location notes</strong> field below. This field is now <strong>required</strong>.
-                                                </span>
-                                            </div>
-                                        )}
-
                                         <div className="form-group customer-st-842c3fb4" >
                                             <label className="customer-st-fc6d29da" >
                                                 Specific location notes
@@ -1469,6 +1466,7 @@ function CustomerBookings(){
                                                 )}
                                             </label>
                                             <input 
+                                                ref={placementNotesRef}
                                                 type="text" className="form-input" placeholder={showTattooPlacement && showPiercingPlacement ? 'e.g. Left inner forearm tattoo, right ear helix piercing' : 'e.g. Left inner forearm, near elbow'}
                                                 value={bookingData.placementNotes} onChange={e => setBookingData({...bookingData, placementNotes: e.target.value})} 
                                                 maxLength={200}

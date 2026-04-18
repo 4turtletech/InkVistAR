@@ -16,6 +16,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     
     const user = JSON.parse(localStorage.getItem('user'));
     
+    const placementNotesRef = useRef(null);
     const [formData, setFormData] = useState({
         firstName: user?.name ? user.name.split(' ')[0] : '',
         lastName: user?.name ? user.name.split(' ').slice(1).join(' ') : '',
@@ -37,7 +38,13 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const toggleArrayField = (field, item) => {
         setFormData(prev => {
             const arr = prev[field] || [];
-            return { ...prev, [field]: arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item] };
+            const isAdding = !arr.includes(item);
+            if (isAdding && item === 'Other') {
+                setTimeout(() => {
+                    if (placementNotesRef.current) placementNotesRef.current.focus();
+                }, 50);
+            }
+            return { ...prev, [field]: isAdding ? [...arr, item] : arr.filter(x => x !== item) };
         });
         if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
     };
@@ -527,16 +534,6 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 </div>
             )}
 
-            {/* "Other" selected note */}
-            {formData.placement.includes('Other') && (
-                <div style={{ marginTop: '12px', padding: '12px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                    <Info size={16} color="#d97706" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.85rem', color: '#92400e', lineHeight: '1.5' }}>
-                        You selected <strong>"Other"</strong> — please describe the exact body area in the field below. This field is now <strong>required</strong>.
-                    </span>
-                </div>
-            )}
-
             {/* Specific location notes (required when Other is selected) */}
             <div style={{ marginTop: '12px' }}>
                 <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.88rem' }}>
@@ -544,6 +541,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     {formData.placement.includes('Other') && <span style={{ color: '#ef4444', fontWeight: '400' }}> *</span>}
                 </label>
                 <input
+                    ref={placementNotesRef}
                     type="text"
                     className={`form-input ${errors.placementNotes ? 'error' : ''}`}
                     placeholder="e.g. Left inner forearm, near elbow"
