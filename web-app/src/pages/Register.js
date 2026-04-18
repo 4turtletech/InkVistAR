@@ -318,8 +318,8 @@ function Register() {
 
 
             {/* Consent Checkboxes */}
-            <div style={{ margin: '16px 0 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+            <div style={{ margin: '16px 0 20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', color: '#475569', lineHeight: 1.5, textAlign: 'left' }}>
                 <input
                   type="checkbox"
                   checked={agreedToTerms}
@@ -346,7 +346,7 @@ function Register() {
                 </span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '0.85rem', color: '#475569', lineHeight: 1.5, textAlign: 'left' }}>
                 <input
                   type="checkbox"
                   checked={emailPromoConsent}

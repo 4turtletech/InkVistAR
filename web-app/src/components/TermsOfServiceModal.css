@@ -168,6 +168,7 @@
     align-items: flex-start;
     gap: 12px;
     cursor: pointer;
+    text-align: left;
 }
 
 .tos-checkbox {
