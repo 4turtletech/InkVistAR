@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Shield, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Shield } from 'lucide-react';
 import './TermsOfServiceModal.css';
 
 export default function TermsOfServiceModal({ isOpen, onClose, onAccept, photoConsent, onPhotoConsentChange }) {
@@ -42,39 +42,31 @@ export default function TermsOfServiceModal({ isOpen, onClose, onAccept, photoCo
                         <p>
                             I, the undersigned client, hereby give my consent for the tattoo or piercing procedure to be performed
                             at <strong>Inkvictus Tattoo and Piercing shop</strong>. By proceeding with registration, I acknowledge
-                            and agree to the following terms:
+                            and agree to the following sections of the Acknowledgement and Waiver:
                         </p>
                     </div>
 
                     <div className="tos-clauses-list">
-                        {waiverClauses.map((clause, index) => (
-                            <div key={index} className="tos-clause-item">
-                                <CheckCircle size={16} className="tos-clause-check" />
-                                <span>{clause}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Photo Marketing Consent — the ONLY optional clause */}
-                    <div className="tos-optional-section">
-                        <div className="tos-optional-header">
-                            <AlertCircle size={16} />
-                            <span>Optional Marketing Consent</span>
-                        </div>
-                        <label className="tos-toggle-row">
-                            <input
-                                type="checkbox"
-                                checked={photoConsent}
-                                onChange={(e) => onPhotoConsentChange(e.target.checked)}
-                                className="tos-checkbox"
-                            />
-                            <span className="tos-toggle-label">
-                                I consent to having photographs and/or videos taken by Inkvictus and be used in their portfolio and marketing materials.
-                            </span>
-                        </label>
-                        <p className="tos-optional-note">
-                            You may opt out of this at any time. Declining will not affect your appointment or services.
-                        </p>
+                        <ul>
+                            {waiverClauses.map((clause, index) => (
+                                <li key={index} className="tos-clause-item">
+                                    <span>{clause}</span>
+                                </li>
+                            ))}
+                            <li className="tos-clause-item tos-clause-item-checkbox">
+                                <label className="tos-toggle-row">
+                                    <input
+                                        type="checkbox"
+                                        checked={photoConsent}
+                                        onChange={(e) => onPhotoConsentChange(e.target.checked)}
+                                        className="tos-checkbox"
+                                    />
+                                    <span className="tos-toggle-label">
+                                        I consent to having photographs and/or videos taken by Inkvictus and be used in their portfolio and marketing materials.
+                                    </span>
+                                </label>
+                            </li>
+                        </ul>
                     </div>
                 </div>
 
@@ -83,7 +75,7 @@ export default function TermsOfServiceModal({ isOpen, onClose, onAccept, photoCo
                     <button className="tos-btn-decline" onClick={onClose}>Cancel</button>
                     <button className="tos-btn-accept" onClick={onAccept}>
                         <Shield size={16} />
-                        I Accept the Terms &amp; Waiver
+                        I Accept the Acknowledgement and Waiver
                     </button>
                 </div>
             </div>

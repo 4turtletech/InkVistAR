@@ -340,7 +340,7 @@ function Register() {
                     onClick={() => setShowTermsModal(true)}
                     style={{ background: 'none', border: 'none', color: '#C19A6B', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: 'inherit' }}
                   >
-                    Terms of Service &amp; Waiver
+                    Acknowledgement and Waiver
                   </button>
                   <span style={{ color: '#ef4444' }}> *</span>
                 </span>
