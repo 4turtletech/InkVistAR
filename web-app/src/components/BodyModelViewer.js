@@ -167,12 +167,12 @@ export default function BodyModelViewer({
             height: `${height}px`,
             borderRadius: '16px',
             overflow: 'hidden',
-            background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f1a 100%)',
+            background: 'linear-gradient(180deg, #1e1e1e 0%, #141414 50%, #0d0d0d 100%)',
             position: 'relative',
-            boxShadow: 'inset 0 0 40px rgba(193, 154, 107, 0.06)'
+            boxShadow: 'inset 0 0 40px rgba(193, 154, 107, 0.04)'
         }}>
             <Canvas
-                camera={{ position: [0, 0.3, 2.3], fov: 38 }}
+                camera={{ position: [0, 0.15, 3.0], fov: 40 }}
                 style={{ width: '100%', height: '100%' }}
                 gl={{ antialias: true }}
             >

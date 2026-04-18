@@ -457,11 +457,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             onToggle={handleModelToggle}
                             tattooParts={showTattoo ? tattooBodyParts : []}
                             piercingParts={showPiercing ? piercingBodyParts : []}
-                            height={showTattoo && showPiercing ? 360 : 300}
+                            height={showTattoo && showPiercing ? 440 : 400}
                         />
                     </Suspense>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', maxHeight: showTattoo && showPiercing ? '360px' : '300px', paddingRight: '4px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', maxHeight: showTattoo && showPiercing ? '440px' : '400px', paddingRight: '4px' }}>
                         {showTattoo && (
                             <>
                                 <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>

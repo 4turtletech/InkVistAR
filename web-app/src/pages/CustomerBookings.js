@@ -1085,7 +1085,7 @@ function CustomerBookings(){
             {/* Custom New Booking Modal */}
             {isBookingModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content large" style={{ width: '95vw', maxWidth: '1050px', height: '90vh', maxHeight: '750px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div className="modal-content large" style={{ width: '95vw', maxWidth: '1050px', height: '92vh', maxHeight: '900px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <div className="modal-header">
                             <h2 className="customer-st-da70abb8" ><Sparkles size={24} color="#daa520" /> New Booking Request</h2>
                             <button className="close-btn" onClick={closeBookingModal}><X size={24} /></button>
@@ -1380,12 +1380,12 @@ function CustomerBookings(){
                                                         onToggle={handleModelToggle}
                                                         tattooParts={showTattooPlacement ? tattooBodyParts : []}
                                                         piercingParts={showPiercingPlacement ? piercingBodyParts : []}
-                                                        height={showTattooPlacement && showPiercingPlacement ? 380 : 320}
+                                                        height={showTattooPlacement && showPiercingPlacement ? 440 : 400}
                                                     />
                                                 </Suspense>
 
                                                 {/* Button Grids (stacked) */}
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto', maxHeight: showTattooPlacement && showPiercingPlacement ? '380px' : '320px', paddingRight: '4px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto', maxHeight: showTattooPlacement && showPiercingPlacement ? '440px' : '400px', paddingRight: '4px' }}>
                                                     {showTattooPlacement && (
                                                         <>
                                                             <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
