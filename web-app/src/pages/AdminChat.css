@@ -26,20 +26,32 @@
 
 .appointment-list-container {
     width: 380px;
-    border-right: 2px solid rgba(190, 144, 85, 0.2); /* Stronger vertical separator */
+    border-right: 2px solid rgba(190, 144, 85, 0.2);
     display: flex;
     flex-direction: column;
     background: rgba(255, 255, 255, 0.2);
-    overflow-y: auto;
+    overflow: hidden;
 }
 
-.appointment-list-container::-webkit-scrollbar {
+/* Live sessions: always visible, never scrolls away */
+.live-sessions-pinned {
+    flex-shrink: 0;
+}
+
+/* Scheduled appointments: fills remaining space and scrolls independently */
+.scheduled-appointments-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0; /* required for flex overflow to work */
+}
+
+.scheduled-appointments-scroll::-webkit-scrollbar {
     width: 6px;
 }
-.appointment-list-container::-webkit-scrollbar-track {
+.scheduled-appointments-scroll::-webkit-scrollbar-track {
     background: transparent;
 }
-.appointment-list-container::-webkit-scrollbar-thumb {
+.scheduled-appointments-scroll::-webkit-scrollbar-thumb {
     background: rgba(190, 144, 85, 0.3);
     border-radius: 10px;
 }

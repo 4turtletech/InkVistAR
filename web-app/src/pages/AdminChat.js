@@ -65,51 +65,56 @@ function AdminChat() {
 
                 <div className="admin-chat-layout glass-panel">
                     <div className="appointment-list-container">
-                        {/* Dynamic Live Sessions */}
-                        {liveSessions.length > 0 && (
-                            <div className="chat-section-divider">
-                                <Activity size={14} /> Active Web Chats ({liveSessions.length})
-                            </div>
-                        )}
-                        {liveSessions.map(session => (
-                            <div
-                                key={session.id}
-                                className={`appointment-item live-chat-item ${selectedAppointment?.id === session.id ? 'selected' : ''}`}
-                                onClick={() => setSelectedAppointment({ id: session.id, client_name: session.name, service_type: 'Live Web Chat', isLiveChat: true })}
-                            >
-                                <div className="appointment-item-name">
-                                    <span>{session.name}</span>
-                                    <span className="live-status-pill">Active</span>
+                        {/* Pinned: Live Sessions */}
+                        <div className="live-sessions-pinned">
+                            {liveSessions.length > 0 && (
+                                <div className="chat-section-divider">
+                                    <Activity size={14} /> Active Web Chats ({liveSessions.length})
                                 </div>
-                                <div className="appointment-item-service">{session.lastMessage}</div>
-                                <div className="appointment-item-date">{new Date(session.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                            </div>
-                        ))}
-
-                        <div className="chat-section-divider">
-                            <Calendar size={14} /> Scheduled Appointments
+                            )}
+                            {liveSessions.map(session => (
+                                <div
+                                    key={session.id}
+                                    className={`appointment-item live-chat-item ${selectedAppointment?.id === session.id ? 'selected' : ''}`}
+                                    onClick={() => setSelectedAppointment({ id: session.id, client_name: session.name, service_type: 'Live Web Chat', isLiveChat: true })}
+                                >
+                                    <div className="appointment-item-name">
+                                        <span>{session.name}</span>
+                                        <span className="live-status-pill">Active</span>
+                                    </div>
+                                    <div className="appointment-item-service">{session.lastMessage}</div>
+                                    <div className="appointment-item-date">{new Date(session.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                </div>
+                            ))}
                         </div>
 
-                        {loading ? (
-                            <div className="chat-loader">
-                                <div className="spinner"></div>
-                                <span>Syncing records...</span>
+                        {/* Scrollable: Scheduled Appointments */}
+                        <div className="scheduled-appointments-scroll">
+                            <div className="chat-section-divider">
+                                <Calendar size={14} /> Scheduled Appointments
                             </div>
-                        ) : (
-                            <ul className="appointment-list">
-                                {appointments.map(apt => (
-                                    <li
-                                        key={apt.id}
-                                        className={`appointment-item ${selectedAppointment?.id === apt.id ? 'selected' : ''}`}
-                                        onClick={() => setSelectedAppointment(apt)}
-                                    >
-                                        <div className="appointment-item-name">{apt.client_name}</div>
-                                        <div className="appointment-item-date">{new Date(apt.created_at).toLocaleString()}</div>
-                                        <div className="appointment-item-service">{apt.service_type}</div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+
+                            {loading ? (
+                                <div className="chat-loader">
+                                    <div className="spinner"></div>
+                                    <span>Syncing records...</span>
+                                </div>
+                            ) : (
+                                <ul className="appointment-list">
+                                    {appointments.map(apt => (
+                                        <li
+                                            key={apt.id}
+                                            className={`appointment-item ${selectedAppointment?.id === apt.id ? 'selected' : ''}`}
+                                            onClick={() => setSelectedAppointment(apt)}
+                                        >
+                                            <div className="appointment-item-name">{apt.client_name}</div>
+                                            <div className="appointment-item-date">{new Date(apt.created_at).toLocaleString()}</div>
+                                            <div className="appointment-item-service">{apt.service_type}</div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
                     </div>
                     <div className="chat-window-container">
                         {selectedAppointment ? (
