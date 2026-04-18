@@ -778,11 +778,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     );
 
     const renderConsultationCompletedPage = () => (
-        <div className="fade-in" style={{
-            background: 'linear-gradient(145deg, #171516 0%, #1a1816 50%, #141210 100%)',
+        <div className="fade-in data-card" style={{
+            border: 'none',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
             borderRadius: '24px',
-            border: '1px solid rgba(193, 154, 107, 0.2)',
-            boxShadow: '0 30px 60px rgba(0, 0, 0, 0.5)',
             overflow: 'hidden',
             padding: '0'
         }}>
@@ -798,24 +797,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     flexDirection: 'column',
                     justifyContent: 'center'
                 }}>
-                    {/* Gold checkmark */}
-                    <div style={{
-                        width: '72px', height: '72px',
-                        background: 'rgba(193, 154, 107, 0.12)',
-                        border: '1.5px solid rgba(193, 154, 107, 0.35)',
-                        borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        marginBottom: '24px',
-                        boxShadow: '0 0 30px rgba(193, 154, 107, 0.12)'
-                    }}>
-                        <CheckCircle size={38} color="#C19A6B" />
-                    </div>
-
                     <h2 style={{
-                        fontFamily: "'Playfair Display', serif",
                         fontSize: window.innerWidth <= 768 ? '1.5rem' : '1.8rem',
-                        fontWeight: '700',
-                        color: '#C19A6B',
+                        fontWeight: '800',
+                        color: '#1e293b',
                         marginBottom: '14px',
                         lineHeight: '1.25'
                     }}>
@@ -823,18 +808,16 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     </h2>
 
                     <p style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '0.92rem',
+                        fontSize: '0.95rem',
                         lineHeight: '1.7',
-                        color: '#e2e8f0',
+                        color: '#64748b',
                         marginBottom: '28px',
                         maxWidth: '420px'
                     }}>
-                        Thank you for your interest in a <strong style={{ color: '#C19A6B' }}>{formData.designTitle}</strong> consultation. We'll contact you within 24 hours to discuss your vision and schedule your session.
+                        Thank you for your interest in a <strong style={{ color: '#1e293b' }}>{formData.designTitle}</strong> consultation. We'll contact you within 24 hours to discuss your vision and schedule your session.
                     </p>
 
                     <p style={{
-                        fontFamily: "'Inter', sans-serif",
                         fontSize: '0.82rem',
                         color: '#94a3b8',
                         marginBottom: '32px'
@@ -851,12 +834,12 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                 padding: '14px 28px',
                                 fontSize: '0.95rem',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                                background: 'linear-gradient(135deg, #C19A6B, #8a6c4a)',
-                                border: 'none',
+                                backgroundColor: '#C19A6B',
+                                borderColor: '#C19A6B',
                                 color: 'white',
                                 fontWeight: '700',
                                 borderRadius: '10px',
-                                boxShadow: '0 4px 16px rgba(193, 154, 107, 0.35)',
+                                boxShadow: '0 4px 12px rgba(193, 154, 107, 0.3)',
                                 cursor: 'pointer',
                                 transition: 'all 0.3s'
                             }}
@@ -865,16 +848,12 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         </button>
                         <button
                             onClick={() => setShowExitModal(true)}
+                            className="btn btn-secondary"
                             style={{
                                 padding: '12px 28px',
                                 fontSize: '0.9rem',
-                                background: 'transparent',
-                                border: '1px solid rgba(255,255,255,0.15)',
-                                color: '#94a3b8',
-                                fontWeight: '600',
                                 borderRadius: '10px',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s'
+                                cursor: 'pointer'
                             }}
                         >
                             No Thanks
@@ -888,22 +867,20 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'center',
-                    borderLeft: window.innerWidth <= 768 ? 'none' : '1px solid rgba(193, 154, 107, 0.1)',
-                    borderTop: window.innerWidth <= 768 ? '1px solid rgba(193, 154, 107, 0.1)' : 'none'
+                    borderLeft: window.innerWidth <= 768 ? 'none' : '1px solid #f1f5f9',
+                    borderTop: window.innerWidth <= 768 ? '1px solid #f1f5f9' : 'none'
                 }}>
                     <h3 style={{
-                        fontFamily: "'Playfair Display', serif",
                         fontSize: '1.15rem',
                         fontWeight: '700',
-                        color: '#fff',
+                        color: '#1e293b',
                         marginBottom: '6px'
                     }}>
                         Track Your Request & More
                     </h3>
                     <p style={{
-                        fontFamily: "'Inter', sans-serif",
                         fontSize: '0.82rem',
-                        color: '#94a3b8',
+                        color: '#64748b',
                         marginBottom: '20px'
                     }}>
                         Create an account to unlock these features:
@@ -917,7 +894,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         }}>
                             <button
                                 onClick={() => setActiveFeature((prev) => (prev - 1 + features.length) % features.length)}
-                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexShrink: 0 }}
+                                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', flexShrink: 0, transition: 'all 0.2s' }}
                             >
                                 <ChevronLeft size={18} />
                             </button>
@@ -929,12 +906,12 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                         style={{
                                             position: 'absolute',
                                             top: 0, left: 0, right: 0, bottom: 0,
-                                            background: 'rgba(255, 255, 255, 0.04)',
-                                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            backgroundColor: feature.bgColor,
                                             borderRadius: '16px',
                                             padding: '24px',
                                             textAlign: 'center',
                                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
                                             transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                                             opacity: activeFeature === index ? 1 : 0,
                                             transform: activeFeature === index ? 'scale(1)' : 'scale(0.92)',
@@ -943,15 +920,15 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                         }}
                                     >
                                         <div style={{ marginBottom: '12px' }}>{feature.icon}</div>
-                                        <h4 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#fff', marginBottom: '6px' }}>{feature.title}</h4>
-                                        <p style={{ color: '#cbd5e1', fontSize: '0.85rem', lineHeight: '1.5', margin: 0 }}>{feature.desc}</p>
+                                        <h4 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#1e293b', marginBottom: '6px' }}>{feature.title}</h4>
+                                        <p style={{ color: '#64748b', fontSize: '0.85rem', lineHeight: '1.5', margin: 0 }}>{feature.desc}</p>
                                     </div>
                                 ))}
                             </div>
 
                             <button
                                 onClick={() => setActiveFeature((prev) => (prev + 1) % features.length)}
-                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexShrink: 0 }}
+                                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', flexShrink: 0, transition: 'all 0.2s' }}
                             >
                                 <ChevronRight size={18} />
                             </button>
@@ -967,7 +944,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                         width: activeFeature === i ? '20px' : '6px',
                                         height: '6px',
                                         borderRadius: '3px',
-                                        backgroundColor: activeFeature === i ? '#C19A6B' : 'rgba(255,255,255,0.15)',
+                                        backgroundColor: activeFeature === i ? '#C19A6B' : '#e2e8f0',
                                         cursor: 'pointer',
                                         transition: 'all 0.3s ease'
                                     }}
