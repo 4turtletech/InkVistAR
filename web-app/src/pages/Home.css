@@ -643,11 +643,11 @@ h1, h2, h3, h4 {
 /* Final CTA Section */
 .final-cta-section {
     position: relative;
-    padding: 10rem 2rem;
+    padding: 5rem 2rem;
     text-align: center;
     background: #000;
     overflow: hidden;
-    margin-top: 4rem;
+    margin-top: 2rem;
     border-top: 1px solid var(--border-light);
 }
 
