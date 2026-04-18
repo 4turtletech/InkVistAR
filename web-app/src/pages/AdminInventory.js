@@ -63,6 +63,7 @@ function AdminInventory() {
     // History modal filter state
     const [historySearch, setHistorySearch] = useState('');
     const [historyTypeFilter, setHistoryTypeFilter] = useState('all');
+    const [historyDateFilter, setHistoryDateFilter] = useState('all');
     const [historyPage, setHistoryPage] = useState(1);
     const [historyTotalPages, setHistoryTotalPages] = useState(1);
     const [historyTotal, setHistoryTotal] = useState(0);
@@ -551,7 +552,27 @@ function AdminInventory() {
             (t.reason || '').toLowerCase().includes(historySearch.toLowerCase()) ||
             (t.user_name || '').toLowerCase().includes(historySearch.toLowerCase());
         const matchesType = historyTypeFilter === 'all' || t.type === historyTypeFilter;
-        return matchesSearch && matchesType;
+        let matchesDate = true;
+        if (historyDateFilter !== 'all') {
+            const today = new Date();
+            const transactionDate = new Date(t.created_at);
+            if (historyDateFilter === 'today') {
+                matchesDate = transactionDate.toDateString() === today.toDateString();
+            } else if (historyDateFilter === 'week') {
+                const oneWeekAgo = new Date(today);
+                oneWeekAgo.setDate(today.getDate() - 7);
+                matchesDate = transactionDate >= oneWeekAgo;
+            } else if (historyDateFilter === 'month') {
+                const oneMonthAgo = new Date(today);
+                oneMonthAgo.setMonth(today.getMonth() - 1);
+                matchesDate = transactionDate >= oneMonthAgo;
+            } else if (historyDateFilter === 'year') {
+                const oneYearAgo = new Date(today);
+                oneYearAgo.setFullYear(today.getFullYear() - 1);
+                matchesDate = transactionDate >= oneYearAgo;
+            }
+        }
+        return matchesSearch && matchesType && matchesDate;
     });
 
     const lowStockItems = inventory.filter(i => i.currentStock <= i.minStock).length;
@@ -1013,7 +1034,7 @@ function AdminInventory() {
 
             {/* History Modal */}
             {historyModal.mounted && (
-                <div className={`modal-overlay ${historyModal.visible ? 'open' : ''}`} onClick={() => { closeModal(setHistoryModal); setHistorySearch(''); setHistoryTypeFilter('all'); }}>
+                <div className={`modal-overlay ${historyModal.visible ? 'open' : ''}`} onClick={() => { closeModal(setHistoryModal); setHistorySearch(''); setHistoryTypeFilter('all'); setHistoryDateFilter('all'); }}>
                     <div className="modal-content large" onClick={(e) => e.stopPropagation()} style={{ height: '85vh', maxHeight: '800px', display: 'flex', flexDirection: 'column' }}>
                         <div className="modal-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1025,7 +1046,7 @@ function AdminInventory() {
                                     <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>{historyTotal} total transaction{historyTotal !== 1 ? 's' : ''} recorded</p>
                                 </div>
                             </div>
-                            <button className="close-btn" onClick={() => { closeModal(setHistoryModal); setHistorySearch(''); setHistoryTypeFilter('all'); }}><X size={24}/></button>
+                            <button className="close-btn" onClick={() => { closeModal(setHistoryModal); setHistorySearch(''); setHistoryTypeFilter('all'); setHistoryDateFilter('all'); }}><X size={24}/></button>
                         </div>
 
                         {/* Filter Bar */}
@@ -1042,6 +1063,18 @@ function AdminInventory() {
                                     maxLength={100}
                                 />
                             </div>
+                            <select
+                                value={historyDateFilter}
+                                onChange={(e) => setHistoryDateFilter(e.target.value)}
+                                className="form-input"
+                                style={{ width: 'auto', height: '36px', fontSize: '0.85rem', borderRadius: '8px', cursor: 'pointer' }}
+                            >
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week">Past Week</option>
+                                <option value="month">Past Month</option>
+                                <option value="year">Past Year</option>
+                            </select>
                             <select
                                 value={historyTypeFilter}
                                 onChange={(e) => setHistoryTypeFilter(e.target.value)}
@@ -1160,7 +1193,7 @@ function AdminInventory() {
                                 {historyPage < historyTotalPages && (
                                     <button className="btn btn-secondary" style={{ padding: '6px 14px', fontSize: '0.85rem' }} onClick={() => fetchHistory(historyPage + 1)}>Next</button>
                                 )}
-                                <button className="btn btn-secondary" onClick={() => { closeModal(setHistoryModal); setHistorySearch(''); setHistoryTypeFilter('all'); }}>Close</button>
+                                <button className="btn btn-secondary" onClick={() => { closeModal(setHistoryModal); setHistorySearch(''); setHistoryTypeFilter('all'); setHistoryDateFilter('all'); }}>Close</button>
                             </div>
                         </div>
                     </div>
