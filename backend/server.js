@@ -5764,12 +5764,27 @@ app.get('/api/admin/analytics', (req, res) => {
   // 2.8 Appointments Audit Logs (individual appointments)
   const appointmentsAuditQuery = `
     SELECT ap.id, ap.appointment_date, ap.start_time, ap.status, ap.service_type,
+           ap.session_duration, ap.audit_log,
            c.name as client_name, u.name as artist_name,
            (((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0)) as total_paid
     FROM appointments ap
     LEFT JOIN users c ON ap.customer_id = c.id
     LEFT JOIN users u ON ap.artist_id = u.id
     WHERE ap.is_deleted = 0
+    ORDER BY ap.appointment_date DESC
+    LIMIT 50
+  `;
+
+  // 2.8.1 Duration Audit — completed sessions with timer data from ArtistSessions.js
+  const durationAuditQuery = `
+    SELECT ap.id, ap.appointment_date, ap.start_time, ap.service_type,
+           ap.session_duration, ap.audit_log,
+           c.name as client_name, u.name as artist_name
+    FROM appointments ap
+    LEFT JOIN users c ON ap.customer_id = c.id
+    LEFT JOIN users u ON ap.artist_id = u.id
+    WHERE ap.is_deleted = 0 AND ap.status = 'completed'
+      AND ap.session_duration IS NOT NULL AND ap.session_duration > 0
     ORDER BY ap.appointment_date DESC
     LIMIT 50
   `;
@@ -5972,26 +5987,30 @@ app.get('/api/admin/analytics', (req, res) => {
                         db.query(appointmentsAuditQuery, (err, apptAudit) => {
                           if (!err) response.appointments_audit = apptAudit;
 
-                          db.query(inventoryOutAuditQuery, (err, invOutAudit) => {
-                            if (!err) response.inventory_out_audit = invOutAudit;
+                          db.query(durationAuditQuery, (err, durAudit) => {
+                            if (!err) response.duration_audit = durAudit;
 
-                            db.query(userStatsQuery, (err, userStats) => {
-                              if (!err && userStats[0]) {
-                                response.users = {
-                                  total: Number(userStats[0].total) || 0,
-                                  artists: Number(userStats[0].artists) || 0,
-                                  customers: Number(userStats[0].customers) || 0,
-                                  admins: Number(userStats[0].admins) || 0
-                                };
-                              }
+                            db.query(inventoryOutAuditQuery, (err, invOutAudit) => {
+                              if (!err) response.inventory_out_audit = invOutAudit;
 
-                              db.query(usersAuditQuery, (err, usersAudit) => {
-                                if (!err) response.users_audit = usersAudit;
+                              db.query(userStatsQuery, (err, userStats) => {
+                                if (!err && userStats[0]) {
+                                  response.users = {
+                                    total: Number(userStats[0].total) || 0,
+                                    artists: Number(userStats[0].artists) || 0,
+                                    customers: Number(userStats[0].customers) || 0,
+                                    admins: Number(userStats[0].admins) || 0
+                                  };
+                                }
+
+                                db.query(usersAuditQuery, (err, usersAudit) => {
+                                  if (!err) response.users_audit = usersAudit;
                                 
-                                // Attach overhead/manual expenses audit log to payload
-                                db.query('SELECT se.*, COALESCE(u.name, "System Admin") as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC LIMIT 50', (err, overheadAudit) => {
-                                  if (!err) response.overhead.audit = overheadAudit;
-                                  res.json({ success: true, data: response });
+                                  // Attach overhead/manual expenses audit log to payload
+                                  db.query('SELECT se.*, COALESCE(u.name, "System Admin") as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC LIMIT 50', (err, overheadAudit) => {
+                                    if (!err) response.overhead.audit = overheadAudit;
+                                    res.json({ success: true, data: response });
+                                  });
                                 });
                               });
                             });

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Download, Package, Printer, Filter, X, BarChart3, PieChart as PieChartIcon, Calendar } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Treemap } from 'recharts';
 
 import AdminSideNav from '../components/AdminSideNav';
 import ConfirmModal from '../components/ConfirmModal';
@@ -336,7 +336,7 @@ function AdminAnalytics() {
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                                 <XAxis type="number" tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
                                                 <YAxis dataKey="name" type="category" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
-                                                <Tooltip />
+                                                <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                                                 <Bar dataKey="revenue" name="Revenue" fill={RAINBOW_PALETTE[4]} radius={[0, 6, 6, 0]} barSize={24}>
                                                    {analytics.artists.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[index % RAINBOW_PALETTE.length]} />)}
                                                 </Bar>
@@ -356,15 +356,37 @@ function AdminAnalytics() {
                                 <div style={{ width: '100%', height: 280 }}>
                                     {analytics.inventory.length > 0 ? (
                                         <ResponsiveContainer>
-                                            <BarChart data={analytics.inventory} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                                <XAxis type="number" tick={{ fill: '#171516', fontSize: 11 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
-                                                <YAxis dataKey="name" type="category" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
-                                                <Tooltip formatter={(v, name, props) => `${v} ${props.payload.unit || 'units'}`} />
-                                                <Bar dataKey="used" name="Used" fill={RAINBOW_PALETTE[2]} radius={[0, 6, 6, 0]} barSize={24}>
-                                                   {analytics.inventory.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[(index + 5) % RAINBOW_PALETTE.length]} />)}
-                                                </Bar>
-                                            </BarChart>
+                                            <Treemap
+                                                data={analytics.inventory.map((item, i) => ({
+                                                    name: item.name,
+                                                    size: Number(item.used) || 1,
+                                                    unit: item.unit || 'units',
+                                                    fill: RAINBOW_PALETTE[(i + 5) % RAINBOW_PALETTE.length]
+                                                }))}
+                                                dataKey="size"
+                                                aspectRatio={4 / 3}
+                                                stroke="#fff"
+                                                content={({ x, y, width, height, name, size, unit, fill }) => {
+                                                    if (width < 30 || height < 25) return null;
+                                                    return (
+                                                        <g>
+                                                            <rect x={x} y={y} width={width} height={height} rx={6} fill={fill} stroke="#fff" strokeWidth={2} />
+                                                            {width > 50 && height > 35 && (
+                                                                <>
+                                                                    <text x={x + width / 2} y={y + height / 2 - 8} textAnchor="middle" fill="#fff" fontSize={width > 100 ? 13 : 10} fontWeight={700}>
+                                                                        {name}
+                                                                    </text>
+                                                                    <text x={x + width / 2} y={y + height / 2 + 10} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={width > 100 ? 12 : 9}>
+                                                                        {size} {unit || 'units'}
+                                                                    </text>
+                                                                </>
+                                                            )}
+                                                        </g>
+                                                    );
+                                                }}
+                                            >
+                                                <Tooltip formatter={(v, name, props) => [`${v} ${props.payload.unit || 'units'}`, name]} />
+                                            </Treemap>
                                         </ResponsiveContainer>
                                     ) : (
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No inventory data yet</div>

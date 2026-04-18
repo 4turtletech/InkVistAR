@@ -52,12 +52,39 @@ function AnalyticsAuditModal({
     const textMuted = darkMode ? '#64748b' : '#94a3b8';
     const brandColor = darkMode ? '#e2e8f0' : '#1e293b';
 
+    // Helper: parse audit_log JSON from DB
+    const parseAuditLog = (raw) => {
+        if (!raw) return [];
+        try { return typeof raw === 'string' ? JSON.parse(raw) : raw; }
+        catch { return []; }
+    };
+
+    // Helper: format seconds to readable duration
+    const fmtDuration = (secs) => {
+        if (!secs || secs <= 0) return '—';
+        const hrs = Math.floor(secs / 3600);
+        const mins = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        if (hrs > 0) return `${hrs}h ${String(mins).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+        return `${String(mins).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+    };
+
+    // Helper: determine contextual tab label
+    const getSecondTabLabel = () => {
+        switch (auditModal.type) {
+            case 'revenue': case 'expenses': return 'Transaction Log';
+            case 'duration': return 'Session Log';
+            case 'overhead': return 'Expense Log';
+            default: return 'Audit Log';
+        }
+    };
+
     const getAuditLog = () => {
         switch (auditModal.type) {
             case 'revenue': return analytics?.revenue_audit || [];
             case 'appointments': return analytics?.appointments_audit || [];
             case 'completion': return analytics?.appointments_audit?.filter(a => a.status === 'completed' || a.status === 'cancelled') || [];
-            case 'duration': return analytics?.appointments_audit?.filter(a => a.status === 'completed') || [];
+            case 'duration': return analytics?.duration_audit || [];
             case 'inventory': return analytics?.inventory_out_audit || [];
             case 'artists': return []; // handled separately
             case 'users': return analytics?.users_audit || [];
@@ -89,7 +116,7 @@ function AnalyticsAuditModal({
         return (
             <div style={{ marginTop: '16px', borderTop: '1px solid rgba(226,232,240,0.15)', paddingTop: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '12px', flexWrap: 'wrap' }}>
-                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>Transaction Log</h3>
+                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>{getSecondTabLabel()}</h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(241,245,249,0.08)', border: '1px solid rgba(226,232,240,0.15)', borderRadius: '8px', padding: '4px 10px' }}>
                         <Search size={14} color={textSecondary} />
                         <input
@@ -107,7 +134,8 @@ function AnalyticsAuditModal({
                             <tr>
                                 {auditModal.type === 'revenue' && <><th>Date</th><th>Description</th><th>Source</th><th style={{ textAlign: 'right' }}>Amount</th></>}
                                 {auditModal.type === 'appointments' && <><th>Date</th><th>Client</th><th>Artist</th><th>Service</th><th>Status</th><th style={{ textAlign: 'right' }}>Paid</th></>}
-                                {(auditModal.type === 'completion' || auditModal.type === 'duration') && <><th>Date</th><th>Client</th><th>Artist</th><th>Status</th><th style={{ textAlign: 'right' }}>Paid</th></>}
+                                {auditModal.type === 'completion' && <><th>Date</th><th>Client</th><th>Artist</th><th>Status</th><th style={{ textAlign: 'right' }}>Paid</th></>}
+                                {auditModal.type === 'duration' && <><th>Date</th><th>Client</th><th>Artist</th><th>Duration</th><th>Session Timeline</th></>}
                                 {auditModal.type === 'inventory' && <><th>Date</th><th>Item</th><th>Category</th><th>Qty</th><th>Reason</th><th>Action By</th><th style={{ textAlign: 'right' }}>Cost</th></>}
                                 {auditModal.type === 'overhead' && <><th>Date</th><th>Category</th><th>Description</th><th>Action By</th><th style={{ textAlign: 'right' }}>Amount</th></>}
                                 {auditModal.type === 'users' && <><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Verified</th></>}
@@ -130,12 +158,29 @@ function AnalyticsAuditModal({
                                         <td><span className={`status-badge ${row.status === 'completed' ? 'success' : row.status === 'cancelled' ? 'danger' : 'pending'}`} style={{ fontSize: '0.7rem' }}>{row.status}</span></td>
                                         <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(row.total_paid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
                                     </>}
-                                    {(auditModal.type === 'completion' || auditModal.type === 'duration') && <>
+                                    {auditModal.type === 'completion' && <>
                                         <td>{new Date(row.appointment_date).toLocaleDateString()}</td>
                                         <td style={{ fontWeight: 600 }}>{row.client_name || 'Walk-in'}</td>
                                         <td>{row.artist_name}</td>
                                         <td><span className={`status-badge ${row.status === 'completed' ? 'success' : 'danger'}`} style={{ fontSize: '0.7rem' }}>{row.status}</span></td>
                                         <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(row.total_paid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
+                                    </>}
+                                    {auditModal.type === 'duration' && <>
+                                        <td>{new Date(row.appointment_date).toLocaleDateString()}</td>
+                                        <td style={{ fontWeight: 600 }}>{row.client_name || 'Walk-in'}</td>
+                                        <td>{row.artist_name}</td>
+                                        <td style={{ fontWeight: 700, color: '#3b82f6' }}>{fmtDuration(row.session_duration)}</td>
+                                        <td style={{ fontSize: '0.75rem', color: textSecondary }}>
+                                            {parseAuditLog(row.audit_log).length > 0 ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                    {parseAuditLog(row.audit_log).map((entry, j) => (
+                                                        <span key={j}><strong>{entry.timestamp}</strong> — {entry.action}</span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span style={{ color: textMuted }}>No timeline recorded</span>
+                                            )}
+                                        </td>
                                     </>}
                                     {auditModal.type === 'inventory' && <>
                                         <td>{new Date(row.created_at).toLocaleDateString()}</td>
@@ -162,7 +207,7 @@ function AnalyticsAuditModal({
                                     </>}
                                 </tr>
                             )) : (
-                                <tr><td colSpan="7" style={{ textAlign: 'center', color: textMuted, padding: '20px' }}>No transaction logs found</td></tr>
+                                <tr><td colSpan="7" style={{ textAlign: 'center', color: textMuted, padding: '20px' }}>No audit logs found</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -200,7 +245,7 @@ function AnalyticsAuditModal({
                         </button>
                         {(auditModal.type !== 'expenses' && auditModal.type !== 'artists') && (
                             <button type="button" onClick={() => setModalTab('logs')} className={`modal-tab-btn ${modalTab === 'logs' ? 'active' : ''}`}>
-                                <FileText size={14} /> Transaction Log
+                                <FileText size={14} /> {getSecondTabLabel()}
                             </button>
                         )}
                     </div>
