@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import Axios from 'axios';
-import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift, Check } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
+const BodyModelViewer = lazy(() => import('./BodyModelViewer'));
 
 export default function CustomerBookingWizard({ customerId, onBack, isPublic = false }) {
     const navigate = useNavigate();
@@ -24,11 +25,21 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         date: '',
         time: '',
         designTitle: '',
-        notes: '', // This will also capture additional details like placement and size
-        placement: '',
+        notes: '',
+        placement: [],
+        consultationFor: [], // ['tattoo','piercing']
         referenceImage: null,
         phoneCode: '+63'
     });
+
+    // Toggle a value in/out of an array field
+    const toggleArrayField = (field, item) => {
+        setFormData(prev => {
+            const arr = prev[field] || [];
+            return { ...prev, [field]: arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item] };
+        });
+        if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+    };
 
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [bookedDates, setBookedDates] = useState({});
@@ -162,18 +173,21 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             const currentUser = JSON.parse(localStorage.getItem('user'));
             const generatedName = `${formData.firstName} ${formData.lastName} ${formData.suffix}`.replace(/\s+/g, ' ').trim();
 
+            const placementStr = formData.placement.join(', ') || 'Not specified';
+            const consultTypeStr = formData.consultationFor.length > 0 ? formData.consultationFor.join(' & ') : 'General';
+
             const response = await Axios.post(`${API_URL}/api/admin/appointments`, {
-                customerId: uid, // This will be the actual user ID or the placeholder ID ('admin')
-                artistId: 'admin', // Default Studio Account
+                customerId: uid,
+                artistId: 'admin',
                 date: formData.date,
                 startTime: formData.time || '13:00',
                 endTime: formData.time || '13:00',
                 serviceType: 'Consultation',
-                designTitle: formData.designTitle, // This is the tattoo idea
-                notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nPlacement: ${formData.placement}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || generatedName}\nEmail: ${currentUser?.email || formData.email}\nPhone: ${formData.phoneCode || '+63'}${formData.phone}`,
+                designTitle: formData.designTitle,
+                notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nConsultation for: ${consultTypeStr}\nPlacement: ${placementStr}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || generatedName}\nEmail: ${currentUser?.email || formData.email}\nPhone: ${formData.phoneCode || '+63'}${formData.phone}`,
                 referenceImage: formData.referenceImage,
                 status: 'pending',
-                price: 0, // Free consultation
+                price: 0,
                 isFromWizard: true,
                 customerName: currentUser?.name || generatedName
             });
@@ -389,36 +403,129 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         </div>
     );
 
-    const renderStepPlacement = () => (
+    const tattooBodyParts = ["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"];
+    const piercingBodyParts = ["Ear Lobe", "Helix", "Tragus", "Conch", "Industrial", "Nostril", "Septum", "Eyebrow", "Lip/Oral", "Navel", "Nipple", "Other"];
+
+    const renderStepPlacement = () => {
+        const showTattoo = formData.consultationFor.includes('tattoo');
+        const showPiercing = formData.consultationFor.includes('piercing');
+
+        return (
         <div className="fade-in">
             <h3 style={{fontSize: '1.4rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px'}}>
                 <MapPin className="text-bronze" size={22} /> 2. Placement
             </h3>
-            <p style={{color: '#64748b', marginBottom: '24px', fontSize: '0.95rem'}}>Where on your body would you like this tattoo?</p>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
-                {["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"].map(part => (
-                    <button
-                        key={part} type="button"
-                        onClick={() => {
-                            setFormData({...formData, placement: part});
-                            if (errors.placement) setErrors(prev => ({...prev, placement: ''}));
-                        }}
-                        style={{
-                            padding: '12px 8px', borderRadius: '10px', border: `2px solid ${formData.placement === part ? '#C19A6B' : (errors.placement ? '#ef4444' : '#e2e8f0')}`,
-                            background: formData.placement === part ? '#C19A6B' : 'white',
-                            color: formData.placement === part ? 'white' : '#1e293b',
-                            fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s',
-                            boxShadow: formData.placement === part ? '0 4px 12px rgba(193, 154, 107, 0.3)' : 'none'
-                        }}
-                    >
-                        {part}
-                    </button>
-                ))}
+
+            {/* Consultation type toggle */}
+            <p style={{color: '#64748b', marginBottom: '12px', fontSize: '0.95rem'}}>What is this consultation for?</p>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+                {[{ key: 'tattoo', label: '🎨 Tattoo', color: '#C19A6B' }, { key: 'piercing', label: '💎 Piercing', color: '#8b5cf6' }].map(opt => {
+                    const isActive = formData.consultationFor.includes(opt.key);
+                    return (
+                        <button
+                            key={opt.key} type="button"
+                            onClick={() => toggleArrayField('consultationFor', opt.key)}
+                            style={{
+                                flex: 1, padding: '14px', borderRadius: '12px',
+                                border: `2px solid ${isActive ? opt.color : '#e2e8f0'}`,
+                                background: isActive ? `${opt.color}15` : 'white',
+                                color: isActive ? opt.color : '#64748b',
+                                fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer',
+                                transition: 'all 0.2s', position: 'relative'
+                            }}
+                        >
+                            {isActive && <Check size={16} style={{ position: 'absolute', top: '6px', right: '6px' }} />}
+                            {opt.label}
+                        </button>
+                    );
+                })}
             </div>
+            <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '-12px', marginBottom: '16px', textAlign: 'center' }}>Select both if your consultation covers tattoo and piercing</p>
+
+            {/* Tattoo placement with 3D model */}
+            {showTattoo && (
+                <>
+                    <p style={{ fontWeight: '600', color: '#1e293b', marginBottom: '10px', fontSize: '0.9rem' }}>
+                        {showPiercing ? '🎨 Where would you like your tattoo?' : 'Where on your body would you like your tattoo?'}
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '12px' }}>
+                        <Suspense fallback={<div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRadius: '16px', color: '#94a3b8' }}>Loading 3D Model...</div>}>
+                            <BodyModelViewer
+                                selectedPlacements={formData.placement}
+                                onTogglePlacement={(part) => toggleArrayField('placement', part)}
+                                availablePlacements={tattooBodyParts}
+                                height={280}
+                            />
+                        </Suspense>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', alignContent: 'start' }}>
+                            {tattooBodyParts.map(part => {
+                                const isSelected = formData.placement.includes(part);
+                                return (
+                                    <button
+                                        key={part} type="button"
+                                        onClick={() => toggleArrayField('placement', part)}
+                                        style={{
+                                            padding: '10px 6px', borderRadius: '10px',
+                                            border: `2px solid ${isSelected ? '#C19A6B' : (errors.placement ? '#ef4444' : '#e2e8f0')}`,
+                                            background: isSelected ? '#C19A6B' : 'white',
+                                            color: isSelected ? 'white' : '#1e293b',
+                                            fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s',
+                                            boxShadow: isSelected ? '0 3px 10px rgba(193, 154, 107, 0.3)' : 'none'
+                                        }}
+                                    >
+                                        {isSelected && <Check size={12} style={{ marginRight: '3px', verticalAlign: 'middle' }} />}
+                                        {part}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Piercing placement */}
+            {showPiercing && (
+                <>
+                    {showTattoo && <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '12px 0' }} />}
+                    <p style={{ fontWeight: '600', color: '#1e293b', marginBottom: '10px', fontSize: '0.9rem' }}>
+                        {showTattoo ? '💎 Where would you like your piercing?' : 'Where would you like your piercing?'}
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px' }}>
+                        {piercingBodyParts.map(part => {
+                            const isSelected = formData.placement.includes(part);
+                            return (
+                                <button
+                                    key={`p-${part}`} type="button"
+                                    onClick={() => toggleArrayField('placement', part)}
+                                    style={{
+                                        padding: '10px 8px', borderRadius: '10px',
+                                        border: `2px solid ${isSelected ? '#8b5cf6' : '#e2e8f0'}`,
+                                        background: isSelected ? '#8b5cf6' : 'white',
+                                        color: isSelected ? 'white' : '#1e293b',
+                                        fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s',
+                                        boxShadow: isSelected ? '0 3px 10px rgba(139, 92, 246, 0.3)' : 'none'
+                                    }}
+                                >
+                                    {isSelected && <Check size={12} style={{ marginRight: '3px', verticalAlign: 'middle' }} />}
+                                    {part}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </>
+            )}
+
+            {/* Selection summary */}
+            {formData.placement.length > 0 && (
+                <div style={{ marginTop: '16px', padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#166534' }}>
+                    <Check size={14} color="#16a34a" /> <strong>Selected:</strong> {formData.placement.join(', ')}
+                </div>
+            )}
+
             {errors.placement && <small style={{color: '#ef4444', display: 'block', marginTop: '10px', fontSize: '0.85rem', textAlign: 'center'}}>{errors.placement}</small>}
         </div>
-    );
+        );
+    };
 
     const renderStepScheduling = () => (
         <div className="fade-in">
@@ -833,7 +940,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         onClick={() => { 
                             const newErrors = {};
                             if (step === 1 && !formData.designTitle) newErrors.designTitle = 'Please tell us about your tattoo idea'; 
-                            if (step === 2 && !formData.placement) newErrors.placement = 'Please select a placement area';
+                            if (step === 2 && formData.consultationFor.length === 0) newErrors.placement = 'Please select what this consultation is for (Tattoo, Piercing, or both)';
+                            else if (step === 2 && formData.placement.length === 0) newErrors.placement = 'Please select at least one placement area';
                             if (step === 3 && (!formData.date || !formData.time)) newErrors.date = 'Please select a preferred date and time';
                             
                             if (Object.keys(newErrors).length > 0) {
