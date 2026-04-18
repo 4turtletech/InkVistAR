@@ -323,16 +323,6 @@ function Home() {
                     </div>
                 </section>
 
-                {/* 6. Final CTA */}
-                <section className="final-cta-section fade-up">
-                    <div className="cta-bg"></div>
-                    <div className="cta-content">
-                        <h2 className="cta-title">Ready to Make Your Mark?</h2>
-                        <button onClick={() => navigate('/book')} className="btn-gold-luxury" style={{ padding: '1.5rem 4rem', fontSize: '1.2rem' }}>
-                            Begin Your Journey
-                        </button>
-                    </div>
-                </section>
 
                 <Footer />
             </div>
