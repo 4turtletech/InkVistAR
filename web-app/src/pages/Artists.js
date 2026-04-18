@@ -74,7 +74,7 @@ function Artists() {
             <section className="artists-team-photo-section">
                 <div className="artists-team-photo-wrapper">
                     <img
-                        src="/images/tattoos/media__1775711217566.png"
+                        src="/images/tattoos/group_photo.jpg"
                         alt="Inkvictus Studio — Our Team"
                         className="artists-team-photo"
                     />
