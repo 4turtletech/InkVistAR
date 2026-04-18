@@ -17,7 +17,7 @@ const FEATURED_ARTISTS = [
     { name: 'JeaR', style: 'Dotwork & Mandala', image: '/images/tattoos/media__1775667820757.jpg' },
     { name: 'Lem', style: 'Watercolor', image: '/images/tattoos/media__1775667820770.jpg' },
     { name: 'Renz', style: 'Tribal / Polynesian', image: '/images/tattoos/media__1775667820781.jpg' },
-    { name: 'Carl', style: 'Minimalist', image: 'https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&q=80&w=600' } // Fallback to premium unsplash for the 9th
+    { name: 'Carl', style: 'Minimalist', image: '/images/tattoos/media__1775667820747.jpg' }
 ];
 
 function Home() {
@@ -52,6 +52,31 @@ function Home() {
     // Testimonials State
     const [testimonials, setTestimonials] = useState([]);
     const [currentSlide, setCurrentSlide] = useState(0);
+
+    // Artists Slider
+    const sliderRef = useRef(null);
+
+    // Auto-scroll Artists Slider every 10 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (sliderRef.current) {
+                const slider = sliderRef.current;
+                const scrollLeft = slider.scrollLeft;
+                const scrollWidth = slider.scrollWidth;
+                const clientWidth = slider.clientWidth;
+
+                // If we've reached the end, scroll back to the beginning smoothly
+                if (scrollLeft + clientWidth >= scrollWidth - 10) {
+                    slider.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    // Otherwise scroll right by slightly less than the client width for overlap context
+                    slider.scrollBy({ left: clientWidth * 0.8, behavior: 'smooth' });
+                }
+            }
+        }, 10000); // 10 seconds
+
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         fetch(`${API_URL}/api/reviews`)
@@ -119,16 +144,41 @@ function Home() {
                         <span className="section-subtitle">Our Talent</span>
                         <h2 className="section-title">The Masters of Ink</h2>
                     </div>
-                    <div className="artists-grid">
-                        {FEATURED_ARTISTS.map((artist, idx) => (
-                            <div key={idx} className="artist-card">
-                                <img src={artist.image} alt={artist.name} className="artist-img" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&q=80&w=600'; }} />
-                                <div className="artist-overlay">
-                                    <h4 className="artist-name">{artist.name}</h4>
-                                    <span className="artist-style">{artist.style}</span>
+
+                    <div className="home-slider-wrapper">
+                        {/* Left Control */}
+                        <button 
+                            className="home-slider-btn left" 
+                            onClick={() => sliderRef.current?.scrollBy({ left: -350, behavior: 'smooth' })}
+                            aria-label="Scroll left"
+                        >
+                            <ChevronLeft size={28} />
+                        </button>
+
+                        <div className="home-artists-track" ref={sliderRef}>
+                            {FEATURED_ARTISTS.map((artist, idx) => (
+                                <div key={idx} className="home-artist-card" onClick={() => navigate(`/artist/${idx + 1}`)}>
+                                    <img 
+                                        src={artist.image} 
+                                        alt={artist.name} 
+                                        className="home-artist-img" 
+                                    />
+                                    <div className="home-artist-overlay">
+                                        <h4 className="home-artist-name">{artist.name}</h4>
+                                        <span className="home-artist-style">{artist.style}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+
+                        {/* Right Control */}
+                        <button 
+                            className="home-slider-btn right" 
+                            onClick={() => sliderRef.current?.scrollBy({ left: 350, behavior: 'smooth' })}
+                            aria-label="Scroll right"
+                        >
+                            <ChevronRight size={28} />
+                        </button>
                     </div>
                 </section>
 
