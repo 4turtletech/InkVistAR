@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import Axios from 'axios';
-import { API_URL } from '../config';
+import { useNavigate } from 'react-router-dom';
 import './Artists.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
@@ -11,39 +9,31 @@ function Artists() {
     const navigate = useNavigate();
     const [artists, setArtists] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isScrolled, setIsScrolled] = useState(false);
 
     const STYLES = ['All', 'Traditional', 'Realism', 'Watercolor', 'Tribal', 'New School', 'Neo Traditional', 'Japanese', 'Blackwork', 'Minimalist'];
     const [activeFilter, setActiveFilter] = useState('All');
 
-    useEffect(() => {
-        const handleScroll = () => {
-            if (window.scrollY > 50) {
-                setIsScrolled(true);
-            } else {
-                setIsScrolled(false);
-            }
-        };
+    const MOCK_ARTISTS = [
+        { id: '1', name: 'Jaxson', nickname: 'The Needle', specialization: 'Realism, Blackwork', profile_image: 'https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?q=80&w=800&auto=format&fit=crop' },
+        { id: '2', name: 'Elena', nickname: 'Viper', specialization: 'Traditional, Neo Traditional', profile_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop' },
+        { id: '3', name: 'Marcus', nickname: 'Ghost', specialization: 'Blackwork, Minimalist', profile_image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop' },
+        { id: '4', name: 'Sarah', nickname: 'Lotus', specialization: 'Watercolor, Japanese', profile_image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=800&auto=format&fit=crop' },
+        { id: '5', name: 'David', nickname: 'Iron Hand', specialization: 'Tribal, Japanese', profile_image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=800&auto=format&fit=crop' },
+        { id: '6', name: 'Maya', nickname: 'Ink Weaver', specialization: 'New School, Realism', profile_image: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=800&auto=format&fit=crop' },
+        { id: '7', name: 'Leo', nickname: 'Shadow', specialization: 'Blackwork, Dotwork', profile_image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop' },
+        { id: '8', name: 'Chloe', nickname: 'Siren', specialization: 'Traditional, Linework', profile_image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop' },
+        { id: '9', name: 'Victor', nickname: 'The Chief', specialization: 'Tribal, Neo Traditional', profile_image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop' }
+    ];
 
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
     useEffect(() => {
-        const fetchArtists = async () => {
-            try {
-                setLoading(true);
-                const res = await Axios.get(`${API_URL}/api/customer/artists`);
-                if (res.data.success) {
-                    setArtists(res.data.artists);
-                }
-                setLoading(false);
-            } catch (error) {
-                console.error("Error fetching artists:", error);
-                setLoading(false);
-            }
-        };
-        fetchArtists();
+        // Mock API fetch delay for UX
+        setLoading(true);
+        const timer = setTimeout(() => {
+            setArtists(MOCK_ARTISTS);
+            setLoading(false);
+        }, 600);
+        return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const filteredArtists = artists.filter(artist => {
@@ -62,75 +52,78 @@ function Artists() {
                 <div className="artists-hero-overlay"></div>
                 <div className="artists-hero-content">
                     <h1>Our Elite Artists</h1>
-                    <div className="team-photo-container">
-                        <div className="team-photo-placeholder">
-                            <span>Insert Team Photo Here</span>
-                        </div>
-                        <div className="team-badge">BGC'S FINEST</div>
-                    </div>
+                    <p className="artists-hero-subtitle">
+                        Nine world-class tattoo artists. One legendary studio.
+                    </p>
                 </div>
             </header>
 
             {/* Artist Portfolio Grid */}
             <section className="artists-grid-section">
                 <p className="artists-intro">
-                    Inkvictus would not be possible without the talent and creativity of our skilled artists
+                    Inkvictus would not be possible without the talent and creativity of our skilled artists.
+                    Each one brings a unique style and vision to the craft.
                 </p>
 
-                <div className="filter-bar" style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '40px' }}>
-                    {STYLES.map(style => (
-                        <button 
-                            key={style}
-                            onClick={() => setActiveFilter(style)}
-                            className={`filter-btn ${activeFilter === style ? 'active' : ''}`}
-                            style={{
-                                padding: '8px 20px',
-                                borderRadius: '20px',
-                                border: '1px solid #e2e8f0',
-                                background: activeFilter === style ? '#daa520' : 'white',
-                                color: activeFilter === style ? 'white' : '#64748b',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                fontWeight: activeFilter === style ? 'bold' : 'normal'
-                            }}
-                        >
-                            {style}
-                        </button>
-                    ))}
+                <div className="artists-filter-container">
+                    <span className="artists-filter-label">STYLE FILTER:</span>
+                    <select
+                        className="artists-filter-select"
+                        value={activeFilter}
+                        onChange={(e) => setActiveFilter(e.target.value)}
+                    >
+                        {STYLES.map(style => (
+                            <option key={style} value={style}>{style}</option>
+                        ))}
+                    </select>
                 </div>
 
                 <div className="artists-grid-container">
                     {loading ? (
-                        <div className="loading-text">Loading artists...</div>
+                        /* Skeleton loading cards for visual feedback */
+                        Array.from({ length: 9 }).map((_, i) => (
+                            <div key={i} className="artist-card artist-card-skeleton">
+                                <div className="artist-image-wrapper skeleton-shimmer"></div>
+                                <div className="artist-info">
+                                    <div className="skeleton-line skeleton-shimmer" style={{ width: '70%', height: '24px', margin: '0 auto 12px' }}></div>
+                                    <div className="skeleton-line skeleton-shimmer" style={{ width: '50%', height: '14px', margin: '0 auto 20px' }}></div>
+                                    <div className="skeleton-line skeleton-shimmer" style={{ width: '100%', height: '44px', borderRadius: '10px' }}></div>
+                                </div>
+                            </div>
+                        ))
                     ) : (
                         filteredArtists.length > 0 ? (
                             filteredArtists.map((artist, index) => (
-                                <div key={artist.id || index} className="artist-card fade-in-up">
+                                <div
+                                    key={artist.id || index}
+                                    className="artist-card fade-in-up"
+                                    style={{ animationDelay: `${index * 0.08}s` }}
+                                >
                                     <div className="artist-image-wrapper">
                                         <img 
                                             src={artist.profile_image || "https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&q=80&w=600"} 
-                                            alt={artist.name} 
+                                            alt={`${artist.name} - ${artist.specialization}`}
+                                            loading="lazy"
                                         />
                                         <div className="artist-brand-overlay">V</div>
                                     </div>
                                     <div className="artist-info">
                                         <div className="artist-name-group">
                                             <h2>{artist.name}</h2>
+                                            <p className="artist-nickname">"{artist.nickname}"</p>
                                             <div className="name-underline"></div>
                                         </div>
                                         <p className="artist-specialty">{artist.specialization || 'Tattoo Artist'}</p>
-                                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '15px' }}>
+                                        <div className="artist-actions">
                                             <button 
-                                                className="view-portfolio-btn" 
-                                                onClick={() => navigate(`/artist/${artist.id || artist.user_id}`)}
-                                                style={{ margin: 0 }}
+                                                className="artist-btn artist-btn-primary" 
+                                                onClick={() => navigate(`/artist/${artist.id}`)}
                                             >
                                                 View Profile
                                             </button>
                                             <button 
-                                                className="view-portfolio-btn" 
-                                                style={{ margin: 0, background: 'transparent', color: '#111', border: '1px solid #111' }}
-                                                onClick={() => navigate(`/gallery?artistId=${artist.id || artist.user_id}&artistName=${encodeURIComponent(artist.name)}`)}
+                                                className="artist-btn artist-btn-outline"
+                                                onClick={() => navigate(`/gallery?artistId=${artist.id}&artistName=${encodeURIComponent(artist.name)}`)}
                                             >
                                                 See Works
                                             </button>
@@ -139,8 +132,9 @@ function Artists() {
                                 </div>
                             ))
                         ) : (
-                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                                No artists found matching "{activeFilter}" style.
+                            <div className="artists-empty-state">
+                                <h3>No artists found matching "{activeFilter}" style.</h3>
+                                <p>Try selecting a different filter or checking back later.</p>
                             </div>
                         )
                     )}
