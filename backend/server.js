@@ -5862,14 +5862,14 @@ app.get('/api/admin/analytics', (req, res) => {
     LIMIT 5
   `;
 
-  // 4b. Inventory Daily Trend
+  // 4b. Inventory Daily Trend (last 30 days)
   const inventoryTrendQuery = `
     SELECT 
-      DATE_FORMAT(created_at, '%b %d') as label,
+      DATE_FORMAT(created_at, '%e') as label,
       DATE(created_at) as sort_key,
       SUM(quantity) as v
     FROM inventory_transactions
-    WHERE type = 'out' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    WHERE type = 'out' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
     GROUP BY label, sort_key
     ORDER BY sort_key ASC
   `;
@@ -5935,19 +5935,20 @@ app.get('/api/admin/analytics', (req, res) => {
           db.query(inventoryTrendQuery, (err, trendInvRes) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
             
-            // Build a 7-day trend array, filling missing days with 0
+            // Build a 30-day trend array, filling missing days with 0
             const inventoryTrendMap = {};
             const today = new Date();
-            for (let i = 6; i >= 0; i--) {
+            for (let i = 29; i >= 0; i--) {
               const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
               const sortKey = d.toISOString().split('T')[0];
-              const label = d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+              const label = String(d.getDate());
               inventoryTrendMap[sortKey] = { label, v: 0 };
             }
             if (trendInvRes) {
               trendInvRes.forEach(t => {
-                if (inventoryTrendMap[t.sort_key]) {
-                  inventoryTrendMap[t.sort_key].v = Number(t.v) || 0;
+                const sk = typeof t.sort_key === 'string' ? t.sort_key : new Date(t.sort_key).toISOString().split('T')[0];
+                if (inventoryTrendMap[sk]) {
+                  inventoryTrendMap[sk].v = Number(t.v) || 0;
                 }
               });
             }

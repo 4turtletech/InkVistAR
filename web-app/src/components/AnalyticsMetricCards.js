@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar, Users, Package, Clock, CheckCircle, DollarSign, Home, Palette } from 'lucide-react';
 import PhilippinePeso from './PhilippinePeso';
-import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip, AreaChart, Area, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, Legend } from 'recharts';
 
 /**
  * AnalyticsMetricCards — Shared metric card widgets.
@@ -21,16 +21,25 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
             label: 'Total Revenue',
             value: `₱${Number(analytics.revenue?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             hint: 'Click to view sources →',
-            chart: analytics.revenue?.chart?.length > 0 ? (
-                <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px' }}>
-                    <ResponsiveContainer>
-                        <BarChart data={analytics.revenue.chart}>
-                            <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} />
+            chart: (analytics.revenue?.breakdown?.length > 0 ? (
+                <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px', display: 'flex', alignItems: 'center' }}>
+                    <ResponsiveContainer width="60%" height="100%">
+                        <PieChart>
+                            <Pie data={analytics.revenue.breakdown} cx="50%" cy="50%" innerRadius={25} outerRadius={50} paddingAngle={2} dataKey="value">
+                                {analytics.revenue.breakdown.map((_, i) => <Cell key={i} fill={['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4]} />)}
+                            </Pie>
                             <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
-                        </BarChart>
+                        </PieChart>
                     </ResponsiveContainer>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
+                        {analytics.revenue.breakdown.map((b, i) => (
+                            <div key={i}><span style={{ color: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 0 })}</span> {b.name}</div>
+                        ))}
+                    </div>
                 </div>
-            ) : null
+            ) : (
+                <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>No revenue data</div>
+            ))
         },
         {
             type: 'expenses',
@@ -171,11 +180,12 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
             chart: ((analytics.inventory_trend || []).length > 0 ? (
                 <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px' }}>
                     <ResponsiveContainer>
-                        <AreaChart data={analytics.inventory_trend} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                        <AreaChart data={analytics.inventory_trend} margin={{ top: 10, right: 5, left: 5, bottom: 0 }}>
+                            <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
                             <Area type="monotone" dataKey="v" stroke="#a855f7" fill="#f3e8ff" strokeWidth={2} activeDot={{ r: 4 }} />
                             <Tooltip
-                                formatter={(value) => [value, 'Qty']}
-                                labelFormatter={(label) => label}
+                                formatter={(value) => [value, 'Items used']}
+                                labelFormatter={(label) => `Day ${label}`}
                                 contentStyle={{ fontSize: '0.75rem', borderRadius: '8px', color: '#a855f7' }}
                             />
                         </AreaChart>
