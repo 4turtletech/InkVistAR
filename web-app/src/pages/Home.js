@@ -69,8 +69,8 @@ function Home() {
                 if (scrollLeft + clientWidth >= scrollWidth - 10) {
                     slider.scrollTo({ left: 0, behavior: 'smooth' });
                 } else {
-                    // Otherwise scroll right by slightly less than the client width for overlap context
-                    slider.scrollBy({ left: clientWidth * 0.8, behavior: 'smooth' });
+                    // Otherwise scroll right by exactly the container width for a full next 'slide' of 3 cards
+                    slider.scrollBy({ left: clientWidth, behavior: 'smooth' });
                 }
             }
         }, 10000); // 10 seconds
@@ -149,7 +149,7 @@ function Home() {
                         {/* Left Control */}
                         <button 
                             className="home-slider-btn left" 
-                            onClick={() => sliderRef.current?.scrollBy({ left: -350, behavior: 'smooth' })}
+                            onClick={() => sliderRef.current?.scrollBy({ left: -sliderRef.current.clientWidth, behavior: 'smooth' })}
                             aria-label="Scroll left"
                         >
                             <ChevronLeft size={28} />
@@ -174,7 +174,7 @@ function Home() {
                         {/* Right Control */}
                         <button 
                             className="home-slider-btn right" 
-                            onClick={() => sliderRef.current?.scrollBy({ left: 350, behavior: 'smooth' })}
+                            onClick={() => sliderRef.current?.scrollBy({ left: sliderRef.current.clientWidth, behavior: 'smooth' })}
                             aria-label="Scroll right"
                         >
                             <ChevronRight size={28} />
@@ -238,15 +238,19 @@ function Home() {
                 </section>
 
                 {/* 5. Testimonials */}
-                <section className="premium-section fade-up" ref={testimonialsRef}>
-                    <div className="section-header">
+                <section 
+                    className="premium-section fade-up" 
+                    ref={testimonialsRef}
+                    style={testimonials.length === 0 ? { padding: '4rem 2rem 3rem' } : undefined}
+                >
+                    <div className="section-header" style={testimonials.length === 0 ? { marginBottom: '2rem' } : undefined}>
                         <span className="section-subtitle">Reputation</span>
                         <h2 className="section-title">The Experience</h2>
                     </div>
                     
                     <div className="premium-carousel-container" style={{ marginBottom: '2rem' }}>
                         {testimonials.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '3rem 0', borderTop: '1px solid var(--border-glass)', borderBottom: '1px solid var(--border-glass)' }}>
+                            <div style={{ textAlign: 'center', padding: '2rem 0', borderTop: '1px solid var(--border-glass)', borderBottom: '1px solid var(--border-glass)' }}>
                                 <PenTool size={32} color="var(--accent-gold)" style={{ opacity: 0.5, marginBottom: '1rem' }} />
                                 <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>No chronicles recorded yet. Be the first to leave a mark.</p>
                             </div>

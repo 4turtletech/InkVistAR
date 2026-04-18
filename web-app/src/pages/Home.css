@@ -221,10 +221,11 @@ h1, h2, h3, h4 {
 }
 
 .home-artist-card {
-    min-width: 320px;
-    max-width: 320px;
+    /* To show exactly 3 cards minus the 2 instances of 2rem gaps */
+    min-width: calc((100% - 4rem) / 3);
+    max-width: calc((100% - 4rem) / 3);
     flex-shrink: 0;
-    scroll-snap-align: center;
+    scroll-snap-align: start;
     position: relative;
     border-radius: 16px;
     overflow: hidden;
@@ -325,7 +326,17 @@ h1, h2, h3, h4 {
 
 @media (max-width: 1024px) {
     .home-slider-btn { display: none; } /* Hide arrows on touch devices */
-    .home-artist-card { min-width: 280px; max-width: 280px; }
+    .home-artist-card { 
+        min-width: calc((100% - 2rem) / 2); 
+        max-width: calc((100% - 2rem) / 2); 
+    }
+}
+
+@media (max-width: 768px) {
+    .home-artist-card { 
+        min-width: 100%; 
+        max-width: 100%; 
+    }
 }
 
 /* Custom Work Matrix Grid (Replaces old About section) */
