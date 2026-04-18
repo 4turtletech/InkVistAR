@@ -430,6 +430,10 @@ function CustomerBookings(){
         if (bookingStep === 3 && derivedType === 'Tattoo + Piercing' && bookingData.piercingPlacement.length === 0) {
             return showAlert("Required Field", "Please also select the piercing location for your bundled session.", "warning");
         }
+        // Validate location notes when 'Other' is selected
+        if (bookingStep === 3 && (bookingData.placement.includes('Other') || bookingData.piercingPlacement.includes('Other')) && !bookingData.placementNotes.trim()) {
+            return showAlert("Required Field", "You selected 'Other' — please describe the specific location in the notes field.", "warning");
+        }
         setBookingStep(bookingStep + 1);
     };
 
@@ -1317,7 +1321,7 @@ function CustomerBookings(){
 
                                 {bookingStep === 3 && (() => {
                                     const derivedType = getDerivedServiceType(bookingData.selectedServices);
-                                    const tattooBodyParts = ["Face", "Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"];
+                                    const tattooBodyParts = ["Face", "Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle", "Other"];
                                     const piercingBodyParts = ["Ear Lobe", "Helix", "Tragus", "Conch", "Industrial", "Nostril", "Septum", "Eyebrow", "Lip/Oral", "Navel", "Nipple", "Other"];
 
                                     // Decide which placement buttons to show
@@ -1447,12 +1451,28 @@ function CustomerBookings(){
                                             </div>
                                         )}
 
+                                        {/* "Other" selected note */}
+                                        {(bookingData.placement.includes('Other') || bookingData.piercingPlacement.includes('Other')) && (
+                                            <div style={{ padding: '12px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '4px' }}>
+                                                <Info size={16} color="#d97706" style={{ marginTop: '2px', flexShrink: 0 }} />
+                                                <span style={{ fontSize: '0.85rem', color: '#92400e', lineHeight: '1.5' }}>
+                                                    You selected <strong>"Other"</strong> — please describe the exact body area you have in mind in the <strong>Specific location notes</strong> field below. This field is now <strong>required</strong>.
+                                                </span>
+                                            </div>
+                                        )}
+
                                         <div className="form-group customer-st-842c3fb4" >
-                                            <label className="customer-st-fc6d29da" >Specific location notes</label>
+                                            <label className="customer-st-fc6d29da" >
+                                                Specific location notes
+                                                {(bookingData.placement.includes('Other') || bookingData.piercingPlacement.includes('Other')) && (
+                                                    <span style={{ color: '#ef4444', fontWeight: '400' }}> *</span>
+                                                )}
+                                            </label>
                                             <input 
                                                 type="text" className="form-input" placeholder={showTattooPlacement && showPiercingPlacement ? 'e.g. Left inner forearm tattoo, right ear helix piercing' : 'e.g. Left inner forearm, near elbow'}
                                                 value={bookingData.placementNotes} onChange={e => setBookingData({...bookingData, placementNotes: e.target.value})} 
                                                 maxLength={200}
+                                                style={(bookingData.placement.includes('Other') || bookingData.piercingPlacement.includes('Other')) && !bookingData.placementNotes.trim() ? { borderColor: '#f59e0b', boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.15)' } : {}}
                                             />
                                         </div>
 

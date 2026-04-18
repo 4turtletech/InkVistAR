@@ -28,6 +28,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         notes: '',
         placement: [],
         consultationFor: [], // ['tattoo','piercing']
+        placementNotes: '',
         referenceImage: null,
         phoneCode: '+63'
     });
@@ -184,7 +185,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 endTime: formData.time || '13:00',
                 serviceType: 'Consultation',
                 designTitle: formData.designTitle,
-                notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nConsultation for: ${consultTypeStr}\nPlacement: ${placementStr}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || generatedName}\nEmail: ${currentUser?.email || formData.email}\nPhone: ${formData.phoneCode || '+63'}${formData.phone}`,
+                notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nConsultation for: ${consultTypeStr}\nPlacement: ${placementStr}${formData.placementNotes ? `\nSpecific notes: ${formData.placementNotes}` : ''}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || generatedName}\nEmail: ${currentUser?.email || formData.email}\nPhone: ${formData.phoneCode || '+63'}${formData.phone}`,
                 referenceImage: formData.referenceImage,
                 status: 'pending',
                 price: 0,
@@ -403,7 +404,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         </div>
     );
 
-    const tattooBodyParts = ["Face", "Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"];
+    const tattooBodyParts = ["Face", "Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle", "Other"];
     const piercingBodyParts = ["Ear Lobe", "Helix", "Tragus", "Conch", "Industrial", "Nostril", "Septum", "Eyebrow", "Lip/Oral", "Navel", "Nipple", "Other"];
 
     const renderStepPlacement = () => {
@@ -525,6 +526,34 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     <Check size={14} color="#16a34a" /> <strong>Selected:</strong> {formData.placement.join(', ')}
                 </div>
             )}
+
+            {/* "Other" selected note */}
+            {formData.placement.includes('Other') && (
+                <div style={{ marginTop: '12px', padding: '12px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                    <Info size={16} color="#d97706" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', color: '#92400e', lineHeight: '1.5' }}>
+                        You selected <strong>"Other"</strong> — please describe the exact body area in the field below. This field is now <strong>required</strong>.
+                    </span>
+                </div>
+            )}
+
+            {/* Specific location notes (required when Other is selected) */}
+            <div style={{ marginTop: '12px' }}>
+                <label style={{ fontWeight: '600', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.88rem' }}>
+                    Specific location notes
+                    {formData.placement.includes('Other') && <span style={{ color: '#ef4444', fontWeight: '400' }}> *</span>}
+                </label>
+                <input
+                    type="text"
+                    className={`form-input ${errors.placementNotes ? 'error' : ''}`}
+                    placeholder="e.g. Left inner forearm, near elbow"
+                    value={formData.placementNotes}
+                    onChange={(e) => { setFormData({...formData, placementNotes: e.target.value}); if (errors.placementNotes) setErrors(prev => ({...prev, placementNotes: ''})); }}
+                    maxLength={200}
+                    style={formData.placement.includes('Other') && !formData.placementNotes.trim() ? { borderColor: '#f59e0b', boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.15)' } : {}}
+                />
+                {errors.placementNotes && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.82rem'}}>{errors.placementNotes}</small>}
+            </div>
 
             {errors.placement && <small style={{color: '#ef4444', display: 'block', marginTop: '10px', fontSize: '0.85rem', textAlign: 'center'}}>{errors.placement}</small>}
         </div>
@@ -946,6 +975,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             if (step === 1 && !formData.designTitle) newErrors.designTitle = 'Please tell us about your tattoo idea'; 
                             if (step === 2 && formData.consultationFor.length === 0) newErrors.placement = 'Please select what this consultation is for (Tattoo, Piercing, or both)';
                             else if (step === 2 && formData.placement.length === 0) newErrors.placement = 'Please select at least one placement area';
+                            else if (step === 2 && formData.placement.includes('Other') && !formData.placementNotes.trim()) newErrors.placementNotes = 'Please describe the specific location since you selected "Other"';
                             if (step === 3 && (!formData.date || !formData.time)) newErrors.date = 'Please select a preferred date and time';
                             
                             if (Object.keys(newErrors).length > 0) {
