@@ -530,29 +530,33 @@ function AdminDashboard() {
                                             <h3 className="stat-value-v2">{analyticsData.appointments?.total || 0}</h3>
                                         </div>
                                     </div>
-                                    {(analyticsData.appointments?.completed > 0 || analyticsData.appointments?.scheduled > 0 || analyticsData.appointments?.cancelled > 0) && (
-                                        <div style={{ width: '100%', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <ResponsiveContainer width="50%" height="100%">
-                                                <PieChart>
-                                                    <Pie data={[
-                                                        { name: 'Completed', value: Number(analyticsData.appointments.completed) || 0 },
-                                                        { name: 'Scheduled', value: Number(analyticsData.appointments.scheduled) || 0 },
-                                                        { name: 'Cancelled', value: Number(analyticsData.appointments.cancelled) || 0 }
-                                                    ].filter(d => d.value > 0)} cx="50%" cy="50%" outerRadius={30} paddingAngle={3} dataKey="value">
-                                                        <Cell fill="#10b981" />
-                                                        <Cell fill="#3b82f6" />
-                                                        <Cell fill="#ef4444" />
-                                                    </Pie>
-                                                    <Tooltip contentStyle={{ fontSize: '0.7rem', borderRadius: '8px' }} />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                            <div style={{ fontSize: '0.65rem', color: '#64748b', lineHeight: 1.6 }}>
-                                                <div><span style={{ color: '#10b981', fontWeight: 700 }}>{analyticsData.appointments.completed}</span> completed</div>
-                                                <div><span style={{ color: '#3b82f6', fontWeight: 700 }}>{analyticsData.appointments.scheduled}</span> scheduled</div>
-                                                <div><span style={{ color: '#ef4444', fontWeight: 700 }}>{analyticsData.appointments.cancelled}</span> cancelled</div>
-                                            </div>
-                                        </div>
-                                    )}
+                                    <div style={{ width: '100%', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        {(analyticsData.appointments?.completed > 0 || analyticsData.appointments?.scheduled > 0 || analyticsData.appointments?.cancelled > 0) ? (
+                                            <>
+                                                <ResponsiveContainer width="50%" height="100%">
+                                                    <PieChart>
+                                                        <Pie data={[
+                                                            { name: 'Completed', value: Number(analyticsData.appointments.completed) || 0 },
+                                                            { name: 'Scheduled', value: Number(analyticsData.appointments.scheduled) || 0 },
+                                                            { name: 'Cancelled', value: Number(analyticsData.appointments.cancelled) || 0 }
+                                                        ].filter(d => d.value > 0)} cx="50%" cy="50%" outerRadius={30} paddingAngle={3} dataKey="value">
+                                                            <Cell fill="#10b981" />
+                                                            <Cell fill="#3b82f6" />
+                                                            <Cell fill="#ef4444" />
+                                                        </Pie>
+                                                        <Tooltip contentStyle={{ fontSize: '0.7rem', borderRadius: '8px' }} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                                <div style={{ fontSize: '0.65rem', color: '#64748b', lineHeight: 1.6 }}>
+                                                    <div><span style={{ color: '#10b981', fontWeight: 700 }}>{analyticsData.appointments.completed}</span> completed</div>
+                                                    <div><span style={{ color: '#3b82f6', fontWeight: 700 }}>{analyticsData.appointments.scheduled}</span> scheduled</div>
+                                                    <div><span style={{ color: '#ef4444', fontWeight: 700 }}>{analyticsData.appointments.cancelled}</span> cancelled</div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>No appointments yet</span>
+                                        )}
+                                    </div>
                                     <div className="stat-trend-v2" style={{ marginTop: '4px', color: '#64748b', fontSize: '0.75rem' }}>Click for status breakdown →</div>
                                 </div>
 
