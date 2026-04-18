@@ -10,19 +10,30 @@ function Artists() {
     const [artists, setArtists] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const STYLES = ['All', 'Traditional', 'Realism', 'Watercolor', 'Tribal', 'New School', 'Neo Traditional', 'Japanese', 'Blackwork', 'Minimalist'];
+    const STYLES = [
+        'All',
+        'Black & Grey Realism',
+        'Fine Line Geometry',
+        'Traditional Japanese',
+        'Neo-Traditional',
+        'Surrealism',
+        'Dotwork & Mandala',
+        'Watercolor',
+        'Tribal / Polynesian',
+        'Minimalist'
+    ];
     const [activeFilter, setActiveFilter] = useState('All');
 
     const MOCK_ARTISTS = [
-        { id: '1', name: 'Jaxson', nickname: 'The Needle', specialization: 'Realism, Blackwork', profile_image: 'https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?q=80&w=800&auto=format&fit=crop' },
-        { id: '2', name: 'Elena', nickname: 'Viper', specialization: 'Traditional, Neo Traditional', profile_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop' },
-        { id: '3', name: 'Marcus', nickname: 'Ghost', specialization: 'Blackwork, Minimalist', profile_image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=800&auto=format&fit=crop' },
-        { id: '4', name: 'Sarah', nickname: 'Lotus', specialization: 'Watercolor, Japanese', profile_image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=800&auto=format&fit=crop' },
-        { id: '5', name: 'David', nickname: 'Iron Hand', specialization: 'Tribal, Japanese', profile_image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=800&auto=format&fit=crop' },
-        { id: '6', name: 'Maya', nickname: 'Ink Weaver', specialization: 'New School, Realism', profile_image: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=800&auto=format&fit=crop' },
-        { id: '7', name: 'Leo', nickname: 'Shadow', specialization: 'Blackwork, Dotwork', profile_image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop' },
-        { id: '8', name: 'Chloe', nickname: 'Siren', specialization: 'Traditional, Linework', profile_image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop' },
-        { id: '9', name: 'Victor', nickname: 'The Chief', specialization: 'Tribal, Neo Traditional', profile_image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop' }
+        { id: '1', name: 'Artist Troy', nickname: 'Troy', specialization: 'Black & Grey Realism', profile_image: '/images/tattoos/media__1775672821008.jpg' },
+        { id: '2', name: 'Artist Lloid', nickname: 'Lloid', specialization: 'Fine Line Geometry', profile_image: '/images/tattoos/media__1775672821025.jpg' },
+        { id: '3', name: 'Artist Ken', nickname: 'Ken', specialization: 'Traditional Japanese', profile_image: '/images/tattoos/media__1775672821057.jpg' },
+        { id: '4', name: 'Artist Mar', nickname: 'Mar', specialization: 'Neo-Traditional', profile_image: '/images/tattoos/media__1775672821061.jpg' },
+        { id: '5', name: 'Artist Brian', nickname: 'Brian', specialization: 'Surrealism', profile_image: '/images/tattoos/media__1775671277040.jpg' },
+        { id: '6', name: 'Artist JeaR', nickname: 'JeaR', specialization: 'Dotwork & Mandala', profile_image: '/images/tattoos/media__1775667820757.jpg' },
+        { id: '7', name: 'Artist Lem', nickname: 'Lem', specialization: 'Watercolor', profile_image: '/images/tattoos/media__1775667820770.jpg' },
+        { id: '8', name: 'Artist Renz', nickname: 'Renz', specialization: 'Tribal / Polynesian', profile_image: '/images/tattoos/media__1775667820781.jpg' },
+        { id: '9', name: 'Artist Carl', nickname: 'Carl', specialization: 'Minimalist', profile_image: '/images/tattoos/media__1775667820747.jpg' }
     ];
 
     useEffect(() => {
@@ -51,12 +62,27 @@ function Artists() {
             <header className="artists-hero">
                 <div className="artists-hero-overlay"></div>
                 <div className="artists-hero-content">
+                    <span className="artists-hero-tagline">The Inkvictus Collective</span>
                     <h1>Our Elite Artists</h1>
                     <p className="artists-hero-subtitle">
                         Nine world-class tattoo artists. One legendary studio.
                     </p>
                 </div>
             </header>
+
+            {/* Team Group Photo Placeholder (16:9 landscape) */}
+            <section className="artists-team-photo-section">
+                <div className="artists-team-photo-wrapper">
+                    <img
+                        src="/images/tattoos/media__1775711217566.png"
+                        alt="Inkvictus Studio — Our Team"
+                        className="artists-team-photo"
+                    />
+                    <div className="artists-team-photo-overlay">
+                        <p className="artists-team-photo-caption">The Inkvictus Family</p>
+                    </div>
+                </div>
+            </section>
 
             {/* Artist Portfolio Grid */}
             <section className="artists-grid-section">
@@ -82,12 +108,13 @@ function Artists() {
                     {loading ? (
                         /* Skeleton loading cards for visual feedback */
                         Array.from({ length: 9 }).map((_, i) => (
-                            <div key={i} className="artist-card artist-card-skeleton">
-                                <div className="artist-image-wrapper skeleton-shimmer"></div>
-                                <div className="artist-info">
-                                    <div className="skeleton-line skeleton-shimmer" style={{ width: '70%', height: '24px', margin: '0 auto 12px' }}></div>
-                                    <div className="skeleton-line skeleton-shimmer" style={{ width: '50%', height: '14px', margin: '0 auto 20px' }}></div>
-                                    <div className="skeleton-line skeleton-shimmer" style={{ width: '100%', height: '44px', borderRadius: '10px' }}></div>
+                            <div key={i} className="artist-profile-card artist-card-skeleton">
+                                <div className="artist-portrait-wrapper skeleton-shimmer"></div>
+                                <div className="artist-profile-info">
+                                    <div className="skeleton-line skeleton-shimmer" style={{ width: '60%', height: '22px', margin: '0 auto 10px' }}></div>
+                                    <div className="skeleton-line skeleton-shimmer" style={{ width: '80%', height: '14px', margin: '0 auto 8px' }}></div>
+                                    <div className="skeleton-line skeleton-shimmer" style={{ width: '50%', height: '12px', margin: '0 auto 20px' }}></div>
+                                    <div className="skeleton-line skeleton-shimmer" style={{ width: '100%', height: '42px', borderRadius: '10px' }}></div>
                                 </div>
                             </div>
                         ))
@@ -96,33 +123,33 @@ function Artists() {
                             filteredArtists.map((artist, index) => (
                                 <div
                                     key={artist.id || index}
-                                    className="artist-card fade-in-up"
+                                    className="artist-profile-card fade-in-up"
                                     style={{ animationDelay: `${index * 0.08}s` }}
                                 >
-                                    <div className="artist-image-wrapper">
-                                        <img 
-                                            src={artist.profile_image || "https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&q=80&w=600"} 
-                                            alt={`${artist.name} - ${artist.specialization}`}
+                                    <div className="artist-portrait-wrapper">
+                                        <img
+                                            src={artist.profile_image}
+                                            alt={`${artist.name} — ${artist.specialization}`}
                                             loading="lazy"
                                         />
-                                        <div className="artist-brand-overlay">V</div>
+                                        <div className="artist-portrait-brand">V</div>
                                     </div>
-                                    <div className="artist-info">
-                                        <div className="artist-name-group">
+                                    <div className="artist-profile-info">
+                                        <div className="artist-name-block">
                                             <h2>{artist.name}</h2>
-                                            <p className="artist-nickname">"{artist.nickname}"</p>
-                                            <div className="name-underline"></div>
+                                            <p className="artist-aka">"{artist.nickname}"</p>
+                                            <div className="artist-name-divider"></div>
                                         </div>
-                                        <p className="artist-specialty">{artist.specialization || 'Tattoo Artist'}</p>
-                                        <div className="artist-actions">
-                                            <button 
-                                                className="artist-btn artist-btn-primary" 
+                                        <p className="artist-spec-label">{artist.specialization}</p>
+                                        <div className="artist-profile-actions">
+                                            <button
+                                                className="artist-action-btn artist-action-primary"
                                                 onClick={() => navigate(`/artist/${artist.id}`)}
                                             >
                                                 View Profile
                                             </button>
-                                            <button 
-                                                className="artist-btn artist-btn-outline"
+                                            <button
+                                                className="artist-action-btn artist-action-outline"
                                                 onClick={() => navigate(`/gallery?artistId=${artist.id}&artistName=${encodeURIComponent(artist.name)}`)}
                                             >
                                                 See Works
