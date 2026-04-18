@@ -440,3 +440,39 @@ body {
   background-color: #d4af87;
   box-shadow: 0 5px 15px rgba(193, 154, 107, 0.4);
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .gallery-header {
+    padding: 20px 16px 12px;
+    margin-top: 70px;
+  }
+  .gallery-header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 16px;
+  }
+  .portfolio-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 92%;
+    padding-bottom: 40px;
+  }
+  .filter-nav {
+    gap: 6px;
+    padding: 0 12px;
+  }
+  .filter-btn {
+    padding: 6px 14px;
+    font-size: 0.75rem;
+  }
+  .gallery-modal-content {
+    max-width: 95vw;
+    max-height: 85vh;
+  }
+  .gallery-modal-info {
+    padding: 20px;
+  }
+  .gallery-modal-info h2 {
+    font-size: 1.3rem;
+  }
+}

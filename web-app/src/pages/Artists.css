@@ -265,4 +265,32 @@
         opacity: 1;
         transform: translateY(0);
     }
-}
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .artists-hero {
+        background-attachment: scroll;
+    }
+    .artists-grid-section {
+        padding: 3rem 1rem 4rem;
+    }
+    .artists-intro {
+        font-size: 1rem;
+        margin-bottom: 2.5rem;
+    }
+    .artists-grid-container {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    .artist-image-wrapper {
+        height: 260px;
+    }
+    .artist-info {
+        padding: 1.5rem;
+    }
+    .artist-info h2 {
+        font-size: 1.6rem;
+    }
+}
+

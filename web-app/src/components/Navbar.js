@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, Menu, X } from 'lucide-react';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -8,6 +8,7 @@ const Navbar = () => {
     const location = useLocation();
     const [isScrolled, setIsScrolled] = useState(false);
     const [user, setUser] = useState(null);
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     useEffect(() => {
         const savedUser = localStorage.getItem('user');
@@ -63,6 +64,32 @@ const Navbar = () => {
                     </>
                 )}
             </div>
+
+            {/* Mobile hamburger button */}
+            <button className="mobile-menu-btn" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
+                {mobileOpen ? <X size={26} color="#C19A6B" /> : <Menu size={26} color="#C19A6B" />}
+            </button>
+
+            {/* Mobile drawer */}
+            {mobileOpen && (
+                <div className="mobile-drawer">
+                    <a href="/#about" className="nav-anchor" onClick={() => setMobileOpen(false)}>About</a>
+                    <Link to="/artists" onClick={() => setMobileOpen(false)}>Artists</Link>
+                    <Link to="/gallery" onClick={() => setMobileOpen(false)}>Gallery</Link>
+                    <Link to="/book" onClick={() => setMobileOpen(false)}>Book Consultation</Link>
+                    <Link to="/contact" onClick={() => setMobileOpen(false)}>Contact</Link>
+                    <div className="mobile-drawer-auth">
+                        {user ? (
+                            <button className="signup-btn" style={{ width: '100%' }} onClick={() => { handleProfileClick(); setMobileOpen(false); }}>My Dashboard</button>
+                        ) : (
+                            <>
+                                <Link to="/login" className="login-link" onClick={() => setMobileOpen(false)}>Log In</Link>
+                                <button onClick={() => { navigate('/register'); setMobileOpen(false); }} className="signup-btn" style={{ width: '100%' }}>Sign Up</button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </nav>
     );
 };

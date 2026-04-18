@@ -130,14 +130,21 @@ body {
 }
 
 @media (max-width: 768px) {
+  .contact-header {
+    margin-top: 60px;
+  }
+  .contact-header h1 {
+    font-size: 2rem;
+  }
   .contact-content {
     grid-template-columns: 1fr;
   }
-  
   .directions-grid {
     grid-template-columns: 1fr;
   }
-  
+  .directions-container {
+    padding: 1.5rem;
+  }
   .nav-links {
     display: none;
   }

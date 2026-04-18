@@ -779,140 +779,205 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
     const renderConsultationCompletedPage = () => (
         <div className="fade-in" style={{
-            textAlign: 'center',
-            padding: '60px 40px',
-            backgroundColor: 'white',
+            background: 'linear-gradient(145deg, #171516 0%, #1a1816 50%, #141210 100%)',
             borderRadius: '24px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+            border: '1px solid rgba(193, 154, 107, 0.2)',
+            boxShadow: '0 30px 60px rgba(0, 0, 0, 0.5)',
+            overflow: 'hidden',
+            padding: '0'
         }}>
             <div style={{
-                width: '100px', height: '100px', backgroundColor: '#f0fdf4', borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px'
+                display: 'grid',
+                gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr',
+                minHeight: window.innerWidth <= 768 ? 'auto' : '520px'
             }}>
-                <CheckCircle size={54} color="#16a34a" />
-            </div>
-            <h2 style={{ fontSize: '2rem', fontWeight: '800', color: '#1e293b', marginBottom: '16px' }}>
-                Consultation Request Completed!
-            </h2>
-            <p style={{ color: '#64748b', maxWidth: '600px', margin: '0 auto 20px', fontSize: '1.1rem', lineHeight: '1.6' }}>
-                Thank you for your interest in a {formData.designTitle} consultation. We've received your request and will contact you within the next 24 hours to discuss your vision and schedule your session. Please check your email for a confirmation. We look forward to bringing your vision to life!
-            </p>
-
-            <div style={{
-                marginTop: '50px',
-                paddingTop: '30px',
-                borderTop: '1px solid #f1f5f9',
-                maxWidth: '800px', // Increased max-width for the new layout
-                margin: '40px auto 0 auto',
-                textAlign: 'center'
-            }}>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: '700', color: '#1e293b', marginBottom: '15px' }}>
-                    Track Your Request & More with an InkVistAR Account!
-                </h3>
-                <p style={{ color: '#64748b', marginBottom: '20px' }}>
-                    Create an account to unlock these powerful features and enhance your InkVistAR experience:
-                </p>
-
-                {/* Widget Carousel Section */}
-                <div style={{ position: 'relative', marginTop: '30px' }}>
+                {/* Left Column: Confirmation + CTA */}
+                <div style={{
+                    padding: window.innerWidth <= 768 ? '36px 24px 28px' : '48px 44px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                }}>
+                    {/* Gold checkmark */}
                     <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '20px',
-                        minHeight: '220px'
+                        width: '72px', height: '72px',
+                        background: 'rgba(193, 154, 107, 0.12)',
+                        border: '1.5px solid rgba(193, 154, 107, 0.35)',
+                        borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        marginBottom: '24px',
+                        boxShadow: '0 0 30px rgba(193, 154, 107, 0.12)'
                     }}>
-                        <button 
-                            onClick={() => setActiveFeature((prev) => (prev - 1 + features.length) % features.length)}
-                            style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '44px', height: '44px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }}
-                        >
-                            <ChevronLeft size={24} />
-                        </button>
-
-                        <div style={{ 
-                            width: '100%', 
-                            maxWidth: '400px', 
-                            perspective: '1000px',
-                            position: 'relative',
-                            height: '220px'
-                        }}>
-                            {features.map((feature, index) => (
-                                <div 
-                                    key={index}
-                                    style={{
-                                        position: 'absolute',
-                                        top: 0, left: 0, right: 0, bottom: 0,
-                                        backgroundColor: feature.bgColor,
-                                        borderRadius: '24px',
-                                        padding: '32px',
-                                        textAlign: 'center',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                        transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        opacity: activeFeature === index ? 1 : 0,
-                                        transform: activeFeature === index 
-                                            ? 'translateX(0) scale(1)' 
-                                            : index < activeFeature 
-                                                ? 'translateX(-50px) scale(0.9)' 
-                                                : 'translateX(50px) scale(0.9)',
-                                        pointerEvents: activeFeature === index ? 'all' : 'none',
-                                        visibility: activeFeature === index ? 'visible' : 'hidden'
-                                    }}
-                                >
-                                    <div style={{ marginBottom: '16px' }}>{feature.icon}</div>
-                                    <h4 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>{feature.title}</h4>
-                                    <p style={{ color: '#64748b', fontSize: '1rem', lineHeight: '1.5' }}>{feature.desc}</p>
-                                </div>
-                            ))}
-                        </div>
-
-                        <button 
-                            onClick={() => setActiveFeature((prev) => (prev + 1) % features.length)}
-                            style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '44px', height: '44px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }}
-                        >
-                            <ChevronRight size={24} />
-                        </button>
+                        <CheckCircle size={38} color="#C19A6B" />
                     </div>
 
-                    {/* Slide Indicators */}
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
-                        {features.map((_, i) => (
-                            <div 
-                                key={i}
-                                onClick={() => setActiveFeature(i)}
-                                style={{ 
-                                    width: activeFeature === i ? '24px' : '8px', 
-                                    height: '8px', 
-                                    borderRadius: '4px', 
-                                    backgroundColor: activeFeature === i ? '#C19A6B' : '#e2e8f0',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease'
-                                }} 
-                            />
-                        ))}
+                    <h2 style={{
+                        fontFamily: "'Playfair Display', serif",
+                        fontSize: window.innerWidth <= 768 ? '1.5rem' : '1.8rem',
+                        fontWeight: '700',
+                        color: '#C19A6B',
+                        marginBottom: '14px',
+                        lineHeight: '1.25'
+                    }}>
+                        Consultation Request Completed!
+                    </h2>
+
+                    <p style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: '0.92rem',
+                        lineHeight: '1.7',
+                        color: '#e2e8f0',
+                        marginBottom: '28px',
+                        maxWidth: '420px'
+                    }}>
+                        Thank you for your interest in a <strong style={{ color: '#C19A6B' }}>{formData.designTitle}</strong> consultation. We'll contact you within 24 hours to discuss your vision and schedule your session.
+                    </p>
+
+                    <p style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: '0.82rem',
+                        color: '#94a3b8',
+                        marginBottom: '32px'
+                    }}>
+                        Please check your email (including Spam/Junk folder) for a confirmation.
+                    </p>
+
+                    {/* CTA Buttons — always visible */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '320px' }}>
+                        <button
+                            onClick={() => navigate('/register', { state: { prefill: { name: formData.name, email: formData.email, phone: formData.phone } } })}
+                            className="btn btn-primary"
+                            style={{
+                                padding: '14px 28px',
+                                fontSize: '0.95rem',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                                background: 'linear-gradient(135deg, #C19A6B, #8a6c4a)',
+                                border: 'none',
+                                color: 'white',
+                                fontWeight: '700',
+                                borderRadius: '10px',
+                                boxShadow: '0 4px 16px rgba(193, 154, 107, 0.35)',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s'
+                            }}
+                        >
+                            <UserPlus size={18} /> Create an Account
+                        </button>
+                        <button
+                            onClick={() => setShowExitModal(true)}
+                            style={{
+                                padding: '12px 28px',
+                                fontSize: '0.9rem',
+                                background: 'transparent',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                color: '#94a3b8',
+                                fontWeight: '600',
+                                borderRadius: '10px',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s'
+                            }}
+                        >
+                            No Thanks
+                        </button>
+                    </div>
+                </div>
+
+                {/* Right Column: Feature Carousel */}
+                <div style={{
+                    padding: window.innerWidth <= 768 ? '0 24px 36px' : '48px 44px 48px 20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    borderLeft: window.innerWidth <= 768 ? 'none' : '1px solid rgba(193, 154, 107, 0.1)',
+                    borderTop: window.innerWidth <= 768 ? '1px solid rgba(193, 154, 107, 0.1)' : 'none'
+                }}>
+                    <h3 style={{
+                        fontFamily: "'Playfair Display', serif",
+                        fontSize: '1.15rem',
+                        fontWeight: '700',
+                        color: '#fff',
+                        marginBottom: '6px'
+                    }}>
+                        Track Your Request & More
+                    </h3>
+                    <p style={{
+                        fontFamily: "'Inter', sans-serif",
+                        fontSize: '0.82rem',
+                        color: '#94a3b8',
+                        marginBottom: '20px'
+                    }}>
+                        Create an account to unlock these features:
+                    </p>
+
+                    {/* Compact Feature Carousel */}
+                    <div style={{ position: 'relative' }}>
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+                            minHeight: '180px'
+                        }}>
+                            <button
+                                onClick={() => setActiveFeature((prev) => (prev - 1 + features.length) % features.length)}
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexShrink: 0 }}
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+
+                            <div style={{ width: '100%', maxWidth: '320px', position: 'relative', height: '180px' }}>
+                                {features.map((feature, index) => (
+                                    <div
+                                        key={index}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0, left: 0, right: 0, bottom: 0,
+                                            background: 'rgba(255, 255, 255, 0.04)',
+                                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            borderRadius: '16px',
+                                            padding: '24px',
+                                            textAlign: 'center',
+                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            opacity: activeFeature === index ? 1 : 0,
+                                            transform: activeFeature === index ? 'scale(1)' : 'scale(0.92)',
+                                            pointerEvents: activeFeature === index ? 'all' : 'none',
+                                            visibility: activeFeature === index ? 'visible' : 'hidden'
+                                        }}
+                                    >
+                                        <div style={{ marginBottom: '12px' }}>{feature.icon}</div>
+                                        <h4 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#fff', marginBottom: '6px' }}>{feature.title}</h4>
+                                        <p style={{ color: '#cbd5e1', fontSize: '0.85rem', lineHeight: '1.5', margin: 0 }}>{feature.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => setActiveFeature((prev) => (prev + 1) % features.length)}
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexShrink: 0 }}
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
+
+                        {/* Slide Indicators */}
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '16px' }}>
+                            {features.map((_, i) => (
+                                <div
+                                    key={i}
+                                    onClick={() => setActiveFeature(i)}
+                                    style={{
+                                        width: activeFeature === i ? '20px' : '6px',
+                                        height: '6px',
+                                        borderRadius: '3px',
+                                        backgroundColor: activeFeature === i ? '#C19A6B' : 'rgba(255,255,255,0.15)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '50px' }}>
-                <button
-                    onClick={() => navigate('/register', { state: { prefill: { name: formData.name, email: formData.email, phone: formData.phone } } })}
-                    className="btn btn-primary"
-                    style={{ padding: '14px 36px', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#C19A6B', borderColor: '#C19A6B', color: 'white', fontWeight: '700', boxShadow: '0 4px 12px rgba(193, 154, 107, 0.4)' }}
-                >
-                    <UserPlus size={20} /> Create an Account
-                </button>
-                <button
-                    onClick={() => setShowExitModal(true)}
-                    className="btn btn-secondary"
-                    style={{ padding: '12px 32px', fontSize: '1rem' }}
-                >
-                    No Thanks
-                </button>
-            </div>
             {showExitModal && renderExitModal()}
         </div>
     );

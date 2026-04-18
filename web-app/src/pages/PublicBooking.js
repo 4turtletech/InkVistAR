@@ -27,11 +27,11 @@ function PublicBooking() {
 
             <div style={{ maxWidth: '1050px', margin: '140px auto 0', padding: '0 20px' }}>
                 <header style={{ textAlign: 'center', marginBottom: '40px' }}>
-                    <h1 style={{ color: '#C19A6B', fontFamily: '"Playfair Display", serif', fontSize: '3rem', margin: '0 0 10px 0' }}>BOOK A CONSULTATION</h1>
-                    <p style={{ color: '#aaa', fontSize: '1.1rem' }}>Share your vision and secure a time to discuss your next masterpiece with our specialist team.</p>
+                    <h1 style={{ color: '#C19A6B', fontFamily: '"Playfair Display", serif', fontSize: 'clamp(1.6rem, 5vw, 3rem)', margin: '0 0 10px 0' }}>BOOK A CONSULTATION</h1>
+                    <p style={{ color: '#aaa', fontSize: 'clamp(0.85rem, 2.5vw, 1.1rem)' }}>Share your vision and secure a time to discuss your next masterpiece with our specialist team.</p>
                 </header>
 
-                <div style={{ backgroundColor: '#fff', borderRadius: '15px', color: '#000', overflow: 'hidden' }}>
+                <div style={{ borderRadius: '15px', color: '#000', overflow: 'hidden' }}>
                     <CustomerBookingWizard 
                         customerId={null} 
                         isPublic={true}

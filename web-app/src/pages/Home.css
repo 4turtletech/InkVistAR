@@ -629,4 +629,13 @@ h1, h2, h3, h4 {
     .matrix-img-box:nth-child(1) { grid-row: auto; }
     .services-container { flex-direction: column; }
     .service-item { min-width: 100%; border-left: none; border-right: none; }
+    .premium-section { padding: 4rem 1rem; }
+    .section-header { margin-bottom: 2.5rem; }
+    .btn-gold-luxury { padding: 1rem 2rem; font-size: 0.9rem; }
+    .final-cta-section { padding: 5rem 1rem; }
+    .artists-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; }
+    .artist-name { font-size: 1.2rem; }
+    .artist-overlay { padding: 1rem; }
+    .hero-content { margin-top: 0; }
+    .scroll-indicator { bottom: 16px; }
 }
