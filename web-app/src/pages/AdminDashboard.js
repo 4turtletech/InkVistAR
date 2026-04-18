@@ -464,118 +464,12 @@ function AdminDashboard() {
                     <div className="dashboard-content">
                         {/* Stats Section — Chart-Based Stat Cards */}
                         {analyticsData && (
-                            <div className="stats-section">
-                                {/* Revenue Card with Bar Chart */}
-                                <div className="stat-card-v2 glass-card clickable" onClick={() => openDashAuditModal('revenue')} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                        <div className="stat-icon-wrapper green"><PhilippinePeso size={24} /></div>
-                                        <div className="stat-info-v2" style={{ border: 'none' }}>
-                                            <span className="stat-label-v2">Revenue (Month)</span>
-                                            <h3 className="stat-value-v2">₱{Number(analyticsData.revenue?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-                                        </div>
-                                    </div>
-                                    {analyticsData.revenue?.chart?.length > 0 && (
-                                        <div style={{ width: '100%', height: 80 }}>
-                                            <ResponsiveContainer>
-                                                <BarChart data={analyticsData.revenue.chart} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                                                    <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} />
-                                                    <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    )}
-                                    <div className="stat-trend-v2" style={{ marginTop: '4px', color: '#64748b', fontSize: '0.75rem' }}>Click for source breakdown →</div>
-                                </div>
-
-                                {/* Appointments Card with Pie Chart */}
-                                <div className="stat-card-v2 glass-card clickable" onClick={() => openDashAuditModal('appointments')} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                        <div className="stat-icon-wrapper purple"><Calendar size={24} /></div>
-                                        <div className="stat-info-v2" style={{ border: 'none' }}>
-                                            <span className="stat-label-v2">Appointments</span>
-                                            <h3 className="stat-value-v2">{analyticsData.appointments?.total || 0}</h3>
-                                        </div>
-                                    </div>
-                                    {(analyticsData.appointments?.completed > 0 || analyticsData.appointments?.scheduled > 0 || analyticsData.appointments?.cancelled > 0) && (
-                                        <div style={{ width: '100%', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <ResponsiveContainer width="60%" height="100%">
-                                                <PieChart>
-                                                    <Pie data={[
-                                                        { name: 'Completed', value: Number(analyticsData.appointments.completed) || 0 },
-                                                        { name: 'Scheduled', value: Number(analyticsData.appointments.scheduled) || 0 },
-                                                        { name: 'Cancelled', value: Number(analyticsData.appointments.cancelled) || 0 }
-                                                    ].filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={16} outerRadius={32} paddingAngle={3} dataKey="value">
-                                                        <Cell fill="#10b981" />
-                                                        <Cell fill="#3b82f6" />
-                                                        <Cell fill="#ef4444" />
-                                                    </Pie>
-                                                    <Tooltip contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                            <div style={{ fontSize: '0.7rem', color: '#64748b', lineHeight: 1.6 }}>
-                                                <div><span style={{ color: '#10b981', fontWeight: 700 }}>{analyticsData.appointments.completed}</span> done</div>
-                                                <div><span style={{ color: '#3b82f6', fontWeight: 700 }}>{analyticsData.appointments.scheduled}</span> upcoming</div>
-                                                <div><span style={{ color: '#ef4444', fontWeight: 700 }}>{analyticsData.appointments.cancelled}</span> cancelled</div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="stat-trend-v2" style={{ marginTop: '4px', color: '#64748b', fontSize: '0.75rem' }}>Click for status breakdown →</div>
-                                </div>
-
-                                {/* Users Card with Role Bar Chart */}
-                                <div className="stat-card-v2 glass-card clickable" onClick={() => openDashAuditModal('users')} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                        <div className="stat-icon-wrapper blue"><Users size={24} /></div>
-                                        <div className="stat-info-v2" style={{ border: 'none' }}>
-                                            <span className="stat-label-v2">Total Users</span>
-                                            <h3 className="stat-value-v2">{analyticsData.users?.total || 0}</h3>
-                                        </div>
-                                    </div>
-                                    {analyticsData.users && (
-                                        <div style={{ width: '100%', height: 80 }}>
-                                            <ResponsiveContainer>
-                                                <BarChart data={[
-                                                    { name: 'Customers', count: Number(analyticsData.users.customers) || 0 },
-                                                    { name: 'Artists', count: Number(analyticsData.users.artists) || 0 },
-                                                    { name: 'Admins', count: Number(analyticsData.users.admins) || 0 }
-                                                ]} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                                                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                                                        <Cell fill="#3b82f6" />
-                                                        <Cell fill="#a855f7" />
-                                                        <Cell fill="#f59e0b" />
-                                                    </Bar>
-                                                    <Tooltip contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    )}
-                                    <div className="stat-trend-v2" style={{ marginTop: '4px', color: '#64748b', fontSize: '0.75rem' }}>Click for user audit →</div>
-                                </div>
-
-                                {/* Active Artists Card with Revenue Bar */}
-                                <div className="stat-card-v2 glass-card clickable" onClick={() => openDashAuditModal('artists')} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                        <div className="stat-icon-wrapper orange"><Palette size={24} /></div>
-                                        <div className="stat-info-v2" style={{ border: 'none' }}>
-                                            <span className="stat-label-v2">Active Artists</span>
-                                            <h3 className="stat-value-v2">{analyticsData.artists?.length || 0}</h3>
-                                        </div>
-                                    </div>
-                                    {analyticsData.artists?.length > 0 && (
-                                        <div style={{ width: '100%', height: 80 }}>
-                                            <ResponsiveContainer>
-                                                <BarChart data={analyticsData.artists.slice(0, 5)} layout="vertical" margin={{ top: 0, right: 0, left: 40, bottom: 0 }}>
-                                                    <Bar dataKey="revenue" radius={[0, 4, 4, 0]} barSize={10}>
-                                                        {analyticsData.artists.slice(0, 5).map((_, i) => <Cell key={i} fill={['#f97316', '#a855f7', '#3b82f6', '#10b981', '#ec4899'][i % 5]} />)}
-                                                    </Bar>
-                                                    <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    )}
-                                    <div className="stat-trend-v2" style={{ marginTop: '4px', color: '#64748b', fontSize: '0.75rem' }}>Click for performance audit →</div>
-                                </div>
-                            </div>
+                            <AnalyticsMetricCards
+                                analytics={analyticsData}
+                                onCardClick={openDashAuditModal}
+                                formatDuration={formatDuration}
+                                showAll={false}
+                            />
                         )}
 
                         <div className="dashboard-layout-grid">

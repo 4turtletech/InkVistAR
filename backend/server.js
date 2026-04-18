@@ -5770,17 +5770,16 @@ app.get('/api/admin/analytics', (req, res) => {
     ORDER BY total DESC
   `;
 
-  // 2.5.6 Expenses Daily Trend (for Ops Expenses mini-chart)
-  const expensesTrendQuery = `
-    SELECT 
-      DATE(t.created_at) as sort_key,
-      SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) as v
-    FROM inventory_transactions t 
-    JOIN inventory i ON t.inventory_id = i.id
-    WHERE t.type = 'in' ${invTxDateFilter}
-    GROUP BY sort_key
-    ORDER BY sort_key ASC
-  `;
+  // 2.5.6 Expenses Trend (daily for 'monthly', monthly for 'yearly'/'all')
+  const expensesTrendQuery = timeframe === 'monthly'
+    ? `SELECT DATE(t.created_at) as sort_key, SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) as v
+       FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id
+       WHERE t.type = 'in' ${invTxDateFilter}
+       GROUP BY sort_key ORDER BY sort_key ASC`
+    : `SELECT DATE_FORMAT(t.created_at, '%Y-%m') as sort_key, SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) as v
+       FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id
+       WHERE t.type = 'in' ${invTxDateFilter}
+       GROUP BY sort_key ORDER BY sort_key ASC`;
 
   // 2.6 Fetch raw data for expense audits
   const payoutsAuditQuery = `SELECT p.*, u.name as artist_name FROM payouts p JOIN users u ON p.artist_id = u.id ORDER BY p.created_at DESC LIMIT 50`;
@@ -5898,16 +5897,16 @@ app.get('/api/admin/analytics', (req, res) => {
     LIMIT 5
   `;
 
-  // 4b. Inventory Daily Trend (last N days based on timeframe)
-  const inventoryTrendQuery = `
-    SELECT 
-      DATE(t.created_at) as sort_key,
-      SUM(t.quantity) as v
-    FROM inventory_transactions t
-    WHERE t.type = 'out' AND t.created_at >= DATE_SUB(NOW(), INTERVAL ${trendDays} DAY)
-    GROUP BY sort_key
-    ORDER BY sort_key ASC
-  `;
+  // 4b. Inventory Trend (daily for 'monthly', monthly for 'yearly'/'all')
+  const inventoryTrendQuery = timeframe === 'monthly'
+    ? `SELECT DATE(t.created_at) as sort_key, SUM(t.quantity) as v
+       FROM inventory_transactions t
+       WHERE t.type = 'out' AND t.created_at >= DATE_SUB(NOW(), INTERVAL ${trendDays} DAY)
+       GROUP BY sort_key ORDER BY sort_key ASC`
+    : `SELECT DATE_FORMAT(t.created_at, '%Y-%m') as sort_key, SUM(t.quantity) as v
+       FROM inventory_transactions t
+       WHERE t.type = 'out' ${invTxDateFilter}
+       GROUP BY sort_key ORDER BY sort_key ASC`;
 
   // 5. Popular Styles
   const styleQuery = `
@@ -5970,15 +5969,31 @@ app.get('/api/admin/analytics', (req, res) => {
           db.query(inventoryTrendQuery, (err, trendInvRes) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
             
-            // Build a N-day trend array, filling missing days with 0
             const inventoryTrendMap = {};
             const today = new Date();
-            for (let i = trendDays - 1; i >= 0; i--) {
-              const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
-              const sortKey = d.toISOString().split('T')[0];
-              const label = d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
-              inventoryTrendMap[sortKey] = { label, v: 0 };
+
+            if (timeframe === 'monthly') {
+              // Daily fill for "This Month"
+              for (let i = trendDays - 1; i >= 0; i--) {
+                const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+                const sortKey = d.toISOString().split('T')[0];
+                const label = d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+                inventoryTrendMap[sortKey] = { label, v: 0 };
+              }
+            } else {
+              // Monthly fill for "This Year" / "All Time"
+              const startDate = timeframe === 'yearly'
+                ? new Date(today.getFullYear(), 0, 1)
+                : new Date(2026, 3, 1); // April 2026
+              const d = new Date(startDate);
+              while (d <= today) {
+                const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                const label = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                inventoryTrendMap[sortKey] = { label, v: 0 };
+                d.setMonth(d.getMonth() + 1);
+              }
             }
+
             if (trendInvRes) {
               trendInvRes.forEach(t => {
                 const sk = typeof t.sort_key === 'string' ? t.sort_key : new Date(t.sort_key).toISOString().split('T')[0];
@@ -5989,17 +6004,32 @@ app.get('/api/admin/analytics', (req, res) => {
             }
             response.inventory_trend = Object.values(inventoryTrendMap);
 
-            // Expenses daily trend
+            // Expenses trend
             db.query(expensesTrendQuery, (err, expTrendRes) => {
               if (err) return res.status(500).json({ success: false, message: err.message });
               
               const expensesTrendMap = {};
-              for (let i = trendDays - 1; i >= 0; i--) {
-                const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
-                const sortKey = d.toISOString().split('T')[0];
-                const label = d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
-                expensesTrendMap[sortKey] = { label, v: 0 };
+
+              if (timeframe === 'monthly') {
+                for (let i = trendDays - 1; i >= 0; i--) {
+                  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+                  const sortKey = d.toISOString().split('T')[0];
+                  const label = d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+                  expensesTrendMap[sortKey] = { label, v: 0 };
+                }
+              } else {
+                const startDate = timeframe === 'yearly'
+                  ? new Date(today.getFullYear(), 0, 1)
+                  : new Date(2026, 3, 1);
+                const d = new Date(startDate);
+                while (d <= today) {
+                  const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                  const label = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                  expensesTrendMap[sortKey] = { label, v: 0 };
+                  d.setMonth(d.getMonth() + 1);
+                }
               }
+
               if (expTrendRes) {
                 expTrendRes.forEach(t => {
                   const sk = typeof t.sort_key === 'string' ? t.sort_key : new Date(t.sort_key).toISOString().split('T')[0];

@@ -109,7 +109,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
                                 { name: 'Completed', value: Number(analytics.appointments?.completed) || 0 },
                                 { name: 'Scheduled', value: Number(analytics.appointments?.scheduled) || 0 },
                                 { name: 'Cancelled', value: Number(analytics.appointments?.cancelled) || 0 }
-                            ].filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={25} outerRadius={50} paddingAngle={2} dataKey="value">
+                            ].filter(d => d.value > 0)} cx="50%" cy="50%" outerRadius={50} paddingAngle={2} dataKey="value">
                                 <Cell fill="#10b981" />
                                 <Cell fill="#3b82f6" />
                                 <Cell fill="#ef4444" />
@@ -134,22 +134,27 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
             value: analytics.users?.total || 0,
             hint: 'Click for user audit →',
             chart: (
-                <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px' }}>
-                    <ResponsiveContainer>
+                <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px', display: 'flex', alignItems: 'center' }}>
+                    <ResponsiveContainer width="60%" height="100%">
                         <BarChart data={[
                             { name: 'Customers', count: Number(analytics.users?.customers) || 0 },
                             { name: 'Artists', count: Number(analytics.users?.artists) || 0 },
                             { name: 'Admins', count: Number(analytics.users?.admins) || 0 }
                         ]} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                            <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
                             <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={36}>
                                 <Cell fill="#3b82f6" />
                                 <Cell fill="#a855f7" />
                                 <Cell fill="#f59e0b" />
                             </Bar>
                             <Tooltip contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
-                            <Legend wrapperStyle={{ fontSize: '0.7rem', color: '#171516' }} />
                         </BarChart>
                     </ResponsiveContainer>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
+                        <div><span style={{ color: '#3b82f6', fontWeight: 700 }}>{analytics.users?.customers || 0}</span> Customers</div>
+                        <div><span style={{ color: '#a855f7', fontWeight: 700 }}>{analytics.users?.artists || 0}</span> Artists</div>
+                        <div><span style={{ color: '#f59e0b', fontWeight: 700 }}>{analytics.users?.admins || 0}</span> Admins</div>
+                    </div>
                 </div>
             )
         },
@@ -190,7 +195,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
                             <Area type="monotone" dataKey="v" stroke="#a855f7" fill="#f3e8ff" strokeWidth={2} activeDot={{ r: 4 }} />
                             <Tooltip
                                 formatter={(value) => [value, 'Items used']}
-                                labelFormatter={(label) => `Day ${label}`}
+                                labelFormatter={(label) => label}
                                 contentStyle={{ fontSize: '0.75rem', borderRadius: '8px', color: '#a855f7' }}
                             />
                         </AreaChart>
