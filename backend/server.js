@@ -2315,10 +2315,14 @@ app.post('/api/register', async (req, res) => {
 });
 // ========== MARKETING EMAIL BROADCAST ==========
 app.post('/api/admin/broadcast-marketing-email', (req, res) => {
-  const { subject, body } = req.body;
+  let { subject, body } = req.body;
   if (!subject || !body) {
     return res.status(400).json({ success: false, message: 'Subject and body are required.' });
   }
+
+  // Truncate lengths
+  subject = subject.substring(0, 150);
+  body = body.substring(0, 5000);
 
   // Query all users who opted in to email promos
   db.query("SELECT email, name FROM users WHERE email_promo_consent = 1 AND is_deleted = 0 AND is_verified = 1", (err, subscribers) => {
@@ -2586,26 +2590,33 @@ app.put('/api/artist/profile/:id', (req, res) => {
   const { id } = req.params;
   const { name, specialization, hourly_rate, experience_years, commission_rate, phone, studio_name, profileImage } = req.body;
 
+  // Server-side hardening: Truncate and clamp inputs
+  const safeName = name ? name.substring(0, 100) : null;
+  const safePhone = phone ? phone.substring(0, 15) : null;
+  const safeStudioName = studio_name ? studio_name.substring(0, 100) : null;
+  const safeSpecialization = specialization ? specialization.substring(0, 500) : null;
+  const safeExperienceYears = experience_years !== undefined ? Math.max(0, Math.min(100, parseInt(experience_years) || 0)) : undefined;
+
   // Update users table (name and phone)
-  db.query('UPDATE users SET name = ?, phone = ? WHERE id = ?', [name, phone || null, id], (err) => {
+  db.query('UPDATE users SET name = ?, phone = ? WHERE id = ?', [safeName, safePhone, id], (err) => {
     if (err) return res.status(500).json({ success: false, message: 'DB Error (User)' });
 
     // Update artists table
     let artistQuery = 'UPDATE artists SET specialization = ?';
-    const params = [specialization];
+    const params = [safeSpecialization];
 
-    if (experience_years !== undefined) {
+    if (safeExperienceYears !== undefined) {
       artistQuery += ', experience_years = ?';
-      params.push(experience_years);
+      params.push(safeExperienceYears);
     }
 
     // Lock commission rate to 30%
     artistQuery += ', commission_rate = ?';
     params.push(0.30);
 
-    if (studio_name !== undefined) {
+    if (safeStudioName !== undefined) {
       artistQuery += ', studio_name = ?';
-      params.push(studio_name);
+      params.push(safeStudioName);
     }
     if (profileImage !== undefined) {
       artistQuery += ', profile_image = ?';

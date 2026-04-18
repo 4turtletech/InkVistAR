@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, X, RotateCcw, Printer, Download, Search, Filter, SlidersHorizontal, AlertTriangle, Layers, Clock, User, Inbox } from 'lucide-react';
+import { filterMoney, clampNumber } from '../utils/validation';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -613,6 +614,7 @@ function AdminInventory() {
                             placeholder="Search items by name, category, or ID..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            maxLength={100}
                         />
                         <datalist id="search-suggestions-inventory">
                             {searchSuggestions.map(suggestion => (
@@ -827,9 +829,10 @@ function AdminInventory() {
                                             <input
                                                 type="text"
                                                 value={formData.name}
-                                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                                onChange={(e) => setFormData({...formData, name: e.target.value.substring(0, 150)})}
                                                 className="form-input"
                                                 placeholder="e.g. Dynamic Black Ink 8oz"
+                                                maxLength={150}
                                             />
                                         </div>
                                         <div className="admin-st-c68bdd5b">
@@ -850,9 +853,10 @@ function AdminInventory() {
                                                 <input
                                                     type="text"
                                                     value={formData.unit}
-                                                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
+                                                    onChange={(e) => setFormData({...formData, unit: e.target.value.substring(0, 30)})}
                                                     className="form-input"
                                                     placeholder="pcs, oz, boxes"
+                                                    maxLength={30}
                                                 />
                                             </div>
                                         </div>
@@ -863,8 +867,9 @@ function AdminInventory() {
                                                     <label className="admin-st-af89d6d6">Cost Price</label>
                                                     <input
                                                         type="number"
+                                                        step="0.01"
                                                         value={formData.cost}
-                                                        onChange={(e) => setFormData({...formData, cost: e.target.value})}
+                                                        onChange={(e) => setFormData({...formData, cost: filterMoney(e.target.value)})}
                                                         className="form-input"
                                                     />
                                                 </div>
@@ -872,8 +877,9 @@ function AdminInventory() {
                                                     <label className="admin-st-af89d6d6">Retail Price</label>
                                                     <input
                                                         type="number"
+                                                        step="0.01"
                                                         value={formData.retailPrice}
-                                                        onChange={(e) => setFormData({...formData, retailPrice: e.target.value})}
+                                                        onChange={(e) => setFormData({...formData, retailPrice: filterMoney(e.target.value)})}
                                                         className="form-input admin-st-45e16daa"
                                                     />
                                                 </div>
@@ -890,7 +896,7 @@ function AdminInventory() {
                                                 <input
                                                     type="number"
                                                     value={formData.currentStock}
-                                                    onChange={(e) => setFormData({...formData, currentStock: e.target.value})}
+                                                    onChange={(e) => setFormData({...formData, currentStock: clampNumber(e.target.value, 0, 999999)})}
                                                     className="form-input admin-st-7047dd0b"
                                                 />
                                             </div>
@@ -904,7 +910,7 @@ function AdminInventory() {
                                                     <input
                                                         type="number"
                                                         value={formData.minStock}
-                                                        onChange={(e) => setFormData({...formData, minStock: e.target.value})}
+                                                        onChange={(e) => setFormData({...formData, minStock: clampNumber(e.target.value, 0, 999999)})}
                                                         className="form-input"
                                                     />
                                                 </div>
@@ -913,7 +919,7 @@ function AdminInventory() {
                                                     <input
                                                         type="number"
                                                         value={formData.maxStock}
-                                                        onChange={(e) => setFormData({...formData, maxStock: e.target.value})}
+                                                        onChange={(e) => setFormData({...formData, maxStock: clampNumber(e.target.value, 0, 999999)})}
                                                         className="form-input"
                                                     />
                                                 </div>
@@ -964,7 +970,7 @@ function AdminInventory() {
                                         type="number"
                                         min="1"
                                         value={transactionData.quantity}
-                                        onChange={(e) => setTransactionData({...transactionData, quantity: e.target.value})}
+                                        onChange={(e) => setTransactionData({...transactionData, quantity: clampNumber(e.target.value, 1, 999999)})}
                                         className="form-input admin-st-934f10ff"
                                     />
                                 </div>
@@ -1033,6 +1039,7 @@ function AdminInventory() {
                                     onChange={(e) => setHistorySearch(e.target.value)}
                                     className="form-input"
                                     style={{ paddingLeft: '32px', fontSize: '0.85rem', height: '36px', borderRadius: '8px' }}
+                                    maxLength={100}
                                 />
                             </div>
                             <select
@@ -1188,7 +1195,8 @@ function AdminInventory() {
                                         className="form-input" 
                                         placeholder="e.g. Minimalist Tattoo, Piercing"
                                         value={editingKitServiceType}
-                                        onChange={e => setEditingKitServiceType(e.target.value)}
+                                        onChange={e => setEditingKitServiceType(e.target.value.substring(0, 50))}
+                                        maxLength={50}
                                     />
                                 </div>
                                 <div className="form-group admin-st-185d793c">
@@ -1223,7 +1231,7 @@ function AdminInventory() {
                                                     value={mat.default_quantity}
                                                     onChange={e => {
                                                         const newVal = [...editingKitMaterials];
-                                                        newVal[idx].default_quantity = Number(e.target.value);
+                                                        newVal[idx].default_quantity = clampNumber(e.target.value, 1, 999999);
                                                         setEditingKitMaterials(newVal);
                                                     }}
                                                     className="admin-st-8381b655"
@@ -1268,7 +1276,8 @@ function AdminInventory() {
                                                         type="text" 
                                                         className="form-input" 
                                                         value={editingKitServiceType}
-                                                        onChange={e => setEditingKitServiceType(e.target.value)}
+                                                        onChange={e => setEditingKitServiceType(e.target.value.substring(0, 50))}
+                                                        maxLength={50}
                                                     />
                                                 </div>
                                                 <div className="form-group admin-st-988c5fa7">
@@ -1300,7 +1309,7 @@ function AdminInventory() {
                                                                 value={mat.default_quantity}
                                                                 onChange={e => {
                                                                     const newVal = [...editingKitMaterials];
-                                                                    newVal[idx].default_quantity = Number(e.target.value);
+                                                                    newVal[idx].default_quantity = clampNumber(e.target.value, 1, 999999);
                                                                     setEditingKitMaterials(newVal);
                                                                 }}
                                                                 className="admin-st-b9da71e3"

@@ -36,12 +36,69 @@ This document serves as the primary ground truth for the InkVistAR project. When
   - **Customer Portal:** Sidenav bg `#1a1416`, accent `#d4af37` (Bright Gold), same structure as Artist. Content area bg `#f3f4f6`.
   - All sidenav CSS lives in `src/styles/AdminSideNav.css`, `ArtistSideNav.css`, `CustomerSideNav.css`. Do NOT merge or break these per-portal distinctions.
 
-### 3. Input Validation & Sanitization
-- **Every input field, dropdown, date picker, textarea, and any other form element that accepts user input MUST include:**
-  - **Client-side validation:** Required checks, format validation (email, phone, dates), min/max length, numeric range constraints, and pattern matching where appropriate.
-  - **Sanitization:** Strip or escape dangerous characters to prevent XSS. Reject or neutralize SQL-injectable patterns on the backend.
-  - **Visual Feedback:** Invalid fields must display clear, inline error messages (red border + helper text). Do NOT use `alert()` for form validation.
-  - **Edge-case Handling:** Empty strings, whitespace-only inputs, negative numbers, past dates for future-only fields, and duplicate entries must all be explicitly handled.
+### 3. Input Validation & Sanitization (Dual-Layer Architecture)
+- **Validation Source of Truth:** `src/utils/validation.js` provides the centralized library. All form components MUST import and use these utilities rather than inline regex:
+  - `filterName(value)` — Strips non-alpha/space/hyphen characters (for names).
+  - `filterDigits(value)` — Strips non-numeric characters (for phone, zip).
+  - `clampNumber(value, min, max)` — Constrains numeric inputs to a safe range.
+  - `filterMoney(value)` — Formats currency inputs (strips negatives, limits decimal precision).
+  - `truncate(str, maxLen)` — Server-side string truncation utility.
+- **Client-Side Validation (Layer 1 — UX):** Every input field, dropdown, date picker, textarea, and any other form element that accepts user input MUST include:
+  - **`maxLength` HTML attribute** on all text/search inputs (prevents browser-level overflow).
+  - **`.slice()` / `.substring()` in `onChange`** for programmatic length enforcement (backup for `maxLength`).
+  - **`clampNumber()` wrapping** on all numeric `onChange` handlers (rate fields, quantities, multipliers).
+  - **`filterMoney()` wrapping** on all currency/price inputs (invoices, payouts, costs, payments).
+  - **`filterName()` / `filterDigits()`** on name and phone fields respectively.
+  - **Visual feedback:** Invalid fields must display clear, inline error messages (red border + helper text). Do NOT use `alert()` for form validation.
+  - **Edge-case handling:** Empty strings, whitespace-only inputs, negative numbers, past dates for future-only fields, and duplicate entries must all be explicitly handled.
+- **Server-Side Sanitization (Layer 2 — Zero-Trust):** The backend (`server.js`) MUST sanitize all incoming data before database insertion, regardless of client validation:
+  - **String truncation:** All text fields are truncated to their schema limits (e.g., `name.substring(0, 100)`, `email.substring(0, 254)`).
+  - **Numeric clamping:** `Math.min(Math.max(value, MIN), MAX)` on all numeric fields (e.g., `experience_years` clamped 0–100, `commission_split` clamped 1–99).
+  - **Endpoints hardened:** `/api/artist/profile/:id`, `/api/admin/broadcast-marketing-email`, `/api/admin/appointments/:id/manual-payment`, and all CRUD endpoints.
+- **Field Constraint Reference (Per Page):**
+
+  | Page | Field | Filter | Max |
+  |------|-------|--------|-----|
+  | AdminSettings | Studio Name | `filterName` | 100 |
+  | AdminSettings | Phone | `filterDigits` | 15 |
+  | AdminSettings | Email | `substring` | 254 |
+  | AdminSettings | City/State | `filterName` | 100/50 |
+  | AdminSettings | Zip | `filterDigits` | 10 |
+  | AdminSettings | Policies/Templates | `maxLength` | 500–2000 |
+  | AdminSettings | Aftercare | `maxLength` | 3000 |
+  | AdminStaff | Name | `filterName` | 100 |
+  | AdminStaff | Experience | `clampNumber` | 0–100 |
+  | AdminStaff | Work Title | `filterName` | 100 |
+  | AdminStaff | Work Description | `substring` | 500 |
+  | AdminStaff | Price Estimate | `filterMoney` | — |
+  | AdminBilling | Client Name | `filterName` | 100 |
+  | AdminBilling | Invoice/Payout Amount | `filterMoney` | — |
+  | AdminBilling | Base Rate | `clampNumber` | 0–100000 |
+  | AdminBilling | Deposit/Tax Rate | `clampNumber` | 0–100 |
+  | AdminBilling | Complexity/Style Multipliers | `clampNumber` | 0.1–10 |
+  | AdminBilling | Payout Reference | `substring` | 100 |
+  | AdminInventory | Item Name | `substring` | 150 |
+  | AdminInventory | Unit | `substring` | 30 |
+  | AdminInventory | Cost/Retail | `filterMoney` | — |
+  | AdminInventory | Stock/Min/Max | `clampNumber` | 0–999999 |
+  | AdminPOS | Custom Discount | `clampNumber` | 0–100 |
+  | AdminPOS | Cash Tendered | `filterMoney` | — |
+  | AdminAppointments | Design Title | `filterName` | 50 |
+  | AdminAppointments | Commission Split | `clampNumber` | 1–99 |
+  | AdminUsers | Name | `filterName` | 50 |
+  | AdminUsers | Phone | `filterDigits` | 11 |
+  | AdminUsers | Client Notes | `substring` | 2000 |
+  | AdminUsers | Create: First/Last Name | `filterName` | 50 |
+  | AdminUsers | Create: Suffix | `filterName` | 5 |
+  | AdminUsers | Create: Email | `substring` | 254 |
+  | AdminUsers | Create: Password | `substring` | 128 |
+  | AdminUsers | Create: Age | `filterDigits` | 3 chars |
+  | MarketingEmailModal | Subject | `substring` | 150 |
+  | MarketingEmailModal | Body | `substring` | 5000 |
+  | PaymentAlertOverlay | Amount/Cash | `filterMoney` | — |
+  | All Search Inputs | Search text | `maxLength` | 100 |
+  | All Select Elements | N/A (fixed options) | Safe | — |
+  | All Time/Date Inputs | N/A (browser-native) | Safe | — |
 
 ### 4. Payment Resolution Flow
 - **When an artist marks a session as `completed`, the backend MUST check if the appointment has an outstanding balance** (`total_paid < price` or `price <= 0` meaning unquoted).

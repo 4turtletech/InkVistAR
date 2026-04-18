@@ -287,7 +287,7 @@ function Login() {
                                 className={`form-input ${errors.email ? 'error' : ''}`} 
                                 placeholder="Email Address"
                                 value={email}
-                                onChange={handleChange(setEmail, 'email')}
+                                onChange={handleChange(setEmail, 'email')} maxLength={254}
                                 onBlur={handleBlur}
                                 required 
                             />
@@ -300,7 +300,7 @@ function Login() {
                                 className={`form-input ${errors.password ? 'error' : ''}`} 
                                 placeholder="Password"
                                 value={password}
-                                onChange={handleChange(setPassword, 'password')}
+                                onChange={handleChange(setPassword, 'password')} maxLength={128}
                                 onBlur={handleBlur}
                                 required 
                             />
@@ -331,7 +331,7 @@ function Login() {
                     {error && <p className="error-message">{error}</p>}
                     <form onSubmit={sendResetOTP} className="login-form">
                         <div className="form-group" style={{ position: 'relative' }}>
-                            <input type="email" name="resetEmail" className={`form-input ${errors.resetEmail ? 'error' : ''}`} placeholder="Enter your email" value={resetEmail} onChange={handleChange(setResetEmail, 'resetEmail')} onBlur={handleBlur} required />
+                            <input type="email" name="resetEmail" className={`form-input ${errors.resetEmail ? 'error' : ''}`} placeholder="Enter your email" value={resetEmail} onChange={handleChange(setResetEmail, 'resetEmail')} onBlur={handleBlur} required maxLength={254} />
                             {errors.resetEmail && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.resetEmail}</small>}
                         </div>
                         <button type="submit" className="login-btn" disabled={loading}>{loading ? 'Sending...' : 'Send OTP'}</button>
@@ -413,14 +413,14 @@ function Login() {
                     {error && <p className="error-message">{error}</p>}
                     <form onSubmit={handlePasswordReset} className="login-form">
                         <div className="form-group" style={{ position: 'relative' }}>
-                            <input type={showNewPassword ? 'text' : 'password'} name="newPassword" className={`form-input ${errors.newPassword ? 'error' : ''}`} placeholder="New Password" value={newPassword} onChange={handleChange(setNewPassword, 'newPassword')} onFocus={() => setResetPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!newPassword) setResetPasswordFocused(false); }} onPaste={(e) => e.preventDefault()} required />
+                            <input type={showNewPassword ? 'text' : 'password'} name="newPassword" className={`form-input ${errors.newPassword ? 'error' : ''}`} placeholder="New Password" value={newPassword} onChange={handleChange(setNewPassword, 'newPassword')} onFocus={() => setResetPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!newPassword) setResetPasswordFocused(false); }} onPaste={(e) => e.preventDefault()} required maxLength={128} />
                             <div className="password-toggle" onClick={() => setShowNewPassword(!showNewPassword)}>
                                 {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </div>
                             {errors.newPassword && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.newPassword}</small>}
                         </div>
                         <div className="form-group" style={{ position: 'relative' }}>
-                            <input type={showConfirmNewPassword ? 'text' : 'password'} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={confirmPassword} onChange={handleChange(setConfirmPassword, 'confirmPassword')} onBlur={handleBlur} onPaste={(e) => e.preventDefault()} required />
+                            <input type={showConfirmNewPassword ? 'text' : 'password'} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={confirmPassword} onChange={handleChange(setConfirmPassword, 'confirmPassword')} onBlur={handleBlur} onPaste={(e) => e.preventDefault()} required maxLength={128} />
                             <div className="password-toggle" onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
                                 {showConfirmNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </div>

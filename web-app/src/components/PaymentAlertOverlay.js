@@ -5,6 +5,7 @@ import { AlertTriangle, X, CreditCard, ArrowRight, DollarSign, Clock, User, File
 import PhilippinePeso from './PhilippinePeso';
 import ConfirmModal from './ConfirmModal';
 import { API_URL } from '../config';
+import { filterMoney } from '../utils/validation';
 
 /**
  * PaymentAlertOverlay — Global overlay for Admin portal.
@@ -421,7 +422,7 @@ function PaymentAlertOverlay() {
                                     min="0"
                                     step="0.01"
                                     value={manualPaymentModal.amount}
-                                    onChange={e => setManualPaymentModal(prev => ({ ...prev, amount: e.target.value }))}
+                                    onChange={e => setManualPaymentModal(prev => ({ ...prev, amount: filterMoney(e.target.value) }))}
                                     style={{
                                         width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0',
                                         borderRadius: '10px', fontSize: '1.1rem', fontWeight: 700,
@@ -480,7 +481,7 @@ function PaymentAlertOverlay() {
                                             step="0.01"
                                             placeholder="0.00"
                                             value={manualPaymentModal.cashTendered}
-                                            onChange={e => setManualPaymentModal(prev => ({ ...prev, cashTendered: e.target.value }))}
+                                            onChange={e => setManualPaymentModal(prev => ({ ...prev, cashTendered: filterMoney(e.target.value) }))}
                                             style={{
                                                 width: '100%', padding: '12px 14px 12px 32px', borderRadius: '10px',
                                                 border: '1px solid #cbd5e1', fontSize: '1.1rem', fontWeight: 700,

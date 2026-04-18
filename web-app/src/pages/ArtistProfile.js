@@ -13,6 +13,7 @@ import { TATTOO_STYLES } from '../constants/tattooStyles';
 import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
+import { filterName, filterDigits, clampNumber } from '../utils/validation';
 const PasswordStrengthMeter = ({ feedback }) => {
   const steps = [
     { met: feedback.hasMinLength, hint: 'At least 8 characters' },
@@ -378,8 +379,9 @@ function ArtistProfile() {
                                                 type="text"
                                                 className="form-input artist-profile-input"
                                                 value={profile.name}
-                                                onChange={e => setProfile({ ...profile, name: e.target.value })}
+                                                onChange={e => setProfile({ ...profile, name: filterName(e.target.value).slice(0, 50) })}
                                                 placeholder="Your full name"
+                                                maxLength={50}
                                                 
                                             />
                                         </div>
@@ -426,11 +428,12 @@ function ArtistProfile() {
                                                             style={{ flex: 1 }}
                                                             value={currentNo}
                                                             onChange={e => {
-                                                                const digits = e.target.value.replace(/[^0-9]/g, '');
+                                                                const digits = filterDigits(e.target.value).slice(0, 11);
                                                                 const { code: currentCode } = getPhoneParts(profile.phone);
                                                                 setProfile({ ...profile, phone: currentCode + digits });
                                                             }}
                                                             placeholder="9123456789"
+                                                            maxLength={11}
                                                         />
                                                     </div>
                                                 );
@@ -486,7 +489,7 @@ function ArtistProfile() {
                                                 type="number"
                                                 className="form-input artist-profile-input"
                                                 value={profile.experience_years}
-                                                onChange={e => setProfile({ ...profile, experience_years: Math.max(0, parseInt(e.target.value) || 0) })}
+                                                onChange={e => setProfile({ ...profile, experience_years: clampNumber(e.target.value, 0, 50) })}
                                                 min="0"
                                                 max="50"
                                                 
@@ -568,6 +571,7 @@ function ArtistProfile() {
                                                             onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })}
                                                             placeholder="Enter current password"
                                                             style={{ paddingRight: '40px' }}
+                                                            maxLength={128}
                                                         />
                                                         <button
                                                             type="button"
@@ -613,6 +617,7 @@ function ArtistProfile() {
                                                             onBlur={() => { if (!passwords.newPassword) setPasswordFocused(false); }}
                                                             placeholder="Min. 8 characters"
                                                             style={{ paddingRight: '40px' }}
+                                                            maxLength={128}
                                                         />
                                                         <button
                                                             type="button"
@@ -638,6 +643,7 @@ function ArtistProfile() {
                                                             onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
                                                             placeholder="Re-enter new password"
                                                             style={{ paddingRight: '40px' }}
+                                                            maxLength={128}
                                                         />
                                                         <button
                                                             type="button"

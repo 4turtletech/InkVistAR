@@ -12,6 +12,7 @@ import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import { getDisplayCode } from '../utils/formatters';
+import { filterName, filterDigits, clampNumber } from '../utils/validation';
 
 function AdminAppointments() {
     const navigate = useNavigate();
@@ -990,6 +991,7 @@ function AdminAppointments() {
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     style={{ width: '100%', paddingRight: '120px' }}
+                                    maxLength={100}
                                 />
                                 <datalist id="search-suggestions-appointments">
                                     {searchSuggestions.map(suggestion => (
@@ -1292,6 +1294,7 @@ function AdminAppointments() {
                                                                 onChange={(e) => setClientSearch(e.target.value)}
                                                                 onFocus={() => setClientDropdownOpen(true)}
                                                                 onBlur={() => setTimeout(() => setClientDropdownOpen(false), 200)}
+                                                                maxLength={100}
                                                             />
                                                         </div>
                                                         {(clientDropdownOpen || clientSearch) && (
@@ -1324,7 +1327,7 @@ function AdminAppointments() {
                                                         </div>
                                                         <div className="premium-input-group">
                                                             <label className="admin-st-b8618eb2">Design / Idea</label>
-                                                            <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: e.target.value })} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
+                                                            <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: filterName(e.target.value).slice(0, 50) })} maxLength={50} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1355,7 +1358,7 @@ function AdminAppointments() {
                                                     {formData.secondaryArtistId && (
                                                         <div className="admin-st-953ba7ac">
                                                             <label className="admin-st-15b3be7e">Split % (Pri/Sec):</label>
-                                                            <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: parseInt(e.target.value) })} className="premium-input-v2 admin-st-e070afd8" disabled={selectedAppointment?.status === 'completed'} />
+                                                            <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: clampNumber(e.target.value, 1, 99) })} className="premium-input-v2 admin-st-e070afd8" disabled={selectedAppointment?.status === 'completed'} />
                                                             <span className="admin-st-7206c648">/ {100 - (formData.commissionSplit || 0)}</span>
                                                         </div>
                                                     )}
@@ -1553,6 +1556,7 @@ function AdminAppointments() {
                                                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                                                     className="premium-input-v2"
                                                     style={{ minHeight: '120px', resize: 'vertical' }}
+                                                    maxLength={1000}
                                                     placeholder={selectedAppointment
                                                         ? "Add detailed internal notes, placement instructions, or specific client requests..."
                                                         : "Add any notes about this new appointment — placement preferences, client requests, design specifics, scheduling notes, etc."
@@ -1775,6 +1779,7 @@ function AdminAppointments() {
                                     onChange={e => setRescheduleModal({ ...rescheduleModal, reason: e.target.value })}
                                     placeholder="Explain to the customer why the schedule is changed..."
                                     rows="3"
+                                    maxLength={500}
                                     style={{ resize: 'vertical', minHeight: '80px' }}
                                 ></textarea>
                             </div>

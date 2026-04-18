@@ -8,6 +8,7 @@ export default function TermsOfServiceModal({ isOpen, onClose, onAccept, photoCo
     const waiverClauses = [
         "I am at least 18 years old or have a legal guardian consent.",
         "I understand that this procedure is a permanent change to my skin and body.",
+        // Clause 3 (photo consent) is rendered as the checkbox below
         "I acknowledge that Inkvictus does not offer refund.",
         "I do not have any medical or skin conditions that might agitate the process of tattoo.",
         "I agree that Inkvictus does not have a way of identifying if I am allergic to the elements or ingredients that will be used for my tattoo.",
@@ -18,6 +19,9 @@ export default function TermsOfServiceModal({ isOpen, onClose, onAccept, photoCo
         "I confirm that the information I provided in this document is accurate and true.",
         "I understand and agree that once my tattoo session has started, the total payment for that session becomes due in full. Any reservation fee or down payment made will be applied and deducted on the final session. This policy applies only to tattoos requiring multiple or series of sessions."
     ];
+
+    // Photo consent is clause #3 in the physical form — rendered as an interactive checkbox between clauses 2 and 4
+    const photoConsentIndex = 2; // Insert after clause 2 (0-indexed)
 
     return (
         <div className="tos-modal-overlay" onClick={onClose}>
@@ -49,23 +53,28 @@ export default function TermsOfServiceModal({ isOpen, onClose, onAccept, photoCo
                     <div className="tos-clauses-list">
                         <ul>
                             {waiverClauses.map((clause, index) => (
-                                <li key={index} className="tos-clause-item">
-                                    <span>{clause}</span>
-                                </li>
+                                <React.Fragment key={index}>
+                                    {/* Insert photo consent checkbox as clause #3 (after clause 2, which is index 1) */}
+                                    {index === photoConsentIndex && (
+                                        <li className="tos-clause-item tos-clause-item-checkbox">
+                                            <label className="tos-toggle-row">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={photoConsent}
+                                                    onChange={(e) => onPhotoConsentChange(e.target.checked)}
+                                                    className="tos-checkbox"
+                                                />
+                                                <span className="tos-toggle-label">
+                                                    I consent to having photographs and/or videos taken by Inkvictus and be used in their portfolio.
+                                                </span>
+                                            </label>
+                                        </li>
+                                    )}
+                                    <li className="tos-clause-item">
+                                        <span>{clause}</span>
+                                    </li>
+                                </React.Fragment>
                             ))}
-                            <li className="tos-clause-item tos-clause-item-checkbox">
-                                <label className="tos-toggle-row">
-                                    <input
-                                        type="checkbox"
-                                        checked={photoConsent}
-                                        onChange={(e) => onPhotoConsentChange(e.target.checked)}
-                                        className="tos-checkbox"
-                                    />
-                                    <span className="tos-toggle-label">
-                                        I consent to having photographs and/or videos taken by Inkvictus and be used in their portfolio and marketing materials.
-                                    </span>
-                                </label>
-                            </li>
                         </ul>
                     </div>
                 </div>

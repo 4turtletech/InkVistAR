@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { Plus, Download, FileText, Settings, CreditCard, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { filterName, filterMoney, clampNumber } from '../utils/validation';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -268,6 +269,7 @@ function AdminBilling() {
                                     placeholder="Search invoices by client or ID..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
+                                    maxLength={100}
                                 />
                                 <datalist id="search-suggestions-billing">
                                     {searchSuggestions.map(suggestion => (
@@ -410,15 +412,15 @@ function AdminBilling() {
                                     <div className="form-row">
                                         <div className="form-group">
                                             <label>Base Hourly Rate (₱)</label>
-                                            <input type="number" className="form-input" value={config.baseRate} onChange={(e) => handleConfigChange(null, 'baseRate', e.target.value)} />
+                                            <input type="number" className="form-input" value={config.baseRate} onChange={(e) => handleConfigChange(null, 'baseRate', clampNumber(e.target.value, 0, 100000))} />
                                         </div>
                                         <div className="form-group">
                                             <label>Minimum Deposit (%)</label>
-                                            <input type="number" className="form-input" value={config.depositRate} onChange={(e) => handleConfigChange(null, 'depositRate', e.target.value)} />
+                                            <input type="number" className="form-input" value={config.depositRate} onChange={(e) => handleConfigChange(null, 'depositRate', clampNumber(e.target.value, 0, 100))} />
                                         </div>
                                         <div className="form-group">
                                             <label>Tax Rate (%)</label>
-                                            <input type="number" className="form-input" value={config.taxRate} onChange={(e) => handleConfigChange(null, 'taxRate', e.target.value)} />
+                                            <input type="number" className="form-input" value={config.taxRate} onChange={(e) => handleConfigChange(null, 'taxRate', clampNumber(e.target.value, 0, 100))} />
                                         </div>
                                     </div>
                                 </div>
@@ -430,15 +432,15 @@ function AdminBilling() {
                                     <div className="form-row">
                                         <div className="form-group">
                                             <label>Simple (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.complexity.simple} onChange={(e) => handleConfigChange('complexity', 'simple', e.target.value)} />
+                                            <input type="number" step="0.1" className="form-input" value={config.complexity.simple} onChange={(e) => handleConfigChange('complexity', 'simple', clampNumber(e.target.value, 0.1, 10))} />
                                         </div>
                                         <div className="form-group">
                                             <label>Detailed (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.complexity.detailed} onChange={(e) => handleConfigChange('complexity', 'detailed', e.target.value)} />
+                                            <input type="number" step="0.1" className="form-input" value={config.complexity.detailed} onChange={(e) => handleConfigChange('complexity', 'detailed', clampNumber(e.target.value, 0.1, 10))} />
                                         </div>
                                         <div className="form-group">
                                             <label>Complex (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.complexity.complex} onChange={(e) => handleConfigChange('complexity', 'complex', e.target.value)} />
+                                            <input type="number" step="0.1" className="form-input" value={config.complexity.complex} onChange={(e) => handleConfigChange('complexity', 'complex', clampNumber(e.target.value, 0.1, 10))} />
                                         </div>
                                     </div>
                                 </div>
@@ -450,15 +452,15 @@ function AdminBilling() {
                                     <div className="form-row">
                                         <div className="form-group">
                                             <label>Realism (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.styles.realism} onChange={(e) => handleConfigChange('styles', 'realism', e.target.value)} />
+                                            <input type="number" step="0.1" className="form-input" value={config.styles.realism} onChange={(e) => handleConfigChange('styles', 'realism', clampNumber(e.target.value, 0.1, 10))} />
                                         </div>
                                         <div className="form-group">
                                             <label>Traditional (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.styles.traditional} onChange={(e) => handleConfigChange('styles', 'traditional', e.target.value)} />
+                                            <input type="number" step="0.1" className="form-input" value={config.styles.traditional} onChange={(e) => handleConfigChange('styles', 'traditional', clampNumber(e.target.value, 0.1, 10))} />
                                         </div>
                                         <div className="form-group">
                                             <label>Japanese (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.styles.japanese} onChange={(e) => handleConfigChange('styles', 'japanese', e.target.value)} />
+                                            <input type="number" step="0.1" className="form-input" value={config.styles.japanese} onChange={(e) => handleConfigChange('styles', 'japanese', clampNumber(e.target.value, 0.1, 10))} />
                                         </div>
                                     </div>
                                 </div>
@@ -536,7 +538,7 @@ function AdminBilling() {
                                 <div className="modal-body admin-st-7cea880d">
                                     <div className="form-group admin-mb-20">
                                         <label className="admin-st-19644797">Recipient Entity (Client)</label>
-                                        <input type="text" className="form-input" required value={newInvoice.client} onChange={e => setNewInvoice({...newInvoice, client: e.target.value})} />
+                                        <input type="text" className="form-input" required value={newInvoice.client} onChange={e => setNewInvoice({...newInvoice, client: filterName(e.target.value).slice(0, 100)})} maxLength={100} />
                                     </div>
                                     <div className="admin-st-f9a903f8">
                                         <div className="form-group">
@@ -553,7 +555,7 @@ function AdminBilling() {
                                         </div>
                                         <div className="form-group">
                                             <label className="admin-st-19644797">Settlement Amount (₱)</label>
-                                            <input type="number" className="form-input" required value={newInvoice.amount} onChange={e => setNewInvoice({...newInvoice, amount: e.target.value})} />
+                                            <input type="number" step="0.01" className="form-input" required value={newInvoice.amount} onChange={e => setNewInvoice({...newInvoice, amount: filterMoney(e.target.value)})} />
                                         </div>
                                     </div>
                                     <div className="admin-st-7460b907">
@@ -738,7 +740,7 @@ function AdminBilling() {
                                     <div className="admin-st-c200c71d">
                                         <div className="form-group">
                                             <label className="admin-st-19644797">Remittance Amount (₱)</label>
-                                            <input type="number" className="form-input" required value={newPayout.amount} onChange={e => setNewPayout({...newPayout, amount: e.target.value})} />
+                                            <input type="number" step="0.01" className="form-input" required value={newPayout.amount} onChange={e => setNewPayout({...newPayout, amount: filterMoney(e.target.value)})} />
                                         </div>
                                         <div className="form-group">
                                             <label className="admin-st-19644797">Transfer Protocol</label>
@@ -752,7 +754,7 @@ function AdminBilling() {
                                     </div>
                                     <div className="form-group">
                                         <label className="admin-st-19644797">Transaction Reference / Memo</label>
-                                        <input type="text" className="form-input" placeholder="Bank ref # or payout notes..." value={newPayout.reference} onChange={e => setNewPayout({...newPayout, reference: e.target.value})} />
+                                        <input type="text" className="form-input" placeholder="Bank ref # or payout notes..." value={newPayout.reference} onChange={e => setNewPayout({...newPayout, reference: e.target.value.substring(0, 100)})} maxLength={100} />
                                     </div>
                                 </div>
                                 <div className="modal-footer">

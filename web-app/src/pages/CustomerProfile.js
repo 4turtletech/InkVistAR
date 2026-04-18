@@ -8,6 +8,7 @@ import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
 import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
+import { filterName } from '../utils/validation';
 
 const PasswordStrengthMeter = ({ feedback }) => {
     const steps = [
@@ -321,8 +322,9 @@ function CustomerProfile() {
                                                         type="text"
                                                         className="form-input"
                                                         value={profile.name}
-                                                        onChange={e => setProfile({ ...profile, name: e.target.value })}
+                                                        onChange={e => setProfile({ ...profile, name: filterName(e.target.value).slice(0, 50) })}
                                                         style={inputStyle}
+                                                        maxLength={50}
                                                     />
                                                 </div>
                                                 <div className="form-group">
@@ -367,11 +369,11 @@ function CustomerProfile() {
                                                                         style={{ flex: 1 }}
                                                                         value={currentNo}
                                                                         onChange={e => {
-                                                                            const digits = e.target.value.replace(/[^\d]/g, '');
+                                                                            const digits = e.target.value.replace(/[^\d]/g, '').slice(0, 11);
                                                                             const { code: currentCode } = getPhoneParts(profile.phone);
                                                                             setProfile({ ...profile, phone: currentCode + digits });
                                                                         }}
-                                                                        placeholder="9123456789" />
+                                                                        placeholder="9123456789" maxLength={11} />
                                                                 </>
                                                             );
                                                         })()}
@@ -386,6 +388,7 @@ function CustomerProfile() {
                                                         onChange={e => setProfile({ ...profile, location: e.target.value })}
                                                         placeholder="City, Country"
                                                         style={inputStyle}
+                                                        maxLength={200}
                                                     />
                                                 </div>
                                                 <div className="form-group customer-st-d5e576b0" >
@@ -397,6 +400,7 @@ function CustomerProfile() {
                                                         placeholder="E.g. Realism, Blackwork, Sleeve ideas..."
                                                         rows="3"
                                                         style={inputStyle}
+                                                        maxLength={500}
                                                     />
                                                 </div>
                                             </div>
@@ -440,6 +444,7 @@ function CustomerProfile() {
                                                                 onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })}
                                                                 placeholder="Enter current password"
                                                                 style={{ ...inputStyle, paddingRight: '40px' }}
+                                                                maxLength={128}
                                                             />
                                                             <button
                                                                 type="button"
@@ -476,6 +481,7 @@ function CustomerProfile() {
                                                                     onBlur={() => { if (!passwords.newPassword) setPasswordFocused(false); }}
                                                                     placeholder="Min. 8 characters"
                                                                     style={{ ...inputStyle, paddingRight: '40px' }}
+                                                                    maxLength={128}
                                                                 />
                                                                 <button
                                                                     type="button"
@@ -499,6 +505,7 @@ function CustomerProfile() {
                                                                     onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
                                                                     placeholder="Re-enter new password"
                                                                     style={{ ...inputStyle, paddingRight: '40px' }}
+                                                                    maxLength={128}
                                                                 />
                                                                 <button
                                                                     type="button"

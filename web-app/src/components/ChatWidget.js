@@ -276,9 +276,10 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
             type="text"
             placeholder={isHumanMode ? "Type a message to an artist..." : "Ask me anything..."}
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => setInputValue(e.target.value.slice(0, 500))}
             disabled={isLoading && !isHumanMode}
             className="chat-input"
+            maxLength={500}
           />
           <button type="submit" className="send-btn" disabled={isLoading && !isHumanMode}>
             <Send size={18} color="white" />

@@ -13,6 +13,7 @@ import { TATTOO_STYLES } from '../constants/tattooStyles';
 import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
+import { filterName, filterDigits, clampNumber } from '../utils/validation';
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
     User, Calendar, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
@@ -459,7 +460,7 @@ function AdminUsers() {
             <div className="form-grid">
                 <div className="form-group">
                     <label>Name</label>
-                    <input type="text" className="form-input" value={artistFormData.name || ''} onChange={e => setArtistFormData({ ...artistFormData, name: e.target.value })} />
+                    <input type="text" className="form-input" value={artistFormData.name || ''} onChange={e => setArtistFormData({ ...artistFormData, name: filterName(e.target.value).slice(0, 50) })} maxLength={50} />
                 </div>
                 <div className="form-group">
                     <label>Specialization / Styles</label>
@@ -472,7 +473,7 @@ function AdminUsers() {
                 </div>
                 <div className="form-group">
                     <label>Experience (Years)</label>
-                    <input type="number" className="form-input" value={artistFormData.experience_years || 0} onChange={e => setArtistFormData({ ...artistFormData, experience_years: e.target.value })} />
+                    <input type="number" className="form-input" value={artistFormData.experience_years || 0} onChange={e => setArtistFormData({ ...artistFormData, experience_years: clampNumber(e.target.value, 0, 50) })} min="0" max="50" />
                 </div>
                 <div className="form-group">
                     <label>Commission Rate (%)</label>
@@ -648,12 +649,12 @@ function AdminUsers() {
 
     const handleCreateFieldChange = (name, value) => {
         let sanitized = value;
-        if (name === 'firstName' || name === 'lastName') sanitized = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '').slice(0, 50);
-        else if (name === 'suffix') sanitized = value.replace(/[^a-zA-Z.\s]/g, '').replace(/^\s+/, '').slice(0, 5);
-        else if (name === 'email') sanitized = value.replace(/\s/g, '');
-        else if (name === 'phone') sanitized = value.replace(/[^0-9]/g, '').slice(0, 11);
-        else if (name === 'password' || name === 'confirmPassword') sanitized = value.slice(0, 50);
-        else if (name === 'age') sanitized = value.replace(/[^0-9]/g, '').slice(0, 3);
+        if (name === 'firstName' || name === 'lastName') sanitized = filterName(value).slice(0, 50);
+        else if (name === 'suffix') sanitized = filterName(value).slice(0, 5);
+        else if (name === 'email') sanitized = value.replace(/\s/g, '').slice(0, 254);
+        else if (name === 'phone') sanitized = filterDigits(value).slice(0, 11);
+        else if (name === 'password' || name === 'confirmPassword') sanitized = value.slice(0, 128);
+        else if (name === 'age') sanitized = filterDigits(value).slice(0, 3);
         setCreateFormData(prev => ({ ...prev, [name]: sanitized }));
 
         // Live password strength feedback
@@ -770,7 +771,7 @@ function AdminUsers() {
                     <div className="premium-search-box premium-search-box--full">
                         <Search size={16} className="text-muted" />
                         <input type="text" list="search-suggestions-users" placeholder="Search by name, email, id..."
-                            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} maxLength={100} />
                         <datalist id="search-suggestions-users">
                             {searchSuggestions.map(s => <option key={s} value={s} />)}
                         </datalist>
@@ -898,11 +899,11 @@ function AdminUsers() {
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label className="premium-label">Full Name *</label>
-                                        <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="form-input" placeholder="Full Name" />
+                                        <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: filterName(e.target.value).slice(0, 50) })} maxLength={50} className="form-input" placeholder="Full Name" />
                                     </div>
                                     <div className="form-group">
                                         <label className="premium-label">Email Address *</label>
-                                        <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="form-input" placeholder="email@example.com" />
+                                        <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} maxLength={254} className="form-input" placeholder="email@example.com" />
                                     </div>
                                 </div>
                                 <div className="form-row">
@@ -913,7 +914,7 @@ function AdminUsers() {
                                                 value={formData.countryCode || '+63'}
                                                 onChange={(code) => setFormData({ ...formData, countryCode: code })}
                                             />
-                                            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '') })} className="form-input" style={{ flex: 1 }} placeholder="9123456789" />
+                                            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: filterDigits(e.target.value).slice(0, 11) })} maxLength={11} className="form-input" style={{ flex: 1 }} placeholder="9123456789" />
                                         </div>
                                     </div>
                                 </div>
@@ -981,15 +982,15 @@ function AdminUsers() {
                                                 <div className="admin-st-ff43421e">
                                                     <div className="form-group">
                                                         <label className="admin-st-19644797">Legal Name</label>
-                                                        <input type="text" className="form-input" value={clientFormData.name || ''} onChange={e => setClientFormData({ ...clientFormData, name: e.target.value })} />
+                                                        <input type="text" className="form-input" value={clientFormData.name || ''} onChange={e => setClientFormData({ ...clientFormData, name: filterName(e.target.value).slice(0, 50) })} maxLength={50} />
                                                     </div>
                                                     <div className="form-group">
                                                         <label className="admin-st-19644797">Direct Link (Email)</label>
-                                                        <input type="email" className="form-input" value={clientFormData.email || ''} onChange={e => setClientFormData({ ...clientFormData, email: e.target.value })} />
+                                                        <input type="email" className="form-input" value={clientFormData.email || ''} onChange={e => setClientFormData({ ...clientFormData, email: e.target.value })} maxLength={254} />
                                                     </div>
                                                     <div className="form-group">
                                                         <label className="admin-st-19644797">Primary Contact</label>
-                                                        <input type="text" className="form-input" value={clientFormData.phone || ''} onChange={e => setClientFormData({ ...clientFormData, phone: e.target.value })} />
+                                                        <input type="text" className="form-input" value={clientFormData.phone || ''} onChange={e => setClientFormData({ ...clientFormData, phone: filterDigits(e.target.value).slice(0, 11) })} maxLength={11} />
                                                     </div>
                                                 </div>
                                                 <div className="admin-st-ff43421e">
@@ -999,7 +1000,8 @@ function AdminUsers() {
                                                             className="form-input admin-st-6c845e15" rows="8"
                                                             placeholder="Record specific sensitivities, design preferences, or billing history notes..."
                                                             value={clientFormData.notes || ''}
-                                                            onChange={e => setClientFormData({ ...clientFormData, notes: e.target.value })}
+                                                            onChange={e => setClientFormData({ ...clientFormData, notes: e.target.value.substring(0, 2000) })}
+                                                            maxLength={2000}
                                                         ></textarea>
                                                     </div>
                                                 </div>
@@ -1348,7 +1350,7 @@ function AdminUsers() {
                                         <input type="text" className={`form-input ${createErrors.firstName ? 'error' : ''}`}
                                             placeholder="e.g. Juan" value={createFormData.firstName}
                                             onChange={(e) => handleCreateFieldChange('firstName', e.target.value)}
-                                            onBlur={() => handleCreateBlur('firstName')} />
+                                            onBlur={() => handleCreateBlur('firstName')} maxLength={50} />
                                         {createErrors.firstName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.firstName}</small>}
                                     </div>
                                     <div className="form-group" style={{ flex: 1 }}>
@@ -1356,7 +1358,7 @@ function AdminUsers() {
                                         <input type="text" className={`form-input ${createErrors.lastName ? 'error' : ''}`}
                                             placeholder="e.g. dela Cruz" value={createFormData.lastName}
                                             onChange={(e) => handleCreateFieldChange('lastName', e.target.value)}
-                                            onBlur={() => handleCreateBlur('lastName')} />
+                                            onBlur={() => handleCreateBlur('lastName')} maxLength={50} />
                                         {createErrors.lastName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.lastName}</small>}
                                     </div>
                                     <div className="form-group" style={{ width: '90px', flexShrink: 0 }}>
@@ -1373,7 +1375,7 @@ function AdminUsers() {
                                         <input type="email" className={`form-input ${createErrors.email ? 'error' : ''}`}
                                             placeholder="email@example.com" value={createFormData.email}
                                             onChange={(e) => handleCreateFieldChange('email', e.target.value)}
-                                            onBlur={() => handleCreateBlur('email')} />
+                                            onBlur={() => handleCreateBlur('email')} maxLength={254} />
                                         {createErrors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.email}</small>}
                                     </div>
                                     <div className="form-group">
@@ -1397,7 +1399,7 @@ function AdminUsers() {
                                             <input type="tel" className={`form-input ${createErrors.phone ? 'error' : ''}`}
                                                 style={{ flex: 1 }} placeholder="09XXXXXXXXX" value={createFormData.phone}
                                                 onChange={(e) => handleCreateFieldChange('phone', e.target.value)}
-                                                onBlur={() => handleCreateBlur('phone')} />
+                                                onBlur={() => handleCreateBlur('phone')} maxLength={11} />
                                         </div>
                                         {createErrors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{createErrors.phone}</small>}
                                     </div>
@@ -1420,7 +1422,7 @@ function AdminUsers() {
                                                 onChange={(e) => handleCreateFieldChange('password', e.target.value)}
                                                 onFocus={() => setCreatePasswordFocused(true)}
                                                 onBlur={() => { handleCreateBlur('password'); if (!createFormData.password) setCreatePasswordFocused(false); }}
-                                                onPaste={(e) => e.preventDefault()} />
+                                                onPaste={(e) => e.preventDefault()} maxLength={128} />
                                             <button type="button" onClick={() => setShowCreatePassword(!showCreatePassword)}
                                                 style={{
                                                     position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
@@ -1442,7 +1444,7 @@ function AdminUsers() {
                                                 placeholder="Re-enter password" value={createFormData.confirmPassword}
                                                 onChange={(e) => handleCreateFieldChange('confirmPassword', e.target.value)}
                                                 onBlur={() => handleCreateBlur('confirmPassword')}
-                                                onPaste={(e) => e.preventDefault()} />
+                                                onPaste={(e) => e.preventDefault()} maxLength={128} />
                                             <button type="button" onClick={() => setShowCreateConfirmPassword(!showCreateConfirmPassword)}
                                                 style={{
                                                     position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',

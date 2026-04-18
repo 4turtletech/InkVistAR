@@ -108,8 +108,9 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                                 <input
                                     type="text"
                                     value={subject}
-                                    onChange={(e) => setSubject(e.target.value)}
+                                    onChange={(e) => setSubject(e.target.value.substring(0, 150))}
                                     placeholder="e.g., 🎨 20% Off Your Next Tattoo Session!"
+                                    maxLength={150}
                                     style={{
                                         width: '100%', padding: '11px 14px', borderRadius: '10px',
                                         border: '1px solid #e2e8f0', fontSize: '0.92rem', outline: 'none',
@@ -123,9 +124,10 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Email Body</label>
                                 <textarea
                                     value={body}
-                                    onChange={(e) => setBody(e.target.value)}
+                                    onChange={(e) => setBody(e.target.value.substring(0, 5000))}
                                     placeholder="Write your promotional message here... You can use multiple lines."
                                     rows={6}
+                                    maxLength={5000}
                                     style={{
                                         width: '100%', padding: '12px 14px', borderRadius: '10px',
                                         border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none',

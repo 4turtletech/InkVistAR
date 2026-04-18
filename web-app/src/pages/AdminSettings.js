@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { Save, Download, Upload, RefreshCw, FileText, Bell, Database, Info, Shield, Image } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import { filterName, filterDigits } from '../utils/validation';
 import './AdminSettings.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
@@ -174,8 +175,9 @@ function AdminSettings() {
                                     <input
                                         type="text"
                                         value={settings.studio.name}
-                                        onChange={(e) => handleChange('studio', 'name', e.target.value)}
+                                        onChange={(e) => handleChange('studio', 'name', filterName(e.target.value).slice(0, 100))}
                                         className="form-input"
+                                        maxLength={100}
                                     />
                                 </div>
                                 <div className="form-row">
@@ -184,8 +186,9 @@ function AdminSettings() {
                                         <input
                                             type="email"
                                             value={settings.studio.email}
-                                            onChange={(e) => handleChange('studio', 'email', e.target.value)}
+                                            onChange={(e) => handleChange('studio', 'email', e.target.value.substring(0, 254))}
                                             className="form-input"
+                                            maxLength={254}
                                         />
                                     </div>
                                     <div className="form-group">
@@ -193,8 +196,9 @@ function AdminSettings() {
                                         <input
                                             type="tel"
                                             value={settings.studio.phone}
-                                            onChange={(e) => handleChange('studio', 'phone', e.target.value)}
+                                            onChange={(e) => handleChange('studio', 'phone', filterDigits(e.target.value).slice(0, 15))}
                                             className="form-input"
+                                            maxLength={15}
                                         />
                                     </div>
                                 </div>
@@ -202,9 +206,10 @@ function AdminSettings() {
                                     <label>Description</label>
                                     <textarea
                                         value={settings.studio.description}
-                                        onChange={(e) => handleChange('studio', 'description', e.target.value)}
+                                        onChange={(e) => handleChange('studio', 'description', e.target.value.substring(0, 500))}
                                         className="form-input"
                                         rows="3"
+                                        maxLength={500}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -212,8 +217,9 @@ function AdminSettings() {
                                     <input
                                         type="text"
                                         value={settings.studio.address}
-                                        onChange={(e) => handleChange('studio', 'address', e.target.value)}
+                                        onChange={(e) => handleChange('studio', 'address', e.target.value.substring(0, 200))}
                                         className="form-input"
+                                        maxLength={200}
                                     />
                                 </div>
                                 <div className="form-row">
@@ -222,8 +228,9 @@ function AdminSettings() {
                                         <input
                                             type="text"
                                             value={settings.studio.city}
-                                            onChange={(e) => handleChange('studio', 'city', e.target.value)}
+                                            onChange={(e) => handleChange('studio', 'city', filterName(e.target.value).slice(0, 100))}
                                             className="form-input"
+                                            maxLength={100}
                                         />
                                     </div>
                                     <div className="form-group">
@@ -231,8 +238,9 @@ function AdminSettings() {
                                         <input
                                             type="text"
                                             value={settings.studio.state}
-                                            onChange={(e) => handleChange('studio', 'state', e.target.value)}
+                                            onChange={(e) => handleChange('studio', 'state', filterName(e.target.value).slice(0, 50))}
                                             className="form-input"
+                                            maxLength={50}
                                         />
                                     </div>
                                     <div className="form-group">
@@ -240,8 +248,9 @@ function AdminSettings() {
                                         <input
                                             type="text"
                                             value={settings.studio.zipCode}
-                                            onChange={(e) => handleChange('studio', 'zipCode', e.target.value)}
+                                            onChange={(e) => handleChange('studio', 'zipCode', filterDigits(e.target.value).slice(0, 10))}
                                             className="form-input"
+                                            maxLength={10}
                                         />
                                     </div>
                                 </div>
@@ -281,6 +290,7 @@ function AdminSettings() {
                                         onChange={(e) => handleChange('policies', 'terms', e.target.value)}
                                         className="form-input"
                                         rows="5"
+                                        maxLength={2000}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -290,6 +300,7 @@ function AdminSettings() {
                                         onChange={(e) => handleChange('policies', 'deposit', e.target.value)}
                                         className="form-input"
                                         rows="3"
+                                        maxLength={1000}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -299,6 +310,7 @@ function AdminSettings() {
                                         onChange={(e) => handleChange('policies', 'cancellation', e.target.value)}
                                         className="form-input"
                                         rows="3"
+                                        maxLength={1000}
                                     />
                                 </div>
                             </div>
@@ -318,6 +330,7 @@ function AdminSettings() {
                                         onChange={(e) => handleChange('care', 'instructions', e.target.value)}
                                         className="form-input"
                                         rows="10"
+                                        maxLength={3000}
                                     />
                                 </div>
                             </div>
@@ -337,6 +350,7 @@ function AdminSettings() {
                                         onChange={(e) => handleChange('templates', 'confirmation', e.target.value)}
                                         className="form-input"
                                         rows="3"
+                                        maxLength={500}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -346,6 +360,7 @@ function AdminSettings() {
                                         onChange={(e) => handleChange('templates', 'reminder', e.target.value)}
                                         className="form-input"
                                         rows="3"
+                                        maxLength={500}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -355,6 +370,7 @@ function AdminSettings() {
                                         onChange={(e) => handleChange('templates', 'cancellation', e.target.value)}
                                         className="form-input"
                                         rows="3"
+                                        maxLength={500}
                                     />
                                 </div>
                             </div>
@@ -422,10 +438,11 @@ function AdminSettings() {
                                     <label>Categories</label>
                                     <textarea
                                         value={settings.gallery?.categories || ''}
-                                        onChange={(e) => handleChange('gallery', 'categories', e.target.value)}
+                                        onChange={(e) => handleChange('gallery', 'categories', e.target.value.substring(0, 500))}
                                         className="form-input"
                                         rows="4"
                                         placeholder="All, Traditional, Realism, Watercolor..."
+                                        maxLength={500}
                                     />
                                 </div>
                             </div>

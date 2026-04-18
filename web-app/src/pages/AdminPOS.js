@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Axios from 'axios';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Package, CheckCircle, X, RefreshCw, Filter, Trash, ArrowRight, AlertCircle, Tag, Send, User, CreditCard, Wallet, Banknote, Receipt, RotateCcw, Printer, Download } from 'lucide-react';
+import { filterMoney, clampNumber } from '../utils/validation';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -285,6 +286,7 @@ function AdminPOS() {
                                         placeholder="Search products..." 
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
+                                        maxLength={100}
                                     />
                                 </div>
                                 <button className="refresh-pos-btn" onClick={fetchInventory} title="Refresh Inventory">
@@ -457,7 +459,7 @@ function AdminPOS() {
                                                     min="0" max="100" 
                                                     style={{ width: '70px', padding: '10px 8px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', textAlign: 'right' }} 
                                                     value={customDiscount}
-                                                    onChange={e => setCustomDiscount(Number(e.target.value))}
+                                                    onChange={e => setCustomDiscount(clampNumber(e.target.value, 0, 100))}
                                                 />
                                                 <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>%</span>
                                             </div>
@@ -538,7 +540,7 @@ function AdminPOS() {
                                                 step="0.01"
                                                 placeholder="0.00"
                                                 value={amountTendered}
-                                                onChange={e => setAmountTendered(e.target.value)}
+                                                onChange={e => setAmountTendered(filterMoney(e.target.value))}
                                                 style={{ width: '100%', padding: '14px 14px 14px 32px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1.2rem', fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
                                                 autoFocus
                                             />

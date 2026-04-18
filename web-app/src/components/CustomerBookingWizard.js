@@ -119,7 +119,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const handleInputChange = (field, value) => {
         let val = value;
         if (field === 'firstName' || field === 'lastName' || field === 'suffix') {
-            val = val.replace(/[^a-zA-Z\s-.]/g, '').replace(/^\s+/, '');
+            val = val.replace(/[^a-zA-Z\s-']/g, '').replace(/^\s+/, '');
         } else if (field === 'email') {
             val = val.replace(/\s/g, '');
         } else if (typeof val === 'string') {
@@ -498,6 +498,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             onChange={(e) => handleInputChange('firstName', e.target.value)}
                             disabled={!!user}
                             style={{ padding: '10px' }}
+                            maxLength={50}
                         />
                         {errors.firstName && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.firstName}</small>}
                     </div>
@@ -511,6 +512,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             onChange={(e) => handleInputChange('lastName', e.target.value)}
                             disabled={!!user}
                             style={{ padding: '10px' }}
+                            maxLength={50}
                         />
                         {errors.lastName && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.lastName}</small>}
                     </div>
@@ -524,6 +526,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             onChange={(e) => handleInputChange('suffix', e.target.value)}
                             disabled={!!user}
                             style={{ padding: '10px' }}
+                            maxLength={5}
                         />
                     </div>
                 </div>
@@ -537,6 +540,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         disabled={!!user}
                         style={{ padding: '10px' }}
+                        maxLength={254}
                     />
                     {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.email}</small>}
                 </div>
@@ -576,8 +580,9 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             className={`form-input ${errors.phone ? 'error' : ''}`} 
                             placeholder="9171234567" 
                             value={formData.phone} 
-                            onChange={(e) => handleInputChange('phone', e.target.value.replace(/[^0-9]/g, ''))} 
+                            onChange={(e) => handleInputChange('phone', e.target.value.replace(/[^0-9]/g, '').slice(0, 11))} 
                             style={{ flex: 1, padding: '10px' }}
+                            maxLength={11}
                         />
                     </div>
                     {errors.phone && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.phone}</small>}

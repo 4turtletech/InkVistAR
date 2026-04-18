@@ -6,6 +6,8 @@ import Navbar from '../components/Navbar';
 import TermsOfServiceModal from '../components/TermsOfServiceModal';
 import './Login.css'; // Using Login styles for consistency
 import CountryCodeSelect from '../components/CountryCodeSelect';
+import { filterName, filterDigits } from '../utils/validation';
+import './Register.css';
 
 const PasswordStrengthMeter = ({ feedback }) => {
   // Ordered steps: each must be met before the next hint appears
@@ -81,18 +83,17 @@ function Register() {
     const { name, value } = e.target;
     let sanitizedValue = value;
 
-    // Hard sanitization for names (letters, spaces, hyphens only)
     if (name === 'firstName' || name === 'lastName') {
-      sanitizedValue = value.replace(/[^a-zA-Z\s-]/g, '').replace(/^\s+/, '').slice(0, 50);
+      sanitizedValue = filterName(value).replace(/^\s+/, '').slice(0, 50);
     } else if (name === 'suffix') {
       // Allow letters, periods, and spaces
       sanitizedValue = value.replace(/[^a-zA-Z.\s]/g, '').replace(/^\s+/, '').slice(0, 5);
     } else if (name === 'email') {
-      sanitizedValue = value.replace(/\s/g, ''); // No spaces in email
+      sanitizedValue = value.replace(/\s/g, '').slice(0, 254); // No spaces in email
     } else if (name === 'phone') {
-      sanitizedValue = value.replace(/[^0-9]/g, '').slice(0, 11); // Only numbers, max 11
+      sanitizedValue = filterDigits(value).slice(0, 11); // Only numbers, max 11
     } else if (name === 'password' || name === 'confirmPassword') {
-      sanitizedValue = value.slice(0, 50);
+      sanitizedValue = value.slice(0, 128);
     } else {
       sanitizedValue = value.replace(/^\s+/, '');
     }
@@ -225,11 +226,11 @@ function Register() {
           <form onSubmit={registerUser} className="login-form">
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
               <div className="form-group" style={{ flex: 1, position: 'relative' }}>
-                <input type="text" name="firstName" className={`form-input ${errors.firstName ? 'error' : ''}`} placeholder="First Name" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} />
+                <input type="text" name="firstName" className={`form-input ${errors.firstName ? 'error' : ''}`} placeholder="First Name" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} maxLength={50} />
                 {errors.firstName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.firstName}</small>}
               </div>
               <div className="form-group" style={{ flex: 1, position: 'relative' }}>
-                <input type="text" name="lastName" className={`form-input ${errors.lastName ? 'error' : ''}`} placeholder="Last Name" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} />
+                <input type="text" name="lastName" className={`form-input ${errors.lastName ? 'error' : ''}`} placeholder="Last Name" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} maxLength={50} />
                 {errors.lastName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.lastName}</small>}
               </div>
               <div className="form-group" style={{ width: '90px', position: 'relative', flexShrink: 0 }}>
@@ -237,7 +238,7 @@ function Register() {
               </div>
             </div>
             <div className="form-group" style={{ position: 'relative' }}>
-              <input type="email" name="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="Email Address" value={formData.email} onChange={handleChange} onBlur={handleBlur} />
+              <input type="email" name="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="Email Address" value={formData.email} onChange={handleChange} onBlur={handleBlur} maxLength={254} />
               {errors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.email}</small>}
             </div>
             <div className="form-group" style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
@@ -245,12 +246,12 @@ function Register() {
                 value={formData.countryCode}
                 onChange={(code) => setFormData(prev => ({ ...prev, countryCode: code }))}
               />
-              <input type="tel" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} style={{ flex: 1 }} value={formData.phone} onChange={handleChange} placeholder="Phone Number" />
+              <input type="tel" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} style={{ flex: 1 }} value={formData.phone} onChange={handleChange} placeholder="Phone Number" maxLength={11} />
             </div>
             {errors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.phone}</small>}
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
               <div className="form-group" style={{ flex: 1, position: 'relative' }}>
-                <input type={showPassword ? "text" : "password"} name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Password" value={formData.password} onChange={handleChange} onFocus={() => setPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!formData.password) setPasswordFocused(false); }} onPaste={(e) => e.preventDefault()} />
+                <input type={showPassword ? "text" : "password"} name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Create Password" value={formData.password} onChange={handleChange} onFocus={() => setPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!formData.password) setPasswordFocused(false); }} onPaste={(e) => e.preventDefault()} maxLength={128} />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -280,7 +281,7 @@ function Register() {
                 </button>
               </div>
               <div className="form-group" style={{ flex: 1, position: 'relative' }}>
-                <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} onPaste={(e) => e.preventDefault()} />
+                <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} onPaste={(e) => e.preventDefault()} maxLength={128} />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}

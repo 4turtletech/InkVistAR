@@ -15,6 +15,7 @@ import { API_URL } from '../config';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import PhilippinePeso from '../components/PhilippinePeso';
+import { filterName, filterMoney, clampNumber } from '../utils/validation';
 
 function AdminStaff() {
     const navigate = useNavigate();
@@ -288,7 +289,8 @@ function AdminStaff() {
                         type="text"
                         className="form-input"
                         value={formData.name || ''}
-                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        onChange={e => setFormData({ ...formData, name: filterName(e.target.value).slice(0, 100) })}
+                        maxLength={100}
                     />
                 </div>
                 <div className="form-group">
@@ -305,8 +307,8 @@ function AdminStaff() {
                     <input
                         type="number"
                         className="form-input"
-                        value={formData.experience_years || 0}
-                        onChange={e => setFormData({ ...formData, experience_years: e.target.value })}
+                        value={formData.experience_years !== undefined ? formData.experience_years : ''}
+                        onChange={e => setFormData({ ...formData, experience_years: clampNumber(e.target.value, 0, 100) })}
                     />
                 </div>
                 <div className="form-group">
@@ -453,6 +455,7 @@ function AdminStaff() {
                             placeholder="Search staff by name, email, or id..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            maxLength={100}
                         />
                         <datalist id="search-suggestions-staff">
                             {searchSuggestions.map(suggestion => (
@@ -690,8 +693,9 @@ function AdminStaff() {
                                                     type="text"
                                                     className="form-input"
                                                     value={workFormData.title}
-                                                    onChange={e => setWorkFormData({ ...workFormData, title: e.target.value })}
+                                                    onChange={e => setWorkFormData({ ...workFormData, title: filterName(e.target.value).slice(0, 100) })}
                                                     required
+                                                    maxLength={100}
                                                 />
                                             </div>
                                             <div className="admin-st-2f580e88">
@@ -708,9 +712,10 @@ function AdminStaff() {
                                                     <label className="admin-st-19644797">Market Valuation (₱)</label>
                                                     <input
                                                         type="number"
+                                                        step="0.01"
                                                         className="form-input"
                                                         value={workFormData.priceEstimate}
-                                                        onChange={e => setWorkFormData({ ...workFormData, priceEstimate: e.target.value })}
+                                                        onChange={e => setWorkFormData({ ...workFormData, priceEstimate: filterMoney(e.target.value) })}
                                                     />
                                                 </div>
                                             </div>
@@ -720,7 +725,8 @@ function AdminStaff() {
                                                     className="form-input admin-st-7b393fc7"
                                                     rows="6"
                                                     value={workFormData.description}
-                                                    onChange={e => setWorkFormData({ ...workFormData, description: e.target.value })}
+                                                    onChange={e => setWorkFormData({ ...workFormData, description: e.target.value.substring(0, 500) })}
+                                                    maxLength={500}
                                                 />
                                             </div>
                                         </div>

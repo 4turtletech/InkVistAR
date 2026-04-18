@@ -677,6 +677,7 @@ function AdminDashboard() {
                                                     value={appointmentSearch}
                                                     onChange={(e) => { setAppointmentSearch(e.target.value); setAppointmentPage(1); }}
                                                     className="admin-st-fb2a7115"
+                                                    maxLength={100}
                                                 />
                                             </div>
                                         </div>
