@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
-import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle, RotateCcw, PlusCircle, History, MessageSquare } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle, RotateCcw, PlusCircle, History, MessageSquare, Paintbrush, Gem } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
@@ -1085,7 +1085,7 @@ function CustomerBookings(){
             {/* Custom New Booking Modal */}
             {isBookingModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content large" style={{ height: '90vh', maxHeight: '750px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div className="modal-content large" style={{ width: '95vw', maxWidth: '1050px', height: '90vh', maxHeight: '750px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <div className="modal-header">
                             <h2 className="customer-st-da70abb8" ><Sparkles size={24} color="#daa520" /> New Booking Request</h2>
                             <button className="close-btn" onClick={closeBookingModal}><X size={24} /></button>
@@ -1264,7 +1264,7 @@ function CustomerBookings(){
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                                 <div className="form-group" style={{ marginBottom: 0 }}>
-                                                    <label className="customer-st-67198c20" >{derivedType === 'Tattoo + Piercing' ? 'Tattoo Design Idea / Title' : 'Tattoo Idea / Title'}</label>
+                                                    <label className="customer-st-67198c20" >Idea Name <span style={{ color: '#ef4444', fontWeight: '400' }}>*</span></label>
                                                     <input 
                                                         type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
                                                         value={bookingData.designTitle} onChange={e => setBookingData({...bookingData, designTitle: e.target.value})}
@@ -1317,7 +1317,7 @@ function CustomerBookings(){
 
                                 {bookingStep === 3 && (() => {
                                     const derivedType = getDerivedServiceType(bookingData.selectedServices);
-                                    const tattooBodyParts = ["Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"];
+                                    const tattooBodyParts = ["Face", "Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle"];
                                     const piercingBodyParts = ["Ear Lobe", "Helix", "Tragus", "Conch", "Industrial", "Nostril", "Septum", "Eyebrow", "Lip/Oral", "Navel", "Nipple", "Other"];
 
                                     // Decide which placement buttons to show
@@ -1325,6 +1325,15 @@ function CustomerBookings(){
                                         || (derivedType === 'Consultation' && bookingData.consultationFor.includes('tattoo'));
                                     const showPiercingPlacement = bookingData.selectedServices.includes('Piercing')
                                         || (derivedType === 'Consultation' && bookingData.consultationFor.includes('piercing'));
+
+                                    // Determine which array holds piercing selections
+                                    const piercingField = (derivedType === 'Tattoo + Piercing' || (derivedType === 'Consultation' && showTattooPlacement)) ? 'piercingPlacement' : 'placement';
+
+                                    // Handler for 3D model clicks — routes to correct array
+                                    const handleModelToggle = (partName, category) => {
+                                        if (category === 'tattoo') togglePlacementItem('placement', partName);
+                                        else if (category === 'piercing') togglePlacementItem(piercingField, partName);
+                                    };
 
                                     return (
                                     <div className="fade-in">
@@ -1335,7 +1344,7 @@ function CustomerBookings(){
                                             <div style={{ marginBottom: '20px' }}>
                                                 <p className="customer-st-b943a453" style={{ marginBottom: '10px' }}>What is this consultation for?</p>
                                                 <div style={{ display: 'flex', gap: '12px' }}>
-                                                    {[{ key: 'tattoo', label: '🎨 Tattoo', color: '#daa520' }, { key: 'piercing', label: '💎 Piercing', color: '#8b5cf6' }].map(opt => {
+                                                    {[{ key: 'tattoo', label: 'Tattoo', icon: <Paintbrush size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#daa520' }, { key: 'piercing', label: 'Piercing', icon: <Gem size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#4FC3F7' }].map(opt => {
                                                         const isActive = bookingData.consultationFor.includes(opt.key);
                                                         return (
                                                             <button
@@ -1344,14 +1353,14 @@ function CustomerBookings(){
                                                                 style={{
                                                                     flex: 1, padding: '14px', borderRadius: '12px',
                                                                     border: `2px solid ${isActive ? opt.color : '#e2e8f0'}`,
-                                                                    background: isActive ? `${opt.color}12` : 'white',
+                                                                    background: isActive ? `${opt.color}15` : 'white',
                                                                     color: isActive ? opt.color : '#64748b',
                                                                     fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer',
                                                                     transition: 'all 0.2s', position: 'relative'
                                                                 }}
                                                             >
                                                                 {isActive && <Check size={16} style={{ position: 'absolute', top: '6px', right: '6px' }} />}
-                                                                {opt.label}
+                                                                {opt.icon}{opt.label}
                                                             </button>
                                                         );
                                                     })}
@@ -1360,84 +1369,82 @@ function CustomerBookings(){
                                             </div>
                                         )}
 
-                                        {/* Tattoo Placement (shown when Tattoo Session is selected OR consultation for tattoo) */}
-                                        {showTattooPlacement && (
-                                            <>
-                                                <p className="customer-st-b943a453" style={{ marginBottom: '10px' }}>
-                                                    {(showTattooPlacement && showPiercingPlacement) ? '🎨 Where would you like your tattoo?' : 'Where would you like your tattoo?'}
-                                                </p>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '8px' }}>
-                                                    {/* 3D Body Model */}
-                                                    <Suspense fallback={<div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRadius: '16px' }}>Loading 3D Model...</div>}>
-                                                        <BodyModelViewer
-                                                            selectedPlacements={bookingData.placement}
-                                                            onTogglePlacement={(part) => togglePlacementItem('placement', part)}
-                                                            availablePlacements={tattooBodyParts}
-                                                            height={300}
-                                                        />
-                                                    </Suspense>
-                                                    {/* Button Grid */}
-                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', alignContent: 'start' }}>
-                                                        {tattooBodyParts.map(part => {
-                                                            const isSelected = bookingData.placement.includes(part);
-                                                            return (
-                                                                <button
-                                                                    key={part} type="button"
-                                                                    onClick={() => togglePlacementItem('placement', part)}
-                                                                    style={{
-                                                                        padding: '10px 6px', borderRadius: '10px',
-                                                                        border: `1.5px solid ${isSelected ? '#daa520' : '#e2e8f0'}`,
-                                                                        background: isSelected ? '#daa520' : 'white',
-                                                                        color: isSelected ? 'white' : '#1e293b',
-                                                                        fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
-                                                                        transition: 'all 0.2s',
-                                                                        boxShadow: isSelected ? '0 2px 8px rgba(218,165,32,0.25)' : 'none'
-                                                                    }}
-                                                                >
-                                                                    {isSelected && <Check size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />}
-                                                                    {part}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            </>
-                                        )}
+                                        {/* Main layout: 3D Model on left, button grids on right */}
+                                        {(showTattooPlacement || showPiercingPlacement) && (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '12px' }}>
+                                                {/* 3D Body Model (shared for both tattoo + piercing) */}
+                                                <Suspense fallback={<div style={{ height: '340px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRadius: '16px' }}>Loading 3D Model...</div>}>
+                                                    <BodyModelViewer
+                                                        selectedTattoo={bookingData.placement}
+                                                        selectedPiercing={bookingData[piercingField]}
+                                                        onToggle={handleModelToggle}
+                                                        tattooParts={showTattooPlacement ? tattooBodyParts : []}
+                                                        piercingParts={showPiercingPlacement ? piercingBodyParts : []}
+                                                        height={showTattooPlacement && showPiercingPlacement ? 380 : 320}
+                                                    />
+                                                </Suspense>
 
-                                        {/* Piercing Placement (shown when Piercing is selected OR consultation for piercing) */}
-                                        {showPiercingPlacement && (
-                                            <>
-                                                {showTattooPlacement && (
-                                                    <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '16px 0' }} />
-                                                )}
-                                                <p className="customer-st-b943a453" style={{ marginBottom: '10px' }}>
-                                                    {(showTattooPlacement && showPiercingPlacement) ? '💎 Where would you like your piercing?' : 'Where would you like your piercing?'}
-                                                </p>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                                                    {piercingBodyParts.map(part => {
-                                                        const targetField = (derivedType === 'Tattoo + Piercing' || (derivedType === 'Consultation' && showTattooPlacement)) ? 'piercingPlacement' : 'placement';
-                                                        const isSelected = bookingData[targetField].includes(part);
-                                                        return (
-                                                            <button
-                                                                key={`piercing-${part}`} type="button"
-                                                                onClick={() => togglePlacementItem(targetField, part)}
-                                                                style={{
-                                                                    padding: '10px 6px', borderRadius: '10px',
-                                                                    border: `1.5px solid ${isSelected ? '#8b5cf6' : '#e2e8f0'}`,
-                                                                    background: isSelected ? '#8b5cf6' : 'white',
-                                                                    color: isSelected ? 'white' : '#1e293b',
-                                                                    fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer',
-                                                                    transition: 'all 0.2s',
-                                                                    boxShadow: isSelected ? '0 2px 8px rgba(139,92,246,0.25)' : 'none'
-                                                                }}
-                                                            >
-                                                                {isSelected && <Check size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />}
-                                                                {part}
-                                                            </button>
-                                                        );
-                                                    })}
+                                                {/* Button Grids (stacked) */}
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto', maxHeight: showTattooPlacement && showPiercingPlacement ? '380px' : '320px', paddingRight: '4px' }}>
+                                                    {showTattooPlacement && (
+                                                        <>
+                                                            <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <Paintbrush size={15} color="#daa520" /> Tattoo Placement
+                                                            </p>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
+                                                                {tattooBodyParts.map(part => {
+                                                                    const isSelected = bookingData.placement.includes(part);
+                                                                    return (
+                                                                        <button key={part} type="button" onClick={() => togglePlacementItem('placement', part)} style={{
+                                                                            padding: '9px 5px', borderRadius: '10px',
+                                                                            border: `1.5px solid ${isSelected ? '#daa520' : '#e2e8f0'}`,
+                                                                            background: isSelected ? '#daa520' : 'white',
+                                                                            color: isSelected ? 'white' : '#1e293b',
+                                                                            fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer',
+                                                                            transition: 'all 0.2s',
+                                                                            boxShadow: isSelected ? '0 2px 8px rgba(218,165,32,0.25)' : 'none'
+                                                                        }}>
+                                                                            {isSelected && <Check size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />}
+                                                                            {part}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </>
+                                                    )}
+
+                                                    {showTattooPlacement && showPiercingPlacement && (
+                                                        <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '4px 0' }} />
+                                                    )}
+
+                                                    {showPiercingPlacement && (
+                                                        <>
+                                                            <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <Gem size={15} color="#4FC3F7" /> Piercing Placement
+                                                            </p>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
+                                                                {piercingBodyParts.map(part => {
+                                                                    const isSelected = bookingData[piercingField].includes(part);
+                                                                    return (
+                                                                        <button key={`p-${part}`} type="button" onClick={() => togglePlacementItem(piercingField, part)} style={{
+                                                                            padding: '9px 5px', borderRadius: '10px',
+                                                                            border: `1.5px solid ${isSelected ? '#4FC3F7' : '#e2e8f0'}`,
+                                                                            background: isSelected ? '#4FC3F7' : 'white',
+                                                                            color: isSelected ? 'white' : '#1e293b',
+                                                                            fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer',
+                                                                            transition: 'all 0.2s',
+                                                                            boxShadow: isSelected ? '0 2px 8px rgba(79,195,247,0.3)' : 'none'
+                                                                        }}>
+                                                                            {isSelected && <Check size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />}
+                                                                            {part}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
-                                            </>
+                                            </div>
                                         )}
 
                                         <div className="form-group customer-st-842c3fb4" >
