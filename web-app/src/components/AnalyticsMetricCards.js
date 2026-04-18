@@ -56,7 +56,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
                             <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
                             <Area type="monotone" dataKey="v" stroke="#f59e0b" fill="#fef3c7" strokeWidth={2} activeDot={{ r: 4 }} />
                             <Tooltip
-                                formatter={(value) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, 'Expense']}
+                                formatter={(value) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, 'Running Total']}
                                 labelFormatter={(label) => label}
                                 contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }}
                             />

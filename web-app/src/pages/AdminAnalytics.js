@@ -317,7 +317,7 @@ function AdminAnalytics() {
                                                 <Pie data={analytics.styles.map(s => ({ name: s.name, value: s.count }))} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={true}>
                                                     {analytics.styles.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[(i * 2) % RAINBOW_PALETTE.length]} />)}
                                                 </Pie>
-                                                <Tooltip formatter={(v) => `${v} works`} />
+                                                <Tooltip formatter={(v) => `${v} bookings`} />
                                                 <Legend wrapperStyle={{ color: '#171516' }} />
                                             </PieChart>
                                         </ResponsiveContainer>

@@ -290,7 +290,7 @@
 }
 
 .analytics-dashboard-layout.reverse {
-    grid-template-columns: 1.2fr 2fr;
+    grid-template-columns: 1.5fr 2fr;
 }
 
 .card-colspan-2 {

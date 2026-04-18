@@ -5770,16 +5770,22 @@ app.get('/api/admin/analytics', (req, res) => {
     ORDER BY total DESC
   `;
 
-  // 2.5.6 Expenses Trend (daily for 'monthly', monthly for 'yearly'/'all')
+  // 2.5.6 Expenses Trend — combines payouts + inventory procurements
   const expensesTrendQuery = timeframe === 'monthly'
-    ? `SELECT DATE(t.created_at) as sort_key, SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) as v
-       FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id
-       WHERE t.type = 'in' ${invTxDateFilter}
-       GROUP BY sort_key ORDER BY sort_key ASC`
-    : `SELECT DATE_FORMAT(t.created_at, '%Y-%m') as sort_key, SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) as v
-       FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id
-       WHERE t.type = 'in' ${invTxDateFilter}
-       GROUP BY sort_key ORDER BY sort_key ASC`;
+    ? `SELECT sort_key, SUM(v) as v FROM (
+         SELECT DATE(created_at) as sort_key, SUM(amount) as v FROM payouts WHERE 1=1 ${payoutsDateFilter} GROUP BY sort_key
+         UNION ALL
+         SELECT DATE(t.created_at) as sort_key, SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) as v
+         FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id
+         WHERE t.type = 'in' ${invTxDateFilter} GROUP BY sort_key
+       ) combined GROUP BY sort_key ORDER BY sort_key ASC`
+    : `SELECT sort_key, SUM(v) as v FROM (
+         SELECT DATE_FORMAT(created_at, '%Y-%m') as sort_key, SUM(amount) as v FROM payouts WHERE 1=1 ${payoutsDateFilter} GROUP BY sort_key
+         UNION ALL
+         SELECT DATE_FORMAT(t.created_at, '%Y-%m') as sort_key, SUM(t.quantity * COALESCE(t.item_price, i.cost, 0)) as v
+         FROM inventory_transactions t JOIN inventory i ON t.inventory_id = i.id
+         WHERE t.type = 'in' ${invTxDateFilter} GROUP BY sort_key
+       ) combined GROUP BY sort_key ORDER BY sort_key ASC`;
 
   // 2.6 Fetch raw data for expense audits
   const payoutsAuditQuery = `SELECT p.*, u.name as artist_name FROM payouts p JOIN users u ON p.artist_id = u.id ORDER BY p.created_at DESC LIMIT 50`;
@@ -5908,12 +5914,20 @@ app.get('/api/admin/analytics', (req, res) => {
        WHERE t.type = 'out' ${invTxDateFilter}
        GROUP BY sort_key ORDER BY sort_key ASC`;
 
-  // 5. Popular Styles
+  // 5. Popular Styles — combines portfolio categories + appointment service types
   const styleQuery = `
-    SELECT category as name, COUNT(*) as count 
-    FROM portfolio_works 
-    WHERE is_deleted = 0
-    GROUP BY category 
+    SELECT name, SUM(count) as count FROM (
+      SELECT category as name, COUNT(*) as count 
+      FROM portfolio_works 
+      WHERE is_deleted = 0 AND category IS NOT NULL AND category != ''
+      GROUP BY category
+      UNION ALL
+      SELECT service_type as name, COUNT(*) as count
+      FROM appointments
+      WHERE is_deleted = 0 AND service_type IS NOT NULL AND service_type != '' ${apptDateFilter}
+      GROUP BY service_type
+    ) combined
+    GROUP BY name
     ORDER BY count DESC 
     LIMIT 5
   `;
@@ -6038,7 +6052,15 @@ app.get('/api/admin/analytics', (req, res) => {
                   }
                 });
               }
-              response.expenses_trend = Object.values(expensesTrendMap);
+
+              // Convert to cumulative (rising line)
+              const expTrendArr = Object.values(expensesTrendMap);
+              let cumulative = 0;
+              expTrendArr.forEach(pt => {
+                cumulative += pt.v;
+                pt.v = cumulative;
+              });
+              response.expenses_trend = expTrendArr;
 
             db.query(styleQuery, (err, styleRes) => {
               if (err) return res.status(500).json({ success: false, message: err.message });
