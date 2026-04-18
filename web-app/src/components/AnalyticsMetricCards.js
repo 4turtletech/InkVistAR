@@ -168,25 +168,20 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
             label: 'Inventory Used',
             value: (analytics.inventory || []).reduce((s, i) => s + Number(i.used || 0), 0).toLocaleString(),
             hint: 'Stock consumed this period →',
-            chart: ((analytics.inventory || []).length > 0 ? (
-                <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px', display: 'flex', alignItems: 'center' }}>
-                    <ResponsiveContainer width="60%" height="100%">
-                        <PieChart>
-                            <Pie data={(analytics.inventory || []).map(item => ({ name: item.name, value: Number(item.used) || 0 }))} cx="50%" cy="50%" innerRadius={25} outerRadius={50} paddingAngle={2} dataKey="value">
-                                {(analytics.inventory || []).map((_, i) => <Cell key={i} fill={['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#ef4444', '#06b6d4', '#84cc16'][i % 8]} />)}
-                            </Pie>
-                            <Tooltip formatter={(v, name) => `${v} used`} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
-                        </PieChart>
+            chart: ((analytics.inventory_trend || []).length > 0 ? (
+                <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px' }}>
+                    <ResponsiveContainer>
+                        <AreaChart data={analytics.inventory_trend} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                            <Area type="monotone" dataKey="v" stroke="#a855f7" fill="#f3e8ff" strokeWidth={2} activeDot={{ r: 4 }} />
+                            <Tooltip
+                                formatter={(value) => [value, 'Qty']}
+                                labelFormatter={(label) => label}
+                                contentStyle={{ fontSize: '0.75rem', borderRadius: '8px', color: '#a855f7' }}
+                            />
+                        </AreaChart>
                     </ResponsiveContainer>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
-                        {(analytics.inventory || []).slice(0, 4).map((item, i) => (
-                            <div key={i}><span style={{ color: ['#a855f7', '#3b82f6', '#10b981', '#f59e0b'][i % 4], fontWeight: 700 }}>{item.used}</span> {item.name}</div>
-                        ))}
-                    </div>
                 </div>
-            ) : (
-                <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>No consumption data</div>
-            ))
+            ) : null)
         },
         {
             type: 'completion',

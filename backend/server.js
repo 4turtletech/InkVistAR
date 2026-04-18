@@ -5862,6 +5862,18 @@ app.get('/api/admin/analytics', (req, res) => {
     LIMIT 5
   `;
 
+  // 4b. Inventory Daily Trend
+  const inventoryTrendQuery = `
+    SELECT 
+      DATE_FORMAT(created_at, '%b %d') as label,
+      DATE(created_at) as sort_key,
+      SUM(quantity) as v
+    FROM inventory_transactions
+    WHERE type = 'out' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    GROUP BY label, sort_key
+    ORDER BY sort_key ASC
+  `;
+
   // 5. Popular Styles
   const styleQuery = `
     SELECT category as name, COUNT(*) as count 
@@ -5920,9 +5932,30 @@ app.get('/api/admin/analytics', (req, res) => {
           if (err) return res.status(500).json({ success: false, message: err.message });
           response.inventory = invRes;
 
-          db.query(styleQuery, (err, styleRes) => {
+          db.query(inventoryTrendQuery, (err, trendInvRes) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
-            response.styles = styleRes;
+            
+            // Build a 7-day trend array, filling missing days with 0
+            const inventoryTrendMap = {};
+            const today = new Date();
+            for (let i = 6; i >= 0; i--) {
+              const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+              const sortKey = d.toISOString().split('T')[0];
+              const label = d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+              inventoryTrendMap[sortKey] = { label, v: 0 };
+            }
+            if (trendInvRes) {
+              trendInvRes.forEach(t => {
+                if (inventoryTrendMap[t.sort_key]) {
+                  inventoryTrendMap[t.sort_key].v = Number(t.v) || 0;
+                }
+              });
+            }
+            response.inventory_trend = Object.values(inventoryTrendMap);
+
+            db.query(styleQuery, (err, styleRes) => {
+              if (err) return res.status(500).json({ success: false, message: err.message });
+              response.styles = styleRes;
 
             db.query(trendQuery, (err, trendRes) => {
               if (err) return res.status(500).json({ success: false, message: err.message });
@@ -6027,6 +6060,7 @@ app.get('/api/admin/analytics', (req, res) => {
       });
     });
   });
+});
 });
 
 // Admin: Get All Studio Expenses (for audit modal)
