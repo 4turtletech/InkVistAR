@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Axios from 'axios';
-import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox, Play } from 'lucide-react';
+import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox, Play, Plus, User } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -21,8 +21,55 @@ function ArtistAppointments() {
     const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', onConfirm: null });
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [publishStatus, setPublishStatus] = useState({});
+    const [selectedDay, setSelectedDay] = useState(() => {
+        const today = new Date();
+        return today.getDate();
+    });
+    const [showCalendarLegend, setShowCalendarLegend] = useState(false);
 
+    // Keyboard arrow-key navigation for calendar
+    useEffect(() => {
+        if (viewMode !== 'calendar') return;
+        if (selectedAppointment) return;
 
+        const handleKeyDown = (e) => {
+            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter'].includes(e.key)) return;
+
+            e.preventDefault();
+            const daysInMonthLocal = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+
+            if (selectedDay === null) {
+                const today = new Date();
+                if (today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear()) {
+                    setSelectedDay(today.getDate());
+                } else {
+                    setSelectedDay(1);
+                }
+                return;
+            }
+
+            let newDay = selectedDay;
+            if (e.key === 'ArrowLeft') newDay = selectedDay - 1;
+            else if (e.key === 'ArrowRight') newDay = selectedDay + 1;
+            else if (e.key === 'ArrowUp') newDay = selectedDay - 7;
+            else if (e.key === 'ArrowDown') newDay = selectedDay + 7;
+
+            if (newDay < 1) {
+                const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+                const prevDaysInMonth = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0).getDate();
+                setSelectedDay(prevDaysInMonth);
+                setCurrentDate(newDate);
+            } else if (newDay > daysInMonthLocal) {
+                setSelectedDay(1);
+                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+            } else {
+                setSelectedDay(newDay);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [viewMode, selectedDay, currentDate, selectedAppointment]);
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
         return saved ? JSON.parse(saved) : null;
@@ -252,7 +299,12 @@ function ArtistAppointments() {
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
 
     const changeMonth = (offset) => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
+        const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
+        const newDaysInMonth = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0).getDate();
+        if (selectedDay !== null) {
+            setSelectedDay(offset > 0 ? 1 : newDaysInMonth);
+        }
+        setCurrentDate(newDate);
     };
 
     const getAppointmentsForDate = (day) => {
@@ -302,41 +354,185 @@ function ArtistAppointments() {
                     {loading ? <div className="no-data">Loading...</div> : (
                         <>
                             {viewMode === 'calendar' ? (
-                                <div className="data-card">
-                                    <div className="artist-calendar-header">
-                                        <div className="artist-calendar-nav">
-                                            <button onClick={() => changeMonth(-1)} className="artist-calendar-nav-btn"><ChevronLeft size={20} /></button>
-                                            <button onClick={() => setCurrentDate(new Date())} className="artist-calendar-nav-btn">Today</button>
-                                            <button onClick={() => changeMonth(1)} className="artist-calendar-nav-btn"><ChevronRight size={20} /></button>
+                                <div className="calendar-split-view">
+                                    <div className="data-card calendar-main-pane">
+                                        <div className="artist-calendar-header">
+                                            <div className="artist-calendar-nav">
+                                                <button onClick={() => changeMonth(-1)} className="artist-calendar-nav-btn"><ChevronLeft size={20} /></button>
+                                                <button onClick={() => setCurrentDate(new Date())} className="artist-calendar-nav-btn">Today</button>
+                                                <button onClick={() => changeMonth(1)} className="artist-calendar-nav-btn"><ChevronRight size={20} /></button>
+                                            </div>
+                                            <h2 style={{ margin: 0, border: 'none' }}>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
+                                            <div style={{ position: 'relative' }}>
+                                                <button
+                                                    onClick={() => setShowCalendarLegend(v => !v)}
+                                                    title="Show color legend"
+                                                    style={{
+                                                        width: '30px', height: '30px', borderRadius: '50%',
+                                                        border: '1.5px solid #cbd5e1',
+                                                        background: showCalendarLegend ? '#6366f1' : 'white',
+                                                        color: showCalendarLegend ? 'white' : '#64748b',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
+                                                        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                                                        transition: 'all 0.2s ease', flexShrink: 0
+                                                    }}
+                                                >
+                                                    i
+                                                </button>
+                                                {showCalendarLegend && (
+                                                    <div
+                                                        style={{
+                                                            position: 'absolute', top: '38px', right: 0,
+                                                            background: 'white', borderRadius: '12px',
+                                                            boxShadow: '0 8px 30px rgba(0,0,0,0.14)',
+                                                            border: '1px solid #e2e8f0',
+                                                            padding: '14px 18px', zIndex: 999,
+                                                            minWidth: '220px', cursor: 'default'
+                                                        }}
+                                                        onClick={e => e.stopPropagation()}
+                                                    >
+                                                        <p style={{ margin: '0 0 10px', fontSize: '0.78rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Booking Status Legend</p>
+                                                        {[
+                                                            { color: '#38bdf8', label: 'Confirmed' },
+                                                            { color: '#f59e0b', label: 'Pending' },
+                                                            { color: '#7c3aed', label: 'Scheduled' },
+                                                            { color: '#0284c7', label: 'In Session' },
+                                                            { color: '#22c55e', label: 'Completed' },
+                                                            { color: '#ef4444', label: 'Incomplete' },
+                                                            { color: '#94a3b8', label: 'Cancelled / Rejected' },
+                                                        ].map(({ color, label }) => (
+                                                            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                                                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0, boxShadow: `0 0 0 2px ${color}33` }} />
+                                                                <span style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 500 }}>{label}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                        <h2 style={{ margin: 0, border: 'none' }}>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
-                                        <div style={{ width: '150px' }}></div>
-                                    </div>
-                                    <div className="artist-calendar-grid">
-                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                                            <div key={d} className="artist-calendar-day-header">{d}</div>
-                                        ))}
-                                        {[...Array(firstDayOfMonth)].map((_, i) => <div key={`empty-${i}`} className="artist-calendar-cell-empty"></div>)}
-                                        {[...Array(daysInMonth)].map((_, i) => {
-                                            const day = i + 1;
-                                            const dayAppts = getAppointmentsForDate(day);
-                                            const isToday = new Date().getDate() === day && new Date().getMonth() === currentDate.getMonth() && new Date().getFullYear() === currentDate.getFullYear();
+                                        <div className="artist-calendar-grid">
+                                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                                                <div key={d} className="artist-calendar-day-header">{d}</div>
+                                            ))}
+                                            {[...Array(firstDayOfMonth)].map((_, i) => <div key={`empty-${i}`} className="artist-calendar-cell-empty"></div>)}
+                                            {[...Array(daysInMonth)].map((_, i) => {
+                                                const day = i + 1;
+                                                const dayAppts = getAppointmentsForDate(day);
+                                                const isToday = new Date().getDate() === day && new Date().getMonth() === currentDate.getMonth() && new Date().getFullYear() === currentDate.getFullYear();
 
-                                            return (
-                                                <div key={day} className={`artist-calendar-cell ${isToday ? 'today' : ''}`}>
-                                                    <div className="artist-calendar-date-number">{day}</div>
-                                                    {dayAppts.map(apt => (
-                                                        <div key={apt.id}
-                                                            className={`artist-calendar-event ${apt.status === 'confirmed' ? 'confirmed' : (apt.status === 'pending' ? 'pending' : 'other')}`}
-                                                            title={`${apt.start_time || 'N/A'} - ${apt.client_name}`}
-                                                            onClick={() => setSelectedAppointment(apt)}
-                                                        >
-                                                            {(apt.start_time || '').slice(0, 5)} {apt.client_name}
+                                                let statusColorFn = (status) => {
+                                                    if (status === 'confirmed') return '#38bdf8';
+                                                    if (status === 'pending') return '#f59e0b';
+                                                    if (status === 'in_progress') return '#0284c7';
+                                                    if (status === 'completed') return '#22c55e';
+                                                    if (status === 'incomplete') return '#ef4444';
+                                                    if (status === 'cancelled' || status === 'rejected') return '#94a3b8';
+                                                    return '#7c3aed';
+                                                };
+
+                                                return (
+                                                    <div key={day} 
+                                                        className={`artist-calendar-cell ${isToday ? 'today' : ''} ${selectedDay === day ? 'selected' : ''}`}
+                                                        onClick={() => setSelectedDay(day)}
+                                                    >
+                                                        <div className="artist-calendar-date-number" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span>{day}</span>
+                                                            <Plus size={12} style={{ color: '#cbd5e1', cursor: 'pointer' }} />
                                                         </div>
-                                                    ))}
+                                                        {dayAppts.length > 0 && (
+                                                            <div style={{
+                                                                position: 'absolute', top: '6px', right: '6px',
+                                                                background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+                                                                color: '#fff',
+                                                                fontSize: '0.62rem', fontWeight: 800,
+                                                                minWidth: '18px', height: '18px',
+                                                                padding: '0 5px', borderRadius: '9px',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                boxShadow: '0 2px 6px rgba(99,102,241,0.45)',
+                                                                lineHeight: 1, letterSpacing: '-0.3px',
+                                                                pointerEvents: 'none'
+                                                            }}>
+                                                                {dayAppts.length}
+                                                            </div>
+                                                        )}
+                                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                                                            {dayAppts.length > 0 && (
+                                                                <div style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 700, backgroundColor: '#eef2ff', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', width: 'fit-content' }}>
+                                                                    {dayAppts.length} {dayAppts.length === 1 ? 'Booking' : 'Bookings'}
+                                                                </div>
+                                                            )}
+                                                            {dayAppts.length > 0 && (
+                                                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px', paddingLeft: '2px' }}>
+                                                                    {dayAppts.slice(0, 5).map(apt => (
+                                                                        <div key={apt.id} style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: statusColorFn(apt.status) }} title={apt.status} />
+                                                                    ))}
+                                                                    {dayAppts.length > 5 && <span style={{ fontSize: '0.7rem', color: '#94a3b8', lineHeight: '8px', fontWeight: 700 }}>+</span>}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="day-view-panel data-card">
+                                        <div className="day-view-header">
+                                            <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#1e293b' }}>
+                                                {new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay || 1).toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </h3>
+                                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                                {getAppointmentsForDate(selectedDay || 1).length} Bookings
+                                            </span>
+                                        </div>
+                                        <div className="day-view-body">
+                                            {getAppointmentsForDate(selectedDay || 1).map(apt => (
+                                                <div
+                                                    key={apt.id}
+                                                    className="glass-card day-view-apt-card"
+                                                    onClick={() => setSelectedAppointment(apt)}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <div style={{
+                                                            width: '40px', height: '40px', borderRadius: '50%',
+                                                            backgroundColor: '#f1f5f9', overflow: 'hidden',
+                                                            border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                                        }}>
+                                                            {apt.clientAvatar && apt.clientAvatar.length > 10 ? (
+                                                                <img 
+                                                                    src={apt.clientAvatar} 
+                                                                    alt="Profile" 
+                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                                    onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'; }}
+                                                                />
+                                                            ) : (
+                                                                <User size={18} color="#94a3b8" />
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '0.95rem' }}>{apt.client_name}</div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                                                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{apt.design_title || 'Tattoo Session'}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                                                        <span className={`status-badge ${apt.status}`} style={{ padding: '4px 8px', fontSize: '0.75rem', margin: 0 }}>
+                                                            {apt.status}
+                                                        </span>
+                                                        <span style={{ color: '#6366f1', fontWeight: '600', fontSize: '0.85rem' }}>{apt.start_time || apt.time || 'N/A'}</span>
+                                                    </div>
                                                 </div>
-                                            );
-                                        })}
+                                            ))}
+                                            {getAppointmentsForDate(selectedDay || 1).length === 0 && (
+                                                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem 1rem', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                                                    <Calendar size={32} color="#cbd5e1" style={{ margin: '0 auto 10px' }} />
+                                                    No appointments scheduled for this date.
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ) : (

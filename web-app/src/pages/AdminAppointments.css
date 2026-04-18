@@ -72,7 +72,7 @@
     display: grid;
     grid-template-columns: 1fr 340px;
     gap: 20px;
-    align-items: start;
+    align-items: stretch;
 }
 
 .calendar-main-pane {
@@ -83,9 +83,7 @@
     display: flex;
     flex-direction: column;
     margin: 0 !important;
-    max-height: calc(100vh - 120px);
-    position: sticky;
-    top: 20px;
+    height: 100%;
 }
 
 .day-view-header {

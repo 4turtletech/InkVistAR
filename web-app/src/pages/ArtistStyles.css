@@ -113,6 +113,12 @@
     box-shadow: 0 0 0 4px rgba(193, 154, 107, 0.1);
 }
 
+.artist-calendar-cell.selected {
+    border: 2px solid #7c3aed;
+    background-color: #f5f3ff;
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+}
+
 .artist-calendar-date-number {
     font-weight: 700;
     margin-bottom: 8px;
@@ -165,6 +171,80 @@
     border-radius: 12px;
     border: 1px dashed #e2e8f0;
 }
+
+/* Calendar Split View Mode */
+.calendar-split-view {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    align-items: stretch;
+}
+
+.calendar-main-pane {
+    margin: 0 !important;
+}
+
+.day-view-panel {
+    display: flex;
+    flex-direction: column;
+    margin: 0 !important;
+    height: 100%;
+}
+
+.day-view-header {
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.day-view-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Thin custom scrollbar for panel */
+.day-view-body::-webkit-scrollbar {
+    width: 6px;
+}
+.day-view-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.day-view-body::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 10px;
+}
+
+.day-view-apt-card {
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.day-view-apt-card:hover {
+    border-color: #6366f1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.1), 0 2px 4px -1px rgba(99, 102, 241, 0.06);
+}
+
+.day-view-footer {
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+@media (max-width: 1024px) {
+    .calendar-split-view {
+        grid-template-columns: 1fr;
+    }
+}
+
 
 /* Artist Sessions */
 .artist-session-status-panel {
