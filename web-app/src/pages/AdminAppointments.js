@@ -184,7 +184,8 @@ function AdminAppointments() {
                         totalPaid: apt.total_paid || 0,
                         manualPaidAmount: apt.manual_paid_amount || 0,
                         manualPaymentMethod: apt.manual_payment_method || 'Cash',
-                        clientAvatar: apt.client_avatar
+                        clientAvatar: apt.client_avatar,
+                        consultationMethod: apt.consultation_method || null
                     };
                 });
                 setAppointments(mappedAppointments);
@@ -1235,7 +1236,21 @@ function AdminAppointments() {
                                                     </td>
                                                     <td>{appointment.clientName}</td>
                                                     <td>{appointment.artistName}</td>
-                                                    <td className="admin-st-775cebbf" title={appointment.serviceType}>{appointment.serviceType}</td>
+                                                    <td className="admin-st-775cebbf" title={appointment.serviceType}>
+                                                        {appointment.serviceType}
+                                                        {appointment.consultationMethod && (
+                                                            <span style={{
+                                                                display: 'inline-block', marginLeft: '6px', padding: '2px 8px',
+                                                                borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700',
+                                                                background: appointment.consultationMethod === 'Face-to-Face' ? '#dcfce7' : '#ede9fe',
+                                                                color: appointment.consultationMethod === 'Face-to-Face' ? '#166534' : '#5b21b6',
+                                                                border: `1px solid ${appointment.consultationMethod === 'Face-to-Face' ? '#bbf7d0' : '#ddd6fe'}`,
+                                                                verticalAlign: 'middle', whiteSpace: 'nowrap'
+                                                            }}>
+                                                                {appointment.consultationMethod}
+                                                            </span>
+                                                        )}
+                                                    </td>
                                                     <td>{appointment.date}</td>
                                                     <td>{appointment.time}</td>
                                                     <td>
@@ -1442,6 +1457,28 @@ function AdminAppointments() {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                {/* Consultation Method badge (visible when it exists) */}
+                                                {selectedAppointment?.consultationMethod && (
+                                                    <div style={{
+                                                        marginTop: '12px', padding: '12px 16px', borderRadius: '10px',
+                                                        background: selectedAppointment.consultationMethod === 'Face-to-Face' ? '#f0fdf4' : '#f5f3ff',
+                                                        border: `1px solid ${selectedAppointment.consultationMethod === 'Face-to-Face' ? '#bbf7d0' : '#ddd6fe'}`,
+                                                        display: 'flex', alignItems: 'center', gap: '10px'
+                                                    }}>
+                                                        <span style={{
+                                                            padding: '4px 10px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '700',
+                                                            background: selectedAppointment.consultationMethod === 'Face-to-Face' ? '#dcfce7' : '#ede9fe',
+                                                            color: selectedAppointment.consultationMethod === 'Face-to-Face' ? '#166534' : '#5b21b6'
+                                                        }}>
+                                                            {selectedAppointment.consultationMethod === 'Face-to-Face' ? '🏢' : '💬'} {selectedAppointment.consultationMethod}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: '500' }}>
+                                                            {selectedAppointment.consultationMethod === 'Face-to-Face'
+                                                                ? 'Customer will visit the studio in person'
+                                                                : `Customer prefers to be contacted via ${selectedAppointment.consultationMethod.replace('Online (', '').replace(')', '') || 'messaging'}`}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 

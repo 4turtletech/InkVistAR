@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import Axios from 'axios';
-import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift, Check, Paintbrush, Gem, Star, CreditCard, Eye, Shield, Bell, Sparkles, Award } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift, Check, Paintbrush, Gem, Star, CreditCard, Eye, Shield, Bell, Sparkles, Award, Video, Users } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
@@ -41,6 +41,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         notes: '',
         placement: [],
         consultationFor: [], // ['tattoo','piercing']
+        consultationMethod: 'Face-to-Face', // 'Face-to-Face' or 'Online'
+        onlinePlatform: '', // 'Messenger' or 'Instagram'
         placementNotes: '',
         referenceImage: null,
         phoneCode: '+63'
@@ -221,6 +223,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
             const placementStr = formData.placement.join(', ') || 'Not specified';
             const consultTypeStr = formData.consultationFor.length > 0 ? formData.consultationFor.join(' & ') : 'General';
+            const consultMethodStr = formData.consultationMethod === 'Online' ? `Online (${formData.onlinePlatform || 'TBD'})` : 'Face-to-Face';
 
             const response = await Axios.post(`${API_URL}/api/admin/appointments`, {
                 customerId: uid,
@@ -230,14 +233,15 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 endTime: formData.time || '13:00',
                 serviceType: 'Consultation',
                 designTitle: formData.designTitle,
-                notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nConsultation for: ${consultTypeStr}\nPlacement: ${placementStr}${formData.placementNotes ? `\nSpecific notes: ${formData.placementNotes}` : ''}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || generatedName}\nEmail: ${currentUser?.email || formData.email}\nPhone: ${formData.phoneCode || '+63'}${formData.phone}`,
+                notes: `DESIGN DETAILS\nIdea: ${formData.designTitle}\nConsultation for: ${consultTypeStr}\nConsultation method: ${consultMethodStr}\nPlacement: ${placementStr}${formData.placementNotes ? `\nSpecific notes: ${formData.placementNotes}` : ''}\nNotes: ${formData.notes || 'No additional notes'}\n\nCLIENT CONTEXT\nName: ${currentUser?.name || generatedName}\nEmail: ${currentUser?.email || formData.email}\nPhone: ${formData.phoneCode || '+63'}${formData.phone}`,
                 referenceImage: formData.referenceImage,
                 status: 'pending',
                 price: 0,
                 isFromWizard: true,
                 customerName: currentUser?.name || generatedName,
                 captchaToken: token,
-                deviceId: deviceId
+                deviceId: deviceId,
+                consultationMethod: consultMethodStr
             });
 
             if (response.data.success) {
@@ -494,6 +498,67 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 })}
             </div>
             <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '-12px', marginBottom: '16px', textAlign: 'center' }}>Select both if your consultation covers tattoo and piercing</p>
+
+            {/* Consultation Method: Face-to-Face vs Online */}
+            <p style={{color: '#64748b', marginBottom: '12px', fontSize: '0.95rem'}}>How would you like this consultation?</p>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: formData.consultationMethod === 'Online' ? '12px' : '20px' }}>
+                {[
+                    { key: 'Face-to-Face', label: 'Face-to-Face', icon: <Users size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#22c55e' },
+                    { key: 'Online', label: 'Online', icon: <Video size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#6366f1' }
+                ].map(opt => {
+                    const isActive = formData.consultationMethod === opt.key;
+                    return (
+                        <button
+                            key={opt.key} type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, consultationMethod: opt.key, onlinePlatform: opt.key === 'Face-to-Face' ? '' : prev.onlinePlatform }))}
+                            style={{
+                                flex: 1, padding: '14px', borderRadius: '12px',
+                                border: `2px solid ${isActive ? opt.color : '#e2e8f0'}`,
+                                background: isActive ? `${opt.color}15` : 'white',
+                                color: isActive ? opt.color : '#64748b',
+                                fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer',
+                                transition: 'all 0.2s', position: 'relative'
+                            }}
+                        >
+                            {isActive && <Check size={16} style={{ position: 'absolute', top: '6px', right: '6px' }} />}
+                            {opt.icon}{opt.label}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Online Platform Selector */}
+            {formData.consultationMethod === 'Online' && (
+                <div style={{ marginBottom: '20px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <p style={{ fontWeight: '700', color: '#1e293b', marginBottom: '10px', fontSize: '0.88rem' }}>Which platform do you prefer?</p>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {['Messenger', 'Instagram'].map(platform => {
+                            const isActive = formData.onlinePlatform === platform;
+                            const color = platform === 'Messenger' ? '#0084ff' : '#E1306C';
+                            return (
+                                <button
+                                    key={platform} type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, onlinePlatform: platform }))}
+                                    style={{
+                                        flex: 1, padding: '12px', borderRadius: '10px',
+                                        border: `2px solid ${isActive ? color : '#e2e8f0'}`,
+                                        background: isActive ? `${color}12` : 'white',
+                                        color: isActive ? color : '#64748b',
+                                        fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
+                                        transition: 'all 0.2s', position: 'relative'
+                                    }}
+                                >
+                                    {isActive && <Check size={14} style={{ position: 'absolute', top: '5px', right: '5px' }} />}
+                                    {platform}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {!formData.onlinePlatform && (
+                        <p style={{ fontSize: '0.78rem', color: '#f59e0b', marginTop: '8px', textAlign: 'center' }}>Please select your preferred messaging platform</p>
+                    )}
+                </div>
+            )}
 
             {/* Main layout: 3D Model on left, stacked button grids on right */}
             {(showTattoo || showPiercing) && (
@@ -1077,6 +1142,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             const newErrors = {};
                             if (step === 1 && !formData.designTitle) newErrors.designTitle = 'Please tell us about your tattoo idea'; 
                             if (step === 2 && formData.consultationFor.length === 0) newErrors.placement = 'Please select what this consultation is for (Tattoo, Piercing, or both)';
+                            else if (step === 2 && formData.consultationMethod === 'Online' && !formData.onlinePlatform) newErrors.placement = 'Please select your preferred messaging platform (Messenger or Instagram)';
                             else if (step === 2 && formData.placement.length === 0) newErrors.placement = 'Please select at least one placement area';
                             else if (step === 2 && formData.placement.includes('Other') && !formData.placementNotes.trim()) newErrors.placementNotes = 'Please describe the specific location since you selected "Other"';
                             if (step === 3 && (!formData.date || !formData.time)) newErrors.date = 'Please select a preferred date and time';

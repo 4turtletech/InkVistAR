@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
-import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle, RotateCcw, PlusCircle, History, MessageSquare, Paintbrush, Gem } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle, RotateCcw, PlusCircle, History, MessageSquare, Paintbrush, Gem, Video, Users } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
@@ -45,6 +45,8 @@ function CustomerBookings(){
         placement: [],
         piercingPlacement: [],
         consultationFor: [], // ['tattoo','piercing'] — only used when service is Consultation
+        consultationMethod: 'Face-to-Face', // 'Face-to-Face' or 'Online'
+        onlinePlatform: '', // 'Messenger' or 'Instagram'
         placementNotes: '',
         notes: '',
         referenceImage: null,
@@ -515,7 +517,8 @@ function CustomerBookings(){
                 placementLine = `Piercing Location: ${placementStr}`;
             } else if (derivedType === 'Consultation') {
                 const consultType = bookingData.consultationFor.join(' & ');
-                placementLine = `Consultation for: ${consultType}\nAreas of interest: ${placementStr}`;
+                const consultMethodStr = bookingData.consultationMethod === 'Online' ? `Online (${bookingData.onlinePlatform || 'TBD'})` : 'Face-to-Face';
+                placementLine = `Consultation for: ${consultType}\nConsultation method: ${consultMethodStr}\nAreas of interest: ${placementStr}`;
             } else {
                 placementLine = `Placement: ${placementStr}`;
             }
@@ -531,6 +534,8 @@ function CustomerBookings(){
                 followupNote = `\n\n📋 Follow-up of Booking ${refCode}`;
             }
 
+            const consultMethodPayload = derivedType === 'Consultation' ? (bookingData.consultationMethod === 'Online' ? `Online (${bookingData.onlinePlatform || 'TBD'})` : 'Face-to-Face') : null;
+
             const res = await Axios.post(`${API_URL}/api/customer/appointments`, {
                 customerId,
                 artistId: bookingData.artistId,
@@ -540,13 +545,14 @@ function CustomerBookings(){
                 serviceType: derivedType,
                 designTitle: bookingData.designTitle,
                 notes: `${placementLine}\n\nDetails: ${bookingData.notes}${followupNote}`,
-                referenceImage: bookingData.referenceImage
+                referenceImage: bookingData.referenceImage,
+                consultationMethod: consultMethodPayload
             });
 
             if (res.data.success) {
                 showAlert("Booking Requested", "Your session request has been sent! A confirmation notification with details has been added to your account.", "success");
                 setIsBookingModalOpen(false);
-                setBookingData({ artistId: null, bookingType: '', selectedServices: [], followupAppointmentId: null, date: '', startTime: '', designTitle: '', placement: [], piercingPlacement: [], consultationFor: [], placementNotes: '', notes: '', referenceImage: null });
+                setBookingData({ artistId: null, bookingType: '', selectedServices: [], followupAppointmentId: null, date: '', startTime: '', designTitle: '', placement: [], piercingPlacement: [], consultationFor: [], consultationMethod: 'Face-to-Face', onlinePlatform: '', placementNotes: '', notes: '', referenceImage: null });
                 const fetchRes = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
                 if (fetchRes.data.success) setAppointments(fetchRes.data.appointments);
             }
@@ -1437,6 +1443,67 @@ function CustomerBookings(){
                                                     })}
                                                 </div>
                                                 <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '6px', textAlign: 'center' }}>You can select both if your consultation covers tattoo and piercing</p>
+
+                                                {/* Consultation Method: Face-to-Face vs Online */}
+                                                <p className="customer-st-b943a453" style={{ marginBottom: '10px', marginTop: '16px' }}>How would you like this consultation?</p>
+                                                <div style={{ display: 'flex', gap: '12px' }}>
+                                                    {[
+                                                        { key: 'Face-to-Face', label: 'Face-to-Face', icon: <Users size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#22c55e' },
+                                                        { key: 'Online', label: 'Online', icon: <Video size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#6366f1' }
+                                                    ].map(opt => {
+                                                        const isActive = bookingData.consultationMethod === opt.key;
+                                                        return (
+                                                            <button
+                                                                key={opt.key} type="button"
+                                                                onClick={() => setBookingData(prev => ({ ...prev, consultationMethod: opt.key, onlinePlatform: opt.key === 'Face-to-Face' ? '' : prev.onlinePlatform }))}
+                                                                style={{
+                                                                    flex: 1, padding: '14px', borderRadius: '12px',
+                                                                    border: `2px solid ${isActive ? opt.color : '#e2e8f0'}`,
+                                                                    background: isActive ? `${opt.color}15` : 'white',
+                                                                    color: isActive ? opt.color : '#64748b',
+                                                                    fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer',
+                                                                    transition: 'all 0.2s', position: 'relative'
+                                                                }}
+                                                            >
+                                                                {isActive && <Check size={16} style={{ position: 'absolute', top: '6px', right: '6px' }} />}
+                                                                {opt.icon}{opt.label}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Online Platform Selector */}
+                                                {bookingData.consultationMethod === 'Online' && (
+                                                    <div style={{ marginTop: '12px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                        <p style={{ fontWeight: '700', color: '#1e293b', marginBottom: '10px', fontSize: '0.88rem' }}>Which platform do you prefer?</p>
+                                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                                            {['Messenger', 'Instagram'].map(platform => {
+                                                                const isActive = bookingData.onlinePlatform === platform;
+                                                                const color = platform === 'Messenger' ? '#0084ff' : '#E1306C';
+                                                                return (
+                                                                    <button
+                                                                        key={platform} type="button"
+                                                                        onClick={() => setBookingData(prev => ({ ...prev, onlinePlatform: platform }))}
+                                                                        style={{
+                                                                            flex: 1, padding: '12px', borderRadius: '10px',
+                                                                            border: `2px solid ${isActive ? color : '#e2e8f0'}`,
+                                                                            background: isActive ? `${color}12` : 'white',
+                                                                            color: isActive ? color : '#64748b',
+                                                                            fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
+                                                                            transition: 'all 0.2s', position: 'relative'
+                                                                        }}
+                                                                    >
+                                                                        {isActive && <Check size={14} style={{ position: 'absolute', top: '5px', right: '5px' }} />}
+                                                                        {platform}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        {!bookingData.onlinePlatform && (
+                                                            <p style={{ fontSize: '0.78rem', color: '#f59e0b', marginTop: '8px', textAlign: 'center' }}>Please select your preferred messaging platform</p>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 

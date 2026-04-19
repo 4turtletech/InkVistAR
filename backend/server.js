@@ -838,6 +838,15 @@ db.getConnection((err, connection) => {
             console.log('✅ Added device_id column to appointments');
           }
         });
+
+        // MIGRATION: Add 'consultation_method' column for Face-to-Face vs Online consultations
+        db.query("SHOW COLUMNS FROM appointments LIKE 'consultation_method'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding consultation_method column...');
+            db.query("ALTER TABLE appointments ADD COLUMN consultation_method VARCHAR(50) NULL");
+            console.log('✅ Added consultation_method column to appointments');
+          }
+        });
       }
     });
 
@@ -3124,7 +3133,7 @@ app.get('/api/public/calendar-availability', (req, res) => {
 // Customer book appointment
 app.post('/api/customer/appointments', async (req, res) => {
   console.log('📅 Customer booking request:', req.body);
-  let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price, serviceType } = req.body;
+  let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price, serviceType, consultationMethod } = req.body;
 
   // ═══ Rolling Booking Limit: max 2 pending appointments per customer ═══
   if (customerId) {
@@ -3237,11 +3246,11 @@ app.post('/api/customer/appointments', async (req, res) => {
       const bookingCode = generateBookingCode('O', serviceType);
       const query = `
     INSERT INTO appointments 
-    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type, booking_code)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)
+    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type, booking_code, consultation_method)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?)
   `;
 
-      db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation', bookingCode], (err, result) => {
+      db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation', bookingCode, consultationMethod || null], (err, result) => {
         if (err) {
           console.error('❌ Error booking appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -3624,7 +3633,7 @@ app.get('/api/admin/appointments', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', async (req, res) => {
-  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId } = req.body;
+  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod } = req.body;
 
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
@@ -3710,10 +3719,10 @@ app.post('/api/admin/appointments', async (req, res) => {
       const bookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType);
       const query = `
         INSERT INTO appointments 
-          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, ?, ?)
+          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, ?, ?, ?)
       `;
-      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, bookingCode, deviceId || null], (err, result) => {
+      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, bookingCode, deviceId || null, consultationMethod || null], (err, result) => {
         if (err) {
           console.error('❌ Error creating admin appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -3757,6 +3766,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const rejectionReason = body.rejectionReason;
   const manualPaymentMethod = body.manualPaymentMethod;
   const beforePhoto = body.beforePhoto;
+  const consultationMethod = body.consultationMethod;
 
   // Date/Time Sanitization: convert empty strings to null for MySQL
   const date = body.date === '' ? null : body.date;
@@ -3788,6 +3798,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (manualPaidAmount !== undefined) { updates.push('manual_paid_amount = ?'); params.push(manualPaidAmount); }
   if (manualPaymentMethod !== undefined) { updates.push('manual_payment_method = ?'); params.push(manualPaymentMethod); }
   if (beforePhoto !== undefined) { updates.push('before_photo = ?'); params.push(beforePhoto); }
+  if (consultationMethod !== undefined) { updates.push('consultation_method = ?'); params.push(consultationMethod); }
 
   if (updates.length === 0) {
     return res.status(400).json({ success: false, message: 'No fields to update.' });
