@@ -4764,10 +4764,17 @@ app.put('/api/appointments/:id/status', (req, res) => {
         db.query('SELECT name FROM users WHERE id = ?', [appointment.customer_id], (uErr, uRes) => {
           const clientName = (!uErr && uRes.length) ? uRes[0].name : `Client #${appointment.customer_id}`;
           const currentPrice = price !== undefined ? Number(price) : Number(appointment.price) || 0;
-          const invoiceQuery = 'INSERT INTO invoices (client_name, service_type, amount, status, created_at) VALUES (?, ?, ?, "Paid", NOW())';
-          db.query(invoiceQuery, [clientName, appointment.service_type || 'Tattoo Session', currentPrice], (invErr) => {
-            if (invErr) console.error('❌ Failed to auto-generate invoice:', invErr.message);
-            else console.log(`✅ Auto-generated invoice for Client: ${clientName}`);
+          
+          // Generate sequential invoice number (same pattern as manual payment flow)
+          db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invNumErr, invNumRes) => {
+            const nextNum = (invNumErr || !invNumRes[0]?.maxNum) ? 1 : invNumRes[0].maxNum + 1;
+            const invoiceNumber = `INV-${String(nextNum).padStart(6, '0')}`;
+
+            const invoiceQuery = 'INSERT INTO invoices (invoice_number, customer_id, appointment_id, client_name, service_type, amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, "Paid", NOW())';
+            db.query(invoiceQuery, [invoiceNumber, appointment.customer_id, id, clientName, appointment.service_type || 'Tattoo Session', currentPrice], (invErr) => {
+              if (invErr) console.error('❌ Failed to auto-generate invoice:', invErr.message);
+              else console.log(`✅ Auto-generated invoice ${invoiceNumber} for Client: ${clientName}`);
+            });
           });
 
           if (appointment.artist_id && appointment.artist_id > 1) {
@@ -6964,10 +6971,17 @@ app.post('/api/admin/invoices', (req, res) => {
   const { client, type, amount, discount_amount, discount_type, status, items } = req.body;
   const targetDiscount = discount_amount || 0;
   const itemsJson = items ? JSON.stringify(items) : null;
-  const query = 'INSERT INTO invoices (client_name, service_type, amount, discount_amount, discount_type, status, items, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())';
-  db.query(query, [client, type, amount, targetDiscount, discount_type || null, status, itemsJson], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    res.json({ success: true, message: 'Invoice created', id: result.insertId });
+
+  // Generate sequential invoice number
+  db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invNumErr, invNumRes) => {
+    const nextNum = (invNumErr || !invNumRes[0]?.maxNum) ? 1 : invNumRes[0].maxNum + 1;
+    const invoiceNumber = `INV-${String(nextNum).padStart(6, '0')}`;
+
+    const query = 'INSERT INTO invoices (invoice_number, client_name, service_type, amount, discount_amount, discount_type, status, items, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+    db.query(query, [invoiceNumber, client, type, amount, targetDiscount, discount_type || null, status, itemsJson], (err, result) => {
+      if (err) return res.status(500).json({ success: false, message: err.message });
+      res.json({ success: true, message: 'Invoice created', id: result.insertId, invoiceNumber });
+    });
   });
 });
 

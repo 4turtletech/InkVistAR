@@ -12,6 +12,7 @@ import AdminSideNav from '../components/AdminSideNav';
 import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
+import { getDisplayCode } from '../utils/formatters';
 
 function AdminDashboard() {
     const [stats, setStats] = useState({
@@ -882,7 +883,7 @@ function AdminDashboard() {
                                 </div>
                                 <div>
                                     <h2 className="admin-m-0">Session Intelligence</h2>
-                                    <p className="admin-st-925e4e02">Appointment Ref: #{selectedAppointment.id}</p>
+                                    <p className="admin-st-925e4e02">Appointment Ref: {getDisplayCode(selectedAppointment.booking_code || selectedAppointment.bookingCode, selectedAppointment.id)}</p>
                                 </div>
                             </div>
                             <button className="close-btn" onClick={() => setIsDetailModalOpen(false)}>

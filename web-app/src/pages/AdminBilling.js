@@ -270,7 +270,6 @@ function AdminBilling() {
 
     const filteredInvoices = invoices.filter(inv => {
         const matchesSearch = (inv.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              inv.id.toString().includes(searchTerm) ||
                               (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || (inv.status || '').toLowerCase() === statusFilter.toLowerCase();
         const isPOS = (inv.service_type || '').toLowerCase().includes('retail') || (inv.service_type || '').toLowerCase().includes('pos');
@@ -286,7 +285,7 @@ function AdminBilling() {
 
     // Compute autocomplete suggestions dynamically from the dataset
     const searchSuggestions = Array.from(new Set([
-        ...invoices.map(i => (i.id || '').toString()),
+        ...invoices.map(i => (i.invoice_number || '').trim()),
         ...invoices.map(i => (i.client_name || '').trim())
     ])).filter(Boolean);
 
@@ -412,7 +411,7 @@ function AdminBilling() {
                                             <tr><td colSpan="8" className="no-data admin-st-3927920f">Loading invoices...</td></tr>
                                         ) : paginatedInvoices.map(inv => (
                                             <tr key={inv.id}>
-                                                <td>{inv.invoice_number || `INV-${inv.id}`}</td>
+                                                <td>{inv.invoice_number || `INV-${String(inv.id).padStart(6, '0')}`}</td>
                                                 <td>{inv.client_name || 'Walk-in Customer'}</td>
                                                 <td>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -663,7 +662,7 @@ function AdminBilling() {
                                 </div>
                                 <div>
                                     <h2 className="admin-m-0">Document Preview</h2>
-                                    <p className="admin-st-925e4e02">Invoice ID: INV-{previewModal.invoice.id}</p>
+                                    <p className="admin-st-925e4e02">Invoice ID: {previewModal.invoice.invoice_number || `INV-${String(previewModal.invoice.id).padStart(6, '0')}`}</p>
                                 </div>
                             </div>
                             <div className="admin-flex-center admin-gap-10">
@@ -685,7 +684,7 @@ function AdminBilling() {
                                     </div>
                                     <div className="invoice-meta admin-st-7851dbc0">
                                         <h2 className="admin-st-208c2b41">INVOICE</h2>
-                                        <p className="admin-st-04bfc9c7">Ref: INV-{previewModal.invoice.id}</p>
+                                        <p className="admin-st-04bfc9c7">Ref: {previewModal.invoice.invoice_number || `INV-${String(previewModal.invoice.id).padStart(6, '0')}`}</p>
                                         <p className="admin-st-04bfc9c7">Date: {new Date(previewModal.invoice.created_at).toLocaleDateString()}</p>
                                         <p className="admin-st-04bfc9c7">Method: <strong className="admin-st-ca12521c">{(() => {
                                             try {

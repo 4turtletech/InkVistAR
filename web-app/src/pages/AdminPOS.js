@@ -148,8 +148,8 @@ function AdminPOS() {
             
             await Promise.all(promises);
 
-            // Create financial record (Invoice) for the POS sale
-            await Axios.post(`${API_URL}/api/admin/invoices`, {
+            // Capture the real invoice number from the backend response
+            const invoiceRes = await Axios.post(`${API_URL}/api/admin/invoices`, {
                 client: clientLabel,
                 type: 'Retail POS Sale',
                 amount: cartSubtotal,
@@ -168,7 +168,7 @@ function AdminPOS() {
                 discount_amount: discountAmount,
                 total: cartTotal,
                 date: new Date().toLocaleString(),
-                orderId: Math.floor(Math.random() * 1000000),
+                orderId: invoiceRes.data.invoiceNumber || `INV-${String(invoiceRes.data.id).padStart(6, '0')}`,
                 customerName: clientLabel,
                 customerId: selectedCustomerId,
                 paymentMethod: paymentMethod,
