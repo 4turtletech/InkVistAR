@@ -170,7 +170,7 @@ function AdminNotifications() {
             case 'pos_invoice':
                 return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Invoice' };
             case 'new_review':
-                return { color: '#daa520', bg: 'rgba(218, 165, 32, 0.1)', label: 'Review' };
+                return { color: '#be9055', bg: 'rgba(218, 165, 32, 0.1)', label: 'Review' };
             case 'payment_action_required':
                 return { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.1)', label: '⚠️ Urgent' };
             case 'payment_resolution':
@@ -269,7 +269,7 @@ function AdminNotifications() {
         if (!isActive) return { background: 'rgba(255,255,255,0.05)', color: '#be9055', border: '1px solid #cbd5e1' };
 
         // Distinguish Unread with a more urgent amber color
-        const activeBg = type === 'unread' ? '#f59e0b' : '#daa520';
+        const activeBg = type === 'unread' ? '#f59e0b' : '#be9055';
         return { background: activeBg, color: 'white', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' };
     };
 

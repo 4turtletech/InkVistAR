@@ -618,9 +618,9 @@ function ArtistAppointments() {
                                         const myRole = selectedAppointment.assigned_role || 'primary';
                                         const isDual = ['tattoo', 'piercing', 'both'].includes(myRole) && selectedAppointment.secondary_artist_id;
                                         const roleBadge = isDual ? (
-                                            myRole === 'both' ? { icon: '🎨💎', label: 'Tattoo & Piercing Staff', bg: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', color: '#fff' }
-                                            : myRole === 'piercing' ? { icon: '💎', label: 'Piercing Staff', bg: 'linear-gradient(135deg, #a78bfa, #7c3aed)', color: '#fff' }
-                                            : { icon: '🎨', label: 'Tattoo Staff', bg: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff' }
+                                            myRole === 'both' ? { icon: '🎨💎', label: 'Tattoo & Piercing Staff', bg: '#be9055', color: '#fff' }
+                                            : myRole === 'piercing' ? { icon: '💎', label: 'Piercing Staff', bg: '#be9055', color: '#fff' }
+                                            : { icon: '🎨', label: 'Tattoo Staff', bg: '#be9055', color: '#fff' }
                                         ) : null;
                                         return (
                                         <div className="modal-overlay" onClick={() => setSelectedAppointment(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)' }}>

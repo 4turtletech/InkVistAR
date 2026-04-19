@@ -291,7 +291,7 @@ function Login() {
                     {error && <p className="error-message">{error}</p>}
                     {showResend && (
                         <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                            <button type="button" onClick={handleResendVerification} style={{background: 'none', border: 'none', color: '#C19A6B', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', textDecoration: 'underline'}}>
+                            <button type="button" onClick={handleResendVerification} style={{background: 'none', border: 'none', color: '#be9055', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', textDecoration: 'underline'}}>
                                 Resend Verification Email
                             </button>
                             {resendMessage.text && (
@@ -346,7 +346,7 @@ function Login() {
                                 border: 'none',
                                 padding: isLockedOut ? '4px 8px' : '0',
                                 borderRadius: isLockedOut ? '4px' : '0',
-                                color: '#C19A6B', 
+                                color: '#be9055', 
                                 cursor: 'pointer', 
                                 fontWeight: '600', 
                                 fontSize: '0.9rem',
@@ -581,7 +581,7 @@ function Login() {
                                 } catch (err) {
                                     setError('Failed to resend OTP.');
                                 }
-                            }} style={{background: 'none', border: 'none', color: '#C19A6B', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'}}>Resend OTP</button>
+                            }} style={{background: 'none', border: 'none', color: '#be9055', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'}}>Resend OTP</button>
                             <button type="button" onClick={() => { setView('login'); setError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '0.85rem'}}>Back to Login</button>
                         </div>
                     </form>
@@ -625,7 +625,7 @@ function Login() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         margin: '0 auto 20px'
                     }}>
-                        <CheckCircle size={32} style={{ color: '#C19A6B' }} />
+                        <CheckCircle size={32} style={{ color: '#be9055' }} />
                     </div>
                     <h2 style={{ color: '#1e293b', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 8px' }}>{view === 'verify-account' ? 'Account Verified!' : 'Password Reset Successful'}</h2>
                     <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 28px' }}>
@@ -644,7 +644,7 @@ function Login() {
                         style={{
                             width: '100%',
                             padding: '12px 24px',
-                            backgroundColor: '#C19A6B',
+                            backgroundColor: '#be9055',
                             color: '#fff',
                             border: 'none',
                             borderRadius: '10px',
@@ -655,7 +655,7 @@ function Login() {
                             fontFamily: "'Inter', sans-serif"
                         }}
                         onMouseEnter={e => e.target.style.backgroundColor = '#b08a5c'}
-                        onMouseLeave={e => e.target.style.backgroundColor = '#C19A6B'}
+                        onMouseLeave={e => e.target.style.backgroundColor = '#be9055'}
                     >
                         Back to Login
                     </button>

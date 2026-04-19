@@ -40,7 +40,7 @@ body {
 .register-logo {
     font-family: 'Playfair Display', serif;
     font-size: 2.5rem;
-    color: #C19A6B;
+    color: #be9055;
     margin: 0;
     font-weight: 700;
 }
@@ -48,14 +48,14 @@ body {
 .register-tagline {
     font-family: 'Playfair Display', serif;
     font-size: 1rem;
-    color: #C19A6B;
+    color: #be9055;
     margin: 0.5rem 0 0;
 }
 
 .register-title {
     font-family: 'Playfair Display', serif;
     font-size: 1.8rem;
-    color: #C19A6B;
+    color: #be9055;
     text-align: center;
     margin-bottom: 2rem;
 }
@@ -82,7 +82,7 @@ body {
 
 .register-btn {
     width: 100%;
-    background-color: #C19A6B;
+    background-color: #be9055;
     color: white;
     border: none;
     padding: 1rem;
@@ -106,7 +106,7 @@ body {
 }
 
 .register-footer a {
-    color: #C19A6B;
+    color: #be9055;
     font-weight: 600;
     text-decoration: none;
     transition: color 0.3s;
@@ -155,7 +155,7 @@ body {
     font-family: 'Playfair Display', serif;
     font-size: 1.8rem;
     font-weight: 700;
-    color: #C19A6B;
+    color: #be9055;
     text-decoration: none;
 }
 
@@ -172,7 +172,7 @@ body {
 }
 
 .home-nav-links a:hover {
-    color: #C19A6B;
+    color: #be9055;
 }
 
 .home-auth-buttons {
@@ -188,7 +188,7 @@ body {
 }
 
 .home-auth-buttons .signup-btn {
-    background-color: #C19A6B;
+    background-color: #be9055;
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;

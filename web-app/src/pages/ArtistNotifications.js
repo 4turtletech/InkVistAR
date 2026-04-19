@@ -378,7 +378,7 @@ const filterButtonStyle = (isActive) => ({
     padding: '8px 20px',
     borderRadius: '20px',
     border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1',
-    background: isActive ? '#daa520' : 'rgba(255,255,255,0.05)',
+    background: isActive ? '#be9055' : 'rgba(255,255,255,0.05)',
     color: isActive ? 'white' : '#64748b',
     cursor: 'pointer',
     fontSize: '0.9rem',

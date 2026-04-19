@@ -28,7 +28,7 @@
   border-radius: 100px;
   background: rgba(193, 154, 107, 0.08);
   border: 1px solid rgba(193, 154, 107, 0.2);
-  color: #C19A6B;
+  color: #be9055;
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -40,7 +40,7 @@
   font-family: 'Playfair Display', serif;
   font-size: 3.5rem;
   font-weight: 800;
-  color: #C19A6B;
+  color: #be9055;
   margin: 0 0 0.75rem;
   line-height: 1.15;
 }
@@ -117,7 +117,7 @@
 }
 
 .contact-form-label svg {
-  color: #C19A6B;
+  color: #be9055;
   opacity: 0.8;
 }
 
@@ -136,7 +136,7 @@
 }
 
 .contact-input:focus {
-  border-color: #C19A6B;
+  border-color: #be9055;
   background: rgba(193, 154, 107, 0.04);
   box-shadow: 0 0 0 3px rgba(193, 154, 107, 0.1);
 }
@@ -175,7 +175,7 @@
 
 .contact-phone-code button:focus,
 .contact-phone-code button:hover {
-  border-color: #C19A6B !important;
+  border-color: #be9055 !important;
 }
 
 .contact-phone-number {
@@ -198,7 +198,7 @@
   padding: 14px 24px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #C19A6B, #8a6c4a);
+  background: #be9055;
   color: #ffffff;
   font-size: 1rem;
   font-weight: 700;
@@ -269,7 +269,7 @@
   border-radius: 10px;
   border: 1px solid rgba(193, 154, 107, 0.3);
   background: transparent;
-  color: #C19A6B;
+  color: #be9055;
   font-size: 0.9rem;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
@@ -315,7 +315,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #C19A6B;
+  color: #be9055;
 }
 
 .contact-info-text h3 {
@@ -333,7 +333,7 @@
 }
 
 .contact-info-text a {
-  color: #C19A6B;
+  color: #be9055;
   text-decoration: none;
   transition: color 0.2s;
 }
@@ -369,7 +369,7 @@
 .contact-social-link:hover {
   background: rgba(193, 154, 107, 0.1);
   border-color: rgba(193, 154, 107, 0.3);
-  color: #C19A6B;
+  color: #be9055;
   transform: translateY(-2px);
 }
 
@@ -396,12 +396,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #C19A6B;
+  color: #be9055;
 }
 
 .contact-map-header h2 {
   font-family: 'Playfair Display', serif;
-  color: #C19A6B;
+  color: #be9055;
   font-size: 1.5rem;
   margin: 0;
   font-weight: 700;
@@ -442,12 +442,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #C19A6B;
+  color: #be9055;
 }
 
 .contact-directions-header h2 {
   font-family: 'Playfair Display', serif;
-  color: #C19A6B;
+  color: #be9055;
   font-size: 1.5rem;
   margin: 0;
   font-weight: 700;
@@ -482,7 +482,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #C19A6B;
+  color: #be9055;
   margin-bottom: 1rem;
 }
 

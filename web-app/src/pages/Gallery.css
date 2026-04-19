@@ -30,7 +30,7 @@ body {
 }
 
 .gallery-header h1 {
-  color: #C19A6B;
+  color: #be9055;
   font-family: 'Playfair Display', serif; /* Luxury Serif */
   font-size: 2.8rem;
   margin-bottom: 25px;
@@ -47,7 +47,7 @@ body {
 }
 
 .filter-label {
-  color: #C19A6B;
+  color: #be9055;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 2px;
@@ -64,8 +64,8 @@ body {
 
 .filter-btn {
   background: #1a1a1a; /* Dark charcoal fill */
-  border: 1px solid #C19A6B; /* Gold border */
-  color: #C19A6B;
+  border: 1px solid #be9055; /* Gold border */
+  color: #be9055;
   padding: 8px 20px;
   border-radius: 50px; /* Pill shape */
   cursor: pointer;
@@ -75,7 +75,7 @@ body {
 }
 
 .filter-btn.active, .filter-btn:hover {
-  background-color: #C19A6B;
+  background-color: #be9055;
   color: #fff;
   box-shadow: 0 0 10px rgba(193, 154, 107, 0.3);
 }
@@ -100,7 +100,7 @@ body {
 }
 
 .price-label {
-  color: #DAA520;
+  color: #be9055;
   font-weight: bold;
   font-size: 0.75rem;
   letter-spacing: 1px;
@@ -139,7 +139,7 @@ body {
 .slider-range {
   position: absolute;
   height: 4px;
-  background: #C19A6B;
+  background: #be9055;
   border-radius: 2px;
   z-index: 2;
 }
@@ -162,7 +162,7 @@ body {
   height: 18px;
   border-radius: 50%;
   background: #fff;
-  border: 2px solid #C19A6B;
+  border: 2px solid #be9055;
   cursor: pointer;
   box-shadow: 0 0 5px rgba(0,0,0,0.3);
   transition: transform 0.1s ease;
@@ -267,7 +267,7 @@ body {
 }
 
 .image-card-title {
-  color: #C19A6B;
+  color: #be9055;
   font-family: 'Playfair Display', serif;
   font-size: 0.95rem;
   margin: 0 0 2px;
@@ -286,7 +286,7 @@ body {
   background: rgba(13, 13, 13, 0.8);
   backdrop-filter: blur(4px);
   border: 1px solid rgba(193, 154, 107, 0.4);
-  color: #C19A6B;
+  color: #be9055;
   padding: 4px 12px;
   border-radius: 4px;
   font-size: 0.65rem;
@@ -299,9 +299,9 @@ body {
 }
 
 .image-card:hover .image-card-category {
-  background: #C19A6B;
+  background: #be9055;
   color: #000;
-  border-color: #C19A6B;
+  border-color: #be9055;
 }
 
 /* Loading & empty states */
@@ -315,7 +315,7 @@ body {
 }
 
 .gallery-loading {
-  color: #C19A6B;
+  color: #be9055;
 }
 
 /* Modal Styles */
@@ -336,7 +336,7 @@ body {
 
 .gallery-modal-content {
   background-color: #1a1a1a;
-  border: 1px solid #C19A6B;
+  border: 1px solid #be9055;
   border-radius: 12px;
   max-width: 900px;
   width: 100%;
@@ -359,7 +359,7 @@ body {
   top: 15px;
   right: 15px;
   background: rgba(0,0,0,0.6);
-  color: #C19A6B;
+  color: #be9055;
   border: none;
   border-radius: 50%;
   width: 35px;
@@ -375,7 +375,7 @@ body {
 }
 
 .gallery-modal-close:hover {
-  background: #C19A6B;
+  background: #be9055;
   color: #000;
 }
 
@@ -404,7 +404,7 @@ body {
 }
 
 .gallery-modal-info h2 {
-  color: #C19A6B;
+  color: #be9055;
   font-family: 'Playfair Display', serif;
   font-size: 1.8rem;
   margin-top: 0;
@@ -418,7 +418,7 @@ body {
 }
 
 .gallery-modal-info strong {
-  color: #C19A6B;
+  color: #be9055;
 }
 
 .modal-artist, .modal-category {

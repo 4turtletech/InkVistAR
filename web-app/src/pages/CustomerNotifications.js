@@ -436,7 +436,7 @@ function CustomerNotifications() {
                         <div style={{ padding: '24px 30px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#1e293b', zIndex: 10 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                 <div style={{ background: 'linear-gradient(135deg, rgba(193, 154, 107, 0.2), rgba(193, 154, 107, 0.05))', padding: '12px', borderRadius: '12px', border: '1px solid rgba(193, 154, 107, 0.2)' }}>
-                                    <Info size={24} color="#C19A6B" />
+                                    <Info size={24} color="#be9055" />
                                 </div>
                                 <div>
                                     <h3 style={{ margin: 0, fontFamily: 'Playfair Display, serif', color: '#ffffff', fontSize: '1.5rem', fontWeight: 700 }}>Tattoo Aftercare Guide</h3>
@@ -454,7 +454,7 @@ function CustomerNotifications() {
                                 
                                 {/* Phase 1 */}
                                 <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '20px' }}>
-                                    <h4 style={{ color: '#C19A6B', marginTop: 0, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
+                                    <h4 style={{ color: '#be9055', marginTop: 0, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
                                         <Droplets size={18} /> Day 1-3: The Initial Healing
                                     </h4>
                                     <ul style={{ paddingLeft: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -467,7 +467,7 @@ function CustomerNotifications() {
 
                                 {/* Phase 2 */}
                                 <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '20px' }}>
-                                    <h4 style={{ color: '#C19A6B', marginTop: 0, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
+                                    <h4 style={{ color: '#be9055', marginTop: 0, marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem' }}>
                                         <Activity size={18} /> Day 4-14: Peeling & Flaking
                                     </h4>
                                     <ul style={{ paddingLeft: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -502,7 +502,7 @@ function CustomerNotifications() {
 
                         {/* Footer Actions */}
                         <div style={{ padding: '20px 30px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'flex-end', background: '#1e293b', position: 'sticky', bottom: 0, zIndex: 10 }}>
-                            <button onClick={() => setIsAftercareModalOpen(false)} style={{ background: 'linear-gradient(135deg, #C19A6B 0%, #A07855 100%)', color: '#ffffff', border: 'none', padding: '12px 30px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 4px 12px rgba(193, 154, 107, 0.3)', fontSize: '0.95rem' }} onMouseOver={(e) => e.currentTarget.style.transform='translateY(-2px)'} onMouseOut={(e) => e.currentTarget.style.transform='translateY(0)'}>
+                            <button onClick={() => setIsAftercareModalOpen(false)} style={{ background: '#be9055', color: '#ffffff', border: 'none', padding: '12px 30px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 4px 12px rgba(193, 154, 107, 0.3)', fontSize: '0.95rem' }} onMouseOver={(e) => e.currentTarget.style.transform='translateY(-2px)'} onMouseOut={(e) => e.currentTarget.style.transform='translateY(0)'}>
                                 I Understand
                             </button>
                         </div>
@@ -517,7 +517,7 @@ const filterButtonStyle = (isActive) => ({
     padding: '8px 20px',
     borderRadius: '20px',
     border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1',
-    background: isActive ? '#daa520' : 'rgba(255,255,255,0.05)',
+    background: isActive ? '#be9055' : 'rgba(255,255,255,0.05)',
     color: isActive ? 'white' : '#64748b',
     cursor: 'pointer',
     fontSize: '0.9rem',

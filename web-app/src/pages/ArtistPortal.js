@@ -371,7 +371,7 @@ function ArtistPortal() {
                     .notif-empty { padding: 30px; text-align: center; color: #94a3b8; font-size: 0.9rem; }
                     .notif-dropdown-footer { padding: 10px; border-top: 1px solid #f1f5f9; text-align: center; }
                     .notif-dropdown-footer button { 
-                        background: none; border: none; color: #daa520; font-weight: 600; font-size: 0.85rem; 
+                        background: none; border: none; color: #be9055; font-weight: 600; font-size: 0.85rem; 
                         cursor: pointer; transition: color 0.2s; 
                     }
                     .notif-dropdown-footer button:hover { color: #b8860b; text-decoration: underline; }

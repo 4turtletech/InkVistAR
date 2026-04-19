@@ -561,7 +561,7 @@ function AdminUsers() {
                             <button className="delete-btn" onClick={(e) => { e.stopPropagation(); handleDeleteWork(work.id); }}>
                                 <Trash2 size={14} />
                             </button>
-                            <h4 style={{ margin: '0 0 3px', fontSize: '0.85rem', fontWeight: 600, color: '#C19A6B', fontFamily: "'Playfair Display', serif" }}>{work.title}</h4>
+                            <h4 style={{ margin: '0 0 3px', fontSize: '0.85rem', fontWeight: 600, color: '#be9055', fontFamily: "'Playfair Display', serif" }}>{work.title}</h4>
                             <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.5px' }}>{work.category || 'Uncategorized'}</span>
                         </div>
                     </div>
@@ -1098,7 +1098,7 @@ function AdminUsers() {
                                                                         </td>
                                                                         <td>{isSession ? record.design_title : (record.service_type || record.design_title || '—')}</td>
                                                                         <td><span className={`status-badge ${record.status}`}>{(record.status || '').toUpperCase()}</span></td>
-                                                                        <td style={{ textAlign: 'center', color: '#C19A6B', fontSize: '0.8rem', userSelect: 'none' }}>
+                                                                        <td style={{ textAlign: 'center', color: '#be9055', fontSize: '0.8rem', userSelect: 'none' }}>
                                                                             {isExpanded ? '▲' : '▼'}
                                                                         </td>
                                                                     </tr>
@@ -1119,7 +1119,7 @@ function AdminUsers() {
                                                                                             {record.booking_code && (
                                                                                                 <div>
                                                                                                     <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Booking Code</div>
-                                                                                                    <div style={{ color: '#C19A6B', fontWeight: 700, letterSpacing: '0.05em' }}>{getDisplayCode(record.booking_code, record.id)}</div>
+                                                                                                    <div style={{ color: '#be9055', fontWeight: 700, letterSpacing: '0.05em' }}>{getDisplayCode(record.booking_code, record.id)}</div>
                                                                                                 </div>
                                                                                             )}
                                                                                             <div>

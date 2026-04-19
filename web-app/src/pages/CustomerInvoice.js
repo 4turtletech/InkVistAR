@@ -187,7 +187,7 @@ function CustomerInvoice() {
                                 <Printer size={16} /> Print
                             </button>
                             <button onClick={handlePrint} style={{
-                                padding: '12px 24px', background: 'linear-gradient(135deg, #C19A6B, #8a6c4a)', border: 'none', borderRadius: '12px',
+                                padding: '12px 24px', background: '#be9055', border: 'none', borderRadius: '12px',
                                 fontWeight: 600, cursor: 'pointer', color: '#fff', fontSize: '0.9rem',
                                 display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(193,154,107,0.3)',
                                 transition: 'all 0.2s'

@@ -353,14 +353,14 @@ function Register() {
                       setShowTermsModal(true);
                     }
                   }}
-                  style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#C19A6B', flexShrink: 0 }}
+                  style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#be9055', flexShrink: 0 }}
                 />
                 <span>
                   I agree to the{' '}
                   <button
                     type="button"
                     onClick={() => setShowTermsModal(true)}
-                    style={{ background: 'none', border: 'none', color: '#C19A6B', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: 'inherit' }}
+                    style={{ background: 'none', border: 'none', color: '#be9055', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: 'inherit' }}
                   >
                     Acknowledgement and Waiver
                   </button>
@@ -373,7 +373,7 @@ function Register() {
                   type="checkbox"
                   checked={emailPromoConsent}
                   onChange={(e) => setEmailPromoConsent(e.target.checked)}
-                  style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#C19A6B', flexShrink: 0 }}
+                  style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: '#be9055', flexShrink: 0 }}
                 />
                 <span>I would like to receive marketing promotions and discounts in my inbox.</span>
               </label>

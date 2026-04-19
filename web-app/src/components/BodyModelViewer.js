@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
-const BRAND_GOLD = '#C19A6B';
+const BRAND_GOLD = '#be9055';
 const BRAND_GOLD_EMISSIVE = '#8B6914';
 const DIAMOND_BLUE = '#4FC3F7';
 const DIAMOND_BLUE_EMISSIVE = '#0277BD';

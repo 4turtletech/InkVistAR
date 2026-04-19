@@ -1404,7 +1404,7 @@ function AdminAppointments() {
                                                                     border: '3px solid white', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
                                                                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                                                                 }}>
-                                                                    <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#C19A6B' }}>
+                                                                    <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#be9055' }}>
                                                                         {getInitials(clients.find(c => c.id == formData.clientId)?.name || clientSearch)}
                                                                     </span>
                                                                 </div>
@@ -1435,7 +1435,7 @@ function AdminAppointments() {
                                                             <div className="glass-card admin-st-83ac1cb2">
                                                                 {clients.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
                                                                     <div key={c.id} className="admin-st-824731e9" onClick={() => { setFormData({ ...formData, clientId: c.id }); setClientSearch(c.name); }}>
-                                                                        <User size={16} color="#C19A6B" />
+                                                                        <User size={16} color="#be9055" />
                                                                         <span className="admin-st-9d3db44b">{c.name}</span>
                                                                     </div>
                                                                 ))}

@@ -24,7 +24,7 @@
     font-family: 'Playfair Display', serif;
     font-size: 1.8rem;
     font-weight: 700;
-    color: #C19A6B;
+    color: #be9055;
     text-decoration: none;
     letter-spacing: 2px;
 }
@@ -46,7 +46,7 @@
 }
 
 .home-nav-links a:hover, .home-nav-links a.active-link {
-    color: #C19A6B;
+    color: #be9055;
 }
 
 .home-nav-links a.active-link::after {
@@ -56,7 +56,7 @@
     left: 0;
     width: 100%;
     height: 1px;
-    background-color: #C19A6B;
+    background-color: #be9055;
 }
 
 .home-auth-buttons {
@@ -74,11 +74,11 @@
 }
 
 .home-auth-buttons .login-link:hover {
-    color: #C19A6B;
+    color: #be9055;
 }
 
 .home-auth-buttons .signup-btn {
-    background-color: #C19A6B;
+    background-color: #be9055;
     color: white;
     border: none;
     padding: 0.75rem 1.8rem;
@@ -190,7 +190,7 @@
     }
     .mobile-drawer a:hover,
     .mobile-drawer a:active {
-        color: #C19A6B;
+        color: #be9055;
     }
     .mobile-drawer-auth {
         margin-top: 16px;
@@ -200,7 +200,7 @@
         align-items: center;
     }
     .mobile-drawer-auth .login-link {
-        color: #C19A6B;
+        color: #be9055;
         text-decoration: none;
         font-weight: 600;
         font-size: 0.95rem;

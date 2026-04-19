@@ -193,19 +193,19 @@ function AdminStudio() {
 
                 <div className="admin-st-d14eab7d">
                     <button 
-                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'branches' ? '2px solid #C19A6B' : '2px solid transparent', color: activeTab === 'branches' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
+                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'branches' ? '2px solid #be9055' : '2px solid transparent', color: activeTab === 'branches' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
                         onClick={() => setActiveTab('branches')}
                     >
                         Branches Directory
                     </button>
                     <button 
-                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'settings' ? '2px solid #C19A6B' : '2px solid transparent', color: activeTab === 'settings' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
+                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'settings' ? '2px solid #be9055' : '2px solid transparent', color: activeTab === 'settings' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
                         onClick={() => setActiveTab('settings')}
                     >
                         System Preferences
                     </button>
                     <button 
-                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'reviews' ? '2px solid #C19A6B' : '2px solid transparent', color: activeTab === 'reviews' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
+                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'reviews' ? '2px solid #be9055' : '2px solid transparent', color: activeTab === 'reviews' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
                         onClick={() => setActiveTab('reviews')}
                     >
                         Customer Reviews

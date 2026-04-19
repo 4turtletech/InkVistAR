@@ -81,43 +81,43 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
     const features = [
         {
-            icon: <Eye size={48} color="#C19A6B" />,
+            icon: <Eye size={48} color="#be9055" />,
             title: "AR Tattoo Try-On",
             desc: "Preview your tattoo in augmented reality before committing to the real thing.",
             bgColor: "#fdf2e9"
         },
         {
-            icon: <Paintbrush size={48} color="#C19A6B" />,
+            icon: <Paintbrush size={48} color="#be9055" />,
             title: "Healing Journey Tracker",
             desc: "Access customized aftercare guides and track your tattoo's healing process.",
             bgColor: "#f9ebe0"
         },
         {
-            icon: <Award size={48} color="#C19A6B" />,
+            icon: <Award size={48} color="#be9055" />,
             title: "My Tattoo History",
             desc: "View your completed works and manage your personal tattoo profile.",
             bgColor: "#faf0e4"
         },
         {
-            icon: <Star size={48} color="#C19A6B" />,
+            icon: <Star size={48} color="#be9055" />,
             title: "Gallery & Favorites",
             desc: "Browse our full portfolio, save favorites, and find your next inspiration.",
             bgColor: "#f5e6d5"
         },
         {
-            icon: <CalendarCheck size={48} color="#C19A6B" />,
+            icon: <CalendarCheck size={48} color="#be9055" />,
             title: "Manage Appointments",
             desc: "Easily view, reschedule, or cancel your past and upcoming sessions.",
             bgColor: "#fdf2e9"
         },
         {
-            icon: <MessageSquare size={48} color="#C19A6B" />,
+            icon: <MessageSquare size={48} color="#be9055" />,
             title: "Direct Communication",
             desc: "Chat securely with your artist and the studio for questions or updates.",
             bgColor: "#f9ebe0"
         },
         {
-            icon: <Bell size={48} color="#C19A6B" />,
+            icon: <Bell size={48} color="#be9055" />,
             title: "Smart Notifications",
             desc: "Get reminders for upcoming sessions, aftercare tips, and announcements.",
             bgColor: "#faf0e4"
@@ -328,7 +328,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             }
 
             if (isSelected) {
-                borderColor = '#C19A6B';
+                borderColor = '#be9055';
             }
 
             days.push(            
@@ -344,7 +344,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     disabled={isPast || isTooFar || isFull}
                     style={{
                         padding: '10px 4px',
-                        border: isSelected ? '2px solid #C19A6B' : `1px solid ${borderColor}`,
+                        border: isSelected ? '2px solid #be9055' : `1px solid ${borderColor}`,
                         backgroundColor: bgColor,
                         color: textColor,
                         borderRadius: '10px',
@@ -479,7 +479,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             {/* Consultation type toggle */}
             <p style={{color: '#64748b', marginBottom: '12px', fontSize: '0.95rem'}}>What is this consultation for?</p>
             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-                {[{ key: 'tattoo', label: 'Tattoo', icon: <Paintbrush size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }, { key: 'piercing', label: 'Piercing', icon: <Gem size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }].map(opt => {
+                {[{ key: 'tattoo', label: 'Tattoo', icon: <Paintbrush size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#be9055' }, { key: 'piercing', label: 'Piercing', icon: <Gem size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#be9055' }].map(opt => {
                     const isActive = formData.consultationFor.includes(opt.key);
                     return (
                         <button
@@ -506,8 +506,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             <p style={{color: '#64748b', marginBottom: '12px', fontSize: '0.95rem'}}>How would you like this consultation?</p>
             <div style={{ display: 'flex', gap: '12px', marginBottom: formData.consultationMethod === 'Online' ? '12px' : '20px' }}>
                 {[
-                    { key: 'Face-to-Face', label: 'Face-to-Face', icon: <Users size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' },
-                    { key: 'Online', label: 'Online', icon: <Video size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }
+                    { key: 'Face-to-Face', label: 'Face-to-Face', icon: <Users size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#be9055' },
+                    { key: 'Online', label: 'Online', icon: <Video size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#be9055' }
                 ].map(opt => {
                     const isActive = formData.consultationMethod === opt.key;
                     return (
@@ -537,7 +537,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     <div style={{ display: 'flex', gap: '10px' }}>
                         {['Messenger', 'Instagram'].map(platform => {
                             const isActive = formData.onlinePlatform === platform;
-                            const color = '#C19A6B';
+                            const color = '#be9055';
                             return (
                                 <button
                                     key={platform} type="button"
@@ -581,7 +581,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         {showTattoo && (
                             <>
                                 <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <Paintbrush size={15} color="#C19A6B" /> Tattoo Placement
+                                    <Paintbrush size={15} color="#be9055" /> Tattoo Placement
                                 </p>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
                                     {tattooBodyParts.map(part => {
@@ -589,8 +589,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                         return (
                                             <button key={part} type="button" onClick={() => toggleArrayField('placement', part)} style={{
                                                 padding: '9px 5px', borderRadius: '10px',
-                                                border: `2px solid ${isSelected ? '#C19A6B' : (errors.placement ? '#ef4444' : '#e2e8f0')}`,
-                                                background: isSelected ? '#C19A6B' : 'white',
+                                                border: `2px solid ${isSelected ? '#be9055' : (errors.placement ? '#ef4444' : '#e2e8f0')}`,
+                                                background: isSelected ? '#be9055' : 'white',
                                                 color: isSelected ? 'white' : '#1e293b',
                                                 fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s',
                                                 boxShadow: isSelected ? '0 3px 10px rgba(193, 154, 107, 0.3)' : 'none'
@@ -609,7 +609,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         {showPiercing && (
                             <>
                                 <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <Gem size={15} color="#C19A6B" /> Piercing Placement
+                                    <Gem size={15} color="#be9055" /> Piercing Placement
                                 </p>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
                                     {piercingBodyParts.map(part => {
@@ -617,8 +617,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                         return (
                                             <button key={`p-${part}`} type="button" onClick={() => toggleArrayField('placement', part)} style={{
                                                 padding: '9px 5px', borderRadius: '10px',
-                                                border: `2px solid ${isSelected ? '#C19A6B' : '#e2e8f0'}`,
-                                                background: isSelected ? '#C19A6B' : 'white',
+                                                border: `2px solid ${isSelected ? '#be9055' : '#e2e8f0'}`,
+                                                background: isSelected ? '#be9055' : 'white',
                                                 color: isSelected ? 'white' : '#1e293b',
                                                 fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s',
                                                 boxShadow: isSelected ? '0 3px 10px rgba(193, 154, 107, 0.3)' : 'none'
@@ -700,7 +700,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                 style={{
                                     padding: '10px 4px',
                                     borderRadius: '8px',
-                                    border: formData.time === t ? '2px solid #C19A6B' : '1px solid #e2e8f0',
+                                    border: formData.time === t ? '2px solid #be9055' : '1px solid #e2e8f0',
                                     backgroundColor: formData.time === t ? '#fffcf0' : (isDisabled ? 'transparent' : 'white'),
                                     fontWeight: formData.time === t ? '700' : '500',
                                     color: formData.time === t ? '#1e293b' : (isDisabled ? '#cbd5e1' : '#64748b'),
@@ -790,7 +790,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     />
                     {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.email}</small>}
                     {!user && (
-                        <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#C19A6B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#be9055', display: 'flex', alignItems: 'center', gap: '5px' }}>
                             <Info size={13} style={{ flexShrink: 0 }} /> Your booking confirmation and status updates will be sent to this email.
                         </p>
                     )}
@@ -908,7 +908,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     Don't worry — we'll keep you updated! A confirmation email with your booking details has been sent to:
                 </p>
                 <div style={{ padding: '12px 20px', background: 'rgba(193,154,107,0.08)', border: '1px solid rgba(193,154,107,0.2)', borderRadius: '12px', marginBottom: '20px' }}>
-                    <p style={{ margin: 0, fontWeight: '700', color: '#C19A6B', fontSize: '1rem' }}>{formData.email}</p>
+                    <p style={{ margin: 0, fontWeight: '700', color: '#be9055', fontSize: '1rem' }}>{formData.email}</p>
                 </div>
                 <p style={{ color: '#64748b', marginBottom: '28px', lineHeight: '1.6', fontSize: '0.85rem' }}>
                     You'll also receive SMS and email notifications whenever there's an update to your booking status — like confirmation, scheduling changes, or your price quote.
@@ -917,7 +917,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     onClick={() => navigate('/')}
                     style={{
                         width: '100%', padding: '14px 24px',
-                        background: 'linear-gradient(135deg, #C19A6B, #a88754)',
+                        background: '#be9055',
                         color: '#fff', border: 'none', borderRadius: '12px',
                         fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer',
                         transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(193,154,107,0.3)',
@@ -989,8 +989,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                 padding: '14px 28px',
                                 fontSize: '0.95rem',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                                backgroundColor: '#C19A6B',
-                                borderColor: '#C19A6B',
+                                backgroundColor: '#be9055',
+                                borderColor: '#be9055',
                                 color: 'white',
                                 fontWeight: '700',
                                 borderRadius: '10px',
@@ -1020,7 +1020,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         marginTop: '28px',
                         padding: '12px 16px',
                         backgroundColor: '#f8fafc',
-                        borderLeft: '4px solid #C19A6B',
+                        borderLeft: '4px solid #be9055',
                         borderRadius: '0 8px 8px 0',
                         maxWidth: '320px'
                     }}>
@@ -1033,7 +1033,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             alignItems: 'flex-start',
                             gap: '8px'
                         }}>
-                            <Info size={16} color="#C19A6B" style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <Info size={16} color="#be9055" style={{ flexShrink: 0, marginTop: '2px' }} />
                             <span><strong>Please Note:</strong> An account is required to pursue and confirm an actual online session booking for your tattoo.</span>
                         </p>
                     </div>
@@ -1122,7 +1122,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                         width: activeFeature === i ? '20px' : '6px',
                                         height: '6px',
                                         borderRadius: '3px',
-                                        backgroundColor: activeFeature === i ? '#C19A6B' : '#e2e8f0',
+                                        backgroundColor: activeFeature === i ? '#be9055' : '#e2e8f0',
                                         cursor: 'pointer',
                                         transition: 'all 0.3s ease'
                                     }}
@@ -1152,7 +1152,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     {[1, 2, 3, 4].map(s => (
                         <div key={s} style={{
                             width: '30px', height: '4px', borderRadius: '2px', 
-                            backgroundColor: step >= s ? '#C19A6B' : '#e2e8f0',
+                            backgroundColor: step >= s ? '#be9055' : '#e2e8f0',
                             transition: 'all 0.4s ease'
                         }} />
                     ))}
@@ -1210,8 +1210,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             alignItems: 'center', 
                             gap: '10px', 
                             padding: '12px 32px',
-                            backgroundColor: '#C19A6B',
-                            borderColor: '#C19A6B',
+                            backgroundColor: '#be9055',
+                            borderColor: '#be9055',
                             color: 'white',
                             fontWeight: '700',
                             borderRadius: '12px',

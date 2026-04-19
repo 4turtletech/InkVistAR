@@ -332,10 +332,10 @@ function AdminAnalytics() {
                                                         onClick={() => toggleWidget(widget.id)}
                                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: isVisible ? '#f8fafc' : 'transparent', border: `1px solid ${isVisible ? '#e2e8f0' : 'transparent'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
                                                     >
-                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '4px', border: `2px solid ${isVisible ? '#C19A6B' : '#cbd5e1'}`, background: isVisible ? '#C19A6B' : 'transparent', flexShrink: 0 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '4px', border: `2px solid ${isVisible ? '#be9055' : '#cbd5e1'}`, background: isVisible ? '#be9055' : 'transparent', flexShrink: 0 }}>
                                                             {isVisible && <Check size={14} color="white" strokeWidth={3} />}
                                                         </div>
-                                                        <div style={{ color: isVisible ? '#C19A6B' : '#94a3b8', display: 'flex', flexShrink: 0 }}>{widget.icon}</div>
+                                                        <div style={{ color: isVisible ? '#be9055' : '#94a3b8', display: 'flex', flexShrink: 0 }}>{widget.icon}</div>
                                                         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isVisible ? '#1e293b' : '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{widget.label}</span>
                                                     </div>
                                                 );

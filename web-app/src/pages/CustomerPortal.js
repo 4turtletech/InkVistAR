@@ -345,7 +345,7 @@ function CustomerPortal() {
                             .action-card-v2:hover {
                                 transform: translateY(-5px);
                                 box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
-                                border-color: #C19A6B;
+                                border-color: #be9055;
                             }
                             .action-icon-wrapper {
                                 width: 48px;
@@ -358,7 +358,7 @@ function CustomerPortal() {
                                 flex-shrink: 0;
                             }
                             .action-icon-wrapper.blue { background-color: rgba(59, 130, 246, 0.2); color: #3b82f6; }
-                            .action-icon-wrapper.gold { background-color: rgba(218, 165, 32, 0.2); color: #DAA520; }
+                            .action-icon-wrapper.gold { background-color: rgba(218, 165, 32, 0.2); color: #be9055; }
                             .action-icon-wrapper.purple { background-color: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
                             .action-content-v2 {
                                 display: flex;
@@ -427,7 +427,7 @@ function CustomerPortal() {
                             .notif-empty { padding: 30px; text-align: center; color: #94a3b8; font-size: 0.9rem; }
                             .notif-dropdown-footer { padding: 10px; border-top: 1px solid #f1f5f9; text-align: center; }
                             .notif-dropdown-footer button { 
-                                background: none; border: none; color: #daa520; font-weight: 600; font-size: 0.85rem; 
+                                background: none; border: none; color: #be9055; font-weight: 600; font-size: 0.85rem; 
                                 cursor: pointer; transition: color 0.2s; 
                             }
                             .notif-dropdown-footer button:hover { color: #b8860b; text-decoration: underline; } /* This is a duplicate, but keeping for now */
@@ -441,7 +441,7 @@ function CustomerPortal() {
                                 </div>
                                 <div className="customer-st-fa665a80" >
                                     <div className="glass-card" style={{ padding: '2.5rem', textAlign: 'center', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(193, 154, 107, 0.1), rgba(0, 0, 0, 0.2))', border: '1px solid rgba(193, 154, 107, 0.2)' }}>
-                                        <h3 style={{ margin: '0 0 10px 0', color: '#C19A6B', fontSize: '1.5rem', fontFamily: 'Playfair Display, serif' }}>Discover Your Next Piece</h3>
+                                        <h3 style={{ margin: '0 0 10px 0', color: '#be9055', fontSize: '1.5rem', fontFamily: 'Playfair Display, serif' }}>Discover Your Next Piece</h3>
                                         <p className="customer-st-32128d6b" >
                                             Browse our extensive gallery of traditional, realism, and custom tattoo designs created by our expert artists. Find the perfect inspiration for your next session.
                                         </p>

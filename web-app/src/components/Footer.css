@@ -16,7 +16,7 @@
 }
 
 .footer-section h2.footer-logo {
-    color: #C19A6B;
+    color: #be9055;
     font-family: 'Cinzel', serif;
     font-style: normal;
     letter-spacing: 3px;
@@ -49,7 +49,7 @@
     left: 0;
     width: 25px;
     height: 2px;
-    background-color: #C19A6B;
+    background-color: #be9055;
 }
 
 .footer-section ul {
@@ -69,7 +69,7 @@
 }
 
 .footer-section ul li a:hover {
-    color: #C19A6B;
+    color: #be9055;
 }
 
 .contact-item {
@@ -92,7 +92,7 @@
 }
 
 .social-links a {
-    color: #C19A6B;
+    color: #be9055;
     transition: transform 0.3s, color 0.3s;
 }
 

@@ -53,7 +53,7 @@ const Navbar = () => {
                 {user ? (
                     <div className="logged-user-container" onClick={handleProfileClick} title="My Dashboard">
                         <div className="user-icon-circle">
-                            <UserIcon size={20} color="#daa520" />
+                            <UserIcon size={20} color="#be9055" />
                         </div>
                         <span className="user-display-name">{user.name || 'Account'}</span>
                     </div>
@@ -67,7 +67,7 @@ const Navbar = () => {
 
             {/* Mobile hamburger button */}
             <button className="mobile-menu-btn" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
-                {mobileOpen ? <X size={26} color="#C19A6B" /> : <Menu size={26} color="#C19A6B" />}
+                {mobileOpen ? <X size={26} color="#be9055" /> : <Menu size={26} color="#be9055" />}
             </button>
 
             {/* Mobile drawer */}

@@ -409,14 +409,14 @@ function CustomerBookings(){
             }
 
             if (isSelected) {
-                borderColor = '#C19A6B';
+                borderColor = '#be9055';
             }
 
             days.push(
                 <div 
                     className={`calendar-day ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`} 
                     key={i}
-                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #C19A6B' : `1px solid ${borderColor}`, opacity: isPast || isTooFar ? 0.4 : (hasMySession || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
+                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #be9055' : `1px solid ${borderColor}`, opacity: isPast || isTooFar ? 0.4 : (hasMySession || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
                     onClick={() => { 
                         if (isDisabled) { 
                             if (hasMySession) {
@@ -758,12 +758,12 @@ function CustomerBookings(){
             }
 
             if (isSelected) {
-                borderColor = '#C19A6B';
+                borderColor = '#be9055';
             }
 
             days.push(
                 <div key={i} className={`calendar-day ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
-                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #C19A6B' : `1px solid ${borderColor}`, opacity: isPast || isTooFar || isBeforeOrSameAsCurrentAppt ? 0.4 : (isAlreadyBooked || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
+                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #be9055' : `1px solid ${borderColor}`, opacity: isPast || isTooFar || isBeforeOrSameAsCurrentAppt ? 0.4 : (isAlreadyBooked || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
                     onClick={() => { if (!isDisabled) setRescheduleDate(dateStr); }}
                     title={isAlreadyBooked ? 'You already have a session on this date' : isBeforeOrSameAsCurrentAppt ? 'You can only reschedule to a later date' : isFull ? 'This date is fully booked' : ''}
                 >
@@ -851,7 +851,7 @@ function CustomerBookings(){
                                                             ) : a.payment_status === 'downpayment_paid' ? (
                                                                 <button 
                                                                     className="btn btn-primary" 
-                                                                    style={{padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.3)'}}
+                                                                    style={{padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', background: '#be9055', color: 'white', border: 'none', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.3)'}}
                                                                     onClick={(e) => { e.stopPropagation(); handlePay(a, 'balance'); }}
                                                                 >
                                                                     <CreditCard size={14}/> Pay Balance
@@ -983,7 +983,7 @@ function CustomerBookings(){
                                             {selectedApt.payment_status === 'downpayment_paid' && (
                                                 <button 
                                                     className="btn btn-primary" 
-                                                    style={{padding: '8px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.3)'}}
+                                                    style={{padding: '8px 16px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', background: '#be9055', color: 'white', border: 'none', boxShadow: '0 4px 10px rgba(245, 158, 11, 0.3)'}}
                                                     onClick={() => handlePay(selectedApt, 'balance')}
                                                 >
                                                     <CreditCard size={16}/> Pay Remaining Balance
@@ -1055,7 +1055,7 @@ function CustomerBookings(){
                             {selectedApt.payment_status === 'downpayment_paid' && (
                                 <button 
                                     className="btn btn-primary" 
-                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none' }}
+                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#be9055', color: 'white', border: 'none' }}
                                     onClick={() => handlePay(selectedApt, 'balance')}
                                 >
                                     <CreditCard size={18}/> Pay Remaining Balance
@@ -1170,7 +1170,7 @@ function CustomerBookings(){
                 <div className="modal-overlay">
                     <div className="modal-content large" style={{ width: '95vw', maxWidth: '1050px', height: '92vh', maxHeight: '900px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <div className="modal-header">
-                            <h2 className="customer-st-da70abb8" ><Sparkles size={24} color="#daa520" /> New Booking Request</h2>
+                            <h2 className="customer-st-da70abb8" ><Sparkles size={24} color="#be9055" /> New Booking Request</h2>
                             <button className="close-btn" onClick={closeBookingModal}><X size={24} /></button>
                         </div>
                         <div style={{ padding: '0 24px', paddingTop: '16px' }} >
@@ -1179,7 +1179,7 @@ function CustomerBookings(){
                                     {[1, 2, 3, 4].map(step => (
                                         <div key={step} style={{ 
                                             height: '4px', flex: 1, borderRadius: '2px',
-                                            background: bookingStep >= step ? '#daa520' : '#e2e8f0',
+                                            background: bookingStep >= step ? '#be9055' : '#e2e8f0',
                                             transition: 'all 0.4s ease'
                                         }} />
                                     ))}
@@ -1210,13 +1210,13 @@ function CustomerBookings(){
                                                         }}
                                                         style={{
                                                             padding: '20px', borderRadius: '14px',
-                                                            border: `2px solid ${bookingData.bookingType === opt.key ? '#daa520' : '#e2e8f0'}`,
+                                                            border: `2px solid ${bookingData.bookingType === opt.key ? '#be9055' : '#e2e8f0'}`,
                                                             background: bookingData.bookingType === opt.key ? '#fffdf5' : 'white',
                                                             cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
                                                             boxShadow: bookingData.bookingType === opt.key ? '0 4px 12px rgba(218,165,32,0.15)' : 'none'
                                                         }}
                                                     >
-                                                        <div style={{ color: bookingData.bookingType === opt.key ? '#daa520' : '#64748b', marginBottom: '8px' }}>{opt.icon}</div>
+                                                        <div style={{ color: bookingData.bookingType === opt.key ? '#be9055' : '#64748b', marginBottom: '8px' }}>{opt.icon}</div>
                                                         <span style={{ fontWeight: '700', fontSize: '1rem', color: '#1e293b', display: 'block' }}>{opt.label}</span>
                                                         <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{opt.desc}</span>
                                                     </div>
@@ -1243,7 +1243,7 @@ function CustomerBookings(){
                                                                     onClick={() => setBookingData({...bookingData, followupAppointmentId: apt.id})}
                                                                     style={{
                                                                         padding: '14px 16px', borderRadius: '10px',
-                                                                        border: `2px solid ${isSelected ? '#daa520' : '#e2e8f0'}`,
+                                                                        border: `2px solid ${isSelected ? '#be9055' : '#e2e8f0'}`,
                                                                         background: isSelected ? '#fffdf5' : 'white',
                                                                         cursor: 'pointer', transition: 'all 0.2s',
                                                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
@@ -1257,7 +1257,7 @@ function CustomerBookings(){
                                                                             {apt.service_type} — {new Date(apt.appointment_date).toLocaleDateString()}
                                                                         </span>
                                                                     </div>
-                                                                    {isSelected && <Check size={18} color="#daa520" />}
+                                                                    {isSelected && <Check size={18} color="#be9055" />}
                                                                 </div>
                                                             );
                                                         })}
@@ -1272,7 +1272,7 @@ function CustomerBookings(){
                                                 <label className="customer-st-36716a21" >Select your services</label>
                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                                                     {[
-                                                        { key: 'Tattoo Session', icon: <Sparkles size={20} />, color: '#daa520' },
+                                                        { key: 'Tattoo Session', icon: <Sparkles size={20} />, color: '#be9055' },
                                                         { key: 'Consultation', icon: <MessageSquare size={20} />, color: '#3b82f6' },
                                                         { key: 'Piercing', icon: <Scissors size={20} />, color: '#8b5cf6' }
                                                     ].map(svc => {
@@ -1431,7 +1431,7 @@ function CustomerBookings(){
                                             <div style={{ marginBottom: '20px' }}>
                                                 <p className="customer-st-b943a453" style={{ marginBottom: '10px' }}>What is this consultation for?</p>
                                                 <div style={{ display: 'flex', gap: '12px' }}>
-                                                    {[{ key: 'tattoo', label: 'Tattoo', icon: <Paintbrush size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }, { key: 'piercing', label: 'Piercing', icon: <Gem size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }].map(opt => {
+                                                    {[{ key: 'tattoo', label: 'Tattoo', icon: <Paintbrush size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#be9055' }, { key: 'piercing', label: 'Piercing', icon: <Gem size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#be9055' }].map(opt => {
                                                         const isActive = bookingData.consultationFor.includes(opt.key);
                                                         return (
                                                             <button
@@ -1458,8 +1458,8 @@ function CustomerBookings(){
                                                 <p className="customer-st-b943a453" style={{ marginBottom: '10px', marginTop: '16px' }}>How would you like this consultation?</p>
                                                 <div style={{ display: 'flex', gap: '12px' }}>
                                                     {[
-                                                        { key: 'Face-to-Face', label: 'Face-to-Face', icon: <Users size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' },
-                                                        { key: 'Online', label: 'Online', icon: <Video size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }
+                                                        { key: 'Face-to-Face', label: 'Face-to-Face', icon: <Users size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#be9055' },
+                                                        { key: 'Online', label: 'Online', icon: <Video size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#be9055' }
                                                     ].map(opt => {
                                                         const isActive = bookingData.consultationMethod === opt.key;
                                                         return (
@@ -1489,7 +1489,7 @@ function CustomerBookings(){
                                                         <div style={{ display: 'flex', gap: '10px' }}>
                                                             {['Messenger', 'Instagram'].map(platform => {
                                                                 const isActive = bookingData.onlinePlatform === platform;
-                                                                const color = '#C19A6B';
+                                                                const color = '#be9055';
                                                                 return (
                                                                     <button
                                                                         key={platform} type="button"
@@ -1537,7 +1537,7 @@ function CustomerBookings(){
                                                     {showTattooPlacement && (
                                                         <>
                                                             <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                <Paintbrush size={15} color="#daa520" /> Tattoo Placement
+                                                                <Paintbrush size={15} color="#be9055" /> Tattoo Placement
                                                             </p>
                                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
                                                                 {tattooBodyParts.map(part => {
@@ -1545,8 +1545,8 @@ function CustomerBookings(){
                                                                     return (
                                                                         <button key={part} type="button" onClick={() => togglePlacementItem('placement', part)} style={{
                                                                             padding: '9px 5px', borderRadius: '10px',
-                                                                            border: `1.5px solid ${isSelected ? '#C19A6B' : '#e2e8f0'}`,
-                                                                            background: isSelected ? '#C19A6B' : 'white',
+                                                                            border: `1.5px solid ${isSelected ? '#be9055' : '#e2e8f0'}`,
+                                                                            background: isSelected ? '#be9055' : 'white',
                                                                             color: isSelected ? 'white' : '#1e293b',
                                                                             fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer',
                                                                             transition: 'all 0.2s',
@@ -1576,8 +1576,8 @@ function CustomerBookings(){
                                                                     return (
                                                                         <button key={`p-${part}`} type="button" onClick={() => togglePlacementItem(piercingField, part)} style={{
                                                                             padding: '9px 5px', borderRadius: '10px',
-                                                                            border: `1.5px solid ${isSelected ? '#C19A6B' : '#e2e8f0'}`,
-                                                                            background: isSelected ? '#C19A6B' : 'white',
+                                                                            border: `1.5px solid ${isSelected ? '#be9055' : '#e2e8f0'}`,
+                                                                            background: isSelected ? '#be9055' : 'white',
                                                                             color: isSelected ? 'white' : '#1e293b',
                                                                             fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer',
                                                                             transition: 'all 0.2s',
@@ -1677,8 +1677,8 @@ function CustomerBookings(){
                                                                     if (!isDisabled) setBookingData({...bookingData, startTime: t});
                                                                 }}
                                                                 style={{
-                                                                    padding: '12px', borderRadius: '8px', border: `1px solid ${bookingData.startTime === t ? '#C19A6B' : '#e2e8f0'}`,
-                                                                    background: bookingData.startTime === t ? '#C19A6B' : (isDisabled ? '#f8fafc' : 'white'),
+                                                                    padding: '12px', borderRadius: '8px', border: `1px solid ${bookingData.startTime === t ? '#be9055' : '#e2e8f0'}`,
+                                                                    background: bookingData.startTime === t ? '#be9055' : (isDisabled ? '#f8fafc' : 'white'),
                                                                     color: bookingData.startTime === t ? 'white' : (isDisabled ? '#cbd5e1' : '#1e293b'),
                                                                     textAlign: 'center', cursor: isDisabled ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.9rem',
                                                                     opacity: isDisabled ? 0.6 : 1
@@ -1737,7 +1737,7 @@ function CustomerBookings(){
                                         onClick={handleNextStep}
                                         style={{ 
                                             flex: 1,
-                                            background: '#C19A6B', 
+                                            background: '#be9055', 
                                             color: 'white', 
                                             border: 'none', 
                                             padding: '12px', 
@@ -1797,7 +1797,7 @@ function CustomerBookings(){
                     font-family: 'Inter', sans-serif;
                 }
                 .calendar-day:hover:not(.disabled):not(.selected) { filter: brightness(0.95); }
-                .calendar-day.selected { border: 2px solid #C19A6B !important; box-shadow: 0 0 0 3px rgba(193, 154, 107, 0.2) !important; font-weight: 700; }
+                .calendar-day.selected { border: 2px solid #be9055 !important; box-shadow: 0 0 0 3px rgba(193, 154, 107, 0.2) !important; font-weight: 700; }
                 .calendar-day.disabled { cursor: not-allowed; pointer-events: none; }
                 .fade-in { animation: fadeIn 0.3s ease-in-out; }
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -1939,7 +1939,7 @@ function CustomerBookings(){
                             Prior Consultation Data Found!
                         </h2>
                         <p style={{ color: '#64748b', fontSize: '0.92rem', lineHeight: 1.7, margin: '0 0 20px' }}>
-                            Based on your account email, we found <strong style={{ color: '#C19A6B' }}>{migrationModal.count} consultation request{migrationModal.count > 1 ? 's' : ''}</strong> you made before creating your account. {migrationModal.count > 1 ? 'They have' : 'It has'} been automatically migrated to this account.
+                            Based on your account email, we found <strong style={{ color: '#be9055' }}>{migrationModal.count} consultation request{migrationModal.count > 1 ? 's' : ''}</strong> you made before creating your account. {migrationModal.count > 1 ? 'They have' : 'It has'} been automatically migrated to this account.
                         </p>
                         <div style={{
                             padding: '14px 20px', background: 'rgba(193,154,107,0.08)',
@@ -1954,7 +1954,7 @@ function CustomerBookings(){
                             onClick={() => setMigrationModal({ show: false, count: 0 })}
                             style={{
                                 width: '100%', padding: '14px 24px',
-                                background: 'linear-gradient(135deg, #C19A6B, #a88754)',
+                                background: '#be9055',
                                 color: '#fff', border: 'none', borderRadius: '12px',
                                 fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer',
                                 transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(193,154,107,0.3)',

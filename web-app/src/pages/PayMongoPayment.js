@@ -134,7 +134,7 @@ const PayMongoPayment = () => {
             style={{
                 padding: '20px',
                 borderRadius: '16px',
-                border: `2px solid ${paymentType === optType ? '#C19A6B' : 'rgba(226, 232, 240, 0.5)'}`,
+                border: `2px solid ${paymentType === optType ? '#be9055' : 'rgba(226, 232, 240, 0.5)'}`,
                 backgroundColor: paymentType === optType ? 'rgba(193, 154, 107, 0.05)' : 'white',
                 cursor: 'pointer',
                 marginBottom: '16px',
@@ -166,7 +166,7 @@ const PayMongoPayment = () => {
                                 setErrors({});
                             }
                         }}
-                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: errors.customAmount ? '1px solid #ef4444' : '1px solid #C19A6B' }}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: errors.customAmount ? '1px solid #ef4444' : '1px solid #be9055' }}
                         min={depositPrice}
                     />
                     {errors.customAmount && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.customAmount}</span>}
@@ -178,7 +178,7 @@ const PayMongoPayment = () => {
     return (
         <div style={pageStyles}>
             <div style={cardStyles}>
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: 'linear-gradient(90deg, #1e293b, #C19A6B)' }}></div>
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: '#be9055' }}></div>
                 
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <div style={{ 

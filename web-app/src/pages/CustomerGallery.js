@@ -175,7 +175,7 @@ function CustomerGallery(){
                             className={`tab-btn ${viewMode === 'Favorites' ? 'active' : ''}`}
                             onClick={() => setViewMode('Favorites')}
                         >
-                            <Heart size={16} fill={viewMode === 'Favorites' ? "#C19A6B" : "none"} />
+                            <Heart size={16} fill={viewMode === 'Favorites' ? "#be9055" : "none"} />
                             My Favorites ({favorites.length})
                         </button>
                         <button 

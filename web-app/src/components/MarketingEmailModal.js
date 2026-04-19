@@ -58,7 +58,7 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{
                             width: '40px', height: '40px', borderRadius: '12px',
-                            background: 'linear-gradient(135deg, #C19A6B, #8a6c4a)',
+                            background: '#be9055',
                             display: 'flex', alignItems: 'center', justifyContent: 'center'
                         }}>
                             <Mail size={20} color="#fff" />
@@ -96,7 +96,7 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                             <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b' }}>{result.message}</p>
                             <button onClick={handleClose} style={{
                                 marginTop: '20px', padding: '10px 28px', borderRadius: '10px', border: 'none',
-                                background: '#C19A6B', color: '#000', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem'
+                                background: '#be9055', color: '#000', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem'
                             }}>
                                 Done
                             </button>
@@ -116,7 +116,7 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                                         border: '1px solid #e2e8f0', fontSize: '0.92rem', outline: 'none',
                                         transition: 'border 0.2s', boxSizing: 'border-box'
                                     }}
-                                    onFocus={(e) => e.target.style.borderColor = '#C19A6B'}
+                                    onFocus={(e) => e.target.style.borderColor = '#be9055'}
                                     onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                                 />
                             </div>
@@ -134,7 +134,7 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                                         resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6,
                                         transition: 'border 0.2s', boxSizing: 'border-box'
                                     }}
-                                    onFocus={(e) => e.target.style.borderColor = '#C19A6B'}
+                                    onFocus={(e) => e.target.style.borderColor = '#be9055'}
                                     onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                                 />
                             </div>
@@ -192,7 +192,7 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                                 disabled={!subject.trim() || !body.trim()}
                                 style={{
                                     padding: '10px 24px', borderRadius: '10px', border: 'none',
-                                    background: (!subject.trim() || !body.trim()) ? '#94a3b8' : 'linear-gradient(135deg, #C19A6B, #8a6c4a)',
+                                    background: (!subject.trim() || !body.trim()) ? '#94a3b8' : 'linear-gradient(135deg, #be9055, #8a6c4a)',
                                     color: (!subject.trim() || !body.trim()) ? '#e2e8f0' : '#000',
                                     fontSize: '0.88rem', fontWeight: 700,
                                     cursor: (!subject.trim() || !body.trim()) ? 'not-allowed' : 'pointer',

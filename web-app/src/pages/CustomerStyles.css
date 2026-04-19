@@ -708,7 +708,7 @@
 }
 
 .customer-st-a1410f35 {
-    background-color: #daa520;
+    background-color: #be9055;
     border: none;
     min-width: 180px;
 }
@@ -872,7 +872,7 @@
 
 .customer-st-68632107 {
     flex: 1;
-    background-color: #daa520;
+    background-color: #be9055;
     color: white;
     border: none;
 }
@@ -1238,7 +1238,7 @@
 .premium-submit-btn {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    background: #be9055;
     color: white;
     font-size: 1.1rem;
     font-weight: 700;

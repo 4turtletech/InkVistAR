@@ -10,7 +10,7 @@
     --bg-main: #f8fafc;
     --card-radius: 16px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --accent-gold: #C19A6B;
+    --accent-gold: #be9055;
 }
 
 .portal-container {
@@ -587,7 +587,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
     margin: 0;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #C19A6B;
+    color: #be9055;
     font-family: 'Playfair Display', serif;
 }
 
@@ -696,7 +696,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 
 .tab-btn.active {
     background: #111;
-    color: #C19A6B;
+    color: #be9055;
 }
 
 .image-container {
@@ -743,7 +743,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
     left: 12px;
     background: rgba(17, 17, 17, 0.85);
     backdrop-filter: blur(4px);
-    color: #C19A6B;
+    color: #be9055;
     padding: 6px 12px;
     border-radius: 20px;
     font-size: 0.75rem;
@@ -885,7 +885,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 }
 
 .artist-highlight {
-    color: #C19A6B;
+    color: #be9055;
     font-weight: 700;
 }
 
@@ -985,7 +985,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 .price-label {
     margin: 0;
     font-size: 0.85rem;
-    color: #C19A6B;
+    color: #be9055;
     text-transform: uppercase;
     font-weight: 700;
     letter-spacing: 1px;
@@ -1007,7 +1007,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 .booking-btn {
     width: 100%;
     padding: 18px;
-    background: #C19A6B;
+    background: #be9055;
     color: #111;
     border: none;
     border-radius: 12px;
@@ -1069,7 +1069,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
     width: 40px;
     height: 40px;
     border: 3px solid #f3f3f3;
-    border-top: 3px solid #C19A6B;
+    border-top: 3px solid #be9055;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto 15px;
@@ -1504,7 +1504,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 
 .premium-input-v2:focus, .premium-select-v2:focus {
     background: #fff;
-    border-color: #C19A6B;
+    border-color: #be9055;
     box-shadow: 0 0 0 4px rgba(193, 154, 107, 0.1);
 }
 

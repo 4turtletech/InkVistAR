@@ -53,7 +53,7 @@ const MultiSelectDropdown = ({
                     alignItems: 'center', 
                     cursor: 'pointer',
                     background: '#fff',
-                    borderColor: isOpen ? '#daa520' : '#e2e8f0',
+                    borderColor: isOpen ? '#be9055' : '#e2e8f0',
                     boxShadow: isOpen ? '0 0 0 2px rgba(218, 165, 32, 0.2)' : 'none'
                 }}
             >
@@ -110,8 +110,8 @@ const MultiSelectDropdown = ({
                                     width: '18px',
                                     height: '18px',
                                     borderRadius: '4px',
-                                    border: `1px solid ${isSelected ? '#daa520' : '#cbd5e1'}`,
-                                    background: isSelected ? '#daa520' : '#fff',
+                                    border: `1px solid ${isSelected ? '#be9055' : '#cbd5e1'}`,
+                                    background: isSelected ? '#be9055' : '#fff',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -123,7 +123,7 @@ const MultiSelectDropdown = ({
                                 </div>
                                 <span style={{ 
                                     fontSize: '0.9rem', 
-                                    color: isSelected ? '#daa520' : '#334155',
+                                    color: isSelected ? '#be9055' : '#334155',
                                     fontWeight: isSelected ? '500' : '400'
                                 }}>
                                     {option}

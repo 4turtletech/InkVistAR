@@ -6,7 +6,7 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #C19A6B, #b8860b);
+    background: #be9055;
     color: white;
     border: none;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -110,7 +110,7 @@
 }
 
 .chat-message.user .message-bubble {
-    background-color: #C19A6B;
+    background-color: #be9055;
     color: white;
     border-bottom-right-radius: 5px;
 }

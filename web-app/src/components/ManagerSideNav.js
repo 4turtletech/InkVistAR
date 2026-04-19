@@ -80,7 +80,7 @@ function ManagerSideNav() {
         <aside className={`manager-sidenav ${collapsed ? 'collapsed' : ''}`}>
             <div className="sidenav-header">
                 <div className="logo-container" onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div className="logo-box" style={{ background: 'rgba(193, 154, 107, 0.1)', color: '#C19A6B', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                    <div className="logo-box" style={{ background: 'rgba(193, 154, 107, 0.1)', color: '#be9055', padding: '6px', borderRadius: '8px', display: 'flex' }}>
                         <Building2 size={24} />
                     </div>
                     <span className="logo-text" style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>InkVictus</span>

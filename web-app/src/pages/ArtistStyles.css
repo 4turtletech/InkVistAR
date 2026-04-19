@@ -109,7 +109,7 @@
 }
 
 .artist-calendar-cell.today {
-    border: 2px solid #C19A6B; /* Using the primary bronze */
+    border: 2px solid #be9055; /* Using the primary bronze */
     box-shadow: 0 0 0 4px rgba(193, 154, 107, 0.1);
 }
 
@@ -127,7 +127,7 @@
 }
 
 .artist-calendar-cell.today .artist-calendar-date-number {
-    color: #C19A6B;
+    color: #be9055;
 }
 
 .artist-calendar-event {

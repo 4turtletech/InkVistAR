@@ -315,7 +315,7 @@ function CustomerProfile() {
                                                 </div>
                                                 <label style={{
                                                     position: 'absolute', bottom: '0', right: '0',
-                                                    backgroundColor: '#daa520', color: 'white',
+                                                    backgroundColor: '#be9055', color: 'white',
                                                     padding: '8px', borderRadius: '50%', cursor: 'pointer',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
@@ -335,7 +335,7 @@ function CustomerProfile() {
                                         {/* Section 1: Personal Information */}
                                         <div className="customer-st-11391c33" >
                                             <h3 className="customer-st-001ffef5" >
-                                                <User size={20} color="#daa520" />
+                                                <User size={20} color="#be9055" />
                                                 Personal Information
                                             </h3>
                                             <div className="customer-st-e66d54ba" >
@@ -372,7 +372,7 @@ function CustomerProfile() {
                                                             style={{
                                                                 position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
                                                                 background: 'none', border: 'none', cursor: 'pointer',
-                                                                color: '#daa520', display: 'flex', alignItems: 'center'
+                                                                color: '#be9055', display: 'flex', alignItems: 'center'
                                                             }}
                                                         >
                                                             <Edit2 size={15} />
@@ -448,7 +448,7 @@ function CustomerProfile() {
                                         <div className="customer-st-654b1414" >
                                             <div className="customer-st-cea57272" >
                                                 <h3 className="customer-st-81119ad0" >
-                                                    <Lock size={20} color="#daa520" />
+                                                    <Lock size={20} color="#be9055" />
                                                     Password & Security
                                                 </h3>
                                                 <button
@@ -456,7 +456,7 @@ function CustomerProfile() {
                                                     onClick={() => setShowChangePassword(!showChangePassword)}
                                                     style={{
                                                         padding: '8px 16px',
-                                                        backgroundColor: showChangePassword ? '#f1f5f9' : '#daa520',
+                                                        backgroundColor: showChangePassword ? '#f1f5f9' : '#be9055',
                                                         color: showChangePassword ? '#475569' : 'white',
                                                         border: 'none',
                                                         borderRadius: '6px',
@@ -622,7 +622,7 @@ function CustomerProfile() {
                             {['enterEmail', 'enterOtp'].map((s, i) => (
                                 <div key={s} style={{
                                     flex: 1, height: '3px', borderRadius: '2px',
-                                    background: (emailModal.step === 'enterOtp' ? true : i === 0) ? '#daa520' : '#e2e8f0'
+                                    background: (emailModal.step === 'enterOtp' ? true : i === 0) ? '#be9055' : '#e2e8f0'
                                 }} />
                             ))}
                         </div>
@@ -683,7 +683,7 @@ function CustomerProfile() {
                                     }}
                                     style={{
                                         width: '100%', padding: '11px', borderRadius: '8px',
-                                        backgroundColor: emailModal.sending ? '#f1c44a' : '#daa520',
+                                        backgroundColor: emailModal.sending ? '#f1c44a' : '#be9055',
                                         color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.9rem',
                                         cursor: emailModal.sending ? 'not-allowed' : 'pointer', transition: 'background 0.2s'
                                     }}
@@ -694,7 +694,7 @@ function CustomerProfile() {
                         ) : (
                             <>
                                 <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '24px', lineHeight: 1.6 }}>
-                                    Enter the 6-digit code sent to <strong style={{ color: '#1e293b' }}>{profile.email}</strong> to confirm changing your address to <strong style={{ color: '#daa520' }}>{emailModal.newEmail}</strong>.
+                                    Enter the 6-digit code sent to <strong style={{ color: '#1e293b' }}>{profile.email}</strong> to confirm changing your address to <strong style={{ color: '#be9055' }}>{emailModal.newEmail}</strong>.
                                 </p>
                                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '16px' }}>
                                     {emailModal.otp.map((digit, idx) => (
@@ -735,14 +735,14 @@ function CustomerProfile() {
                                                 fontSize: '1.4rem',
                                                 fontWeight: '700',
                                                 borderRadius: '10px',
-                                                border: digit ? '2px solid #daa520' : (emailModal.otpError ? '1.5px solid #ef4444' : '1.5px solid #e2e8f0'),
+                                                border: digit ? '2px solid #be9055' : (emailModal.otpError ? '1.5px solid #ef4444' : '1.5px solid #e2e8f0'),
                                                 backgroundColor: 'white',
                                                 color: '#1e293b',
                                                 outline: 'none',
                                                 transition: 'border-color 0.2s',
                                                 boxSizing: 'border-box'
                                             }}
-                                            onFocus={(e) => e.target.style.borderColor = '#daa520'}
+                                            onFocus={(e) => e.target.style.borderColor = '#be9055'}
                                             onBlur={(e) => { if (!digit) e.target.style.borderColor = emailModal.otpError ? '#ef4444' : '#e2e8f0'; }}
                                         />
                                     ))}
@@ -778,7 +778,7 @@ function CustomerProfile() {
                                                 }
                                             }}
                                             style={{
-                                                background: 'none', border: 'none', color: '#daa520', fontSize: '0.8rem',
+                                                background: 'none', border: 'none', color: '#be9055', fontSize: '0.8rem',
                                                 fontWeight: 600, cursor: emailModal.resending ? 'not-allowed' : 'pointer',
                                                 padding: 0, textDecoration: 'underline'
                                             }}
@@ -869,7 +869,7 @@ function CustomerProfile() {
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             margin: '0 auto 20px'
                         }}>
-                            <CheckCircle size={32} style={{ color: '#C19A6B' }} />
+                            <CheckCircle size={32} style={{ color: '#be9055' }} />
                         </div>
                         <h2 style={{ color: '#1e293b', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 8px' }}>Security Update Complete</h2>
                         <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 28px' }}>
@@ -885,7 +885,7 @@ function CustomerProfile() {
                             style={{
                                 width: '100%',
                                 padding: '12px 24px',
-                                backgroundColor: '#C19A6B',
+                                backgroundColor: '#be9055',
                                 color: '#fff',
                                 border: 'none',
                                 borderRadius: '10px',
@@ -896,7 +896,7 @@ function CustomerProfile() {
                                 fontFamily: "'Inter', sans-serif"
                             }}
                             onMouseEnter={e => e.target.style.backgroundColor = '#b08a5c'}
-                            onMouseLeave={e => e.target.style.backgroundColor = '#C19A6B'}
+                            onMouseLeave={e => e.target.style.backgroundColor = '#be9055'}
                         >
                             Go to Login
                         </button>

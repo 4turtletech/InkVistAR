@@ -144,20 +144,20 @@ const Gallery = () => {
           <div className="artist-filter-badge" style={{ 
             margin: '10px 0 20px', 
             background: 'rgba(193, 154, 107, 0.1)', 
-            border: '1px solid #C19A6B',
+            border: '1px solid #be9055',
             padding: '8px 20px',
             borderRadius: '50px',
             display: 'inline-flex',
             alignItems: 'center',
             gap: '12px',
-            color: '#C19A6B',
+            color: '#be9055',
             fontWeight: '600'
           }}>
             <span>Showing works by {selectedArtist.name}</span>
             <button 
               onClick={() => navigate('/gallery')}
               style={{ 
-                background: '#C19A6B', 
+                background: '#be9055', 
                 border: 'none', 
                 color: 'black', 
                 borderRadius: '50%', 
@@ -186,9 +186,9 @@ const Gallery = () => {
                 padding: '8px 20px',
                 paddingRight: '40px',
                 borderRadius: '50px',
-                border: '1px solid #C19A6B',
+                border: '1px solid #be9055',
                 background: '#1a1a1a',
-                color: '#C19A6B',
+                color: '#be9055',
                 fontSize: '0.85rem',
                 fontWeight: '600',
                 cursor: 'pointer',

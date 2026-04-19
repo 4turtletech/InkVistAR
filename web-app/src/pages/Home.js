@@ -194,7 +194,7 @@ function Home() {
                             <p className="matrix-text">
                                 Every session is designed to be an experience worth attending, set in a professional and relaxing atmosphere that elevates what getting a tattoo stands for.
                             </p>
-                            <button onClick={() => navigate('/gallery')} className="btn-gold-luxury" style={{ marginTop: '1rem', background: 'transparent', border: '1px solid #C19A6B', color: '#C19A6B' }}>
+                            <button onClick={() => navigate('/gallery')} className="btn-gold-luxury" style={{ marginTop: '1rem', background: 'transparent', border: '1px solid #be9055', color: '#be9055' }}>
                                 View Gallery
                             </button>
                         </div>

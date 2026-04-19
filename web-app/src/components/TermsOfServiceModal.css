@@ -50,7 +50,7 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    color: #C19A6B;
+    color: #be9055;
 }
 
 .tos-header-brand h2 {
@@ -64,7 +64,7 @@
 .tos-header-brand p {
     margin: 2px 0 0;
     font-size: 0.78rem;
-    color: #C19A6B;
+    color: #be9055;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -127,7 +127,7 @@
 }
 
 .tos-preamble strong {
-    color: #C19A6B;
+    color: #be9055;
 }
 
 /* Clauses */
@@ -168,7 +168,7 @@
     width: 20px;
     height: 20px;
     border-radius: 6px;
-    accent-color: #C19A6B;
+    accent-color: #be9055;
     cursor: pointer;
     flex-shrink: 0;
     margin-top: 1px;
@@ -212,7 +212,7 @@
     padding: 10px 24px;
     border-radius: 10px;
     border: none;
-    background: #C19A6B;
+    background: #be9055;
     color: #000;
     font-size: 0.88rem;
     font-weight: 700;

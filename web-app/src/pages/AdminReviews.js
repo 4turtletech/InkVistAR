@@ -52,8 +52,8 @@ function AdminReviews() {
                     <Star 
                         key={star} 
                         size={14} 
-                        color={rating >= star ? '#C19A6B' : '#e2e8f0'} 
-                        fill={rating >= star ? '#C19A6B' : 'transparent'} 
+                        color={rating >= star ? '#be9055' : '#e2e8f0'} 
+                        fill={rating >= star ? '#be9055' : 'transparent'} 
                     />
                 ))}
                 <span style={{ marginLeft: '6px', fontWeight: 600, color: '#475569', fontSize: '0.9rem' }}>{rating}.0</span>
@@ -71,7 +71,7 @@ function AdminReviews() {
                             <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Approve or reject customer reviews before they appear on artist pages.</p>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'rgba(193, 154, 107, 0.1)', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, color: '#97754b' }}>
-                            <Star size={14} fill="#C19A6B" color="#C19A6B" /> {pendingCount} Pending
+                            <Star size={14} fill="#be9055" color="#be9055" /> {pendingCount} Pending
                         </div>
                     </div>
                 </div>
@@ -80,7 +80,7 @@ function AdminReviews() {
                 {/* Tab Navigation */}
                 <div style={{ display: 'flex', gap: '4px', padding: '0 24px', marginBottom: '24px' }}>
                     {[
-                        { key: 'pending', label: 'Pending Review', count: pendingCount, color: '#C19A6B' },
+                        { key: 'pending', label: 'Pending Review', count: pendingCount, color: '#be9055' },
                         { key: 'approved', label: 'Approved', count: approvedCount, color: '#10b981' },
                         { key: 'rejected', label: 'Rejected', count: rejectedCount, color: '#ef4444' }
                     ].map(tab => (

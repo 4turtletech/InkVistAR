@@ -88,7 +88,7 @@ const PublicArtistProfile = () => {
                         </span>
                     </div>
                     
-                    <Link to={`/book`} className="premium-btn highlight" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', background: '#daa520', color: 'white', padding: '12px 30px', borderRadius: '30px', fontWeight: 'bold' }}>
+                    <Link to={`/book`} className="premium-btn highlight" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', background: '#be9055', color: 'white', padding: '12px 30px', borderRadius: '30px', fontWeight: 'bold' }}>
                         Book With Me <ArrowRight size={18} />
                     </Link>
                 </div>
