@@ -338,6 +338,17 @@ function ArtistSessions() {
             addAuditEntry('Session Started');
         }
         if (newStatus === 'completed') {
+            // Enforce before & after photo uploads before allowing completion
+            if (!sessionData.beforePhoto) {
+                showAlert('Photo Required', 'Please upload a "Before" photo documenting the client\'s state before the procedure. Go to the Documentation tab to upload.', 'warning');
+                setSessionTab('documentation');
+                return;
+            }
+            if (!sessionData.afterPhoto) {
+                showAlert('Photo Required', 'Please upload an "After" photo documenting the completed work. Go to the Documentation tab to upload.', 'warning');
+                setSessionTab('documentation');
+                return;
+            }
             setIsCompletingSession(true);
         } else {
             await processStatusUpdate(newStatus);
@@ -653,9 +664,27 @@ function ArtistSessions() {
             {sessionModal.mounted && activeSession && (
                 <div className={`modal-overlay ${sessionModal.visible ? 'open' : ''}`} onClick={closeSessionModal}>
                     <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                            const myRole = activeSession.assigned_role || 'primary';
+                            const isDual = ['tattoo', 'piercing', 'both'].includes(myRole) && activeSession.secondary_artist_id;
+                            const roleBadge = isDual ? (
+                                myRole === 'both' ? { icon: '🎨💎', label: 'Tattoo & Piercing', bg: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', color: '#fff' }
+                                : myRole === 'piercing' ? { icon: '💎', label: 'Piercing Session', bg: 'linear-gradient(135deg, #a78bfa, #7c3aed)', color: '#fff' }
+                                : { icon: '🎨', label: 'Tattoo Session', bg: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff' }
+                            ) : null;
+                            const isPiercingRole = myRole === 'piercing';
+                            return (
+                            <>
                         <div className="modal-header">
                             <div>
-                                <h2 style={{ margin: 0 }}>Active Session: {activeSession.client_name}</h2>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                    <h2 style={{ margin: 0 }}>Active Session: {activeSession.client_name}</h2>
+                                    {roleBadge && (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 14px', borderRadius: '20px', background: roleBadge.bg, color: roleBadge.color, fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                                            {roleBadge.icon} {roleBadge.label}
+                                        </span>
+                                    )}
+                                </div>
                                 <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.9rem' }}>Project: {activeSession.design_title}</p>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -707,7 +736,7 @@ function ArtistSessions() {
                                             </div>
                                         )}
                                         <div className="artist-session-card">
-                                            <label className="artist-session-label">Before State</label>
+                                            <label className="artist-session-label">{isPiercingRole ? 'Pre-Piercing' : 'Before State'} <span style={{ color: '#ef4444' }}>*</span></label>
                                             <div className="artist-session-photo-container">
                                                 {sessionData.beforePhoto ? (
                                                     <img src={sessionData.beforePhoto} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -720,7 +749,7 @@ function ArtistSessions() {
                                             </div>
                                         </div>
                                         <div style={{ background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '15px', textAlign: 'center' }}>
-                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>Post Procedure</label>
+                                            <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>{isPiercingRole ? 'Post-Piercing' : 'Post Procedure'} <span style={{ color: '#ef4444' }}>*</span></label>
                                             <div style={{ height: '180px', borderRadius: '12px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 {sessionData.afterPhoto ? (
                                                     <img src={sessionData.afterPhoto} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -925,6 +954,9 @@ function ArtistSessions() {
                                 <button className="btn btn-secondary" onClick={closeSessionModal}>Close</button>
                             </div>
                         </div>
+                            </>
+                            );
+                        })()}
                     </div>
                 </div>
             )}

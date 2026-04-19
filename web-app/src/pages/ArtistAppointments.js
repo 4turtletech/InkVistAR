@@ -618,11 +618,26 @@ function ArtistAppointments() {
                                         onClose={() => setConfirmModal({ ...confirmModal, visible: false })}
                                     />
 
-                                    {selectedAppointment && (
+                                    {selectedAppointment && (() => {
+                                        const myRole = selectedAppointment.assigned_role || 'primary';
+                                        const isDual = ['tattoo', 'piercing', 'both'].includes(myRole) && selectedAppointment.secondary_artist_id;
+                                        const roleBadge = isDual ? (
+                                            myRole === 'both' ? { icon: '🎨💎', label: 'Tattoo & Piercing Staff', bg: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', color: '#fff' }
+                                            : myRole === 'piercing' ? { icon: '💎', label: 'Piercing Staff', bg: 'linear-gradient(135deg, #a78bfa, #7c3aed)', color: '#fff' }
+                                            : { icon: '🎨', label: 'Tattoo Staff', bg: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff' }
+                                        ) : null;
+                                        return (
                                         <div className="modal-overlay" onClick={() => setSelectedAppointment(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)' }}>
                                             <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: '600px', background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.6)', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
                                                 <div style={{ padding: '20px', borderBottom: '1px solid rgba(226, 232, 240, 0.6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <h3 style={{ margin: 0, color: '#1e293b' }}>Appointment {getDisplayCode(selectedAppointment.booking_code, selectedAppointment.id)}</h3>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <h3 style={{ margin: 0, color: '#1e293b' }}>Appointment {getDisplayCode(selectedAppointment.booking_code, selectedAppointment.id)}</h3>
+                                                        {roleBadge && (
+                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 12px', borderRadius: '20px', background: roleBadge.bg, color: roleBadge.color, fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                                                                {roleBadge.icon} {roleBadge.label}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <button onClick={() => setSelectedAppointment(null)} className="close-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
                                                 </div>
                                                 <div className="artist-modal-body-scroll" style={{ padding: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
@@ -733,7 +748,7 @@ function ArtistAppointments() {
                                                     {selectedAppointment.status === 'completed' && selectedAppointment.after_photo && (
                                                         <div style={{ background: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(10px)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.8)', marginTop: '20px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)' }}>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>Session Audit (Completed Tattoo)</p>
+                                                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>Session Audit ({myRole === 'piercing' ? 'Completed Piercing' : 'Completed Tattoo'})</p>
                                                             </div>
                                                             <img
                                                                 src={selectedAppointment.after_photo.startsWith('data:') ? selectedAppointment.after_photo : (selectedAppointment.after_photo.startsWith('http') ? selectedAppointment.after_photo : `${API_URL}${selectedAppointment.after_photo}`)}
@@ -793,7 +808,7 @@ function ArtistAppointments() {
                                                 </div>
                                             </div>
                                         </div>
-                                    )}
+                                    ); })()}
                                 </>
                             )}
                         </>

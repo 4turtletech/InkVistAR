@@ -456,8 +456,13 @@ function AdminAppointments() {
     const handleSave = async () => {
         const isConsultation = formData.serviceType === 'Consultation';
         const isTattooSession = !isConsultation;
+        const isDualService = formData.serviceType === 'Tattoo + Piercing';
+        // Detect dual-topic consultation by checking notes for piercing references
+        const isDualConsultation = isConsultation && (formData.notes || '').toLowerCase().includes('piercing');
+        const requiresDualStaff = isDualService || isDualConsultation;
 
         const hasNoArtist = !formData.artistId || String(formData.artistId) === 'null' || String(formData.artistId) === 'undefined' || String(formData.artistId) === '0' || String(formData.artistId).trim() === '' || !artists.some(a => String(a.id) === String(formData.artistId));
+        const hasNoSecondaryArtist = !formData.secondaryArtistId || String(formData.secondaryArtistId) === 'null' || String(formData.secondaryArtistId) === 'undefined' || String(formData.secondaryArtistId) === '0' || String(formData.secondaryArtistId).trim() === '' || !artists.some(a => String(a.id) === String(formData.secondaryArtistId));
 
         // Basic required fields: Client + Date (+ Time for consultations)
         if (!formData.clientId || !formData.date || (isConsultation && !formData.time)) {
@@ -469,7 +474,15 @@ function AdminAppointments() {
         // Tattoo Session specific validations - always enforced
         if (isTattooSession && hasNoArtist) {
             setModalTab('details');
-            showAlert('Artist Required', 'A Tattoo Session requires a Resident Artist to be assigned. Please select an artist in the Details tab.', 'warning');
+            showAlert('Staff Required', 'This session requires a Staff member to be assigned. Please select a staff member in the Details tab.', 'warning');
+            return;
+        }
+
+        // Dual-service validations - require both staff members
+        if (requiresDualStaff && hasNoSecondaryArtist) {
+            setModalTab('details');
+            const label = isDualService ? 'Tattoo + Piercing' : 'dual-topic Consultation';
+            showAlert('Piercing Staff Required', `A ${label} session requires both a Primary Staff and a Piercing Staff to be assigned. You may select the same person for both roles if they handle both services.`, 'warning');
             return;
         }
 
@@ -1338,21 +1351,40 @@ function AdminAppointments() {
                                         <div className="admin-st-d295c8d6">
                                             <div>
                                                 <label className="premium-input-label">Staff Assignment</label>
+                                                {(() => {
+                                                    const isDualService = formData.serviceType === 'Tattoo + Piercing';
+                                                    const isDualConsultation = formData.serviceType === 'Consultation' && (formData.notes || '').toLowerCase().includes('piercing');
+                                                    const requiresDualStaff = isDualService || isDualConsultation;
+                                                    const primaryLabel = isDualService ? 'Tattoo Staff *' : 'Primary Staff *';
+                                                    const secondaryLabel = requiresDualStaff
+                                                        ? (isDualService ? 'Piercing Staff *' : 'Piercing Consultation Staff *')
+                                                        : 'Secondary Staff';
+                                                    return (
                                                 <div className="admin-st-efc8b70e">
                                                     <div className="admin-st-fefecdf0">
                                                         <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Primary Artist *</label>
+                                                            <label className="admin-st-b8618eb2">{primaryLabel}</label>
                                                             <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2">
-                                                                <option value="">Select Artist</option>
-                                                                {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                                                <option value="">Select Staff</option>
+                                                                {artists.map(a => <option key={a.id} value={a.id}>{a.name}{a.specialization ? ` — ${a.specialization}` : ''}</option>)}
                                                             </select>
                                                         </div>
                                                         <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Secondary Artist {selectedAppointment?.status === 'completed' && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>(Locked)</span>}</label>
-                                                            <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2" disabled={selectedAppointment?.status === 'completed'}>
-                                                                <option value="">None (Solo)</option>
-                                                                {artists.filter(a => a.id != formData.artistId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                                            <label className="admin-st-b8618eb2">
+                                                                {secondaryLabel}
+                                                                {selectedAppointment?.status === 'completed' && <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginLeft: '6px' }}>(Locked)</span>}
+                                                            </label>
+                                                            <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2" disabled={selectedAppointment?.status === 'completed'}
+                                                                style={requiresDualStaff && !formData.secondaryArtistId ? { borderColor: '#f59e0b', boxShadow: '0 0 0 2px rgba(245,158,11,0.15)' } : {}}
+                                                            >
+                                                                <option value="">{requiresDualStaff ? 'Select Staff (Required)' : 'None (Solo)'}</option>
+                                                                {artists.map(a => <option key={a.id} value={a.id}>{a.name}{a.specialization ? ` — ${a.specialization}` : ''}</option>)}
                                                             </select>
+                                                            {requiresDualStaff && (
+                                                                <span style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 600, marginTop: '4px', display: 'block' }}>
+                                                                    ⚠ {isDualService ? 'Tattoo + Piercing' : 'Dual-topic consultation'} requires both staff. Same person may be selected for both roles.
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     {formData.secondaryArtistId && (
@@ -1363,6 +1395,8 @@ function AdminAppointments() {
                                                         </div>
                                                     )}
                                                 </div>
+                                                    );
+                                                })()}
                                             </div>
 
                                             {!selectedAppointment && (

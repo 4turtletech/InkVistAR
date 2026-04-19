@@ -2541,14 +2541,20 @@ app.get('/api/artist/:artistId/appointments', (req, res) => {
       u.name as client_name, 
       u.email as client_email, 
       ar.commission_rate,
-      (SELECT COALESCE(SUM(sm.quantity * i.cost), 0) FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ap.id AND sm.status != 'released') as total_material_cost
+      (SELECT COALESCE(SUM(sm.quantity * i.cost), 0) FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ap.id AND sm.status != 'released') as total_material_cost,
+      CASE
+        WHEN ap.artist_id = ? AND ap.secondary_artist_id = ? THEN 'both'
+        WHEN ap.artist_id = ? THEN 'tattoo'
+        WHEN ap.secondary_artist_id = ? THEN 'piercing'
+        ELSE 'primary'
+      END as assigned_role
     FROM appointments ap
     JOIN users u ON ap.customer_id = u.id
     LEFT JOIN artists ar ON ap.artist_id = ar.user_id
-    WHERE ap.artist_id = ? AND ap.is_deleted = 0
+    WHERE (ap.artist_id = ? OR ap.secondary_artist_id = ?) AND ap.is_deleted = 0
   `;
 
-  const params = [artistId];
+  const params = [artistId, artistId, artistId, artistId, artistId, artistId];
 
   if (status) {
     query += ' AND ap.status = ?';
