@@ -318,7 +318,7 @@ function AnalyticsAuditModal({
                                                 <Cell key={i} fill={RAINBOW_PALETTE[i % RAINBOW_PALETTE.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v) => ['appointments', 'completion', 'users'].includes(auditModal.type) ? v : `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} />
+                                        <Tooltip formatter={(v) => ['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? v : `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -333,7 +333,7 @@ function AnalyticsAuditModal({
                                                 {b.name}
                                             </td>
                                             <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                                                {['appointments', 'completion', 'users'].includes(auditModal.type) ? b.value : `₱${Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
+                                                {['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? `${b.value} bookings` : `₱${Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
                                             </td>
                                         </tr>
                                     ))}
@@ -343,7 +343,7 @@ function AnalyticsAuditModal({
                                         <tr>
                                             <td style={{ fontWeight: 700 }}>Total</td>
                                             <td style={{ textAlign: 'right', fontWeight: 700, color: brandColor }}>
-                                                {['appointments', 'completion', 'users'].includes(auditModal.type) ? auditModal.data.total : `₱${Number(auditModal.data.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
+                                                {['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? auditModal.data.total : `₱${Number(auditModal.data.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
                                             </td>
                                         </tr>
                                     </tfoot>

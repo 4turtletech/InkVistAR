@@ -150,6 +150,14 @@ function AdminAnalytics() {
                 title = 'Inventory Consumption Audit';
                 data = { list: analytics.inventory, source: 'inventory_transactions table (type=out)' };
                 break;
+            case 'styles':
+                title = 'Popular Styles — Booking Categories';
+                data = {
+                    breakdown: analytics.styles.map(s => ({ name: s.name, value: s.count })),
+                    total: analytics.styles.reduce((sum, s) => sum + (s.count || 0), 0),
+                    source: 'portfolio_works categories + appointment service types'
+                };
+                break;
             case 'completion':
                 title = 'Completion Rate Audit';
                 data = {
@@ -288,24 +296,36 @@ function AdminAnalytics() {
 
                         {/* ═══════════════ CHARTS ROW 1: Trend (wide left) + Sources (narrow right) ═══════════════ */}
                         <div className="analytics-dashboard-layout">
-                            <div className="card glass-card card-colspan-2">
+                            <div className="card glass-card card-colspan-2" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer' }}>
                                 <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Trend ({timeframeLabel})</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     <ResponsiveContainer>
                                         <BarChart data={analytics.revenue.chart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                            <XAxis dataKey="month" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
-                                            <YAxis tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
-                                            <Tooltip />
-                                            <Legend wrapperStyle={{ color: '#171516' }} />
-                                            <Bar dataKey="value" name="Revenue" fill={RAINBOW_PALETTE[0]} radius={[6, 6, 0, 0]} />
-                                            <Bar dataKey="appointments" name="Appointments" fill={RAINBOW_PALETTE[2]} radius={[6, 6, 0, 0]} opacity={0.7} />
+                                            <defs>
+                                                <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.95} />
+                                                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0.7} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                            <XAxis dataKey="month" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
+                                            <YAxis tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+                                            <Tooltip
+                                                cursor={{ fill: 'rgba(99, 102, 241, 0.06)' }}
+                                                contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '10px 14px', fontSize: '0.85rem' }}
+                                                formatter={(value, name) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Revenue']}
+                                                labelFormatter={(label, payload) => {
+                                                    const appts = payload && payload[0] ? payload[0].payload.appointments : 0;
+                                                    return `${label} — ${appts} appointment${appts !== 1 ? 's' : ''}`;
+                                                }}
+                                            />
+                                            <Bar dataKey="value" name="Revenue" fill="url(#revenueGradient)" radius={[8, 8, 0, 0]} barSize={48} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
                             </div>
 
-                            <div className="card glass-card card-colspan-1">
+                            <div className="card glass-card card-colspan-1" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer' }}>
                                 <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Sources</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     {analytics.revenue.breakdown.length > 0 ? (
@@ -327,7 +347,7 @@ function AdminAnalytics() {
 
                         {/* ═══════════════ CHARTS ROW 2: Styles (narrow left) + Artists (wide right) — REVERSED ═══════════════ */}
                         <div className="analytics-dashboard-layout reverse">
-                            <div className="card glass-card card-colspan-1">
+                            <div className="card glass-card card-colspan-1" onClick={() => openAuditModal('styles')} style={{ cursor: 'pointer' }}>
                                 <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Popular Styles</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     {analytics.styles.length > 0 ? (
@@ -346,7 +366,7 @@ function AdminAnalytics() {
                                 </div>
                             </div>
 
-                            <div className="card glass-card card-colspan-2">
+                            <div className="card glass-card card-colspan-2" onClick={() => openAuditModal('artists')} style={{ cursor: 'pointer' }}>
                                 <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Top Artists by Revenue</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     {analytics.artists.length > 0 ? (
@@ -370,7 +390,7 @@ function AdminAnalytics() {
 
                         {/* ═══════════════ CHARTS ROW 3: Inventory (wide left) + Appointments (narrow right) ═══════════════ */}
                         <div className="analytics-dashboard-layout">
-                            <div className="card glass-card card-colspan-2">
+                            <div className="card glass-card card-colspan-2" onClick={() => openAuditModal('inventory')} style={{ cursor: 'pointer' }}>
                                 <h2><Package size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Inventory Consumption</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     {analytics.inventory.length > 0 ? (
@@ -413,7 +433,7 @@ function AdminAnalytics() {
                                 </div>
                             </div>
 
-                            <div className="card glass-card card-colspan-1">
+                            <div className="card glass-card card-colspan-1" onClick={() => openAuditModal('appointments')} style={{ cursor: 'pointer' }}>
                                 <h2><Calendar size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Appointment Breakdown</h2>
                                 <div style={{ width: '100%', height: 280 }}>
                                     <ResponsiveContainer>

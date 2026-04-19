@@ -6394,14 +6394,16 @@ app.get('/api/admin/analytics', (req, res) => {
                 chartDataMap[sortKey] = { month: monthStr, sort_key: sortKey, appointments: 0, value: 0 };
               }
 
-              // Merge actual DB data
+              // Merge actual DB data — only for months that exist in our scaffold (no future months)
               trendRes.forEach(t => {
-                chartDataMap[t.sort_key] = {
-                  month: t.month,
-                  sort_key: t.sort_key,
-                  appointments: t.appointments || 0,
-                  value: Number(t.value) || 0
-                };
+                if (chartDataMap[t.sort_key]) {
+                  chartDataMap[t.sort_key] = {
+                    month: t.month,
+                    sort_key: t.sort_key,
+                    appointments: t.appointments || 0,
+                    value: Number(t.value) || 0
+                  };
+                }
               });
 
               // Convert back to array and sort chronologically
