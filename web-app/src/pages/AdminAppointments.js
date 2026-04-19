@@ -71,22 +71,19 @@ function AdminAppointments() {
     };
 
     const closeModal = (skipDirtyCheck = false) => {
-        if (!skipDirtyCheck && initialFormDataRef.current) {
-            const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
-            if (hasChanges) {
-                setConfirmDialog({
-                    isOpen: true,
-                    title: 'Unsaved Changes',
-                    message: 'You have unsaved changes. Are you sure you want to close? All changes will be lost.',
-                    type: 'warning',
-                    isAlert: false,
-                    onConfirm: () => {
-                        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-                        closeModal(true);
-                    }
-                });
-                return;
-            }
+        if (!skipDirtyCheck) {
+            setConfirmDialog({
+                isOpen: true,
+                title: 'Unsaved Changes',
+                message: 'Any unsaved changes will be lost. Are you sure you want to close?',
+                type: 'warning',
+                isAlert: false,
+                onConfirm: () => {
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                    closeModal(true);
+                }
+            });
+            return;
         }
         setAppointmentModal(prev => ({ ...prev, visible: false }));
         setTimeout(() => {
