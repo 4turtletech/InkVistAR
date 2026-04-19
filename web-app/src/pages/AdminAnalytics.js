@@ -301,12 +301,6 @@ function AdminAnalytics() {
                                 <div style={{ width: '100%', height: 280 }}>
                                     <ResponsiveContainer>
                                         <BarChart data={analytics.revenue.chart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                            <defs>
-                                                <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.95} />
-                                                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0.7} />
-                                                </linearGradient>
-                                            </defs>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                                             <XAxis dataKey="month" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
                                             <YAxis tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
@@ -319,7 +313,7 @@ function AdminAnalytics() {
                                                     return `${label} — ${appts} appointment${appts !== 1 ? 's' : ''}`;
                                                 }}
                                             />
-                                            <Bar dataKey="value" name="Revenue" fill="url(#revenueGradient)" radius={[8, 8, 0, 0]} barSize={48} />
+                                            <Bar dataKey="value" name="Revenue" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={48} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>

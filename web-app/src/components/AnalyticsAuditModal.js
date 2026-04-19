@@ -172,14 +172,14 @@ function AnalyticsAuditModal({
             <div style={{ marginTop: '16px', borderTop: '1px solid rgba(226,232,240,0.15)', paddingTop: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '12px', flexWrap: 'wrap' }}>
                     <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>{getSecondTabLabel()}</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(241,245,249,0.08)', border: '1px solid rgba(226,232,240,0.15)', borderRadius: '8px', padding: '4px 10px' }}>
-                        <Search size={14} color={textSecondary} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '8px 14px', minWidth: '220px' }}>
+                        <Search size={16} color="#64748b" />
                         <input
                             type="text"
                             placeholder="Search logs..."
                             value={auditSearch}
                             onChange={e => handleSearchChange(e.target.value)}
-                            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.8rem', color: textPrimary, width: '140px' }}
+                            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '0.85rem', color: textPrimary, width: '100%' }}
                         />
                     </div>
                 </div>

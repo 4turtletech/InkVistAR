@@ -1,8 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 import { RECAPTCHA_SITE_KEY } from './config';
 import './App.css';
 import './styles/premium-transitions.css';
+import { useEffect } from 'react';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Artists from './pages/Artists';
@@ -53,6 +54,19 @@ import PayMongoPayment from './pages/PayMongoPayment';
 import CustomerInvoice from './pages/CustomerInvoice';
 
 
+// Hide reCAPTCHA badge on pages that don't use it
+const RECAPTCHA_VISIBLE_PATHS = ['/', '/login', '/register', '/contact', '/book', '/admin'];
+function RecaptchaBadgeController() {
+    const location = useLocation();
+    useEffect(() => {
+        const badge = document.querySelector('.grecaptcha-badge');
+        if (badge) {
+            badge.style.visibility = RECAPTCHA_VISIBLE_PATHS.includes(location.pathname) ? 'visible' : 'hidden';
+        }
+    }, [location.pathname]);
+    return null;
+}
+
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const user = JSON.parse(localStorage.getItem('user'));
     
@@ -90,6 +104,7 @@ function App() {
     <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
       <div className="App">
         <Router>
+          <RecaptchaBadgeController />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/artists" element={<Artists />} />
