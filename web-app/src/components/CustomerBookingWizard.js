@@ -1110,7 +1110,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 </div>
             </div>
 
-            <div style={{ flex: 1, minHeight: 0, paddingRight: '10px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: 0, paddingRight: '10px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStepPlacement()} {/* Step 2: Placement */}
                 {step === 3 && renderStepScheduling()} {/* Step 3: Scheduling */}
