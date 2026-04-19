@@ -9,15 +9,12 @@ import { io } from 'socket.io-client';
 import './AdminChat.css';
 
 function AdminChat() {
-    const [appointments, setAppointments] = useState([]);
     const [liveSessions, setLiveSessions] = useState([]);
     const [selectedAppointment, setSelectedAppointment] = useState(null);
-    const [loading, setLoading] = useState(true);
     const selectedRef = useRef(null);
     selectedRef.current = selectedAppointment;
 
     useEffect(() => {
-        fetchAppointments();
 
         const socket = io(API_URL);
         socket.emit('join_admin_tracking');
@@ -35,22 +32,6 @@ function AdminChat() {
 
         return () => socket.disconnect();
     }, []);
-
-    const fetchAppointments = async () => {
-        try {
-            setLoading(true);
-            const response = await Axios.get(`${API_URL}/api/admin/appointments`);
-            if (response.data.success) {
-                // Sort by creation date, newest first
-                const sortedAppointments = response.data.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                setAppointments(sortedAppointments);
-            }
-            setLoading(false);
-        } catch (error) {
-            console.error("Error fetching appointments:", error);
-            setLoading(false);
-        }
-    };
 
     return (
         <div className="admin-page-with-sidenav">
@@ -88,33 +69,6 @@ function AdminChat() {
                             ))}
                         </div>
 
-                        {/* Scrollable: Scheduled Appointments */}
-                        <div className="scheduled-appointments-scroll">
-                            <div className="chat-section-divider">
-                                <Calendar size={14} /> Scheduled Appointments
-                            </div>
-
-                            {loading ? (
-                                <div className="chat-loader">
-                                    <div className="spinner"></div>
-                                    <span>Syncing records...</span>
-                                </div>
-                            ) : (
-                                <ul className="appointment-list">
-                                    {appointments.map(apt => (
-                                        <li
-                                            key={apt.id}
-                                            className={`appointment-item ${selectedAppointment?.id === apt.id ? 'selected' : ''}`}
-                                            onClick={() => setSelectedAppointment(apt)}
-                                        >
-                                            <div className="appointment-item-name">{apt.client_name}</div>
-                                            <div className="appointment-item-date">{new Date(apt.created_at).toLocaleString()}</div>
-                                            <div className="appointment-item-service">{apt.service_type}</div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
                     </div>
                     <div className="chat-window-container">
                         {selectedAppointment ? (

@@ -4,7 +4,8 @@
     display: flex;
     flex-direction: column;
     background: #f1f5f9; /* Reverted to light background */
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .admin-chat-layout {
