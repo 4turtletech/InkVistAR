@@ -474,19 +474,89 @@ function CustomerPortal() {
                             .notif-dropdown-footer button:hover { color: #b8860b; text-decoration: underline; } /* This is a duplicate, but keeping for now */
                         `}</style>
 
-                            {/* Tattoo Inspiration Banner */}
-                            <div className="data-card-v2 customer-st-318cc07f" >
-                                <div className="card-header-v2">
-                                    <h2>Tattoo Inspiration</h2>
-                                    <button className="view-more-btn" onClick={() => navigate('/customer/gallery')}>Browse Gallery</button>
-                                </div>
-                                <div className="customer-st-fa665a80" >
-                                    <div className="glass-card" style={{ padding: '2.5rem', textAlign: 'center', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(193, 154, 107, 0.1), rgba(0, 0, 0, 0.2))', border: '1px solid rgba(193, 154, 107, 0.2)' }}>
-                                        <h3 style={{ margin: '0 0 10px 0', color: '#be9055', fontSize: '1.5rem', fontFamily: 'Playfair Display, serif' }}>Discover Your Next Piece</h3>
-                                        <p className="customer-st-32128d6b" >
-                                            Browse our extensive gallery of traditional, realism, and custom tattoo designs created by our expert artists. Find the perfect inspiration for your next session.
-                                        </p>
-                                        <button className="btn btn-primary customer-st-8d2f8d6c" onClick={() => navigate('/customer/gallery')} >Explore Designs</button>
+                            {/* Tattoo Inspiration Banner — Premium */}
+                            <div style={{ marginBottom: '24px', borderRadius: '20px', overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', border: '1px solid rgba(190, 144, 85, 0.15)' }}>
+                                {/* Decorative elements */}
+                                <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(190,144,85,0.12) 0%, transparent 70%)', borderRadius: '50%' }} />
+                                <div style={{ position: 'absolute', bottom: '-40px', left: '-40px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(190,144,85,0.08) 0%, transparent 70%)', borderRadius: '50%' }} />
+                                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(190,144,85,0.04) 0%, transparent 60%)', borderRadius: '50%' }} />
+
+                                {/* Content */}
+                                <div style={{ position: 'relative', zIndex: 1, padding: '32px 28px' }}>
+                                    {/* Header row */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{ width: '3px', height: '22px', background: 'linear-gradient(to bottom, #be9055, #d4a76a)', borderRadius: '2px' }} />
+                                            <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#fff', letterSpacing: '0.3px' }}>Tattoo Inspiration</h2>
+                                        </div>
+                                        <button onClick={() => navigate('/customer/gallery')} style={{ background: 'rgba(190,144,85,0.1)', color: '#be9055', border: '1px solid rgba(190,144,85,0.25)', padding: '6px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '0.2px' }}
+                                            onMouseOver={e => { e.currentTarget.style.background = 'rgba(190,144,85,0.2)'; e.currentTarget.style.borderColor = 'rgba(190,144,85,0.4)'; }}
+                                            onMouseOut={e => { e.currentTarget.style.background = 'rgba(190,144,85,0.1)'; e.currentTarget.style.borderColor = 'rgba(190,144,85,0.25)'; }}
+                                        >
+                                            Browse Gallery
+                                        </button>
+                                    </div>
+
+                                    {/* Main content area */}
+                                    <div style={{ display: 'flex', gap: '24px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        {/* Left: Text content */}
+                                        <div style={{ flex: 1, minWidth: '220px' }}>
+                                            <h3 style={{ margin: '0 0 10px', color: '#be9055', fontSize: '1.4rem', fontFamily: "'Playfair Display', serif", fontWeight: 700, lineHeight: 1.3 }}>
+                                                Discover Your<br />Next Piece
+                                            </h3>
+                                            <p style={{ margin: '0 0 18px', color: '#94a3b8', fontSize: '0.85rem', lineHeight: 1.6, maxWidth: '380px' }}>
+                                                Browse our curated gallery of traditional, realism, and custom designs by our expert artists.
+                                            </p>
+
+                                            {/* Style tags */}
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                                                {['Traditional', 'Realism', 'Blackwork', 'Neo-Trad', 'Watercolor'].map(style => (
+                                                    <span key={style} style={{
+                                                        padding: '5px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600,
+                                                        background: 'rgba(255,255,255,0.04)', color: '#64748b',
+                                                        border: '1px solid rgba(255,255,255,0.08)', letterSpacing: '0.3px'
+                                                    }}>
+                                                        {style}
+                                                    </span>
+                                                ))}
+                                            </div>
+
+                                            <button onClick={() => navigate('/customer/gallery')} style={{
+                                                background: 'linear-gradient(135deg, #be9055 0%, #d4a76a 100%)', color: '#fff',
+                                                border: 'none', padding: '11px 28px', borderRadius: '10px', fontSize: '0.85rem',
+                                                fontWeight: 700, cursor: 'pointer', transition: 'all 0.3s',
+                                                boxShadow: '0 4px 15px rgba(190, 144, 85, 0.25)', letterSpacing: '0.3px'
+                                            }}
+                                                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(190, 144, 85, 0.35)'; }}
+                                                onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(190, 144, 85, 0.25)'; }}
+                                            >
+                                                Explore Designs →
+                                            </button>
+                                        </div>
+
+                                        {/* Right: Decorative preview grid */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', width: '160px', flexShrink: 0 }}>
+                                            {[
+                                                { bg: 'linear-gradient(135deg, rgba(190,144,85,0.2), rgba(190,144,85,0.05))', icon: '🎨' },
+                                                { bg: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.03))', icon: '✨' },
+                                                { bg: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.03))', icon: '🖋️' },
+                                                { bg: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.03))', icon: '💎' }
+                                            ].map((item, i) => (
+                                                <div key={i} style={{
+                                                    width: '72px', height: '72px', borderRadius: '14px',
+                                                    background: item.bg, border: '1px solid rgba(255,255,255,0.05)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: '1.4rem', transition: 'transform 0.2s',
+                                                    cursor: 'pointer'
+                                                }}
+                                                    onClick={() => navigate('/customer/gallery')}
+                                                    onMouseOver={e => e.currentTarget.style.transform = 'scale(1.08)'}
+                                                    onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                                                >
+                                                    {item.icon}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
