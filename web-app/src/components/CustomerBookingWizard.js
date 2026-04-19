@@ -478,7 +478,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             {/* Consultation type toggle */}
             <p style={{color: '#64748b', marginBottom: '12px', fontSize: '0.95rem'}}>What is this consultation for?</p>
             <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-                {[{ key: 'tattoo', label: 'Tattoo', icon: <Paintbrush size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }, { key: 'piercing', label: 'Piercing', icon: <Gem size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#4FC3F7' }].map(opt => {
+                {[{ key: 'tattoo', label: 'Tattoo', icon: <Paintbrush size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }, { key: 'piercing', label: 'Piercing', icon: <Gem size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }].map(opt => {
                     const isActive = formData.consultationFor.includes(opt.key);
                     return (
                         <button
@@ -505,8 +505,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             <p style={{color: '#64748b', marginBottom: '12px', fontSize: '0.95rem'}}>How would you like this consultation?</p>
             <div style={{ display: 'flex', gap: '12px', marginBottom: formData.consultationMethod === 'Online' ? '12px' : '20px' }}>
                 {[
-                    { key: 'Face-to-Face', label: 'Face-to-Face', icon: <Users size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#22c55e' },
-                    { key: 'Online', label: 'Online', icon: <Video size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#6366f1' }
+                    { key: 'Face-to-Face', label: 'Face-to-Face', icon: <Users size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' },
+                    { key: 'Online', label: 'Online', icon: <Video size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }
                 ].map(opt => {
                     const isActive = formData.consultationMethod === opt.key;
                     return (
@@ -536,7 +536,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     <div style={{ display: 'flex', gap: '10px' }}>
                         {['Messenger', 'Instagram'].map(platform => {
                             const isActive = formData.onlinePlatform === platform;
-                            const color = platform === 'Messenger' ? '#0084ff' : '#E1306C';
+                            const color = '#C19A6B';
                             return (
                                 <button
                                     key={platform} type="button"
@@ -608,7 +608,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         {showPiercing && (
                             <>
                                 <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <Gem size={15} color="#4FC3F7" /> Piercing Placement
+                                    <Gem size={15} color="#C19A6B" /> Piercing Placement
                                 </p>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
                                     {piercingBodyParts.map(part => {
@@ -616,11 +616,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                         return (
                                             <button key={`p-${part}`} type="button" onClick={() => toggleArrayField('placement', part)} style={{
                                                 padding: '9px 5px', borderRadius: '10px',
-                                                border: `2px solid ${isSelected ? '#4FC3F7' : '#e2e8f0'}`,
-                                                background: isSelected ? '#4FC3F7' : 'white',
+                                                border: `2px solid ${isSelected ? '#C19A6B' : '#e2e8f0'}`,
+                                                background: isSelected ? '#C19A6B' : 'white',
                                                 color: isSelected ? 'white' : '#1e293b',
                                                 fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s',
-                                                boxShadow: isSelected ? '0 3px 10px rgba(79, 195, 247, 0.3)' : 'none'
+                                                boxShadow: isSelected ? '0 3px 10px rgba(193, 154, 107, 0.3)' : 'none'
                                             }}>
                                                 {isSelected && <Check size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />}
                                                 {part}
