@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Save, Download, Upload, RefreshCw, FileText, Bell, Database, Info, Shield, Image } from 'lucide-react';
+import { Save, Download, Upload, RefreshCw, FileText, Bell, Database, Info, Shield, Image, Heart, RotateCcw, Edit3, Check } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { filterName, filterDigits } from '../utils/validation';
 import './AdminSettings.css';
@@ -55,6 +55,11 @@ function AdminSettings() {
     const [isSaved, setIsSaved] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
     const [errors, setErrors] = useState({});
+    const [aftercareTemplates, setAftercareTemplates] = useState([]);
+    const [editingTemplate, setEditingTemplate] = useState(null);
+    const [editForm, setEditForm] = useState({ title: '', message: '', tips: '' });
+    const [aftercareSaving, setAftercareSaving] = useState(false);
+    const [aftercareResetting, setAftercareResetting] = useState(false);
 
     const validateField = (section, field, value) => {
         let errorMsg = "";
@@ -77,7 +82,42 @@ function AdminSettings() {
 
     useEffect(() => {
         fetchSettings();
+        fetchAftercareTemplates();
     }, []);
+
+    const fetchAftercareTemplates = async () => {
+        try {
+            const res = await Axios.get(`${API_URL}/api/admin/aftercare-templates`);
+            if (res.data.success) setAftercareTemplates(res.data.templates || []);
+        } catch (error) {
+            console.error('Error fetching aftercare templates:', error);
+        }
+    };
+
+    const saveAftercareTemplate = async (id) => {
+        setAftercareSaving(true);
+        try {
+            await Axios.put(`${API_URL}/api/admin/aftercare-templates/${id}`, editForm);
+            setEditingTemplate(null);
+            await fetchAftercareTemplates();
+            showAlert('Success', 'Aftercare template updated successfully.', 'info');
+        } catch (error) {
+            showAlert('Error', 'Failed to save template.', 'danger');
+        }
+        setAftercareSaving(false);
+    };
+
+    const resetAftercareTemplates = async () => {
+        setAftercareResetting(true);
+        try {
+            await Axios.post(`${API_URL}/api/admin/aftercare-templates/reset`);
+            await fetchAftercareTemplates();
+            showAlert('Success', 'Aftercare templates reset to defaults.', 'info');
+        } catch (error) {
+            showAlert('Error', 'Failed to reset templates.', 'danger');
+        }
+        setAftercareResetting(false);
+    };
 
     const fetchSettings = async () => {
         try {
@@ -189,6 +229,12 @@ function AdminSettings() {
                         onClick={() => setActiveTab('gallery')}
                     >
                         <Image size={16} className="admin-st-7f4ee4f3"/> Gallery Menu
+                    </button>
+                    <button 
+                        className={`tab-button ${activeTab === 'aftercare' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('aftercare')}
+                    >
+                        <Heart size={16} className="admin-st-7f4ee4f3"/> Aftercare Schedule
                     </button>
                 </div>
 
@@ -479,6 +525,93 @@ function AdminSettings() {
                                         maxLength={500}
                                     />
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Aftercare Schedule */}
+                    {activeTab === 'aftercare' && (
+                        <div className="settings-panel fade-in">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <div>
+                                    <h2 style={{ margin: '0 0 4px' }}>Aftercare Notification Schedule</h2>
+                                    <p className="admin-st-eee235c1" style={{ margin: 0 }}>Configure daily healing notifications sent to customers after a completed tattoo session. Changes take effect immediately.</p>
+                                </div>
+                                <button 
+                                    className="btn btn-secondary" 
+                                    onClick={() => setConfirmDialog({ isOpen: true, title: 'Reset to Defaults?', message: 'This will replace all aftercare templates with the original defaults. Any customizations will be lost.', type: 'warning', onConfirm: () => { setConfirmDialog(prev => ({...prev, isOpen: false})); resetAftercareTemplates(); } })}
+                                    disabled={aftercareResetting}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+                                >
+                                    <RotateCcw size={14} style={aftercareResetting ? { animation: 'spin 1s linear infinite' } : {}} /> Reset Defaults
+                                </button>
+                            </div>
+                            <div className="settings-section">
+                                {['initial', 'peeling', 'healing'].map(phase => {
+                                    const phaseLabels = { initial: 'Phase 1: Initial Healing (Days 1-3)', peeling: 'Phase 2: Peeling & Itching (Days 4-14)', healing: 'Phase 3: Final Healing (Days 15-30)' };
+                                    const phaseColors = { initial: '#ef4444', peeling: '#f59e0b', healing: '#10b981' };
+                                    const phaseDays = aftercareTemplates.filter(t => t.phase === phase);
+
+                                    return (
+                                        <div key={phase} style={{ marginBottom: '24px' }}>
+                                            <h3 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700, color: phaseColors[phase], display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: phaseColors[phase], display: 'inline-block' }} />
+                                                {phaseLabels[phase]}
+                                            </h3>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                {phaseDays.map(tpl => (
+                                                    <div key={tpl.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+                                                        {editingTemplate === tpl.id ? (
+                                                            /* Edit Mode */
+                                                            <div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                                                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b', minWidth: '55px' }}>Day {tpl.day_number}</span>
+                                                                    <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '0.65rem', fontWeight: 600, background: `${phaseColors[phase]}20`, color: phaseColors[phase] }}>{phase}</span>
+                                                                </div>
+                                                                <div className="form-group" style={{ marginBottom: '8px' }}>
+                                                                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Title</label>
+                                                                    <input type="text" className="form-input" value={editForm.title} onChange={e => setEditForm(p => ({...p, title: e.target.value.substring(0, 100)}))} maxLength={100} />
+                                                                </div>
+                                                                <div className="form-group" style={{ marginBottom: '8px' }}>
+                                                                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Notification Message</label>
+                                                                    <textarea className="form-input" rows="3" value={editForm.message} onChange={e => setEditForm(p => ({...p, message: e.target.value.substring(0, 2000)}))} maxLength={2000} />
+                                                                </div>
+                                                                <div className="form-group" style={{ marginBottom: '12px' }}>
+                                                                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Extra Tips (optional)</label>
+                                                                    <textarea className="form-input" rows="2" value={editForm.tips} onChange={e => setEditForm(p => ({...p, tips: e.target.value.substring(0, 2000)}))} maxLength={2000} />
+                                                                </div>
+                                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                                    <button className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '6px 14px' }} onClick={() => setEditingTemplate(null)}>Cancel</button>
+                                                                    <button className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => saveAftercareTemplate(tpl.id)} disabled={aftercareSaving}>
+                                                                        <Check size={14} /> Save
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            /* View Mode */
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                                                                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>Day {tpl.day_number}:</span>
+                                                                        <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#475569' }}>{tpl.title}</span>
+                                                                    </div>
+                                                                    <p style={{ margin: '0 0 2px', fontSize: '0.8rem', color: '#64748b', lineHeight: '1.4' }}>{tpl.message}</p>
+                                                                    {tpl.tips && <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>💡 {tpl.tips}</p>}
+                                                                </div>
+                                                                <button 
+                                                                    style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.75rem', fontWeight: 600, flexShrink: 0, transition: 'all 0.2s' }}
+                                                                    onClick={() => { setEditingTemplate(tpl.id); setEditForm({ title: tpl.title, message: tpl.message, tips: tpl.tips || '' }); }}
+                                                                >
+                                                                    <Edit3 size={12} /> Edit
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

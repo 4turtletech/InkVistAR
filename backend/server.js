@@ -973,6 +973,73 @@ db.getConnection((err, connection) => {
     `;
     db.query(payoutsTableQuery, (err) => { if (err) console.error('⚠️ Error checking payouts table:', err.message); else console.log('💵 Payouts table ready'); });
 
+    // Create Aftercare Templates Table (Admin-configurable daily notifications)
+    const aftercareTableQuery = `
+      CREATE TABLE IF NOT EXISTS aftercare_templates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        day_number INT NOT NULL,
+        title VARCHAR(100) NOT NULL,
+        message TEXT NOT NULL,
+        phase VARCHAR(30) NOT NULL,
+        tips TEXT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_day (day_number)
+      )
+    `;
+    db.query(aftercareTableQuery, (err) => {
+      if (err) { console.error('⚠️ Error creating aftercare_templates table:', err.message); return; }
+      console.log('🧼 Aftercare templates table ready');
+
+      // Seed default templates if table is empty
+      db.query('SELECT COUNT(*) as cnt FROM aftercare_templates', (countErr, countRes) => {
+        if (countErr || (countRes[0]?.cnt || 0) > 0) return;
+        console.log('🌱 Seeding default aftercare templates (30 days)...');
+
+        const defaults = [
+          // Phase 1: Initial Healing (Days 1-3)
+          [1, 'initial', 'Unwrap & First Wash 🧼', 'Remove the bandage/wrap after 2-4 hours. Gently wash with lukewarm water and fragrance-free antibacterial soap. Pat dry with a clean paper towel — never use a cloth towel.', 'Use Dove Sensitive or Cetaphil soap. Wash your hands thoroughly before touching the tattoo. Apply a very thin layer of your artist-recommended ointment (e.g., Aquaphor).'],
+          [2, 'initial', 'Keep It Clean & Moisturized 💧', 'Wash your tattoo 2-3 times today with lukewarm water and mild soap. Apply a very thin layer of ointment after each wash. The area may still be red, swollen, and tender — this is normal.', 'The skin should NOT look shiny or greasy after applying ointment. Less is more. Wear loose, breathable clothing over the tattoo. Avoid tight fabrics that can rub.'],
+          [3, 'initial', 'Day 3: Swelling Should Subside 🩹', 'Continue your wash-and-moisturize routine 2-3 times daily. Redness and swelling should begin decreasing. Some plasma or excess ink may still weep slightly — this is normal.', 'Sleep on clean sheets and avoid laying directly on the tattoo. If the area feels warm but not painful, that is part of the healing response.'],
+          // Phase 2: Peeling & Itching (Days 4-14)
+          [4, 'peeling', 'Peeling Begins — Don\'t Pick! ⚠️', 'Your tattoo may start to peel and flake like a sunburn. This is completely normal and a sign of healthy healing. DO NOT pick, scratch, or peel the flaking skin!', 'Switch from heavy ointment to a fragrance-free, alcohol-free moisturizing lotion. Picking at flakes can pull out ink and cause scarring. If it itches, gently pat or apply lotion.'],
+          [5, 'peeling', 'Moisturize & Resist the Itch 🤚', 'The peeling continues and itching may increase today. Apply fragrance-free lotion whenever the skin feels dry or tight. Continue gentle washing 1-2 times daily.', 'Avoid scratching at all costs. Cool compresses can help with itching. Stay hydrated — it helps skin heal from the inside.'],
+          [6, 'peeling', 'Stay the Course 💪', 'Keep up your routine: gentle wash, pat dry, apply lotion. The tattoo may look dull or cloudy under the peeling skin — this is temporary and normal.', 'Avoid swimming, baths, hot tubs, and saunas. Brief lukewarm showers are fine. Do not soak the tattoo.'],
+          [7, 'peeling', 'One Week Milestone! 🎉', 'You have made it through the first week! The heaviest peeling should be happening now. Continue moisturizing and absolutely no picking or scratching.', 'The \"milky\" or cloudy appearance under peeling skin is the new layer of skin forming. Your tattoo will look vibrant again once this settles.'],
+          [8, 'peeling', 'Flaking is Normal 🍂', 'Expect continued flaking today. Some areas may peel faster than others depending on ink density and skin location. Keep moisturizing consistently.', 'Lightly tap itchy areas instead of scratching. Wearing soft cotton clothing over the tattoo reduces friction irritation.'],
+          [9, 'peeling', 'Healing Progress Check ✅', 'By now, the initial redness should be mostly gone. The peeling may be slowing down in some areas. Continue your lotion routine 2-3 times daily.', 'If you notice any signs of infection (excessive redness, pus, fever), contact your artist or a doctor immediately. These cases are rare with proper care.'],
+          [10, 'peeling', 'Day 10 — Almost Through Peeling 🔄', 'Most heavy peeling is ending. Continue applying lotion to keep the skin supple. Avoid direct sunlight on the healing tattoo.', 'Your tattoo is still healing beneath the surface even if it looks settled on top. Continue all precautions.'],
+          [11, 'peeling', 'Consistent Care Matters 📋', 'Keep moisturizing and protecting from sun. Avoid heavy workouts that cause excessive sweating on the tattooed area.', 'If exercising, clean the tattooed area promptly after sweating. Pat dry and reapply lotion.'],
+          [12, 'peeling', 'Light at the End of the Tunnel 🌟', 'The surface peeling is wrapping up. Your tattoo should start looking clearer as the new skin settles. Continue lotion application.', 'Stay out of pools, oceans, and hot tubs for at least another 2 weeks. Chlorine and bacteria can damage healing skin.'],
+          [13, 'peeling', 'Almost Done Peeling ✨', 'Only minor flaking may remain. The tattoo might still look slightly muted — this is normal and will brighten up over the next couple of weeks.', 'Continue wearing SPF 30+ if any sun exposure is unavoidable. UV rays are enemy #1 for tattoo vibrancy.'],
+          [14, 'peeling', 'Two Weeks Complete! 🏆', 'Congratulations! The peeling phase is essentially over. Your surface skin has regenerated. Continue daily moisturizing to support the deeper healing still happening.', 'The deeper layers of skin take 4-6 weeks to fully heal. Surface healing does not mean fully healed. Keep up the aftercare routine.'],
+          // Phase 3: Final Surface Healing (Days 15-30)
+          [15, 'healing', 'Final Healing Phase Begins 🔬', 'Your tattoo surface should feel smooth to the touch now. Continue applying fragrance-free lotion 1-2 times daily. The deeper skin layers are still recovering.', 'You can resume most normal activities, but still avoid prolonged submersion in water and excessive sun exposure.'],
+          [16, 'healing', 'Protect Your Investment ☀️', 'Apply SPF 30+ sunscreen to your tattoo whenever going outside. Sun damage is the #1 cause of tattoo fading over time.', 'Make sunscreen on your tattoo a lifelong habit. UV protection keeps colors vibrant for years.'],
+          [17, 'healing', 'Stay Moisturized 🧴', 'Continue daily lotion application. Well-moisturized skin showcases tattoo ink better and keeps lines sharp.', 'Drinking plenty of water also contributes to healthy, well-hydrated skin from the inside.'],
+          [18, 'healing', 'Healing Nicely! 👀', 'Your tattoo should be looking increasingly close to its final appearance. Colors may still be slightly muted but will brighten.', 'If any area still feels raised or textured, continue gentle moisturizing. This is normal for areas with heavier ink saturation.'],
+          [19, 'healing', 'Routine Maintenance 🔧', 'Continue your lotion and sun protection routine. The tattoo is doing great — just a bit more patience for full deep-skin healing.', 'Avoid abrasive exfoliants or scrubs directly on the tattoo for another few weeks.'],
+          [20, 'healing', 'Day 20 — Two-Thirds Healed! 📊', 'You are well past the critical healing period. Keep protecting your tattoo from sun and keeping it moisturized. Almost there!', 'You can now safely swim in pools for short periods if the surface is fully closed. Rinse and moisturize after.'],
+          [21, 'healing', 'Three Weeks! 🗓️', 'Your tattoo is in the home stretch of healing. Continue gentle daily care. The deep skin layers are firming up.', 'If you had areas of heavy shading or color packing, these may take slightly longer to fully settle.'],
+          [22, 'healing', 'Looking Great! 💯', 'Your tattoo should be looking more and more vibrant each day. Continue moisturizing and SPF protection.', 'Take a photo of your healed tattoo to share with your artist! They love seeing healed results.'],
+          [23, 'healing', 'Steady Progress 📈', 'Continue your simple daily routine: moisturize in the morning and evening, apply sunscreen before going outside.', 'Great aftercare now means a tattoo that stays vibrant for decades.'],
+          [24, 'healing', 'Almost Fully Healed! 🙌', 'The deep skin layers are nearly done regenerating. Your tattoo should feel completely like normal skin to the touch now.', 'Remember: UV protection is a forever habit for tattooed skin!'],
+          [25, 'healing', 'Day 25 — Final Stretch 🏁', 'Just a few more days of dedicated aftercare. Continue moisturizing and sun protection as part of your daily routine.', 'Consider scheduling a touch-up consultation if you notice any areas where ink did not take evenly. This is completely normal.'],
+          [26, 'healing', 'Healing Champion! 🥇', 'Your discipline with aftercare is paying off. The tattoo is looking sharp and the skin is healthy.', 'Set a reminder to schedule a follow-up with your artist in 4-6 weeks for a touch-up check.'],
+          [27, 'healing', 'Three Days to Go ⏳', 'Continue your routine. Your tattoo is essentially healed at the surface and nearly healed at the deeper level.', 'Interested in your next piece? Start browsing the InkVistAR gallery for inspiration!'],
+          [28, 'healing', 'Penultimate Day 🌅', 'Your tattoo aftercare journey is nearly complete. The dedication you have shown will keep your tattoo looking amazing for years to come.', 'Remember to always use sunscreen on your tattoo when outdoors. This is the single best long-term care habit.'],
+          [29, 'healing', 'Tomorrow is the Last Day! 🎊', 'One more day! Your tattoo is fully healed. Keep moisturizing as part of your regular skincare routine going forward.', 'Book your next session at InkVistAR to continue your tattoo journey!'],
+          [30, 'healing', 'Aftercare Complete! 🎉✨', 'Congratulations! Your 30-day aftercare program is complete. Your tattoo is fully healed. Continue lifelong habits: moisturize daily and always apply sunscreen when going outdoors.', 'Thank you for trusting InkVistAR with your tattoo journey! We would love to see you again for your next piece. Leave a review to help other clients!']
+        ];
+
+        const insertQuery = 'INSERT INTO aftercare_templates (day_number, phase, title, message, tips) VALUES ?';
+        db.query(insertQuery, [defaults.map(d => [d[0], d[1], d[2], d[3], d[4]])], (seedErr) => {
+          if (seedErr) console.error('❌ Error seeding aftercare templates:', seedErr.message);
+          else console.log('✅ Seeded 30 default aftercare templates');
+        });
+      });
+    });
+
     // Check appointments table for is_deleted
     db.query("SHOW COLUMNS FROM appointments LIKE 'is_deleted'", (err, results) => {
       if (!err && results.length === 0) {
@@ -5655,13 +5722,66 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
           const notifications = notifResults || [];
           const unreadCount = notifications.filter(n => !n.is_read).length;
 
-          res.json({
-            success: true,
-            customer,
-            appointments: upcoming,
-            stats,
-            notifications,
-            unreadCount
+            // 4. Get Active Aftercare (most recent completed tattoo within 30 days)
+            const aftercareQuery = `
+              SELECT ap.id, ap.design_title, ap.appointment_date, ap.service_type,
+                     DATEDIFF(CURDATE(), DATE(ap.appointment_date)) as days_since,
+                     u.name as artist_name
+              FROM appointments ap
+              LEFT JOIN users u ON ap.artist_id = u.id
+              WHERE ap.customer_id = ? AND ap.status = 'completed' AND ap.is_deleted = 0
+                AND ap.service_type LIKE '%Tattoo%'
+                AND DATEDIFF(CURDATE(), DATE(ap.appointment_date)) BETWEEN 0 AND 30
+              ORDER BY ap.appointment_date DESC
+              LIMIT 1
+            `;
+            db.query(aftercareQuery, [customerId], (acErr, acRes) => {
+              let activeAftercare = null;
+
+              if (!acErr && acRes && acRes.length > 0) {
+                const acAppt = acRes[0];
+                const dayNum = Math.max(1, acAppt.days_since || 1);
+                const phase = dayNum <= 3 ? 'initial' : dayNum <= 14 ? 'peeling' : 'healing';
+
+                // Fetch today's template
+                db.query('SELECT title, message, tips FROM aftercare_templates WHERE day_number = ?', [dayNum], (tplErr, tplRes) => {
+                  const template = (!tplErr && tplRes.length) ? tplRes[0] : { title: 'Keep healing!', message: 'Continue your daily aftercare routine.', tips: '' };
+
+                  activeAftercare = {
+                    appointmentId: acAppt.id,
+                    designTitle: acAppt.design_title || 'Tattoo Session',
+                    artistName: acAppt.artist_name,
+                    completedDate: acAppt.appointment_date,
+                    currentDay: dayNum,
+                    totalDays: 30,
+                    phase,
+                    todayTitle: template.title,
+                    todayMessage: template.message,
+                    todayTips: template.tips
+                  };
+
+                  res.json({
+                    success: true,
+                    customer,
+                    appointments: upcoming,
+                    stats,
+                    notifications,
+                    unreadCount,
+                    activeAftercare
+                  });
+                });
+              } else {
+                res.json({
+                  success: true,
+                  customer,
+                  appointments: upcoming,
+                  stats,
+                  notifications,
+                  unreadCount,
+                  activeAftercare: null
+                });
+              }
+            });
           });
         });
       });
@@ -5669,7 +5789,134 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
   });
 });
 
+// ========== CUSTOMER AFTERCARE API ==========
+// GET full aftercare data for a customer (used by the dedicated aftercare page)
+app.get('/api/customer/aftercare/:customerId', (req, res) => {
+  const { customerId } = req.params;
+
+  // Find most recent completed tattoo within 30 days
+  const apptQuery = `
+    SELECT ap.id, ap.design_title, ap.appointment_date, ap.service_type,
+           DATEDIFF(CURDATE(), DATE(ap.appointment_date)) as days_since,
+           u.name as artist_name
+    FROM appointments ap
+    LEFT JOIN users u ON ap.artist_id = u.id
+    WHERE ap.customer_id = ? AND ap.status = 'completed' AND ap.is_deleted = 0
+      AND ap.service_type LIKE '%Tattoo%'
+      AND DATEDIFF(CURDATE(), DATE(ap.appointment_date)) BETWEEN 0 AND 30
+    ORDER BY ap.appointment_date DESC
+    LIMIT 1
+  `;
+
+  db.query(apptQuery, [customerId], (err, apptRes) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+
+    if (!apptRes || apptRes.length === 0) {
+      return res.json({ success: true, active: false, aftercare: null, templates: [] });
+    }
+
+    const appt = apptRes[0];
+    const currentDay = Math.max(1, appt.days_since || 1);
+
+    // Get all templates
+    db.query('SELECT * FROM aftercare_templates ORDER BY day_number ASC', (tplErr, templates) => {
+      if (tplErr) return res.status(500).json({ success: false, message: 'Database error' });
+
+      res.json({
+        success: true,
+        active: true,
+        aftercare: {
+          appointmentId: appt.id,
+          designTitle: appt.design_title || 'Tattoo Session',
+          artistName: appt.artist_name,
+          completedDate: appt.appointment_date,
+          currentDay,
+          totalDays: 30,
+          phase: currentDay <= 3 ? 'initial' : currentDay <= 14 ? 'peeling' : 'healing'
+        },
+        templates: templates || []
+      });
+    });
+  });
+});
+
+// ========== ADMIN AFTERCARE TEMPLATES API ==========
+// GET all aftercare templates
+app.get('/api/admin/aftercare-templates', (req, res) => {
+  db.query('SELECT * FROM aftercare_templates ORDER BY day_number ASC', (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+    res.json({ success: true, templates: results || [] });
+  });
+});
+
+// PUT update a specific aftercare template
+app.put('/api/admin/aftercare-templates/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, message, tips } = req.body;
+
+  if (!title || !message) {
+    return res.status(400).json({ success: false, message: 'Title and message are required.' });
+  }
+
+  db.query('UPDATE aftercare_templates SET title = ?, message = ?, tips = ? WHERE id = ?',
+    [title.substring(0, 100), message.substring(0, 2000), (tips || '').substring(0, 2000), id],
+    (err, result) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+      if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Template not found.' });
+      res.json({ success: true, message: 'Template updated successfully.' });
+    }
+  );
+});
+
+// POST reset all aftercare templates to defaults
+app.post('/api/admin/aftercare-templates/reset', (req, res) => {
+  db.query('DELETE FROM aftercare_templates', (delErr) => {
+    if (delErr) return res.status(500).json({ success: false, message: 'Database error: ' + delErr.message });
+
+    // Re-seed defaults
+    const defaults = [
+      [1, 'initial', 'Unwrap & First Wash 🧼', 'Remove the bandage/wrap after 2-4 hours. Gently wash with lukewarm water and fragrance-free antibacterial soap. Pat dry with a clean paper towel — never use a cloth towel.', 'Use Dove Sensitive or Cetaphil soap. Wash your hands thoroughly before touching the tattoo. Apply a very thin layer of your artist-recommended ointment (e.g., Aquaphor).'],
+      [2, 'initial', 'Keep It Clean & Moisturized 💧', 'Wash your tattoo 2-3 times today with lukewarm water and mild soap. Apply a very thin layer of ointment after each wash. The area may still be red, swollen, and tender — this is normal.', 'The skin should NOT look shiny or greasy after applying ointment. Less is more. Wear loose, breathable clothing over the tattoo.'],
+      [3, 'initial', 'Day 3: Swelling Should Subside 🩹', 'Continue your wash-and-moisturize routine 2-3 times daily. Redness and swelling should begin decreasing.', 'Sleep on clean sheets and avoid laying directly on the tattoo.'],
+      [4, 'peeling', 'Peeling Begins — Don\'t Pick! ⚠️', 'Your tattoo may start to peel and flake like a sunburn. DO NOT pick, scratch, or peel the flaking skin!', 'Switch from heavy ointment to a fragrance-free moisturizing lotion.'],
+      [5, 'peeling', 'Moisturize & Resist the Itch 🤚', 'The peeling continues and itching may increase. Apply fragrance-free lotion whenever the skin feels dry.', 'Cool compresses can help with itching. Stay hydrated.'],
+      [6, 'peeling', 'Stay the Course 💪', 'Keep up your routine: gentle wash, pat dry, apply lotion.', 'Avoid swimming, baths, and saunas.'],
+      [7, 'peeling', 'One Week Milestone! 🎉', 'You made it through the first week! Continue moisturizing.', 'The cloudy appearance under peeling skin is normal — new skin is forming.'],
+      [8, 'peeling', 'Flaking is Normal 🍂', 'Expect continued flaking. Keep moisturizing consistently.', 'Wear soft cotton clothing to reduce friction.'],
+      [9, 'peeling', 'Healing Progress Check ✅', 'Initial redness should be mostly gone. Continue lotion routine.', 'Watch for signs of infection. These are rare with proper care.'],
+      [10, 'peeling', 'Day 10 — Almost Through Peeling 🔄', 'Most heavy peeling is ending. Avoid direct sunlight.', 'Your tattoo is still healing beneath the surface.'],
+      [11, 'peeling', 'Consistent Care Matters 📋', 'Keep moisturizing and protecting from sun.', 'Clean the area promptly after exercise.'],
+      [12, 'peeling', 'Light at the End of the Tunnel 🌟', 'Surface peeling wrapping up. Continue lotion application.', 'Stay out of pools for at least another 2 weeks.'],
+      [13, 'peeling', 'Almost Done Peeling ✨', 'Only minor flaking may remain. Colors will brighten up.', 'SPF 30+ is essential if any sun exposure.'],
+      [14, 'peeling', 'Two Weeks Complete! 🏆', 'The peeling phase is over. Continue daily moisturizing.', 'Deeper layers take 4-6 weeks to fully heal.'],
+      [15, 'healing', 'Final Healing Phase Begins 🔬', 'Surface should feel smooth. Continue lotion 1-2 times daily.', 'Resume most normal activities but avoid prolonged water submersion.'],
+      [16, 'healing', 'Protect Your Investment ☀️', 'Apply SPF 30+ whenever going outside.', 'UV protection keeps colors vibrant for years.'],
+      [17, 'healing', 'Stay Moisturized 🧴', 'Continue daily lotion. Well-moisturized skin showcases ink better.', 'Stay hydrated from the inside too.'],
+      [18, 'healing', 'Healing Nicely! 👀', 'Your tattoo is close to its final appearance.', 'Raised areas with heavy ink may need more time.'],
+      [19, 'healing', 'Routine Maintenance 🔧', 'Continue lotion and sun protection routine.', 'Avoid abrasive scrubs on the tattoo.'],
+      [20, 'healing', 'Day 20 — Two-Thirds Healed! 📊', 'Well past the critical period. Keep protecting from sun.', 'Short pool swims are OK if surface is fully closed.'],
+      [21, 'healing', 'Three Weeks! 🗓️', 'Home stretch of healing. Continue gentle daily care.', 'Heavy shading areas may take slightly longer.'],
+      [22, 'healing', 'Looking Great! 💯', 'Tattoo looking more vibrant each day.', 'Share a photo with your artist!'],
+      [23, 'healing', 'Steady Progress 📈', 'Simple daily routine: moisturize and apply sunscreen.', 'Great aftercare = vibrant tattoo for decades.'],
+      [24, 'healing', 'Almost Fully Healed! 🙌', 'Deep skin layers nearly done regenerating.', 'UV protection is a forever habit!'],
+      [25, 'healing', 'Day 25 — Final Stretch 🏁', 'Just a few more days of dedicated aftercare.', 'Schedule a touch-up consultation if needed.'],
+      [26, 'healing', 'Healing Champion! 🥇', 'Your discipline is paying off.', 'Set a follow-up reminder with your artist.'],
+      [27, 'healing', 'Three Days to Go ⏳', 'Tattoo essentially healed at the surface.', 'Browse InkVistAR gallery for your next piece!'],
+      [28, 'healing', 'Penultimate Day 🌅', 'Your aftercare journey is nearly complete.', 'Sunscreen is the best long-term care habit.'],
+      [29, 'healing', 'Tomorrow is the Last Day! 🎊', 'Your tattoo is fully healed. Keep moisturizing.', 'Book your next session!'],
+      [30, 'healing', 'Aftercare Complete! 🎉✨', '30-day aftercare program is complete. Continue lifelong habits.', 'Thank you for trusting InkVistAR!']
+    ];
+
+    const insertQuery = 'INSERT INTO aftercare_templates (day_number, phase, title, message, tips) VALUES ?';
+    db.query(insertQuery, [defaults.map(d => [d[0], d[1], d[2], d[3], d[4]])], (seedErr) => {
+      if (seedErr) return res.status(500).json({ success: false, message: 'Error re-seeding: ' + seedErr.message });
+      res.json({ success: true, message: 'Aftercare templates reset to defaults.' });
+    });
+  });
+});
+
 // ========== CUSTOMER SELF-SERVICE CANCELLATION ==========
+
 
 // Customer: Cancel a pending booking with reason
 app.put('/api/customer/appointments/:id/cancel', (req, res) => {
@@ -7573,6 +7820,73 @@ function startAppointmentReminders() {
   }, 1000 * 60);
 }
 
+// ========== AFTERCARE DAILY CRON JOB ==========
+function startAftercareCron() {
+  // Check every minute if it's 8:00 AM — send daily aftercare notifications
+  setInterval(() => {
+    const now = new Date();
+    if (now.getHours() === 8 && now.getMinutes() === 0) {
+      console.log('🧼 Running daily aftercare notification job...');
+
+      // Find all completed appointments within the last 30 days (tattoo sessions only)
+      const query = `
+        SELECT ap.id, ap.customer_id, ap.design_title, ap.appointment_date, ap.status,
+               DATEDIFF(CURDATE(), DATE(ap.appointment_date)) as days_since
+        FROM appointments ap
+        WHERE ap.status = 'completed' 
+          AND ap.is_deleted = 0
+          AND ap.service_type LIKE '%Tattoo%'
+          AND DATEDIFF(CURDATE(), DATE(ap.appointment_date)) BETWEEN 1 AND 30
+        ORDER BY ap.appointment_date DESC
+      `;
+
+      db.query(query, (err, completedAppts) => {
+        if (err) return console.error('❌ Aftercare CRON error:', err.message);
+        if (!completedAppts.length) return console.log('🧼 No active aftercare sessions today');
+
+        // Group by customer — only send for their most recent completed tattoo
+        const customerLatest = {};
+        completedAppts.forEach(appt => {
+          if (!customerLatest[appt.customer_id]) {
+            customerLatest[appt.customer_id] = appt;
+          }
+        });
+
+        const customers = Object.values(customerLatest);
+        console.log(`🧼 Found ${customers.length} customers needing aftercare notifications`);
+
+        // Get today's aftercare templates
+        customers.forEach(appt => {
+          const dayNum = appt.days_since;
+
+          // Check if we already sent a notification for this appointment + day combo today
+          const duplicateCheck = `
+            SELECT id FROM notifications 
+            WHERE user_id = ? AND type = 'aftercare_daily' AND related_id = ?
+              AND message LIKE ? AND DATE(created_at) = CURDATE()
+            LIMIT 1
+          `;
+          db.query(duplicateCheck, [appt.customer_id, appt.id, `%Day ${dayNum}%`], (dupErr, dupRes) => {
+            if (dupErr || (dupRes && dupRes.length > 0)) return; // Already sent or error
+
+            // Fetch the template for this day
+            db.query('SELECT * FROM aftercare_templates WHERE day_number = ?', [dayNum], (tplErr, tplRes) => {
+              if (tplErr || !tplRes.length) return;
+
+              const tpl = tplRes[0];
+              const designName = appt.design_title || 'your tattoo';
+              const title = `Day ${dayNum}: ${tpl.title}`;
+              const message = `Day ${dayNum} of healing for "${designName}" — ${tpl.message}`;
+
+              createNotification(appt.customer_id, title, message, 'aftercare_daily', appt.id);
+              console.log(`🧼 Sent Day ${dayNum} aftercare to customer ${appt.customer_id}`);
+            });
+          });
+        });
+      });
+    }
+  }, 1000 * 60);
+}
 
 
 // ========== REVIEWS ENDPOINTS ==========
@@ -7961,4 +8275,5 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('='.repeat(50) + '\n');
 
   startAppointmentReminders();
+  startAftercareCron();
 });

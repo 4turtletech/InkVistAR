@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package, RefreshCw } from 'lucide-react';
+import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package, RefreshCw, Sparkles, AlertTriangle, Droplets } from 'lucide-react';
 import './PortalStyles.css';
 import CustomerSideNav from '../components/CustomerSideNav';
 import ChatWidget from '../components/ChatWidget';
@@ -32,6 +32,7 @@ function CustomerPortal() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [showNotifDropdown, setShowNotifDropdown] = useState(false);
     const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
+    const [activeAftercare, setActiveAftercare] = useState(null);
     const notifRef = useRef(null);
 
     useEffect(() => {
@@ -106,6 +107,9 @@ function CustomerPortal() {
                     return now >= appointmentDateTime;
                 });
                 setActiveAppointment(firstActiveAppointment);
+
+                // Capture aftercare data from dashboard response
+                setActiveAftercare(dashboardResponse.data.activeAftercare || null);
             }
 
             // Artist fetch removed as widget was replaced
@@ -220,27 +224,64 @@ function CustomerPortal() {
                                 </div>
                             </div>
 
-                            {/* My Tattoo Journey & Aftercare Widget */}
-                            <div className="data-card-v2 customer-st-aftercare" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #1e293b, #0f172a)', color: '#fff' }}>
-                                <div className="card-header-v2" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '15px' }}>
-                                    <div className="header-title" style={{ color: '#fff' }}>
-                                        <Award size={20} className="text-gold" style={{ color: '#f59e0b' }} />
-                                        <h2 style={{ color: '#fff', margin: 0 }}>Healing Journey Tracker</h2>
+                            {/* My Tattoo Journey & Aftercare Widget — Dynamic */}
+                            {activeAftercare && (() => {
+                                const progressPercent = (activeAftercare.currentDay / activeAftercare.totalDays) * 100;
+                                const circumference = 2 * Math.PI * 40;
+                                const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
+                                const phaseConfig = {
+                                    initial: { label: 'Initial Healing', color: '#ef4444', icon: AlertTriangle },
+                                    peeling: { label: 'Peeling & Itching', color: '#f59e0b', icon: Droplets },
+                                    healing: { label: 'Final Healing', color: '#10b981', icon: Heart }
+                                };
+                                const phase = phaseConfig[activeAftercare.phase] || phaseConfig.healing;
+                                const PhaseIcon = phase.icon;
+
+                                return (
+                                    <div className="data-card-v2" style={{ marginBottom: '24px', background: '#0f172a', color: '#fff', borderRadius: '16px', overflow: 'hidden', position: 'relative' }}>
+                                        <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(190,144,85,0.12) 0%, transparent 70%)', borderRadius: '50%' }} />
+                                        <div className="card-header-v2" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <Sparkles size={18} color="#be9055" />
+                                                <h2 style={{ color: '#fff', margin: 0, fontSize: '1rem', fontWeight: 700 }}>Healing Journey Tracker</h2>
+                                            </div>
+                                            <button onClick={() => navigate('/customer/aftercare')} style={{ background: 'rgba(190,144,85,0.15)', color: '#be9055', border: '1px solid rgba(190,144,85,0.3)', padding: '6px 14px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                View Guide
+                                            </button>
+                                        </div>
+                                        <div style={{ padding: '20px 0', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                            {/* Progress Ring */}
+                                            <div style={{ position: 'relative', width: '90px', height: '90px', flexShrink: 0 }}>
+                                                <svg width="90" height="90" viewBox="0 0 90 90" style={{ transform: 'rotate(-90deg)' }}>
+                                                    <circle cx="45" cy="45" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                                                    <circle cx="45" cy="45" r="40" fill="none" stroke="#be9055" strokeWidth="6"
+                                                        strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+                                                        style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
+                                                </svg>
+                                                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#be9055', lineHeight: 1 }}>{activeAftercare.currentDay}</span>
+                                                    <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 600 }}>of {activeAftercare.totalDays}</span>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ flex: 1, minWidth: '180px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                                    <PhaseIcon size={14} color={phase.color} />
+                                                    <span style={{ padding: '3px 10px', borderRadius: '16px', fontSize: '0.7rem', fontWeight: 700, background: `${phase.color}20`, color: phase.color, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                                                        {phase.label}
+                                                    </span>
+                                                </div>
+                                                <h3 style={{ fontSize: '1.05rem', margin: '0 0 6px 0', color: '#fff', fontFamily: "'Playfair Display', serif" }}>
+                                                    {activeAftercare.designTitle}
+                                                </h3>
+                                                <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.82rem', lineHeight: '1.5' }}>
+                                                    {activeAftercare.todayMessage}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <button className="view-all-btn" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none' }} onClick={() => navigate('/customer/aftercare')}>View Guide</button>
-                                </div>
-                                <div style={{ padding: '20px 0', display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <h3 style={{ fontSize: '1.2rem', margin: '0 0 10px 0', color: '#fff' }}>Your Latest Tattoo is Healing!</h3>
-                                        <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.9rem', lineHeight: '1.5' }}>
-                                            Keep it clean and moisturized. You are currently on <strong>Day 3</strong> of the initial healing phase. Avoid direct sunlight and heavy sweating.
-                                        </p>
-                                    </div>
-                                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: '4px solid #f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245, 158, 11, 0.1)' }}>
-                                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>3</span>
-                                    </div>
-                                </div>
-                            </div>
+                                );
+                            })()}
 
                             {/* Upcoming Appointments */}
                             <div className="data-card-v2">

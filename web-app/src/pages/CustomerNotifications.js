@@ -22,7 +22,8 @@ import {
     RefreshCw,
     Search,
     Star,
-    CreditCard
+    CreditCard,
+    Sparkles
 } from 'lucide-react';
 import CustomerSideNav from '../components/CustomerSideNav';
 import Pagination from '../components/Pagination';
@@ -166,6 +167,8 @@ function CustomerNotifications() {
 
             case 'aftercare_reminder':
                 return { icon: Info, color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)', label: 'Aftercare' };
+            case 'aftercare_daily':
+                return { icon: Sparkles, color: '#be9055', bg: 'rgba(190, 144, 85, 0.1)', label: 'Aftercare' };
             case 'review_prompt':
                 return { icon: Star, color: '#b7954e', bg: 'rgba(183, 149, 78, 0.1)', label: 'Review' };
             case 'email_change':
@@ -329,7 +332,12 @@ function CustomerNotifications() {
                                                                     </a>
                                                                 )}
                                                                 {n.type === 'aftercare_reminder' && (
-                                                                    <button className="notif-btn primary customer-st-3d39e5b0" onClick={(e) => { e.stopPropagation(); setIsAftercareModalOpen(true); }} >
+                                                                    <button className="notif-btn primary customer-st-3d39e5b0" onClick={(e) => { e.stopPropagation(); navigate('/customer/aftercare'); }} >
+                                                                        View Guide
+                                                                    </button>
+                                                                )}
+                                                                {n.type === 'aftercare_daily' && (
+                                                                    <button className="notif-btn primary" style={{ background: 'rgba(190,144,85,0.15)', color: '#be9055', border: '1px solid rgba(190,144,85,0.3)', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); navigate('/customer/aftercare'); }} >
                                                                         View Guide
                                                                     </button>
                                                                 )}
@@ -396,7 +404,7 @@ function CustomerNotifications() {
                         <div className="customer-st-23aef110" >
                             <span className="customer-st-97b91651" >Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
                             <div className="notif-actions customer-st-7cead41b" >
-                                {selectedNotification.related_id && selectedNotification.type !== 'pos_invoice' && selectedNotification.type !== 'review_prompt' && selectedNotification.type !== 'aftercare_reminder' && selectedNotification.type !== 'email_change' && selectedNotification.type !== 'password_change' && selectedNotification.type !== 'payment_success' && (
+                                {selectedNotification.related_id && selectedNotification.type !== 'pos_invoice' && selectedNotification.type !== 'review_prompt' && selectedNotification.type !== 'aftercare_reminder' && selectedNotification.type !== 'aftercare_daily' && selectedNotification.type !== 'email_change' && selectedNotification.type !== 'password_change' && selectedNotification.type !== 'payment_success' && (
                                     <a className="notif-btn primary customer-st-be17fc86" href={`/customer/bookings?appointment=${selectedNotification.related_id}`} >Take Action</a>
                                 )}
                                 {selectedNotification.type === 'payment_success' && (() => {
@@ -411,7 +419,8 @@ function CustomerNotifications() {
                                 })()}
                                 {selectedNotification.type === 'pos_invoice' && <a className="notif-btn primary customer-st-be17fc86" href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" >View Invoice</a>}
                                 {(selectedNotification.type === 'email_change' || selectedNotification.type === 'password_change') && <button className="notif-btn primary" onClick={() => navigate('/customer/profile')}>Manage Profile</button>}
-                                {selectedNotification.type === 'aftercare_reminder' && <button className="notif-btn primary customer-st-b55afb9c" onClick={() => { setSelectedNotification(null); setIsAftercareModalOpen(true); }} >View Guide</button>}
+                                {selectedNotification.type === 'aftercare_reminder' && <button className="notif-btn primary customer-st-b55afb9c" onClick={() => { setSelectedNotification(null); navigate('/customer/aftercare'); }} >View Guide</button>}
+                                {selectedNotification.type === 'aftercare_daily' && <button className="notif-btn primary" style={{ background: '#be9055', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }} onClick={() => { setSelectedNotification(null); navigate('/customer/aftercare'); }} >View Full Guide</button>}
                                 {selectedNotification.type === 'review_prompt' && (
                                     reviewedAppointments.has(Number(selectedNotification.related_id)) ? (
                                         <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
