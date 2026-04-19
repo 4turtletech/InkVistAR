@@ -1355,9 +1355,11 @@ function AdminAppointments() {
                                                     const isDualService = formData.serviceType === 'Tattoo + Piercing';
                                                     const isDualConsultation = formData.serviceType === 'Consultation' && (formData.notes || '').toLowerCase().includes('piercing');
                                                     const requiresDualStaff = isDualService || isDualConsultation;
-                                                    const primaryLabel = isDualService ? 'Tattoo Staff *' : 'Primary Staff *';
+                                                    const primaryLabel = isDualService
+                                                        ? <span>Tattoo Staff <span style={{ color: '#ef4444' }}>*</span></span>
+                                                        : 'Primary Staff *';
                                                     const secondaryLabel = requiresDualStaff
-                                                        ? (isDualService ? 'Piercing Staff *' : 'Piercing Consultation Staff *')
+                                                        ? <span>Secondary Staff <span style={{ color: '#ef4444' }}>*</span></span>
                                                         : 'Secondary Staff';
                                                     return (
                                                 <div className="admin-st-efc8b70e">
@@ -1382,12 +1384,12 @@ function AdminAppointments() {
                                                             </select>
                                                             {requiresDualStaff && (
                                                                 <span style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 600, marginTop: '4px', display: 'block' }}>
-                                                                    ⚠ {isDualService ? 'Tattoo + Piercing' : 'Dual-topic consultation'} requires both staff. Same person may be selected for both roles.
+                                                                    ⚠ Dual topic selected
                                                                 </span>
                                                             )}
                                                         </div>
                                                     </div>
-                                                    {formData.secondaryArtistId && (
+                                                    {formData.secondaryArtistId && formData.serviceType !== 'Consultation' && (
                                                         <div className="admin-st-953ba7ac">
                                                             <label className="admin-st-15b3be7e">Split % (Pri/Sec):</label>
                                                             <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: clampNumber(e.target.value, 1, 99) })} className="premium-input-v2 admin-st-e070afd8" disabled={selectedAppointment?.status === 'completed'} />
