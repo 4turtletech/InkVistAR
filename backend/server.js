@@ -6230,20 +6230,13 @@ app.get('/api/admin/analytics', (req, res) => {
        WHERE t.type = 'out' ${invTxDateFilter}
        GROUP BY sort_key ORDER BY sort_key ASC`;
 
-  // 5. Popular Styles — combines portfolio categories + appointment service types
+  // 5. Popular Styles — actual tattoo art styles from portfolio categories only
+  // (appointment service_types like 'Consultation', 'Tattoo Session' are service categories, NOT styles)
   const styleQuery = `
-    SELECT name, SUM(cnt) as count FROM (
-      SELECT category as name, COUNT(*) as cnt 
-      FROM portfolio_works 
-      WHERE is_deleted = 0 AND category IS NOT NULL AND category != ''
-      GROUP BY category
-      UNION ALL
-      SELECT ap.service_type as name, COUNT(*) as cnt
-      FROM appointments ap
-      WHERE ap.is_deleted = 0 AND ap.service_type IS NOT NULL AND ap.service_type != '' ${apptDateFilter}
-      GROUP BY ap.service_type
-    ) combined
-    GROUP BY name
+    SELECT category as name, COUNT(*) as count 
+    FROM portfolio_works 
+    WHERE is_deleted = 0 AND category IS NOT NULL AND category != ''
+    GROUP BY category
     ORDER BY count DESC 
     LIMIT 5
   `;

@@ -153,9 +153,9 @@ function AdminAnalytics() {
             case 'styles':
                 title = 'Popular Styles — Booking Categories';
                 data = {
-                    breakdown: analytics.styles.map(s => ({ name: s.name, value: s.count })),
-                    total: analytics.styles.reduce((sum, s) => sum + (s.count || 0), 0),
-                    source: 'portfolio_works categories + appointment service types'
+                    breakdown: analytics.styles.map(s => ({ name: s.name, value: Number(s.count) || 0 })),
+                    total: analytics.styles.reduce((sum, s) => sum + (Number(s.count) || 0), 0),
+                    source: 'portfolio_works categories (tattoo art styles)'
                 };
                 break;
             case 'completion':
@@ -323,6 +323,7 @@ function AdminAnalytics() {
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
+                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#6366f1' }}>View revenue source breakdown →</div>
                             </div>
 
                             <div className="card glass-card card-colspan-1" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer' }}>
@@ -342,6 +343,7 @@ function AdminAnalytics() {
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No revenue data yet</div>
                                     )}
                                 </div>
+                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>Click to audit revenue sources →</div>
                             </div>
                         </div>
 
@@ -353,10 +355,10 @@ function AdminAnalytics() {
                                     {analytics.styles.length > 0 ? (
                                         <ResponsiveContainer>
                                             <PieChart>
-                                                <Pie data={analytics.styles.map(s => ({ name: s.name, value: s.count }))} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={true}>
+                                                <Pie data={analytics.styles.map(s => ({ name: s.name, value: Number(s.count) || 0 }))} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={true}>
                                                     {analytics.styles.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[(i * 2) % RAINBOW_PALETTE.length]} />)}
                                                 </Pie>
-                                                <Tooltip formatter={(v) => `${v} bookings`} />
+                                                <Tooltip formatter={(v) => `${v} works`} />
                                                 <Legend wrapperStyle={{ color: '#171516' }} />
                                             </PieChart>
                                         </ResponsiveContainer>
@@ -364,6 +366,7 @@ function AdminAnalytics() {
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No style data yet</div>
                                     )}
                                 </div>
+                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#a855f7' }}>View portfolio style breakdown →</div>
                             </div>
 
                             <div className="card glass-card card-colspan-2" onClick={() => openAuditModal('artists')} style={{ cursor: 'pointer' }}>
@@ -385,6 +388,7 @@ function AdminAnalytics() {
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No artist data yet</div>
                                     )}
                                 </div>
+                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#f59e0b' }}>View artist performance audit →</div>
                             </div>
                         </div>
 
@@ -431,6 +435,7 @@ function AdminAnalytics() {
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No inventory data yet</div>
                                     )}
                                 </div>
+                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#8b5cf6' }}>View consumption audit log →</div>
                             </div>
 
                             <div className="card glass-card card-colspan-1" onClick={() => openAuditModal('appointments')} style={{ cursor: 'pointer' }}>
@@ -456,6 +461,7 @@ function AdminAnalytics() {
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </div>
+                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6' }}>View appointment audit log →</div>
                             </div>
                         </div>
                     </>
