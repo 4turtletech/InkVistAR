@@ -39,9 +39,12 @@ function Login() {
 
     const validateField = (name, value) => {
         let errorMsg = "";
-        if ((name === 'email' || name === 'resetEmail') && value) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(value)) errorMsg = "Please enter a valid email format";
+        if (name === 'email' || name === 'resetEmail') {
+            if (!value) errorMsg = "Email is required";
+            else {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(value)) errorMsg = "Please enter a valid email format";
+            }
         }
         if (name === 'password' && !value) {
             errorMsg = "Password is required";
@@ -79,13 +82,15 @@ function Login() {
                 hasSymbol: /[@$!%*?&#]/.test(val)
             });
         }
-        if (errors[fieldName]) {
-            setErrors(prev => ({ ...prev, [fieldName]: "" }));
-        }
+        validateField(fieldName, val);
     };
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        const isEmailValid = validateField('email', email);
+        const isPasswordValid = validateField('password', password);
+        if (!isEmailValid || !isPasswordValid) return;
+
         setError("");
         setShowResend(false);
         setResendMessage({ text: '' });
