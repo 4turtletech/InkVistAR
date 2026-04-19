@@ -829,6 +829,15 @@ db.getConnection((err, connection) => {
             console.log('✅ Added audit_log column to appointments');
           }
         });
+
+        // MIGRATION: Add 'device_id' column for per-device booking spam prevention
+        db.query("SHOW COLUMNS FROM appointments LIKE 'device_id'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding device_id column...');
+            db.query("ALTER TABLE appointments ADD COLUMN device_id VARCHAR(255) NULL");
+            console.log('✅ Added device_id column to appointments');
+          }
+        });
       }
     });
 
@@ -3592,7 +3601,7 @@ app.get('/api/admin/appointments', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', async (req, res) => {
-  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken } = req.body;
+  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId } = req.body;
 
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
@@ -3604,6 +3613,42 @@ app.post('/api/admin/appointments', async (req, res) => {
 
   if (!customerId || !artistId || !date) {
     return res.status(400).json({ success: false, message: 'customerId, artistId, and date are required.' });
+  }
+
+  // ═══ Rolling Booking Limit: max 2 pending consultations per user/device ═══
+  const isConsultation = (serviceType || '').toLowerCase() === 'consultation';
+  if (isConsultation) {
+    const limitCheck = await new Promise((resolve) => {
+      // For authenticated users, check by customer_id; for guests, check by device_id
+      const isGuest = customerId === 'admin';
+      let limitQuery, limitParams;
+
+      if (!isGuest && customerId) {
+        limitQuery = `SELECT COUNT(*) as pending FROM appointments WHERE customer_id = ? AND service_type = 'Consultation' AND status = 'pending' AND is_deleted = 0`;
+        limitParams = [customerId];
+      } else if (deviceId) {
+        limitQuery = `SELECT COUNT(*) as pending FROM appointments WHERE device_id = ? AND service_type = 'Consultation' AND status = 'pending' AND is_deleted = 0`;
+        limitParams = [deviceId];
+      } else {
+        return resolve({ allowed: true }); // No way to track — allow
+      }
+
+      db.query(limitQuery, limitParams, (err, results) => {
+        if (err) return resolve({ allowed: true }); // Fail open on DB error
+        const pendingCount = results[0]?.pending || 0;
+        if (pendingCount >= 2) {
+          return resolve({ allowed: false, count: pendingCount });
+        }
+        resolve({ allowed: true });
+      });
+    });
+
+    if (!limitCheck.allowed) {
+      return res.status(429).json({
+        success: false,
+        message: `You already have ${limitCheck.count} pending consultation requests. Please wait for one to be confirmed before booking another.`
+      });
+    }
   }
 
   const resolveAdminIds = (callback) => {
@@ -3643,10 +3688,10 @@ app.post('/api/admin/appointments', async (req, res) => {
       const bookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType);
       const query = `
         INSERT INTO appointments 
-          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, ?)
+          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, ?, ?)
       `;
-      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, bookingCode], (err, result) => {
+      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, bookingCode, deviceId || null], (err, result) => {
         if (err) {
           console.error('❌ Error creating admin appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });

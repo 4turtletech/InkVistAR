@@ -17,6 +17,16 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const { executeRecaptcha } = useGoogleReCaptcha();
     
     const user = JSON.parse(localStorage.getItem('user'));
+
+    // ═══ Device ID for rolling booking limit ═══
+    const [deviceId] = useState(() => {
+        let id = localStorage.getItem('inkvistar_device_id');
+        if (!id) {
+            id = 'dev_' + crypto.randomUUID();
+            localStorage.setItem('inkvistar_device_id', id);
+        }
+        return id;
+    });
     
     const placementNotesRef = useRef(null);
     const [formData, setFormData] = useState({
@@ -226,7 +236,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 price: 0,
                 isFromWizard: true,
                 customerName: currentUser?.name || generatedName,
-                captchaToken: token
+                captchaToken: token,
+                deviceId: deviceId
             });
 
             if (response.data.success) {
@@ -239,7 +250,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             }
         } catch (error) {
             console.error('Error finalizing booking:', error);
-            alert(error.response?.data?.message || 'Failed to submit booking request. Please try again.');
+            if (error.response?.status === 429) {
+                alert(error.response.data.message || 'You have reached the maximum number of pending consultation requests. Please wait for one to be confirmed.');
+            } else {
+                alert(error.response?.data?.message || 'Failed to submit booking request. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
