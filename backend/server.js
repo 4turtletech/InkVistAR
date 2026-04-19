@@ -847,6 +847,24 @@ db.getConnection((err, connection) => {
             console.log('✅ Added consultation_method column to appointments');
           }
         });
+
+        // MIGRATION: Add 'guest_email' column for guest booking contact info
+        db.query("SHOW COLUMNS FROM appointments LIKE 'guest_email'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding guest_email column...');
+            db.query("ALTER TABLE appointments ADD COLUMN guest_email VARCHAR(255) NULL");
+            console.log('✅ Added guest_email column to appointments');
+          }
+        });
+
+        // MIGRATION: Add 'guest_phone' column for guest booking contact info
+        db.query("SHOW COLUMNS FROM appointments LIKE 'guest_phone'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding guest_phone column...');
+            db.query("ALTER TABLE appointments ADD COLUMN guest_phone VARCHAR(50) NULL");
+            console.log('✅ Added guest_phone column to appointments');
+          }
+        });
       }
     });
 
@@ -1711,18 +1729,27 @@ app.post('/api/login', async (req, res) => {
         });
       }
 
-      // Successful login
-      res.json({
-        success: true,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          type: user.user_type,
-          is_superadmin: user.is_superadmin === 1
-        },
-        message: 'Login successful!'
-      });
+      // Successful login — check for migrated guest appointments
+      db.query(
+        'SELECT COUNT(*) as cnt FROM appointments WHERE guest_email = ? AND customer_id = ? AND is_deleted = 0',
+        [user.email, user.id],
+        (migErr, migRows) => {
+          const migratedAppointments = (!migErr && migRows && migRows[0]) ? migRows[0].cnt : 0;
+
+          res.json({
+            success: true,
+            user: {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              type: user.user_type,
+              is_superadmin: user.is_superadmin === 1
+            },
+            message: 'Login successful!',
+            migratedAppointments: migratedAppointments
+          });
+        }
+      );
     });
 
   } catch (error) {
@@ -2442,6 +2469,7 @@ app.post('/api/register', async (req, res) => {
         }
 
         function sendSuccessResponse(userId) {
+          // Claim a specific orphan appointment (from session storage)
           if (orphanAppointmentId) {
             db.query('UPDATE appointments SET customer_id = ? WHERE id = ?', [userId, orphanAppointmentId], (updateErr) => {
               if (updateErr) console.error('Error claiming orphan appointment during registration:', updateErr);
@@ -2454,16 +2482,30 @@ app.post('/api/register', async (req, res) => {
             });
           }
 
-          res.json({
-            success: true,
-            message: 'Account created! Please check your email to verify.',
-            user: {
-              id: userId,
-              name: fullName,
-              email: email,
-              type: type
+          // ═══ Migrate ALL orphan appointments by guest_email match ═══
+          db.query(
+            'UPDATE appointments SET customer_id = ? WHERE guest_email = ? AND customer_id != ? AND is_deleted = 0',
+            [userId, email, userId],
+            (migErr, migResult) => {
+              const migratedCount = migResult ? migResult.affectedRows : 0;
+              if (migratedCount > 0) {
+                console.log(`📦 Migrated ${migratedCount} orphan appointment(s) to new user ${fullName} (${email})`);
+                createNotification(userId, 'Prior Bookings Found!', `We found ${migratedCount} consultation request(s) linked to your email from before you created your account. They have been automatically added to your account.`, 'appointment_request');
+              }
+
+              res.json({
+                success: true,
+                message: 'Account created! Please check your email to verify.',
+                user: {
+                  id: userId,
+                  name: fullName,
+                  email: email,
+                  type: type
+                },
+                migratedCount: migratedCount
+              });
             }
-          });
+          );
         }
       });
     });
@@ -3633,7 +3675,7 @@ app.get('/api/admin/appointments', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', async (req, res) => {
-  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod } = req.body;
+  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone } = req.body;
 
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
@@ -3719,10 +3761,10 @@ app.post('/api/admin/appointments', async (req, res) => {
       const bookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType);
       const query = `
         INSERT INTO appointments 
-          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, ?, ?, ?)
+          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, ?, ?, ?, ?, ?)
       `;
-      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, bookingCode, deviceId || null, consultationMethod || null], (err, result) => {
+      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, bookingCode, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null], (err, result) => {
         if (err) {
           console.error('❌ Error creating admin appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -3732,6 +3774,49 @@ app.post('/api/admin/appointments', async (req, res) => {
           const clientNameStr = customerName || 'a guest';
           createNotification(customerId, 'Booking Request Received', `We have received your booking request [${bookingCode}] for ${date} and will calculate a quote for you shortly.`, 'appointment_request', result.insertId);
           createNotification(artistId, 'New Booking Request', `${serviceType || 'Consultation'} requested by ${clientNameStr} ("${designTitle}"). Ref Code: [${bookingCode}]. Pending review.`, 'appointment_request', result.insertId);
+
+          // ═══ Guest External Notifications (SMS + Email) ═══
+          const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          const appointmentTime = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD';
+          const displayDesign = designTitle || 'Consultation';
+          const displayMethod = consultationMethod || 'Face-to-Face';
+
+          // SMS — send if phone provided
+          if (guestPhone) {
+            const smsBody = `InkVistAR: Hi ${clientNameStr}! Your consultation request [${bookingCode}] for "${displayDesign}" on ${appointmentDate} at ${appointmentTime} has been received. We'll review and contact you within 24 hours. Thank you!`;
+            sendSMS(guestPhone, smsBody);
+          }
+
+          // Email — send if email provided
+          if (guestEmail) {
+            const guestHtml = buildEmailHtml(`
+              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
+              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">We're excited to help you on your next piece</p>
+              <p style="margin:0 0 16px;">Hello ${clientNameStr},</p>
+              <p style="margin:0 0 16px;">Thank you for reaching out to InkVistAR Studio! We have received your consultation request and our team is reviewing the details.</p>
+              
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Ref Code:</strong> <span style="color:#C19A6B;font-family:monospace;font-weight:700;">${bookingCode}</span></p>
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Design Idea:</strong> <span style="color:#C19A6B;">${displayDesign}</span></p>
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Date:</strong> <span style="color:#C19A6B;">${appointmentDate}</span></p>
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Time:</strong> <span style="color:#C19A6B;">${appointmentTime}</span></p>
+                  <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Method:</strong> <span style="color:#C19A6B;">${displayMethod}</span></p>
+                </div>
+              </td></tr></table>
+
+              <p style="margin:0 0 16px;line-height:1.6;">Our staff will reach out to you within the next <strong style="color:#C19A6B;">24 hours</strong> to confirm your appointment and discuss pricing.</p>
+              
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 16px;">
+                <div style="display:inline-block;padding:12px 20px;background:rgba(193,154,107,0.1);border:1px solid rgba(193,154,107,0.2);border-radius:10px;">
+                  <p style="margin:0;font-size:13px;color:#94a3b8;">💡 <strong style="color:#e2e8f0;">Tip:</strong> Create an InkVistAR account with this email to track your booking, receive updates, and manage future appointments.</p>
+                </div>
+              </td></tr></table>
+
+              <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">— The InkVistAR Studio Team</p>
+            `);
+            sendResendEmail(guestEmail, `InkVistAR: Consultation Request [${bookingCode}] Received`, guestHtml);
+          }
         } else {
           createNotification(customerId, 'Appointment Scheduled', `Your appointment [${bookingCode}] has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
           if (artistId && artistId !== 1) {

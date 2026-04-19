@@ -241,7 +241,9 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 customerName: currentUser?.name || generatedName,
                 captchaToken: token,
                 deviceId: deviceId,
-                consultationMethod: consultMethodStr
+                consultationMethod: consultMethodStr,
+                guestEmail: !currentUser ? formData.email : undefined,
+                guestPhone: !currentUser ? `${formData.phoneCode || '+63'}${formData.phone}` : undefined
             });
 
             if (response.data.success) {

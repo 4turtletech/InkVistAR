@@ -32,6 +32,7 @@ function CustomerBookings(){
     const [studioCapacity, setStudioCapacity] = useState(1);
     const [bookedDates, setBookedDates] = useState({});
     const [completedAppointments, setCompletedAppointments] = useState([]);
+    const [migrationModal, setMigrationModal] = useState({ show: false, count: 0 });
     
     const placementNotesRef = useRef(null);
     const [bookingData, setBookingData] = useState({
@@ -127,6 +128,15 @@ function CustomerBookings(){
             onConfirm: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
         });
     };
+
+    // Check for migrated guest appointments on first load
+    useEffect(() => {
+        const migratedCount = localStorage.getItem('migratedAppointments');
+        if (migratedCount && parseInt(migratedCount) > 0) {
+            setMigrationModal({ show: true, count: parseInt(migratedCount) });
+            localStorage.removeItem('migratedAppointments');
+        }
+    }, []);
 
     useEffect(() => {
         const fetchArtists = async () => {
@@ -1842,6 +1852,63 @@ function CustomerBookings(){
                 type={confirmModal.type}
                 isAlert={confirmModal.isAlert}
             />
+
+            {/* Migration Success Modal */}
+            {migrationModal.show && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 9999, animation: 'fadeIn 0.3s ease'
+                }}>
+                    <div style={{
+                        background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(255,255,255,0.5)', borderRadius: '24px',
+                        padding: '40px 36px 32px', maxWidth: '420px', width: '90%', textAlign: 'center',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+                        animation: 'slideUp 0.35s ease', fontFamily: "'Inter', sans-serif"
+                    }}>
+                        <div style={{
+                            width: '72px', height: '72px', borderRadius: '50%',
+                            background: 'linear-gradient(135deg, rgba(193,154,107,0.15), rgba(193,154,107,0.05))',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 20px', border: '2px solid rgba(193,154,107,0.2)'
+                        }}>
+                            <span style={{ fontSize: '32px' }}>📋</span>
+                        </div>
+                        <h2 style={{ color: '#1e293b', fontSize: '1.3rem', fontWeight: 700, margin: '0 0 8px' }}>
+                            Prior Consultation Data Found!
+                        </h2>
+                        <p style={{ color: '#64748b', fontSize: '0.92rem', lineHeight: 1.7, margin: '0 0 20px' }}>
+                            Based on your account email, we found <strong style={{ color: '#C19A6B' }}>{migrationModal.count} consultation request{migrationModal.count > 1 ? 's' : ''}</strong> you made before creating your account. {migrationModal.count > 1 ? 'They have' : 'It has'} been automatically migrated to this account.
+                        </p>
+                        <div style={{
+                            padding: '14px 20px', background: 'rgba(193,154,107,0.08)',
+                            border: '1px solid rgba(193,154,107,0.15)', borderRadius: '12px',
+                            marginBottom: '24px'
+                        }}>
+                            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', lineHeight: 1.6 }}>
+                                💡 You can now view and track {migrationModal.count > 1 ? 'these bookings' : 'this booking'} in your <strong style={{ color: '#1e293b' }}>My Bookings</strong> page. Our team will reach out to confirm details.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setMigrationModal({ show: false, count: 0 })}
+                            style={{
+                                width: '100%', padding: '14px 24px',
+                                background: 'linear-gradient(135deg, #C19A6B, #a88754)',
+                                color: '#fff', border: 'none', borderRadius: '12px',
+                                fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer',
+                                transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(193,154,107,0.3)',
+                                fontFamily: "'Inter', sans-serif"
+                            }}
+                            onMouseEnter={e => e.target.style.transform = 'translateY(-1px)'}
+                            onMouseLeave={e => e.target.style.transform = 'translateY(0)'}
+                        >
+                            Got It, View My Bookings
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

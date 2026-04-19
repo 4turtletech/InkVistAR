@@ -110,6 +110,11 @@ function Login() {
             if (response.data.success) {
                 localStorage.setItem('user', JSON.stringify(response.data.user));
                 const user = response.data.user;
+
+                // Store migration count for the customer portal to pick up
+                if (response.data.migratedAppointments > 0) {
+                    localStorage.setItem('migratedAppointments', response.data.migratedAppointments);
+                }
                 
                 const role = user.type;
                 if (role === 'admin') navigate('/admin/dashboard', { replace: true });
