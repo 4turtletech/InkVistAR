@@ -1408,7 +1408,7 @@ function AdminAppointments() {
                                                                     border: '3px solid white', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
                                                                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                                                                 }}>
-                                                                    <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
+                                                                    <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#C19A6B' }}>
                                                                         {getInitials(clients.find(c => c.id == formData.clientId)?.name || clientSearch)}
                                                                     </span>
                                                                 </div>

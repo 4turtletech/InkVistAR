@@ -3779,7 +3779,7 @@ app.post('/api/admin/appointments', async (req, res) => {
           db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (adminErr, admins) => {
             if (!adminErr && admins && admins.length > 0) {
               admins.forEach(admin => {
-                createNotification(admin.id, '🆕 Guest Consultation Request', `New ${serviceType || 'Consultation'} from ${clientNameStr} (Guest — no account). Idea: "${designTitle}". Contact: ${guestContactStr}. Ref: [${bookingCode}]. Pending review.`, 'appointment_request', result.insertId);
+                createNotification(admin.id, 'Guest Consultation Request', `New ${serviceType || 'Consultation'} from ${clientNameStr} (Guest — no account). Idea: "${designTitle}". Contact: ${guestContactStr}. Ref: [${bookingCode}]. Pending review.`, 'appointment_request', result.insertId);
               });
             }
           });
