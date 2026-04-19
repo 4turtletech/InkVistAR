@@ -14,6 +14,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [errors, setErrors] = useState({}); // Field-level inline errors
     const [activeFeature, setActiveFeature] = useState(0);
     const [showExitModal, setShowExitModal] = useState(false);
+    const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
     const { executeRecaptcha } = useGoogleReCaptcha();
     
     const user = JSON.parse(localStorage.getItem('user'));
@@ -788,6 +789,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         maxLength={254}
                     />
                     {errors.email && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.75rem'}}>{errors.email}</small>}
+                    {!user && (
+                        <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#C19A6B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Info size={13} style={{ flexShrink: 0 }} /> Your booking confirmation and status updates will be sent to this email.
+                        </p>
+                    )}
                 </div>
                 <div className="form-group" style={{ position: 'relative' }}>
                     <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>Phone Number *</label>
@@ -859,7 +865,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <button 
-                        onClick={() => navigate('/')}
+                        onClick={() => { setShowExitModal(false); setShowEmailConfirmModal(true); }}
                         className="exit-confirm-btn"
                         style={{
                             padding: '14px', borderRadius: '12px', border: 'none',
@@ -880,6 +886,48 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                         Create Account
                     </button>
                 </div>
+            </div>
+        </div>
+    );
+
+    const renderEmailConfirmModal = () => (
+        <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+        }}>
+            <div className="fade-in" style={{
+                backgroundColor: 'white', padding: '40px', borderRadius: '24px',
+                maxWidth: '450px', width: '90%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+            }}>
+                <div style={{ backgroundColor: '#f0fdf4', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', border: '2px solid #bbf7d0' }}>
+                    <CheckCircle size={32} color="#16a34a" />
+                </div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b', marginBottom: '12px' }}>You're All Set!</h3>
+                <p style={{ color: '#64748b', marginBottom: '20px', lineHeight: '1.7', fontSize: '0.95rem' }}>
+                    Don't worry — we'll keep you updated! A confirmation email with your booking details has been sent to:
+                </p>
+                <div style={{ padding: '12px 20px', background: 'rgba(193,154,107,0.08)', border: '1px solid rgba(193,154,107,0.2)', borderRadius: '12px', marginBottom: '20px' }}>
+                    <p style={{ margin: 0, fontWeight: '700', color: '#C19A6B', fontSize: '1rem' }}>{formData.email}</p>
+                </div>
+                <p style={{ color: '#64748b', marginBottom: '28px', lineHeight: '1.6', fontSize: '0.85rem' }}>
+                    You'll also receive SMS and email notifications whenever there's an update to your booking status — like confirmation, scheduling changes, or your price quote.
+                </p>
+                <button 
+                    onClick={() => navigate('/')}
+                    style={{
+                        width: '100%', padding: '14px 24px',
+                        background: 'linear-gradient(135deg, #C19A6B, #a88754)',
+                        color: '#fff', border: 'none', borderRadius: '12px',
+                        fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer',
+                        transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(193,154,107,0.3)',
+                        fontFamily: "'Inter', sans-serif"
+                    }}
+                    onMouseEnter={e => e.target.style.transform = 'translateY(-1px)'}
+                    onMouseLeave={e => e.target.style.transform = 'translateY(0)'}
+                >
+                    Got It, Back to Home
+                </button>
             </div>
         </div>
     );
@@ -1086,6 +1134,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             </div>
 
             {showExitModal && renderExitModal()}
+            {showEmailConfirmModal && renderEmailConfirmModal()}
         </div>
     );
 

@@ -14,6 +14,7 @@ import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
 import { filterName, filterDigits, clampNumber } from '../utils/validation';
+import { getDisplayCode } from '../utils/formatters';
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
     User, Calendar, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
@@ -1118,7 +1119,7 @@ function AdminUsers() {
                                                                                             {record.booking_code && (
                                                                                                 <div>
                                                                                                     <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Booking Code</div>
-                                                                                                    <div style={{ color: '#C19A6B', fontWeight: 700, letterSpacing: '0.05em' }}>{record.booking_code}</div>
+                                                                                                    <div style={{ color: '#C19A6B', fontWeight: 700, letterSpacing: '0.05em' }}>{getDisplayCode(record.booking_code, record.id)}</div>
                                                                                                 </div>
                                                                                             )}
                                                                                             <div>

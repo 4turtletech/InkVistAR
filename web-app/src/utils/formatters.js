@@ -4,31 +4,23 @@
  */
 
 /**
- * Formats a booking code for user-facing display.
+ * Returns a booking code for user-facing display.
  *
- * Given a raw booking_code (e.g. "O-T-A3K7") and the appointment's numeric id,
- * returns a deterministic display code like "O-T-0012" where the suffix is
- * derived from `id % 10000`, zero-padded to 4 digits.
+ * The database now stores clean, standardized codes (e.g. "O-C-0012")
+ * so this function simply returns the code as-is with a fallback
+ * for legacy or missing codes.
  *
- * If the booking_code is missing or malformed, returns a visible sentinel
- * string so data-integrity issues are immediately obvious rather than
- * silently hidden behind a generic fallback.
- *
- * @param {string|null|undefined} bookingCode - The raw booking_code from the database.
- * @param {number|string} id - The appointment's primary-key id.
- * @returns {string} The formatted display code.
+ * @param {string|null|undefined} bookingCode - The booking_code from the database.
+ * @param {number|string} id - The appointment's primary-key id (used as fallback only).
+ * @returns {string} The display code.
  */
 export const getDisplayCode = (bookingCode, id) => {
-  const numericId = parseInt(id, 10);
-  const seqNum = String((isNaN(numericId) ? 0 : numericId) % 10000).padStart(4, '0');
-
-  if (bookingCode && typeof bookingCode === 'string' && bookingCode.includes('-')) {
-    const parts = bookingCode.split('-');
-    if (parts.length >= 2) {
-      return `${parts[0]}-${parts[1]}-${seqNum}`;
-    }
+  if (bookingCode && typeof bookingCode === 'string' && bookingCode.trim()) {
+    return bookingCode;
   }
 
-  // Sentinel: no valid booking code — make the gap visible
+  // Fallback for legacy appointments without a booking_code
+  const numericId = parseInt(id, 10);
+  const seqNum = String((isNaN(numericId) ? 0 : numericId) % 10000).padStart(4, '0');
   return `⚠ UNLINKED-${seqNum}`;
 };

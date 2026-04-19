@@ -178,7 +178,7 @@ app.get('/health', (req, res) => {
 });
 
 // Generate Kiosk-style Booking Code
-function generateBookingCode(origin, serviceType) {
+function generateBookingCode(origin, serviceType, insertId) {
   const originCode = origin === 'W' ? 'W' : 'O';
 
   let serviceCode = 'C';
@@ -189,13 +189,8 @@ function generateBookingCode(origin, serviceType) {
   else if (typeStr.includes('piercing')) serviceCode = 'P';
   else if (typeStr.includes('follow') || typeStr.includes('touch')) serviceCode = 'F';
 
-  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-  let randomCode = '';
-  for (let i = 0; i < 4; i++) {
-    randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-
-  return `${originCode}-${serviceCode}-${randomCode}`;
+  const seqNum = String((parseInt(insertId, 10) || 0) % 10000).padStart(4, '0');
+  return `${originCode}-${serviceCode}-${seqNum}`;
 }
 
 // Connect to MySQL via Pool
@@ -3285,18 +3280,21 @@ app.post('/api/customer/appointments', async (req, res) => {
     }
 
     function insertAppointment() {
-      const bookingCode = generateBookingCode('O', serviceType);
       const query = `
     INSERT INTO appointments 
-    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type, booking_code, consultation_method)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?)
+    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type, consultation_method)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)
   `;
 
-      db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation', bookingCode, consultationMethod || null], (err, result) => {
+      db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation', consultationMethod || null], (err, result) => {
         if (err) {
           console.error('❌ Error booking appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
         }
+
+        // Generate clean booking code using the auto-increment ID and UPDATE the row
+        const bookingCode = generateBookingCode('O', serviceType, result.insertId);
+        db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [bookingCode, result.insertId]);
 
         // Notify Customer (1 notification only)
         const notifDate = date || 'an upcoming date';
@@ -3758,17 +3756,20 @@ app.post('/api/admin/appointments', async (req, res) => {
         return res.status(400).json({ success: false, message: 'Scheduling Conflict: The artist or client already has an appointment at this date and time.' });
       }
 
-      const bookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType);
       const query = `
         INSERT INTO appointments 
-          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, ?, ?, ?, ?, ?)
+          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo, device_id, consultation_method, guest_email, guest_phone)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, ?, ?, ?, ?)
       `;
-      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, bookingCode, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null], (err, result) => {
+      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null], (err, result) => {
         if (err) {
           console.error('❌ Error creating admin appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
         }
+
+        // Generate clean booking code using the auto-increment ID and UPDATE the row
+        const bookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType, result.insertId);
+        db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [bookingCode, result.insertId]);
         // If securely routed from the public frontend wizard, alert the Admin
         if (isFromWizard) {
           const clientNameStr = customerName || 'a guest';
@@ -5085,10 +5086,8 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
         return res.status(400).json({ success: false, message: 'Cannot initiate payment: this appointment has no booking code. Please contact admin.' });
       }
 
-      // Build the display code (mirrors frontend getDisplayCode logic)
-      const seqNum = String(appointment.id % 10000).padStart(4, '0');
-      const codeParts = appointment.booking_code.split('-');
-      const displayCode = codeParts.length >= 2 ? `${codeParts[0]}-${codeParts[1]}-${seqNum}` : appointment.booking_code;
+      // booking_code is already in clean format (e.g. O-C-0012) since generation
+      const displayCode = appointment.booking_code;
 
       let priceNumber = Number(appointment.price);
       if ((!priceNumber || priceNumber <= 0) && providedPrice) {
