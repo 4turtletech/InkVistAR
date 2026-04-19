@@ -55,6 +55,7 @@ function CountryCodeSelect({ value, onChange, style, className }) {
                 position: 'relative',
                 display: 'inline-block',
                 minWidth: '80px',
+                borderRadius: '6px',
                 ...style
             }}
         >
@@ -64,9 +65,10 @@ function CountryCodeSelect({ value, onChange, style, className }) {
                 onClick={() => setOpen(!open)}
                 style={{
                     width: '100%',
+                    height: '100%',
                     padding: '10px 28px 10px 12px',
                     border: '1px solid #e2e8f0',
-                    borderRadius: '6px',
+                    borderRadius: 'inherit',
                     backgroundColor: '#fff',
                     fontSize: '0.95rem',
                     fontWeight: '600',

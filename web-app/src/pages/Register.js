@@ -242,10 +242,11 @@ function Register() {
               <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
               {errors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.email}</small>}
             </div>
-            <div className="form-group" style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+            <div className="form-group" style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
               <CountryCodeSelect
                 value={formData.countryCode}
                 onChange={(code) => setFormData(prev => ({ ...prev, countryCode: code }))}
+                style={{ borderRadius: '10px' }}
               />
               <div style={{ flex: 1, position: 'relative' }}>
                 <input type="tel" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} style={{ width: '100%' }} value={formData.phone} onChange={handleChange} placeholder="Phone Number" maxLength={11} />

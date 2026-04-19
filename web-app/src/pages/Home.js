@@ -200,13 +200,13 @@ function Home() {
                         </div>
                         <div className="matrix-images">
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/media__1775711211750.png" alt="Studio Dark Concept" />
+                                <img src="/images/tattoos/studio_1.jpg" alt="Studio Dark Concept Wait Area" />
                             </div>
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/media__1775711217542.png" alt="Inkvictus V Logo" />
+                                <img src="/images/tattoos/studio_3.jpg" alt="Inkvictus Aesthetic Setup" />
                             </div>
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/media__1775711217566.png" alt="Luxurious Studio Setup" />
+                                <img src="/images/tattoos/studio_2.jpg" alt="Luxurious Studio Chairs" />
                             </div>
                         </div>
                     </div>
