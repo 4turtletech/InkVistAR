@@ -490,6 +490,25 @@ function AdminAppointments() {
         let priceValue = parseFloat(priceInput);
         const finalPrice = (!priceValue || priceValue < 0) ? 0 : priceValue;
 
+        // Block completing a tattoo session without staff + price
+        if (isTattooSession && formData.status === 'completed') {
+            if (hasNoArtist) {
+                setModalTab('details');
+                showAlert('Cannot Complete', 'A staff member must be assigned before marking this session as completed.', 'warning');
+                return;
+            }
+            if (requiresDualStaff && hasNoSecondaryArtist) {
+                setModalTab('details');
+                showAlert('Cannot Complete', 'Both staff members must be assigned before marking a dual-service session as completed.', 'warning');
+                return;
+            }
+            if (finalPrice <= 0) {
+                setModalTab('pricing');
+                showAlert('Cannot Complete', 'A price must be set before marking this session as completed.', 'warning');
+                return;
+            }
+        }
+
         if (isTattooSession && finalPrice <= 0) {
             setModalTab('pricing');
             showAlert('Pricing Required', 'A Tattoo Session requires a price to be set. Please enter the service price in the Pricing tab before saving.', 'warning');
@@ -1357,7 +1376,7 @@ function AdminAppointments() {
                                                     const requiresDualStaff = isDualService || isDualConsultation;
                                                     const primaryLabel = isDualService
                                                         ? <span>Tattoo Staff <span style={{ color: '#ef4444' }}>*</span></span>
-                                                        : 'Primary Staff *';
+                                                        : <span>Primary Staff <span style={{ color: '#ef4444' }}>*</span></span>;
                                                     const secondaryLabel = requiresDualStaff
                                                         ? <span>Secondary Staff <span style={{ color: '#ef4444' }}>*</span></span>
                                                         : 'Secondary Staff';
@@ -1702,6 +1721,7 @@ function AdminAppointments() {
                                     <div style={{ display: 'flex', gap: '10px' }}>
                                         {selectedAppointment && (
                                             <>
+                                                {formData.status === 'confirmed' && (
                                                 <button
                                                     type="button"
                                                     className="btn"
@@ -1717,6 +1737,7 @@ function AdminAppointments() {
                                                 >
                                                     <Calendar size={16} /> Reschedule
                                                 </button>
+                                                )}
 
                                                 <button
                                                     type="button"
