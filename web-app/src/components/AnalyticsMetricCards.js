@@ -7,7 +7,7 @@ import { ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip, AreaC
  * AnalyticsMetricCards — Shared metric card widgets.
  * Used primarily by AdminAnalytics.
  */
-function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll = true }) {
+function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMetrics }) {
     if (!analytics) return null;
 
     const CHART_HEIGHT = 140;
@@ -249,7 +249,9 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
         }
     ];
 
-    const visibleCards = showAll ? cards : cards.filter(c => ['revenue', 'appointments', 'users', 'artists'].includes(c.type));
+    const visibleCards = activeMetrics 
+        ? cards.filter(c => activeMetrics.includes(c.type)) 
+        : cards.filter(c => ['revenue', 'appointments', 'users', 'artists'].includes(c.type));
 
     const getIconColorStyle = (colorClass) => {
         switch (colorClass) {
@@ -267,7 +269,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
             {`
                 .metric-cards-grid {
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
                     gap: 1.5rem;
                     padding: 0 2rem;
                     margin-bottom: 2rem;
@@ -289,20 +291,6 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
                     transform: translateY(-3px);
                     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
                 }
-                .metric-col-wide {
-                    grid-column: span 2;
-                }
-                .metric-col-narrow {
-                    grid-column: span 1;
-                }
-                @media (max-width: 1200px) {
-                    .metric-cards-grid {
-                        grid-template-columns: repeat(2, 1fr);
-                    }
-                    .metric-col-wide, .metric-col-narrow {
-                        grid-column: span 1;
-                    }
-                }
                 @media (max-width: 768px) {
                     .metric-cards-grid {
                         grid-template-columns: 1fr;
@@ -313,21 +301,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, showAll 
             </style>
             <div className="metric-cards-grid">
                 {visibleCards.map((card, index) => {
-                    // Create an asymmetrical layout: 2-1, 1-2, 2-1...
-                    // If showAll is false, visibleCards is 4 cards (Revenue, Appointments, Users, Artists).
-                    // we can base it on index.
-                    let colClass = "metric-col-narrow";
-                    if (visibleCards.length > 4) {
-                        // All cards mode
-                        if (index === 0 || index === 3 || index === 4) {
-                            colClass = "metric-col-wide";
-                        }
-                    } else {
-                        // Filtered cards mode (4 cards) - make them 2x2 equal, or 2-1, 1-2
-                        if (index === 0 || index === 3) {
-                            colClass = "metric-col-wide";
-                        }
-                    }
+                    let colClass = "";
 
                     return (
                         <div

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Download, Package, Printer, Filter, X, BarChart3, PieChart as PieChartIcon, Calendar, LayoutDashboard, Check } from 'lucide-react';
+import { Download, Package, Printer, Filter, X, BarChart3, PieChart as PieChartIcon, Calendar, LayoutDashboard, Check, DollarSign, Home, Users, Palette, CheckCircle, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Treemap } from 'recharts';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -16,13 +16,21 @@ import { API_URL } from '../config';
 
 function AdminAnalytics() {
     const WIDGET_OPTIONS = [
-        { id: 'metric_cards', label: 'Summary Metric Cards', icon: <BarChart3 size={16} /> },
-        { id: 'revenue_trend', label: 'Revenue Trend', icon: <BarChart3 size={16} /> },
-        { id: 'revenue_sources', label: 'Revenue Sources', icon: <PieChartIcon size={16} /> },
-        { id: 'popular_styles', label: 'Popular Styles', icon: <PieChartIcon size={16} /> },
-        { id: 'top_artists', label: 'Top Artists', icon: <BarChart3 size={16} /> },
-        { id: 'inventory', label: 'Inventory Consumption', icon: <Package size={16} /> },
-        { id: 'appointments', label: 'Appointment Breakdown', icon: <Calendar size={16} /> },
+        { id: 'revenue_trend', label: 'Chart: Revenue Trend', icon: <BarChart3 size={16} /> },
+        { id: 'revenue_sources', label: 'Chart: Revenue Sources', icon: <PieChartIcon size={16} /> },
+        { id: 'popular_styles', label: 'Chart: Popular Styles', icon: <PieChartIcon size={16} /> },
+        { id: 'top_artists', label: 'Chart: Top Artists', icon: <BarChart3 size={16} /> },
+        { id: 'inventory', label: 'Chart: Inventory', icon: <Package size={16} /> },
+        { id: 'appointments', label: 'Chart: Appointments', icon: <Calendar size={16} /> },
+        { id: 'metric_revenue', label: 'Metric: Revenue', icon: <DollarSign size={16} /> },
+        { id: 'metric_expenses', label: 'Metric: Expenses', icon: <DollarSign size={16} /> },
+        { id: 'metric_overhead', label: 'Metric: Overhead', icon: <Home size={16} /> },
+        { id: 'metric_appointments', label: 'Metric: Appointments', icon: <Calendar size={16} /> },
+        { id: 'metric_users', label: 'Metric: Users', icon: <Users size={16} /> },
+        { id: 'metric_artists', label: 'Metric: Artists', icon: <Palette size={16} /> },
+        { id: 'metric_inventory', label: 'Metric: Inventory', icon: <Package size={16} /> },
+        { id: 'metric_completion', label: 'Metric: Completion', icon: <CheckCircle size={16} /> },
+        { id: 'metric_duration', label: 'Metric: Duration', icon: <Clock size={16} /> },
     ];
 
     const [visibleWidgets, setVisibleWidgets] = useState(() => {
@@ -310,25 +318,25 @@ function AdminAnalytics() {
                             {isWidgetModalOpen && (
                                 <>
                                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} onClick={() => setIsWidgetModalOpen(false)}></div>
-                                    <div style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 100, width: '280px', padding: '16px', animation: 'fadeIn 0.2s ease' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                            <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#1e293b' }}>Dashboard Widgets</h4>
-                                            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }} onClick={() => setIsWidgetModalOpen(false)}><X size={16} /></button>
+                                    <div style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 35px rgba(0,0,0,0.15)', zIndex: 100, width: '420px', padding: '16px', animation: 'fadeIn 0.2s ease' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
+                                            <h4 style={{ margin: 0, fontSize: '1rem', color: '#1e293b' }}>Dashboard Layout</h4>
+                                            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }} onClick={() => setIsWidgetModalOpen(false)}><X size={18} /></button>
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '350px', overflowY: 'auto' }}>
                                             {WIDGET_OPTIONS.map(widget => {
                                                 const isVisible = visibleWidgets.includes(widget.id);
                                                 return (
                                                     <div 
                                                         key={widget.id} 
                                                         onClick={() => toggleWidget(widget.id)}
-                                                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', background: isVisible ? '#f8fafc' : 'transparent', border: `1px solid ${isVisible ? '#e2e8f0' : 'transparent'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: isVisible ? '#f8fafc' : 'transparent', border: `1px solid ${isVisible ? '#e2e8f0' : 'transparent'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
                                                     >
-                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '4px', border: `2px solid ${isVisible ? '#C19A6B' : '#cbd5e1'}`, background: isVisible ? '#C19A6B' : 'transparent' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '4px', border: `2px solid ${isVisible ? '#C19A6B' : '#cbd5e1'}`, background: isVisible ? '#C19A6B' : 'transparent', flexShrink: 0 }}>
                                                             {isVisible && <Check size={14} color="white" strokeWidth={3} />}
                                                         </div>
-                                                        <div style={{ color: isVisible ? '#C19A6B' : '#94a3b8', display: 'flex' }}>{widget.icon}</div>
-                                                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: isVisible ? '#1e293b' : '#64748b' }}>{widget.label}</span>
+                                                        <div style={{ color: isVisible ? '#C19A6B' : '#94a3b8', display: 'flex', flexShrink: 0 }}>{widget.icon}</div>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isVisible ? '#1e293b' : '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{widget.label}</span>
                                                     </div>
                                                 );
                                             })}
@@ -593,10 +601,12 @@ function AdminAnalytics() {
                                 }
                             }
 
+                            const activeMetrics = visibleWidgets.filter(w => w.startsWith('metric_')).map(w => w.replace('metric_', ''));
+
                             return (
                                 <>
-                                    {visibleWidgets.includes('metric_cards') && (
-                                        <AnalyticsMetricCards analytics={analytics} onCardClick={openAuditModal} formatDuration={formatDuration} showAll={true} variant="light" />
+                                    {activeMetrics.length > 0 && (
+                                        <AnalyticsMetricCards analytics={analytics} onCardClick={openAuditModal} formatDuration={formatDuration} activeMetrics={activeMetrics} variant="light" />
                                     )}
                                     {rows}
                                     {visibleWidgets.length === 0 && (
