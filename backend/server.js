@@ -87,7 +87,7 @@ const PAYMONGO_WEBHOOK_SECRET = process.env.PAYMONGO_WEBHOOK_SECRET;
 const PAYMONGO_MODE = process.env.PAYMONGO_MODE || 'test';
 const PAYMONGO_API_BASE = 'https://api.paymongo.com/v1';
 
-// Google reCAPTCHA v2 configuration
+// Google reCAPTCHA v3 configuration
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '6Le9F78sAAAAACBBrgQz5pzpbZ2VxI4h71UXhCd9';
 
 async function verifyCaptcha(token) {
@@ -99,7 +99,9 @@ async function verifyCaptcha(token) {
       body: `secret=${RECAPTCHA_SECRET_KEY}&response=${token}`
     });
     const data = await response.json();
-    return data.success === true;
+    console.log('[reCAPTCHA v3] Verification result:', data);
+    // For v3, consider a score of 0.5 or above as passing
+    return data.success === true && (data.score === undefined || data.score >= 0.5);
   } catch (err) {
     console.error('reCAPTCHA verification error:', err.message);
     return false;

@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
+import { RECAPTCHA_SITE_KEY } from './config';
 import './App.css';
 import './styles/premium-transitions.css';
 import Home from './pages/Home';
@@ -85,61 +87,63 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
-    <div className="App">
-      <Router>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/artists" element={<Artists />} />
-          <Route path="/artist/:id" element={<PublicArtistProfile />} />
-          <Route path="/gallery" element={<Gallery />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/book" element={<PublicBooking />} />
-          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-          <Route path="/admin" element={<PublicRoute><AdminLogin /></PublicRoute>} />
-          <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminUsers /></ProtectedRoute>} />
-          <Route path="/admin/appointments" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminAppointments /></ProtectedRoute>} />
-          <Route path="/admin/staff" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminStaff /></ProtectedRoute>} />
-          <Route path="/admin/studio" element={<ProtectedRoute allowedRoles={['admin']}><AdminStudio /></ProtectedRoute>} />
-          <Route path="/admin/clients" element={<ProtectedRoute allowedRoles={['admin']}><AdminClients /></ProtectedRoute>} />
-          <Route path="/admin/billing" element={<ProtectedRoute allowedRoles={['admin']}><AdminBilling /></ProtectedRoute>} />
-          <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={['admin']}><AdminChat /></ProtectedRoute>} />
-          <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['admin']}><AdminNotifications /></ProtectedRoute>} />
-          <Route path="/artist" element={<ProtectedRoute allowedRoles={['artist']}><ArtistPortal /></ProtectedRoute>} />
-          <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']}><CustomerPortal /></ProtectedRoute>} />
-          <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><ManagerPortal /></ProtectedRoute>} />
-          <Route path="/manager/users" element={<ProtectedRoute allowedRoles={['manager']}><ManagerUsers /></ProtectedRoute>} />
-          <Route path="/manager/appointments" element={<ProtectedRoute allowedRoles={['manager']}><ManagerAppointments /></ProtectedRoute>} />
-          <Route path="/manager/analytics" element={<ProtectedRoute allowedRoles={['manager']}><ManagerAnalytics /></ProtectedRoute>} />
-          <Route path="/manager/staff" element={<ProtectedRoute allowedRoles={['manager']}><AdminStaff /></ProtectedRoute>} />
-          <Route path="/manager/inventory" element={<ProtectedRoute allowedRoles={['manager']}><AdminInventory /></ProtectedRoute>} />
-          <Route path="/artist/appointments" element={<ProtectedRoute allowedRoles={['artist']}><ArtistAppointments /></ProtectedRoute>} />
-          <Route path="/artist/earnings" element={<ProtectedRoute allowedRoles={['artist']}><ArtistEarnings /></ProtectedRoute>} />
-          <Route path="/artist/sessions" element={<ProtectedRoute allowedRoles={['artist']}><ArtistSessions /></ProtectedRoute>} />
-          <Route path="/artist/notifications" element={<ProtectedRoute allowedRoles={['artist']}><ArtistNotifications /></ProtectedRoute>} />
-          <Route path="/artist/profile" element={<ProtectedRoute allowedRoles={['artist']}><ArtistProfile /></ProtectedRoute>} />
-          <Route path="/artist/gallery" element={<ProtectedRoute allowedRoles={['artist']}><ArtistGallery /></ProtectedRoute>} />
-          <Route path="/customer/bookings" element={<ProtectedRoute allowedRoles={['customer']}><CustomerBookings /></ProtectedRoute>} />
-          <Route path="/customer/gallery" element={<ProtectedRoute allowedRoles={['customer']}><CustomerGallery /></ProtectedRoute>} />
-          {/* <Route path="/customer/book" element={<ProtectedRoute allowedRoles={['customer']}><CustomerBookingCreate /></ProtectedRoute>} /> */}
-          <Route path="/customer/profile" element={<ProtectedRoute allowedRoles={['customer']}><CustomerProfile /></ProtectedRoute>} />
-          <Route path="/customer/notifications" element={<ProtectedRoute allowedRoles={['customer']}><CustomerNotifications /></ProtectedRoute>} />
-          <Route path="/customer/reviews/new" element={<ProtectedRoute allowedRoles={['customer']}><CustomerReview /></ProtectedRoute>} />
-          <Route path="/customer/transactions" element={<ProtectedRoute allowedRoles={['customer']}><CustomerTransactions /></ProtectedRoute>} />
-          <Route path="/customer/invoice/:invoiceNumber" element={<ProtectedRoute allowedRoles={['customer']}><CustomerInvoice /></ProtectedRoute>} />
-          <Route path="/payment" element={<ProtectedRoute allowedRoles={['customer']}><PaymentSimulation /></ProtectedRoute>} />
-          <Route path="/pay-mongo" element={<PayMongoPayment />} />
-          <Route path="/booking-confirmation" element={<ProtectedRoute allowedRoles={['customer']}><BookingConfirmation /></ProtectedRoute>} />
-          <Route path="/admin/pos" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminPOS /></ProtectedRoute>} />
-          <Route path="/admin/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminInventory /></ProtectedRoute>} />
-          <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
-          <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>} />
-          <Route path="/admin/completed-sessions" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminCompletedSessions /></ProtectedRoute>} />
-          <Route path="/admin/reviews" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminReviews /></ProtectedRoute>} />
-        </Routes>
-      </Router>
-    </div>
+    <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
+      <div className="App">
+        <Router>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/artists" element={<Artists />} />
+            <Route path="/artist/:id" element={<PublicArtistProfile />} />
+            <Route path="/gallery" element={<Gallery />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/book" element={<PublicBooking />} />
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/admin" element={<PublicRoute><AdminLogin /></PublicRoute>} />
+            <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminUsers /></ProtectedRoute>} />
+            <Route path="/admin/appointments" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminAppointments /></ProtectedRoute>} />
+            <Route path="/admin/staff" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminStaff /></ProtectedRoute>} />
+            <Route path="/admin/studio" element={<ProtectedRoute allowedRoles={['admin']}><AdminStudio /></ProtectedRoute>} />
+            <Route path="/admin/clients" element={<ProtectedRoute allowedRoles={['admin']}><AdminClients /></ProtectedRoute>} />
+            <Route path="/admin/billing" element={<ProtectedRoute allowedRoles={['admin']}><AdminBilling /></ProtectedRoute>} />
+            <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={['admin']}><AdminChat /></ProtectedRoute>} />
+            <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['admin']}><AdminNotifications /></ProtectedRoute>} />
+            <Route path="/artist" element={<ProtectedRoute allowedRoles={['artist']}><ArtistPortal /></ProtectedRoute>} />
+            <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']}><CustomerPortal /></ProtectedRoute>} />
+            <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><ManagerPortal /></ProtectedRoute>} />
+            <Route path="/manager/users" element={<ProtectedRoute allowedRoles={['manager']}><ManagerUsers /></ProtectedRoute>} />
+            <Route path="/manager/appointments" element={<ProtectedRoute allowedRoles={['manager']}><ManagerAppointments /></ProtectedRoute>} />
+            <Route path="/manager/analytics" element={<ProtectedRoute allowedRoles={['manager']}><ManagerAnalytics /></ProtectedRoute>} />
+            <Route path="/manager/staff" element={<ProtectedRoute allowedRoles={['manager']}><AdminStaff /></ProtectedRoute>} />
+            <Route path="/manager/inventory" element={<ProtectedRoute allowedRoles={['manager']}><AdminInventory /></ProtectedRoute>} />
+            <Route path="/artist/appointments" element={<ProtectedRoute allowedRoles={['artist']}><ArtistAppointments /></ProtectedRoute>} />
+            <Route path="/artist/earnings" element={<ProtectedRoute allowedRoles={['artist']}><ArtistEarnings /></ProtectedRoute>} />
+            <Route path="/artist/sessions" element={<ProtectedRoute allowedRoles={['artist']}><ArtistSessions /></ProtectedRoute>} />
+            <Route path="/artist/notifications" element={<ProtectedRoute allowedRoles={['artist']}><ArtistNotifications /></ProtectedRoute>} />
+            <Route path="/artist/profile" element={<ProtectedRoute allowedRoles={['artist']}><ArtistProfile /></ProtectedRoute>} />
+            <Route path="/artist/gallery" element={<ProtectedRoute allowedRoles={['artist']}><ArtistGallery /></ProtectedRoute>} />
+            <Route path="/customer/bookings" element={<ProtectedRoute allowedRoles={['customer']}><CustomerBookings /></ProtectedRoute>} />
+            <Route path="/customer/gallery" element={<ProtectedRoute allowedRoles={['customer']}><CustomerGallery /></ProtectedRoute>} />
+            {/* <Route path="/customer/book" element={<ProtectedRoute allowedRoles={['customer']}><CustomerBookingCreate /></ProtectedRoute>} /> */}
+            <Route path="/customer/profile" element={<ProtectedRoute allowedRoles={['customer']}><CustomerProfile /></ProtectedRoute>} />
+            <Route path="/customer/notifications" element={<ProtectedRoute allowedRoles={['customer']}><CustomerNotifications /></ProtectedRoute>} />
+            <Route path="/customer/reviews/new" element={<ProtectedRoute allowedRoles={['customer']}><CustomerReview /></ProtectedRoute>} />
+            <Route path="/customer/transactions" element={<ProtectedRoute allowedRoles={['customer']}><CustomerTransactions /></ProtectedRoute>} />
+            <Route path="/customer/invoice/:invoiceNumber" element={<ProtectedRoute allowedRoles={['customer']}><CustomerInvoice /></ProtectedRoute>} />
+            <Route path="/payment" element={<ProtectedRoute allowedRoles={['customer']}><PaymentSimulation /></ProtectedRoute>} />
+            <Route path="/pay-mongo" element={<PayMongoPayment />} />
+            <Route path="/booking-confirmation" element={<ProtectedRoute allowedRoles={['customer']}><BookingConfirmation /></ProtectedRoute>} />
+            <Route path="/admin/pos" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminPOS /></ProtectedRoute>} />
+            <Route path="/admin/inventory" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminInventory /></ProtectedRoute>} />
+            <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
+            <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>} />
+            <Route path="/admin/completed-sessions" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminCompletedSessions /></ProtectedRoute>} />
+            <Route path="/admin/reviews" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdminReviews /></ProtectedRoute>} />
+          </Routes>
+        </Router>
+      </div>
+    </GoogleReCaptchaProvider>
   );
 }
 

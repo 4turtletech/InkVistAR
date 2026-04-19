@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import Axios from 'axios';
 import { MapPin, Mail, Clock, Phone, User, MessageSquare, Send, CheckCircle, AlertCircle, Navigation, Car, Train, Bus, Instagram, Facebook } from 'lucide-react';
 import { filterName, filterDigits } from '../utils/validation';
 import CountryCodeSelect from '../components/CountryCodeSelect';
-import { API_URL, RECAPTCHA_SITE_KEY } from '../config';
-import ReCAPTCHA from 'react-google-recaptcha';
+import { API_URL } from '../config';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import './Contact.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
@@ -24,8 +24,7 @@ const Contact = () => {
   const [serverError, setServerError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState(null);
-  const captchaRef = useRef(null);
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   // Subject options
   const SUBJECT_OPTIONS = [
@@ -72,20 +71,30 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    if (!captchaToken) {
-      setServerError('Please complete the CAPTCHA verification.');
+
+    if (!executeRecaptcha) {
+      setServerError('reCAPTCHA not loaded. Please try again.');
       return;
     }
+
     setSubmitting(true);
     setServerError('');
+    
     try {
+      const token = await executeRecaptcha('contact');
+      if (!token) {
+        setServerError('CAPTCHA verification failed to execute.');
+        setSubmitting(false);
+        return;
+      }
+
       const payload = {
         name: formData.name.trim(),
         email: formData.email.trim(),
         phone: formData.phone ? `${formData.countryCode} ${formData.phone}` : '',
         subject: formData.subject || '',
         message: formData.message.trim(),
-        captchaToken: captchaToken
+        captchaToken: token
       };
       const res = await Axios.post(`${API_URL}/api/contact`, payload);
       if (res.data.success) {
@@ -97,18 +106,21 @@ const Contact = () => {
       setServerError(err.response?.data?.message || 'Failed to send your message. Please try again later.');
     } finally {
       setSubmitting(false);
-      setCaptchaToken(null);
-      if (captchaRef.current) captchaRef.current.reset();
     }
   };
 
   const handleReset = () => {
-    setFormData({ name: '', email: '', countryCode: '+63', phone: '', subject: '', message: '' });
+    setFormData({
+      name: '',
+      email: '',
+      countryCode: '+63',
+      phone: '',
+      subject: '',
+      message: ''
+    });
     setErrors({});
     setServerError('');
     setSubmitted(false);
-    setCaptchaToken(null);
-    if (captchaRef.current) captchaRef.current.reset();
   };
 
   return (
@@ -250,17 +262,7 @@ const Contact = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0 8px' }}>
-                    <ReCAPTCHA
-                      ref={captchaRef}
-                      sitekey={RECAPTCHA_SITE_KEY}
-                      onChange={(token) => setCaptchaToken(token)}
-                      onExpired={() => setCaptchaToken(null)}
-                      theme="dark"
-                    />
-                  </div>
-
-                  <button type="submit" className="contact-submit-btn" disabled={submitting || !captchaToken}>
+                  <button type="submit" className="contact-submit-btn" disabled={submitting}>
                     {submitting ? (
                       <>Sending...</>
                     ) : (

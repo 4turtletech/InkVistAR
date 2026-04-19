@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 
 import Axios from 'axios';
 import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift, Check, Paintbrush, Gem, Star, CreditCard, Eye, Shield, Bell, Sparkles, Award } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { API_URL, RECAPTCHA_SITE_KEY } from '../config';
-import ReCAPTCHA from 'react-google-recaptcha';
+import { API_URL } from '../config';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 const BodyModelViewer = lazy(() => import('./BodyModelViewer'));
 
 export default function CustomerBookingWizard({ customerId, onBack, isPublic = false }) {
@@ -14,8 +14,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [errors, setErrors] = useState({}); // Field-level inline errors
     const [activeFeature, setActiveFeature] = useState(0);
     const [showExitModal, setShowExitModal] = useState(false);
-    const [captchaToken, setCaptchaToken] = useState(null);
-    const captchaRef = useRef(null);
+    const { executeRecaptcha } = useGoogleReCaptcha();
     
     const user = JSON.parse(localStorage.getItem('user'));
     
@@ -192,7 +191,21 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
     const finalizeBooking = async (uid) => {
         setLoading(true);
+        
+        if (!executeRecaptcha) {
+            alert('reCAPTCHA not loaded. Please try again.');
+            setLoading(false);
+            return;
+        }
+
         try {
+            const token = await executeRecaptcha('booking');
+            if (!token) {
+                alert('CAPTCHA verification failed to execute.');
+                setLoading(false);
+                return;
+            }
+
             const currentUser = JSON.parse(localStorage.getItem('user'));
             const generatedName = `${formData.firstName} ${formData.lastName} ${formData.suffix}`.replace(/\s+/g, ' ').trim();
 
@@ -213,7 +226,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 price: 0,
                 isFromWizard: true,
                 customerName: currentUser?.name || generatedName,
-                captchaToken: captchaToken
+                captchaToken: token
             });
 
             if (response.data.success) {
@@ -225,16 +238,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 alert('Request Failed: ' + (response.data.message || 'An unknown error occurred.'));
             }
         } catch (error) {
-            console.error('Booking error:', error);
-            if (error.response && error.response.data && error.response.data.message) {
-                 alert('Request Failed: ' + error.response.data.message);
-            } else {
-                 alert('Request Failed. Please check your connection and try again.');
-            }
+            console.error('Error finalizing booking:', error);
+            alert(error.response?.data?.message || 'Failed to submit booking request. Please try again.');
         } finally {
             setLoading(false);
-            setCaptchaToken(null);
-            if (captchaRef.current) captchaRef.current.reset();
         }
     };
 
@@ -748,15 +755,6 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 <CheckCircle size={12} style={{ marginRight: '4px' }} />
                 Your data is secure and will only be used to contact you about this booking.
             </p>
-
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-                <ReCAPTCHA
-                    ref={captchaRef}
-                    sitekey={RECAPTCHA_SITE_KEY}
-                    onChange={(token) => setCaptchaToken(token)}
-                    onExpired={() => setCaptchaToken(null)}
-                />
-            </div>
         </div>
     );
 
@@ -1105,10 +1103,6 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             
                             if (Object.keys(newErrors).length > 0) {
                                 setErrors(newErrors);
-                                return;
-                            }
-                            if (!captchaToken) {
-                                alert('Please complete the CAPTCHA verification before submitting.');
                                 return;
                             }
                             handleSubmit();

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { API_URL, RECAPTCHA_SITE_KEY } from '../config';
-import ReCAPTCHA from 'react-google-recaptcha';
+import { API_URL } from '../config';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import Navbar from '../components/Navbar';
 import TermsOfServiceModal from '../components/TermsOfServiceModal';
 import './Login.css'; // Using Login styles for consistency
@@ -77,8 +77,7 @@ function Register() {
   const [emailPromoConsent, setEmailPromoConsent] = useState(false);
   const [photoMarketingConsent, setPhotoMarketingConsent] = useState(true);
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState(null);
-  const captchaRef = useRef(null);
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   const navigate = useNavigate();
 
@@ -181,12 +180,19 @@ function Register() {
 
     setApiError('');
     if (!validate()) return;
-    if (!captchaToken) {
-      setApiError('Please complete the CAPTCHA verification.');
+    
+    if (!executeRecaptcha) {
+      setApiError('reCAPTCHA not loaded. Please try again.');
       return;
     }
 
     try {
+      const token = await executeRecaptcha('register');
+      if (!token) {
+        setApiError('CAPTCHA verification failed to execute.');
+        return;
+      }
+      
       const orphanAppointmentId = sessionStorage.getItem('orphanAppointmentId');
       const response = await Axios.post(`${API_URL}/api/register`, {
         firstName: formData.firstName.trim(),
@@ -198,7 +204,7 @@ function Register() {
         orphanAppointmentId: orphanAppointmentId,
         photo_marketing_consent: photoMarketingConsent,
         email_promo_consent: emailPromoConsent,
-        captchaToken: captchaToken
+        captchaToken: token
       });
 
       if (response.data.success) {
@@ -212,9 +218,6 @@ function Register() {
       } else {
         setApiError(message);
       }
-    } finally {
-      setCaptchaToken(null);
-      if (captchaRef.current) captchaRef.current.reset();
     }
   };
 
@@ -376,17 +379,7 @@ function Register() {
               </label>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0 8px' }}>
-              <ReCAPTCHA
-                ref={captchaRef}
-                sitekey={RECAPTCHA_SITE_KEY}
-                onChange={(token) => setCaptchaToken(token)}
-                onExpired={() => setCaptchaToken(null)}
-                theme="dark"
-              />
-            </div>
-
-            <button type="submit" className="login-btn" disabled={!isPasswordValid() || !agreedToTerms || !captchaToken}>Register</button>
+            <button type="submit" className="login-btn" disabled={!isPasswordValid() || !agreedToTerms}>Register</button>
           </form>
 
           <div className="login-footer">

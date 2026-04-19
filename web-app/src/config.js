@@ -16,6 +16,6 @@ if (!explicitApi) {
   );
 }
 
-// Google reCAPTCHA v2 site key
+// Google reCAPTCHA v3 site key
 // In production, set REACT_APP_RECAPTCHA_SITE_KEY to override.
 export const RECAPTCHA_SITE_KEY = process.env.REACT_APP_RECAPTCHA_SITE_KEY || '6Le9F78sAAAAAFJyu6LCOBNGjUaJJEHhQwqmoOLu';
