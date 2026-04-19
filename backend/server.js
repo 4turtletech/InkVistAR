@@ -1598,7 +1598,9 @@ app.post('/api/login', async (req, res) => {
 
         return res.status(401).json({
           success: false,
-          message: 'Invalid email or password'
+          message: 'Invalid email or password',
+          failedAttempts: failedAttempts,
+          attemptsRemaining: 5 - failedAttempts
         });
       }
 

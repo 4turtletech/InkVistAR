@@ -146,7 +146,14 @@ function Login() {
                     setError('Failed to send verification OTP. Please try again.');
                 }
             } else {
-                setError(errData?.message || "Error logging in");
+                if (errData?.attemptsRemaining !== undefined && errData.attemptsRemaining > 0) {
+                    setError(`Invalid email or password. You have ${errData.attemptsRemaining} attempt${errData.attemptsRemaining === 1 ? '' : 's'} remaining before lockout.`);
+                } else {
+                    setError(errData?.message || "Error logging in");
+                }
+                
+                setPassword("");
+                
                 if (errData?.requireVerification) {
                     setShowResend(true);
                 }
@@ -266,7 +273,7 @@ function Login() {
             <Navbar />
 
             <div className="login-page-wrapper" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div className="login-card" style={{ width: '90%', maxWidth: '380px' }}>
+            <div className="login-card" style={{ width: '90%', maxWidth: '520px', margin: '0 auto' }}>
                 <div className="login-header">
                     <h1 className="login-logo" style={{ fontSize: '1.2rem' }}>INKVICTUS TATTOO</h1>
                     <p className="login-tagline">BGC’s Premier Luxury Tattoo Studio</p>
@@ -328,14 +335,14 @@ function Login() {
                         <p>Don't have an account? <Link to="/register">Register now</Link>.</p>
                         <p style={{ marginTop: '0.5rem' }}>
                             <button type="button" onClick={() => { setView('forgot-email'); setError(''); setIsLockedOut(false); }} style={{
-                                background: isLockedOut ? 'rgba(239, 68, 68, 0.1)' : 'none', 
-                                border: isLockedOut ? '1px solid rgba(239, 68, 68, 0.3)' : 'none',
-                                padding: isLockedOut ? '8px 16px' : '0',
-                                borderRadius: isLockedOut ? '8px' : '0',
-                                color: isLockedOut ? '#ef4444' : '#C19A6B', 
+                                background: isLockedOut ? 'rgba(239, 68, 68, 0.15)' : 'none', 
+                                border: 'none',
+                                padding: isLockedOut ? '4px 8px' : '0',
+                                borderRadius: isLockedOut ? '4px' : '0',
+                                color: '#C19A6B', 
                                 cursor: 'pointer', 
-                                fontWeight: isLockedOut ? '700' : '600', 
-                                fontSize: isLockedOut ? '0.95rem' : '0.9rem',
+                                fontWeight: '600', 
+                                fontSize: '0.9rem',
                                 transition: 'all 0.3s ease'
                             }}>
                                 {isLockedOut ? 'Change Password to Unlock Account' : 'Forgot Password?'}
