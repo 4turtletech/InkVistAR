@@ -4,7 +4,7 @@ import './Home.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
 import Footer from '../components/Footer';
-import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Crop, Aperture } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone } from 'lucide-react';
 import { API_URL } from '../config';
 
 // Dynamic Artist List
@@ -221,18 +221,18 @@ function Home() {
                     <div className="services-container">
                         <div className="service-item glass-card-premium">
                             <div className="service-icon"><PenTool size={30} /></div>
-                            <h3 className="service-title">Hyper-Realism</h3>
-                            <p className="service-desc">Immaculate detail and shading mimicking photograph quality across skin canvases.</p>
+                            <h3 className="service-title">Custom Tattoo Art</h3>
+                            <p className="service-desc">From breathtaking hyper-realism and fine-line to bold traditional designs, our artists craft timeless ink tailored perfectly to your vision.</p>
                         </div>
                         <div className="service-item glass-card-premium">
-                            <div className="service-icon"><Crop size={30} /></div>
-                            <h3 className="service-title">Fine-Line / Geometric</h3>
-                            <p className="service-desc">Precision line work resulting in delicate, highly structural, and minimalist designs.</p>
+                            <div className="service-icon"><Sparkles size={30} /></div>
+                            <h3 className="service-title">Professional Piercing</h3>
+                            <p className="service-desc">Safe, precise body and ear piercing performed in a strictly sterile environment, featuring a curated selection of premium, hypoallergenic jewelry.</p>
                         </div>
                         <div className="service-item glass-card-premium">
-                            <div className="service-icon"><Aperture size={30} /></div>
-                            <h3 className="service-title">Custom Concept</h3>
-                            <p className="service-desc">Collaborative ideation bridging your vision strictly with our artists' signature aesthetics.</p>
+                            <div className="service-icon"><Smartphone size={30} /></div>
+                            <h3 className="service-title">AR Tattoo Preview</h3>
+                            <p className="service-desc">Eliminate the guesswork before getting inked. Visualize your custom tattoo directly on your skin using our exclusive augmented reality platform.</p>
                         </div>
                     </div>
                 </section>
