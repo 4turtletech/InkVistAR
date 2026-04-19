@@ -37,6 +37,53 @@ function AdminBilling() {
     const [invoiceModal, setInvoiceModal] = useState({ mounted: false, visible: false, mode: 'create', id: null });
     const [newInvoice, setNewInvoice] = useState({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
     const [previewModal, setPreviewModal] = useState({ mounted: false, visible: false, invoice: null });
+    
+    // Validation states
+    const [invoiceErrors, setInvoiceErrors] = useState({});
+    const [payoutErrors, setPayoutErrors] = useState({});
+
+    const validateInvoiceField = (field, value) => {
+        let errorMsg = '';
+        switch(field) {
+            case 'client':
+                if (!value.trim()) errorMsg = 'Client name is required';
+                break;
+            case 'type':
+                if (!value) errorMsg = 'Service type is required';
+                break;
+            case 'amount':
+                if (!value || parseFloat(value) <= 0) errorMsg = 'Amount must be greater than 0';
+                break;
+            default: break;
+        }
+        setInvoiceErrors(prev => ({ ...prev, [field]: errorMsg }));
+        return errorMsg === '';
+    };
+
+    const handleInvoiceChange = (field, value) => {
+        setNewInvoice(prev => ({ ...prev, [field]: value }));
+        validateInvoiceField(field, value);
+    };
+
+    const validatePayoutField = (field, value) => {
+        let errorMsg = '';
+        switch (field) {
+            case 'artistId':
+                if (!value) errorMsg = 'Artist selection is required';
+                break;
+            case 'amount':
+                if (!value || parseFloat(value) <= 0) errorMsg = 'Amount must be greater than 0';
+                break;
+            default: break;
+        }
+        setPayoutErrors(prev => ({ ...prev, [field]: errorMsg }));
+        return errorMsg === '';
+    };
+
+    const handlePayoutChange = (field, value) => {
+        setNewPayout(prev => ({ ...prev, [field]: value }));
+        validatePayoutField(field, value);
+    };
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -59,9 +106,11 @@ function AdminBilling() {
                 type: invoice.service_type,
                 status: invoice.status
             });
+            setInvoiceErrors({});
             setInvoiceModal({ mounted: true, visible: false, mode: 'edit', id: invoice.id });
         } else {
             setNewInvoice({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
+            setInvoiceErrors({});
             setInvoiceModal({ mounted: true, visible: false, mode: 'create', id: null });
         }
         setTimeout(() => setInvoiceModal(prev => ({ ...prev, visible: true })), 10);
@@ -129,6 +178,15 @@ function AdminBilling() {
 
     const handleInvoiceSubmit = async (e) => {
         e.preventDefault();
+        const clientValid = validateInvoiceField('client', newInvoice.client);
+        const typeValid = validateInvoiceField('type', newInvoice.type);
+        const amountValid = validateInvoiceField('amount', newInvoice.amount);
+        
+        if (!clientValid || !typeValid || !amountValid) {
+            showAlert("Error", "Please fix validation errors before saving.", "warning");
+            return;
+        }
+
         try {
             if (invoiceModal.mode === 'edit') {
                 await Axios.put(`${API_URL}/api/admin/invoices/${invoiceModal.id}`, newInvoice);
@@ -179,11 +237,21 @@ function AdminBilling() {
 
     const handlePayoutSubmit = async (e) => {
         e.preventDefault();
+        const artistValid = validatePayoutField('artistId', newPayout.artistId);
+        const amountValid = validatePayoutField('amount', newPayout.amount);
+
+        if (!artistValid || !amountValid) {
+            showAlert("Error", "Please fix validation errors before saving.", "warning");
+            return;
+        }
+
         try {
             const res = await Axios.post(`${API_URL}/api/admin/payouts`, newPayout);
             if (res.data.success) {
                 showAlert("Success", "Payout recorded successfully", "success");
                 setPayoutModal({ mounted: false, visible: false });
+                setNewPayout({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
+                setPayoutErrors({});
                 fetchData();
             }
         } catch (error) {
@@ -483,7 +551,11 @@ function AdminBilling() {
 
                         <div className="premium-filter-bar">
                             <h2 className="admin-st-c4858c02">Payout History</h2>
-                            <button className="btn btn-primary" onClick={() => setPayoutModal({ mounted: true, visible: true })}>
+                            <button className="btn btn-primary" onClick={() => {
+                                setNewPayout({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
+                                setPayoutErrors({});
+                                setPayoutModal({ mounted: true, visible: true });
+                            }}>
                                 <Plus size={18} className="admin-st-c02c7d9c" /> Record Payout
                             </button>
                         </div>
@@ -537,13 +609,14 @@ function AdminBilling() {
                             <form onSubmit={handleInvoiceSubmit}>
                                 <div className="modal-body admin-st-7cea880d">
                                     <div className="form-group admin-mb-20">
-                                        <label className="admin-st-19644797">Recipient Entity (Client)</label>
-                                        <input type="text" className="form-input" required value={newInvoice.client} onChange={e => setNewInvoice({...newInvoice, client: filterName(e.target.value).slice(0, 100)})} maxLength={100} />
+                                        <label className={`admin-st-19644797 ${invoiceErrors.client ? 'text-red-500' : ''}`}>Recipient Entity (Client)</label>
+                                        <input type="text" className={`form-input ${invoiceErrors.client ? 'border-red-500 bg-red-50' : ''}`} required value={newInvoice.client} onChange={e => handleInvoiceChange('client', filterName(e.target.value).slice(0, 100))} maxLength={100} />
+                                        {invoiceErrors.client && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.client}</span>}
                                     </div>
                                     <div className="admin-st-f9a903f8">
                                         <div className="form-group">
-                                            <label className="admin-st-19644797">Service Classification</label>
-                                            <select className="form-input" required value={newInvoice.type} onChange={e => setNewInvoice({...newInvoice, type: e.target.value})}>
+                                            <label className={`admin-st-19644797 ${invoiceErrors.type ? 'text-red-500' : ''}`}>Service Classification</label>
+                                            <select className={`form-input ${invoiceErrors.type ? 'border-red-500 bg-red-50' : ''}`} required value={newInvoice.type} onChange={e => handleInvoiceChange('type', e.target.value)}>
                                                 <option value="Tattoo Session">Tattoo Session</option>
                                                 <option value="Consultation">Consultation</option>
                                                 <option value="Piercing">Piercing</option>
@@ -552,10 +625,12 @@ function AdminBilling() {
                                                 <option value="Jewelry Purchase">Jewelry Purchase</option>
                                                 <option value="Other">Other</option>
                                             </select>
+                                            {invoiceErrors.type && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.type}</span>}
                                         </div>
                                         <div className="form-group">
-                                            <label className="admin-st-19644797">Settlement Amount (₱)</label>
-                                            <input type="number" step="0.01" className="form-input" required value={newInvoice.amount} onChange={e => setNewInvoice({...newInvoice, amount: filterMoney(e.target.value)})} />
+                                            <label className={`admin-st-19644797 ${invoiceErrors.amount ? 'text-red-500' : ''}`}>Settlement Amount (₱)</label>
+                                            <input type="number" step="0.01" className={`form-input ${invoiceErrors.amount ? 'border-red-500 bg-red-50' : ''}`} required value={newInvoice.amount} onChange={e => handleInvoiceChange('amount', filterMoney(e.target.value))} />
+                                            {invoiceErrors.amount && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.amount}</span>}
                                         </div>
                                     </div>
                                     <div className="admin-st-7460b907">
@@ -731,20 +806,22 @@ function AdminBilling() {
                             <form onSubmit={handlePayoutSubmit}>
                                 <div className="modal-body admin-st-7cea880d">
                                     <div className="form-group admin-st-7002f9ca">
-                                        <label className="admin-st-19644797">Target Recipient (Artist)</label>
-                                        <select className="form-input" required value={newPayout.artistId} onChange={e => setNewPayout({...newPayout, artistId: e.target.value})}>
+                                        <label className={`admin-st-19644797 ${payoutErrors.artistId ? 'text-red-500' : ''}`}>Target Recipient (Artist)</label>
+                                        <select className={`form-input ${payoutErrors.artistId ? 'border-red-500 bg-red-50' : ''}`} required value={newPayout.artistId} onChange={e => handlePayoutChange('artistId', e.target.value)}>
                                             <option value="">Select Professional Artist...</option>
                                             {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                         </select>
+                                        {payoutErrors.artistId && <span className="text-red-500 text-xs mt-1 block">{payoutErrors.artistId}</span>}
                                     </div>
                                     <div className="admin-st-c200c71d">
                                         <div className="form-group">
-                                            <label className="admin-st-19644797">Remittance Amount (₱)</label>
-                                            <input type="number" step="0.01" className="form-input" required value={newPayout.amount} onChange={e => setNewPayout({...newPayout, amount: filterMoney(e.target.value)})} />
+                                            <label className={`admin-st-19644797 ${payoutErrors.amount ? 'text-red-500' : ''}`}>Remittance Amount (₱)</label>
+                                            <input type="number" step="0.01" className={`form-input ${payoutErrors.amount ? 'border-red-500 bg-red-50' : ''}`} required value={newPayout.amount} onChange={e => handlePayoutChange('amount', filterMoney(e.target.value))} />
+                                            {payoutErrors.amount && <span className="text-red-500 text-xs mt-1 block">{payoutErrors.amount}</span>}
                                         </div>
                                         <div className="form-group">
                                             <label className="admin-st-19644797">Transfer Protocol</label>
-                                            <select className="form-input" value={newPayout.method} onChange={e => setNewPayout({...newPayout, method: e.target.value})}>
+                                            <select className="form-input" value={newPayout.method} onChange={e => handlePayoutChange('method', e.target.value)}>
                                                 <option value="Bank Transfer">Bank Transfer</option>
                                                 <option value="Cash">Cash Disbursement</option>
                                                 <option value="G-Cash">G-Cash Digital</option>
@@ -754,7 +831,7 @@ function AdminBilling() {
                                     </div>
                                     <div className="form-group">
                                         <label className="admin-st-19644797">Transaction Reference / Memo</label>
-                                        <input type="text" className="form-input" placeholder="Bank ref # or payout notes..." value={newPayout.reference} onChange={e => setNewPayout({...newPayout, reference: e.target.value.substring(0, 100)})} maxLength={100} />
+                                        <input type="text" className="form-input" placeholder="Bank ref # or payout notes..." value={newPayout.reference} onChange={e => handlePayoutChange('reference', e.target.value.substring(0, 100))} maxLength={100} />
                                     </div>
                                 </div>
                                 <div className="modal-footer">

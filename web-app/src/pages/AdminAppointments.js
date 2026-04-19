@@ -64,6 +64,46 @@ function AdminAppointments() {
     const calendarRef = useRef(null);
     const initialFormDataRef = useRef(null);
 
+    // Validation state
+    const [errors, setErrors] = useState({});
+
+    const validateField = (field, value, currentState = formData) => {
+        let errorMsg = "";
+        
+        switch (field) {
+            case 'clientId':
+                if (!value) errorMsg = "Client is required";
+                break;
+            case 'serviceType':
+                if (!value || !value.trim()) errorMsg = "Service type is required";
+                break;
+            case 'date':
+                if (!value) errorMsg = "Date is required";
+                break;
+            case 'time':
+                if (currentState.serviceType === 'Consultation' && !value) errorMsg = "Time is required for consultations";
+                break;
+            case 'price':
+                if (currentState.serviceType !== 'Consultation' && Number(value) < 5000 && Number(value) > 0) {
+                    errorMsg = "Minimum quote for tattoo sessions is ₱5,000";
+                }
+                break;
+            default:
+                break;
+        }
+
+        setErrors(prev => ({ ...prev, [field]: errorMsg }));
+        return errorMsg === "";
+    };
+
+    const handleInputChange = (field, value) => {
+        setFormData(prev => {
+            const newState = { ...prev, [field]: value };
+            validateField(field, value, newState);
+            return newState;
+        });
+    };
+
     // Modal animation handlers
     const openModal = () => {
         setAppointmentModal({ mounted: true, visible: false });
@@ -1385,18 +1425,20 @@ function AdminAppointments() {
                                                 <div className="admin-st-efc8b70e">
                                                     <div className="admin-st-fefecdf0">
                                                         <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Service Type *</label>
-                                                            <select value={formData.serviceType} onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })} className="premium-select-v2">
+                                                            <label className={`admin-st-b8618eb2 ${errors.serviceType ? 'text-red-500' : ''}`}>Service Type *</label>
+                                                            <select value={formData.serviceType} onChange={(e) => handleInputChange('serviceType', e.target.value)} className={`premium-select-v2 ${errors.serviceType ? 'border-red-500 bg-red-50' : ''}`}>
                                                                 <option value="Tattoo Session">Tattoo Session</option>
                                                                 <option value="Consultation">Consultation</option>
                                                                 <option value="Piercing">Piercing</option>
                                                                 <option value="Tattoo + Piercing">Tattoo + Piercing</option>
                                                                 <option value="Touch-up">Touch-up</option>
                                                             </select>
+                                                            {errors.serviceType && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.serviceType}</span>}
                                                         </div>
                                                         <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">Design / Idea</label>
-                                                            <input type="text" value={formData.designTitle} onChange={(e) => setFormData({ ...formData, designTitle: filterName(e.target.value).slice(0, 50) })} maxLength={50} className="premium-input-v2" placeholder="e.g. Neo-Trad" />
+                                                            <label className={`admin-st-b8618eb2 ${errors.designTitle ? 'text-red-500' : ''}`}>Design / Idea</label>
+                                                            <input type="text" value={formData.designTitle} onChange={(e) => handleInputChange('designTitle', filterName(e.target.value).slice(0, 50))} maxLength={50} className={`premium-input-v2 ${errors.designTitle ? 'border-red-500 bg-red-50' : ''}`} placeholder="e.g. Neo-Trad" />
+                                                            {errors.designTitle && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.designTitle}</span>}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1422,7 +1464,7 @@ function AdminAppointments() {
                                                     <div className="admin-st-fefecdf0">
                                                         <div className="premium-input-group">
                                                             <label className="admin-st-b8618eb2">{primaryLabel}</label>
-                                                            <select value={formData.artistId} onChange={(e) => setFormData({ ...formData, artistId: e.target.value })} className="premium-select-v2">
+                                                            <select value={formData.artistId} onChange={(e) => handleInputChange('artistId', e.target.value)} className="premium-select-v2">
                                                                 <option value="">Select Staff</option>
                                                                 {artists.map(a => <option key={a.id} value={a.id}>{a.name}{a.specialization ? ` — ${a.specialization}` : ''}</option>)}
                                                             </select>
@@ -1432,7 +1474,7 @@ function AdminAppointments() {
                                                                 {secondaryLabel}
                                                                 {selectedAppointment?.status === 'completed' && <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginLeft: '6px' }}>(Locked)</span>}
                                                             </label>
-                                                            <select value={formData.secondaryArtistId || ''} onChange={(e) => setFormData({ ...formData, secondaryArtistId: e.target.value })} className="premium-select-v2" disabled={selectedAppointment?.status === 'completed'}
+                                                            <select value={formData.secondaryArtistId || ''} onChange={(e) => handleInputChange('secondaryArtistId', e.target.value)} className="premium-select-v2" disabled={selectedAppointment?.status === 'completed'}
                                                                 style={requiresDualStaff && !formData.secondaryArtistId ? { borderColor: '#f59e0b', boxShadow: '0 0 0 2px rgba(245,158,11,0.15)' } : {}}
                                                             >
                                                                 <option value="">{requiresDualStaff ? 'Select Staff (Required)' : 'None (Solo)'}</option>
@@ -1463,13 +1505,15 @@ function AdminAppointments() {
                                                     <div className="admin-st-efc8b70e">
                                                         <div className="admin-st-fefecdf0">
                                                             <div className="premium-input-group">
-                                                                <label className="admin-st-b8618eb2">Date *</label>
-                                                                <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="premium-input-v2" />
+                                                                <label className={`admin-st-b8618eb2 ${errors.date ? 'text-red-500' : ''}`}>Date *</label>
+                                                                <input type="date" value={formData.date} onChange={(e) => handleInputChange('date', e.target.value)} className={`premium-input-v2 ${errors.date ? 'border-red-500 bg-red-50' : ''}`} />
+                                                                {errors.date && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.date}</span>}
                                                             </div>
                                                             {formData.serviceType === 'Consultation' && (
                                                                 <div className="premium-input-group">
-                                                                    <label className="admin-st-b8618eb2">Time *</label>
-                                                                    <input type="time" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} className="premium-input-v2" />
+                                                                    <label className={`admin-st-b8618eb2 ${errors.time ? 'text-red-500' : ''}`}>Time *</label>
+                                                                    <input type="time" value={formData.time} onChange={(e) => handleInputChange('time', e.target.value)} className={`premium-input-v2 ${errors.time ? 'border-red-500 bg-red-50' : ''}`} />
+                                                                    {errors.time && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.time}</span>}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1521,21 +1565,19 @@ function AdminAppointments() {
                                         <div className="admin-st-dd4f6313">
                                             <div className="admin-st-e5b0a825">
                                                 <div className="form-group">
-                                                    <label className="admin-st-6ad161f7">Total Quote (₱) *</label>
+                                                    <label className={`admin-st-6ad161f7 ${errors.price ? 'text-red-500' : ''}`}>Total Quote (₱) *</label>
                                                     <input 
                                                         type="text" 
                                                         inputMode="numeric"
                                                         value={formData.price === 0 || formData.price === '0' ? '' : formData.price} 
                                                         onChange={(e) => {
                                                             const raw = e.target.value.replace(/[^0-9]/g, '');
-                                                            setFormData({ ...formData, price: raw === '' ? 0 : Number(raw) });
+                                                            handleInputChange('price', raw === '' ? 0 : Number(raw));
                                                         }} 
                                                         placeholder="e.g. 5000"
-                                                        className="premium-input-v2 admin-st-1a49bbe7" 
+                                                        className={`premium-input-v2 admin-st-1a49bbe7 ${errors.price ? 'border-red-500 bg-red-50' : ''}`} 
                                                     />
-                                                    {formData.price > 0 && formData.price < 5000 && (
-                                                        <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>Minimum quote for tattoo sessions is ₱5,000</span>
-                                                    )}
+                                                    {errors.price && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.price}</span>}
                                                 </div>
                                                 <div className="form-group">
                                                     <label className="admin-st-6ad161f7">Payment Strategy</label>

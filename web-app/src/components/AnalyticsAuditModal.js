@@ -45,6 +45,29 @@ function AnalyticsAuditModal({
     const [modalTab, setModalTab] = useState('summary');
     const [editingId, setEditingId] = useState(null);
     const [editData, setEditData] = useState({ category: '', description: '', amount: '' });
+    const [errors, setErrors] = useState({});
+
+    const handleFormChange = (field, value) => {
+        setExpenseForm(prev => ({ ...prev, [field]: value }));
+        if (field === 'amount') {
+            if (!value || parseFloat(value) <= 0) {
+                setErrors(prev => ({ ...prev, amount: 'Amount must be > 0' }));
+            } else {
+                setErrors(prev => ({ ...prev, amount: '' }));
+            }
+        }
+    };
+
+    const handleEditChange = (field, value) => {
+        setEditData(prev => ({ ...prev, [field]: value }));
+        if (field === 'amount') {
+            if (!value || parseFloat(value) <= 0) {
+                setErrors(prev => ({ ...prev, editAmount: 'Must be > 0' }));
+            } else {
+                setErrors(prev => ({ ...prev, editAmount: '' }));
+            }
+        }
+    };
 
     // Automatically reset tab to summary whenever the modal is opened
     useEffect(() => {
@@ -131,6 +154,7 @@ function AnalyticsAuditModal({
     };
 
     const saveEdit = () => {
+        if (errors.editAmount) return; // Prevent saving if invalid
         if (onEditExpense && editingId) {
             onEditExpense(editingId, editData);
             setEditingId(null);
@@ -376,12 +400,15 @@ function AnalyticsAuditModal({
                                 Record Manual Expense
                             </h3>
                             <form onSubmit={onAddExpense} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                                <select className="form-input" value={expenseForm?.category || 'Inventory'} onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })} style={{ flex: '0 0 140px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
+                                <select className="form-input" value={expenseForm?.category || 'Inventory'} onChange={e => handleFormChange('category', e.target.value)} style={{ flex: '0 0 140px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
                                     {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
-                                <input type="text" placeholder="Description..." value={expenseForm?.description || ''} onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })} style={{ flex: 1, minWidth: '120px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }} />
-                                <input type="number" placeholder="Amount (₱)" value={expenseForm?.amount || ''} onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })} required style={{ flex: '0 0 110px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }} />
-                                <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                <input type="text" placeholder="Description..." value={expenseForm?.description || ''} onChange={e => handleFormChange('description', e.target.value)} style={{ flex: 1, minWidth: '120px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }} />
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <input type="number" placeholder="Amount (₱)" value={expenseForm?.amount || ''} onChange={e => handleFormChange('amount', e.target.value)} required style={{ flex: '0 0 110px', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${errors.amount ? '#ef4444' : '#e2e8f0'}`, background: errors.amount ? '#fef2f2' : 'white', fontSize: '0.85rem' }} />
+                                    {errors.amount && <span style={{ color: '#ef4444', fontSize: '0.7rem', marginTop: '2px' }}>{errors.amount}</span>}
+                                </div>
+                                <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', alignSelf: 'flex-start' }} disabled={!!errors.amount}>
                                     <Plus size={14} /> Add
                                 </button>
                             </form>
@@ -420,14 +447,17 @@ function AnalyticsAuditModal({
                                                         </td>
                                                         <td>
                                                             {isEditing ? (
-                                                                <input type="text" value={editData.description} onChange={e => setEditData({ ...editData, description: e.target.value })} style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem', width: '100%' }} />
+                                                                <input type="text" value={editData.description} onChange={e => handleEditChange('description', e.target.value)} style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem', width: '100%' }} />
                                                             ) : (
                                                                 exp.description || '—'
                                                             )}
                                                         </td>
                                                         <td style={{ textAlign: 'right', fontWeight: 600 }}>
                                                             {isEditing ? (
-                                                                <input type="number" value={editData.amount} onChange={e => setEditData({ ...editData, amount: e.target.value })} style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem', width: '80px', textAlign: 'right' }} />
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                                    <input type="number" value={editData.amount} onChange={e => handleEditChange('amount', e.target.value)} style={{ padding: '4px 6px', borderRadius: '6px', border: `1px solid ${errors.editAmount ? '#ef4444' : '#e2e8f0'}`, background: errors.editAmount ? '#fef2f2' : 'white', fontSize: '0.8rem', width: '80px', textAlign: 'right' }} />
+                                                                    {errors.editAmount && <span style={{ color: '#ef4444', fontSize: '0.65rem' }}>{errors.editAmount}</span>}
+                                                                </div>
                                                             ) : (
                                                                 `₱${Number(exp.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
                                                             )}

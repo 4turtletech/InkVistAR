@@ -19,6 +19,7 @@ function ArtistSessions() {
         beforePhoto: null,
         afterPhoto: null
     });
+    const [errors, setErrors] = useState({});
 
     const [sessionMaterials, setSessionMaterials] = useState([]);
     const [sessionCost, setSessionCost] = useState(0);
@@ -196,6 +197,17 @@ function ArtistSessions() {
 
     const handleQuickAdd = async (inventoryId, quantity = 1) => {
         if (!activeSession) return;
+        
+        const item = inventoryItems.find(i => i.id === inventoryId);
+        if (!item) {
+            showAlert('Validation Error', 'Item not found in inventory.', 'warning');
+            return;
+        }
+        if (item.current_stock < quantity) {
+            showAlert('Validation Error', `Insufficient stock for ${item.name}.`, 'warning');
+            return;
+        }
+
         setAddingMaterial(true);
         try {
             const res = await Axios.post(`${API_URL}/api/appointments/${activeSession.id}/materials`, {
@@ -297,6 +309,7 @@ function ArtistSessions() {
             beforePhoto: session.before_photo || null,
             afterPhoto: session.after_photo || null
         });
+        setErrors({});
         setSessionElapsed(0);
         setIsSessionPaused(false);
         setAuditLog([]);
@@ -305,9 +318,37 @@ function ArtistSessions() {
         openSessionModal();
     };
 
+    const validateSessionField = (name, value) => {
+        let errorMsg = '';
+        if (name === 'notes') {
+            if (value.length > 0 && value.trim().length < 10) {
+                errorMsg = 'Notes must be at least 10 characters.';
+            } else if (value.trim().length > 2000) {
+                errorMsg = 'Notes cannot exceed 2000 characters.';
+            }
+        }
+        setErrors(prev => ({ ...prev, [name]: errorMsg }));
+        return !errorMsg;
+    };
+
+    const handleSessionFormChange = (e) => {
+        const { name, value } = e.target;
+        setSessionData(prev => ({ ...prev, [name]: value }));
+        validateSessionField(name, value);
+    };
+
     const handlePhotoUpload = (e, type) => {
         const file = e.target.files[0];
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                showAlert('Validation Error', 'Only image files are allowed.', 'warning');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) { // 5MB max
+                showAlert('Validation Error', 'Upload failed. File size must be under 5MB.', 'warning');
+                return;
+            }
+
             const reader = new FileReader();
             reader.onloadend = () => {
                 const img = new Image();
@@ -340,13 +381,23 @@ function ArtistSessions() {
         if (newStatus === 'completed') {
             // Enforce before & after photo uploads before allowing completion
             if (!sessionData.beforePhoto) {
-                showAlert('Photo Required', 'Please upload a "Before" photo documenting the client\'s state before the procedure. Go to the Documentation tab to upload.', 'warning');
+                showAlert('Validation Error', 'Please upload a "Before" photo documenting the client\'s state before the procedure. Go to the Documentation tab to upload.', 'warning');
                 setSessionTab('documentation');
                 return;
             }
             if (!sessionData.afterPhoto) {
-                showAlert('Photo Required', 'Please upload an "After" photo documenting the completed work. Go to the Documentation tab to upload.', 'warning');
+                showAlert('Validation Error', 'Please upload an "After" photo documenting the completed work. Go to the Documentation tab to upload.', 'warning');
                 setSessionTab('documentation');
+                return;
+            }
+            if (!sessionData.notes || sessionData.notes.trim().length < 10) {
+                showAlert('Validation Error', 'Please provide at least 10 characters of procedure notes before completing the session.', 'warning');
+                setSessionTab('documentation');
+                return;
+            }
+            if (sessionMaterials.length === 0) {
+                showAlert('Validation Error', 'Please log the supplies and materials consumed during this session.', 'warning');
+                setSessionTab('supplies');
                 return;
             }
             setIsCompletingSession(true);
@@ -445,6 +496,12 @@ function ArtistSessions() {
 
     const handleSaveDetails = async () => {
         if (!activeSession) return;
+        
+        if (sessionData.notes && !validateSessionField('notes', sessionData.notes)) {
+            showAlert("Validation Error", errors.notes || "Please fix validation errors before saving.", "warning");
+            return;
+        }
+
         setIsSaving(true);
         try {
             console.log('💾 Saving session details...');
@@ -768,12 +825,19 @@ function ArtistSessions() {
                                         </label>
                                         <textarea
                                             className="form-input"
+                                            name="notes"
                                             rows="8"
                                             value={sessionData.notes}
-                                            onChange={(e) => setSessionData({ ...sessionData, notes: e.target.value })}
+                                            onChange={handleSessionFormChange}
                                             placeholder="Document procedure details, pigment choices, or client skin response..."
-                                            style={{ borderRadius: '16px', minHeight: '200px' }}
+                                            style={{ 
+                                                borderRadius: '16px', 
+                                                minHeight: '200px',
+                                                border: errors.notes ? '1px solid #ef4444' : '1px solid #e2e8f0',
+                                                boxShadow: errors.notes ? '0 0 0 1px #ef4444' : 'inset 0 1px 3px rgba(0,0,0,0.02)'
+                                            }}
                                         />
+                                        {errors.notes && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '6px', display: 'block' }}>{errors.notes}</span>}
                                     </div>
                                 </div>
                             )}

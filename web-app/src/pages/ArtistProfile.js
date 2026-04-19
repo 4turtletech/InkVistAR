@@ -78,7 +78,23 @@ function ArtistProfile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [errors, setErrors] = useState({});
     const navigate = useNavigate();
+
+    const validateArtistField = (name, value) => {
+        let errorMsg = '';
+        if (name === 'name') {
+            if (!value.trim()) errorMsg = 'Artist name is required.';
+            else if (value.trim().length < 2) errorMsg = 'Name must be at least 2 characters.';
+        }
+        if (name === 'experience_years') {
+            const num = Number(value);
+            if (isNaN(num) || num < 0) errorMsg = 'Experience must be 0 or more.';
+            else if (num > 50) errorMsg = 'Experience cannot exceed 50 years.';
+        }
+        setErrors(prev => ({ ...prev, [name]: errorMsg }));
+        return !errorMsg;
+    };
 
     // Email change state
     const [emailModal, setEmailModal] = useState({ open: false, step: 'enterEmail', newEmail: '', emailError: '', otp: Array(6).fill(''), otpError: '', sending: false, confirming: false, resendTimer: 300, resendAttempts: 0, resending: false });
@@ -135,6 +151,10 @@ function ArtistProfile() {
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                setMessage({ type: 'error', text: 'Only image files are allowed.' });
+                return;
+            }
             const maxSize = 5 * 1024 * 1024; // 5MB
             if (file.size > maxSize) {
                 setMessage({ type: 'error', text: 'Image size must be less than 5MB' });
@@ -155,8 +175,10 @@ function ArtistProfile() {
         setSaving(true);
 
         // Validation
-        if (!profile.name.trim()) {
-            setMessage({ type: 'error', text: 'Artist name is required' });
+        const nameValid = validateArtistField('name', profile.name);
+        const expValid = validateArtistField('experience_years', profile.experience_years);
+        if (!nameValid || !expValid) {
+            setMessage({ type: 'error', text: 'Please fix the highlighted validation errors.' });
             setSaving(false);
             return;
         }
@@ -379,11 +401,16 @@ function ArtistProfile() {
                                                 type="text"
                                                 className="form-input artist-profile-input"
                                                 value={profile.name}
-                                                onChange={e => setProfile({ ...profile, name: filterName(e.target.value).slice(0, 50) })}
+                                                onChange={e => {
+                                                    const val = filterName(e.target.value).slice(0, 50);
+                                                    setProfile({ ...profile, name: val });
+                                                    validateArtistField('name', val);
+                                                }}
                                                 placeholder="Your full name"
                                                 maxLength={50}
-                                                
+                                                style={{ border: errors.name ? '1px solid #ef4444' : undefined }}
                                             />
+                                            {errors.name && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.name}</span>}
                                         </div>
                                         <div className="form-group">
                                             <label className="artist-profile-form-label"><Mail size={16} /> Email</label>
@@ -489,11 +516,16 @@ function ArtistProfile() {
                                                 type="number"
                                                 className="form-input artist-profile-input"
                                                 value={profile.experience_years}
-                                                onChange={e => setProfile({ ...profile, experience_years: clampNumber(e.target.value, 0, 50) })}
+                                                onChange={e => {
+                                                    const val = clampNumber(e.target.value, 0, 50);
+                                                    setProfile({ ...profile, experience_years: val });
+                                                    validateArtistField('experience_years', val);
+                                                }}
                                                 min="0"
                                                 max="50"
-                                                
+                                                style={{ border: errors.experience_years ? '1px solid #ef4444' : undefined }}
                                             />
+                                            {errors.experience_years && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.experience_years}</span>}
                                         </div>
                                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                                             <label className="artist-profile-form-label"><Percent size={16} /> Platform Commission Rate</label>

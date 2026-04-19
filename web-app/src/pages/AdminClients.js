@@ -28,6 +28,23 @@ function AdminClients() {
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [formData, setFormData] = useState({});
     const [filterStatus, setFilterStatus] = useState('active');
+    const [errors, setErrors] = useState({});
+
+    const validateField = (field, value) => {
+        let errorMsg = "";
+        if ((field === 'name' || field === 'email' || field === 'phone') && !value) {
+            errorMsg = "This field is required";
+        } else if (field === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+            errorMsg = "Invalid email format";
+        }
+        setErrors(prev => ({ ...prev, [field]: errorMsg }));
+        return errorMsg === "";
+    };
+
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        validateField(field, value);
+    };
 
     useEffect(() => {
         fetchClients();
@@ -104,6 +121,7 @@ function AdminClients() {
 
             setClientDetails({ profile, appointments: combinedHistory, notes: profile.notes || '' });
             setFormData(profile);
+            setErrors({});
 
         } catch (error) {
             console.error("Error fetching client details:", error);
@@ -113,6 +131,14 @@ function AdminClients() {
 
     const handleSaveClient = async () => {
         if (!selectedClient) return;
+
+        let valid = true;
+        valid = validateField('name', formData.name) && valid;
+        valid = validateField('email', formData.email) && valid;
+        valid = validateField('phone', formData.phone) && valid;
+
+        if (!valid) return;
+
         try {
             await Axios.put(`${API_URL}/api/customer/profile/${selectedClient.id}`, formData);
             alert('Client profile updated!');
@@ -370,15 +396,18 @@ function AdminClients() {
                                                 <div className="admin-st-ff43421e">
                                                     <div className="form-group">
                                                         <label className="admin-st-19644797">Legal Name</label>
-                                                        <input type="text" className="form-input" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
+                                                        <input type="text" className={`form-input ${errors.name ? 'error' : ''}`} value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} />
+                                                        {errors.name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.name}</small>}
                                                     </div>
                                                     <div className="form-group">
                                                         <label className="admin-st-19644797">Direct Link (Email)</label>
-                                                        <input type="email" className="form-input" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                                        <input type="email" className={`form-input ${errors.email ? 'error' : ''}`} value={formData.email || ''} onChange={e => handleInputChange('email', e.target.value)} />
+                                                        {errors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.email}</small>}
                                                     </div>
                                                     <div className="form-group">
                                                         <label className="admin-st-19644797">Primary Contact</label>
-                                                        <input type="text" className="form-input" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                                        <input type="text" className={`form-input ${errors.phone ? 'error' : ''}`} value={formData.phone || ''} onChange={e => handleInputChange('phone', e.target.value)} />
+                                                        {errors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.phone}</small>}
                                                     </div>
                                                 </div>
                                                 <div className="admin-st-ff43421e">

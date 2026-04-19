@@ -60,6 +60,46 @@ function AdminInventory() {
     const [isSaving, setIsSaving] = useState(false);
     const adminUser = JSON.parse(localStorage.getItem('user') || '{}');
 
+    // Validation state
+    const [errors, setErrors] = useState({});
+
+    const validateInventoryField = (field, value) => {
+        let errorMsg = "";
+        if (field === 'name' && (!value || !value.trim())) errorMsg = "Name is required";
+        if (field === 'unit' && (!value || !value.trim())) errorMsg = "Unit is required";
+        if (['currentStock', 'minStock', 'maxStock', 'cost', 'retailPrice'].includes(field) && Number(value) < 0) {
+            errorMsg = "Cannot be negative";
+        }
+        setErrors(prev => ({ ...prev, [field]: errorMsg }));
+        return errorMsg === "";
+    };
+
+    const handleInventoryInputChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        validateInventoryField(field, value);
+    };
+
+    const validateTransactionField = (field, value) => {
+        let errorMsg = "";
+        if (field === 'quantity' && (!value || Number(value) < 1 || !Number.isInteger(Number(value)))) {
+            errorMsg = "Must be a positive whole number";
+        }
+        setErrors(prev => ({ ...prev, [`tx_${field}`]: errorMsg }));
+        return errorMsg === "";
+    };
+
+    const handleTransactionInputChange = (field, value) => {
+        setTransactionData(prev => ({ ...prev, [field]: value }));
+        validateTransactionField(field, value);
+    };
+
+    const validateKitField = (value) => {
+        let errorMsg = "";
+        if (!value || !value.trim()) errorMsg = "Service type is required";
+        setErrors(prev => ({ ...prev, kit_name: errorMsg }));
+        return errorMsg === "";
+    };
+
     // History modal filter state
     const [historySearch, setHistorySearch] = useState('');
     const [historyTypeFilter, setHistoryTypeFilter] = useState('all');
@@ -201,10 +241,7 @@ function AdminInventory() {
     };
 
     const handleSaveKit = async () => {
-        if (!editingKitServiceType) {
-            showAlert("Service Type Required", "Please enter a Service Type (e.g., Realism Tattoo)", "warning");
-            return;
-        }
+        if (!validateKitField(editingKitServiceType)) return;
         setIsSaving(true);
         try {
             await Axios.post(`${API_URL}/api/admin/service-kits`, {
@@ -442,14 +479,17 @@ function AdminInventory() {
         e.preventDefault();
         if (isSaving) return;
 
-        if (!formData.name.trim()) {
-            showAlert("Name Required", "Item name is required", "warning");
-            return;
-        }
+        let valid = true;
+        valid = validateInventoryField('name', formData.name) && valid;
+        valid = validateInventoryField('unit', formData.unit) && valid;
+        valid = validateInventoryField('cost', formData.cost) && valid;
+        valid = validateInventoryField('retailPrice', formData.retailPrice) && valid;
+        valid = validateInventoryField('currentStock', formData.currentStock) && valid;
+        valid = validateInventoryField('minStock', formData.minStock) && valid;
+        valid = validateInventoryField('maxStock', formData.maxStock) && valid;
 
-        // Validate for negative numbers
-        if (Number(formData.currentStock) < 0 || Number(formData.cost) < 0) {
-            showAlert("Invalid Input", "Stock and cost values cannot be negative.", "warning");
+        if (!valid) {
+            showAlert("Invalid Input", "Please correct the errors in the form.", "warning");
             return;
         }
 
@@ -501,12 +541,14 @@ function AdminInventory() {
     const handleTransaction = async (e) => {
         e.preventDefault();
         setTransactionError('');
+
+        if (!validateTransactionField('quantity', transactionData.quantity)) {
+            setTransactionError("Quantity must be a positive whole number.");
+            return;
+        }
+
         try {
             const quantity = Number(transactionData.quantity);
-            if (!quantity || quantity <= 0 || !Number.isInteger(quantity)) {
-                setTransactionError("Quantity must be a positive whole number.");
-                return;
-            }
 
             // Prevent deducting more than available stock
             if (transactionData.type === 'out' && quantity > selectedItem.currentStock) {
@@ -850,11 +892,12 @@ function AdminInventory() {
                                             <input
                                                 type="text"
                                                 value={formData.name}
-                                                onChange={(e) => setFormData({...formData, name: e.target.value.substring(0, 150)})}
-                                                className="form-input"
+                                                onChange={(e) => handleInventoryInputChange('name', e.target.value.substring(0, 150))}
+                                                className={`form-input ${errors.name ? 'error' : ''}`}
                                                 placeholder="e.g. Dynamic Black Ink 8oz"
                                                 maxLength={150}
                                             />
+                                            {errors.name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.name}</small>}
                                         </div>
                                         <div className="admin-st-c68bdd5b">
                                             <div className="form-group">
@@ -874,11 +917,12 @@ function AdminInventory() {
                                                 <input
                                                     type="text"
                                                     value={formData.unit}
-                                                    onChange={(e) => setFormData({...formData, unit: e.target.value.substring(0, 30)})}
-                                                    className="form-input"
+                                                    onChange={(e) => handleInventoryInputChange('unit', e.target.value.substring(0, 30))}
+                                                    className={`form-input ${errors.unit ? 'error' : ''}`}
                                                     placeholder="pcs, oz, boxes"
                                                     maxLength={30}
                                                 />
+                                                {errors.unit && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.unit}</small>}
                                             </div>
                                         </div>
                                         <div className="form-group">
@@ -890,9 +934,10 @@ function AdminInventory() {
                                                         type="number"
                                                         step="0.01"
                                                         value={formData.cost}
-                                                        onChange={(e) => setFormData({...formData, cost: filterMoney(e.target.value)})}
-                                                        className="form-input"
+                                                        onChange={(e) => handleInventoryInputChange('cost', filterMoney(e.target.value))}
+                                                        className={`form-input ${errors.cost ? 'error' : ''}`}
                                                     />
+                                                    {errors.cost && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.cost}</small>}
                                                 </div>
                                                 <div>
                                                     <label className="admin-st-af89d6d6">Retail Price</label>
@@ -900,9 +945,10 @@ function AdminInventory() {
                                                         type="number"
                                                         step="0.01"
                                                         value={formData.retailPrice}
-                                                        onChange={(e) => setFormData({...formData, retailPrice: filterMoney(e.target.value)})}
-                                                        className="form-input admin-st-45e16daa"
+                                                        onChange={(e) => handleInventoryInputChange('retailPrice', filterMoney(e.target.value))}
+                                                        className={`form-input admin-st-45e16daa ${errors.retailPrice ? 'error' : ''}`}
                                                     />
+                                                    {errors.retailPrice && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.retailPrice}</small>}
                                                 </div>
                                             </div>
                                         </div>
@@ -917,9 +963,10 @@ function AdminInventory() {
                                                 <input
                                                     type="number"
                                                     value={formData.currentStock}
-                                                    onChange={(e) => setFormData({...formData, currentStock: clampNumber(e.target.value, 0, 999999)})}
-                                                    className="form-input admin-st-7047dd0b"
+                                                    onChange={(e) => handleInventoryInputChange('currentStock', clampNumber(e.target.value, 0, 999999))}
+                                                    className={`form-input admin-st-7047dd0b ${errors.currentStock ? 'error' : ''}`}
                                                 />
+                                                {errors.currentStock && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.currentStock}</small>}
                                             </div>
                                         </div>
 
@@ -931,18 +978,20 @@ function AdminInventory() {
                                                     <input
                                                         type="number"
                                                         value={formData.minStock}
-                                                        onChange={(e) => setFormData({...formData, minStock: clampNumber(e.target.value, 0, 999999)})}
-                                                        className="form-input"
+                                                        onChange={(e) => handleInventoryInputChange('minStock', clampNumber(e.target.value, 0, 999999))}
+                                                        className={`form-input ${errors.minStock ? 'error' : ''}`}
                                                     />
+                                                    {errors.minStock && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.minStock}</small>}
                                                 </div>
                                                 <div>
                                                     <label className="admin-st-496ebd9a">Max (Goal)</label>
                                                     <input
                                                         type="number"
                                                         value={formData.maxStock}
-                                                        onChange={(e) => setFormData({...formData, maxStock: clampNumber(e.target.value, 0, 999999)})}
-                                                        className="form-input"
+                                                        onChange={(e) => handleInventoryInputChange('maxStock', clampNumber(e.target.value, 0, 999999))}
+                                                        className={`form-input ${errors.maxStock ? 'error' : ''}`}
                                                     />
+                                                    {errors.maxStock && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.maxStock}</small>}
                                                 </div>
                                             </div>
                                         </div>
@@ -991,9 +1040,10 @@ function AdminInventory() {
                                         type="number"
                                         min="1"
                                         value={transactionData.quantity}
-                                        onChange={(e) => setTransactionData({...transactionData, quantity: clampNumber(e.target.value, 1, 999999)})}
-                                        className="form-input admin-st-934f10ff"
+                                        onChange={(e) => handleTransactionInputChange('quantity', clampNumber(e.target.value, 1, 999999))}
+                                        className={`form-input admin-st-934f10ff ${errors.tx_quantity ? 'error' : ''}`}
                                     />
+                                    {errors.tx_quantity && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.tx_quantity}</small>}
                                 </div>
 
                                 <div className="form-group">
@@ -1225,12 +1275,16 @@ function AdminInventory() {
                                     <label className="admin-st-d050454a">Service Designation</label>
                                     <input 
                                         type="text" 
-                                        className="form-input" 
+                                        className={`form-input ${errors.kit_name ? 'error' : ''}`} 
                                         placeholder="e.g. Minimalist Tattoo, Piercing"
                                         value={editingKitServiceType}
-                                        onChange={e => setEditingKitServiceType(e.target.value.substring(0, 50))}
+                                        onChange={e => {
+                                            setEditingKitServiceType(e.target.value.substring(0, 50));
+                                            validateKitField(e.target.value);
+                                        }}
                                         maxLength={50}
                                     />
+                                    {errors.kit_name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.kit_name}</small>}
                                 </div>
                                 <div className="form-group admin-st-185d793c">
                                     <label>Add Item to Kit</label>
@@ -1307,11 +1361,15 @@ function AdminInventory() {
                                                     <label className="admin-st-a2d5e684">Update Service Type Name</label>
                                                     <input 
                                                         type="text" 
-                                                        className="form-input" 
+                                                        className={`form-input ${errors.kit_name ? 'error' : ''}`} 
                                                         value={editingKitServiceType}
-                                                        onChange={e => setEditingKitServiceType(e.target.value.substring(0, 50))}
+                                                        onChange={e => {
+                                                            setEditingKitServiceType(e.target.value.substring(0, 50));
+                                                            validateKitField(e.target.value);
+                                                        }}
                                                         maxLength={50}
                                                     />
+                                                    {errors.kit_name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.kit_name}</small>}
                                                 </div>
                                                 <div className="form-group admin-st-988c5fa7">
                                                     <label className="admin-st-a2d5e684">Add Supplies to Kit</label>

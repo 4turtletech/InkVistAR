@@ -15,6 +15,20 @@ function AdminStudio() {
     const [loading, setLoading] = useState(true);
     const [branchModal, setBranchModal] = useState({ mounted: false, visible: false });
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
+    const [errors, setErrors] = useState({});
+
+    const validateField = (name, value) => {
+        let errorMsg = "";
+        if (name === 'name' && !value) errorMsg = "Branch Name is required";
+        if (name === 'address' && !value) errorMsg = "Address is required";
+        if (name === 'capacity') {
+            if (!value) errorMsg = "Capacity is required";
+            else if (isNaN(value) || value <= 0) errorMsg = "Capacity must be a positive number";
+        }
+        if (name === 'operating_hours' && !value) errorMsg = "Operating hours are required";
+        setErrors(prev => ({ ...prev, [name]: errorMsg }));
+        return errorMsg === "";
+    };
 
     const showAlert = (title, message, type = 'info') => {
         setConfirmDialog({ isOpen: true, title, message, type, isAlert: true, onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false })) });
@@ -41,6 +55,7 @@ function AdminStudio() {
     };
 
     const closeModal = () => {
+        setErrors({});
         setBranchModal(prev => ({ ...prev, visible: false }));
         setTimeout(() => {
             setBranchModal({ mounted: false, visible: false });
@@ -65,6 +80,14 @@ function AdminStudio() {
 
     const handleSave = async (e) => {
         e.preventDefault();
+        
+        const isNameValid = validateField('name', formData.name);
+        const isAddressValid = validateField('address', formData.address);
+        const isCapacityValid = validateField('capacity', formData.capacity);
+        const isOpsValid = validateField('operating_hours', formData.operating_hours);
+        
+        if (!isNameValid || !isAddressValid || !isCapacityValid || !isOpsValid) return;
+        
         try {
             if (editingId) {
                 await Axios.put(`${API_URL}/api/admin/branches/${editingId}`, formData);
@@ -120,6 +143,7 @@ function AdminStudio() {
 
     const openEditModal = (branch) => {
         setEditingId(branch.id);
+        setErrors({});
         setFormData({
             name: branch.name,
             address: branch.address,
@@ -132,6 +156,7 @@ function AdminStudio() {
 
     const openAddModal = () => {
         setEditingId(null);
+        setErrors({});
         setFormData({ name: '', address: '', phone: '', operating_hours: '09:00 - 20:00', capacity: 50 });
         openModal();
     };
@@ -300,25 +325,30 @@ function AdminStudio() {
                                 <div className="modal-body admin-st-7cea880d">
                                     <div className="form-group admin-mb-20">
                                         <label className="premium-label">Official Branch Designation</label>
-                                        <input type="text" className="form-input" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g., Downtown Sanctuary, Westside Hub" />
+                                        <input type="text" name="name" className={`form-input ${errors.name ? 'error' : ''}`} required value={formData.name} onChange={e => { setFormData({...formData, name: e.target.value}); validateField('name', e.target.value); }} placeholder="e.g., Downtown Sanctuary, Westside Hub" />
+                                        {errors.name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.name}</small>}
                                     </div>
                                     <div className="form-group admin-mb-20">
                                         <label className="premium-label">Geographic Location (Full Address)</label>
-                                        <input type="text" className="form-input" required value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                                        <input type="text" name="address" className={`form-input ${errors.address ? 'error' : ''}`} required value={formData.address} onChange={e => { setFormData({...formData, address: e.target.value}); validateField('address', e.target.value); }} />
+                                        {errors.address && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.address}</small>}
                                     </div>
                                     <div className="admin-st-c200c71d">
                                         <div className="form-group">
                                             <label className="premium-label">Contact Hotlink (Phone)</label>
-                                            <input type="text" className="form-input" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                            <input type="text" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} value={formData.phone} onChange={e => { setFormData({...formData, phone: e.target.value}); validateField('phone', e.target.value); }} />
+                                            {errors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.phone}</small>}
                                         </div>
                                         <div className="form-group">
                                             <label className="premium-label">Operational Capacity</label>
-                                            <input type="number" className="form-input" required value={formData.capacity} onChange={e => setFormData({...formData, capacity: e.target.value})} />
+                                            <input type="number" name="capacity" className={`form-input ${errors.capacity ? 'error' : ''}`} required value={formData.capacity} onChange={e => { setFormData({...formData, capacity: e.target.value}); validateField('capacity', e.target.value); }} />
+                                            {errors.capacity && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.capacity}</small>}
                                         </div>
                                     </div>
                                     <div className="form-group">
                                         <label className="premium-label">Standard Operating Protocol (Hours)</label>
-                                        <input type="text" className="form-input" placeholder="e.g. 09:00 - 20:00" value={formData.operating_hours} onChange={e => setFormData({...formData, operating_hours: e.target.value})} />
+                                        <input type="text" name="operating_hours" className={`form-input ${errors.operating_hours ? 'error' : ''}`} placeholder="e.g. 09:00 - 20:00" value={formData.operating_hours} onChange={e => { setFormData({...formData, operating_hours: e.target.value}); validateField('operating_hours', e.target.value); }} />
+                                        {errors.operating_hours && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.operating_hours}</small>}
                                     </div>
                                     
                                     <div className="glass-panel admin-st-194b571d">

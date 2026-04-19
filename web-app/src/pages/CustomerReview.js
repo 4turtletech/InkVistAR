@@ -18,6 +18,7 @@ function CustomerReview() {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
+    const [errors, setErrors] = useState({});
     const [appointment, setAppointment] = useState(null);
 
     const [user] = useState(() => {
@@ -51,6 +52,10 @@ function CustomerReview() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!appointment) return;
+        if (errors.comment) {
+            setErrorMsg('Please fix validation errors before submitting.');
+            return;
+        }
         setLoading(true);
         setErrorMsg('');
         
@@ -169,10 +174,20 @@ function CustomerReview() {
                                             className="premium-textarea" 
                                             value={comment} 
                                             maxLength={1000}
-                                            onChange={(e) => setComment(e.target.value)} 
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setComment(val);
+                                                if (val.trim().length > 1000) {
+                                                    setErrors(prev => ({ ...prev, comment: 'Review cannot exceed 1000 characters.' }));
+                                                } else {
+                                                    setErrors(prev => ({ ...prev, comment: '' }));
+                                                }
+                                            }} 
                                             placeholder="What did you love about your session? Was the artist professional?" 
                                             rows={4} 
+                                            style={{ border: errors.comment ? '1px solid #ef4444' : undefined }}
                                         ></textarea>
+                                        {errors.comment && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.comment}</span>}
                                         
                                         <div className="premium-textarea-footer">
                                             <span className={`premium-char-counter ${comment.length >= 1000 ? 'limit-reached' : ''}`}>

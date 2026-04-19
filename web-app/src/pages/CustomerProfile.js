@@ -74,7 +74,20 @@ function CustomerProfile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [errors, setErrors] = useState({});
     const navigate = useNavigate();
+
+    const validateProfileField = (name, value) => {
+        let errorMsg = '';
+        if (name === 'name') {
+            if (!value.trim()) errorMsg = 'Name is required.';
+            else if (value.trim().length < 2) errorMsg = 'Name must be at least 2 characters.';
+        }
+        if (name === 'location' && value.trim().length > 200) errorMsg = 'Location cannot exceed 200 characters.';
+        if (name === 'preferences' && value.trim().length > 500) errorMsg = 'Preferences cannot exceed 500 characters.';
+        setErrors(prev => ({ ...prev, [name]: errorMsg }));
+        return !errorMsg;
+    };
 
     // Email change state
     const [emailModal, setEmailModal] = useState({ open: false, step: 'enterEmail', newEmail: '', emailError: '', otp: Array(6).fill(''), otpError: '', sending: false, confirming: false, resendTimer: 300, resendAttempts: 0, resending: false });
@@ -121,9 +134,18 @@ function CustomerProfile() {
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                setMessage({ type: 'error', text: 'Only image files are allowed.' });
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                setMessage({ type: 'error', text: 'Image size must be less than 5MB.' });
+                return;
+            }
             const reader = new FileReader();
             reader.onloadend = () => {
                 setProfile({ ...profile, profile_image: reader.result });
+                setMessage({ type: '', text: '' });
             };
             reader.readAsDataURL(file);
         }
@@ -132,14 +154,15 @@ function CustomerProfile() {
     const handleSave = async (e) => {
         e.preventDefault();
         setMessage({ type: '', text: '' });
-        setSaving(true);
-
-        // Profile validation
-        if (!profile.name.trim()) {
-            setMessage({ type: 'error', text: 'Name is required' });
+        
+        // Run all field validations
+        const nameValid = validateProfileField('name', profile.name);
+        if (!nameValid) {
+            setMessage({ type: 'error', text: errors.name || 'Please fix validation errors.' });
             setSaving(false);
             return;
         }
+        setSaving(true);
 
         // Password validation
         if (showChangePassword) {
@@ -322,10 +345,15 @@ function CustomerProfile() {
                                                         type="text"
                                                         className="form-input"
                                                         value={profile.name}
-                                                        onChange={e => setProfile({ ...profile, name: filterName(e.target.value).slice(0, 50) })}
-                                                        style={inputStyle}
-                                                        maxLength={50}
-                                                    />
+                                                        onChange={e => {
+                                                        const val = filterName(e.target.value).slice(0, 50);
+                                                        setProfile({ ...profile, name: val });
+                                                        validateProfileField('name', val);
+                                                    }}
+                                                    style={{ ...inputStyle, border: errors.name ? '1px solid #ef4444' : undefined }}
+                                                    maxLength={50}
+                                                />
+                                                {errors.name && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.name}</span>}
                                                 </div>
                                                 <div className="form-group">
                                                     <label style={formLabel}><Mail size={16} /> Email</label>
@@ -385,23 +413,33 @@ function CustomerProfile() {
                                                         type="text"
                                                         className="form-input"
                                                         value={profile.location}
-                                                        onChange={e => setProfile({ ...profile, location: e.target.value })}
-                                                        placeholder="City, Country"
-                                                        style={inputStyle}
-                                                        maxLength={200}
-                                                    />
+                                                        onChange={e => {
+                                                        const val = e.target.value;
+                                                        setProfile({ ...profile, location: val });
+                                                        validateProfileField('location', val);
+                                                    }}
+                                                    placeholder="City, Country"
+                                                    style={{ ...inputStyle, border: errors.location ? '1px solid #ef4444' : undefined }}
+                                                    maxLength={200}
+                                                />
+                                                {errors.location && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.location}</span>}
                                                 </div>
                                                 <div className="form-group customer-st-d5e576b0" >
                                                     <label style={formLabel}><FileText size={16} /> Tattoo Preferences</label>
                                                     <textarea
                                                         className="form-input"
                                                         value={profile.preferences}
-                                                        onChange={e => setProfile({ ...profile, preferences: e.target.value })}
+                                                        onChange={e => {
+                                                            const val = e.target.value;
+                                                            setProfile({ ...profile, preferences: val });
+                                                            validateProfileField('preferences', val);
+                                                        }}
                                                         placeholder="E.g. Realism, Blackwork, Sleeve ideas..."
                                                         rows="3"
-                                                        style={inputStyle}
+                                                        style={{ ...inputStyle, border: errors.preferences ? '1px solid #ef4444' : undefined }}
                                                         maxLength={500}
                                                     />
+                                                    {errors.preferences && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.preferences}</span>}
                                                 </div>
                                             </div>
                                         </div>

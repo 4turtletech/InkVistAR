@@ -50,6 +50,38 @@ function CustomerBookings(){
         referenceImage: null,
     });
 
+    const [errors, setErrors] = useState({});
+
+    const validateBookingField = (name, value, currentData = bookingData) => {
+        let errorMsg = '';
+        if (name === 'designTitle') {
+            if (value.trim().length > 0 && value.trim().length < 3) errorMsg = 'Design title must be at least 3 characters.';
+            else if (value.trim().length > 100) errorMsg = 'Design title cannot exceed 100 characters.';
+        }
+        if (name === 'notes') {
+            if (value.trim().length > 2000) errorMsg = 'Notes cannot exceed 2000 characters.';
+        }
+        if (name === 'placementNotes') {
+            const hasOtherPlacement = (currentData.placement && currentData.placement.includes('Other')) || 
+                                      (currentData.piercingPlacement && currentData.piercingPlacement.includes('Other'));
+            if (hasOtherPlacement && value.trim().length === 0) {
+                errorMsg = 'Please specify the exact location in the notes field.';
+            } else if (value.trim().length > 200) {
+                errorMsg = 'Placement notes cannot exceed 200 characters.';
+            }
+        }
+
+        setErrors(prev => ({ ...prev, [name]: errorMsg }));
+        return !errorMsg;
+    };
+
+    const handleBookingFormChange = (e) => {
+        const { name, value } = e.target;
+        const newData = { ...bookingData, [name]: value };
+        setBookingData(newData);
+        validateBookingField(name, value, newData);
+    };
+
     // Derive the composite serviceType string from selectedServices for backend compatibility
     const getDerivedServiceType = (services) => {
         if (!services || services.length === 0) return '';
@@ -250,6 +282,14 @@ function CustomerBookings(){
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                showAlert('Validation Error', 'Only image files are allowed.', 'warning');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                showAlert('Validation Error', 'Upload failed. File size must be under 5MB.', 'warning');
+                return;
+            }
             const reader = new FileReader();
             reader.onloadend = () => {
                 setBookingData({ ...bookingData, referenceImage: reader.result });
@@ -387,6 +427,7 @@ function CustomerBookings(){
     const closeBookingModal = () => {
         setIsBookingModalOpen(false);
         setBookingData({ artistId: null, bookingType: '', selectedServices: [], followupAppointmentId: null, date: '', startTime: '', designTitle: '', placement: [], piercingPlacement: [], consultationFor: [], placementNotes: '', notes: '', referenceImage: null });
+        setErrors({});
         setBookingStep(1);
     };
 
@@ -411,11 +452,18 @@ function CustomerBookings(){
                     if (placementNotesRef.current) placementNotesRef.current.focus();
                 }, 50);
             }
-            return { ...prev, [field]: isAdding ? [...arr, item] : arr.filter(x => x !== item) };
+            const newData = { ...prev, [field]: isAdding ? [...arr, item] : arr.filter(x => x !== item) };
+            if (field === 'placement' || field === 'piercingPlacement') {
+                validateBookingField('placementNotes', newData.placementNotes, newData);
+            }
+            return newData;
         });
     };
 
     const handleNextStep = () => {
+        if (Object.values(errors).some(e => e)) {
+            return showAlert("Validation Error", "Please fix errors on this page before proceeding.", "warning");
+        }
         const derivedType = getDerivedServiceType(bookingData.selectedServices);
         if (bookingStep === 1) {
             if (!bookingData.bookingType) return showAlert("Required Field", "Please select whether this is a new booking or a follow-up.", "warning");
@@ -1278,17 +1326,21 @@ function CustomerBookings(){
                                                     <label className="customer-st-67198c20" >Idea Name <span style={{ color: '#ef4444', fontWeight: '400' }}>*</span></label>
                                                     <input 
                                                         type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
-                                                        value={bookingData.designTitle} onChange={e => setBookingData({...bookingData, designTitle: e.target.value})}
-                                                        minLength={3} maxLength={100}
+                                                        name="designTitle"
+                                                        value={bookingData.designTitle} onChange={handleBookingFormChange}
+                                                        style={{ border: errors.designTitle ? '1px solid #ef4444' : undefined }}
                                                     />
+                                                    {errors.designTitle && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.designTitle}</span>}
                                                 </div>
                                                 <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0 }}>
                                                     <label className="customer-st-67198c20" >Tell us your story (Optional)</label>
                                                     <textarea 
                                                         className="form-input" rows={derivedType === 'Tattoo + Piercing' ? 3 : 5} placeholder="Describe the size, color preferences, and any meaningful details..."
-                                                        value={bookingData.notes} onChange={e => setBookingData({...bookingData, notes: e.target.value})}
-                                                        style={{ resize: 'none' }}
+                                                        name="notes"
+                                                        value={bookingData.notes} onChange={handleBookingFormChange}
+                                                        style={{ resize: 'none', border: errors.notes ? '1px solid #ef4444' : undefined }}
                                                     />
+                                                    {errors.notes && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.notes}</span>}
                                                 </div>
                                                 {derivedType === 'Tattoo + Piercing' && (
                                                     <div style={{ padding: '14px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
@@ -1468,10 +1520,15 @@ function CustomerBookings(){
                                             <input 
                                                 ref={placementNotesRef}
                                                 type="text" className="form-input" placeholder={showTattooPlacement && showPiercingPlacement ? 'e.g. Left inner forearm tattoo, right ear helix piercing' : 'e.g. Left inner forearm, near elbow'}
-                                                value={bookingData.placementNotes} onChange={e => setBookingData({...bookingData, placementNotes: e.target.value})} 
+                                                name="placementNotes"
+                                                value={bookingData.placementNotes} onChange={handleBookingFormChange} 
                                                 maxLength={200}
-                                                style={(bookingData.placement.includes('Other') || bookingData.piercingPlacement.includes('Other')) && !bookingData.placementNotes.trim() ? { borderColor: '#f59e0b', boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.15)' } : {}}
+                                                style={{
+                                                    borderColor: errors.placementNotes || ((bookingData.placement.includes('Other') || bookingData.piercingPlacement.includes('Other')) && !bookingData.placementNotes.trim()) ? '#ef4444' : undefined,
+                                                    boxShadow: errors.placementNotes || ((bookingData.placement.includes('Other') || bookingData.piercingPlacement.includes('Other')) && !bookingData.placementNotes.trim()) ? '0 0 0 2px rgba(239,68,68,0.15)' : undefined
+                                                }}
                                             />
+                                            {errors.placementNotes && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.placementNotes}</span>}
                                         </div>
 
                                         {/* Selection summary */}

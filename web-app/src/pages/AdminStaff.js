@@ -61,6 +61,33 @@ function AdminStaff() {
     const [artistManagerModal, setArtistManagerModal] = useState({ mounted: false, visible: false });
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
 
+    // Validation state
+    const [errors, setErrors] = useState({});
+
+    const validateProfileField = (field, value) => {
+        let errorMsg = "";
+        if (field === 'name' && !value) errorMsg = "Name is required";
+        setErrors(prev => ({ ...prev, [field]: errorMsg }));
+        return errorMsg === "";
+    };
+
+    const handleProfileInputChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        validateProfileField(field, value);
+    };
+
+    const validateWorkField = (field, value) => {
+        let errorMsg = "";
+        if (field === 'title' && !value) errorMsg = "Title is required";
+        setErrors(prev => ({ ...prev, [`work_${field}`]: errorMsg }));
+        return errorMsg === "";
+    };
+
+    const handleWorkInputChange = (field, value) => {
+        setWorkFormData(prev => ({ ...prev, [field]: value }));
+        validateWorkField(field, value);
+    };
+
     const showAlert = (title, message, type = 'info') => {
         setConfirmDialog({ isOpen: true, title, message, type, isAlert: true, onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false })) });
     };
@@ -186,6 +213,7 @@ function AdminStaff() {
     };
 
     const handleUpdateProfile = async () => {
+        if (!validateProfileField('name', formData.name)) return;
         try {
             await Axios.put(`${API_URL}/api/artist/profile/${selectedArtist.id}`, formData);
             showAlert("Success", "Profile updated successfully", "success");
@@ -203,6 +231,7 @@ function AdminStaff() {
 
     const handleSaveWork = async (e) => {
         if (e) e.preventDefault();
+        if (!validateWorkField('title', workFormData.title)) return;
         try {
             await Axios.put(`${API_URL}/api/artist/portfolio/${selectedWork.id}`, {
                 title: workFormData.title,
@@ -287,11 +316,12 @@ function AdminStaff() {
                     <label>Name</label>
                     <input
                         type="text"
-                        className="form-input"
+                        className={`form-input ${errors.name ? 'error' : ''}`}
                         value={formData.name || ''}
-                        onChange={e => setFormData({ ...formData, name: filterName(e.target.value).slice(0, 100) })}
+                        onChange={e => handleProfileInputChange('name', filterName(e.target.value).slice(0, 100))}
                         maxLength={100}
                     />
+                    {errors.name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.name}</small>}
                 </div>
                 <div className="form-group">
                     <label>Specialization / Styles</label>
@@ -308,7 +338,7 @@ function AdminStaff() {
                         type="number"
                         className="form-input"
                         value={formData.experience_years !== undefined ? formData.experience_years : ''}
-                        onChange={e => setFormData({ ...formData, experience_years: clampNumber(e.target.value, 0, 100) })}
+                        onChange={e => handleProfileInputChange('experience_years', clampNumber(e.target.value, 0, 100))}
                     />
                 </div>
                 <div className="form-group">
@@ -691,12 +721,13 @@ function AdminStaff() {
                                                 <label className="admin-st-19644797">Asset Title</label>
                                                 <input
                                                     type="text"
-                                                    className="form-input"
+                                                    className={`form-input ${errors.work_title ? 'error' : ''}`}
                                                     value={workFormData.title}
-                                                    onChange={e => setWorkFormData({ ...workFormData, title: filterName(e.target.value).slice(0, 100) })}
+                                                    onChange={e => handleWorkInputChange('title', filterName(e.target.value).slice(0, 100))}
                                                     required
                                                     maxLength={100}
                                                 />
+                                                {errors.work_title && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.work_title}</small>}
                                             </div>
                                             <div className="admin-st-2f580e88">
                                                 <div className="form-group">
@@ -715,7 +746,7 @@ function AdminStaff() {
                                                         step="0.01"
                                                         className="form-input"
                                                         value={workFormData.priceEstimate}
-                                                        onChange={e => setWorkFormData({ ...workFormData, priceEstimate: filterMoney(e.target.value) })}
+                                                        onChange={e => handleWorkInputChange('priceEstimate', filterMoney(e.target.value))}
                                                     />
                                                 </div>
                                             </div>
@@ -725,7 +756,7 @@ function AdminStaff() {
                                                     className="form-input admin-st-7b393fc7"
                                                     rows="6"
                                                     value={workFormData.description}
-                                                    onChange={e => setWorkFormData({ ...workFormData, description: e.target.value.substring(0, 500) })}
+                                                    onChange={e => handleWorkInputChange('description', e.target.value.substring(0, 500))}
                                                     maxLength={500}
                                                 />
                                             </div>

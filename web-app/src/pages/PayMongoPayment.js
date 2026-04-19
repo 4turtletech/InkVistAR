@@ -26,6 +26,7 @@ const PayMongoPayment = () => {
     const [status, setStatus] = useState(type === 'balance' ? 'initializing' : 'selection'); // selection, initializing, ready, processing, failed
     const [paymentType, setPaymentType] = useState(type === 'balance' ? 'balance' : 'deposit');
     const [customAmount, setCustomAmount] = useState('');
+    const [errors, setErrors] = useState({});
     const [checkoutUrl, setCheckoutUrl] = useState(null);
 
     const isPiercing = serviceType && String(serviceType).toLowerCase().includes('piercing');
@@ -54,13 +55,13 @@ const PayMongoPayment = () => {
         try {
             // Validation for custom amount
             if (paymentType === 'custom' && (!customAmount || Number(customAmount) < depositPrice)) {
-                alert(`Please enter a valid amount (minimum deposit: ₱${depositPrice.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}).`);
+                setErrors({ customAmount: `Minimum amount is ₱${depositPrice.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.` });
                 setStatus('selection');
                 return;
             }
 
             if (paymentType === 'custom' && Number(customAmount) > remainingBalance) {
-                alert(`Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Please enter a lower amount.`);
+                setErrors({ customAmount: `Amount exceeds the remaining balance of ₱${remainingBalance.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.` });
                 setStatus('selection');
                 return;
             }
@@ -163,10 +164,21 @@ const PayMongoPayment = () => {
                         className="form-input" 
                         placeholder={`Enter amount (min ₱${depositPrice.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`} 
                         value={customAmount}
-                        onChange={e => setCustomAmount(e.target.value)}
-                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #C19A6B' }}
+                        onChange={e => {
+                            const val = e.target.value;
+                            setCustomAmount(val);
+                            if (val && Number(val) < depositPrice) {
+                                setErrors({ customAmount: `Minimum amount is ₱${depositPrice.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.` });
+                            } else if (val && Number(val) > remainingBalance) {
+                                setErrors({ customAmount: `Exceeds remaining balance of ₱${remainingBalance.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.` });
+                            } else {
+                                setErrors({});
+                            }
+                        }}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: errors.customAmount ? '1px solid #ef4444' : '1px solid #C19A6B' }}
                         min={depositPrice}
                     />
+                    {errors.customAmount && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.customAmount}</span>}
                 </div>
             )}
         </div>

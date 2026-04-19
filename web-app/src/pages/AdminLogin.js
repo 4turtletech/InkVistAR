@@ -9,11 +9,28 @@ function AdminLogin() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [errorMsg, setErrorMsg] = useState("");
+    const [errors, setErrors] = useState({});
     
     const navigate = useNavigate();
 
+    const validateField = (name, value) => {
+        let error = "";
+        if (name === 'email') {
+            if (!value) error = "Email is required";
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = "Please enter a valid email format";
+        }
+        if (name === 'password') {
+            if (!value) error = "Password is required";
+        }
+        setErrors(prev => ({ ...prev, [name]: error }));
+        return error === "";
+    };
+
     const handleLogin = async (e) => {
         e.preventDefault();
+        const isEmailValid = validateField('email', email);
+        const isPasswordValid = validateField('password', password);
+        if (!isEmailValid || !isPasswordValid) return;
         
         try {
             setErrorMsg(""); // clear previous error
@@ -46,21 +63,25 @@ function AdminLogin() {
                         <label>Email Address</label>
                         <input 
                             type="email" 
+                            name="email"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)} 
+                            onChange={(e) => { setEmail(e.target.value); validateField('email', e.target.value); }} 
                             required 
                             placeholder="admin@inkvistar.com"
                         />
+                        {errors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.email}</small>}
                     </div>
                     <div className="input-group">
                         <label>Password</label>
                         <input 
-                            type="password" 
+                            type="password"
+                            name="password"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)} 
+                            onChange={(e) => { setPassword(e.target.value); validateField('password', e.target.value); }} 
                             required 
                             placeholder="••••••••"
                         />
+                        {errors.password && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.password}</small>}
                     </div>
                     <button type="submit" className="admin-btn">Sign In</button>
                 </form>

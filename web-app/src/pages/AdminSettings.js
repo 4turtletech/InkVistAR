@@ -54,6 +54,22 @@ function AdminSettings() {
     const [activeTab, setActiveTab] = useState('studio');
     const [isSaved, setIsSaved] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
+    const [errors, setErrors] = useState({});
+
+    const validateField = (section, field, value) => {
+        let errorMsg = "";
+        if (section === 'studio') {
+            if ((field === 'name' || field === 'email' || field === 'phone' || field === 'address') && !value) {
+                errorMsg = "This field is required";
+            } else if (field === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                errorMsg = "Invalid email format";
+            }
+        } else if ((section === 'policies' || section === 'care' || section === 'templates') && !value) {
+            errorMsg = "Content cannot be empty";
+        }
+        setErrors(prev => ({ ...prev, [`${section}_${field}`]: errorMsg }));
+        return errorMsg === "";
+    };
 
     const showAlert = (title, message, type = 'info') => {
         setConfirmDialog({ isOpen: true, title, message, type, isAlert: true, onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false })) });
@@ -75,7 +91,7 @@ function AdminSettings() {
         }
     };
 
-    const handleChange = (section, field, value) => {
+    const handleChangeWithValidation = (section, field, value) => {
         setSettings(prev => ({
             ...prev,
             [section]: {
@@ -83,9 +99,21 @@ function AdminSettings() {
                 [field]: value
             }
         }));
+        validateField(section, field, value);
     };
 
     const handleSave = async () => {
+        let isValid = true;
+        isValid = validateField('studio', 'name', settings.studio.name) && isValid;
+        isValid = validateField('studio', 'email', settings.studio.email) && isValid;
+        isValid = validateField('studio', 'phone', settings.studio.phone) && isValid;
+        isValid = validateField('studio', 'address', settings.studio.address) && isValid;
+        if (!isValid) {
+            setActiveTab('studio');
+            showAlert("Validation Error", "Please correct the highlighted errors.", "warning");
+            return;
+        }
+
         try {
             // Save all sections
             await Promise.all(Object.keys(settings).map(section => 
@@ -175,10 +203,11 @@ function AdminSettings() {
                                     <input
                                         type="text"
                                         value={settings.studio.name}
-                                        onChange={(e) => handleChange('studio', 'name', filterName(e.target.value).slice(0, 100))}
-                                        className="form-input"
+                                        onChange={(e) => handleChangeWithValidation('studio', 'name', filterName(e.target.value).slice(0, 100))}
+                                        className={`form-input ${errors.studio_name ? 'error' : ''}`}
                                         maxLength={100}
                                     />
+                                    {errors.studio_name && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.studio_name}</small>}
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
@@ -186,27 +215,29 @@ function AdminSettings() {
                                         <input
                                             type="email"
                                             value={settings.studio.email}
-                                            onChange={(e) => handleChange('studio', 'email', e.target.value.substring(0, 254))}
-                                            className="form-input"
+                                            onChange={(e) => handleChangeWithValidation('studio', 'email', e.target.value.substring(0, 254))}
+                                            className={`form-input ${errors.studio_email ? 'error' : ''}`}
                                             maxLength={254}
                                         />
+                                        {errors.studio_email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.studio_email}</small>}
                                     </div>
                                     <div className="form-group">
                                         <label>Phone *</label>
                                         <input
                                             type="tel"
                                             value={settings.studio.phone}
-                                            onChange={(e) => handleChange('studio', 'phone', filterDigits(e.target.value).slice(0, 15))}
-                                            className="form-input"
+                                            onChange={(e) => handleChangeWithValidation('studio', 'phone', filterDigits(e.target.value).slice(0, 15))}
+                                            className={`form-input ${errors.studio_phone ? 'error' : ''}`}
                                             maxLength={15}
                                         />
+                                        {errors.studio_phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.studio_phone}</small>}
                                     </div>
                                 </div>
                                 <div className="form-group">
                                     <label>Description</label>
                                     <textarea
                                         value={settings.studio.description}
-                                        onChange={(e) => handleChange('studio', 'description', e.target.value.substring(0, 500))}
+                                        onChange={(e) => handleChangeWithValidation('studio', 'description', e.target.value.substring(0, 500))}
                                         className="form-input"
                                         rows="3"
                                         maxLength={500}
@@ -217,10 +248,11 @@ function AdminSettings() {
                                     <input
                                         type="text"
                                         value={settings.studio.address}
-                                        onChange={(e) => handleChange('studio', 'address', e.target.value.substring(0, 200))}
-                                        className="form-input"
+                                        onChange={(e) => handleChangeWithValidation('studio', 'address', e.target.value.substring(0, 200))}
+                                        className={`form-input ${errors.studio_address ? 'error' : ''}`}
                                         maxLength={200}
                                     />
+                                    {errors.studio_address && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.studio_address}</small>}
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
@@ -228,7 +260,7 @@ function AdminSettings() {
                                         <input
                                             type="text"
                                             value={settings.studio.city}
-                                            onChange={(e) => handleChange('studio', 'city', filterName(e.target.value).slice(0, 100))}
+                                            onChange={(e) => handleChangeWithValidation('studio', 'city', filterName(e.target.value).slice(0, 100))}
                                             className="form-input"
                                             maxLength={100}
                                         />
@@ -238,7 +270,7 @@ function AdminSettings() {
                                         <input
                                             type="text"
                                             value={settings.studio.state}
-                                            onChange={(e) => handleChange('studio', 'state', filterName(e.target.value).slice(0, 50))}
+                                            onChange={(e) => handleChangeWithValidation('studio', 'state', filterName(e.target.value).slice(0, 50))}
                                             className="form-input"
                                             maxLength={50}
                                         />
@@ -248,7 +280,7 @@ function AdminSettings() {
                                         <input
                                             type="text"
                                             value={settings.studio.zipCode}
-                                            onChange={(e) => handleChange('studio', 'zipCode', filterDigits(e.target.value).slice(0, 10))}
+                                            onChange={(e) => handleChangeWithValidation('studio', 'zipCode', filterDigits(e.target.value).slice(0, 10))}
                                             className="form-input"
                                             maxLength={10}
                                         />
@@ -260,7 +292,7 @@ function AdminSettings() {
                                         <input
                                             type="time"
                                             value={settings.studio.openingTime}
-                                            onChange={(e) => handleChange('studio', 'openingTime', e.target.value)}
+                                            onChange={(e) => handleChangeWithValidation('studio', 'openingTime', e.target.value)}
                                             className="form-input"
                                         />
                                     </div>
@@ -269,7 +301,7 @@ function AdminSettings() {
                                         <input
                                             type="time"
                                             value={settings.studio.closingTime}
-                                            onChange={(e) => handleChange('studio', 'closingTime', e.target.value)}
+                                            onChange={(e) => handleChangeWithValidation('studio', 'closingTime', e.target.value)}
                                             className="form-input"
                                         />
                                     </div>
@@ -287,17 +319,18 @@ function AdminSettings() {
                                     <label>Terms of Service</label>
                                     <textarea
                                         value={settings.policies.terms}
-                                        onChange={(e) => handleChange('policies', 'terms', e.target.value)}
-                                        className="form-input"
+                                        onChange={(e) => handleChangeWithValidation('policies', 'terms', e.target.value)}
+                                        className={`form-input ${errors.policies_terms ? 'error' : ''}`}
                                         rows="5"
                                         maxLength={2000}
                                     />
+                                    {errors.policies_terms && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.policies_terms}</small>}
                                 </div>
                                 <div className="form-group">
                                     <label>Deposit Policy</label>
                                     <textarea
                                         value={settings.policies.deposit}
-                                        onChange={(e) => handleChange('policies', 'deposit', e.target.value)}
+                                        onChange={(e) => handleChangeWithValidation('policies', 'deposit', e.target.value)}
                                         className="form-input"
                                         rows="3"
                                         maxLength={1000}
@@ -307,7 +340,7 @@ function AdminSettings() {
                                     <label>Cancellation Policy</label>
                                     <textarea
                                         value={settings.policies.cancellation}
-                                        onChange={(e) => handleChange('policies', 'cancellation', e.target.value)}
+                                        onChange={(e) => handleChangeWithValidation('policies', 'cancellation', e.target.value)}
                                         className="form-input"
                                         rows="3"
                                         maxLength={1000}
@@ -327,11 +360,12 @@ function AdminSettings() {
                                     <label>Aftercare Guide</label>
                                     <textarea
                                         value={settings.care.instructions}
-                                        onChange={(e) => handleChange('care', 'instructions', e.target.value)}
-                                        className="form-input"
+                                        onChange={(e) => handleChangeWithValidation('care', 'instructions', e.target.value)}
+                                        className={`form-input ${errors.care_instructions ? 'error' : ''}`}
                                         rows="10"
                                         maxLength={3000}
                                     />
+                                    {errors.care_instructions && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.care_instructions}</small>}
                                 </div>
                             </div>
                         </div>
@@ -347,7 +381,7 @@ function AdminSettings() {
                                     <label>Appointment Confirmation</label>
                                     <textarea
                                         value={settings.templates.confirmation}
-                                        onChange={(e) => handleChange('templates', 'confirmation', e.target.value)}
+                                        onChange={(e) => handleChangeWithValidation('templates', 'confirmation', e.target.value)}
                                         className="form-input"
                                         rows="3"
                                         maxLength={500}
@@ -357,7 +391,7 @@ function AdminSettings() {
                                     <label>Appointment Reminder</label>
                                     <textarea
                                         value={settings.templates.reminder}
-                                        onChange={(e) => handleChange('templates', 'reminder', e.target.value)}
+                                        onChange={(e) => handleChangeWithValidation('templates', 'reminder', e.target.value)}
                                         className="form-input"
                                         rows="3"
                                         maxLength={500}
@@ -367,7 +401,7 @@ function AdminSettings() {
                                     <label>Cancellation Notice</label>
                                     <textarea
                                         value={settings.templates.cancellation}
-                                        onChange={(e) => handleChange('templates', 'cancellation', e.target.value)}
+                                        onChange={(e) => handleChangeWithValidation('templates', 'cancellation', e.target.value)}
                                         className="form-input"
                                         rows="3"
                                         maxLength={500}
@@ -392,7 +426,7 @@ function AdminSettings() {
                                         <input
                                             type="checkbox"
                                             checked={settings.backup.autoBackup}
-                                            onChange={() => handleChange('backup', 'autoBackup', !settings.backup.autoBackup)}
+                                            onChange={() => handleChangeWithValidation('backup', 'autoBackup', !settings.backup.autoBackup)}
                                             className="toggle-checkbox"
                                         />
                                         <span className="toggle-label">Automatic Daily Backup</span>
@@ -403,7 +437,7 @@ function AdminSettings() {
                                     <label>Backup Frequency</label>
                                     <select
                                         value={settings.backup.frequency}
-                                        onChange={(e) => handleChange('backup', 'frequency', e.target.value)}
+                                        onChange={(e) => handleChangeWithValidation('backup', 'frequency', e.target.value)}
                                         className="form-input"
                                     >
                                         <option value="daily">Daily</option>
@@ -438,7 +472,7 @@ function AdminSettings() {
                                     <label>Categories</label>
                                     <textarea
                                         value={settings.gallery?.categories || ''}
-                                        onChange={(e) => handleChange('gallery', 'categories', e.target.value.substring(0, 500))}
+                                        onChange={(e) => handleChangeWithValidation('gallery', 'categories', e.target.value.substring(0, 500))}
                                         className="form-input"
                                         rows="4"
                                         placeholder="All, Traditional, Realism, Watercolor..."
