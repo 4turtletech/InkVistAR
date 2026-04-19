@@ -225,10 +225,12 @@ function Register() {
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
               <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                 <input type="text" name="firstName" className={`form-input ${errors.firstName ? 'error' : ''}`} placeholder="First Name" value={formData.firstName} onChange={handleChange} onBlur={handleBlur} maxLength={50} />
+                <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
                 {errors.firstName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.firstName}</small>}
               </div>
               <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                 <input type="text" name="lastName" className={`form-input ${errors.lastName ? 'error' : ''}`} placeholder="Last Name" value={formData.lastName} onChange={handleChange} onBlur={handleBlur} maxLength={50} />
+                <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
                 {errors.lastName && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.lastName}</small>}
               </div>
               <div className="form-group" style={{ width: '90px', position: 'relative', flexShrink: 0 }}>
@@ -237,6 +239,7 @@ function Register() {
             </div>
             <div className="form-group" style={{ position: 'relative' }}>
               <input type="email" name="email" className={`form-input ${errors.email ? 'error' : ''}`} placeholder="Email Address" value={formData.email} onChange={handleChange} onBlur={handleBlur} maxLength={254} />
+              <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
               {errors.email && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.email}</small>}
             </div>
             <div className="form-group" style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
@@ -244,12 +247,16 @@ function Register() {
                 value={formData.countryCode}
                 onChange={(code) => setFormData(prev => ({ ...prev, countryCode: code }))}
               />
-              <input type="tel" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} style={{ flex: 1 }} value={formData.phone} onChange={handleChange} placeholder="Phone Number" maxLength={11} />
+              <div style={{ flex: 1, position: 'relative' }}>
+                <input type="tel" name="phone" className={`form-input ${errors.phone ? 'error' : ''}`} style={{ width: '100%' }} value={formData.phone} onChange={handleChange} placeholder="Phone Number" maxLength={11} />
+                <span style={{ position: 'absolute', right: '12px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
+              </div>
             </div>
             {errors.phone && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.phone}</small>}
             <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
               <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                 <input type={showPassword ? "text" : "password"} name="password" className={`form-input ${errors.password ? 'error' : ''}`} placeholder="Create Password" value={formData.password} onChange={handleChange} onFocus={() => setPasswordFocused(true)} onBlur={(e) => { handleBlur(e); if (!formData.password) setPasswordFocused(false); }} onPaste={(e) => e.preventDefault()} maxLength={128} />
+                <span style={{ position: 'absolute', right: '40px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -280,6 +287,7 @@ function Register() {
               </div>
               <div className="form-group" style={{ flex: 1, position: 'relative' }}>
                 <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" className={`form-input ${errors.confirmPassword ? 'error' : ''}`} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} onBlur={handleBlur} onPaste={(e) => e.preventDefault()} maxLength={128} />
+                <span style={{ position: 'absolute', right: '40px', top: '14px', color: '#ef4444', fontSize: '1.1rem', lineHeight: '1', pointerEvents: 'none' }}>*</span>
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -311,7 +319,7 @@ function Register() {
               </div>
             </div>
             {/* Full-width Password Strength Meter */}
-            <div style={{ overflow: 'hidden', maxHeight: passwordFocused ? '200px' : '0', opacity: passwordFocused ? 1 : 0, transition: 'max-height 0.3s ease, opacity 0.3s ease', marginTop: passwordFocused ? '4px' : '0' }}>
+            <div style={{ minHeight: '44px', opacity: passwordFocused ? 1 : 0, transition: 'opacity 0.3s ease', marginTop: passwordFocused ? '4px' : '0', visibility: passwordFocused ? 'visible' : 'hidden' }}>
               <PasswordStrengthMeter feedback={passwordFeedback} />
             </div>
 

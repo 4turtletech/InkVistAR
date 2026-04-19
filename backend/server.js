@@ -194,6 +194,7 @@ db.getConnection((err, connection) => {
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) NOT NULL UNIQUE,
+        phone VARCHAR(20) NULL,
         password_hash VARCHAR(255) NOT NULL,
         user_type ENUM('admin', 'manager', 'artist', 'customer') NOT NULL,
         is_verified BOOLEAN DEFAULT 0,
@@ -202,6 +203,8 @@ db.getConnection((err, connection) => {
         otp_expires DATETIME,
         push_token VARCHAR(255),
         is_deleted BOOLEAN DEFAULT 0,
+        failed_login_attempts INT DEFAULT 0,
+        lockout_until DATETIME DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
@@ -214,6 +217,14 @@ db.getConnection((err, connection) => {
           if (!err && results.length === 0) {
             console.log('🔄 Migrating users: Adding phone column...');
             db.query("ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL AFTER email");
+          }
+        });
+
+        // MIGRATION: Add lockout tracking columns if they don't exist
+        db.query("SHOW COLUMNS FROM users LIKE 'failed_login_attempts'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating users: Adding lockout tracking columns...');
+            db.query("ALTER TABLE users ADD COLUMN failed_login_attempts INT DEFAULT 0, ADD COLUMN lockout_until DATETIME DEFAULT NULL");
           }
         });
 
@@ -1533,13 +1544,67 @@ app.post('/api/login', async (req, res) => {
 
       console.log('✅ User found:', user.name);
 
+      // Check if locked out
+      if (user.lockout_until && new Date(user.lockout_until) > new Date()) {
+        const lockoutDiffMs = new Date(user.lockout_until) - new Date();
+        const lockoutDiffMin = Math.ceil(lockoutDiffMs / 60000);
+        return res.status(403).json({
+          success: false,
+          message: `Account temporarily locked due to too many failed attempts. Try again in ${lockoutDiffMin} minute(s).`,
+          lockedOut: true,
+          cooldownMinutes: lockoutDiffMin
+        });
+      }
+
       // Verify password FIRST (before verification check to prevent email enumeration)
       const valid = await bcrypt.compare(password, user.password_hash);
       if (!valid) {
+        // Handle failed login attempt
+        const failedAttempts = (user.failed_login_attempts || 0) + 1;
+        let updateQuery = 'UPDATE users SET failed_login_attempts = ?';
+        let queryParams = [failedAttempts];
+        let lockoutResponse = null;
+
+        if (failedAttempts >= 5) {
+          let cooldownMin = 5;
+          if (failedAttempts === 6) cooldownMin = 10;
+          else if (failedAttempts === 7) cooldownMin = 15;
+          else if (failedAttempts === 8) cooldownMin = 30;
+          else if (failedAttempts >= 9) cooldownMin = 60;
+
+          // Compute lockout time safely relative to current server time in UTC
+          const lockoutUntilStr = new Date(Date.now() + cooldownMin * 60000).toISOString().slice(0, 19).replace('T', ' ');
+          updateQuery += ', lockout_until = ?';
+          queryParams.push(lockoutUntilStr);
+          
+          lockoutResponse = {
+            success: false,
+            message: `Account temporarily locked due to too many failed attempts. Try again in ${cooldownMin} minute(s).`,
+            lockedOut: true,
+            cooldownMinutes: cooldownMin
+          };
+        }
+
+        updateQuery += ' WHERE id = ?';
+        queryParams.push(user.id);
+        
+        db.query(updateQuery, queryParams, (updateErr) => {
+          if (updateErr) console.error('Error updating failed login attempts:', updateErr);
+        });
+
+        if (lockoutResponse) {
+            return res.status(403).json(lockoutResponse);
+        }
+
         return res.status(401).json({
           success: false,
           message: 'Invalid email or password'
         });
+      }
+
+      // Reset login attempts if successful
+      if (user.failed_login_attempts > 0 || user.lockout_until !== null) {
+        db.query('UPDATE users SET failed_login_attempts = 0, lockout_until = NULL WHERE id = ?', [user.id]);
       }
 
       // Check verification for ALL user types (first-login OTP flow)
@@ -1630,7 +1695,7 @@ app.post('/api/reset-password', async (req, res) => {
     // 3. Hash and update
     const password_hash = await bcrypt.hash(newPassword, 10);
 
-    db.query('UPDATE users SET password_hash = ?, otp_code = NULL, otp_expires = NULL WHERE email = ?', [password_hash, email], (updateErr, result) => {
+    db.query('UPDATE users SET password_hash = ?, otp_code = NULL, otp_expires = NULL, failed_login_attempts = 0, lockout_until = NULL WHERE email = ?', [password_hash, email], (updateErr, result) => {
       if (updateErr) return res.status(500).json({ success: false, message: 'Database error during password update.' });
       logAction(user.id, 'PASSWORD_RESET', `User reset their password.`, req.ip || '::1');
       res.json({ success: true, message: 'Password updated successfully' });

@@ -11,6 +11,7 @@ function Login() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
+    const [isLockedOut, setIsLockedOut] = useState(false);
     const [errors, setErrors] = useState({}); // Field-specific inline errors
     const [showResend, setShowResend] = useState(false);
     const [resendMessage, setResendMessage] = useState({ text: '', type: 'error' });
@@ -92,6 +93,7 @@ function Login() {
         if (!isEmailValid || !isPasswordValid) return;
 
         setError("");
+        setIsLockedOut(false);
         setShowResend(false);
         setResendMessage({ text: '' });
         setLoading(true);
@@ -126,7 +128,10 @@ function Login() {
             }
         } catch (error) {
             const errData = error.response?.data;
-            if (errData?.requireVerification && errData?.verificationEmail) {
+            if (errData?.lockedOut) {
+                setError(errData.message);
+                setIsLockedOut(true);
+            } else if (errData?.requireVerification && errData?.verificationEmail) {
                 // Auto-send OTP and route to verify-account view
                 setVerificationEmail(errData.verificationEmail);
                 setError('');
@@ -322,8 +327,18 @@ function Login() {
                     <div className="login-footer">
                         <p>Don't have an account? <Link to="/register">Register now</Link>.</p>
                         <p style={{ marginTop: '0.5rem' }}>
-                            <button type="button" onClick={() => { setView('forgot-email'); setError(''); }} style={{background: 'none', border: 'none', color: '#C19A6B', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem'}}>
-                                Forgot Password?
+                            <button type="button" onClick={() => { setView('forgot-email'); setError(''); setIsLockedOut(false); }} style={{
+                                background: isLockedOut ? 'rgba(239, 68, 68, 0.1)' : 'none', 
+                                border: isLockedOut ? '1px solid rgba(239, 68, 68, 0.3)' : 'none',
+                                padding: isLockedOut ? '8px 16px' : '0',
+                                borderRadius: isLockedOut ? '8px' : '0',
+                                color: isLockedOut ? '#ef4444' : '#C19A6B', 
+                                cursor: 'pointer', 
+                                fontWeight: isLockedOut ? '700' : '600', 
+                                fontSize: isLockedOut ? '0.95rem' : '0.9rem',
+                                transition: 'all 0.3s ease'
+                            }}>
+                                {isLockedOut ? 'Change Password to Unlock Account' : 'Forgot Password?'}
                             </button>
                         </p>
                     </div>
