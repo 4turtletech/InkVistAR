@@ -358,7 +358,7 @@ function CustomerBookings(){
                 // Piercing pool: 7 time slots (1PM–7PM)
                 const slotsTaken = dateData.piercingTimes.length;
                 isFull = slotsTaken >= 7;
-                isBusy = slotsTaken >= 5;
+                isBusy = slotsTaken >= 1; // Show as limited if any slot is taken
             } else if (selectedService === 'tattoo + piercing') {
                 // Bundle: must check BOTH tattoo pool AND piercing pool
                 const tattooFull = dateData.sessionCount >= studioCapacity;
@@ -551,7 +551,11 @@ function CustomerBookings(){
                 if (fetchRes.data.success) setAppointments(fetchRes.data.appointments);
             }
         } catch (err) {
-            showAlert("Booking Error", err.response?.data?.message || "Failed to submit request.", "danger");
+            if (err.response?.status === 429) {
+                showAlert("Booking Limit Reached", err.response.data.message || "You have too many pending requests. Please wait for one to be confirmed.", "warning");
+            } else {
+                showAlert("Booking Error", err.response?.data?.message || "Failed to submit request.", "danger");
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -700,7 +704,7 @@ function CustomerBookings(){
                 isBusy = dateData.consultationTimes.length >= 5;
             } else if (apptService === 'piercing') {
                 isFull = dateData.piercingTimes.length >= 7;
-                isBusy = dateData.piercingTimes.length >= 5;
+                isBusy = dateData.piercingTimes.length >= 1; // Show as limited if any slot is taken
             } else if (apptService === 'tattoo + piercing') {
                 isFull = dateData.sessionCount >= studioCapacity || dateData.piercingTimes.length >= 7;
                 isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1) || dateData.piercingTimes.length >= 5;

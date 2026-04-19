@@ -3122,9 +3122,32 @@ app.get('/api/public/calendar-availability', (req, res) => {
 });
 
 // Customer book appointment
-app.post('/api/customer/appointments', (req, res) => {
+app.post('/api/customer/appointments', async (req, res) => {
   console.log('📅 Customer booking request:', req.body);
   let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price, serviceType } = req.body;
+
+  // ═══ Rolling Booking Limit: max 2 pending appointments per customer ═══
+  if (customerId) {
+    const limitCheck = await new Promise((resolve) => {
+      db.query(
+        `SELECT COUNT(*) as pending FROM appointments WHERE customer_id = ? AND status = 'pending' AND is_deleted = 0`,
+        [customerId],
+        (err, results) => {
+          if (err) return resolve({ allowed: true });
+          const pendingCount = results[0]?.pending || 0;
+          if (pendingCount >= 2) return resolve({ allowed: false, count: pendingCount });
+          resolve({ allowed: true });
+        }
+      );
+    });
+
+    if (!limitCheck.allowed) {
+      return res.status(429).json({
+        success: false,
+        message: `You already have ${limitCheck.count} pending booking requests. Please wait for one to be confirmed before booking another.`
+      });
+    }
+  }
 
   // If the admin decides, the customer might not send an artistId.
   // We need to find a default admin/manager to hold the appointment.
@@ -3615,19 +3638,18 @@ app.post('/api/admin/appointments', async (req, res) => {
     return res.status(400).json({ success: false, message: 'customerId, artistId, and date are required.' });
   }
 
-  // ═══ Rolling Booking Limit: max 2 pending consultations per user/device ═══
-  const isConsultation = (serviceType || '').toLowerCase() === 'consultation';
-  if (isConsultation) {
+  // ═══ Rolling Booking Limit: max 2 pending appointments per user/device ═══
+  if (isFromWizard || (serviceType && customerId)) {
     const limitCheck = await new Promise((resolve) => {
       // For authenticated users, check by customer_id; for guests, check by device_id
       const isGuest = customerId === 'admin';
       let limitQuery, limitParams;
 
       if (!isGuest && customerId) {
-        limitQuery = `SELECT COUNT(*) as pending FROM appointments WHERE customer_id = ? AND service_type = 'Consultation' AND status = 'pending' AND is_deleted = 0`;
+        limitQuery = `SELECT COUNT(*) as pending FROM appointments WHERE customer_id = ? AND status = 'pending' AND is_deleted = 0`;
         limitParams = [customerId];
       } else if (deviceId) {
-        limitQuery = `SELECT COUNT(*) as pending FROM appointments WHERE device_id = ? AND service_type = 'Consultation' AND status = 'pending' AND is_deleted = 0`;
+        limitQuery = `SELECT COUNT(*) as pending FROM appointments WHERE device_id = ? AND status = 'pending' AND is_deleted = 0`;
         limitParams = [deviceId];
       } else {
         return resolve({ allowed: true }); // No way to track — allow
@@ -3646,7 +3668,7 @@ app.post('/api/admin/appointments', async (req, res) => {
     if (!limitCheck.allowed) {
       return res.status(429).json({
         success: false,
-        message: `You already have ${limitCheck.count} pending consultation requests. Please wait for one to be confirmed before booking another.`
+        message: `You already have ${limitCheck.count} pending booking requests. Please wait for one to be confirmed before booking another.`
       });
     }
   }
