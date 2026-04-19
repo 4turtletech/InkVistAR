@@ -1431,7 +1431,7 @@ function CustomerBookings(){
                                             <div style={{ marginBottom: '20px' }}>
                                                 <p className="customer-st-b943a453" style={{ marginBottom: '10px' }}>What is this consultation for?</p>
                                                 <div style={{ display: 'flex', gap: '12px' }}>
-                                                    {[{ key: 'tattoo', label: 'Tattoo', icon: <Paintbrush size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#daa520' }, { key: 'piercing', label: 'Piercing', icon: <Gem size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#4FC3F7' }].map(opt => {
+                                                    {[{ key: 'tattoo', label: 'Tattoo', icon: <Paintbrush size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }, { key: 'piercing', label: 'Piercing', icon: <Gem size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }].map(opt => {
                                                         const isActive = bookingData.consultationFor.includes(opt.key);
                                                         return (
                                                             <button
@@ -1458,8 +1458,8 @@ function CustomerBookings(){
                                                 <p className="customer-st-b943a453" style={{ marginBottom: '10px', marginTop: '16px' }}>How would you like this consultation?</p>
                                                 <div style={{ display: 'flex', gap: '12px' }}>
                                                     {[
-                                                        { key: 'Face-to-Face', label: 'Face-to-Face', icon: <Users size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#22c55e' },
-                                                        { key: 'Online', label: 'Online', icon: <Video size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#6366f1' }
+                                                        { key: 'Face-to-Face', label: 'Face-to-Face', icon: <Users size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' },
+                                                        { key: 'Online', label: 'Online', icon: <Video size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />, color: '#C19A6B' }
                                                     ].map(opt => {
                                                         const isActive = bookingData.consultationMethod === opt.key;
                                                         return (
@@ -1489,7 +1489,7 @@ function CustomerBookings(){
                                                         <div style={{ display: 'flex', gap: '10px' }}>
                                                             {['Messenger', 'Instagram'].map(platform => {
                                                                 const isActive = bookingData.onlinePlatform === platform;
-                                                                const color = platform === 'Messenger' ? '#0084ff' : '#E1306C';
+                                                                const color = '#C19A6B';
                                                                 return (
                                                                     <button
                                                                         key={platform} type="button"
@@ -1545,12 +1545,12 @@ function CustomerBookings(){
                                                                     return (
                                                                         <button key={part} type="button" onClick={() => togglePlacementItem('placement', part)} style={{
                                                                             padding: '9px 5px', borderRadius: '10px',
-                                                                            border: `1.5px solid ${isSelected ? '#daa520' : '#e2e8f0'}`,
-                                                                            background: isSelected ? '#daa520' : 'white',
+                                                                            border: `1.5px solid ${isSelected ? '#C19A6B' : '#e2e8f0'}`,
+                                                                            background: isSelected ? '#C19A6B' : 'white',
                                                                             color: isSelected ? 'white' : '#1e293b',
                                                                             fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer',
                                                                             transition: 'all 0.2s',
-                                                                            boxShadow: isSelected ? '0 2px 8px rgba(218,165,32,0.25)' : 'none'
+                                                                            boxShadow: isSelected ? '0 2px 8px rgba(193,154,107,0.3)' : 'none'
                                                                         }}>
                                                                             {isSelected && <Check size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />}
                                                                             {part}
@@ -1576,12 +1576,12 @@ function CustomerBookings(){
                                                                     return (
                                                                         <button key={`p-${part}`} type="button" onClick={() => togglePlacementItem(piercingField, part)} style={{
                                                                             padding: '9px 5px', borderRadius: '10px',
-                                                                            border: `1.5px solid ${isSelected ? '#4FC3F7' : '#e2e8f0'}`,
-                                                                            background: isSelected ? '#4FC3F7' : 'white',
+                                                                            border: `1.5px solid ${isSelected ? '#C19A6B' : '#e2e8f0'}`,
+                                                                            background: isSelected ? '#C19A6B' : 'white',
                                                                             color: isSelected ? 'white' : '#1e293b',
                                                                             fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer',
                                                                             transition: 'all 0.2s',
-                                                                            boxShadow: isSelected ? '0 2px 8px rgba(79,195,247,0.3)' : 'none'
+                                                                            boxShadow: isSelected ? '0 2px 8px rgba(193,154,107,0.3)' : 'none'
                                                                         }}>
                                                                             {isSelected && <Check size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />}
                                                                             {part}
