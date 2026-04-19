@@ -20,11 +20,12 @@ const PayMongoPayment = () => {
     const [errors, setErrors] = useState({});
     const [checkoutUrl, setCheckoutUrl] = useState(null);
 
-    const isPiercing = serviceType && String(serviceType).toLowerCase().includes('piercing');
-    let depositPrice = isPiercing ? 500 : 5000;
+    // Only use piercing deposit when service is EXCLUSIVELY piercing (not a Tattoo + Piercing bundle)
+    const isPiercingOnly = serviceType && String(serviceType).toLowerCase() === 'piercing';
+    let depositPrice = isPiercingOnly ? 500 : 5000;
     depositPrice = Math.min(depositPrice, Number(price) || depositPrice);
     
-    const downpaymentDescription = isPiercing 
+    const downpaymentDescription = isPiercingOnly 
         ? 'Secure your piercing slot with a fixed ₱500 reservation fee.'
         : 'Secure your tattoo session slot with a fixed ₱5,000 reservation fee.';
 
