@@ -166,8 +166,8 @@ function AdminAppointments() {
             if (response.data.success) {
                 const mappedAppointments = response.data.data.map(apt => {
                     let finalClientName = apt.client_name;
-                    if (apt.customer_id === 1 && apt.notes?.includes('CLIENT CONTEXT')) {
-                        const nameMatch = apt.notes.match(/Name:\s*([^\n]+)/);
+                    if (apt.guest_email && apt.notes) {
+                        const nameMatch = apt.notes.match(/Name:\s*(.+?)(?:\\n|\n|$)/);
                         if (nameMatch && nameMatch[1]) {
                             finalClientName = `${nameMatch[1].trim()} (Guest)`;
                         }
