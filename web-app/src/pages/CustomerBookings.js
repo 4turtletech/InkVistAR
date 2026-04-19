@@ -1342,10 +1342,10 @@ function CustomerBookings(){
                                 {bookingStep === 2 && (() => {
                                     const derivedType = getDerivedServiceType(bookingData.selectedServices);
                                     return (
-                                    <div className="fade-in">
+                                    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                                         <h3 className="customer-st-69ffca42" >2. Design Details</h3>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', flex: 1, minHeight: 0 }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
                                                 <div className="form-group" style={{ marginBottom: 0 }}>
                                                     <label className="customer-st-67198c20" >Idea Name <span style={{ color: '#ef4444', fontWeight: '400' }}>*</span></label>
                                                     <input 
@@ -1356,13 +1356,13 @@ function CustomerBookings(){
                                                     />
                                                     {errors.designTitle && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.designTitle}</span>}
                                                 </div>
-                                                <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0 }}>
+                                                <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
                                                     <label className="customer-st-67198c20" >Tell us your story (Optional)</label>
                                                     <textarea 
-                                                        className="form-input" rows={derivedType === 'Tattoo + Piercing' ? 3 : 5} placeholder="Describe the size, color preferences, and any meaningful details..."
+                                                        className="form-input" placeholder="Describe the size, color preferences, and any meaningful details..."
                                                         name="notes"
                                                         value={bookingData.notes} onChange={handleBookingFormChange}
-                                                        style={{ resize: 'none', border: errors.notes ? '1px solid #ef4444' : undefined }}
+                                                        style={{ resize: 'none', border: errors.notes ? '1px solid #ef4444' : undefined, flex: 1 }}
                                                     />
                                                     {errors.notes && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.notes}</span>}
                                                 </div>
@@ -1375,7 +1375,7 @@ function CustomerBookings(){
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column' }}>
+                                            <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
                                                 <label className="customer-st-67198c20" >Reference Image</label>
                                                 <div 
                                                     onClick={() => document.getElementById('modal-ref-img').click()}
@@ -1706,18 +1706,77 @@ function CustomerBookings(){
                                 })()}
                             </div>
 
-                            <div className="modal-footer customer-st-a2acee48" >
-                                <button className="btn btn-secondary customer-st-929a545b" type="button" onClick={() => bookingStep === 1 ? closeBookingModal() : setBookingStep(bookingStep - 1)} >
+                            <div className="modal-footer" style={{ display: 'flex', flexDirection: 'row', gap: '16px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }} >
+                                <button 
+                                    className="btn" 
+                                    type="button" 
+                                    onClick={() => bookingStep === 1 ? closeBookingModal() : setBookingStep(bookingStep - 1)} 
+                                    style={{ 
+                                        flex: 1,
+                                        background: bookingStep === 1 ? '#ef4444' : '#64748b', 
+                                        color: 'white', 
+                                        border: 'none', 
+                                        padding: '12px', 
+                                        borderRadius: '8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        fontWeight: '600',
+                                        fontSize: '0.95rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
                                     {bookingStep === 1 ? 'Cancel' : <><ArrowLeft size={16}/> Previous</>}
                                 </button>
                                 
                                 {bookingStep < 4 ? (
-                                    <button className="btn btn-primary customer-st-a412cd6b" type="button" onClick={handleNextStep}>
+                                    <button 
+                                        className="btn" 
+                                        type="button" 
+                                        onClick={handleNextStep}
+                                        style={{ 
+                                            flex: 1,
+                                            background: '#C19A6B', 
+                                            color: 'white', 
+                                            border: 'none', 
+                                            padding: '12px', 
+                                            borderRadius: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            fontWeight: '600',
+                                            fontSize: '0.95rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
                                         Next Step <ArrowRight size={16}/>
                                     </button>
                                 ) : (
-                                    <button className="btn btn-primary customer-st-a1410f35" type="button" onClick={handleSubmitBooking} disabled={isSubmitting}>
-                                        {isSubmitting ? 'Submitting...' : 'Request Session'}
+                                    <button 
+                                        className="btn" 
+                                        type="button" 
+                                        onClick={handleSubmitBooking} 
+                                        disabled={isSubmitting}
+                                        style={{ 
+                                            flex: 1,
+                                            background: '#22c55e', 
+                                            color: 'white', 
+                                            border: 'none', 
+                                            padding: '12px', 
+                                            borderRadius: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            fontWeight: '600',
+                                            fontSize: '0.95rem',
+                                            cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                                            opacity: isSubmitting ? 0.7 : 1
+                                        }}
+                                    >
+                                        {isSubmitting ? 'Submitting...' : 'Complete Booking'}
                                     </button>
                                 )}
                             </div>
