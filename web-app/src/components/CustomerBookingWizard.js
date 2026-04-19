@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 
 import Axios from 'axios';
 import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift, Check, Paintbrush, Gem, Star, CreditCard, Eye, Shield, Bell, Sparkles, Award } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { API_URL } from '../config';
+import { API_URL, RECAPTCHA_SITE_KEY } from '../config';
+import ReCAPTCHA from 'react-google-recaptcha';
 const BodyModelViewer = lazy(() => import('./BodyModelViewer'));
 
 export default function CustomerBookingWizard({ customerId, onBack, isPublic = false }) {
@@ -13,6 +14,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [errors, setErrors] = useState({}); // Field-level inline errors
     const [activeFeature, setActiveFeature] = useState(0);
     const [showExitModal, setShowExitModal] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState(null);
+    const captchaRef = useRef(null);
     
     const user = JSON.parse(localStorage.getItem('user'));
     
@@ -229,6 +232,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             }
         } finally {
             setLoading(false);
+            setCaptchaToken(null);
+            if (captchaRef.current) captchaRef.current.reset();
         }
     };
 
@@ -742,6 +747,15 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 <CheckCircle size={12} style={{ marginRight: '4px' }} />
                 Your data is secure and will only be used to contact you about this booking.
             </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                <ReCAPTCHA
+                    ref={captchaRef}
+                    sitekey={RECAPTCHA_SITE_KEY}
+                    onChange={(token) => setCaptchaToken(token)}
+                    onExpired={() => setCaptchaToken(null)}
+                />
+            </div>
         </div>
     );
 
@@ -1090,6 +1104,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             
                             if (Object.keys(newErrors).length > 0) {
                                 setErrors(newErrors);
+                                return;
+                            }
+                            if (!captchaToken) {
+                                alert('Please complete the CAPTCHA verification before submitting.');
                                 return;
                             }
                             handleSubmit();

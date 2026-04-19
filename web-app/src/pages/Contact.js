@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Axios from 'axios';
 import { MapPin, Mail, Clock, Phone, User, MessageSquare, Send, CheckCircle, AlertCircle, Navigation, Car, Train, Bus, Instagram, Facebook } from 'lucide-react';
 import { filterName, filterDigits } from '../utils/validation';
 import CountryCodeSelect from '../components/CountryCodeSelect';
-import { API_URL } from '../config';
+import { API_URL, RECAPTCHA_SITE_KEY } from '../config';
+import ReCAPTCHA from 'react-google-recaptcha';
 import './Contact.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
@@ -23,6 +24,8 @@ const Contact = () => {
   const [serverError, setServerError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const captchaRef = useRef(null);
 
   // Subject options
   const SUBJECT_OPTIONS = [
@@ -69,6 +72,10 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
+    if (!captchaToken) {
+      setServerError('Please complete the CAPTCHA verification.');
+      return;
+    }
     setSubmitting(true);
     setServerError('');
     try {
@@ -89,6 +96,8 @@ const Contact = () => {
       setServerError(err.response?.data?.message || 'Failed to send your message. Please try again later.');
     } finally {
       setSubmitting(false);
+      setCaptchaToken(null);
+      if (captchaRef.current) captchaRef.current.reset();
     }
   };
 
@@ -97,6 +106,8 @@ const Contact = () => {
     setErrors({});
     setServerError('');
     setSubmitted(false);
+    setCaptchaToken(null);
+    if (captchaRef.current) captchaRef.current.reset();
   };
 
   return (
@@ -238,7 +249,17 @@ const Contact = () => {
                     </div>
                   </div>
 
-                  <button type="submit" className="contact-submit-btn" disabled={submitting}>
+                  <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0 8px' }}>
+                    <ReCAPTCHA
+                      ref={captchaRef}
+                      sitekey={RECAPTCHA_SITE_KEY}
+                      onChange={(token) => setCaptchaToken(token)}
+                      onExpired={() => setCaptchaToken(null)}
+                      theme="dark"
+                    />
+                  </div>
+
+                  <button type="submit" className="contact-submit-btn" disabled={submitting || !captchaToken}>
                     {submitting ? (
                       <>Sending...</>
                     ) : (

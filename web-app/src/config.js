@@ -15,3 +15,8 @@ if (!explicitApi) {
     `API_URL not provided via env. Using ${API_URL || 'relative /api'}; set REACT_APP_API_URL for production.`
   );
 }
+
+// Google reCAPTCHA v2 site key
+// In production, set REACT_APP_RECAPTCHA_SITE_KEY to your real key.
+// The fallback is Google's test key that always passes (for development only).
+export const RECAPTCHA_SITE_KEY = process.env.REACT_APP_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { API_URL } from '../config';
+import { API_URL, RECAPTCHA_SITE_KEY } from '../config';
+import ReCAPTCHA from 'react-google-recaptcha';
 import Navbar from '../components/Navbar';
 import TermsOfServiceModal from '../components/TermsOfServiceModal';
 import './Login.css'; // Using Login styles for consistency
@@ -76,6 +77,8 @@ function Register() {
   const [emailPromoConsent, setEmailPromoConsent] = useState(false);
   const [photoMarketingConsent, setPhotoMarketingConsent] = useState(true);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const captchaRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -178,6 +181,10 @@ function Register() {
 
     setApiError('');
     if (!validate()) return;
+    if (!captchaToken) {
+      setApiError('Please complete the CAPTCHA verification.');
+      return;
+    }
 
     try {
       const orphanAppointmentId = sessionStorage.getItem('orphanAppointmentId');
@@ -204,6 +211,9 @@ function Register() {
       } else {
         setApiError(message);
       }
+    } finally {
+      setCaptchaToken(null);
+      if (captchaRef.current) captchaRef.current.reset();
     }
   };
 
@@ -365,7 +375,17 @@ function Register() {
               </label>
             </div>
 
-            <button type="submit" className="login-btn" disabled={!isPasswordValid() || !agreedToTerms}>Register</button>
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0 8px' }}>
+              <ReCAPTCHA
+                ref={captchaRef}
+                sitekey={RECAPTCHA_SITE_KEY}
+                onChange={(token) => setCaptchaToken(token)}
+                onExpired={() => setCaptchaToken(null)}
+                theme="dark"
+              />
+            </div>
+
+            <button type="submit" className="login-btn" disabled={!isPasswordValid() || !agreedToTerms || !captchaToken}>Register</button>
           </form>
 
           <div className="login-footer">

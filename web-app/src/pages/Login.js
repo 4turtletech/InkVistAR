@@ -12,6 +12,7 @@ function Login() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [isLockedOut, setIsLockedOut] = useState(false);
+    const [failedAttempts, setFailedAttempts] = useState(0);
     const [errors, setErrors] = useState({}); // Field-specific inline errors
     const [showResend, setShowResend] = useState(false);
     const [resendMessage, setResendMessage] = useState({ text: '', type: 'error' });
@@ -74,6 +75,7 @@ function Login() {
             val = val.slice(0, 50);
         }
         setter(val);
+        if (failedAttempts > 0) setFailedAttempts(0);
         if (fieldName === 'newPassword') {
             setResetPwFeedback({
                 hasMinLength: val.length >= 8,
@@ -146,16 +148,15 @@ function Login() {
                     setError('Failed to send verification OTP. Please try again.');
                 }
             } else {
-                if (errData?.attemptsRemaining !== undefined && errData.attemptsRemaining > 0) {
-                    setError(`Invalid email or password. You have ${errData.attemptsRemaining} attempt${errData.attemptsRemaining === 1 ? '' : 's'} remaining before lockout.`);
-                } else {
-                    setError(errData?.message || "Error logging in");
-                }
-                
+                const attempts = errData?.failedAttempts || 0;
+                setFailedAttempts(attempts);
                 setPassword("");
                 
                 if (errData?.requireVerification) {
                     setShowResend(true);
+                    setError(errData?.message || "Error logging in");
+                } else {
+                    setError('');
                 }
             }
         } finally {
@@ -325,6 +326,7 @@ function Login() {
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </div>
                             {errors.password && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem'}}>{errors.password}</small>}
+                            {failedAttempts > 0 && <small style={{color: '#ef4444', display: 'block', marginTop: '6px', fontSize: '0.8rem'}}>Email or password is incorrect. {failedAttempts} incorrect attempt{failedAttempts === 1 ? '' : 's'}.</small>}
                         </div>
                         <button type="submit" className="login-btn" disabled={loading}>
                             {loading ? 'Logging in...' : 'Login'}
