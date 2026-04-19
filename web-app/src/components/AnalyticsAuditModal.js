@@ -109,6 +109,7 @@ function AnalyticsAuditModal({
             case 'revenue': case 'expenses': return 'Transaction Log';
             case 'duration': return 'Session Log';
             case 'overhead': return 'Expense Log';
+            case 'styles': return 'Portfolio Log';
             default: return 'Audit Log';
         }
     };
@@ -123,6 +124,7 @@ function AnalyticsAuditModal({
             case 'artists': return []; // handled separately
             case 'users': return analytics?.users_audit || [];
             case 'overhead': return analytics?.overhead?.audit || [];
+            case 'styles': return analytics?.styles_audit || [];
             default: return [];
         }
     };
@@ -192,6 +194,7 @@ function AnalyticsAuditModal({
                                 {auditModal.type === 'inventory' && <><th>Date</th><th>Item</th><th>Category</th><th>Qty</th><th>Reason</th><th>Action By</th><th style={{ textAlign: 'right' }}>Cost</th></>}
                                 {auditModal.type === 'overhead' && <><th>Date</th><th>Category</th><th>Description</th><th>Action By</th><th style={{ textAlign: 'right' }}>Amount</th></>}
                                 {auditModal.type === 'users' && <><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Verified</th></>}
+                                {auditModal.type === 'styles' && <><th>Date Added</th><th>Title</th><th>Style</th><th>Artist</th></>}
                             </tr>
                         </thead>
                         <tbody>
@@ -257,6 +260,12 @@ function AnalyticsAuditModal({
                                         <td><span className={`status-badge ${row.user_type === 'admin' ? 'danger' : row.user_type === 'artist' ? 'success' : 'pending'}`} style={{ fontSize: '0.7rem', textTransform: 'capitalize' }}>{row.user_type}</span></td>
                                         <td>{new Date(row.created_at).toLocaleDateString()}</td>
                                         <td>{row.is_verified ? '✓' : '—'}</td>
+                                    </>}
+                                    {auditModal.type === 'styles' && <>
+                                        <td>{new Date(row.created_at).toLocaleDateString()}</td>
+                                        <td style={{ fontWeight: 600 }}>{row.title || 'Untitled'}</td>
+                                        <td><span className="status-badge success" style={{ fontSize: '0.7rem' }}>{row.category}</span></td>
+                                        <td>{row.artist_name || 'Unknown'}</td>
                                     </>}
                                 </tr>
                             )) : (

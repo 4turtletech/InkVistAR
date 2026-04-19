@@ -6046,6 +6046,7 @@ app.get('/api/admin/analytics', (req, res) => {
     appointments_audit: [],
     inventory_out_audit: [],
     users_audit: [],
+    styles_audit: [],
     timeframe: timeframe
   };
 
@@ -6173,6 +6174,16 @@ app.get('/api/admin/analytics', (req, res) => {
     SELECT id, name, email, user_type, created_at, is_verified
     FROM users WHERE is_deleted = 0
     ORDER BY created_at DESC
+    LIMIT 50
+  `;
+
+  // 2.12 Styles Audit (individual portfolio works)
+  const stylesAuditQuery = `
+    SELECT pw.id, pw.title, pw.category, pw.created_at, u.name as artist_name
+    FROM portfolio_works pw
+    LEFT JOIN users u ON pw.artist_id = u.id
+    WHERE pw.is_deleted = 0 AND pw.category IS NOT NULL AND pw.category != ''
+    ORDER BY pw.created_at DESC
     LIMIT 50
   `;
 
@@ -6462,7 +6473,12 @@ app.get('/api/admin/analytics', (req, res) => {
                                   // Attach overhead/manual expenses audit log to payload
                                   db.query('SELECT se.*, COALESCE(u.name, "System Admin") as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC LIMIT 50', (err, overheadAudit) => {
                                     if (!err) response.overhead.audit = overheadAudit;
-                                    res.json({ success: true, data: response });
+
+                                    // Styles audit — individual portfolio works
+                                    db.query(stylesAuditQuery, (err, stylesAudit) => {
+                                      if (!err) response.styles_audit = stylesAudit;
+                                      res.json({ success: true, data: response });
+                                    });  // stylesAuditQuery
                                   });  // overheadAudit inline
                                 });  // usersAuditQuery
                               });  // userStatsQuery
