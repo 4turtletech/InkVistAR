@@ -619,6 +619,10 @@ function CustomerBookings(){
             showAlert('Cannot Cancel', 'Only pending bookings that haven\'t been confirmed by the studio can be cancelled.', 'warning');
             return;
         }
+        if (appt.payment_status && appt.payment_status !== 'unpaid') {
+            showAlert('Cannot Cancel', 'You cannot cancel an appointment that has already been paid for. Please contact the studio directly.', 'warning');
+            return;
+        }
         // Check recent cancellations (client-side pre-check)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

@@ -5361,6 +5361,10 @@ app.put('/api/customer/appointments/:id/cancel', (req, res) => {
       return res.status(403).json({ success: false, message: 'Only pending bookings can be cancelled. Please contact the studio for confirmed appointments.' });
     }
 
+    if (appointment.payment_status && appointment.payment_status !== 'unpaid') {
+      return res.status(403).json({ success: false, message: 'You cannot cancel an appointment that has already been paid for. Please contact the studio directly.' });
+    }
+
     // 2. Check cancellation limit (max 3 in last 30 days)
     db.query(
       "SELECT COUNT(*) as cancelCount FROM appointments WHERE customer_id = ? AND status = 'cancelled' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
