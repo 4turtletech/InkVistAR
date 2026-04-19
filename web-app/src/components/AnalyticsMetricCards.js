@@ -269,7 +269,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
             {`
                 .metric-cards-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+                    grid-template-columns: repeat(3, 1fr);
                     gap: 1.5rem;
                     padding: 0 2rem;
                     margin-bottom: 2rem;
@@ -291,6 +291,17 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                     transform: translateY(-3px);
                     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
                 }
+                .metric-col-1 { grid-column: span 1; }
+                .metric-col-2 { grid-column: span 2; }
+                .metric-col-3 { grid-column: span 3; }
+                @media (max-width: 1200px) {
+                    .metric-cards-grid {
+                        grid-template-columns: repeat(2, 1fr);
+                    }
+                    .metric-col-1, .metric-col-2, .metric-col-3 {
+                        grid-column: span 1;
+                    }
+                }
                 @media (max-width: 768px) {
                     .metric-cards-grid {
                         grid-template-columns: 1fr;
@@ -301,7 +312,18 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
             </style>
             <div className="metric-cards-grid">
                 {visibleCards.map((card, index) => {
-                    let colClass = "";
+                    let spans = [1];
+                    if (visibleCards.length === 9) spans = [2, 1, 1, 2, 2, 1, 1, 1, 1];
+                    else if (visibleCards.length === 8) spans = [2, 1, 1, 2, 2, 1, 1, 2];
+                    else if (visibleCards.length === 7) spans = [2, 1, 1, 2, 2, 1, 3];
+                    else if (visibleCards.length === 6) spans = [2, 1, 1, 2, 1, 2];
+                    else if (visibleCards.length === 5) spans = [2, 1, 1, 2, 3];
+                    else if (visibleCards.length === 4) spans = [2, 1, 1, 2];
+                    else if (visibleCards.length === 3) spans = [1, 1, 1];
+                    else if (visibleCards.length === 2) spans = [2, 1];
+                    else if (visibleCards.length === 1) spans = [3];
+
+                    const colClass = `metric-col-${spans[Math.min(index, spans.length - 1)]}`;
 
                     return (
                         <div
