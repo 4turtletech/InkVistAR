@@ -183,7 +183,7 @@ function AdminSideNav() {
         { label: 'POS System', icon: ShoppingCart, path: '/admin/pos', description: 'Point of Sale' },
         { label: 'Analytics', icon: BarChart3, path: '/admin/analytics', description: 'View reports' },
         { label: 'Billing', icon: Receipt, path: '/admin/billing', description: 'Payments & Invoices' },
-        { label: 'Reviews', icon: Star, path: '/admin/reviews', description: 'Moderate customer reviews' },
+
         { label: 'Studio', icon: Building2, path: '/admin/studio', description: 'Manage branches' },
         { label: 'Notifications', icon: Bell, path: '/admin/notifications', description: 'System alerts & updates' }
     ];

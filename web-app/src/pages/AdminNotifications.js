@@ -132,7 +132,7 @@ function AdminNotifications() {
                 ...directNotifs.map(n => ({
                     ...n,
                     severity: n.type === 'system' ? 'medium' : 'low',
-                    path: n.type === 'payment_success' ? '/admin/billing' : (n.type === 'new_review' ? '/admin/reviews' : undefined)
+                    path: n.type === 'payment_success' ? '/admin/billing' : (n.type === 'new_review' ? '/admin/studio?tab=reviews' : undefined)
                 }))
             ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             const combined = [...pinnedAlerts, ...sorted];

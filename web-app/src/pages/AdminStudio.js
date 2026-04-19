@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
+import { useLocation } from 'react-router-dom';
 import { MapPin, Clock, Users, Power, Trash2, Edit2, Plus, X, Search, Filter, SlidersHorizontal } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import './PortalStyles.css';
@@ -8,10 +9,22 @@ import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
 
 import AdminSettings from './AdminSettings';
+import AdminReviews from './AdminReviews';
 import './AdminUsers.css'; // Reusing styles
 
 function AdminStudio() {
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState('branches');
+
+    // Handle incoming URL tab parameter (e.g. from notifications)
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        const tab = queryParams.get('tab');
+        if (tab) {
+            setActiveTab(tab);
+        }
+    }, [location.search]);
+
     const [branches, setBranches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [branchModal, setBranchModal] = useState({ mounted: false, visible: false });
@@ -191,6 +204,12 @@ function AdminStudio() {
                     >
                         System Preferences
                     </button>
+                    <button 
+                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'reviews' ? '2px solid #C19A6B' : '2px solid transparent', color: activeTab === 'reviews' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
+                        onClick={() => setActiveTab('reviews')}
+                    >
+                        Customer Reviews
+                    </button>
                 </div>
 
                 {activeTab === 'branches' ? (
@@ -369,9 +388,11 @@ function AdminStudio() {
                     </div>
                 )}
                 </>
-                ) : (
+                ) : activeTab === 'settings' ? (
                     <AdminSettings />
-                )}
+                ) : activeTab === 'reviews' ? (
+                    <AdminReviews />
+                ) : null}
 
                 <ConfirmModal 
                     {...confirmDialog} 

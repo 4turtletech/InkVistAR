@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { Star, CheckCircle, XCircle, Inbox, Eye } from 'lucide-react';
-import AdminSideNav from '../components/AdminSideNav';
+
 import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
@@ -62,20 +62,20 @@ function AdminReviews() {
     };
 
     return (
-        <div className="admin-page-with-sidenav">
-            <AdminSideNav />
-            <div className="admin-page page-container-enter">
-                <header className="portal-header">
-                    <div className="header-title">
-                        <h1>Review Moderation</h1>
-                    </div>
-                    <div className="header-actions">
+        <div className="page-container-enter">
+            <div style={{ padding: '24px 24px 0' }}>
+                <div style={{ marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b', margin: '0 0 8px 0' }}>Review Moderation</h2>
+                            <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Approve or reject customer reviews before they appear on artist pages.</p>
+                        </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: '#fef3c7', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, color: '#92400e' }}>
                             <Star size={14} fill="#f59e0b" color="#f59e0b" /> {pendingCount} Pending
                         </div>
                     </div>
-                </header>
-                <p className="header-subtitle">Approve or reject customer reviews before they appear on artist pages.</p>
+                </div>
+            </div>
 
                 {/* Tab Navigation */}
                 <div style={{ display: 'flex', gap: '4px', padding: '0 24px', marginBottom: '24px' }}>
@@ -248,7 +248,6 @@ function AdminReviews() {
                         )}
                     </div>
                 </div>
-            </div>
         </div>
     );
 }
