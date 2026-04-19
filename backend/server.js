@@ -87,6 +87,25 @@ const PAYMONGO_WEBHOOK_SECRET = process.env.PAYMONGO_WEBHOOK_SECRET;
 const PAYMONGO_MODE = process.env.PAYMONGO_MODE || 'test';
 const PAYMONGO_API_BASE = 'https://api.paymongo.com/v1';
 
+// Google reCAPTCHA v2 configuration
+const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '6Le9F78sAAAAACBBrgQz5pzpbZ2VxI4h71UXhCd9';
+
+async function verifyCaptcha(token) {
+  if (!token) return false;
+  try {
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${RECAPTCHA_SECRET_KEY}&response=${token}`
+    });
+    const data = await response.json();
+    return data.success === true;
+  } catch (err) {
+    console.error('reCAPTCHA verification error:', err.message);
+    return false;
+  }
+}
+
 // Enhanced CORS configuration
 app.use(cors({
   origin: (origin, callback) => {
@@ -2247,7 +2266,13 @@ app.post('/api/register', async (req, res) => {
     console.log('\n📝 ========== REGISTER REQUEST ==========');
     console.log('📤 Request body:', req.body);
 
-    const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent } = req.body;
+    const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken } = req.body;
+
+    // Verify reCAPTCHA
+    const captchaValid = await verifyCaptcha(captchaToken);
+    if (!captchaValid) {
+      return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
+    }
 
     // Handle combined name if firstName/lastName not provided (backward compatibility)
     const fullName = (firstName && lastName)
@@ -3528,8 +3553,16 @@ app.get('/api/admin/appointments', (req, res) => {
 });
 
 // POST create a new appointment (Admin)
-app.post('/api/admin/appointments', (req, res) => {
-  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName } = req.body;
+app.post('/api/admin/appointments', async (req, res) => {
+  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken } = req.body;
+
+  // Verify reCAPTCHA for public wizard submissions only
+  if (isFromWizard) {
+    const captchaValid = await verifyCaptcha(captchaToken);
+    if (!captchaValid) {
+      return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
+    }
+  }
 
   if (!customerId || !artistId || !date) {
     return res.status(400).json({ success: false, message: 'customerId, artistId, and date are required.' });
@@ -7314,7 +7347,13 @@ app.get('/api/chat/:room', (req, res) => {
 // ========== PUBLIC CONTACT FORM ==========
 app.post('/api/contact', async (req, res) => {
   try {
-    let { name, email, phone, subject, message } = req.body;
+    let { name, email, phone, subject, message, captchaToken } = req.body;
+
+    // Verify reCAPTCHA
+    const captchaValid = await verifyCaptcha(captchaToken);
+    if (!captchaValid) {
+      return res.status(400).json({ success: false, message: 'CAPTCHA verification failed. Please try again.' });
+    }
 
     // Server-side sanitization (Zero-Trust)
     name = (name || '').replace(/[^a-zA-Z\u00c0-\u00ff\s'-]/g, '').substring(0, 100).trim();

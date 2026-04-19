@@ -212,7 +212,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 status: 'pending',
                 price: 0,
                 isFromWizard: true,
-                customerName: currentUser?.name || generatedName
+                customerName: currentUser?.name || generatedName,
+                captchaToken: captchaToken
             });
 
             if (response.data.success) {

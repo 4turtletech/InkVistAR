@@ -197,7 +197,8 @@ function Register() {
         type: 'customer',
         orphanAppointmentId: orphanAppointmentId,
         photo_marketing_consent: photoMarketingConsent,
-        email_promo_consent: emailPromoConsent
+        email_promo_consent: emailPromoConsent,
+        captchaToken: captchaToken
       });
 
       if (response.data.success) {

@@ -84,7 +84,8 @@ const Contact = () => {
         email: formData.email.trim(),
         phone: formData.phone ? `${formData.countryCode} ${formData.phone}` : '',
         subject: formData.subject || '',
-        message: formData.message.trim()
+        message: formData.message.trim(),
+        captchaToken: captchaToken
       };
       const res = await Axios.post(`${API_URL}/api/contact`, payload);
       if (res.data.success) {
