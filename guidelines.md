@@ -131,7 +131,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 | **users** | id, name, email, password_hash, user_type (admin/manager/artist/customer), phone, is_verified, is_deleted |
 | **artists** | user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate, rating, total_reviews, profile_image, phone |
 | **customers** | user_id, phone, location, notes |
-| **appointments** | id, booking_code, customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, end_time, design_title, price, status, payment_status, before_photo, after_photo, session_duration, audit_log, is_deleted |
+| **appointments** | id, booking_code, customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, end_time, design_title, price, status, payment_status, before_photo, after_photo, session_duration, audit_log, is_deleted, guest_email, guest_phone |
 | **portfolio_works** | id, artist_id, image_url, title, description, category, price_estimate, is_public |
 
 ### Commission & Revenue Split Rules
@@ -165,8 +165,8 @@ This document serves as the primary ground truth for the InkVistAR project. When
 ## API Endpoints
 
 ### Authentication
-- `POST /api/login` - User login
-- `POST /api/register` - User registration
+- `POST /api/login` - User login (response includes `migratedAppointments` count for guest-to-account migration detection)
+- `POST /api/register` - User registration (auto-migrates orphan appointments where `guest_email` matches; response includes `migratedCount`)
 - `POST /api/send-otp` / `/api/verify-otp` - OTP verification
 - `POST /api/reset-password` - Password reset
 - `POST /api/customer/change-password` - Customer password change (requires currentPassword)
@@ -340,6 +340,20 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - **Overhead / Manual Expenses:** Logged by admins via the `studio_expenses` table using the overhead audit modal. Categories: Inventory, Marketing, Bills, Payouts, Equipment, Licensing, Maintenance, Extras. Full CRUD via `GET/POST/DELETE /api/admin/expenses`.
     - These two categories MUST remain strictly separated in the analytics response (`response.expenses` vs `response.overhead`) to prevent double-counting.
 24. **Chart Color Standards (Analytics):** All Recharts charts MUST use the `RAINBOW_PALETTE` array of high-contrast, opposing colors: `['#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#84cc16', '#6366f1', '#14b8a6']`. Adjacent chart segments must be visually distinct (no two adjacent warm/cool colors). The old brand-gold-dominant palette is deprecated.
+25. **Guest Booking Notifications (SMS + Email):** When a guest (non-logged-in user) books a consultation via the public `CustomerBookingWizard`, the backend sends external confirmations:
+    - **SMS:** Sent via `sendSMS()` (Semaphore API) if `guestPhone` is provided. Includes booking code, design idea, date/time.
+    - **Email:** Sent via `sendResendEmail()` using `buildEmailHtml()` if `guestEmail` is provided. Uses the dark luxury branded template with full booking details (Ref Code, Design Idea, Date, Time, Method) and a tip encouraging account creation.
+    - **Both are sent** if both contact methods are provided. If only one is available, only that channel is used.
+    - **Admin Notification:** All admin/manager users receive an in-app notification (`createNotification`) with the guest's name, design idea, contact info, and booking code. No emojis in notification titles.
+    - **Data Storage:** Guest contact info is stored in dedicated `guest_email` and `guest_phone` columns on the `appointments` table (not just inside the `notes` field).
+26. **Guest Account Migration Flow:** When a guest later creates an InkVistAR account with the same email they used for a prior booking:
+    - **Registration (`/api/register`):** After user creation, the backend runs `UPDATE appointments SET customer_id = ? WHERE guest_email = ? AND customer_id != ?` to migrate all orphan appointments to the new account. Returns `migratedCount` in the response.
+    - **Login (`/api/login`):** On successful login, the backend checks `COUNT(*) FROM appointments WHERE guest_email = user.email AND customer_id = user.id` and returns `migratedAppointments` in the response.
+    - **Frontend (`Login.js`):** Stores `migratedAppointments` in `localStorage` when > 0.
+    - **Migration Modal (`CustomerBookings.js`):** On mount, checks `localStorage` for `migratedAppointments`. If present, shows a one-time branded modal titled "Prior Consultation Data Found!" with the count of migrated bookings. The flag is cleared immediately so the modal only appears once.
+27. **Guest Avatar Initials Pattern:** In `AdminAppointments.js`, when a client has no profile image (`clientAvatar` is null/empty), their initials are displayed instead of a generic `<User>` icon:
+    - **`getInitials(name)` helper:** Strips `(Guest)` suffix, splits by space, takes first letter of first and last name. Single names use the first two characters. Returns `?` for null/empty input.
+    - Applied in: list view cards (14px, `#94a3b8`), edit modal avatar (24px, brand gold `#C19A6B`), and the `onError` fallback when avatar images fail to load.
 
 ---
 
