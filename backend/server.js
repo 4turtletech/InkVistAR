@@ -3773,7 +3773,16 @@ app.post('/api/admin/appointments', async (req, res) => {
         if (isFromWizard) {
           const clientNameStr = customerName || 'a guest';
           createNotification(customerId, 'Booking Request Received', `We have received your booking request [${bookingCode}] for ${date} and will calculate a quote for you shortly.`, 'appointment_request', result.insertId);
-          createNotification(artistId, 'New Booking Request', `${serviceType || 'Consultation'} requested by ${clientNameStr} ("${designTitle}"). Ref Code: [${bookingCode}]. Pending review.`, 'appointment_request', result.insertId);
+
+          // Notify ALL Admins/Managers about the guest consultation
+          const guestContactStr = [guestEmail, guestPhone].filter(Boolean).join(' | ') || 'No contact info';
+          db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (adminErr, admins) => {
+            if (!adminErr && admins && admins.length > 0) {
+              admins.forEach(admin => {
+                createNotification(admin.id, '🆕 Guest Consultation Request', `New ${serviceType || 'Consultation'} from ${clientNameStr} (Guest — no account). Idea: "${designTitle}". Contact: ${guestContactStr}. Ref: [${bookingCode}]. Pending review.`, 'appointment_request', result.insertId);
+              });
+            }
+          });
 
           // ═══ Guest External Notifications (SMS + Email) ═══
           const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
