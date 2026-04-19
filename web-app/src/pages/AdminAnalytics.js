@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Download, Package, Printer, Filter, X, BarChart3, PieChart as PieChartIcon, Calendar } from 'lucide-react';
+import { Download, Package, Printer, Filter, X, BarChart3, PieChart as PieChartIcon, Calendar, LayoutDashboard, Check } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Treemap } from 'recharts';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -15,6 +15,31 @@ import { API_URL } from '../config';
 
 
 function AdminAnalytics() {
+    const WIDGET_OPTIONS = [
+        { id: 'metric_cards', label: 'Summary Metric Cards', icon: <BarChart3 size={16} /> },
+        { id: 'revenue_trend', label: 'Revenue Trend', icon: <BarChart3 size={16} /> },
+        { id: 'revenue_sources', label: 'Revenue Sources', icon: <PieChartIcon size={16} /> },
+        { id: 'popular_styles', label: 'Popular Styles', icon: <PieChartIcon size={16} /> },
+        { id: 'top_artists', label: 'Top Artists', icon: <BarChart3 size={16} /> },
+        { id: 'inventory', label: 'Inventory Consumption', icon: <Package size={16} /> },
+        { id: 'appointments', label: 'Appointment Breakdown', icon: <Calendar size={16} /> },
+    ];
+
+    const [visibleWidgets, setVisibleWidgets] = useState(() => {
+        const saved = localStorage.getItem('inkvistar_admin_analytics_widgets');
+        if (saved) return JSON.parse(saved);
+        return WIDGET_OPTIONS.map(w => w.id);
+    });
+    const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
+
+    const toggleWidget = (id) => {
+        setVisibleWidgets(prev => {
+            const next = prev.includes(id) ? prev.filter(w => w !== id) : [...prev, id];
+            localStorage.setItem('inkvistar_admin_analytics_widgets', JSON.stringify(next));
+            return next;
+        });
+    };
+
     const [dateRange, setDateRange] = useState('month');
     const [revenueTimeframe, setRevenueTimeframe] = useState('monthly');
     const [analytics, setAnalytics] = useState(null);
@@ -280,6 +305,38 @@ function AdminAnalytics() {
                                 <option value="all">All Time</option>
                             </select>
                         </div>
+                        <div style={{ position: 'relative' }}>
+                            <button className="btn btn-secondary" onClick={() => setIsWidgetModalOpen(true)}><LayoutDashboard size={18} /> Layout</button>
+                            {isWidgetModalOpen && (
+                                <>
+                                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} onClick={() => setIsWidgetModalOpen(false)}></div>
+                                    <div style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 100, width: '280px', padding: '16px', animation: 'fadeIn 0.2s ease' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#1e293b' }}>Dashboard Widgets</h4>
+                                            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }} onClick={() => setIsWidgetModalOpen(false)}><X size={16} /></button>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {WIDGET_OPTIONS.map(widget => {
+                                                const isVisible = visibleWidgets.includes(widget.id);
+                                                return (
+                                                    <div 
+                                                        key={widget.id} 
+                                                        onClick={() => toggleWidget(widget.id)}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', background: isVisible ? '#f8fafc' : 'transparent', border: `1px solid ${isVisible ? '#e2e8f0' : 'transparent'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                    >
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '4px', border: `2px solid ${isVisible ? '#C19A6B' : '#cbd5e1'}`, background: isVisible ? '#C19A6B' : 'transparent' }}>
+                                                            {isVisible && <Check size={14} color="white" strokeWidth={3} />}
+                                                        </div>
+                                                        <div style={{ color: isVisible ? '#C19A6B' : '#94a3b8', display: 'flex' }}>{widget.icon}</div>
+                                                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: isVisible ? '#1e293b' : '#64748b' }}>{widget.label}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                         <button className="btn btn-secondary" onClick={handlePrint}><Printer size={18} /> Print</button>
                         <button className="btn btn-primary" onClick={handleExport}><Download size={18} /> Export</button>
                     </div>
@@ -292,173 +349,266 @@ function AdminAnalytics() {
                     <div className="no-data" style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>No analytics data available.</div>
                 ) : (
                     <>
-                        {/* ═══════════════ METRIC CARDS (shared component) ═══════════════ */}
-                        <AnalyticsMetricCards analytics={analytics} onCardClick={openAuditModal} formatDuration={formatDuration} showAll={true} variant="light" />
+                        {/* ═══════════════ DYNAMIC LAYOUT ═══════════════ */}
+                        {(() => {
+                            const availableCharts = [
+                                {
+                                    id: 'revenue_trend',
+                                    widthInfo: 'wide',
+                                    element: (
+                                        <div key="revenue_trend" className="card glass-card" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                            <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Trend ({timeframeLabel})</h2>
+                                            <div style={{ width: '100%', height: 280 }}>
+                                                <ResponsiveContainer>
+                                                    <BarChart data={analytics.revenue.chart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                                        <XAxis dataKey="month" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
+                                                        <YAxis tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+                                                        <Tooltip
+                                                            cursor={{ fill: 'rgba(99, 102, 241, 0.06)' }}
+                                                            contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '10px 14px', fontSize: '0.85rem' }}
+                                                            formatter={(value, name) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Revenue']}
+                                                            labelFormatter={(label, payload) => {
+                                                                const appts = payload && payload[0] ? payload[0].payload.appointments : 0;
+                                                                return `${label} — ${appts} appointment${appts !== 1 ? 's' : ''}`;
+                                                            }}
+                                                        />
+                                                        <Bar dataKey="value" name="Revenue" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={48} />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#6366f1' }}>View revenue source breakdown →</div>
+                                        </div>
+                                    )
+                                },
+                                {
+                                    id: 'revenue_sources',
+                                    widthInfo: 'narrow',
+                                    element: (
+                                        <div key="revenue_sources" className="card glass-card" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                            <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Sources</h2>
+                                            <div style={{ width: '100%', height: 280 }}>
+                                                {analytics.revenue.breakdown.length > 0 ? (
+                                                    <ResponsiveContainer>
+                                                        <PieChart>
+                                                            <Pie data={analytics.revenue.breakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value" label={renderPieLabel} labelLine={true}>
+                                                                {analytics.revenue.breakdown.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[i % RAINBOW_PALETTE.length]} />)}
+                                                            </Pie>
+                                                            <Tooltip formatter={(value) => `₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} />
+                                                            <Legend />
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No revenue data yet</div>
+                                                )}
+                                            </div>
+                                            <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>Click to audit revenue sources →</div>
+                                        </div>
+                                    )
+                                },
+                                {
+                                    id: 'popular_styles',
+                                    widthInfo: 'narrow',
+                                    element: (
+                                        <div key="popular_styles" className="card glass-card" onClick={() => openAuditModal('styles')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                            <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Popular Styles</h2>
+                                            <div style={{ width: '100%', height: 280 }}>
+                                                {analytics.styles.length > 0 ? (
+                                                    <ResponsiveContainer>
+                                                        <PieChart>
+                                                            <Pie data={analytics.styles.map(s => ({ name: s.name, value: Number(s.count) || 0 }))} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={true}>
+                                                                {analytics.styles.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[(i * 2) % RAINBOW_PALETTE.length]} />)}
+                                                            </Pie>
+                                                            <Tooltip formatter={(v) => `${v} works`} />
+                                                            <Legend wrapperStyle={{ color: '#171516' }} />
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No style data yet</div>
+                                                )}
+                                            </div>
+                                            <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#a855f7' }}>View portfolio style breakdown →</div>
+                                        </div>
+                                    )
+                                },
+                                {
+                                    id: 'top_artists',
+                                    widthInfo: 'wide',
+                                    element: (
+                                        <div key="top_artists" className="card glass-card" onClick={() => openAuditModal('artists')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                            <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Top Artists by Revenue</h2>
+                                            <div style={{ width: '100%', height: 280 }}>
+                                                {analytics.artists.length > 0 ? (
+                                                    <ResponsiveContainer>
+                                                        <BarChart data={analytics.artists} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
+                                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                                            <XAxis type="number" tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
+                                                            <YAxis dataKey="name" type="category" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
+                                                            <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+                                                            <Bar dataKey="revenue" name="Revenue" fill={RAINBOW_PALETTE[4]} radius={[0, 6, 6, 0]} barSize={24}>
+                                                               {analytics.artists.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[index % RAINBOW_PALETTE.length]} />)}
+                                                            </Bar>
+                                                        </BarChart>
+                                                    </ResponsiveContainer>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No artist data yet</div>
+                                                )}
+                                            </div>
+                                            <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#f59e0b' }}>View artist performance audit →</div>
+                                        </div>
+                                    )
+                                },
+                                {
+                                    id: 'inventory',
+                                    widthInfo: 'wide',
+                                    element: (
+                                        <div key="inventory" className="card glass-card" onClick={() => openAuditModal('inventory')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                            <h2><Package size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Inventory Consumption</h2>
+                                            <div style={{ width: '100%', height: 280 }}>
+                                                {analytics.inventory.length > 0 ? (
+                                                    <ResponsiveContainer>
+                                                        <Treemap
+                                                            data={analytics.inventory.map((item, i) => ({
+                                                                name: item.name,
+                                                                size: Number(item.used) || 1,
+                                                                unit: item.unit || 'units',
+                                                                fill: RAINBOW_PALETTE[(i + 5) % RAINBOW_PALETTE.length]
+                                                            }))}
+                                                            dataKey="size"
+                                                            aspectRatio={4 / 3}
+                                                            stroke="#fff"
+                                                            content={({ x, y, width, height, name, size, unit, fill }) => {
+                                                                if (width < 30 || height < 25) return null;
+                                                                return (
+                                                                    <g>
+                                                                        <rect x={x} y={y} width={width} height={height} rx={6} fill={fill} stroke="#fff" strokeWidth={2} />
+                                                                        {width > 50 && height > 35 && (
+                                                                            <>
+                                                                                <text x={x + width / 2} y={y + height / 2 - 8} textAnchor="middle" fill="#fff" fontSize={width > 100 ? 13 : 10} fontWeight={700}>
+                                                                                    {name}
+                                                                                </text>
+                                                                                <text x={x + width / 2} y={y + height / 2 + 10} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={width > 100 ? 12 : 9}>
+                                                                                    {size} {unit || 'units'}
+                                                                                </text>
+                                                                            </>
+                                                                        )}
+                                                                    </g>
+                                                                );
+                                                            }}
+                                                        >
+                                                            <Tooltip formatter={(v, name, props) => [`${v} ${props.payload.unit || 'units'}`, name]} />
+                                                        </Treemap>
+                                                    </ResponsiveContainer>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No inventory data yet</div>
+                                                )}
+                                            </div>
+                                            <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#8b5cf6' }}>View consumption audit log →</div>
+                                        </div>
+                                    )
+                                },
+                                {
+                                    id: 'appointments',
+                                    widthInfo: 'narrow',
+                                    element: (
+                                        <div key="appointments" className="card glass-card" onClick={() => openAuditModal('appointments')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                            <h2><Calendar size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Appointment Breakdown</h2>
+                                            <div style={{ width: '100%', height: 280 }}>
+                                                <ResponsiveContainer>
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={[
+                                                                { name: 'Completed', value: Number(analytics.appointments.completed) || 0 },
+                                                                { name: 'Scheduled', value: Number(analytics.appointments.scheduled) || 0 },
+                                                                { name: 'Cancelled', value: Number(analytics.appointments.cancelled) || 0 }
+                                                            ].filter(d => d.value > 0)}
+                                                            cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={3} dataKey="value"
+                                                            label={renderPieLabel} labelLine={true}
+                                                        >
+                                                            <Cell fill={RAINBOW_PALETTE[2]} />
+                                                            <Cell fill={RAINBOW_PALETTE[0]} />
+                                                            <Cell fill={RAINBOW_PALETTE[1]} />
+                                                        </Pie>
+                                                        <Tooltip />
+                                                        <Legend />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6' }}>View appointment audit log →</div>
+                                        </div>
+                                    )
+                                }
+                            ];
 
-                        {/* ═══════════════ CHARTS ROW 1: Trend (wide left) + Sources (narrow right) ═══════════════ */}
-                        <div className="analytics-dashboard-layout">
-                            <div className="card glass-card card-colspan-2" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer' }}>
-                                <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Trend ({timeframeLabel})</h2>
-                                <div style={{ width: '100%', height: 280 }}>
-                                    <ResponsiveContainer>
-                                        <BarChart data={analytics.revenue.chart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                            <XAxis dataKey="month" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
-                                            <YAxis tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
-                                            <Tooltip
-                                                cursor={{ fill: 'rgba(99, 102, 241, 0.06)' }}
-                                                contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '10px 14px', fontSize: '0.85rem' }}
-                                                formatter={(value, name) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Revenue']}
-                                                labelFormatter={(label, payload) => {
-                                                    const appts = payload && payload[0] ? payload[0].payload.appointments : 0;
-                                                    return `${label} — ${appts} appointment${appts !== 1 ? 's' : ''}`;
-                                                }}
-                                            />
-                                            <Bar dataKey="value" name="Revenue" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={48} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#6366f1' }}>View revenue source breakdown →</div>
-                            </div>
+                            const activeCharts = availableCharts.filter(c => visibleWidgets.includes(c.id));
+                            const rows = [];
+                            let i = 0;
 
-                            <div className="card glass-card card-colspan-1" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer' }}>
-                                <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Sources</h2>
-                                <div style={{ width: '100%', height: 280 }}>
-                                    {analytics.revenue.breakdown.length > 0 ? (
-                                        <ResponsiveContainer>
-                                            <PieChart>
-                                                <Pie data={analytics.revenue.breakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value" label={renderPieLabel} labelLine={true}>
-                                                    {analytics.revenue.breakdown.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[i % RAINBOW_PALETTE.length]} />)}
-                                                </Pie>
-                                                <Tooltip formatter={(value) => `₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} />
-                                                <Legend />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No revenue data yet</div>
+                            while (i < activeCharts.length) {
+                                if (i + 1 < activeCharts.length) {
+                                    const current = activeCharts[i];
+                                    const next = activeCharts[i + 1];
+
+                                    if (current.widthInfo === 'wide' && next.widthInfo === 'narrow') {
+                                        rows.push(
+                                            <div key={`row-${i}`} className="analytics-dashboard-layout">
+                                                {current.element}
+                                                {next.element}
+                                            </div>
+                                        );
+                                        i += 2;
+                                    } else if (current.widthInfo === 'narrow' && next.widthInfo === 'wide') {
+                                        rows.push(
+                                            <div key={`row-${i}`} className="analytics-dashboard-layout reverse">
+                                                {current.element}
+                                                {next.element}
+                                            </div>
+                                        );
+                                        i += 2;
+                                    } else if (current.widthInfo === 'wide' && next.widthInfo === 'wide') {
+                                        rows.push(
+                                            <div key={`row-${i}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1.5rem', padding: '0 2rem', marginBottom: '1.5rem' }}>
+                                                {current.element}
+                                                {next.element}
+                                            </div>
+                                        );
+                                        i += 2;
+                                    } else {
+                                        rows.push(
+                                            <div key={`row-${i}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem', padding: '0 2rem', marginBottom: '1.5rem' }}>
+                                                {current.element}
+                                                {next.element}
+                                            </div>
+                                        );
+                                        i += 2;
+                                    }
+                                } else {
+                                    const current = activeCharts[i];
+                                    rows.push(
+                                        <div key={`row-${i}`} style={{ padding: '0 2rem', marginBottom: '1.5rem', maxWidth: current.widthInfo === 'narrow' ? '500px' : '100%' }}>
+                                            {current.element}
+                                        </div>
+                                    );
+                                    i++;
+                                }
+                            }
+
+                            return (
+                                <>
+                                    {visibleWidgets.includes('metric_cards') && (
+                                        <AnalyticsMetricCards analytics={analytics} onCardClick={openAuditModal} formatDuration={formatDuration} showAll={true} variant="light" />
                                     )}
-                                </div>
-                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>Click to audit revenue sources →</div>
-                            </div>
-                        </div>
-
-                        {/* ═══════════════ CHARTS ROW 2: Styles (narrow left) + Artists (wide right) — REVERSED ═══════════════ */}
-                        <div className="analytics-dashboard-layout reverse">
-                            <div className="card glass-card card-colspan-1" onClick={() => openAuditModal('styles')} style={{ cursor: 'pointer' }}>
-                                <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Popular Styles</h2>
-                                <div style={{ width: '100%', height: 280 }}>
-                                    {analytics.styles.length > 0 ? (
-                                        <ResponsiveContainer>
-                                            <PieChart>
-                                                <Pie data={analytics.styles.map(s => ({ name: s.name, value: Number(s.count) || 0 }))} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={true}>
-                                                    {analytics.styles.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[(i * 2) % RAINBOW_PALETTE.length]} />)}
-                                                </Pie>
-                                                <Tooltip formatter={(v) => `${v} works`} />
-                                                <Legend wrapperStyle={{ color: '#171516' }} />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No style data yet</div>
+                                    {rows}
+                                    {visibleWidgets.length === 0 && (
+                                        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                                            <LayoutDashboard size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
+                                            <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>All widgets are currently hidden</p>
+                                            <p style={{ fontSize: '0.9rem' }}>Click the Layout button above to enable widgets.</p>
+                                        </div>
                                     )}
-                                </div>
-                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#a855f7' }}>View portfolio style breakdown →</div>
-                            </div>
-
-                            <div className="card glass-card card-colspan-2" onClick={() => openAuditModal('artists')} style={{ cursor: 'pointer' }}>
-                                <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Top Artists by Revenue</h2>
-                                <div style={{ width: '100%', height: 280 }}>
-                                    {analytics.artists.length > 0 ? (
-                                        <ResponsiveContainer>
-                                            <BarChart data={analytics.artists} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                                <XAxis type="number" tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
-                                                <YAxis dataKey="name" type="category" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
-                                                <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-                                                <Bar dataKey="revenue" name="Revenue" fill={RAINBOW_PALETTE[4]} radius={[0, 6, 6, 0]} barSize={24}>
-                                                   {analytics.artists.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[index % RAINBOW_PALETTE.length]} />)}
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No artist data yet</div>
-                                    )}
-                                </div>
-                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#f59e0b' }}>View artist performance audit →</div>
-                            </div>
-                        </div>
-
-                        {/* ═══════════════ CHARTS ROW 3: Inventory (wide left) + Appointments (narrow right) ═══════════════ */}
-                        <div className="analytics-dashboard-layout">
-                            <div className="card glass-card card-colspan-2" onClick={() => openAuditModal('inventory')} style={{ cursor: 'pointer' }}>
-                                <h2><Package size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Inventory Consumption</h2>
-                                <div style={{ width: '100%', height: 280 }}>
-                                    {analytics.inventory.length > 0 ? (
-                                        <ResponsiveContainer>
-                                            <Treemap
-                                                data={analytics.inventory.map((item, i) => ({
-                                                    name: item.name,
-                                                    size: Number(item.used) || 1,
-                                                    unit: item.unit || 'units',
-                                                    fill: RAINBOW_PALETTE[(i + 5) % RAINBOW_PALETTE.length]
-                                                }))}
-                                                dataKey="size"
-                                                aspectRatio={4 / 3}
-                                                stroke="#fff"
-                                                content={({ x, y, width, height, name, size, unit, fill }) => {
-                                                    if (width < 30 || height < 25) return null;
-                                                    return (
-                                                        <g>
-                                                            <rect x={x} y={y} width={width} height={height} rx={6} fill={fill} stroke="#fff" strokeWidth={2} />
-                                                            {width > 50 && height > 35 && (
-                                                                <>
-                                                                    <text x={x + width / 2} y={y + height / 2 - 8} textAnchor="middle" fill="#fff" fontSize={width > 100 ? 13 : 10} fontWeight={700}>
-                                                                        {name}
-                                                                    </text>
-                                                                    <text x={x + width / 2} y={y + height / 2 + 10} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={width > 100 ? 12 : 9}>
-                                                                        {size} {unit || 'units'}
-                                                                    </text>
-                                                                </>
-                                                            )}
-                                                        </g>
-                                                    );
-                                                }}
-                                            >
-                                                <Tooltip formatter={(v, name, props) => [`${v} ${props.payload.unit || 'units'}`, name]} />
-                                            </Treemap>
-                                        </ResponsiveContainer>
-                                    ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No inventory data yet</div>
-                                    )}
-                                </div>
-                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#8b5cf6' }}>View consumption audit log →</div>
-                            </div>
-
-                            <div className="card glass-card card-colspan-1" onClick={() => openAuditModal('appointments')} style={{ cursor: 'pointer' }}>
-                                <h2><Calendar size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Appointment Breakdown</h2>
-                                <div style={{ width: '100%', height: 280 }}>
-                                    <ResponsiveContainer>
-                                        <PieChart>
-                                            <Pie
-                                                data={[
-                                                    { name: 'Completed', value: Number(analytics.appointments.completed) || 0 },
-                                                    { name: 'Scheduled', value: Number(analytics.appointments.scheduled) || 0 },
-                                                    { name: 'Cancelled', value: Number(analytics.appointments.cancelled) || 0 }
-                                                ].filter(d => d.value > 0)}
-                                                cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={3} dataKey="value"
-                                                label={renderPieLabel} labelLine={true}
-                                            >
-                                                <Cell fill={RAINBOW_PALETTE[2]} /> {/* Green - Completed */}
-                                                <Cell fill={RAINBOW_PALETTE[0]} /> {/* Blue - Scheduled */}
-                                                <Cell fill={RAINBOW_PALETTE[1]} /> {/* Red - Cancelled */}
-                                            </Pie>
-                                            <Tooltip />
-                                            <Legend />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6' }}>View appointment audit log →</div>
-                            </div>
-                        </div>
+                                </>
+                            );
+                        })()}
                     </>
                 )}
 
