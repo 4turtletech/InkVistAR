@@ -41,6 +41,7 @@ function AdminLogin() {
             });
             if (response.data.success) {
                 console.log("Admin Data:", response.data.user);
+                localStorage.setItem('user', JSON.stringify(response.data.user));
                 navigate('/admin/dashboard', { replace: true });
             }
         } catch (error) {

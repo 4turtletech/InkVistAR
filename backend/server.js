@@ -364,6 +364,41 @@ db.getConnection((err, connection) => {
         }
       });
 
+      // MIGRATION: Add is_superadmin column if not exists
+      db.query("SHOW COLUMNS FROM users LIKE 'is_superadmin'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('🔄 Migrating users table: Adding is_superadmin column...');
+          db.query("ALTER TABLE users ADD COLUMN is_superadmin TINYINT(1) DEFAULT 0", (alterErr) => {
+            if (!alterErr) {
+              // Flag the default admin account as super admin
+              db.query("UPDATE users SET is_superadmin = 1 WHERE email = 'admin@inkvistar.com'", (updateErr) => {
+                if (!updateErr) console.log('🛡️  Super admin flag set for admin@inkvistar.com');
+              });
+            }
+          });
+        } else if (!err && results.length > 0) {
+          // Column exists — ensure the flag is always set on startup
+          db.query("UPDATE users SET is_superadmin = 1 WHERE email = 'admin@inkvistar.com' AND is_superadmin = 0");
+        }
+      });
+
+      // SEED: Create manager@inkvistar.com admin account if not exists (debug account)
+      db.query("SELECT id FROM users WHERE email = 'manager@inkvistar.com'", (err, results) => {
+        if (!err && results.length === 0) {
+          const bcrypt = require('bcryptjs');
+          bcrypt.hash('manager123', 10).then(hash => {
+            db.query(
+              "INSERT INTO users (name, email, password_hash, user_type, is_verified, is_deleted, is_superadmin) VALUES (?, ?, ?, 'admin', 1, 0, 0)",
+              ['Manager Admin', 'manager@inkvistar.com', hash],
+              (insertErr) => {
+                if (!insertErr) console.log('🌱 Seeded admin account: manager@inkvistar.com');
+                else console.error('Seed error:', insertErr.message);
+              }
+            );
+          });
+        }
+      });
+
       // MIGRATION: Check if 'phone' column exists in customers
       db.query("SHOW COLUMNS FROM customers LIKE 'phone'", (err, results) => {
         if (!err && results.length === 0) {
@@ -1665,7 +1700,8 @@ app.post('/api/login', async (req, res) => {
           id: user.id,
           name: user.name,
           email: user.email,
-          type: user.user_type
+          type: user.user_type,
+          is_superadmin: user.is_superadmin === 1
         },
         message: 'Login successful!'
       });
@@ -5514,7 +5550,7 @@ app.get('/api/admin/dashboard', (req, res) => {
 // Admin: Get All Users
 app.get('/api/admin/users', (req, res) => {
   const { search, status } = req.query;
-  let query = 'SELECT id, name, email, phone, user_type, is_verified, is_deleted FROM users WHERE 1=1';
+  let query = 'SELECT id, name, email, phone, user_type, is_verified, is_deleted, is_superadmin FROM users WHERE 1=1';
   let params = [];
 
   if (status === 'deleted') {
@@ -5574,31 +5610,57 @@ app.post('/api/admin/users', async (req, res) => {
 app.put('/api/admin/users/:id', (req, res) => {
   const { id } = req.params;
   const { name, email, type, phone, status } = req.body;
+  const requestorEmail = req.headers['x-user-email'] || '';
 
-  // Map status to is_deleted if necessary
-  // If status is 'inactive' or 'suspended', we mark as is_deleted = 1 for now 
-  // unless we want to add a real status column.
-  const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
+  // Look up the target user to check super admin status
+  db.query('SELECT email, user_type, is_superadmin FROM users WHERE id = ?', [id], (lookupErr, lookupResults) => {
+    if (lookupErr) return res.status(500).json({ success: false, message: lookupErr.message });
+    if (lookupResults.length === 0) return res.status(404).json({ success: false, message: 'User not found.' });
 
-  const query = 'UPDATE users SET name = ?, email = ?, user_type = ?, phone = ?, is_deleted = ? WHERE id = ?';
-  db.query(query, [name, email, type, phone, isDeleted, id], (err) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'UPDATE_USER', `Updated user ${id} (${email})`, req.ip);
-    res.json({ success: true, message: 'User updated successfully' });
+    const targetUser = lookupResults[0];
+
+    // GUARD: Nobody can modify the super admin account except the super admin themselves
+    if (targetUser.is_superadmin && requestorEmail !== targetUser.email) {
+      return res.status(403).json({ success: false, message: 'Cannot modify the system super admin account.' });
+    }
+
+    // GUARD: Only the super admin can change a user's role
+    if (type && type !== targetUser.user_type) {
+      db.query('SELECT is_superadmin FROM users WHERE email = ?', [requestorEmail], (saErr, saResults) => {
+        if (saErr || saResults.length === 0 || !saResults[0].is_superadmin) {
+          return res.status(403).json({ success: false, message: 'Only the super admin can change user roles.' });
+        }
+        // Super admin confirmed — proceed with role change
+        performUpdate();
+      });
+      return; // Wait for the async check above
+    }
+
+    performUpdate();
+
+    function performUpdate() {
+      const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
+      const query = 'UPDATE users SET name = ?, email = ?, user_type = ?, phone = ?, is_deleted = ? WHERE id = ?';
+      db.query(query, [name, email, type, phone, isDeleted, id], (err) => {
+        if (err) return res.status(500).json({ success: false, message: err.message });
+        logAction(null, 'UPDATE_USER', `Updated user ${id} (${email})`, req.ip);
+        res.json({ success: true, message: 'User updated successfully' });
+      });
+    }
   });
 });
 
-// Admin: Delete User
+// Admin: Delete User (Soft Delete)
 app.delete('/api/admin/users/:id', (req, res) => {
   const { id } = req.params;
   console.log(`🗑️ SOFT DELETE request for user ID: ${id}`);
 
-  // Safety: Don't delete the main admin
-  db.query('SELECT email FROM users WHERE id = ?', [id], (err, results) => {
+  // Safety: Don't delete any super admin account
+  db.query('SELECT email, is_superadmin FROM users WHERE id = ?', [id], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error checking user' });
 
-    if (results.length > 0 && results[0].email === 'admin@inkvistar.com') {
-      return res.status(403).json({ success: false, message: 'Cannot delete the main system admin.' });
+    if (results.length > 0 && results[0].is_superadmin) {
+      return res.status(403).json({ success: false, message: 'Cannot deactivate the system super admin.' });
     }
 
     // Soft Delete: Just mark as deleted
@@ -5624,10 +5686,19 @@ app.put('/api/admin/users/:id/restore', (req, res) => {
 // Admin: Permanent Delete User
 app.delete('/api/admin/users/:id/permanent', (req, res) => {
   const { id } = req.params;
-  db.query('DELETE FROM users WHERE id = ?', [id], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'DELETE_USER', `Permanently deleted user ID ${id}`, req.ip);
-    res.json({ success: true, message: 'User permanently deleted' });
+
+  // GUARD: Never permanently delete a super admin
+  db.query('SELECT is_superadmin FROM users WHERE id = ?', [id], (checkErr, checkResults) => {
+    if (checkErr) return res.status(500).json({ success: false, message: checkErr.message });
+    if (checkResults.length > 0 && checkResults[0].is_superadmin) {
+      return res.status(403).json({ success: false, message: 'Cannot permanently delete the system super admin.' });
+    }
+
+    db.query('DELETE FROM users WHERE id = ?', [id], (err, result) => {
+      if (err) return res.status(500).json({ success: false, message: err.message });
+      logAction(null, 'DELETE_USER', `Permanently deleted user ID ${id}`, req.ip);
+      res.json({ success: true, message: 'User permanently deleted' });
+    });
   });
 });
 

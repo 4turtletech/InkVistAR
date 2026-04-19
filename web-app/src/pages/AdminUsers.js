@@ -25,6 +25,7 @@ import MarketingEmailModal from '../components/MarketingEmailModal';
 function AdminUsers() {
     const navigate = useNavigate();
     const location = useLocation();
+    const currentUser = JSON.parse(localStorage.getItem('user')) || {};
 
     // ─── Main List State ───
     const [users, setUsers] = useState([]);
@@ -248,6 +249,8 @@ function AdminUsers() {
                 await Axios.put(`${API_URL}/api/admin/users/${selectedUser.id}`, {
                     name: formData.name, email: formData.email, type: formData.user_type,
                     phone: fullPhone, status: formData.status
+                }, {
+                    headers: { 'X-User-Email': currentUser.email || '' }
                 });
                 showAlert("Success", "User updated successfully!", "success");
             }
@@ -265,12 +268,25 @@ function AdminUsers() {
     // ═══════════════════════════════════════════════════════════
 
     const handleDelete = (userId) => {
+        // Find the user to check super admin status
+        const targetUser = users.find(u => u.id === userId);
+        if (targetUser && targetUser.is_superadmin) {
+            showAlert("Restricted", "Cannot deactivate the system super admin.", "danger");
+            return;
+        }
         setConfirmDialog({
             isOpen: true, title: 'Deactivate User', message: 'Are you sure you want to deactivate this user?',
             onConfirm: async () => {
                 setConfirmDialog({ isOpen: false });
-                try { await Axios.delete(`${API_URL}/api/admin/users/${userId}`); setUsers(users.filter(u => u.id !== userId)); }
-                catch (error) { console.error("Error deactivating user:", error); }
+                try {
+                    await Axios.delete(`${API_URL}/api/admin/users/${userId}`, {
+                        headers: { 'X-User-Email': currentUser.email || '' }
+                    });
+                    setUsers(users.filter(u => u.id !== userId));
+                } catch (error) {
+                    console.error("Error deactivating user:", error);
+                    showAlert("Error", error.response?.data?.message || 'Error deactivating user.', "danger");
+                }
             }
         });
     };
@@ -281,13 +297,25 @@ function AdminUsers() {
     };
 
     const handlePermanentDelete = (userId) => {
+        const targetUser = users.find(u => u.id === userId);
+        if (targetUser && targetUser.is_superadmin) {
+            showAlert("Restricted", "Cannot permanently delete the system super admin.", "danger");
+            return;
+        }
         setConfirmDialog({
             isOpen: true, title: 'Permanent Deletion', message: 'This will PERMANENTLY delete the user and cannot be undone. Continue?',
             confirmText: 'Permanently Delete',
             onConfirm: async () => {
                 setConfirmDialog({ isOpen: false });
-                try { await Axios.delete(`${API_URL}/api/admin/users/${userId}/permanent`); setUsers(users.filter(u => u.id !== userId)); }
-                catch (error) { console.error("Error deleting user:", error); }
+                try {
+                    await Axios.delete(`${API_URL}/api/admin/users/${userId}/permanent`, {
+                        headers: { 'X-User-Email': currentUser.email || '' }
+                    });
+                    setUsers(users.filter(u => u.id !== userId));
+                } catch (error) {
+                    console.error("Error deleting user:", error);
+                    showAlert("Error", error.response?.data?.message || 'Error deleting user.', "danger");
+                }
             }
         });
     };
@@ -860,13 +888,15 @@ function AdminUsers() {
                                             <td><span className={`badge status-${user.is_deleted ? 'inactive' : 'active'}`}>{user.is_deleted ? 'Inactive' : 'Active'}</span></td>
                                             <td className="actions-cell">
                                                 <button className="action-btn edit-btn" onClick={() => handleManage(user)}>Review</button>
-                                                {!user.is_deleted ? (
-                                                    <button className="action-btn delete-btn" onClick={() => handleDelete(user.id)}>Deactivate</button>
-                                                ) : (
-                                                    <>
-                                                        <button className="action-btn view-btn admin-st-f1f5ea52" onClick={() => handleRestore(user.id)}>Restore</button>
-                                                        <button className="action-btn delete-btn admin-st-2cf55662" onClick={() => handlePermanentDelete(user.id)}>Delete</button>
-                                                    </>
+                                                {!user.is_superadmin && (
+                                                    !user.is_deleted ? (
+                                                        <button className="action-btn delete-btn" onClick={() => handleDelete(user.id)}>Deactivate</button>
+                                                    ) : (
+                                                        <>
+                                                            <button className="action-btn view-btn admin-st-f1f5ea52" onClick={() => handleRestore(user.id)}>Restore</button>
+                                                            <button className="action-btn delete-btn admin-st-2cf55662" onClick={() => handlePermanentDelete(user.id)}>Delete</button>
+                                                        </>
+                                                    )
                                                 )}
                                             </td>
                                         </tr>
@@ -920,8 +950,29 @@ function AdminUsers() {
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
+                                        <label className="premium-label">User Role</label>
+                                        <select
+                                            value={formData.user_type}
+                                            onChange={(e) => setFormData({ ...formData, user_type: e.target.value })}
+                                            className="form-input"
+                                            disabled={!currentUser.is_superadmin}
+                                        >
+                                            <option value="admin">Admin</option>
+                                            <option value="manager">Manager</option>
+                                            <option value="artist">Artist</option>
+                                            <option value="customer">Customer</option>
+                                        </select>
+                                        {!currentUser.is_superadmin && (
+                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
+                                                Only the super admin can change user roles.
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="form-group">
                                         <label className="premium-label">Account Status</label>
-                                        <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="form-input">
+                                        <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="form-input"
+                                            disabled={selectedUser && selectedUser.is_superadmin && currentUser.email !== selectedUser.email}
+                                        >
                                             <option value="active">Active</option>
                                             <option value="inactive">Inactive / Deactivated</option>
                                             <option value="suspended">Suspended</option>
@@ -931,14 +982,16 @@ function AdminUsers() {
                             </div>
                             <div className="modal-footer">
                                 <div className="admin-st-c6588e1a">
-                                    {selectedUser && selectedUser.email !== 'admin@inkvistar.com' && (
+                                    {selectedUser && !selectedUser.is_superadmin && (
                                         <button className="action-btn delete-btn admin-st-af6a31d1" onClick={() => { handlePermanentDelete(selectedUser.id); closeAdminModal(); }}>
                                             Delete Forever
                                         </button>
                                     )}
                                 </div>
                                 <button className="btn btn-secondary" onClick={closeAdminModal}>Cancel</button>
-                                <button className="btn btn-primary admin-st-9be3106b" onClick={handleSave}>Save Changes</button>
+                                <button className="btn btn-primary admin-st-9be3106b" onClick={handleSave}
+                                    disabled={selectedUser && selectedUser.is_superadmin && currentUser.email !== selectedUser.email}
+                                >Save Changes</button>
                             </div>
                         </div>
                     </div>
