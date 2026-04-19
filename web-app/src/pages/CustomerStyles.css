@@ -1324,3 +1324,196 @@
 .premium-char-counter.limit-reached {
     color: #ef4444;
 }
+
+/* ─── Tattoo Inspiration Banner ─── */
+.inspiration-banner {
+    margin-bottom: 24px;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    background: #171516;
+    border: 1px solid rgba(183, 149, 78, 0.15);
+}
+
+.inspiration-banner__glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.inspiration-banner__glow--tr {
+    top: -60px;
+    right: -60px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(183, 149, 78, 0.10) 0%, transparent 70%);
+}
+
+.inspiration-banner__glow--bl {
+    bottom: -40px;
+    left: -40px;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba(183, 149, 78, 0.06) 0%, transparent 70%);
+}
+
+.inspiration-banner__content {
+    position: relative;
+    z-index: 1;
+    padding: 28px 24px;
+}
+
+.inspiration-banner__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.inspiration-banner__title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.inspiration-banner__accent-bar {
+    width: 3px;
+    height: 20px;
+    background: linear-gradient(to bottom, #b7954e, #d4a76a);
+    border-radius: 2px;
+}
+
+.inspiration-banner__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+}
+
+.inspiration-banner__browse-btn {
+    background: rgba(183, 149, 78, 0.1);
+    color: #b7954e;
+    border: 1px solid rgba(183, 149, 78, 0.25);
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.inspiration-banner__browse-btn:hover {
+    background: rgba(183, 149, 78, 0.2);
+    border-color: rgba(183, 149, 78, 0.4);
+}
+
+.inspiration-banner__body {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.inspiration-banner__text {
+    flex: 1;
+    min-width: 220px;
+}
+
+.inspiration-banner__heading {
+    margin: 0 0 10px;
+    color: #b7954e;
+    font-size: 1.35rem;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.inspiration-banner__desc {
+    margin: 0 0 16px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    max-width: 380px;
+}
+
+.inspiration-banner__tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.inspiration-banner__tag {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.04);
+    color: #64748b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    letter-spacing: 0.3px;
+}
+
+.inspiration-banner__cta {
+    background: linear-gradient(135deg, #b7954e 0%, #d4a76a 100%);
+    color: #ffffff;
+    border: none;
+    padding: 10px 26px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(183, 149, 78, 0.25);
+    letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.inspiration-banner__cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(183, 149, 78, 0.35);
+}
+
+.inspiration-banner__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.inspiration-banner__tile {
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+    background: #262022;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.inspiration-banner__tile:hover {
+    transform: scale(1.08);
+    border-color: rgba(183, 149, 78, 0.25);
+}
+
+.inspiration-banner__tile--gold {
+    color: #b7954e;
+}
+
+.inspiration-banner__tile--purple {
+    color: #a855f7;
+}
+
+.inspiration-banner__tile--green {
+    color: #10b981;
+}
+
+.inspiration-banner__tile--blue {
+    color: #3b82f6;
+}
