@@ -366,8 +366,9 @@ function CustomerPortal() {
                             .quick-actions-grid {
                                 display: grid;
                                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                                gap: 1.5rem; /* Spacing between cards */
+                                gap: 1.5rem;
                                 margin-top: 2rem;
+                                margin-bottom: 2rem;
                             }
                             .action-card-v2 {
                                 display: flex;
