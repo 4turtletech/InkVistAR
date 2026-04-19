@@ -779,12 +779,11 @@ function AdminUsers() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-header">
-                    <div className="header-title-area">
+                <header className="portal-header">
+                    <div className="header-title">
                         <h1>User Management</h1>
-                        <p>Manage platform users, roles, and account status</p>
                     </div>
-                    <div className="header-actions-group">
+                    <div className="header-actions">
                         <button className="btn btn-secondary" onClick={() => setShowMarketingModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <Mail size={18} /> Send Promos
                         </button>
@@ -793,6 +792,7 @@ function AdminUsers() {
                         </button>
                     </div>
                 </header>
+                <p className="header-subtitle">Manage platform users, roles, and account status</p>
 
                 {/* Filter Bar */}
                 <div className="premium-filter-bar premium-filter-bar--stacked">

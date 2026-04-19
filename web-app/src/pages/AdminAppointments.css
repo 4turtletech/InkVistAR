@@ -152,14 +152,6 @@
 
     .admin-side-nav, 
     .manager-side-nav, 
-    .admin-header .btn, 
-    .filters-section,
-    .pagination,
-    .actions-cell,
-    th:last-child,
-    td:last-child {
-        display: none !important;
-    }
 
     .table-card, .data-card {
         display: block !important;
@@ -175,17 +167,7 @@
         background: white !important;
     }
 
-    .admin-header {
-        background: white !important;
-        color: black !important;
-        padding: 0 0 1rem 0 !important;
-        border-bottom: none !important;
-        box-shadow: none !important;
-    }
 
-    .admin-header h1 {
-        color: black !important;
-    }
 
     .stats-row {
         margin-bottom: 2rem !important;

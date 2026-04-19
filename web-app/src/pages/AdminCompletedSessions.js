@@ -149,12 +149,12 @@ function AdminCompletedSessions() {
         <div className="portal-layout">
             <AdminSideNav />
             <div className="portal-container admin-portal">
-                <header className="admin-header">
-                    <div className="header-title-area">
+                <header className="portal-header">
+                    <div className="header-title">
                         <h1>Completed Sessions</h1>
-                        <p>View all completed tattoo sessions with details</p>
                     </div>
                 </header>
+                <p className="header-subtitle">View all completed tattoo sessions with details</p>
 
                 <div className="portal-content">
                     {loading ? (

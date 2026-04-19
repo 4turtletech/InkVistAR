@@ -1,24 +1,4 @@
 /* --- MODERN GLASSMORPHISM INVENTORY STYLES --- */
-/* .admin-header, .header-title-area, .header-actions-group styles are now
-   defined globally in AdminStyles.css */
-
-
-.btn-glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 0.6rem 1rem;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #1f2937 !important;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
 
 .btn-glass:hover {
     background: white;
@@ -136,14 +116,6 @@
 
     .admin-side-nav, 
     .manager-side-nav, 
-    .admin-header .btn, 
-    .filters-section,
-    .pagination-controls,
-    .actions-cell,
-    th:last-child,
-    td:last-child {
-        display: none !important;
-    }
 
     .table-card {
         display: block !important;
@@ -159,18 +131,7 @@
         background: white !important;
     }
 
-    .admin-header {
-        background: white !important;
-        color: black !important;
-        padding: 0 0 1rem 0 !important;
-        border-bottom: none !important;
-        box-shadow: none !important;
-    }
 
-    .admin-header h1 {
-        color: black !important;
-        margin-bottom: 20px !important;
-    }
 
     .stats-row {
         margin-bottom: 2rem !important;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import AdminSideNav from '../components/AdminSideNav';
+import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
@@ -204,12 +205,12 @@ function AdminClients() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-clients-header">
-                    <div className="header-title-area">
+                <header className="portal-header">
+                    <div className="header-title">
                         <h1>Client Management</h1>
-                        <p>Maintain client relationships and session history</p>
                     </div>
                 </header>
+                <p className="header-subtitle">Maintain client relationships and session history</p>
 
                 <div className="premium-filter-bar">
                     <div className="premium-search-box">

@@ -25,18 +25,6 @@
     padding-bottom: 2rem;
 }
 
-/* .admin-header styles are now defined globally in AdminStyles.css */
-
-
-/* Analytics header — no extra wrapper needed, admin-header handles its own styling */
-.admin-header-glass {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 1rem;
-    gap: 2rem;
-    flex-wrap: wrap;
-}
 
 .header-actions-area {
     display: flex;
@@ -735,12 +723,6 @@
     }
 
     .admin-side-nav, 
-    .admin-header .btn, 
-    .admin-header .select-input,
-    .admin-side-nav-container,
-    nav {
-        display: none !important;
-    }
 
     .admin-page-with-sidenav .admin-page {
         margin-left: 0 !important;
@@ -748,18 +730,7 @@
         background: white !important;
     }
 
-    .admin-header {
-        background: white !important;
-        color: black !important;
-        padding: 0 0 1rem 0 !important;
-        border-bottom: 2px solid #000 !important;
-        box-shadow: none !important;
-        margin-bottom: 2rem !important;
-    }
 
-    .admin-header h1 {
-        color: black !important;
-    }
 
     .metrics-section {
         padding: 0 !important;

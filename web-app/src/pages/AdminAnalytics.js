@@ -9,6 +9,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import AnalyticsMetricCards from '../components/AnalyticsMetricCards';
 import AnalyticsAuditModal, { RAINBOW_PALETTE, renderPieLabel } from '../components/AnalyticsAuditModal';
 import './AdminAnalytics.css';
+import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 
@@ -265,12 +266,11 @@ function AdminAnalytics() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-header">
-                    <div className="header-title-area">
+                <header className="portal-header">
+                    <div className="header-title">
                         <h1>Analytics & Reports</h1>
-                        <p>Track your studio's performance and inventory</p>
                     </div>
-                    <div className="header-actions-group">
+                    <div className="header-actions">
                         <div className="filter-group-glass">
                             <Filter size={16} color="#64748b" />
                             <span style={{ color: '#64748b', fontWeight: 600 }}>Period:</span>
@@ -284,6 +284,7 @@ function AdminAnalytics() {
                         <button className="btn btn-primary" onClick={handleExport}><Download size={18} /> Export</button>
                     </div>
                 </header>
+                <p className="header-subtitle">Track your studio's performance and inventory</p>
 
                 {loading ? (
                     <div className="no-data" style={{ padding: '60px 0', textAlign: 'center', color: '#64748b' }}>Loading analytics...</div>

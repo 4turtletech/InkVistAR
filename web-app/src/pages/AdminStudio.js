@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { MapPin, Clock, Users, Power, Trash2, Edit2, Plus, X, Search, Filter, SlidersHorizontal } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
+import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
@@ -170,7 +171,7 @@ function AdminStudio() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-header admin-st-46169809">
+                <header className="portal-header">
                     <h1>Studio Settings</h1>
                     {activeTab === 'branches' && (
                         <button className="btn btn-primary" onClick={openAddModal}><Plus size={18} className="admin-st-c02c7d9c"/> Add Branch</button>

@@ -2781,24 +2781,6 @@
 }
 
 /* Premium Standardized Header System */
-.admin-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.8rem 2.5rem;
-    background-color: #1a1416;
-    /* Exact match with AdminSideNav background */
-    border-bottom: 2px solid #be9055;
-    /* Bronze-Gold Accent */
-    margin-bottom: 2.5rem;
-    height: auto;
-    min-height: 110px;
-    color: #ffffff;
-    width: 100%;
-    box-sizing: border-box;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    z-index: 10;
-}
 
 .header-title-area {
     display: flex;
@@ -2808,28 +2790,7 @@
     flex-shrink: 0;
 }
 
-.admin-header h1,
-.header-title-area h1 {
-    margin: 0;
-    color: #be9055;
-    /* Refined Bronze-Gold for premium branding */
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    text-align: left;
-    text-transform: uppercase;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-}
 
-.admin-header p,
-.header-title-area p {
-    margin: 0;
-    color: #94a3b8;
-    font-size: 1rem;
-    font-weight: 500;
-    text-align: left;
-    letter-spacing: 0.01em;
-}
 
 .header-actions-group {
     display: flex;

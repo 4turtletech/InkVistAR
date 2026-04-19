@@ -65,17 +65,17 @@ function AdminReviews() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-header">
-                    <div className="header-title-area">
+                <header className="portal-header">
+                    <div className="header-title">
                         <h1>Review Moderation</h1>
-                        <p>Approve or reject customer reviews before they appear on artist pages.</p>
                     </div>
-                    <div className="header-actions-group">
+                    <div className="header-actions">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: '#fef3c7', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, color: '#92400e' }}>
                             <Star size={14} fill="#f59e0b" color="#f59e0b" /> {pendingCount} Pending
                         </div>
                     </div>
                 </header>
+                <p className="header-subtitle">Approve or reject customer reviews before they appear on artist pages.</p>
 
                 {/* Tab Navigation */}
                 <div style={{ display: 'flex', gap: '4px', padding: '0 24px', marginBottom: '24px' }}>

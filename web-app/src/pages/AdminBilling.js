@@ -10,6 +10,7 @@ import './AdminSettings.css'; // Reusing form styles
 import './AdminBilling.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
+import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 
@@ -293,12 +294,11 @@ function AdminBilling() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-header">
-                    <div className="header-title-area">
+                <header className="portal-header">
+                    <div className="header-title">
                         <h1>Billing & Payments</h1>
-                        <p>Manage studio revenue, invoices, and payment tracking</p>
                     </div>
-                    <div className="header-actions-group">
+                    <div className="header-actions">
                          <button className={`btn ${activeTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('invoices')}>
                             <FileText size={18} className="admin-st-c02c7d9c"/> Transaction Logs
                         </button>
@@ -310,6 +310,7 @@ function AdminBilling() {
                         </button>
                     </div>
                 </header>
+                <p className="header-subtitle">Manage studio revenue, invoices, and payment tracking</p>
 
                 {activeTab === 'invoices' ? (
                         <>

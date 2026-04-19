@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { MessageSquare, Calendar, Activity } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import ChatWidget from '../components/ChatWidget';
+import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import { io } from 'socket.io-client';
@@ -37,12 +38,12 @@ function AdminChat() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter chat-page-wrapper">
-                <header className="admin-header">
-                    <div className="header-title-area">
+                <header className="portal-header">
+                    <div className="header-title">
                         <h1>Chats & Consultations</h1>
-                        <p>Manage live support sessions and artist consultations from one unified dashboard.</p>
                     </div>
                 </header>
+                <p className="header-subtitle">Manage live support sessions and artist consultations from one unified dashboard.</p>
 
                 <div className="admin-chat-layout glass-panel">
                     <div className="appointment-list-container">

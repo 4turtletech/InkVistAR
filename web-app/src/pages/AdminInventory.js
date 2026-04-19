@@ -644,12 +644,11 @@ function AdminInventory() {
                     </div>
                 </div>
             </div>
-            <header className="admin-header">
-                <div className="header-title-area">
-                    <h1>Inventory Management</h1>
-                    <p>Track, manage, and audit studio supplies</p>
-                </div>
-                <div className="header-actions-group">
+            <header className="portal-header">
+                <div className="header-title">
+                        <h1>Inventory Management</h1>
+                    </div>
+                <div className="header-actions">
                     <button className="btn btn-secondary" onClick={handlePrint} title="Print Report">
                         <Printer size={18}/> Print
                     </button>
@@ -667,6 +666,7 @@ function AdminInventory() {
                     </button>
                 </div>
             </header>
+                <p className="header-subtitle">Track, manage, and audit studio supplies</p>
 
             <div className="premium-filter-bar premium-filter-bar--stacked">
                     <div className="premium-search-box premium-search-box--full">

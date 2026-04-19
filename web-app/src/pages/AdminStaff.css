@@ -1,13 +1,5 @@
 /* --- MODERN GLASSMORPHISM STAFF STYLES --- */
 
-.admin-staff-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem 2rem;
-    background: transparent;
-    margin-bottom: 1rem;
-}
 
 /* .header-title-area styles are now defined globally in AdminStyles.css */
 

@@ -6,12 +6,6 @@
     flex-direction: column;
 }
 
-/* .admin-header styles are now defined globally in AdminStyles.css */
-
-
-.stats-row {
-    margin-bottom: 2rem;
-}
 
 .premium-filter-bar {
     margin-bottom: 1.5rem; /* Spacing between search bar and the data table */

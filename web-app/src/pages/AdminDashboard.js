@@ -9,6 +9,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from
 
 import './AdminDashboard.css';
 import AdminSideNav from '../components/AdminSideNav';
+import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 
@@ -418,12 +419,11 @@ function AdminDashboard() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page admin-dashboard-container page-container-enter">
-                <header className="admin-header">
-                    <div className="header-title-area">
+                <header className="portal-header">
+                    <div className="header-title">
                         <h1>Admin Dashboard</h1>
-                        <p>System Overview & Management</p>
                     </div>
-                    <div className="header-actions-group">
+                    <div className="header-actions">
                         <div className="header-search">
                             <Search size={18} />
                             <input type="text" placeholder="Search system..." />
@@ -472,6 +472,7 @@ function AdminDashboard() {
                         <button onClick={handleLogout} className="logout-btn">Logout</button>
                     </div>
                 </header>
+                <p className="header-subtitle">System Overview & Management</p>
 
                 {loading ? (
                     <div className="dashboard-loader-container">

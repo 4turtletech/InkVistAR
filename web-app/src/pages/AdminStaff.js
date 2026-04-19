@@ -10,6 +10,7 @@ import AdminSideNav from '../components/AdminSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import './AdminStaff.css';
+import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
@@ -469,12 +470,12 @@ function AdminStaff() {
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
             <div className="admin-page page-container-enter">
-                <header className="admin-staff-header">
-                    <div className="header-title-area">
+                <header className="portal-header">
+                    <div className="header-title">
                         <h1>Staff Management</h1>
-                        <p>Manage studio artists, managers, and administrative personnel</p>
                     </div>
                 </header>
+                <p className="header-subtitle">Manage studio artists, managers, and administrative personnel</p>
 
                 <div className="premium-filter-bar">
                     <div className="premium-search-box">

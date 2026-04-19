@@ -6,6 +6,7 @@ import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
 import ConfirmModal from '../components/ConfirmModal';
+import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 import './AdminPOS.css';
@@ -271,12 +272,11 @@ function AdminPOS() {
             <div className="admin-page pos-container page-container-enter">
                 <div className="pos-layout">
                     <div className="pos-main">
-                        <header className="admin-header">
-                            <div className="header-title-area">
-                                <h1>Studio POS</h1>
-                                <p>Retail & Inventory Transactions</p>
-                            </div>
-                            <div className="header-actions-group">
+                        <header className="portal-header">
+                            <div className="header-title">
+                        <h1>Studio POS</h1>
+                    </div>
+                            <div className="header-actions">
                                 <div className="pos-search">
                                     <Search size={18} className="search-icon" />
                                     <input 
@@ -294,6 +294,7 @@ function AdminPOS() {
                                 </button>
                             </div>
                         </header>
+                <p className="header-subtitle">Retail & Inventory Transactions</p>
 
                         <div className="pos-categories">
                             {categories.map(cat => (
