@@ -354,6 +354,12 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 27. **Guest Avatar Initials Pattern:** In `AdminAppointments.js`, when a client has no profile image (`clientAvatar` is null/empty), their initials are displayed instead of a generic `<User>` icon:
     - **`getInitials(name)` helper:** Strips `(Guest)` suffix, splits by space, takes first letter of first and last name. Single names use the first two characters. Returns `?` for null/empty input.
     - Applied in: list view cards (14px, `#94a3b8`), edit modal avatar (24px, brand gold `#C19A6B`), and the `onError` fallback when avatar images fail to load.
+28. **Guest Status Update Notifications (Email + SMS):** When an admin updates a guest appointment via the Edit Appointment modal, the backend sends branded email + SMS notifications to the guest's `guest_email` and `guest_phone`. This is handled inside `processAdminPostUpdate()` in `server.js` using two reusable helpers:
+    - **`sendGuestStatusEmail(email, name, code, subject, heading, color, message, detailRows, tip)`** — Builds a dark-luxury branded email via `buildEmailHtml()` with a color-coded heading, booking detail card, and optional footer tip.
+    - **`sendGuestStatusSMS(phone, name, code, message)`** — Sends a concise SMS via `sendSMS()` prefixed with `InkVistAR:`.
+    - **Guard clause:** Every dispatch is wrapped in `if (oldAppt.guest_email)` / `if (oldAppt.guest_phone)` so it only fires for guest bookings (registered users use in-app notifications instead).
+    - **Covered statuses:** Confirmed (green), Rejected (red), Cancelled (red), Rescheduled (amber), Completed (green), Price Quote (gold), and generic status updates (gold).
+    - **Guest name extraction:** Parsed from the appointment `notes` field via regex `Client:\s*(.+?)(?:\n|$)`, falling back to `'Valued Guest'`.
 
 ---
 

@@ -3955,6 +3955,74 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   });
 });
 
+// ═══════════════════════════════════════════════
+// Guest Status Notification Helpers (Email + SMS)
+// ═══════════════════════════════════════════════
+
+/**
+ * Send a branded status-update email to a guest customer.
+ * @param {string} guestEmail - Guest's email address
+ * @param {string} guestName - Guest's display name
+ * @param {string} bookingCode - Booking reference code
+ * @param {string} subject - Email subject line
+ * @param {string} headingText - Main heading inside the email
+ * @param {string} headingColor - CSS color for the heading (e.g. '#10b981')
+ * @param {string} bodyMessage - Main paragraph message
+ * @param {Array<{label: string, value: string}>} detailRows - Booking detail rows
+ * @param {string} [footerTip] - Optional tip/CTA text at the bottom
+ */
+function sendGuestStatusEmail(guestEmail, guestName, bookingCode, subject, headingText, headingColor, bodyMessage, detailRows, footerTip) {
+  if (!guestEmail) return;
+  try {
+    const detailHtml = detailRows.map(r =>
+      `<p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">${r.label}:</strong> <span style="color:#C19A6B;${r.mono ? 'font-family:monospace;font-weight:700;' : ''}">${r.value}</span></p>`
+    ).join('');
+
+    const tipBlock = footerTip ? `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 16px;">
+        <div style="display:inline-block;padding:12px 20px;background:rgba(193,154,107,0.1);border:1px solid rgba(193,154,107,0.2);border-radius:10px;">
+          <p style="margin:0;font-size:13px;color:#94a3b8;"><strong style="color:#e2e8f0;">Tip:</strong> ${footerTip}</p>
+        </div>
+      </td></tr></table>
+    ` : '';
+
+    const html = buildEmailHtml(`
+      <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:${headingColor};text-align:center;">${headingText}</h2>
+      <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Ref: ${bookingCode}</p>
+      <p style="margin:0 0 16px;">Hello ${guestName},</p>
+      <p style="margin:0 0 16px;line-height:1.6;">${bodyMessage}</p>
+      
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+        <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+          ${detailHtml}
+        </div>
+      </td></tr></table>
+
+      ${tipBlock}
+      <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">— The InkVistAR Studio Team</p>
+    `);
+    sendResendEmail(guestEmail, `InkVistAR: ${subject}`, html);
+  } catch (err) {
+    console.error(`⚠️ Error sending guest status email to ${guestEmail}:`, err.message);
+  }
+}
+
+/**
+ * Send a concise status-update SMS to a guest customer.
+ * @param {string} guestPhone - Guest's phone number
+ * @param {string} guestName - Guest's display name
+ * @param {string} bookingCode - Booking reference code
+ * @param {string} message - SMS body text
+ */
+function sendGuestStatusSMS(guestPhone, guestName, bookingCode, message) {
+  if (!guestPhone) return;
+  try {
+    sendSMS(guestPhone, `InkVistAR: Hi ${guestName}! ${message} Ref: [${bookingCode}].`);
+  } catch (err) {
+    console.error(`⚠️ Error sending guest status SMS to ${guestPhone}:`, err.message);
+  }
+}
+
 function processAdminPostUpdate(res, db, id, oldAppt, fields) {
   const { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason, rescheduleReason } = fields;
 
@@ -3999,11 +4067,46 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
           }
         };
 
+        // ── Guest notification context ──
+        const guestEmail = oldAppt.guest_email || null;
+        const guestPhone = oldAppt.guest_phone || null;
+        const guestName = (oldAppt.notes && oldAppt.notes.match(/Client:\s*(.+?)(?:\n|$)/)) ? oldAppt.notes.match(/Client:\s*(.+?)(?:\n|$)/)[1].trim() : 'Valued Guest';
+        const guestBookingCode = oldAppt.booking_code || `#${id}`;
+        const guestDesign = oldAppt.design_title || 'Consultation';
+        const formatGuestDate = (d) => { try { return new Date(d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); } catch { return d || 'TBD'; } };
+        const formatGuestTime = (t) => { try { return t ? new Date(`2000-01-01T${t}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD'; } catch { return t || 'TBD'; } };
+        const displayDate = formatGuestDate(date || oldAppt.appointment_date);
+        const displayTime = formatGuestTime(startTime || oldAppt.start_time);
+        const accountTip = 'Create an InkVistAR account with this email to track your booking, receive real-time updates, and manage future appointments.';
+
         // 1. Check for Rescheduling
         if ((newDate && oldDate && newDate !== oldDate) || (startTime !== undefined && startTime !== oldAppt.start_time)) {
           const reasonText = rescheduleReason ? `\n\nReason: ${rescheduleReason}` : '';
           createNotification(currentData.customer_id, 'Appointment Rescheduled 📅', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.${reasonText}`, 'appointment_rescheduled', id);
           notifyArtist('Session Rescheduled', `Details for session #${id} have been updated.`, 'system');
+
+          // ── Guest Email + SMS: Rescheduled ──
+          if (guestEmail) {
+            const newDisplayDate = formatGuestDate(date);
+            const newDisplayTime = formatGuestTime(startTime || oldAppt.start_time);
+            const reasonLine = rescheduleReason ? ` Reason: ${rescheduleReason}.` : '';
+            sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
+              `Booking Rescheduled [${guestBookingCode}]`,
+              'Booking Rescheduled', '#f59e0b',
+              `Your consultation has been rescheduled to a new date and time. Please see the updated details below.${reasonLine}`,
+              [
+                { label: 'Ref Code', value: guestBookingCode, mono: true },
+                { label: 'Design Idea', value: guestDesign },
+                { label: 'New Date', value: newDisplayDate },
+                { label: 'New Time', value: newDisplayTime }
+              ], accountTip
+            );
+          }
+          if (guestPhone) {
+            const reasonSms = rescheduleReason ? ` Reason: ${rescheduleReason}.` : '';
+            sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your consultation has been rescheduled to ${formatGuestDate(date)} at ${formatGuestTime(startTime || oldAppt.start_time)}.${reasonSms}`);
+          }
+
           notificationsSent = true;
         }
 
@@ -4021,12 +4124,53 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               }
             });
             sendPushNotification(currentData.customer_id, '✅ Booking Approved!', `Your appointment #${id} has been confirmed.${priceMsg}`, { screen: 'customer-notifications' });
+
+            // ── Guest Email + SMS: Confirmed ──
+            if (guestEmail) {
+              const priceLine = price > 0 ? ` The quoted price is <strong style="color:#C19A6B;">₱${parseFloat(price).toLocaleString()}</strong>.` : '';
+              sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
+                `Booking Confirmed [${guestBookingCode}]`,
+                'Booking Confirmed!', '#10b981',
+                `Great news! Your consultation request has been reviewed and <strong>approved</strong> by our team.${priceLine} We look forward to seeing you!`,
+                [
+                  { label: 'Ref Code', value: guestBookingCode, mono: true },
+                  { label: 'Design Idea', value: guestDesign },
+                  { label: 'Date', value: displayDate },
+                  { label: 'Time', value: displayTime }
+                ], accountTip
+              );
+            }
+            if (guestPhone) {
+              const priceSms = price > 0 ? ` Quoted price: P${parseFloat(price).toLocaleString()}.` : '';
+              sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your consultation request has been CONFIRMED for ${displayDate} at ${displayTime}.${priceSms} See you soon!`);
+            }
+
             notificationsSent = true;
           } else if (status === 'rejected' && oldAppt.status === 'pending') {
             const reasonMsg = rejectionReason ? `\n\nReason: ${rejectionReason}` : ' Please contact the studio for alternatives.';
             createNotification(currentData.customer_id, 'Booking Request Rejected ❌', `Notice: Your booking request #${id} was unfortunately rejected.${reasonMsg}`, 'appointment_rejected', id);
             notifyArtist('Request Rejected', `Booking request #${id} has been rejected.`, 'appointment_rejected');
             sendPushNotification(currentData.customer_id, '❌ Booking Rejected', `Your appointment #${id} could not be approved. ${rejectionReason || ''}`.trim(), { screen: 'customer-notifications' });
+
+            // ── Guest Email + SMS: Rejected ──
+            if (guestEmail) {
+              const reasonLine = rejectionReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${rejectionReason}` : '';
+              sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
+                `Booking Update [${guestBookingCode}]`,
+                'Booking Request Update', '#ef4444',
+                `We regret to inform you that your consultation request could not be approved at this time. Please don't hesitate to reach out to the studio directly for alternatives or to rebook.${reasonLine}`,
+                [
+                  { label: 'Ref Code', value: guestBookingCode, mono: true },
+                  { label: 'Design Idea', value: guestDesign },
+                  { label: 'Status', value: 'Not Approved' }
+                ], 'Contact us via our website or social media for alternative booking options.'
+              );
+            }
+            if (guestPhone) {
+              const reasonSms = rejectionReason ? ` Reason: ${rejectionReason}.` : '';
+              sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `We're sorry, your consultation request could not be approved.${reasonSms} Please contact the studio for alternatives.`);
+            }
+
             notificationsSent = true;
           } else if (status === 'cancelled') {
             createNotification(currentData.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
@@ -4038,15 +4182,71 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               }
             });
             sendPushNotification(currentData.customer_id, '❌ Appointment Cancelled', `Your appointment #${id} has been cancelled.`, { screen: 'customer-notifications' });
+
+            // ── Guest Email + SMS: Cancelled ──
+            if (guestEmail) {
+              const reasonLine = rejectionReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${rejectionReason}` : '';
+              sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
+                `Booking Cancelled [${guestBookingCode}]`,
+                'Booking Cancelled', '#ef4444',
+                `Your consultation booking has been cancelled. If this was unexpected, please contact the studio directly for clarification.${reasonLine}`,
+                [
+                  { label: 'Ref Code', value: guestBookingCode, mono: true },
+                  { label: 'Design Idea', value: guestDesign },
+                  { label: 'Orig. Date', value: formatGuestDate(oldAppt.appointment_date) },
+                  { label: 'Status', value: 'Cancelled' }
+                ], 'You can submit a new consultation request anytime from our website.'
+              );
+            }
+            if (guestPhone) {
+              sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your consultation booking has been cancelled. Please contact the studio if you have questions or wish to rebook.`);
+            }
+
             notificationsSent = true;
           } else if (status === 'completed') {
             createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
             notifyArtist('Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed');
             sendPushNotification(currentData.customer_id, '✨ Session Complete!', `Your InkVistAR session #${id} is done! We hope you love your new ink.`, { screen: 'customer-notifications' });
+
+            // ── Guest Email + SMS: Completed ──
+            if (guestEmail) {
+              sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
+                `Session Complete [${guestBookingCode}]`,
+                'Session Complete!', '#10b981',
+                `Your session has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio — we'd love to see you again.`,
+                [
+                  { label: 'Ref Code', value: guestBookingCode, mono: true },
+                  { label: 'Design', value: guestDesign },
+                  { label: 'Status', value: 'Completed' }
+                ], accountTip
+              );
+            }
+            if (guestPhone) {
+              sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your session is complete! Thank you for choosing InkVistAR Studio. We hope you love the result!`);
+            }
+
             notificationsSent = true;
           } else {
             createNotification(currentData.customer_id, 'Appointment Update', `Your appointment #${id} has been updated to ${status}.`, 'system', id);
             notifyArtist('Appointment Update', `Appointment #${id} status changed to ${status}.`, 'system');
+
+            // ── Guest Email + SMS: Generic status update ──
+            if (guestEmail) {
+              sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
+                `Booking Update [${guestBookingCode}]`,
+                'Booking Status Update', '#C19A6B',
+                `Your consultation booking status has been updated to <strong style="color:#C19A6B;">${status}</strong>. If you have any questions, please contact the studio.`,
+                [
+                  { label: 'Ref Code', value: guestBookingCode, mono: true },
+                  { label: 'Design Idea', value: guestDesign },
+                  { label: 'New Status', value: status.charAt(0).toUpperCase() + status.slice(1) }
+                ], accountTip
+              );
+            }
+            if (guestPhone) {
+              sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your booking status has been updated to "${status}". Contact the studio if you have questions.`);
+            }
+
             notificationsSent = true;
           }
         }
@@ -4054,6 +4254,25 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         // 3. Independent Price Update
         if (price !== undefined && price > 0 && price !== oldAppt.price && !notificationsSent) {
           createNotification(currentData.customer_id, 'Session Fee Update', `The total price for your session #${id} has been set to ₱${parseFloat(price).toLocaleString()}. Please pay the required reservation fee/down payment to successfully secure your booking.`, 'system', id);
+
+          // ── Guest Email + SMS: Price Quote ──
+          if (guestEmail) {
+            sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
+              `Price Quote [${guestBookingCode}]`,
+              'Your Quote is Ready', '#C19A6B',
+              `The pricing for your consultation has been set. Please review the details below. To secure your booking, a reservation fee or down payment may be required.`,
+              [
+                { label: 'Ref Code', value: guestBookingCode, mono: true },
+                { label: 'Design Idea', value: guestDesign },
+                { label: 'Date', value: displayDate },
+                { label: 'Quoted Price', value: `₱${parseFloat(price).toLocaleString()}` }
+              ], accountTip
+            );
+          }
+          if (guestPhone) {
+            sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your price quote is ready: P${parseFloat(price).toLocaleString()}. Please contact the studio to confirm and secure your booking.`);
+          }
+
           notificationsSent = true;
         }
 
