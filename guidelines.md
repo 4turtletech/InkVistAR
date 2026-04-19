@@ -158,6 +158,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 | **studio_expenses** | id, category (Inventory/Marketing/Bills/Payouts/Equipment/Licensing/Maintenance/Extras), description, amount, reference_id, created_by, created_at |
 | **branches** | id, name, address, operating_hours, current_occupancy, capacity |
 | **app_settings** | section (PK), data (JSON) |
+| **contact_messages** | id, name, email, phone, subject, message, is_read, created_at |
 
 ---
 
@@ -235,6 +236,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `GET /api/admin/expenses` - List all studio expenses (audit ledger)
 - `POST /api/admin/expenses` - Create a studio expense entry (category, description, amount)
 - `DELETE /api/admin/expenses/:id` - Delete a studio expense entry
+- `POST /api/contact` - Public contact form submission (stores message + sends email to studio)
 
 ---
 

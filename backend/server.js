@@ -1053,6 +1053,21 @@ db.getConnection((err, connection) => {
     `;
     db.query(pushTokensTableQuery, (err) => { if (err) console.error('⚠️ Error checking user_push_tokens table:', err.message); else console.log('🔔 Push Tokens table ready'); });
 
+    // Contact Messages table
+    const contactMessagesTableQuery = `
+      CREATE TABLE IF NOT EXISTS contact_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(254) NOT NULL,
+        phone VARCHAR(30) DEFAULT NULL,
+        subject VARCHAR(150) DEFAULT NULL,
+        message TEXT NOT NULL,
+        is_read TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    db.query(contactMessagesTableQuery, (err) => { if (err) console.error('⚠️ Error checking contact_messages table:', err.message); else console.log('📬 Contact Messages table ready'); });
+
   }
 });
 
@@ -7223,14 +7238,94 @@ app.get('/api/chat/:room', (req, res) => {
   });
 });
 
+// ========== PUBLIC CONTACT FORM ==========
+app.post('/api/contact', async (req, res) => {
+  try {
+    let { name, email, phone, subject, message } = req.body;
+
+    // Server-side sanitization (Zero-Trust)
+    name = (name || '').replace(/[^a-zA-Z\u00c0-\u00ff\s'-]/g, '').substring(0, 100).trim();
+    email = (email || '').substring(0, 254).trim().toLowerCase();
+    phone = (phone || '').replace(/[^0-9+\s()-]/g, '').substring(0, 30).trim();
+    subject = (subject || '').substring(0, 150).trim();
+    message = (message || '').substring(0, 2000).trim();
+
+    // Validation
+    if (!name || name.length < 2) {
+      return res.status(400).json({ success: false, message: 'Name is required (min 2 characters).' });
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return res.status(400).json({ success: false, message: 'A valid email address is required.' });
+    }
+    if (!message || message.length < 10) {
+      return res.status(400).json({ success: false, message: 'Message is required (min 10 characters).' });
+    }
+
+    // Store in database
+    const query = 'INSERT INTO contact_messages (name, email, phone, subject, message) VALUES (?, ?, ?, ?, ?)';
+    db.query(query, [name, email, phone || null, subject || null, message], async (err, result) => {
+      if (err) {
+        console.error('\u274c Error saving contact message:', err);
+        return res.status(500).json({ success: false, message: 'Failed to save your message. Please try again.' });
+      }
+
+      // Send notification email to studio
+      try {
+        const studioEmail = process.env.STUDIO_CONTACT_EMAIL || process.env.EMAIL_USER || 'admin@inkvistar.com';
+        const html = buildEmailHtml(`
+          <h2 style="color:#C19A6B;font-size:22px;margin:0 0 20px;">\ud83d\udcec New Contact Form Submission</h2>
+          <div style="background:#1a1a1a;border:1px solid rgba(193,154,107,0.25);border-radius:10px;padding:18px;margin-bottom:16px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding:8px 0;color:#94a3b8;font-size:13px;width:80px;vertical-align:top;">Name</td>
+                <td style="padding:8px 0;color:#e2e8f0;font-size:14px;font-weight:600;">${name}</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 0;color:#94a3b8;font-size:13px;vertical-align:top;">Email</td>
+                <td style="padding:8px 0;"><a href="mailto:${email}" style="color:#C19A6B;text-decoration:none;font-size:14px;">${email}</a></td>
+              </tr>
+              ${phone ? `<tr>
+                <td style="padding:8px 0;color:#94a3b8;font-size:13px;vertical-align:top;">Phone</td>
+                <td style="padding:8px 0;color:#e2e8f0;font-size:14px;">${phone}</td>
+              </tr>` : ''}
+              ${subject ? `<tr>
+                <td style="padding:8px 0;color:#94a3b8;font-size:13px;vertical-align:top;">Subject</td>
+                <td style="padding:8px 0;color:#e2e8f0;font-size:14px;font-weight:600;">${subject}</td>
+              </tr>` : ''}
+            </table>
+          </div>
+          <div style="background:#1a1a1a;border:1px solid rgba(193,154,107,0.15);border-radius:10px;padding:18px;">
+            <p style="color:#94a3b8;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.5px;">Message</p>
+            <p style="color:#e2e8f0;font-size:14px;line-height:1.7;margin:0;white-space:pre-wrap;">${message}</p>
+          </div>
+          <p style="color:#64748b;font-size:12px;margin:16px 0 0;text-align:center;">Received on ${new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</p>
+        `);
+
+        await sendEmail(studioEmail, `New Contact: ${subject || 'Website Inquiry'} \u2014 ${name}`, html);
+        console.log(`\u2705 Contact form email sent from ${name} (${email})`);
+      } catch (emailErr) {
+        // Don't fail the request if email fails — message is already saved
+        console.error('\u26a0\ufe0f Contact email notification failed:', emailErr.message);
+      }
+
+      res.json({ success: true, message: 'Your message has been sent successfully!' });
+    });
+  } catch (error) {
+    console.error('\u274c Contact form error:', error);
+    res.status(500).json({ success: false, message: 'An unexpected error occurred.' });
+  }
+});
+
 // ========== 404 HANDLER ==========
 app.use((req, res) => {
-  console.log(`❌ 404: ${req.method} ${req.url} not found`);
+  console.log(`\u274c 404: ${req.method} ${req.url} not found`);
   res.status(404).json({
     success: false,
     message: 'Endpoint not found'
   });
 });
+
 
 // ========== ERROR HANDLER ==========
 app.use((err, req, res, next) => {
