@@ -996,11 +996,7 @@ function AdminAppointments() {
                                             </div>
                                         )}
                                         <div className="admin-st-5e598434">
-                                            {dayAppts.length > 0 && (
-                                                <div className="admin-st-50ce32ce">
-                                                    {dayAppts.length} {dayAppts.length === 1 ? 'Booking' : 'Bookings'}
-                                                </div>
-                                            )}
+
                                             {dayAppts.length > 0 && (
                                                 <div className="admin-st-3c36f78c">
                                                     {dayAppts.slice(0, 5).map(apt => {

@@ -471,11 +471,7 @@ function ArtistAppointments() {
                                                             </div>
                                                         )}
                                                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
-                                                            {dayAppts.length > 0 && (
-                                                                <div style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 700, backgroundColor: '#eef2ff', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', width: 'fit-content' }}>
-                                                                    {dayAppts.length} {dayAppts.length === 1 ? 'Booking' : 'Bookings'}
-                                                                </div>
-                                                            )}
+
                                                             {dayAppts.length > 0 && (
                                                                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px', paddingLeft: '2px' }}>
                                                                     {dayAppts.slice(0, 5).map(apt => (
