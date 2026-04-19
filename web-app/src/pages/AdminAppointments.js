@@ -132,6 +132,16 @@ function AdminAppointments() {
         }, 400);
     };
 
+    // Helper to get initials for guest accounts (or any user without an avatar)
+    const getInitials = (name) => {
+        if (!name) return '?';
+        const cleanName = name.replace(/\(Guest\)/i, '').trim();
+        const parts = cleanName.split(' ').filter(p => p.length > 0);
+        if (parts.length === 0) return '?';
+        if (parts.length === 1) return parts[0].substring(0, Math.min(2, parts[0].length)).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    };
+
     useEffect(() => {
         fetchAppointments();
         fetchUsers();
@@ -1052,10 +1062,12 @@ function AdminAppointments() {
                                                     src={apt.clientAvatar} 
                                                     alt="Profile" 
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                                    onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'; }}
+                                                    onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; const span = document.createElement('span'); span.style.cssText = 'font-size:14px;font-weight:bold;color:#94a3b8;'; span.textContent = (apt.clientName || '?').replace(/\(Guest\)/i,'').trim().split(' ').filter(p=>p).map((p,i,a)=> i===0||i===a.length-1?p[0]:'').filter(Boolean).join('').toUpperCase().substring(0,2); e.target.parentElement.appendChild(span); }}
                                                 />
                                             ) : (
-                                                <User size={18} color="#94a3b8" />
+                                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#94a3b8' }}>
+                                                    {getInitials(apt.clientName)}
+                                                </span>
                                             )}
                                         </div>
                                         <div>
@@ -1396,7 +1408,9 @@ function AdminAppointments() {
                                                                     border: '3px solid white', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
                                                                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                                                                 }}>
-                                                                    <User size={32} color="#10b981" />
+                                                                    <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>
+                                                                        {getInitials(clients.find(c => c.id == formData.clientId)?.name || clientSearch)}
+                                                                    </span>
                                                                 </div>
                                                             )}
                                                             <span className="admin-st-0e40c814" style={{ fontSize: '1.2rem', fontWeight: '600' }}>
