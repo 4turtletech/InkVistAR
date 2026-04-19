@@ -62,6 +62,7 @@ function AdminAppointments() {
     const [showCalendarLegend, setShowCalendarLegend] = useState(false);
     const [selectedDay, setSelectedDay] = useState(null); // tracks the keyboard-focused day
     const calendarRef = useRef(null);
+    const initialFormDataRef = useRef(null);
 
     // Modal animation handlers
     const openModal = () => {
@@ -69,10 +70,28 @@ function AdminAppointments() {
         setTimeout(() => setAppointmentModal({ mounted: true, visible: true }), 10);
     };
 
-    const closeModal = () => {
+    const closeModal = (skipDirtyCheck = false) => {
+        if (!skipDirtyCheck && initialFormDataRef.current) {
+            const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+            if (hasChanges) {
+                setConfirmDialog({
+                    isOpen: true,
+                    title: 'Unsaved Changes',
+                    message: 'You have unsaved changes. Are you sure you want to close? All changes will be lost.',
+                    type: 'warning',
+                    isAlert: false,
+                    onConfirm: () => {
+                        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                        closeModal(true);
+                    }
+                });
+                return;
+            }
+        }
         setAppointmentModal(prev => ({ ...prev, visible: false }));
         setTimeout(() => {
             setAppointmentModal({ mounted: false, visible: false });
+            initialFormDataRef.current = null;
         }, 400);
     };
 
@@ -382,6 +401,26 @@ function AdminAppointments() {
             rescheduleReason: ''
         });
         setClientSearch(appointment.clientName);
+        initialFormDataRef.current = {
+            clientId: appointment.clientId || appointment.customer_id,
+            artistId: isRealArtist ? storedArtistId : '',
+            secondaryArtistId: appointment.secondary_artist_id || '',
+            commissionSplit: appointment.commission_split || 50,
+            serviceType: appointment.serviceType || appointment.service_type,
+            designTitle: appointment.designTitle || appointment.design_title,
+            date: appointment.date || appointment.appointment_date,
+            time: appointment.time || appointment.start_time,
+            status: appointment.status,
+            paymentStatus: (!appointment.price || appointment.price <= 0) ? 'unpaid' : (appointment.paymentStatus || appointment.payment_status || 'unpaid'),
+            notes: appointment.notes,
+            price: appointment.price,
+            beforePhoto: appointment.beforePhoto,
+            referenceImage: appointment.referenceImage,
+            manualPaidAmount: appointment.manualPaidAmount || 0,
+            manualPaymentMethod: appointment.manualPaymentMethod || 'Cash',
+            rejectionReason: appointment.rejectionReason || '',
+            rescheduleReason: ''
+        };
         openModal();
     };
 
@@ -420,6 +459,7 @@ function AdminAppointments() {
             rescheduleReason: ''
         });
         setClientSearch('');
+        initialFormDataRef.current = { ...formData, clientId: '', artistId: '', secondaryArtistId: '', commissionSplit: 50, serviceType: '', date: prefilledDate || new Date().toISOString().split('T')[0], time: '13:00', status: 'pending', paymentStatus: 'unpaid', notes: '', price: 0, beforePhoto: null, referenceImage: null, manualPaidAmount: 0, manualPaymentMethod: 'Cash', rejectionReason: '', rescheduleReason: '' };
         openModal();
     };
 
@@ -548,7 +588,7 @@ function AdminAppointments() {
                 } else {
                     await Axios.post(`${API_URL}/api/admin/appointments`, payload);
                 }
-                closeModal();
+                closeModal(true);
                 fetchAppointments();
             } catch (error) {
                 console.error('Error saving appointment:', error);
