@@ -238,29 +238,48 @@ function CustomerPortal() {
                                 const PhaseIcon = phase.icon;
 
                                 return (
-                                    <div className="data-card-v2" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #3d2c1e, #2a1f15)', color: '#fff', borderRadius: '16px', overflow: 'hidden', position: 'relative' }}>
-                                        <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(190,144,85,0.12) 0%, transparent 70%)', borderRadius: '50%' }} />
-                                        <div className="card-header-v2" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #1a1410 0%, #2c2118 50%, #1e1712 100%)', color: '#fff', borderRadius: '16px', overflow: 'hidden', position: 'relative', border: '1px solid rgba(190,144,85,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+                                        {/* Decorative glows - pointer-events:none so they don't block clicks */}
+                                        <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(190,144,85,0.15) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+                                        <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(190,144,85,0.08) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+                                        
+                                        {/* Header */}
+                                        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(190,144,85,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                 <Sparkles size={18} color="#be9055" />
-                                                <h2 style={{ color: '#fff', margin: 0, fontSize: '1rem', fontWeight: 700 }}>Healing Journey Tracker</h2>
+                                                <h2 style={{ color: '#e8d5b8', margin: 0, fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Healing Journey Tracker</h2>
                                             </div>
-                                            <button onClick={() => navigate('/customer/aftercare')} style={{ background: 'rgba(190,144,85,0.15)', color: '#be9055', border: '1px solid rgba(190,144,85,0.3)', padding: '6px 14px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                            <button onClick={() => navigate('/customer/aftercare')} style={{ 
+                                                background: 'linear-gradient(135deg, #be9055, #a07840)', 
+                                                color: '#fff', 
+                                                border: 'none', 
+                                                padding: '8px 18px', 
+                                                borderRadius: '10px', 
+                                                fontSize: '0.82rem', 
+                                                fontWeight: 600, 
+                                                cursor: 'pointer', 
+                                                transition: 'all 0.25s ease',
+                                                boxShadow: '0 4px 12px rgba(190,144,85,0.3)',
+                                                position: 'relative',
+                                                zIndex: 5
+                                            }}>
                                                 View Guide
                                             </button>
                                         </div>
-                                        <div style={{ padding: '20px 0', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+
+                                        {/* Body */}
+                                        <div style={{ padding: '20px', display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', position: 'relative', zIndex: 2 }}>
                                             {/* Progress Ring */}
                                             <div style={{ position: 'relative', width: '90px', height: '90px', flexShrink: 0 }}>
                                                 <svg width="90" height="90" viewBox="0 0 90 90" style={{ transform: 'rotate(-90deg)' }}>
-                                                    <circle cx="45" cy="45" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                                                    <circle cx="45" cy="45" r="40" fill="none" stroke="rgba(190,144,85,0.12)" strokeWidth="6" />
                                                     <circle cx="45" cy="45" r="40" fill="none" stroke="#be9055" strokeWidth="6"
                                                         strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
                                                         style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
                                                 </svg>
                                                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                                     <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#be9055', lineHeight: 1 }}>{activeAftercare.currentDay}</span>
-                                                    <span style={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 600 }}>of {activeAftercare.totalDays}</span>
+                                                    <span style={{ fontSize: '0.6rem', color: '#a08a6e', fontWeight: 600 }}>of {activeAftercare.totalDays}</span>
                                                 </div>
                                             </div>
 
@@ -271,10 +290,10 @@ function CustomerPortal() {
                                                         {phase.label}
                                                     </span>
                                                 </div>
-                                                <h3 style={{ fontSize: '1.05rem', margin: '0 0 6px 0', color: '#fff', fontFamily: "'Playfair Display', serif" }}>
+                                                <h3 style={{ fontSize: '1.05rem', margin: '0 0 6px 0', color: '#e8d5b8', fontFamily: "'Playfair Display', serif" }}>
                                                     {activeAftercare.designTitle}
                                                 </h3>
-                                                <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.82rem', lineHeight: '1.5' }}>
+                                                <p style={{ color: '#a08a6e', margin: 0, fontSize: '0.82rem', lineHeight: '1.5' }}>
                                                     {activeAftercare.todayMessage}
                                                 </p>
                                             </div>
