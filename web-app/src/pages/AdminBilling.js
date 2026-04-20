@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Plus, Download, FileText, Settings, CreditCard, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { Plus, Download, FileText, CreditCard, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, SlidersHorizontal } from 'lucide-react';
 import { filterName, filterMoney, clampNumber } from '../utils/validation';
 import PhilippinePeso from '../components/PhilippinePeso';
 
@@ -26,14 +26,7 @@ function AdminBilling() {
     const [payoutModal, setPayoutModal] = useState({ mounted: false, visible: false });
     const [newPayout, setNewPayout] = useState({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
 
-    const [config, setConfig] = useState({
-        baseRate: 150,
-        taxRate: 8,
-        depositRate: 20,
-        size: { small: 100, medium: 250, large: 500 },
-        complexity: { simple: 1.0, detailed: 1.5, complex: 2.0 },
-        styles: { realism: 1.2, traditional: 1.0, japanese: 1.3, tribal: 1.0 }
-    });
+
 
     const [invoiceModal, setInvoiceModal] = useState({ mounted: false, visible: false, mode: 'create', id: null });
     const [newInvoice, setNewInvoice] = useState({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
@@ -161,7 +154,7 @@ function AdminBilling() {
             ]);
 
             if (invRes.data.success) setInvoices(invRes.data.data);
-            if (settingsRes.data.success && settingsRes.data.data.billing) setConfig(prev => ({ ...prev, ...settingsRes.data.data.billing }));
+            if (settingsRes.data.success) { /* Settings loaded */ }
             if (artistRes.data.success) {
                 setArtists(artistRes.data.artists);
             }
@@ -219,18 +212,7 @@ function AdminBilling() {
         });
     };
 
-    const saveConfig = async () => {
-        try {
-            await Axios.post(`${API_URL}/api/admin/settings`, {
-                section: 'billing',
-                data: config
-            });
-            showAlert("Success", "Configuration saved successfully", "success");
-        } catch (error) {
-            console.error("Error saving config:", error);
-            showAlert("Error", "Failed to save configuration", "danger");
-        }
-    };
+
 
     const handlePrintAction = () => {
         window.print();
@@ -260,13 +242,7 @@ function AdminBilling() {
         }
     };
 
-    const handleConfigChange = (section, key, value) => {
-        if (section) {
-            setConfig({ ...config, [section]: { ...config[section], [key]: parseFloat(value) } });
-        } else {
-            setConfig({ ...config, [key]: parseFloat(value) });
-        }
-    };
+
 
     const filteredInvoices = invoices.filter(inv => {
         const matchesSearch = (inv.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -301,9 +277,7 @@ function AdminBilling() {
                          <button className={`btn ${activeTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('invoices')}>
                             <FileText size={18} className="admin-st-c02c7d9c"/> Transaction Logs
                         </button>
-                        <button className={`btn ${activeTab === 'config' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('config')}>
-                            <Settings size={18} className="admin-st-c02c7d9c"/> Configuration
-                        </button>
+
                         <button className={`btn ${activeTab === 'payouts' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('payouts')}>
                             <CreditCard size={18} className="admin-st-c02c7d9c"/> Artist Payouts
                         </button>
@@ -471,72 +445,7 @@ function AdminBilling() {
                             />
                         </div>
                     </>
-                ) : activeTab === 'config' ? (
-                    !loading && (
-                        <div className="settings-container">
-                            <div className="settings-panel glass-card">
-                                <h2>General Pricing Rules</h2>
-                                <div className="settings-section">
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Base Hourly Rate (₱)</label>
-                                            <input type="number" className="form-input" value={config.baseRate} onChange={(e) => handleConfigChange(null, 'baseRate', clampNumber(e.target.value, 0, 100000))} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Minimum Deposit (%)</label>
-                                            <input type="number" className="form-input" value={config.depositRate} onChange={(e) => handleConfigChange(null, 'depositRate', clampNumber(e.target.value, 0, 100))} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Tax Rate (%)</label>
-                                            <input type="number" className="form-input" value={config.taxRate} onChange={(e) => handleConfigChange(null, 'taxRate', clampNumber(e.target.value, 0, 100))} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="settings-panel glass-card admin-st-cf0f3aef">
-                                <h2>Complexity Multipliers</h2>
-                                <div className="settings-section">
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Simple (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.complexity.simple} onChange={(e) => handleConfigChange('complexity', 'simple', clampNumber(e.target.value, 0.1, 10))} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Detailed (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.complexity.detailed} onChange={(e) => handleConfigChange('complexity', 'detailed', clampNumber(e.target.value, 0.1, 10))} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Complex (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.complexity.complex} onChange={(e) => handleConfigChange('complexity', 'complex', clampNumber(e.target.value, 0.1, 10))} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="settings-panel glass-card admin-st-cf0f3aef">
-                                <h2>Style Multipliers</h2>
-                                <div className="settings-section">
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Realism (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.styles.realism} onChange={(e) => handleConfigChange('styles', 'realism', clampNumber(e.target.value, 0.1, 10))} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Traditional (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.styles.traditional} onChange={(e) => handleConfigChange('styles', 'traditional', clampNumber(e.target.value, 0.1, 10))} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Japanese (x)</label>
-                                            <input type="number" step="0.1" className="form-input" value={config.styles.japanese} onChange={(e) => handleConfigChange('styles', 'japanese', clampNumber(e.target.value, 0.1, 10))} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <button className="btn btn-primary admin-st-9424368e" onClick={saveConfig}>Save Configuration</button>
-                        </div>
-                    )) : activeTab === 'payouts' ? (
+                ) : activeTab === 'payouts' ? (
                     <div className="payouts-container">
                         <div className="stats-row admin-st-2579959f">
                             <div className="stat-item glass-card">

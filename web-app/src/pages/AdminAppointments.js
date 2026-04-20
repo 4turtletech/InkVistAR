@@ -1865,17 +1865,7 @@ function AdminAppointments() {
                                                 </button>
                                                 )}
 
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-secondary"
-                                                    onClick={() => {
-                                                        closeModal();
-                                                        setTimeout(() => handleRebookNextSession(selectedAppointment), 200);
-                                                    }}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#e0e7ff', color: '#4338ca', borderColor: '#c7d2fe' }}
-                                                >
-                                                    <Plus size={16} /> Rebook Next Session
-                                                </button>
+
                                             </>
                                         )}
                                     </div>
