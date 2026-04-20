@@ -4591,6 +4591,35 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
 });
 
 
+// Resend receipt email to customer for a specific invoice
+app.post('/api/admin/invoices/:id/resend', (req, res) => {
+  const { id } = req.params;
+  db.query(`
+    SELECT i.*, u.email as customer_email, u.name as customer_name
+    FROM invoices i
+    LEFT JOIN users u ON i.customer_id = u.id
+    WHERE i.id = ?
+  `, [id], (err, results) => {
+    if (err || results.length === 0) {
+      return res.status(err ? 500 : 404).json({ success: false, message: err ? 'Database error' : 'Invoice not found' });
+    }
+    const invoice = results[0];
+    if (!invoice.customer_email) {
+      return res.status(400).json({ success: false, message: 'No email address found for this customer.' });
+    }
+    sendReceiptEmail(invoice.customer_email, {
+      id: invoice.invoice_number,
+      amount: parseFloat(invoice.amount),
+      method: invoice.payment_method || 'Manual',
+      clientName: invoice.client_name || invoice.customer_name,
+      designTitle: invoice.service_type || 'Session Payment',
+      changeGiven: parseFloat(invoice.change_given) || 0,
+      remaining: 0
+    });
+    res.json({ success: true, message: `Receipt sent to ${invoice.customer_email}` });
+  });
+});
+
 // DELETE (soft) an appointment (Admin)
 app.delete('/api/admin/appointments/:id', (req, res) => {
   const { id } = req.params;
@@ -5261,7 +5290,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
                 paymentType: paymentType || 'full',
                 isLatePayment: String(isLatePayment)
               },
-              success_url: `${redirectBaseSuccess}?appointmentId=${appointmentId}`,
+              success_url: `${redirectBaseSuccess}?appointmentId=${appointmentId}&bookingCode=${encodeURIComponent(bookingDisplayCode || '')}`,
               cancel_url: `${redirectBaseFailed}?payment=failed&appointmentId=${appointmentId}`
             }
           }
@@ -5329,7 +5358,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
   try {
     // 1. Check DB first
     db.query(`
-      SELECT ap.payment_status, ap.status, ap.customer_id, ap.artist_id, ap.appointment_date, ap.start_time, u.name as customer_name, u.email as cx_email 
+      SELECT ap.payment_status, ap.status, ap.customer_id, ap.artist_id, ap.appointment_date, ap.start_time, ap.booking_code, u.name as customer_name, u.email as cx_email 
       FROM appointments ap 
       JOIN users u ON ap.customer_id = u.id 
       WHERE ap.id = ?`, [appointmentId], async (err, results) => {
@@ -5360,13 +5389,13 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
             });
           }
         });
-        return res.json({ success: true, payment_status: 'paid' });
+        return res.json({ success: true, payment_status: 'paid', booking_code: appt.booking_code || null });
       }
 
       // 2. If not paid, check if we have an active checkout session
       db.query('SELECT session_id, amount FROM payments WHERE appointment_id = ? ORDER BY created_at DESC LIMIT 1', [appointmentId], async (pErr, pResults) => {
         if (pErr || pResults.length === 0 || !pResults[0].session_id) {
-          return res.json({ success: true, payment_status: currentPaymentStatus });
+          return res.json({ success: true, payment_status: currentPaymentStatus, booking_code: appt.booking_code || null });
         }
 
         const sessionId = pResults[0].session_id;
@@ -5447,7 +5476,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
               if (updErr) console.error(`❌ Failed to update payments record to paid for ${sessionId}:`, updErr.message);
             });
 
-            return res.json({ success: true, payment_status: newPaymentStatus });
+            return res.json({ success: true, payment_status: newPaymentStatus, booking_code: appt.booking_code || null });
           } else {
             console.log(`ℹ️ Polling result: Payment is still NOT detected as paid for Appt ${appointmentId}`);
           }
@@ -5455,7 +5484,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
           console.error('❌ Polling PayMongo API error:', pollErr.message);
         }
 
-        res.json({ success: true, payment_status: currentPaymentStatus });
+        res.json({ success: true, payment_status: currentPaymentStatus, booking_code: appt.booking_code || null });
       });
     });
   } catch (error) {

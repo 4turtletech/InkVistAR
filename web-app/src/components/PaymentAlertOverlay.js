@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
-import { AlertTriangle, X, CreditCard, ArrowRight, DollarSign, Clock, User, FileText, CheckCircle, Banknote, Wallet, Printer, Download } from 'lucide-react';
+import { AlertTriangle, X, CreditCard, ArrowRight, DollarSign, Clock, User, FileText, CheckCircle, Banknote, Wallet, Printer, Download, Send } from 'lucide-react';
 import PhilippinePeso from './PhilippinePeso';
 import ConfirmModal from './ConfirmModal';
 import { API_URL } from '../config';
@@ -23,6 +23,7 @@ function PaymentAlertOverlay() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
     const [receiptData, setReceiptData] = useState(null); // Holds invoice data after successful payment
+    const [isSendingReceipt, setIsSendingReceipt] = useState(false);
     const hasShownOnLoginRef = useRef(false);
     const receiptRef = useRef(null);
 
@@ -182,6 +183,27 @@ function PaymentAlertOverlay() {
     // Download receipt as PDF (uses browser print-to-PDF)
     const handleDownloadReceipt = () => {
         handlePrintReceipt(); // Browser print dialog allows "Save as PDF"
+    };
+
+    // Resend receipt email to customer
+    const handleSendReceipt = async () => {
+        if (!receiptData?.invoiceId) {
+            showAlert('Error', 'Invoice ID not available.', 'warning');
+            return;
+        }
+        setIsSendingReceipt(true);
+        try {
+            const res = await Axios.post(`${API_URL}/api/admin/invoices/${receiptData.invoiceId}/resend`);
+            if (res.data.success) {
+                showAlert('Sent', res.data.message, 'success');
+            } else {
+                showAlert('Error', res.data.message || 'Failed to send receipt.', 'danger');
+            }
+        } catch (e) {
+            showAlert('Error', 'Failed to send receipt email.', 'danger');
+        } finally {
+            setIsSendingReceipt(false);
+        }
     };
 
     if (alerts.length === 0 && !receiptData) return null;
@@ -669,6 +691,19 @@ function PaymentAlertOverlay() {
                                     display: 'flex', alignItems: 'center', gap: '6px'
                                 }}>
                                     <Download size={14} /> Download
+                                </button>
+                                <button 
+                                    onClick={handleSendReceipt} 
+                                    disabled={isSendingReceipt}
+                                    style={{
+                                        padding: '10px 16px', background: isSendingReceipt ? '#94a3b8' : '#fff', 
+                                        border: '1px solid #e2e8f0', borderRadius: '10px',
+                                        fontWeight: 600, cursor: isSendingReceipt ? 'not-allowed' : 'pointer', 
+                                        color: isSendingReceipt ? '#fff' : '#6366f1', fontSize: '0.85rem',
+                                        display: 'flex', alignItems: 'center', gap: '6px'
+                                    }}
+                                >
+                                    <Send size={14} /> {isSendingReceipt ? 'Sending...' : 'Send to Customer'}
                                 </button>
                             </div>
                             <button onClick={() => setReceiptData(null)} style={{

@@ -238,7 +238,7 @@ function CustomerPortal() {
                                 const PhaseIcon = phase.icon;
 
                                 return (
-                                    <div className="data-card-v2" style={{ marginBottom: '24px', background: '#0f172a', color: '#fff', borderRadius: '16px', overflow: 'hidden', position: 'relative' }}>
+                                    <div className="data-card-v2" style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #3d2c1e, #2a1f15)', color: '#fff', borderRadius: '16px', overflow: 'hidden', position: 'relative' }}>
                                         <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(190,144,85,0.12) 0%, transparent 70%)', borderRadius: '50%' }} />
                                         <div className="card-header-v2" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

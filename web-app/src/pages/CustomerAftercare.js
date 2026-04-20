@@ -87,7 +87,7 @@ function CustomerAftercare() {
           ) : (
             <>
               {/* Hero Widget */}
-              <div style={{ background: '#0f172a', borderRadius: '20px', padding: '28px', marginBottom: '28px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ background: 'linear-gradient(135deg, #3d2c1e, #2a1f15)', borderRadius: '20px', padding: '28px', marginBottom: '28px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(190,144,85,0.15) 0%, transparent 70%)', borderRadius: '50%' }} />
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
