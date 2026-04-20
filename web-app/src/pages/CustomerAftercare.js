@@ -8,9 +8,9 @@ import './CustomerStyles.css';
 import { API_URL } from '../config';
 
 const PHASE_CONFIG = {
-  initial: { label: 'Initial Healing', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: AlertTriangle },
-  peeling: { label: 'Peeling & Itching', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: Droplets },
-  healing: { label: 'Final Healing', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: Heart }
+  initial: { label: 'Initial Healing', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: AlertTriangle, widgetBg: 'linear-gradient(135deg, #2e1515, #1a0b0b)' },
+  peeling: { label: 'Peeling & Itching', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: Droplets, widgetBg: 'linear-gradient(135deg, #2e1f0e, #1a1005)' },
+  healing: { label: 'Final Healing', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: Heart, widgetBg: 'linear-gradient(135deg, #0e291e, #071710)' }
 };
 
 function CustomerAftercare() {
@@ -87,20 +87,20 @@ function CustomerAftercare() {
           ) : (
             <>
               {/* Hero Widget */}
-              <div style={{ background: 'linear-gradient(135deg, #3d2c1e, #2a1f15)', borderRadius: '20px', padding: '28px', marginBottom: '28px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(190,144,85,0.15) 0%, transparent 70%)', borderRadius: '50%' }} />
+              <div style={{ background: PHASE_CONFIG[aftercare.phase]?.widgetBg || 'linear-gradient(135deg, #3d2c1e, #2a1f15)', borderRadius: '20px', padding: '28px', marginBottom: '28px', color: '#fff', position: 'relative', overflow: 'hidden', transition: 'background 0.3s ease' }}>
+                <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '200px', height: '200px', background: `radial-gradient(circle, ${PHASE_CONFIG[aftercare.phase]?.color || '#be9055'}25 0%, transparent 70%)`, borderRadius: '50%' }} />
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
                   {/* Progress Ring */}
                   <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
                     <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
                       <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
-                      <circle cx="60" cy="60" r="54" fill="none" stroke="#be9055" strokeWidth="8"
+                      <circle cx="60" cy="60" r="54" fill="none" stroke={PHASE_CONFIG[aftercare.phase]?.color || "#be9055"} strokeWidth="8"
                         strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
-                        style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
+                        style={{ transition: 'stroke-dashoffset 1s ease-out, stroke 0.3s ease' }} />
                     </svg>
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '2rem', fontWeight: 800, color: '#be9055', lineHeight: 1 }}>{aftercare.currentDay}</span>
+                      <span style={{ fontSize: '2rem', fontWeight: 800, color: PHASE_CONFIG[aftercare.phase]?.color || '#be9055', lineHeight: 1, transition: 'color 0.3s ease' }}>{aftercare.currentDay}</span>
                       <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>of {aftercare.totalDays}</span>
                     </div>
                   </div>

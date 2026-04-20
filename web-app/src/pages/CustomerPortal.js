@@ -238,7 +238,7 @@ function CustomerPortal() {
                                 const PhaseIcon = phase.icon;
 
                                 return (
-                                    <div style={{ marginBottom: '24px', background: 'linear-gradient(135deg, #1a1410 0%, #2c2118 50%, #1e1712 100%)', color: '#fff', borderRadius: '16px', overflow: 'hidden', position: 'relative', border: '1px solid rgba(190,144,85,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+                                    <div style={{ marginBottom: '24px', background: '#1a1416', color: '#fff', borderRadius: '16px', overflow: 'hidden', position: 'relative', border: '1px solid rgba(190,144,85,0.15)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
                                         {/* Decorative glows - pointer-events:none so they don't block clicks */}
                                         <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(190,144,85,0.15) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
                                         <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(190,144,85,0.08) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
