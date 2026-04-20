@@ -4806,8 +4806,10 @@ app.put('/api/appointments/:id/status', (req, res) => {
               const apptTotalPaid = Number(pRes[0].total_paid) || 0;
               const hasOutstandingBalance = apptPrice > 0 && apptTotalPaid < apptPrice;
               const isUnquoted = apptPrice <= 0;
+              const isConsultation = (appointment.service_type || '').toLowerCase() === 'consultation';
 
-              if (hasOutstandingBalance || isUnquoted) {
+              // Skip payment alerts for consultations — they are always free
+              if (!isConsultation && (hasOutstandingBalance || isUnquoted)) {
                 const alertMsg = isUnquoted
                   ? `Appointment #${id} for "${designTitle}" has been completed but has NO PRICE SET. The artist cannot be compensated until a quote is finalized and payment is collected.`
                   : `Appointment #${id} for "${designTitle}" has been completed with an outstanding balance of ₱${(apptPrice - apptTotalPaid).toLocaleString()}. Immediate action is required to process artist compensation.`;
@@ -4890,6 +4892,7 @@ app.get('/api/admin/pending-payment-alerts', (req, res) => {
     LEFT JOIN users ar ON ap.artist_id = ar.id
     WHERE ap.status = 'completed'
       AND ap.is_deleted = 0
+      AND (ap.service_type IS NULL OR ap.service_type != 'Consultation')
       AND (
         (ap.price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) < ap.price)
         OR (ap.price IS NULL OR ap.price <= 0)
@@ -5786,7 +5789,6 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
         });
       });
     });
-  });
 });
 
 // ========== CUSTOMER AFTERCARE API ==========

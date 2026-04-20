@@ -43,3 +43,12 @@
   border-color: #ef4444 !important;
   background-color: rgb(255, 255, 255) !important;
 }
+
+/* Hide Google reCAPTCHA v3 badge globally.
+   reCAPTCHA v3 allows hiding the badge per Google's FAQ,
+   as long as you include the required branding text on pages that use it. */
+.grecaptcha-badge {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
