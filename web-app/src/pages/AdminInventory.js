@@ -12,6 +12,7 @@ import './AdminStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
+import { generateReportHeader, downloadCsv } from '../utils/csvExport';
 
 const INVENTORY_CATEGORIES = [
     { value: 'ink', label: 'Ink' },
@@ -356,18 +357,17 @@ function AdminInventory() {
         }, 250);
     };
 
-    const escapeCsv = (str) => {
-        if (str === null || str === undefined) return '""';
-        const stringified = String(str);
-        if (stringified.includes('"') || stringified.includes(',')) {
-            return `"${stringified.replace(/"/g, '""')}"`;
-        }
-        return `"${stringified}"`;
-    };
-
     const handleExportCSV = () => {
-        const headers = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Cost', 'Status'];
-        const csvData = filteredInventory.map(item => [
+        const headerRows = generateReportHeader('Inventory Status Report', {
+            'Category': categoryFilter !== 'all' ? categoryFilter : null,
+            'Stock Level': stockStatusFilter !== 'all' ? stockStatusFilter : null,
+            'Item Status': itemStatusFilter,
+            'Search': searchTerm || null,
+            'Sort By': sortBy
+        });
+
+        const columnHeaders = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Cost (₱)', 'Status'];
+        const dataRows = filteredInventory.map(item => [
             item.name,
             item.category,
             item.currentStock,
@@ -376,18 +376,7 @@ function AdminInventory() {
             getStockStatus(item.currentStock, item.minStock, item.maxStock)
         ]);
 
-        const csvContent = [
-            headers.join(','),
-            ...csvData.map(row => row.map(cell => escapeCsv(cell)).join(','))
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `inventory-export-${new Date().toISOString().split('T')[0]}.csv`;
-        link.click();
-        URL.revokeObjectURL(url);
+        downloadCsv([...headerRows, columnHeaders, ...dataRows], 'inventory_export');
     };
 
     const getStockStatus = (current, min, max) => {

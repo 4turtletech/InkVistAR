@@ -13,6 +13,7 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 import { getDisplayCode } from '../utils/formatters';
 import { filterName, filterDigits, clampNumber } from '../utils/validation';
+import { generateReportHeader, downloadCsv, escapeCsv } from '../utils/csvExport';
 
 function AdminAppointments() {
     const navigate = useNavigate();
@@ -749,29 +750,28 @@ function AdminAppointments() {
         }
     };
 
-    const escapeCsv = (str) => {
-        if (str === null || str === undefined) return '""';
-        const stringified = String(str);
-        if (stringified.includes('"') || stringified.includes(',')) {
-            return `"${stringified.replace(/"/g, '""')}"`;
-        }
-        return `"${stringified}"`;
-    };
-
     const handleExport = () => {
-        const headers = ['Appointment ID', 'Client Name', 'Artist', 'Service Type', 'Date', 'Time', 'Status', 'Price'];
-        const csvContent = [
-            headers.join(','),
-            ...filteredAppointments.map(a =>
-                `${a.id},${escapeCsv(a.clientName)},${escapeCsv(a.artistName)},${escapeCsv(a.serviceType)},${escapeCsv(a.date)},${escapeCsv(a.time)},${escapeCsv(a.status)},${a.price || 0}`
-            )
-        ].join('\n');
+        const headerRows = generateReportHeader('Appointments Export', {
+            'Status': statusFilter !== 'all' ? statusFilter : null,
+            'Service': serviceFilter !== 'all' ? serviceFilter : null,
+            'Date': dateFilter || null,
+            'Search': searchTerm || null,
+            'View': viewMode
+        });
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `appointments_export_${new Date().toISOString().split('T')[0]}.csv`;
-        link.click();
+        const columnHeaders = ['Appointment ID', 'Client Name', 'Artist', 'Service Type', 'Date', 'Time', 'Status', 'Price (₱)'];
+        const dataRows = filteredAppointments.map(a => [
+            a.id,
+            a.clientName,
+            a.artistName,
+            a.serviceType,
+            a.date,
+            a.time,
+            a.status,
+            a.price || 0
+        ]);
+
+        downloadCsv([...headerRows, columnHeaders, ...dataRows], 'appointments_export');
     };
 
     const handlePrint = () => {

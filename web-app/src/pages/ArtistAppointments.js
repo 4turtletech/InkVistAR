@@ -9,6 +9,7 @@ import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
 import { getDisplayCode } from '../utils/formatters';
+import { generateReportHeader, downloadCsv } from '../utils/csvExport';
 
 function ArtistAppointments() {
     const [appointments, setAppointments] = useState([]);
@@ -136,29 +137,24 @@ function ArtistAppointments() {
         }
     }, [appointments, location.state]);
 
-    const escapeCsv = (str) => {
-        if (str === null || str === undefined) return '""';
-        const stringified = String(str);
-        if (stringified.includes('"') || stringified.includes(',')) {
-            return `"${stringified.replace(/"/g, '""')}"`;
-        }
-        return `"${stringified}"`;
-    };
-
     const handleExport = () => {
-        const headers = ['Client', 'Service', 'Date', 'Time', 'Status'];
-        const csvContent = [
-            headers.join(','),
-            ...filteredAppointments.map(a =>
-                `${escapeCsv(a.client_name)},${escapeCsv(a.design_title)},${escapeCsv(new Date(a.appointment_date).toLocaleDateString())},${escapeCsv(a.start_time)},${escapeCsv(a.status)}`
-            )
-        ].join('\n');
+        const artistName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : 'Artist';
+        const headerRows = generateReportHeader('Artist Schedule Export', {
+            'Artist': artistName,
+            'Tab': activeTab,
+            'View': viewMode
+        });
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `artist_appointments_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`;
-        link.click();
+        const columnHeaders = ['Client', 'Service', 'Date', 'Time', 'Status'];
+        const dataRows = filteredAppointments.map(a => [
+            a.client_name,
+            a.design_title,
+            new Date(a.appointment_date).toLocaleDateString(),
+            a.start_time,
+            a.status
+        ]);
+
+        downloadCsv([...headerRows, columnHeaders, ...dataRows], `artist_appointments_${activeTab}`);
     };
 
     const handlePrint = () => {

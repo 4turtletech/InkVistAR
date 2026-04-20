@@ -12,6 +12,7 @@ import './AdminAnalytics.css';
 import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
+import { generateReportHeader, downloadCsv } from '../utils/csvExport';
 
 
 function AdminAnalytics() {
@@ -215,16 +216,15 @@ function AdminAnalytics() {
     const closeAuditModal = () => setAuditModal({ open: false, title: '', type: '', data: null });
 
     /* ═══════════════ CSV EXPORT ═══════════════ */
-    const escapeCsv = (str) => {
-        if (str === null || str === undefined) return '""';
-        const s = String(str);
-        return s.includes('"') || s.includes(',') ? `"${s.replace(/"/g, '""')}"` : `"${s}"`;
-    };
-
     const handleExport = () => {
         if (!analytics) return;
-        const rows = [
-            ['Report Type', 'Metric', 'Value'],
+
+        const headerRows = generateReportHeader('Analytics & Performance Report', {
+            'Period': revenueTimeframe === 'monthly' ? 'This Month' : revenueTimeframe === 'yearly' ? 'This Year' : 'All Time'
+        });
+
+        const dataRows = [
+            ['Section', 'Metric', 'Value'],
             ['Revenue', 'Total Revenue', `₱${Number(analytics.revenue.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
             ['Expenses', 'Ops Expenses', `₱${Number(analytics.expenses.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
             ['Expenses', 'Overhead / Manual', `₱${Number(analytics.overhead?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
@@ -244,15 +244,8 @@ function AdminAnalytics() {
             ['Inventory Consumption', 'Item', 'Used Qty'],
             ...analytics.inventory.map(i => ['Inventory', i.name, `${i.used} ${i.unit}`])
         ];
-        
-        const csvContent = rows.map(e => e.map(cell => escapeCsv(cell)).join(",")).join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `analytics_report_${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+
+        downloadCsv([...headerRows, ...dataRows], 'analytics_report');
     };
 
     const handlePrint = () => {
