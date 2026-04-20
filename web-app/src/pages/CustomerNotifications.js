@@ -205,17 +205,33 @@ function CustomerNotifications() {
                     <div className="header-title">
                         <h1>Updates & Alerts</h1>
                     </div>
-                    <div className="header-actions">
-                        <button className="premium-btn secondary" onClick={async () => {
+                    <div className="header-actions" style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={async () => {
                             setIsRefreshingNotifs(true);
                             await fetchNotifications();
                             setIsRefreshingNotifs(false);
-                        }} title="Refresh notifications" style={{ marginRight: '10px' }}>
-                            <RefreshCw size={16} style={isRefreshingNotifs ? { animation: 'spin 1s linear infinite' } : {}} /> Refresh
+                        }} title="Refresh notifications" style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '10px 18px', borderRadius: '12px',
+                            background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)',
+                            border: '1px solid rgba(190,144,85,0.2)',
+                            color: '#6b5a3e', fontWeight: 600, fontSize: '0.85rem',
+                            cursor: 'pointer', transition: 'all 0.25s ease',
+                            boxShadow: '0 2px 8px rgba(190,144,85,0.08)'
+                        }}>
+                            <RefreshCw size={15} style={isRefreshingNotifs ? { animation: 'spin 1s linear infinite' } : {}} /> Refresh
                         </button>
-                        <button className="premium-btn primary" onClick={markAllRead}>
-                            <CheckCheck size={18} />
-                            Mark All Read
+                        <button onClick={markAllRead} style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '10px 18px', borderRadius: '12px',
+                            background: 'linear-gradient(135deg, rgba(190,144,85,0.85), rgba(160,120,65,0.9))',
+                            backdropFilter: 'blur(12px)',
+                            border: '1px solid rgba(190,144,85,0.4)',
+                            color: '#fff', fontWeight: 600, fontSize: '0.85rem',
+                            cursor: 'pointer', transition: 'all 0.25s ease',
+                            boxShadow: '0 4px 14px rgba(190,144,85,0.25)'
+                        }}>
+                            <CheckCheck size={15} /> Mark All Read
                         </button>
                     </div>
                 </header>
@@ -311,45 +327,32 @@ function CustomerNotifications() {
                                                                 {formatNotificationTime(n.created_at)}
                                                             </span>
                                                             
-                                                            <div className="notif-actions" style={{ display: 'flex', gap: '8px' }}>
+                                                            <div className="notif-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                                                 {!n.is_read ? (
-                                                                    <button className="notif-btn ghost customer-st-1b8f69ba" onClick={() => markRead(n.id)} title="Mark as Read">
-                                                                        <Check size={14}/>
+                                                                    <button onClick={() => markRead(n.id)} title="Mark as Read" style={glassChipGhost}>
+                                                                        <Check size={13}/>
                                                                     </button>
                                                                 ) : (
-                                                                    <button className="notif-btn ghost customer-st-1b8f69ba" onClick={() => markUnread(n.id)} title="Mark as Unread">
-                                                                        <RotateCcw size={14}/>
+                                                                    <button onClick={() => markUnread(n.id)} title="Mark as Unread" style={glassChipGhost}>
+                                                                        <RotateCcw size={13}/>
                                                                     </button>
                                                                 )}
                                                                 {n.type === 'appointment_reminder' && (
-                                                                    <a className="notif-btn primary customer-st-b615ccfe" href="/customer/bookings" >
-                                                                        View Upcoming
-                                                                    </a>
+                                                                    <a href="/customer/bookings" style={glassChipBrand}>View Upcoming</a>
                                                                 )}
                                                                 {n.type === 'pos_invoice' && (
-                                                                    <a className="notif-btn primary customer-st-be163e3f" href={`${API_URL}/api/invoices/${n.related_id}`} target="_blank" rel="noopener noreferrer" >
-                                                                        Invoice
-                                                                    </a>
+                                                                    <a href={`${API_URL}/api/invoices/${n.related_id}`} target="_blank" rel="noopener noreferrer" style={glassChipBrand}>Invoice</a>
                                                                 )}
-                                                                {n.type === 'aftercare_reminder' && (
-                                                                    <button className="notif-btn primary customer-st-3d39e5b0" onClick={(e) => { e.stopPropagation(); navigate('/customer/aftercare'); }} >
-                                                                        View Guide
-                                                                    </button>
-                                                                )}
-                                                                {n.type === 'aftercare_daily' && (
-                                                                    <button className="notif-btn primary" style={{ background: 'rgba(190,144,85,0.15)', color: '#be9055', border: '1px solid rgba(190,144,85,0.3)', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); navigate('/customer/aftercare'); }} >
-                                                                        View Guide
-                                                                    </button>
+                                                                {(n.type === 'aftercare_reminder' || n.type === 'aftercare_daily') && (
+                                                                    <button onClick={(e) => { e.stopPropagation(); navigate('/customer/aftercare'); }} style={glassChipBrand}>View Guide</button>
                                                                 )}
                                                                 {n.type === 'review_prompt' && (
                                                                     reviewedAppointments.has(Number(n.related_id)) ? (
-                                                                        <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                                            <CheckCircle size={14} /> Review Submitted
+                                                                        <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', background: 'rgba(16,185,129,0.08)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.15)' }}>
+                                                                            <CheckCircle size={12} /> Reviewed
                                                                         </span>
                                                                     ) : (
-                                                                        <a className="notif-btn primary customer-st-9bd8a3c8" href={`/customer/reviews/new?appointment=${n.related_id}`} >
-                                                                            Leave Review
-                                                                        </a>
+                                                                        <a href={`/customer/reviews/new?appointment=${n.related_id}`} style={glassChipBrand}>Leave Review</a>
                                                                     )
                                                                 )}
                                                             </div>
@@ -401,36 +404,34 @@ function CustomerNotifications() {
                         <div className="customer-st-49ffbede" >
                             <p className="customer-st-5454b175" >{selectedNotification.message}</p>
                         </div>
-                        <div className="customer-st-23aef110" >
-                            <span className="customer-st-97b91651" >Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
-                            <div className="notif-actions customer-st-7cead41b" >
+                        <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                            <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                                 {selectedNotification.related_id && selectedNotification.type !== 'pos_invoice' && selectedNotification.type !== 'review_prompt' && selectedNotification.type !== 'aftercare_reminder' && selectedNotification.type !== 'aftercare_daily' && selectedNotification.type !== 'email_change' && selectedNotification.type !== 'password_change' && selectedNotification.type !== 'payment_success' && (
-                                    <a className="notif-btn primary customer-st-be17fc86" href={`/customer/bookings?appointment=${selectedNotification.related_id}`} >Take Action</a>
+                                    <a href={`/customer/bookings?appointment=${selectedNotification.related_id}`} style={glassModalBtnPrimary}>Take Action</a>
                                 )}
                                 {selectedNotification.type === 'payment_success' && (() => {
-                                    // Extract invoice number from message (e.g., "Invoice INV-000001 is now available")
                                     const invoiceMatch = selectedNotification.message?.match(/INV-\d+/);
                                     const invoiceNum = invoiceMatch ? invoiceMatch[0] : null;
                                     return invoiceNum ? (
-                                        <button className="notif-btn primary customer-st-be17fc86" onClick={() => window.open(`/customer/invoice/${invoiceNum}`, '_blank')}>View Invoice</button>
+                                        <button onClick={() => window.open(`/customer/invoice/${invoiceNum}`, '_blank')} style={glassModalBtnPrimary}>View Invoice</button>
                                     ) : (
-                                        <a className="notif-btn primary customer-st-be17fc86" href={`/customer/bookings?appointment=${selectedNotification.related_id}`}>View Booking</a>
+                                        <a href={`/customer/bookings?appointment=${selectedNotification.related_id}`} style={glassModalBtnPrimary}>View Booking</a>
                                     );
                                 })()}
-                                {selectedNotification.type === 'pos_invoice' && <a className="notif-btn primary customer-st-be17fc86" href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" >View Invoice</a>}
-                                {(selectedNotification.type === 'email_change' || selectedNotification.type === 'password_change') && <button className="notif-btn primary" onClick={() => navigate('/customer/profile')}>Manage Profile</button>}
-                                {selectedNotification.type === 'aftercare_reminder' && <button className="notif-btn primary customer-st-b55afb9c" onClick={() => { setSelectedNotification(null); navigate('/customer/aftercare'); }} >View Guide</button>}
-                                {selectedNotification.type === 'aftercare_daily' && <button className="notif-btn primary" style={{ background: '#be9055', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }} onClick={() => { setSelectedNotification(null); navigate('/customer/aftercare'); }} >View Full Guide</button>}
+                                {selectedNotification.type === 'pos_invoice' && <a href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" style={glassModalBtnPrimary}>View Invoice</a>}
+                                {(selectedNotification.type === 'email_change' || selectedNotification.type === 'password_change') && <button onClick={() => navigate('/customer/profile')} style={glassModalBtnPrimary}>Manage Profile</button>}
+                                {(selectedNotification.type === 'aftercare_reminder' || selectedNotification.type === 'aftercare_daily') && <button onClick={() => { setSelectedNotification(null); navigate('/customer/aftercare'); }} style={glassModalBtnPrimary}>View Guide</button>}
                                 {selectedNotification.type === 'review_prompt' && (
                                     reviewedAppointments.has(Number(selectedNotification.related_id)) ? (
-                                        <span style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                            <CheckCircle size={16} /> Review Already Submitted
+                                        <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'rgba(16,185,129,0.08)', borderRadius: '10px', border: '1px solid rgba(16,185,129,0.15)' }}>
+                                            <CheckCircle size={15} /> Review Submitted
                                         </span>
                                     ) : (
-                                        <a className="notif-btn primary customer-st-3f2429fc" href={`/customer/reviews/new?appointment=${selectedNotification.related_id}`} >Leave Review</a>
+                                        <a href={`/customer/reviews/new?appointment=${selectedNotification.related_id}`} style={glassModalBtnPrimary}>Leave Review</a>
                                     )
                                 )}
-                                <button className="notif-btn ghost customer-st-cb4a8d52" onClick={() => setSelectedNotification(null)} >Close</button>
+                                <button onClick={() => setSelectedNotification(null)} style={glassModalBtnSecondary}>Close</button>
                             </div>
                         </div>
                     </div>
@@ -525,14 +526,61 @@ function CustomerNotifications() {
 const filterButtonStyle = (isActive) => ({
     padding: '8px 20px',
     borderRadius: '20px',
-    border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1',
-    background: isActive ? '#be9055' : 'rgba(255,255,255,0.05)',
-    color: isActive ? 'white' : '#64748b',
+    border: isActive ? '1px solid rgba(190,144,85,0.4)' : '1px solid rgba(203,213,225,0.5)',
+    background: isActive ? 'linear-gradient(135deg, rgba(190,144,85,0.85), rgba(160,120,65,0.9))' : 'rgba(255,255,255,0.55)',
+    backdropFilter: 'blur(12px)',
+    color: isActive ? '#fff' : '#6b5a3e',
     cursor: 'pointer',
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
     fontWeight: '600',
-    transition: 'all 0.3s ease',
-    backdropFilter: 'blur(10px)'
+    transition: 'all 0.25s ease',
+    boxShadow: isActive ? '0 4px 14px rgba(190,144,85,0.25)' : '0 1px 4px rgba(0,0,0,0.04)',
+    letterSpacing: '0.02em'
 });
+
+// Glassmorphism inline button styles
+const glassChipGhost = {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: '28px', height: '28px', borderRadius: '8px',
+    background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)',
+    border: '1px solid rgba(190,144,85,0.15)',
+    color: '#8b7355', cursor: 'pointer',
+    transition: 'all 0.2s ease', padding: 0,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+};
+
+const glassChipBrand = {
+    display: 'inline-flex', alignItems: 'center', gap: '4px',
+    padding: '4px 12px', borderRadius: '8px',
+    background: 'rgba(190,144,85,0.1)', backdropFilter: 'blur(8px)',
+    border: '1px solid rgba(190,144,85,0.25)',
+    color: '#8b6914', fontWeight: 600, fontSize: '0.75rem',
+    cursor: 'pointer', textDecoration: 'none',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 1px 6px rgba(190,144,85,0.1)'
+};
+
+const glassModalBtnPrimary = {
+    display: 'inline-flex', alignItems: 'center', gap: '6px',
+    padding: '9px 20px', borderRadius: '10px',
+    background: 'linear-gradient(135deg, rgba(190,144,85,0.85), rgba(160,120,65,0.9))',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(190,144,85,0.4)',
+    color: '#fff', fontWeight: 600, fontSize: '0.85rem',
+    cursor: 'pointer', textDecoration: 'none',
+    transition: 'all 0.25s ease',
+    boxShadow: '0 4px 14px rgba(190,144,85,0.2)'
+};
+
+const glassModalBtnSecondary = {
+    display: 'inline-flex', alignItems: 'center', gap: '6px',
+    padding: '9px 20px', borderRadius: '10px',
+    background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(190,144,85,0.15)',
+    color: '#6b5a3e', fontWeight: 600, fontSize: '0.85rem',
+    cursor: 'pointer', textDecoration: 'none',
+    transition: 'all 0.25s ease',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+};
 
 export default CustomerNotifications;
