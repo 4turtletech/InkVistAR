@@ -90,48 +90,63 @@ function CustomerAftercare() {
               {(() => {
                 const phaseThemes = {
                   initial: {
-                    bg: 'linear-gradient(135deg, #1a1214 0%, #2c1a1a 50%, #1e1214 100%)',
-                    glow: 'rgba(239, 68, 68, 0.12)',
-                    border: 'rgba(239, 68, 68, 0.2)',
+                    bg: 'rgba(239, 68, 68, 0.08)',
+                    glass: 'rgba(255, 240, 240, 0.65)',
+                    glow: 'rgba(239, 68, 68, 0.2)',
+                    border: 'rgba(239, 68, 68, 0.25)',
+                    shadow: '0 8px 32px rgba(239, 68, 68, 0.12)',
                     ring: '#ef4444',
-                    ringTrack: 'rgba(239, 68, 68, 0.12)',
-                    accent: '#ef4444',
-                    accentBg: 'rgba(239, 68, 68, 0.1)',
+                    ringTrack: 'rgba(239, 68, 68, 0.15)',
+                    accent: '#dc2626',
+                    accentBg: 'rgba(239, 68, 68, 0.08)',
                     accentBorder: 'rgba(239, 68, 68, 0.2)',
-                    textPrimary: '#f5c6c6',
-                    textSecondary: '#a08080'
+                    textPrimary: '#1e293b',
+                    textSecondary: '#64748b',
+                    tipText: '#991b1b'
                   },
                   peeling: {
-                    bg: 'linear-gradient(135deg, #1a1710 0%, #2c2514 50%, #1e1a10 100%)',
-                    glow: 'rgba(245, 158, 11, 0.12)',
-                    border: 'rgba(245, 158, 11, 0.2)',
+                    bg: 'rgba(245, 158, 11, 0.08)',
+                    glass: 'rgba(255, 248, 235, 0.65)',
+                    glow: 'rgba(245, 158, 11, 0.2)',
+                    border: 'rgba(245, 158, 11, 0.25)',
+                    shadow: '0 8px 32px rgba(245, 158, 11, 0.12)',
                     ring: '#f59e0b',
-                    ringTrack: 'rgba(245, 158, 11, 0.12)',
-                    accent: '#f59e0b',
-                    accentBg: 'rgba(245, 158, 11, 0.1)',
+                    ringTrack: 'rgba(245, 158, 11, 0.15)',
+                    accent: '#d97706',
+                    accentBg: 'rgba(245, 158, 11, 0.08)',
                     accentBorder: 'rgba(245, 158, 11, 0.2)',
-                    textPrimary: '#f5e0b8',
-                    textSecondary: '#a09070'
+                    textPrimary: '#1e293b',
+                    textSecondary: '#64748b',
+                    tipText: '#92400e'
                   },
                   healing: {
-                    bg: 'linear-gradient(135deg, #101a14 0%, #142c1e 50%, #121e16 100%)',
-                    glow: 'rgba(16, 185, 129, 0.12)',
-                    border: 'rgba(16, 185, 129, 0.2)',
+                    bg: 'rgba(16, 185, 129, 0.08)',
+                    glass: 'rgba(236, 253, 245, 0.65)',
+                    glow: 'rgba(16, 185, 129, 0.2)',
+                    border: 'rgba(16, 185, 129, 0.25)',
+                    shadow: '0 8px 32px rgba(16, 185, 129, 0.12)',
                     ring: '#10b981',
-                    ringTrack: 'rgba(16, 185, 129, 0.12)',
-                    accent: '#10b981',
-                    accentBg: 'rgba(16, 185, 129, 0.1)',
+                    ringTrack: 'rgba(16, 185, 129, 0.15)',
+                    accent: '#059669',
+                    accentBg: 'rgba(16, 185, 129, 0.08)',
                     accentBorder: 'rgba(16, 185, 129, 0.2)',
-                    textPrimary: '#b8e8d5',
-                    textSecondary: '#70a090'
+                    textPrimary: '#1e293b',
+                    textSecondary: '#64748b',
+                    tipText: '#065f46'
                   }
                 };
                 const theme = phaseThemes[aftercare.phase] || phaseThemes.healing;
 
                 return (
-                  <div style={{ background: theme.bg, borderRadius: '20px', padding: '28px', marginBottom: '28px', color: '#fff', position: 'relative', overflow: 'hidden', border: `1px solid ${theme.border}`, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-                    <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '200px', height: '200px', background: `radial-gradient(circle, ${theme.glow} 0%, transparent 70%)`, borderRadius: '50%', pointerEvents: 'none' }} />
-                    <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '140px', height: '140px', background: `radial-gradient(circle, ${theme.glow} 0%, transparent 70%)`, borderRadius: '50%', pointerEvents: 'none' }} />
+                  <div style={{
+                    background: theme.glass, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                    borderRadius: '20px', padding: '28px', marginBottom: '28px',
+                    position: 'relative', overflow: 'hidden',
+                    border: `1.5px solid ${theme.border}`, boxShadow: theme.shadow
+                  }}>
+                    {/* Decorative glows */}
+                    <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '220px', height: '220px', background: `radial-gradient(circle, ${theme.glow} 0%, transparent 65%)`, borderRadius: '50%', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', bottom: '-40px', left: '-40px', width: '160px', height: '160px', background: `radial-gradient(circle, ${theme.glow} 0%, transparent 65%)`, borderRadius: '50%', pointerEvents: 'none' }} />
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap', position: 'relative', zIndex: 2 }}>
                       {/* Progress Ring */}
@@ -140,7 +155,7 @@ function CustomerAftercare() {
                           <circle cx="60" cy="60" r="54" fill="none" stroke={theme.ringTrack} strokeWidth="8" />
                           <circle cx="60" cy="60" r="54" fill="none" stroke={theme.ring} strokeWidth="8"
                             strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
-                            style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
+                            style={{ transition: 'stroke-dashoffset 1s ease-out', filter: `drop-shadow(0 0 6px ${theme.ring}40)` }} />
                         </svg>
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                           <span style={{ fontSize: '2rem', fontWeight: 800, color: theme.ring, lineHeight: 1 }}>{aftercare.currentDay}</span>
@@ -154,7 +169,7 @@ function CustomerAftercare() {
                             const PhaseIcon = PHASE_CONFIG[aftercare.phase]?.icon || Heart;
                             return <PhaseIcon size={18} color={PHASE_CONFIG[aftercare.phase]?.color} />;
                           })()}
-                          <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: PHASE_CONFIG[aftercare.phase]?.bg, color: PHASE_CONFIG[aftercare.phase]?.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: PHASE_CONFIG[aftercare.phase]?.bg, color: PHASE_CONFIG[aftercare.phase]?.color, textTransform: 'uppercase', letterSpacing: '0.5px', backdropFilter: 'blur(8px)' }}>
                             {PHASE_CONFIG[aftercare.phase]?.label}
                           </span>
                         </div>
@@ -166,12 +181,16 @@ function CustomerAftercare() {
                         </p>
 
                         {/* Today's Tip */}
-                        <div style={{ background: theme.accentBg, borderRadius: '12px', padding: '14px 16px', border: `1px solid ${theme.accentBorder}` }}>
+                        <div style={{ 
+                          background: theme.accentBg, backdropFilter: 'blur(8px)',
+                          borderRadius: '12px', padding: '14px 16px', 
+                          border: `1px solid ${theme.accentBorder}` 
+                        }}>
                           <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.85rem', color: theme.accent }}>
                             <Sparkles size={14} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
                             Today's Focus
                           </p>
-                          <p style={{ margin: 0, fontSize: '0.85rem', color: theme.textPrimary, lineHeight: '1.5' }}>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: theme.tipText, lineHeight: '1.5' }}>
                             {templates.find(t => t.day_number === aftercare.currentDay)?.message || 'Continue your daily aftercare routine.'}
                           </p>
                         </div>
