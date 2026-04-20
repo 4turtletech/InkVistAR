@@ -7,6 +7,7 @@ import Pagination from '../components/Pagination';
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
+import { getSessionPaymentStatus, shouldShowInQueue } from '../utils/sessionPayment';
 
 function ArtistSessions() {
     const [sessions, setSessions] = useState([]);
@@ -84,8 +85,7 @@ function ArtistSessions() {
                 const todaySessions = res.data.appointments.filter(a => {
                     const d = new Date(a.appointment_date);
                     const appointmentDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                    const hasPaid = !!a.payment_status && a.payment_status !== 'unpaid' && a.payment_status !== 'pending';
-                    return appointmentDate === today && a.status !== 'cancelled' && hasPaid;
+                    return appointmentDate === today && a.status !== 'cancelled' && shouldShowInQueue(a);
                 });
                 setSessions(todaySessions);
             }
@@ -965,19 +965,25 @@ function ArtistSessions() {
                                 </span>
                             </div>
                             <div style={{ display: 'flex', gap: '10px' }}>
-                                {activeSession.status === 'confirmed' && (
+                                {activeSession.status === 'confirmed' && (() => {
+                                    const payCheck = getSessionPaymentStatus(activeSession);
+                                    return (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <button 
                                             className="btn btn-primary" 
                                             style={{ 
                                                 padding: '10px 24px',
-                                                opacity: (!activeSession.payment_status || activeSession.payment_status === 'unpaid' || activeSession.payment_status === 'pending') ? 0.6 : 1,
-                                                cursor: (!activeSession.payment_status || activeSession.payment_status === 'unpaid' || activeSession.payment_status === 'pending') ? 'not-allowed' : 'pointer'
+                                                opacity: payCheck.canStart ? 1 : 0.6,
+                                                cursor: payCheck.canStart ? 'pointer' : 'not-allowed'
                                             }} 
-                                            title={(!activeSession.payment_status || activeSession.payment_status === 'unpaid' || activeSession.payment_status === 'pending') ? "Downpayment required to start session" : "Start Session"}
+                                            title={payCheck.canStart ? 'Start Session' : payCheck.reason}
                                             onClick={() => {
-                                                if (!activeSession.payment_status || activeSession.payment_status === 'unpaid' || activeSession.payment_status === 'pending') {
-                                                    showAlert('Payment Required', 'This tattoo session cannot be started until the client\'s downpayment has been verified and marked as paid.', 'warning');
+                                                if (!payCheck.canStart) {
+                                                    showAlert(
+                                                        payCheck.isFollowUp ? 'Full Payment Required' : 'Downpayment Required',
+                                                        payCheck.reason,
+                                                        'warning'
+                                                    );
                                                     return;
                                                 }
                                                 handleUpdateStatus('in_progress');
@@ -985,11 +991,14 @@ function ArtistSessions() {
                                         >
                                             <Play size={16} /> Start Procedure
                                         </button>
-                                        {(!activeSession.payment_status || activeSession.payment_status === 'unpaid' || activeSession.payment_status === 'pending') && (
-                                            <span style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600 }}>* Payment required to begin</span>
+                                        {!payCheck.canStart && (
+                                            <span style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600 }}>
+                                                * {payCheck.isFollowUp ? 'Full payment required' : 'Payment required to begin'}
+                                            </span>
                                         )}
                                     </div>
-                                )}
+                                    );
+                                })()}
                                 {activeSession.status === 'in_progress' && !isCompletingSession && (
                                     <>
                                         <button className="btn btn-secondary" style={{ padding: '10px 18px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }} onClick={() => setShowAbortModal(true)}>
