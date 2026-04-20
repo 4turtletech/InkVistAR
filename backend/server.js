@@ -1233,6 +1233,16 @@ db.getConnection((err, connection) => {
     `;
     db.query(contactMessagesTableQuery, (err) => { if (err) console.error('⚠️ Error checking contact_messages table:', err.message); else console.log('📬 Contact Messages table ready'); });
 
+    // Migration: Add reply and status columns to contact_messages (idempotent)
+    const contactMigrations = [
+      "ALTER TABLE contact_messages ADD COLUMN admin_reply TEXT DEFAULT NULL",
+      "ALTER TABLE contact_messages ADD COLUMN replied_at TIMESTAMP NULL DEFAULT NULL",
+      "ALTER TABLE contact_messages ADD COLUMN status ENUM('new','replied','closed') DEFAULT 'new'"
+    ];
+    contactMigrations.forEach(q => {
+      db.query(q, (err) => { if (err && !err.message.includes('Duplicate column')) console.error('⚠️ contact_messages migration:', err.message); });
+    });
+
   }
 });
 
@@ -8229,11 +8239,149 @@ app.post('/api/contact', async (req, res) => {
         console.error('\u26a0\ufe0f Contact email notification failed:', emailErr.message);
       }
 
+      // Send confirmation email to the customer
+      try {
+        const confirmHtml = buildEmailHtml(`
+          <h2 style="color:#C19A6B;font-size:22px;margin:0 0 20px;">We received your message! \u2705</h2>
+          <p style="color:#e2e8f0;font-size:15px;line-height:1.7;margin:0 0 20px;">
+            Hi <strong>${name}</strong>, thank you for reaching out to InkVictus Tattoo Studio. We've received your inquiry and our team will respond to your email within 24 hours.
+          </p>
+          <div style="background:#1a1a1a;border:1px solid rgba(193,154,107,0.15);border-radius:10px;padding:18px;margin-bottom:16px;">
+            <p style="color:#94a3b8;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.5px;">Your Message</p>
+            ${subject ? `<p style="color:#C19A6B;font-size:14px;font-weight:600;margin:0 0 8px;">${subject}</p>` : ''}
+            <p style="color:#e2e8f0;font-size:14px;line-height:1.7;margin:0;white-space:pre-wrap;">${message}</p>
+          </div>
+          <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:0;">
+            If your inquiry is urgent, feel free to call us at <strong style="color:#C19A6B;">+63 917 123 4567</strong> during business hours (Mon–Sat, 1:00 PM – 8:00 PM).
+          </p>
+        `);
+        await sendEmail(email, `We received your message \u2014 InkVictus Studio`, confirmHtml);
+        console.log(`\u2705 Confirmation email sent to ${email}`);
+      } catch (confirmErr) {
+        console.error('\u26a0\ufe0f Customer confirmation email failed:', confirmErr.message);
+      }
+
+      // Notify all admins/managers via in-app notification
+      const inquiryId = result.insertId;
+      const truncMsg = message.length > 100 ? message.substring(0, 100) + '...' : message;
+      db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (admErr, admins) => {
+        if (!admErr && admins && admins.length > 0) {
+          admins.forEach(admin => {
+            createNotification(
+              admin.id,
+              `\ud83d\udce9 New Inquiry from ${name}`,
+              `${subject ? subject + ': ' : ''}${truncMsg}`,
+              'contact_inquiry',
+              inquiryId
+            );
+          });
+        }
+      });
+
       res.json({ success: true, message: 'Your message has been sent successfully!' });
     });
   } catch (error) {
     console.error('\u274c Contact form error:', error);
     res.status(500).json({ success: false, message: 'An unexpected error occurred.' });
+  }
+});
+
+// ========== ADMIN INQUIRY ENDPOINTS ==========
+
+// GET all contact inquiries (paginated)
+app.get('/api/admin/inquiries', (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  const pageNum = parseInt(page, 10);
+  const limitNum = parseInt(limit, 10);
+  const offset = (pageNum - 1) * limitNum;
+
+  db.query('SELECT COUNT(*) as total FROM contact_messages', (countErr, countRes) => {
+    if (countErr) return res.status(500).json({ success: false, message: 'Database error' });
+
+    const total = countRes[0]?.total || 0;
+    db.query('SELECT * FROM contact_messages ORDER BY created_at DESC LIMIT ? OFFSET ?', [limitNum, offset], (err, results) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error' });
+      res.json({
+        success: true,
+        inquiries: results || [],
+        pagination: { page: pageNum, limit: limitNum, total, hasMore: offset + results.length < total }
+      });
+    });
+  });
+});
+
+// GET single inquiry by ID
+app.get('/api/admin/inquiries/:id', (req, res) => {
+  const { id } = req.params;
+  db.query('SELECT * FROM contact_messages WHERE id = ?', [id], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    if (!results || results.length === 0) return res.status(404).json({ success: false, message: 'Inquiry not found' });
+
+    // Mark as read when admin views it
+    db.query('UPDATE contact_messages SET is_read = 1 WHERE id = ?', [id]);
+    res.json({ success: true, inquiry: results[0] });
+  });
+});
+
+// POST reply to an inquiry — sends email to the customer
+app.post('/api/admin/inquiries/:id/reply', async (req, res) => {
+  const { id } = req.params;
+  const { reply } = req.body;
+
+  if (!reply || reply.trim().length < 5) {
+    return res.status(400).json({ success: false, message: 'Reply must be at least 5 characters.' });
+  }
+
+  try {
+    // Get the original inquiry
+    const [inquiry] = await new Promise((resolve, reject) => {
+      db.query('SELECT * FROM contact_messages WHERE id = ?', [id], (err, results) => {
+        if (err) return reject(err);
+        resolve(results || []);
+      });
+    });
+
+    if (!inquiry) {
+      return res.status(404).json({ success: false, message: 'Inquiry not found.' });
+    }
+
+    // Update the inquiry with the reply
+    await new Promise((resolve, reject) => {
+      db.query(
+        'UPDATE contact_messages SET admin_reply = ?, replied_at = NOW(), status = ?, is_read = 1 WHERE id = ?',
+        [reply.trim(), 'replied', id],
+        (err) => err ? reject(err) : resolve()
+      );
+    });
+
+    // Send reply email to the customer
+    const replyHtml = buildEmailHtml(`
+      <h2 style="color:#C19A6B;font-size:22px;margin:0 0 20px;">Reply from InkVictus Studio \ud83d\udce8</h2>
+      <p style="color:#e2e8f0;font-size:15px;line-height:1.7;margin:0 0 20px;">
+        Hi <strong>${inquiry.name}</strong>, thank you for your inquiry. Here is our response:
+      </p>
+      <div style="background:#1a1a1a;border:1px solid rgba(193,154,107,0.25);border-radius:10px;padding:18px;margin-bottom:16px;">
+        <p style="color:#94a3b8;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.5px;">Our Response</p>
+        <p style="color:#e2e8f0;font-size:14px;line-height:1.7;margin:0;white-space:pre-wrap;">${reply.trim()}</p>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px;">
+        <p style="color:#64748b;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.5px;">Your Original Message</p>
+        ${inquiry.subject ? `<p style="color:#94a3b8;font-size:13px;font-weight:600;margin:0 0 6px;">${inquiry.subject}</p>` : ''}
+        <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:0;white-space:pre-wrap;">${inquiry.message}</p>
+      </div>
+      <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:16px 0 0;">
+        If you have further questions, feel free to reply to this email or contact us at <strong style="color:#C19A6B;">+63 917 123 4567</strong>.
+      </p>
+    `);
+
+    const replySubject = `Re: ${inquiry.subject || 'Your Inquiry'} \u2014 InkVictus Studio`;
+    await sendEmail(inquiry.email, replySubject, replyHtml);
+    console.log(`\u2705 Admin reply sent to ${inquiry.email} for inquiry #${id}`);
+
+    res.json({ success: true, message: 'Reply sent successfully.' });
+  } catch (error) {
+    console.error('\u274c Error replying to inquiry:', error);
+    res.status(500).json({ success: false, message: 'Failed to send reply.' });
   }
 });
 

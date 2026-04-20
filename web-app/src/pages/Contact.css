@@ -323,6 +323,7 @@
   margin: 0 0 4px;
   font-size: 0.95rem;
   font-weight: 700;
+  text-align: left;
 }
 
 .contact-info-text p {
@@ -330,6 +331,7 @@
   color: rgba(255, 255, 255, 0.5);
   line-height: 1.5;
   font-size: 0.88rem;
+  text-align: left;
 }
 
 .contact-info-text a {

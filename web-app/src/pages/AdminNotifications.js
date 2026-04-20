@@ -6,21 +6,23 @@ import {
     CheckCircle,
     Package,
     CalendarDays,
-    CalendarCheck, // Added for appointment_confirmed
-    XCircle, // Added for appointment_cancelled
+    CalendarCheck,
+    XCircle,
     Settings,
     Clock,
     ArrowRight,
     Search,
     Filter,
-    Check, // Keep Check for "Mark as Read"
+    Check,
     Trash2,
     CheckCheck,
-    Info, // Added for system notifications
-    RotateCcw, // Added for mark as unread
-    Star, // Added for new reviews
+    Info,
+    RotateCcw,
+    Star,
     RefreshCw,
-    ShieldAlert // Added for payment resolution urgency
+    ShieldAlert,
+    MessageSquare,
+    Send
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminSideNav from '../components/AdminSideNav';
@@ -42,6 +44,10 @@ function AdminNotifications() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedNotification, setSelectedNotification] = useState(null);
     const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
+    const [inquiryData, setInquiryData] = useState(null);
+    const [replyText, setReplyText] = useState('');
+    const [replySending, setReplySending] = useState(false);
+    const [replySuccess, setReplySuccess] = useState(false);
     const navigate = useNavigate();
 
     const isFirstLoadRef = React.useRef(true);
@@ -175,6 +181,8 @@ function AdminNotifications() {
                 return { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.1)', label: '⚠️ Urgent' };
             case 'payment_resolution':
                 return { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.12)', label: '⚠️ Action Required' };
+            case 'contact_inquiry':
+                return { color: '#be9055', bg: 'rgba(193, 154, 107, 0.12)', label: 'Inquiry' };
             default:
                 return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', label: 'Update' };
         }
@@ -194,6 +202,7 @@ function AdminNotifications() {
             case 'new_review': return <Star size={20} className="text-gold" />;
             case 'payment_action_required': return <ShieldAlert size={20} style={{ color: '#dc2626' }} />;
             case 'payment_resolution': return <ShieldAlert size={20} style={{ color: '#dc2626' }} />;
+            case 'contact_inquiry': return <MessageSquare size={20} style={{ color: '#be9055' }} />;
             default: return <Bell size={20} />;
         }
     };
@@ -389,6 +398,7 @@ function AdminNotifications() {
                                 style={{ flex: 1, minWidth: 0 }}
                             >
                                 <option value="all">All Notifications</option>
+                                <option value="contact_inquiry">Customer Inquiries</option>
                                 <option value="inventory">Inventory Alerts</option>
                                 <option value="appointment">Booking Requests</option>
                                 <option value="system">System Updates</option>
@@ -516,8 +526,8 @@ function AdminNotifications() {
 
             {/* Notification View Modal */}
             {selectedNotification && (
-                <div className="modal-overlay open" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000 }} onClick={() => setSelectedNotification(null)}>
-                    <div className="modal-content" style={{ background: 'white', borderRadius: '12px', width: '90%', maxWidth: '500px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }} onClick={e => e.stopPropagation()}>
+                <div className="modal-overlay open" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000 }} onClick={() => { setSelectedNotification(null); setInquiryData(null); setReplyText(''); setReplySuccess(false); }}>
+                    <div className="modal-content" style={{ background: 'white', borderRadius: '12px', width: '90%', maxWidth: selectedNotification.type === 'contact_inquiry' ? '600px' : '500px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
                         <div className="modal-header" style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ background: getNotificationStyle(selectedNotification.type).bg, padding: '8px', borderRadius: '8px' }}>
@@ -525,22 +535,41 @@ function AdminNotifications() {
                                 </div>
                                 <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#1e293b' }}>{selectedNotification.title}</h3>
                             </div>
-                            <button className="close-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }} onClick={() => setSelectedNotification(null)}><XCircle size={24} /></button>
+                            <button className="close-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }} onClick={() => { setSelectedNotification(null); setInquiryData(null); setReplyText(''); setReplySuccess(false); }}><XCircle size={24} /></button>
                         </div>
-                        <div className="modal-body" style={{ padding: '20px', color: '#475569', lineHeight: '1.5' }}>
-                            <p style={{ margin: 0 }}>{selectedNotification.message}</p>
+                        <div className="modal-body" style={{ padding: '20px', color: '#475569', lineHeight: '1.5', overflowY: 'auto', flex: 1 }}>
+                            {/* Standard notification */}
+                            {selectedNotification.type !== 'contact_inquiry' && (
+                                <p style={{ margin: 0 }}>{selectedNotification.message}</p>
+                            )}
+
+                            {/* Inquiry detail view */}
+                            {selectedNotification.type === 'contact_inquiry' && (
+                                <InquiryDetailView
+                                    notif={selectedNotification}
+                                    inquiryData={inquiryData}
+                                    setInquiryData={setInquiryData}
+                                    replyText={replyText}
+                                    setReplyText={setReplyText}
+                                    replySending={replySending}
+                                    setReplySending={setReplySending}
+                                    replySuccess={replySuccess}
+                                    setReplySuccess={setReplySuccess}
+                                    onReplySent={() => fetchNotifications(false)}
+                                />
+                            )}
                         </div>
                         <div className="modal-footer" style={{ padding: '20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Sent: {new Date(selectedNotification.created_at).toLocaleString()}</span>
                             <div className="notif-actions" style={{ display: 'flex', gap: '10px' }}>
-                                {(selectedNotification.path || selectedNotification.related_id) && (
+                                {selectedNotification.type !== 'contact_inquiry' && (selectedNotification.path || selectedNotification.related_id) && (
                                     <button className="btn btn-primary" style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', gap: '6px', alignItems: 'center' }} onClick={() => {
                                         const link = selectedNotification.path || `/admin/appointments?appointment=${selectedNotification.related_id}`;
                                         navigate(link);
                                         setSelectedNotification(null);
                                     }}>Take Action <ArrowRight size={14} /></button>
                                 )}
-                                <button className="btn btn-secondary" style={{ padding: '8px 16px', background: 'white', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }} onClick={() => setSelectedNotification(null)}>Close</button>
+                                <button className="btn btn-secondary" style={{ padding: '8px 16px', background: 'white', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }} onClick={() => { setSelectedNotification(null); setInquiryData(null); setReplyText(''); setReplySuccess(false); }}>Close</button>
                             </div>
                         </div>
                     </div>
@@ -549,4 +578,162 @@ function AdminNotifications() {
         </div>
     );
 }
+
+// Inquiry Detail View — shown inside the notification modal for contact_inquiry type
+function InquiryDetailView({ notif, inquiryData, setInquiryData, replyText, setReplyText, replySending, setReplySending, replySuccess, setReplySuccess, onReplySent }) {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (notif.related_id) {
+            setLoading(true);
+            Axios.get(`${API_URL}/api/admin/inquiries/${notif.related_id}`)
+                .then(res => {
+                    if (res.data.success) {
+                        setInquiryData(res.data.inquiry);
+                    } else {
+                        setError('Could not load inquiry details.');
+                    }
+                })
+                .catch(() => setError('Failed to fetch inquiry.'))
+                .finally(() => setLoading(false));
+        } else {
+            setLoading(false);
+            setError('No inquiry ID linked to this notification.');
+        }
+    }, [notif.related_id]);
+
+    const handleSendReply = async () => {
+        if (!replyText.trim() || replyText.trim().length < 5) {
+            setError('Reply must be at least 5 characters.');
+            return;
+        }
+        setReplySending(true);
+        setError('');
+        try {
+            const res = await Axios.post(`${API_URL}/api/admin/inquiries/${notif.related_id}/reply`, { reply: replyText.trim() });
+            if (res.data.success) {
+                setReplySuccess(true);
+                setInquiryData(prev => ({ ...prev, admin_reply: replyText.trim(), status: 'replied', replied_at: new Date().toISOString() }));
+                onReplySent();
+            } else {
+                setError(res.data.message || 'Failed to send reply.');
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || 'Network error. Please try again.');
+        } finally {
+            setReplySending(false);
+        }
+    };
+
+    if (loading) {
+        return <div style={{ textAlign: 'center', padding: '20px' }}><div className="premium-loader"></div><p style={{ color: '#94a3b8', marginTop: '10px' }}>Loading inquiry...</p></div>;
+    }
+
+    if (!inquiryData) {
+        return <p style={{ color: '#ef4444' }}>{error || 'Inquiry not found.'}</p>;
+    }
+
+    const alreadyReplied = inquiryData.status === 'replied' && inquiryData.admin_reply;
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Customer Info */}
+            <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px', fontSize: '0.9rem' }}>
+                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>Name</span>
+                    <span style={{ color: '#1e293b', fontWeight: 600 }}>{inquiryData.name}</span>
+                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>Email</span>
+                    <a href={`mailto:${inquiryData.email}`} style={{ color: '#be9055', textDecoration: 'none' }}>{inquiryData.email}</a>
+                    {inquiryData.phone && <>
+                        <span style={{ color: '#94a3b8', fontWeight: 600 }}>Phone</span>
+                        <span style={{ color: '#1e293b' }}>{inquiryData.phone}</span>
+                    </>}
+                    {inquiryData.subject && <>
+                        <span style={{ color: '#94a3b8', fontWeight: 600 }}>Subject</span>
+                        <span style={{ color: '#1e293b', fontWeight: 600 }}>{inquiryData.subject}</span>
+                    </>}
+                    <span style={{ color: '#94a3b8', fontWeight: 600 }}>Status</span>
+                    <span style={{
+                        color: alreadyReplied ? '#10b981' : '#f59e0b',
+                        fontWeight: 600,
+                        textTransform: 'capitalize'
+                    }}>{inquiryData.status || 'new'}</span>
+                </div>
+            </div>
+
+            {/* Customer Message */}
+            <div style={{ background: '#f1f5f9', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0' }}>
+                <p style={{ color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 8px', fontWeight: 600 }}>Customer Message</p>
+                <p style={{ color: '#334155', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{inquiryData.message}</p>
+            </div>
+
+            {/* Already replied — show reply */}
+            {alreadyReplied && (
+                <div style={{ background: 'rgba(16, 185, 129, 0.05)', borderRadius: '10px', padding: '16px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <p style={{ color: '#10b981', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 8px', fontWeight: 600 }}>Your Reply</p>
+                    <p style={{ color: '#334155', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{inquiryData.admin_reply}</p>
+                    {inquiryData.replied_at && (
+                        <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '10px 0 0' }}>Replied: {new Date(inquiryData.replied_at).toLocaleString()}</p>
+                    )}
+                </div>
+            )}
+
+            {/* Reply form — only if not already replied */}
+            {!alreadyReplied && !replySuccess && (
+                <div>
+                    <p style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 8px' }}>Reply to Customer</p>
+                    <textarea
+                        value={replyText}
+                        onChange={e => setReplyText(e.target.value)}
+                        placeholder="Type your reply here... This will be sent directly to the customer's email."
+                        maxLength={2000}
+                        style={{
+                            width: '100%', minHeight: '120px', padding: '12px',
+                            borderRadius: '8px', border: '1px solid #e2e8f0',
+                            fontSize: '0.9rem', fontFamily: 'Inter, sans-serif',
+                            resize: 'vertical', outline: 'none', boxSizing: 'border-box',
+                            transition: 'border-color 0.2s'
+                        }}
+                        onFocus={e => e.target.style.borderColor = '#be9055'}
+                        onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{replyText.length}/2000</span>
+                        <button
+                            onClick={handleSendReply}
+                            disabled={replySending || replyText.trim().length < 5}
+                            style={{
+                                padding: '10px 20px', background: '#be9055', color: 'white',
+                                border: 'none', borderRadius: '8px', fontWeight: 600,
+                                cursor: replySending ? 'wait' : 'pointer',
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                opacity: (replySending || replyText.trim().length < 5) ? 0.6 : 1,
+                                transition: 'opacity 0.2s, transform 0.2s',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            <Send size={16} />
+                            {replySending ? 'Sending...' : 'Send Reply'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Reply success */}
+            {replySuccess && !alreadyReplied && (
+                <div style={{ background: 'rgba(16, 185, 129, 0.08)', borderRadius: '10px', padding: '16px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <CheckCircle size={24} color="#10b981" style={{ marginBottom: '8px' }} />
+                    <p style={{ color: '#10b981', fontWeight: 600, margin: 0 }}>Reply sent successfully!</p>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 0' }}>The customer has been notified via email.</p>
+                </div>
+            )}
+
+            {error && (
+                <p style={{ color: '#ef4444', fontSize: '0.85rem', margin: 0 }}>{error}</p>
+            )}
+        </div>
+    );
+}
+
 export default AdminNotifications;

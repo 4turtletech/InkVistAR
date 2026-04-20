@@ -148,7 +148,7 @@ const Contact = () => {
                   <CheckCircle size={30} color="#10b981" />
                 </div>
                 <h3>Message Sent!</h3>
-                <p>Thank you for reaching out. Our team will get back to you within 24 hours.</p>
+                <p>Thank you for reaching out. We've sent a confirmation to your email. Our team will respond to your inquiry via email within 24 hours.</p>
                 <button className="contact-reset-btn" onClick={handleReset}>
                   Send Another Message
                 </button>
