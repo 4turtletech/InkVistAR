@@ -144,9 +144,6 @@ function CustomerAftercare() {
                     position: 'relative', overflow: 'hidden',
                     border: `1.5px solid ${theme.border}`, boxShadow: theme.shadow
                   }}>
-                    {/* Decorative glows */}
-                    <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '220px', height: '220px', background: `radial-gradient(circle, ${theme.glow} 0%, transparent 65%)`, borderRadius: '50%', pointerEvents: 'none' }} />
-                    <div style={{ position: 'absolute', bottom: '-40px', left: '-40px', width: '160px', height: '160px', background: `radial-gradient(circle, ${theme.glow} 0%, transparent 65%)`, borderRadius: '50%', pointerEvents: 'none' }} />
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap', position: 'relative', zIndex: 2 }}>
                       {/* Progress Ring */}
