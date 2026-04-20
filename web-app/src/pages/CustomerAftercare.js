@@ -8,9 +8,9 @@ import './CustomerStyles.css';
 import { API_URL } from '../config';
 
 const PHASE_CONFIG = {
-  initial: { label: 'Initial Healing', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: AlertTriangle, widgetBg: 'linear-gradient(135deg, #2e1515, #1a0b0b)' },
-  peeling: { label: 'Peeling & Itching', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: Droplets, widgetBg: 'linear-gradient(135deg, #2e1f0e, #1a1005)' },
-  healing: { label: 'Final Healing', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: Heart, widgetBg: 'linear-gradient(135deg, #0e291e, #071710)' }
+  initial: { label: 'Initial Healing', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: AlertTriangle },
+  peeling: { label: 'Peeling & Itching', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: Droplets },
+  healing: { label: 'Final Healing', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: Heart }
 };
 
 function CustomerAftercare() {
@@ -86,55 +86,100 @@ function CustomerAftercare() {
             </div>
           ) : (
             <>
-              {/* Hero Widget */}
-              <div style={{ background: PHASE_CONFIG[aftercare.phase]?.widgetBg || 'linear-gradient(135deg, #3d2c1e, #2a1f15)', borderRadius: '20px', padding: '28px', marginBottom: '28px', color: '#fff', position: 'relative', overflow: 'hidden', transition: 'background 0.3s ease' }}>
-                <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '200px', height: '200px', background: `radial-gradient(circle, ${PHASE_CONFIG[aftercare.phase]?.color || '#be9055'}25 0%, transparent 70%)`, borderRadius: '50%' }} />
+              {/* Hero Widget — themed by phase */}
+              {(() => {
+                const phaseThemes = {
+                  initial: {
+                    bg: 'linear-gradient(135deg, #1a1214 0%, #2c1a1a 50%, #1e1214 100%)',
+                    glow: 'rgba(239, 68, 68, 0.12)',
+                    border: 'rgba(239, 68, 68, 0.2)',
+                    ring: '#ef4444',
+                    ringTrack: 'rgba(239, 68, 68, 0.12)',
+                    accent: '#ef4444',
+                    accentBg: 'rgba(239, 68, 68, 0.1)',
+                    accentBorder: 'rgba(239, 68, 68, 0.2)',
+                    textPrimary: '#f5c6c6',
+                    textSecondary: '#a08080'
+                  },
+                  peeling: {
+                    bg: 'linear-gradient(135deg, #1a1710 0%, #2c2514 50%, #1e1a10 100%)',
+                    glow: 'rgba(245, 158, 11, 0.12)',
+                    border: 'rgba(245, 158, 11, 0.2)',
+                    ring: '#f59e0b',
+                    ringTrack: 'rgba(245, 158, 11, 0.12)',
+                    accent: '#f59e0b',
+                    accentBg: 'rgba(245, 158, 11, 0.1)',
+                    accentBorder: 'rgba(245, 158, 11, 0.2)',
+                    textPrimary: '#f5e0b8',
+                    textSecondary: '#a09070'
+                  },
+                  healing: {
+                    bg: 'linear-gradient(135deg, #101a14 0%, #142c1e 50%, #121e16 100%)',
+                    glow: 'rgba(16, 185, 129, 0.12)',
+                    border: 'rgba(16, 185, 129, 0.2)',
+                    ring: '#10b981',
+                    ringTrack: 'rgba(16, 185, 129, 0.12)',
+                    accent: '#10b981',
+                    accentBg: 'rgba(16, 185, 129, 0.1)',
+                    accentBorder: 'rgba(16, 185, 129, 0.2)',
+                    textPrimary: '#b8e8d5',
+                    textSecondary: '#70a090'
+                  }
+                };
+                const theme = phaseThemes[aftercare.phase] || phaseThemes.healing;
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-                  {/* Progress Ring */}
-                  <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
-                    <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
-                      <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
-                      <circle cx="60" cy="60" r="54" fill="none" stroke={PHASE_CONFIG[aftercare.phase]?.color || "#be9055"} strokeWidth="8"
-                        strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
-                        style={{ transition: 'stroke-dashoffset 1s ease-out, stroke 0.3s ease' }} />
-                    </svg>
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: '2rem', fontWeight: 800, color: PHASE_CONFIG[aftercare.phase]?.color || '#be9055', lineHeight: 1, transition: 'color 0.3s ease' }}>{aftercare.currentDay}</span>
-                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>of {aftercare.totalDays}</span>
+                return (
+                  <div style={{ background: theme.bg, borderRadius: '20px', padding: '28px', marginBottom: '28px', color: '#fff', position: 'relative', overflow: 'hidden', border: `1px solid ${theme.border}`, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+                    <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '200px', height: '200px', background: `radial-gradient(circle, ${theme.glow} 0%, transparent 70%)`, borderRadius: '50%', pointerEvents: 'none' }} />
+                    <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '140px', height: '140px', background: `radial-gradient(circle, ${theme.glow} 0%, transparent 70%)`, borderRadius: '50%', pointerEvents: 'none' }} />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap', position: 'relative', zIndex: 2 }}>
+                      {/* Progress Ring */}
+                      <div style={{ position: 'relative', width: '120px', height: '120px', flexShrink: 0 }}>
+                        <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
+                          <circle cx="60" cy="60" r="54" fill="none" stroke={theme.ringTrack} strokeWidth="8" />
+                          <circle cx="60" cy="60" r="54" fill="none" stroke={theme.ring} strokeWidth="8"
+                            strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+                            style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
+                        </svg>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: '2rem', fontWeight: 800, color: theme.ring, lineHeight: 1 }}>{aftercare.currentDay}</span>
+                          <span style={{ fontSize: '0.7rem', color: theme.textSecondary, fontWeight: 600 }}>of {aftercare.totalDays}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                          {(() => {
+                            const PhaseIcon = PHASE_CONFIG[aftercare.phase]?.icon || Heart;
+                            return <PhaseIcon size={18} color={PHASE_CONFIG[aftercare.phase]?.color} />;
+                          })()}
+                          <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: PHASE_CONFIG[aftercare.phase]?.bg, color: PHASE_CONFIG[aftercare.phase]?.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {PHASE_CONFIG[aftercare.phase]?.label}
+                          </span>
+                        </div>
+                        <h2 style={{ margin: '0 0 6px', fontSize: '1.3rem', fontWeight: 700, fontFamily: "'Playfair Display', serif", color: theme.textPrimary }}>
+                          {aftercare.designTitle}
+                        </h2>
+                        <p style={{ margin: '0 0 12px', color: theme.textSecondary, fontSize: '0.85rem' }}>
+                          Artist: {aftercare.artistName} • Completed: {new Date(aftercare.completedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+
+                        {/* Today's Tip */}
+                        <div style={{ background: theme.accentBg, borderRadius: '12px', padding: '14px 16px', border: `1px solid ${theme.accentBorder}` }}>
+                          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.85rem', color: theme.accent }}>
+                            <Sparkles size={14} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                            Today's Focus
+                          </p>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: theme.textPrimary, lineHeight: '1.5' }}>
+                            {templates.find(t => t.day_number === aftercare.currentDay)?.message || 'Continue your daily aftercare routine.'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div style={{ flex: 1, minWidth: '200px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                      {(() => {
-                        const PhaseIcon = PHASE_CONFIG[aftercare.phase]?.icon || Heart;
-                        return <PhaseIcon size={18} color={PHASE_CONFIG[aftercare.phase]?.color} />;
-                      })()}
-                      <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: PHASE_CONFIG[aftercare.phase]?.bg, color: PHASE_CONFIG[aftercare.phase]?.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        {PHASE_CONFIG[aftercare.phase]?.label}
-                      </span>
-                    </div>
-                    <h2 style={{ margin: '0 0 6px', fontSize: '1.3rem', fontWeight: 700, fontFamily: "'Playfair Display', serif" }}>
-                      {aftercare.designTitle}
-                    </h2>
-                    <p style={{ margin: '0 0 12px', color: '#94a3b8', fontSize: '0.85rem' }}>
-                      Artist: {aftercare.artistName} • Completed: {new Date(aftercare.completedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
-
-                    {/* Today's Tip */}
-                    <div style={{ background: 'rgba(190, 144, 85, 0.1)', borderRadius: '12px', padding: '14px 16px', border: '1px solid rgba(190, 144, 85, 0.2)' }}>
-                      <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '0.85rem', color: '#be9055' }}>
-                        <Sparkles size={14} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                        Today's Focus
-                      </p>
-                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#e2e8f0', lineHeight: '1.5' }}>
-                        {templates.find(t => t.day_number === aftercare.currentDay)?.message || 'Continue your daily aftercare routine.'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* General Rules Card */}
               <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', marginBottom: '28px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
