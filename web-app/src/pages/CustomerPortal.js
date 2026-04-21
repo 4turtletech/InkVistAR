@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package, RefreshCw, Sparkles, AlertTriangle, Droplets, Palette, PenTool, Gem, ArrowRight } from 'lucide-react';
+import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package, RefreshCw, Sparkles, AlertTriangle, Droplets, Palette, PenTool, Gem, ArrowRight, Shield } from 'lucide-react';
 import './PortalStyles.css';
 import CustomerSideNav from '../components/CustomerSideNav';
 import ChatWidget from '../components/ChatWidget';
@@ -33,6 +33,8 @@ function CustomerPortal() {
     const [showNotifDropdown, setShowNotifDropdown] = useState(false);
     const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
     const [activeAftercare, setActiveAftercare] = useState(null);
+    const [activePrecare, setActivePrecare] = useState(null);
+    const [showPreCareModal, setShowPreCareModal] = useState(false);
     const notifRef = useRef(null);
 
     useEffect(() => {
@@ -110,6 +112,8 @@ function CustomerPortal() {
 
                 // Capture aftercare data from dashboard response
                 setActiveAftercare(dashboardResponse.data.activeAftercare || null);
+                // Capture pre-care data from dashboard response
+                setActivePrecare(dashboardResponse.data.activePrecare || null);
             }
 
             // Artist fetch removed as widget was replaced
@@ -295,6 +299,60 @@ function CustomerPortal() {
                                                 </h3>
                                                 <p style={{ color: '#a08a6e', margin: 0, fontSize: '0.82rem', lineHeight: '1.5' }}>
                                                     {activeAftercare.todayMessage}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Pre-Care Conditioning Plan Banner (Tattoo sessions only) */}
+                            {activePrecare && (() => {
+                                const sessionDate = new Date(activePrecare.appointmentDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                                return (
+                                    <div
+                                        onClick={() => setShowPreCareModal(true)}
+                                        style={{
+                                            marginBottom: '24px', background: '#12141a', color: '#fff', borderRadius: '16px',
+                                            overflow: 'hidden', position: 'relative', cursor: 'pointer',
+                                            border: '1px solid rgba(99,102,241,0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                                    >
+                                        {/* Decorative glows */}
+                                        <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+                                        <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+
+                                        {/* Header */}
+                                        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(99,102,241,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <Shield size={18} color="#6366f1" />
+                                                <h2 style={{ color: '#c7d2fe', margin: 0, fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Pre-Session Conditioning Plan</h2>
+                                            </div>
+                                            <span style={{
+                                                background: 'rgba(99,102,241,0.15)', color: '#818cf8',
+                                                padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600
+                                            }}>
+                                                {activePrecare.daysUntil === 0 ? 'Today!' : activePrecare.daysUntil === 1 ? 'Tomorrow' : `${activePrecare.daysUntil} days away`}
+                                            </span>
+                                        </div>
+
+                                        {/* Body */}
+                                        <div style={{ padding: '18px 20px', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', position: 'relative', zIndex: 2 }}>
+                                            <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <Shield size={28} color="#6366f1" />
+                                            </div>
+                                            <div style={{ flex: 1, minWidth: '180px' }}>
+                                                <h3 style={{ fontSize: '1rem', margin: '0 0 4px 0', color: '#e2e8f0', fontFamily: "'Playfair Display', serif" }}>
+                                                    {activePrecare.designTitle}
+                                                </h3>
+                                                <p style={{ color: '#94a3b8', margin: '0 0 2px 0', fontSize: '0.82rem' }}>
+                                                    with {activePrecare.artistName} · {sessionDate}
+                                                </p>
+                                                <p style={{ color: '#6366f1', margin: 0, fontSize: '0.78rem', fontWeight: 600 }}>
+                                                    Tap to view your 6-step preparation guide →
                                                 </p>
                                             </div>
                                         </div>
@@ -616,6 +674,75 @@ function CustomerPortal() {
                         <div className="modal-footer">
                             <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Close</button>
                             <button className="btn btn-primary" onClick={() => { setIsModalOpen(false); navigate('/customer/bookings'); }}>Manage Bookings</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Pre-Care Conditioning Plan Modal */}
+            {showPreCareModal && activePrecare && (
+                <div className="modal-overlay open" onClick={() => setShowPreCareModal(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', background: '#0f1117', border: '1px solid rgba(99,102,241,0.2)' }}>
+                        <div className="modal-header" style={{ borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <Shield size={20} color="#6366f1" />
+                                <h3 style={{ margin: 0, color: '#c7d2fe' }}>Pre-Session Conditioning Plan</h3>
+                            </div>
+                            <button className="close-btn" onClick={() => setShowPreCareModal(false)}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '24px' }}>
+                            {/* Session info */}
+                            <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '12px', padding: '16px', marginBottom: '20px', textAlign: 'center' }}>
+                                <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', color: '#e2e8f0', fontFamily: "'Playfair Display', serif" }}>{activePrecare.designTitle}</h4>
+                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+                                    with {activePrecare.artistName} · {new Date(activePrecare.appointmentDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                                </p>
+                                <span style={{ display: 'inline-block', marginTop: '8px', background: 'rgba(99,102,241,0.15)', color: '#818cf8', padding: '4px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                    {activePrecare.daysUntil === 0 ? '🔥 Today!' : activePrecare.daysUntil === 1 ? '⏰ Tomorrow' : `📅 ${activePrecare.daysUntil} days away`}
+                                </span>
+                            </div>
+
+                            <p style={{ margin: '0 0 18px', fontSize: '0.9rem', color: '#94a3b8', lineHeight: '1.6', textAlign: 'center' }}>
+                                Follow these <strong style={{ color: '#c7d2fe' }}>6 essential steps</strong> before your session for the best possible results.
+                            </p>
+
+                            {/* Pre-care steps */}
+                            {[
+                                { emoji: '💧', title: 'Hydrate Thoroughly', desc: 'Drink plenty of water 24–48 hours before your session. Well-hydrated skin has better elasticity and holds ink more evenly.', color: '#3b82f6' },
+                                { emoji: '🍽️', title: 'Eat a Full Meal', desc: 'Have a balanced meal 1–2 hours before arriving. This keeps your blood sugar stable and helps you endure longer sessions.', color: '#10b981' },
+                                { emoji: '🚫', title: 'Avoid Alcohol & Blood Thinners', desc: 'No alcohol for at least 24 hours prior. Also avoid ibuprofen and aspirin — they thin blood and increase bleeding during the session.', color: '#ef4444' },
+                                { emoji: '🧴', title: 'Moisturize (But Not Day-Of)', desc: 'Keep the tattoo area moisturized daily leading up to your session, but do NOT apply lotion on the day of. Also, avoid sunburns at all costs!', color: '#f59e0b' },
+                                { emoji: '😴', title: 'Get a Good Night\'s Rest', desc: 'Aim for 7–8 hours of sleep the night before. Proper rest boosts your energy levels and improves pain tolerance.', color: '#8b5cf6' },
+                                { emoji: '👕', title: 'Wear Comfortable, Loose Clothing', desc: 'Choose clothes that provide easy access to the tattoo area. Loose fabrics prevent irritation on fresh ink afterward.', color: '#6366f1' }
+                            ].map((step, idx) => (
+                                <div key={idx} style={{
+                                    display: 'flex', gap: '14px', padding: '14px',
+                                    background: idx % 2 === 0 ? 'rgba(99,102,241,0.04)' : 'transparent',
+                                    borderRadius: '10px', marginBottom: '4px', alignItems: 'flex-start'
+                                }}>
+                                    <div style={{
+                                        width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
+                                        background: `${step.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '1.2rem'
+                                    }}>
+                                        {step.emoji}
+                                    </div>
+                                    <div>
+                                        <p style={{ margin: '0 0 4px', fontSize: '0.9rem', fontWeight: 700, color: '#e2e8f0' }}>{step.title}</p>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8', lineHeight: '1.5' }}>{step.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+
+                            <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', textAlign: 'center' }}>
+                                <p style={{ margin: 0, fontSize: '0.82rem', color: '#6ee7b7' }}>
+                                    ✨ Following these steps helps ensure <strong>better ink retention</strong>, <strong>less bleeding</strong>, and a <strong>smoother healing</strong> experience.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="modal-footer" style={{ borderTop: '1px solid rgba(99,102,241,0.15)' }}>
+                            <button className="btn btn-secondary" onClick={() => setShowPreCareModal(false)}>Got It!</button>
+                            <button className="btn btn-primary" onClick={() => { setShowPreCareModal(false); navigate('/customer/bookings'); }} style={{ background: '#6366f1' }}>View My Booking</button>
                         </div>
                     </div>
                 </div>

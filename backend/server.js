@@ -4064,6 +4064,27 @@ function sendGuestStatusEmail(guestEmail, guestName, bookingCode, subject, headi
       </td></tr></table>
     ` : '';
 
+    // ── Account creation marketing block (always shown for guests) ──
+    const accountMarketingBlock = `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:16px 0 8px;">
+        <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:20px 24px;background:linear-gradient(135deg,#1a1816 0%,#1e1a15 100%);border:1px solid rgba(190,144,85,0.3);border-radius:14px;">
+          <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#be9055;text-align:center;">✨ Create Your InkVistAR Account</p>
+          <p style="margin:0 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;text-align:center;">Unlock the full InkVistAR experience — it's free and takes under a minute.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">📅 <span style="color:#e2e8f0;">Track & manage</span> your bookings in real-time</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">🔔 <span style="color:#e2e8f0;">Receive instant</span> notifications & status updates</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">🎨 <span style="color:#e2e8f0;">Browse & save</span> designs from our gallery</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">💬 <span style="color:#e2e8f0;">Chat directly</span> with your artist</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">📱 <span style="color:#e2e8f0;">Try on tattoos</span> with Augmented Reality</td></tr>
+          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:16px 0 4px;">
+            <a href="${FRONTEND_URL}/register" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#be9055,#a07840);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Create Free Account →</a>
+          </td></tr></table>
+          <p style="margin:8px 0 0;font-size:11px;color:#555;text-align:center;">Use this same email (${guestEmail}) to link your booking automatically.</p>
+        </div>
+      </td></tr></table>
+    `;
+
     const html = buildEmailHtml(`
       <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:${headingColor};text-align:center;">${headingText}</h2>
       <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Ref: ${bookingCode}</p>
@@ -4077,12 +4098,70 @@ function sendGuestStatusEmail(guestEmail, guestName, bookingCode, subject, headi
       </td></tr></table>
 
       ${tipBlock}
-      <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">— The InkVistAR Studio Team</p>
+      ${accountMarketingBlock}
+      <p style="margin:16px 0 0;font-size:14px;color:#94a3b8;text-align:center;">— The InkVistAR Studio Team</p>
     `);
     sendResendEmail(guestEmail, `InkVistAR: ${subject}`, html);
   } catch (err) {
     console.error(`⚠️ Error sending guest status email to ${guestEmail}:`, err.message);
   }
+}
+
+/**
+ * Send a branded status-update email to a REGISTERED user with a Quick Login button.
+ * @param {object} db - Database connection
+ * @param {number} customerId - Customer's user ID
+ * @param {string} subject - Email subject line
+ * @param {string} headingText - Main heading inside the email
+ * @param {string} headingColor - CSS color for the heading
+ * @param {string} bodyMessage - Main paragraph message
+ * @param {Array<{label: string, value: string}>} detailRows - Booking detail rows
+ * @param {string} [extraBlock] - Optional extra HTML block (e.g. pre-care plan)
+ */
+function sendRegisteredUserStatusEmail(db, customerId, subject, headingText, headingColor, bodyMessage, detailRows, extraBlock) {
+  if (!customerId) return;
+  db.query('SELECT name, email FROM users WHERE id = ?', [customerId], (err, users) => {
+    if (err || !users.length || !users[0].email) return;
+    const userName = users[0].name || 'Valued Customer';
+    const userEmail = users[0].email;
+
+    try {
+      const detailHtml = detailRows.map(r =>
+        `<p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">${r.label}:</strong> <span style="color:#C19A6B;${r.mono ? 'font-family:monospace;font-weight:700;' : ''}">${r.value}</span></p>`
+      ).join('');
+
+      // ── Quick Login block (always shown for registered users) ──
+      const quickLoginBlock = `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:16px 0 8px;">
+          <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:18px 24px;background:linear-gradient(135deg,#111827 0%,#1a1816 100%);border:1px solid rgba(99,102,241,0.25);border-radius:14px;text-align:center;">
+            <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#e2e8f0;">View your booking details, chat with your artist, and manage your appointments.</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:12px 0 4px;">
+              <a href="${FRONTEND_URL}/login" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Login to Your Portal →</a>
+            </td></tr></table>
+          </div>
+        </td></tr></table>
+      `;
+
+      const html = buildEmailHtml(`
+        <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:${headingColor};text-align:center;">${headingText}</h2>
+        <p style="margin:0 0 16px;">Hello ${userName},</p>
+        <p style="margin:0 0 16px;line-height:1.6;">${bodyMessage}</p>
+        
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+          <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+            ${detailHtml}
+          </div>
+        </td></tr></table>
+
+        ${extraBlock || ''}
+        ${quickLoginBlock}
+        <p style="margin:16px 0 0;font-size:14px;color:#94a3b8;text-align:center;">— The InkVistAR Studio Team</p>
+      `);
+      sendResendEmail(userEmail, `InkVistAR: ${subject}`, html);
+    } catch (emailErr) {
+      console.error(`⚠️ Error sending status email to user #${customerId}:`, emailErr.message);
+    }
+  });
 }
 
 /**
@@ -4156,6 +4235,26 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         const displayDate = formatGuestDate(date || oldAppt.appointment_date);
         const displayTime = formatGuestTime(startTime || oldAppt.start_time);
         const accountTip = 'Create an InkVistAR account with this email to track your booking, receive real-time updates, and manage future appointments.';
+        const isRegisteredUser = !guestEmail && currentData.customer_id;
+        const isTattooSession = (oldAppt.service_type || '').toLowerCase().includes('tattoo') || (!(oldAppt.service_type || '').toLowerCase().includes('consultation') && !(oldAppt.service_type || '').toLowerCase().includes('piercing'));
+
+        // ── Pre-care conditioning plan HTML block (for tattoo sessions only) ──
+        const preCareEmailBlock = `
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:12px 0 16px;">
+            <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:20px 24px;background:linear-gradient(135deg,#1a1816 0%,#14120f 100%);border:1px solid rgba(190,144,85,0.25);border-radius:14px;">
+              <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#be9055;text-align:center;">🛡️ Pre-Session Conditioning Plan</p>
+              <p style="margin:0 0 14px;font-size:12px;color:#94a3b8;text-align:center;line-height:1.5;">Follow these steps before your tattoo session for the best results:</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">💧 <strong>Hydrate</strong> — Drink plenty of water 24–48 hours before for optimal skin elasticity.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">🍽️ <strong>Eat Well</strong> — Have a full, balanced meal 1–2 hours before to keep blood sugar stable.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">🚫 <strong>No Alcohol</strong> — Avoid alcohol and blood thinners (ibuprofen/aspirin) for 24+ hours prior.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">🧴 <strong>Skin Care</strong> — Moisturize daily leading up, but skip lotion on session day. Avoid sunburns!</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">😴 <strong>Rest Up</strong> — Get a good night's sleep to boost energy and pain tolerance.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">👕 <strong>Dress Smart</strong> — Wear comfortable, loose clothing for easy access to the tattoo area.</td></tr>
+              </table>
+            </div>
+          </td></tr></table>
+        `;
 
         // 1. Check for Rescheduling
         if ((newDate && oldDate && newDate !== oldDate) || (startTime !== undefined && startTime !== oldAppt.start_time)) {
@@ -4183,6 +4282,23 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
           if (guestPhone) {
             const reasonSms = rescheduleReason ? ` Reason: ${rescheduleReason}.` : '';
             sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your consultation has been rescheduled to ${formatGuestDate(date)} at ${formatGuestTime(startTime || oldAppt.start_time)}.${reasonSms}`);
+          }
+
+          // ── Registered User Email: Rescheduled ──
+          if (isRegisteredUser) {
+            const newDisplayDate2 = formatGuestDate(date);
+            const newDisplayTime2 = formatGuestTime(startTime || oldAppt.start_time);
+            const reasonLine2 = rescheduleReason ? ` Reason: ${rescheduleReason}.` : '';
+            sendRegisteredUserStatusEmail(db, currentData.customer_id,
+              'Appointment Rescheduled',
+              'Appointment Rescheduled 📅', '#f59e0b',
+              `Your appointment has been rescheduled to a new date and time. Please see the updated details below.${reasonLine2}`,
+              [
+                { label: 'Design', value: guestDesign },
+                { label: 'New Date', value: newDisplayDate2 },
+                { label: 'New Time', value: newDisplayTime2 }
+              ]
+            );
           }
 
           notificationsSent = true;
@@ -4223,6 +4339,27 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your consultation request has been CONFIRMED for ${displayDate} at ${displayTime}.${priceSms} See you soon!`);
             }
 
+            // ── Registered User Email: Confirmed ──
+            if (isRegisteredUser) {
+              const priceLine2 = price > 0 ? ` The quoted price is <strong style="color:#C19A6B;">₱${parseFloat(price).toLocaleString()}</strong>.` : '';
+              sendRegisteredUserStatusEmail(db, currentData.customer_id,
+                'Booking Confirmed!',
+                'Booking Confirmed! ✅', '#10b981',
+                `Great news! Your booking request has been reviewed and <strong>approved</strong> by our team.${priceLine2} We look forward to seeing you!`,
+                [
+                  { label: 'Design', value: guestDesign },
+                  { label: 'Date', value: displayDate },
+                  { label: 'Time', value: displayTime }
+                ],
+                isTattooSession ? preCareEmailBlock : null
+              );
+
+              // ── Pre-care notification (tattoo sessions only) ──
+              if (isTattooSession) {
+                createNotification(currentData.customer_id, '🛡️ Pre-Session Conditioning Plan', `Your tattoo session for "${guestDesign}" is confirmed! To get the best results: Hydrate well, eat a balanced meal beforehand, avoid alcohol/blood thinners for 24hrs, moisturize (but not on session day), get good rest, and wear loose clothing. Check your email for the full guide!`, 'precare_plan', id);
+              }
+            }
+
             notificationsSent = true;
           } else if (status === 'rejected' && oldAppt.status === 'pending') {
             const reasonMsg = rejectionReason ? `\n\nReason: ${rejectionReason}` : ' Please contact the studio for alternatives.';
@@ -4247,6 +4384,20 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
             if (guestPhone) {
               const reasonSms = rejectionReason ? ` Reason: ${rejectionReason}.` : '';
               sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `We're sorry, your consultation request could not be approved.${reasonSms} Please contact the studio for alternatives.`);
+            }
+
+            // ── Registered User Email: Rejected ──
+            if (isRegisteredUser) {
+              const reasonLine3 = rejectionReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${rejectionReason}` : '';
+              sendRegisteredUserStatusEmail(db, currentData.customer_id,
+                'Booking Request Update',
+                'Booking Request Update ❌', '#ef4444',
+                `We regret to inform you that your booking request could not be approved at this time. Please don't hesitate to reach out to the studio directly for alternatives or to rebook.${reasonLine3}`,
+                [
+                  { label: 'Design', value: guestDesign },
+                  { label: 'Status', value: 'Not Approved' }
+                ]
+              );
             }
 
             notificationsSent = true;
@@ -4280,6 +4431,21 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your consultation booking has been cancelled. Please contact the studio if you have questions or wish to rebook.`);
             }
 
+            // ── Registered User Email: Cancelled ──
+            if (isRegisteredUser) {
+              const cancelReason = rejectionReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${rejectionReason}` : '';
+              sendRegisteredUserStatusEmail(db, currentData.customer_id,
+                'Appointment Cancelled',
+                'Appointment Cancelled ❌', '#ef4444',
+                `Your appointment has been cancelled. If this was unexpected, please contact the studio directly for clarification.${cancelReason}`,
+                [
+                  { label: 'Design', value: guestDesign },
+                  { label: 'Orig. Date', value: formatGuestDate(oldAppt.appointment_date) },
+                  { label: 'Status', value: 'Cancelled' }
+                ]
+              );
+            }
+
             notificationsSent = true;
           } else if (status === 'completed') {
             createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
@@ -4303,6 +4469,19 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your session is complete! Thank you for choosing InkVistAR Studio. We hope you love the result!`);
             }
 
+            // ── Registered User Email: Completed ──
+            if (isRegisteredUser) {
+              sendRegisteredUserStatusEmail(db, currentData.customer_id,
+                'Session Complete!',
+                'Session Complete! ✨', '#10b981',
+                `Your session for "${guestDesign}" has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio.`,
+                [
+                  { label: 'Design', value: guestDesign },
+                  { label: 'Status', value: 'Completed' }
+                ]
+              );
+            }
+
             notificationsSent = true;
           } else {
             createNotification(currentData.customer_id, 'Appointment Update', `Your appointment #${id} has been updated to ${status}.`, 'system', id);
@@ -4323,6 +4502,19 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
             }
             if (guestPhone) {
               sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your booking status has been updated to "${status}". Contact the studio if you have questions.`);
+            }
+
+            // ── Registered User Email: Generic Update ──
+            if (isRegisteredUser) {
+              sendRegisteredUserStatusEmail(db, currentData.customer_id,
+                'Appointment Update',
+                'Booking Status Update', '#be9055',
+                `Your appointment status has been updated to <strong style="color:#C19A6B;">${status}</strong>. If you have any questions, please contact the studio.`,
+                [
+                  { label: 'Design', value: guestDesign },
+                  { label: 'New Status', value: status.charAt(0).toUpperCase() + status.slice(1) }
+                ]
+              );
             }
 
             notificationsSent = true;
@@ -4349,6 +4541,20 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
           }
           if (guestPhone) {
             sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your price quote is ready: P${parseFloat(price).toLocaleString()}. Please contact the studio to confirm and secure your booking.`);
+          }
+
+          // ── Registered User Email: Price Quote ──
+          if (isRegisteredUser) {
+            sendRegisteredUserStatusEmail(db, currentData.customer_id,
+              'Session Fee Update',
+              'Your Quote is Ready 💰', '#be9055',
+              `The pricing for your session has been set. Please review the details below. To secure your booking, a reservation fee or down payment may be required.`,
+              [
+                { label: 'Design', value: guestDesign },
+                { label: 'Date', value: displayDate },
+                { label: 'Quoted Price', value: `₱${parseFloat(price).toLocaleString()}` }
+              ]
+            );
           }
 
           notificationsSent = true;
@@ -5802,6 +6008,83 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
                     todayTips: template.tips
                   };
 
+                  // 5. Get Active Pre-care (upcoming confirmed tattoo session with payment)
+                  const precareQuery = `
+                    SELECT ap.id, ap.design_title, ap.appointment_date, ap.service_type,
+                           ap.price, ap.payment_status,
+                           DATEDIFF(DATE(ap.appointment_date), CURDATE()) as days_until,
+                           u.name as artist_name
+                    FROM appointments ap
+                    LEFT JOIN users u ON ap.artist_id = u.id
+                    WHERE ap.customer_id = ? AND ap.status = 'confirmed' AND ap.is_deleted = 0
+                      AND ap.service_type NOT LIKE '%Consultation%'
+                      AND ap.service_type NOT LIKE '%Piercing%'
+                      AND ap.payment_status IN ('downpayment_paid', 'paid')
+                      AND DATE(ap.appointment_date) >= CURDATE()
+                    ORDER BY ap.appointment_date ASC
+                    LIMIT 1
+                  `;
+
+                  db.query(precareQuery, [customerId], (pcErr, pcRes) => {
+                    let activePrecare = null;
+                    if (!pcErr && pcRes && pcRes.length > 0) {
+                      const pcAppt = pcRes[0];
+                      activePrecare = {
+                        appointmentId: pcAppt.id,
+                        designTitle: pcAppt.design_title || 'Tattoo Session',
+                        artistName: pcAppt.artist_name,
+                        appointmentDate: pcAppt.appointment_date,
+                        daysUntil: pcAppt.days_until,
+                        price: pcAppt.price,
+                        paymentStatus: pcAppt.payment_status
+                      };
+                    }
+
+                    res.json({
+                      success: true,
+                      customer,
+                      appointments: upcoming,
+                      stats,
+                      notifications,
+                      unreadCount,
+                      activeAftercare,
+                      activePrecare
+                    });
+                  });
+                });
+              } else {
+                // No aftercare — still check for pre-care
+                const precareQuery2 = `
+                  SELECT ap.id, ap.design_title, ap.appointment_date, ap.service_type,
+                         ap.price, ap.payment_status,
+                         DATEDIFF(DATE(ap.appointment_date), CURDATE()) as days_until,
+                         u.name as artist_name
+                  FROM appointments ap
+                  LEFT JOIN users u ON ap.artist_id = u.id
+                  WHERE ap.customer_id = ? AND ap.status = 'confirmed' AND ap.is_deleted = 0
+                    AND ap.service_type NOT LIKE '%Consultation%'
+                    AND ap.service_type NOT LIKE '%Piercing%'
+                    AND ap.payment_status IN ('downpayment_paid', 'paid')
+                    AND DATE(ap.appointment_date) >= CURDATE()
+                  ORDER BY ap.appointment_date ASC
+                  LIMIT 1
+                `;
+
+                db.query(precareQuery2, [customerId], (pcErr2, pcRes2) => {
+                  let activePrecare = null;
+                  if (!pcErr2 && pcRes2 && pcRes2.length > 0) {
+                    const pcAppt = pcRes2[0];
+                    activePrecare = {
+                      appointmentId: pcAppt.id,
+                      designTitle: pcAppt.design_title || 'Tattoo Session',
+                      artistName: pcAppt.artist_name,
+                      appointmentDate: pcAppt.appointment_date,
+                      daysUntil: pcAppt.days_until,
+                      price: pcAppt.price,
+                      paymentStatus: pcAppt.payment_status
+                    };
+                  }
+
                   res.json({
                     success: true,
                     customer,
@@ -5809,18 +6092,9 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
                     stats,
                     notifications,
                     unreadCount,
-                    activeAftercare
+                    activeAftercare: null,
+                    activePrecare
                   });
-                });
-              } else {
-                res.json({
-                  success: true,
-                  customer,
-                  appointments: upcoming,
-                  stats,
-                  notifications,
-                  unreadCount,
-                  activeAftercare: null
                 });
               }
             });
