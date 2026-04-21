@@ -469,8 +469,6 @@ function AdminDashboard() {
                                 </div>
                             )}
                         </div>
-
-                        <button onClick={handleLogout} className="logout-btn">Logout</button>
                     </div>
                 </header>
                 <p className="header-subtitle">System Overview & Management</p>
