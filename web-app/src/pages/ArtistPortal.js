@@ -246,7 +246,7 @@ function ArtistPortal() {
                                 {/* Recent Reviews Widget */}
                                 <div className="data-card">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-                                        <span style={{ fontSize: '20px' }}>⭐</span>
+                                        <span style={{ fontSize: '20px' }}>★</span>
                                         <h2 style={{ margin: 0, border: 'none', padding: 0 }}>Recent Client Feedback</h2>
                                     </div>
                                     <div className="artist-portal-review-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>

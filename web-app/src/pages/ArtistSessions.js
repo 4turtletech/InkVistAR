@@ -725,9 +725,9 @@ function ArtistSessions() {
                             const myRole = activeSession.assigned_role || 'primary';
                             const isDual = ['tattoo', 'piercing', 'both'].includes(myRole) && activeSession.secondary_artist_id;
                             const roleBadge = isDual ? (
-                                myRole === 'both' ? { icon: '🎨💎', label: 'Tattoo & Piercing', bg: '#be9055', color: '#fff' }
-                                : myRole === 'piercing' ? { icon: '💎', label: 'Piercing Session', bg: '#be9055', color: '#fff' }
-                                : { icon: '🎨', label: 'Tattoo Session', bg: '#be9055', color: '#fff' }
+                                myRole === 'both' ? { icon: '', label: 'Tattoo & Piercing', bg: '#be9055', color: '#fff' }
+                                : myRole === 'piercing' ? { icon: '', label: 'Piercing Session', bg: '#be9055', color: '#fff' }
+                                : { icon: '', label: 'Tattoo Session', bg: '#be9055', color: '#fff' }
                             ) : null;
                             const isPiercingRole = myRole === 'piercing';
                             return (

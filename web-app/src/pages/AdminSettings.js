@@ -596,7 +596,7 @@ function AdminSettings() {
                                                                         <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#475569' }}>{tpl.title}</span>
                                                                     </div>
                                                                     <p style={{ margin: '0 0 2px', fontSize: '0.8rem', color: '#64748b', lineHeight: '1.4' }}>{tpl.message}</p>
-                                                                    {tpl.tips && <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>💡 {tpl.tips}</p>}
+                                                                    {tpl.tips && <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>Tip: {tpl.tips}</p>}
                                                                 </div>
                                                                 <button 
                                                                     style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.75rem', fontWeight: 600, flexShrink: 0, transition: 'all 0.2s' }}

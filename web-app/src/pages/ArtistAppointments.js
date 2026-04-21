@@ -614,9 +614,9 @@ function ArtistAppointments() {
                                         const myRole = selectedAppointment.assigned_role || 'primary';
                                         const isDual = ['tattoo', 'piercing', 'both'].includes(myRole) && selectedAppointment.secondary_artist_id;
                                         const roleBadge = isDual ? (
-                                            myRole === 'both' ? { icon: '🎨💎', label: 'Tattoo & Piercing Staff', bg: '#be9055', color: '#fff' }
-                                            : myRole === 'piercing' ? { icon: '💎', label: 'Piercing Staff', bg: '#be9055', color: '#fff' }
-                                            : { icon: '🎨', label: 'Tattoo Staff', bg: '#be9055', color: '#fff' }
+                                            myRole === 'both' ? { icon: '', label: 'Tattoo & Piercing Staff', bg: '#be9055', color: '#fff' }
+                                            : myRole === 'piercing' ? { icon: '', label: 'Piercing Staff', bg: '#be9055', color: '#fff' }
+                                            : { icon: '', label: 'Tattoo Staff', bg: '#be9055', color: '#fff' }
                                         ) : null;
                                         return (
                                         <div className="modal-overlay" onClick={() => setSelectedAppointment(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)' }}>
@@ -771,7 +771,7 @@ function ArtistAppointments() {
                                                                                 transition: 'all 0.3s'
                                                                             }}
                                                                         >
-                                                                            {publishStatus[selectedAppointment.id] === 'success' ? '✓ Published to Portfolio' : publishStatus[selectedAppointment.id] === 'publishing' ? 'Publishing...' : '✨ Publish to Portfolio'}
+                                                                            {publishStatus[selectedAppointment.id] === 'success' ? '✓ Published to Portfolio' : publishStatus[selectedAppointment.id] === 'publishing' ? 'Publishing...' : 'Publish to Portfolio'}
                                                                         </button>
                                                                         <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '8px' }}>This will push the image to your public Gallery.</p>
                                                                     </>

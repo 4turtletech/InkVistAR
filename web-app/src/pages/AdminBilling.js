@@ -538,7 +538,7 @@ function AdminBilling() {
                                         </div>
                                         <div className="form-group">
                                             <label className={`admin-st-19644797 ${invoiceErrors.amount ? 'text-red-500' : ''}`}>Settlement Amount (₱)</label>
-                                            <input type="number" step="0.01" className={`form-input ${invoiceErrors.amount ? 'border-red-500 bg-red-50' : ''}`} required value={newInvoice.amount} onChange={e => handleInvoiceChange('amount', filterMoney(e.target.value))} />
+                                            <input type="number" step="0.01" min="0" className={`form-input ${invoiceErrors.amount ? 'border-red-500 bg-red-50' : ''}`} required value={newInvoice.amount} onChange={e => handleInvoiceChange('amount', filterMoney(e.target.value))} />
                                             {invoiceErrors.amount && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.amount}</span>}
                                         </div>
                                     </div>
@@ -725,7 +725,7 @@ function AdminBilling() {
                                     <div className="admin-st-c200c71d">
                                         <div className="form-group">
                                             <label className={`admin-st-19644797 ${payoutErrors.amount ? 'text-red-500' : ''}`}>Remittance Amount (₱)</label>
-                                            <input type="number" step="0.01" className={`form-input ${payoutErrors.amount ? 'border-red-500 bg-red-50' : ''}`} required value={newPayout.amount} onChange={e => handlePayoutChange('amount', filterMoney(e.target.value))} />
+                                            <input type="number" step="0.01" min="0" className={`form-input ${payoutErrors.amount ? 'border-red-500 bg-red-50' : ''}`} required value={newPayout.amount} onChange={e => handlePayoutChange('amount', filterMoney(e.target.value))} />
                                             {payoutErrors.amount && <span className="text-red-500 text-xs mt-1 block">{payoutErrors.amount}</span>}
                                         </div>
                                         <div className="form-group">

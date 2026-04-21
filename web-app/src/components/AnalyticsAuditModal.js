@@ -414,7 +414,7 @@ function AnalyticsAuditModal({
                                 </select>
                                 <input type="text" placeholder="Description..." value={expenseForm?.description || ''} onChange={e => handleFormChange('description', e.target.value)} style={{ flex: 1, minWidth: '120px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }} />
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <input type="number" placeholder="Amount (₱)" value={expenseForm?.amount || ''} onChange={e => handleFormChange('amount', e.target.value)} required style={{ flex: '0 0 110px', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${errors.amount ? '#ef4444' : '#e2e8f0'}`, background: errors.amount ? '#fef2f2' : 'white', fontSize: '0.85rem' }} />
+                                    <input type="number" min="0" placeholder="Amount (₱)" value={expenseForm?.amount || ''} onChange={e => handleFormChange('amount', e.target.value)} required style={{ flex: '0 0 110px', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${errors.amount ? '#ef4444' : '#e2e8f0'}`, background: errors.amount ? '#fef2f2' : 'white', fontSize: '0.85rem' }} />
                                     {errors.amount && <span style={{ color: '#ef4444', fontSize: '0.7rem', marginTop: '2px' }}>{errors.amount}</span>}
                                 </div>
                                 <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', alignSelf: 'flex-start' }} disabled={!!errors.amount}>
@@ -464,7 +464,7 @@ function AnalyticsAuditModal({
                                                         <td style={{ textAlign: 'right', fontWeight: 600 }}>
                                                             {isEditing ? (
                                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                                    <input type="number" value={editData.amount} onChange={e => handleEditChange('amount', e.target.value)} style={{ padding: '4px 6px', borderRadius: '6px', border: `1px solid ${errors.editAmount ? '#ef4444' : '#e2e8f0'}`, background: errors.editAmount ? '#fef2f2' : 'white', fontSize: '0.8rem', width: '80px', textAlign: 'right' }} />
+                                                                    <input type="number" min="0" value={editData.amount} onChange={e => handleEditChange('amount', e.target.value)} style={{ padding: '4px 6px', borderRadius: '6px', border: `1px solid ${errors.editAmount ? '#ef4444' : '#e2e8f0'}`, background: errors.editAmount ? '#fef2f2' : 'white', fontSize: '0.8rem', width: '80px', textAlign: 'right' }} />
                                                                     {errors.editAmount && <span style={{ color: '#ef4444', fontSize: '0.65rem' }}>{errors.editAmount}</span>}
                                                                 </div>
                                                             ) : (

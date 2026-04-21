@@ -361,7 +361,7 @@ function AdminStudio() {
                                         </div>
                                         <div className="form-group">
                                             <label className="premium-label">Operational Capacity</label>
-                                            <input type="number" name="capacity" className={`form-input ${errors.capacity ? 'error' : ''}`} required value={formData.capacity} onChange={e => { setFormData({...formData, capacity: e.target.value}); validateField('capacity', e.target.value); }} />
+                                            <input type="number" min="0" name="capacity" className={`form-input ${errors.capacity ? 'error' : ''}`} required value={formData.capacity} onChange={e => { setFormData({...formData, capacity: e.target.value}); validateField('capacity', e.target.value); }} />
                                             {errors.capacity && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.capacity}</small>}
                                         </div>
                                     </div>
