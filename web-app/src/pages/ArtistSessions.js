@@ -411,7 +411,7 @@ function ArtistSessions() {
             isOpen: true,
             title: 'Session Completion Status',
             message: `Does this piece need another session, or is the tattoo fully complete? (Total material cost: ₱${sessionCost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} will be recorded).`,
-            confirmText: 'Fully Complete ✨',
+            confirmText: 'Fully Complete',
             cancelText: 'Needs Another Session',
             type: 'info',
             onConfirm: async () => {

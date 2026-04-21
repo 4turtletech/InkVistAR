@@ -277,7 +277,7 @@ function CustomerAftercare() {
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                                   <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isCurrent ? '#be9055' : '#1e293b' }}>
-                                    {tpl.title}
+                                    {tpl.title.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u{FE0F}]/gu, '').trim()}
                                   </span>
                                   {isCurrent && (
                                     <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '0.65rem', fontWeight: 700, background: '#be9055', color: '#fff', textTransform: 'uppercase' }}>
