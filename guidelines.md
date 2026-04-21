@@ -319,6 +319,14 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - `'password_change'` — Title: "Password Changed", routed to `/customer/profile` or `/artist/profile` on click.
     - Both `CustomerNotifications.js` and `ArtistNotifications.js` have `getNotificationStyle` entries: `email_change` uses `Mail` icon (blue), `password_change` uses `ShieldAlert` icon (amber).
     - Clicking these notifications navigates directly to the user's profile page instead of opening the notification detail modal.
+    **Artist Notification Coverage:** Artists receive notifications for all events that affect their schedule, compensation, and reputation. The following notification types are triggered in `server.js` and styled in `ArtistNotifications.js`:
+    - `'appointment_request'` — When a customer books with a specific artist (`artistId > 1`), the artist is notified alongside admins. Guard: `artistId && artistId !== 1`.
+    - `'appointment_rescheduled'` — When admin reschedules a session, the artist receives the correct `appointment_rescheduled` type (NOT `system`), with the new date/time in the message.
+    - `'payment_success'` — When any payment is collected (manual, billing portal, or PayMongo), the artist receives a "Payment Collected" notification showing the amount, method, and their 30% commission share.
+    - `'new_review'` — When a customer submits a review, both the admin and the reviewed artist are notified. The artist's message includes the star rating and a preview of the comment (truncated to 100 chars).
+    - `'payout_processed'` — When admin records a payout via `POST /api/admin/payouts`, the artist is notified with the amount, method, and reference number. Uses `DollarSign` icon (green).
+    - `'price_update'` — When admin sets a session price, the artist is notified with the finalized price and their projected 30% commission. Uses `Tag` icon (brand-gold).
+    - All artist notification guards use the pattern `if (artistId && artistId !== 1)` to skip unassigned appointments.
 19. **Gallery UI Standards (Cross-Portal):** All portfolio/gallery grids across `Gallery.js`, `ArtistGallery.js`, and `AdminUsers.js` (portfolio tab) MUST follow these rules:
     - **Aspect Ratio:** `4/5` portrait ratio enforced via CSS `aspect-ratio: 4/5` with `object-fit: cover`.
     - **Hover Effects:** Gold glow (`box-shadow: 0 0 20px rgba(190, 144, 85, 0.35)`, `border-color: rgba(190, 144, 85, 0.7)`), subtle image scale (`transform: scale(1.04)`), gradient overlay deepening on hover.

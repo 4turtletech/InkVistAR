@@ -18,7 +18,9 @@ import {
     Star,
     CreditCard,
     Mail,
-    ShieldAlert
+    ShieldAlert,
+    DollarSign,
+    Tag
 } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import Pagination from '../components/Pagination';
@@ -149,6 +151,10 @@ function ArtistNotifications() {
                 return { icon: Mail, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'Account' };
             case 'password_change':
                 return { icon: ShieldAlert, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', label: 'Security' };
+            case 'payout_processed':
+                return { icon: DollarSign, color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', label: 'Payout' };
+            case 'price_update':
+                return { icon: Tag, color: '#be9055', bg: 'rgba(193, 154, 107, 0.1)', label: 'Pricing' };
             case 'system':
                 return { icon: Info, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', label: 'System' };
             default:

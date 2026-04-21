@@ -3398,6 +3398,11 @@ app.post('/api/customer/appointments', async (req, res) => {
           }
         });
 
+        // Notify assigned artist (skip if unassigned/admin user 1)
+        if (artistId && artistId !== 1 && artistId !== 'admin') {
+          createNotification(artistId, 'New Booking Request', `A client has requested a ${displayDesign} session with you on ${appointmentDate} at ${appointmentTime}. The admin is reviewing this request.`, 'appointment_request', result.insertId);
+        }
+
         db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (err, users) => {
           if (!err && users && users.length > 0 && users[0].email) {
             const html = buildEmailHtml(`
@@ -4268,7 +4273,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         if ((newDate && oldDate && newDate !== oldDate) || (startTime !== undefined && startTime !== oldAppt.start_time)) {
           const reasonText = rescheduleReason ? `\n\nReason: ${rescheduleReason}` : '';
           createNotification(currentData.customer_id, 'Appointment Rescheduled 📅', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.${reasonText}`, 'appointment_rescheduled', id);
-          notifyArtist('Session Rescheduled', `Details for session #${id} have been updated.`, 'system');
+          notifyArtist('Session Rescheduled', `Your session #${id} has been rescheduled to ${date}${startTime ? ' at ' + startTime : ''}. Please update your schedule accordingly.`, 'appointment_rescheduled');
 
           // ── Guest Email + SMS: Rescheduled ──
           if (guestEmail) {
@@ -4532,6 +4537,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         // 3. Independent Price Update
         if (price !== undefined && price > 0 && price !== oldAppt.price && !notificationsSent) {
           createNotification(currentData.customer_id, 'Session Fee Update', `The total price for your session #${id} has been set to ₱${parseFloat(price).toLocaleString()}. Please pay the required reservation fee/down payment to successfully secure your booking.`, 'system', id);
+          notifyArtist('Session Price Set', `The price for session #${id} has been finalized at ₱${parseFloat(price).toLocaleString()}. Your 30% commission will be ₱${(parseFloat(price) * 0.30).toLocaleString()} upon completion.`, 'price_update');
 
           // ── Guest Email + SMS: Price Quote ──
           if (guestEmail) {
@@ -4762,6 +4768,12 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
               const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
               createNotification(apptData.customer_id, 'Payment Received', customerMsg, 'payment_success', invInsertRes?.insertId || id);
 
+              // Notify the artist about payment collected for their session
+              if (apptData.artist_id && apptData.artist_id !== 1) {
+                const artistCut = (actualPayment * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+                createNotification(apptData.artist_id, 'Payment Collected', `A payment of ₱${actualPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (${method || 'Cash'}) was collected for session #${id}. Your 30% commission share: ₱${artistCut}.`, 'payment_success', id);
+              }
+
               const isConfirmedNow = apptData.status === 'confirmed' || apptData.status === 'pending';
               if (apptData.artist_id && apptData.artist_id !== 1 && isConfirmedNow) {
                 const apptDate = new Date(apptData.appointment_date || Date.now());
@@ -4898,6 +4910,12 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
               // Send notification to customer
               const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
               createNotification(customerId, 'Payment Received', customerMsg, 'payment_success', invInsertRes?.insertId || appointmentId);
+
+              // Notify the artist about payment collected for their session
+              if (apptData.artist_id && apptData.artist_id !== 1) {
+                const artistCut = (actualPayment * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+                createNotification(apptData.artist_id, 'Payment Collected', `A payment of ₱${actualPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (${method}) was collected for your session. Your 30% commission share: ₱${artistCut}.`, 'payment_success', appointmentId);
+              }
 
               // Send receipt email
               sendReceiptEmail(apptData.cx_email, {
@@ -5402,8 +5420,14 @@ app.post('/api/admin/payouts', (req, res) => {
   if (!artistId || !amount) return res.status(400).json({ success: false, message: 'Missing required fields' });
 
   const query = 'INSERT INTO payouts (artist_id, amount, payout_method, reference_no) VALUES (?, ?, ?, ?)';
-  db.query(query, [artistId, amount, method || 'Bank Transfer', reference || 'N/A'], (err) => {
+  db.query(query, [artistId, amount, method || 'Bank Transfer', reference || 'N/A'], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+
+    // Notify the artist about their payout
+    const payoutAmt = parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+    const payoutMethod = method || 'Bank Transfer';
+    createNotification(artistId, 'Payout Processed', `A payout of \u20b1${payoutAmt} has been processed for you via ${payoutMethod}.${reference ? ' Reference: ' + reference : ''} Check your account for the funds.`, 'payout_processed', result.insertId);
+
     res.json({ success: true, message: 'Payout recorded successfully' });
   });
 });
@@ -5779,7 +5803,13 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                   const customerAmtStr = (amountCentavos / 100).toLocaleString();
                   const paymentTypeStr = paymentType === 'deposit' ? 'Downpayment' : paymentType === 'custom' ? 'Partial Payment' : 'Full Payment';
                   createNotification(appt.customer_id, 'Payment Received', `Your payment of ₱${customerAmtStr} for appointment #${appointmentId} (${paymentTypeStr}) has been successfully confirmed.`, 'payment_success', appointmentId);
-                  // Artist only gets Appointment Scheduled, not Payment Received
+
+                  // Notify artist about payment collected for their session
+                  if (appt.artist_id && appt.artist_id !== 1) {
+                    const payAmt = amountCentavos / 100;
+                    const artistCut = (payAmt * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+                    createNotification(appt.artist_id, 'Payment Collected', `A payment of ₱${payAmt.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (PayMongo - ${paymentTypeStr}) was collected for appointment #${appointmentId}. Your 30% commission share: ₱${artistCut}.`, 'payment_success', appointmentId);
+                  }
 
                   const wasPending = currentAptStatus?.toLowerCase() === 'pending';
 
@@ -8436,7 +8466,12 @@ app.post('/api/reviews', (req, res) => {
           console.log('[REVIEW] Successfully created review ID:', result.insertId);
 
           // Notify Admin of new review
-          createNotification(1, 'New Review Received ⭐', `A client submitted a new review for session #${appointment_id}. Take a moment to review and showcase it!`, 'new_review', appointment_id);
+          createNotification(1, 'New Review Received', `A client submitted a new ${rating}-star review for session #${appointment_id}. Take a moment to review and showcase it!`, 'new_review', appointment_id);
+
+          // Notify the reviewed artist
+          if (artist_id && artist_id !== 1) {
+            createNotification(artist_id, 'New Review Received', `A client left a ${rating}-star review for your session #${appointment_id}.${comment ? ' "' + comment.substring(0, 100) + (comment.length > 100 ? '...' : '') + '"' : ''} Thank you for your work!`, 'new_review', appointment_id);
+          }
 
           // Send thank-you notification to the customer
           createNotification(customer_id, 'Thank You for Your Review ⭐', `We truly appreciate you taking the time to share your experience with Inkvictus. Your feedback helps us continue delivering the premium artistry and service our clients deserve. Your review is now pending approval and will be showcased soon.`, 'system', result.insertId);
