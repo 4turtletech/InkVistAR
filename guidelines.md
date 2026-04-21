@@ -48,6 +48,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
   - **`.slice()` / `.substring()` in `onChange`** for programmatic length enforcement (backup for `maxLength`).
   - **`clampNumber()` wrapping** on all numeric `onChange` handlers (rate fields, quantities, multipliers).
   - **`filterMoney()` wrapping** on all currency/price inputs (invoices, payouts, costs, payments).
+  - **Philippine Peso symbol (₱):** All currency displays across the entire application — UI labels, chart axes, tooltips, CSV exports, email templates, and notifications — MUST use the `₱` character (Unicode U+20B1). Never use `$`, `P`, or `PHP` as a currency prefix. The `PhilippinePeso` icon component (`src/components/PhilippinePeso.js`) should be used for any standalone peso icon in stat cards or headings.
   - **`filterName()` / `filterDigits()`** on name and phone fields respectively.
   - **`min="0"` HTML attribute** on ALL `type="number"` inputs (prices, quantities, stock levels, experience years, valuations). This provides native browser-level enforcement against negative values, complementing the JavaScript `clampNumber()` / `filterMoney()` handlers.
   - **Visual feedback:** Invalid fields must display clear, inline error messages (red border + helper text). Do NOT use `alert()` for form validation.

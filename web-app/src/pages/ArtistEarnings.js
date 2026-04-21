@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Axios from 'axios';
 import {
-    Download, Filter, DollarSign, Clock, CheckCircle, Wallet,
+    Download, Filter, Clock, CheckCircle, Wallet,
     BarChart3, PieChart as PieChartIcon, TrendingUp
 } from 'lucide-react';
+import PhilippinePeso from '../components/PhilippinePeso';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -230,7 +231,7 @@ function ArtistEarnings() {
                         {/* ═══════════════ METRIC CARDS ═══════════════ */}
                         <div className="metrics-section" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                             {[
-                                { label: 'Total Earned', value: formatCurrency(metrics.totalEarned), icon: <DollarSign size={28} />, color: '#10b981', sub: `From ${filteredSessions.filter(s => s.payment_status === 'paid').length} paid session${filteredSessions.filter(s => s.payment_status === 'paid').length !== 1 ? 's' : ''}` },
+                                { label: 'Total Earned', value: formatCurrency(metrics.totalEarned), icon: <PhilippinePeso size={28} />, color: '#10b981', sub: `From ${filteredSessions.filter(s => s.payment_status === 'paid').length} paid session${filteredSessions.filter(s => s.payment_status === 'paid').length !== 1 ? 's' : ''}` },
                                 { label: 'Pending (Unpaid)', value: formatCurrency(metrics.pendingUnpaid), icon: <Clock size={28} />, color: '#f59e0b', sub: `${filteredSessions.filter(s => s.payment_status !== 'paid').length} unpaid session${filteredSessions.filter(s => s.payment_status !== 'paid').length !== 1 ? 's' : ''}` },
                                 { label: 'Paid Out', value: formatCurrency(metrics.totalPaidOut), icon: <CheckCircle size={28} />, color: '#3b82f6', sub: `${filteredPayouts.length} payout${filteredPayouts.length !== 1 ? 's' : ''} disbursed` },
                                 { label: 'Balance Due', value: formatCurrency(metrics.balanceDue), icon: <Wallet size={28} />, color: metrics.balanceDue > 0 ? '#be9055' : '#10b981', sub: `Commission rate: ${commissionRate}%` },
@@ -380,11 +381,11 @@ function ArtistEarnings() {
                         </div>
 
                         {/* ═══════════════ TABLES ═══════════════ */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', padding: '1.5rem 2rem 0' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '20px', padding: '1.5rem 2rem 0' }}>
                             {/* Session Earnings Table */}
                             <div className="card glass-card">
                                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <DollarSign size={18} style={{ color: '#94a3b8' }} />
+                                    <PhilippinePeso size={18} style={{ color: '#94a3b8' }} />
                                     Session Earnings
                                     <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, marginLeft: 'auto' }}>{filteredSessions.length} session{filteredSessions.length !== 1 ? 's' : ''}</span>
                                 </h2>
