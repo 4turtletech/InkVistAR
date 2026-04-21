@@ -698,7 +698,7 @@ function CustomerPortal() {
                                     with {activePrecare.artistName} · {new Date(activePrecare.appointmentDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                                 </p>
                                 <span style={{ display: 'inline-block', marginTop: '8px', background: 'rgba(99,102,241,0.15)', color: '#818cf8', padding: '4px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
-                                    {activePrecare.daysUntil === 0 ? '🔥 Today!' : activePrecare.daysUntil === 1 ? '⏰ Tomorrow' : `📅 ${activePrecare.daysUntil} days away`}
+                                    {activePrecare.daysUntil === 0 ? 'Today!' : activePrecare.daysUntil === 1 ? 'Tomorrow' : `${activePrecare.daysUntil} days away`}
                                 </span>
                             </div>
 
@@ -708,12 +708,12 @@ function CustomerPortal() {
 
                             {/* Pre-care steps */}
                             {[
-                                { emoji: '💧', title: 'Hydrate Thoroughly', desc: 'Drink plenty of water 24–48 hours before your session. Well-hydrated skin has better elasticity and holds ink more evenly.', color: '#3b82f6' },
-                                { emoji: '🍽️', title: 'Eat a Full Meal', desc: 'Have a balanced meal 1–2 hours before arriving. This keeps your blood sugar stable and helps you endure longer sessions.', color: '#10b981' },
-                                { emoji: '🚫', title: 'Avoid Alcohol & Blood Thinners', desc: 'No alcohol for at least 24 hours prior. Also avoid ibuprofen and aspirin — they thin blood and increase bleeding during the session.', color: '#ef4444' },
-                                { emoji: '🧴', title: 'Moisturize (But Not Day-Of)', desc: 'Keep the tattoo area moisturized daily leading up to your session, but do NOT apply lotion on the day of. Also, avoid sunburns at all costs!', color: '#f59e0b' },
-                                { emoji: '😴', title: 'Get a Good Night\'s Rest', desc: 'Aim for 7–8 hours of sleep the night before. Proper rest boosts your energy levels and improves pain tolerance.', color: '#8b5cf6' },
-                                { emoji: '👕', title: 'Wear Comfortable, Loose Clothing', desc: 'Choose clothes that provide easy access to the tattoo area. Loose fabrics prevent irritation on fresh ink afterward.', color: '#6366f1' }
+                                { emoji: '1', title: 'Hydrate Thoroughly', desc: 'Drink plenty of water 24–48 hours before your session. Well-hydrated skin has better elasticity and holds ink more evenly.', color: '#3b82f6' },
+                                { emoji: '2', title: 'Eat a Full Meal', desc: 'Have a balanced meal 1–2 hours before arriving. This keeps your blood sugar stable and helps you endure longer sessions.', color: '#10b981' },
+                                { emoji: '3', title: 'Avoid Alcohol & Blood Thinners', desc: 'No alcohol for at least 24 hours prior. Also avoid ibuprofen and aspirin — they thin blood and increase bleeding during the session.', color: '#ef4444' },
+                                { emoji: '4', title: 'Moisturize (But Not Day-Of)', desc: 'Keep the tattoo area moisturized daily leading up to your session, but do NOT apply lotion on the day of. Also, avoid sunburns at all costs!', color: '#f59e0b' },
+                                { emoji: '5', title: 'Get a Good Night\'s Rest', desc: 'Aim for 7–8 hours of sleep the night before. Proper rest boosts your energy levels and improves pain tolerance.', color: '#8b5cf6' },
+                                { emoji: '6', title: 'Wear Comfortable, Loose Clothing', desc: 'Choose clothes that provide easy access to the tattoo area. Loose fabrics prevent irritation on fresh ink afterward.', color: '#6366f1' }
                             ].map((step, idx) => (
                                 <div key={idx} style={{
                                     display: 'flex', gap: '14px', padding: '14px',
@@ -736,7 +736,7 @@ function CustomerPortal() {
 
                             <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', textAlign: 'center' }}>
                                 <p style={{ margin: 0, fontSize: '0.82rem', color: '#6ee7b7' }}>
-                                    ✨ Following these steps helps ensure <strong>better ink retention</strong>, <strong>less bleeding</strong>, and a <strong>smoother healing</strong> experience.
+                                    Following these steps helps ensure <strong>better ink retention</strong>, <strong>less bleeding</strong>, and a <strong>smoother healing</strong> experience.
                                 </p>
                             </div>
                         </div>

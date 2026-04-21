@@ -1480,7 +1480,7 @@ function AdminAppointments() {
                                                             background: selectedAppointment.consultationMethod === 'Face-to-Face' ? '#dcfce7' : '#ede9fe',
                                                             color: selectedAppointment.consultationMethod === 'Face-to-Face' ? '#166534' : '#5b21b6'
                                                         }}>
-                                                            {selectedAppointment.consultationMethod === 'Face-to-Face' ? '🏢' : '💬'} {selectedAppointment.consultationMethod}
+                                                            {selectedAppointment.consultationMethod}
                                                         </span>
                                                         <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: '500' }}>
                                                             {selectedAppointment.consultationMethod === 'Face-to-Face'
@@ -1896,6 +1896,7 @@ function AdminAppointments() {
                                     <label className="admin-st-80a8a11c">Payment Amount (₱)</label>
                                     <input
                                         type="number"
+                                        min="0"
                                         className="form-input admin-st-22430afb"
                                         value={manualPaymentModal.amount}
                                         onChange={(e) => setManualPaymentModal({ ...manualPaymentModal, amount: e.target.value })}

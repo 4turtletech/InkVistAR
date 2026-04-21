@@ -404,7 +404,7 @@ function PaymentAlertOverlay() {
                     </div>
                     <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem' }}>
-                            ⚠️ {alerts.length} session{alerts.length > 1 ? 's' : ''} pending payment
+                            {alerts.length} session{alerts.length > 1 ? 's' : ''} pending payment
                         </p>
                         <p style={{ margin: '2px 0 0', fontSize: '0.75rem', opacity: 0.85 }}>
                             Click to review and resolve
@@ -532,7 +532,7 @@ function PaymentAlertOverlay() {
 
                             {/* Spam advisory */}
                             <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', textAlign: 'center', fontStyle: 'italic' }}>
-                                📧 The customer will receive an email receipt. Please remind them to also check their Spam/Junk folder.
+                                The customer will receive an email receipt. Please remind them to also check their Spam/Junk folder.
                             </p>
                         </div>
                         <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>

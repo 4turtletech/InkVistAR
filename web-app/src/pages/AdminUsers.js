@@ -1334,7 +1334,7 @@ function AdminUsers() {
                                                 </div>
                                                 <div className="form-group">
                                                     <label className="admin-st-19644797">Market Valuation (₱)</label>
-                                                    <input type="number" className="form-input" value={workFormData.priceEstimate}
+                                                    <input type="number" min="0" className="form-input" value={workFormData.priceEstimate}
                                                         onChange={e => setWorkFormData({ ...workFormData, priceEstimate: e.target.value })} />
                                                 </div>
                                             </div>

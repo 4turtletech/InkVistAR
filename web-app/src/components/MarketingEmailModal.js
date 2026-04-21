@@ -109,7 +109,7 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                                     type="text"
                                     value={subject}
                                     onChange={(e) => setSubject(e.target.value.substring(0, 150))}
-                                    placeholder="e.g., 🎨 20% Off Your Next Tattoo Session!"
+                                    placeholder="e.g., 20% Off Your Next Tattoo Session!"
                                     maxLength={150}
                                     style={{
                                         width: '100%', padding: '11px 14px', borderRadius: '10px',

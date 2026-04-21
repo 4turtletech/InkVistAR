@@ -42,7 +42,7 @@ function AdminPOS() {
     };
 
     useEffect(() => {
-        console.log("🛒 POS System Mounting...");
+        console.log("POS System Mounting...");
         fetchInventory();
         fetchCustomers();
     }, []);

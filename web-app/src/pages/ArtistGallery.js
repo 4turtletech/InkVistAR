@@ -356,6 +356,7 @@ function ArtistGallery() {
                                                 <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Price Est. (₱)</label>
                                                 <input 
                                                     type="number" 
+                                                    min="0"
                                                     className="form-input"
                                                     placeholder="0"
                                                     value={formData.priceEstimate}

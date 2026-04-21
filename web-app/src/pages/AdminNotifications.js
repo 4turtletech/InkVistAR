@@ -121,7 +121,7 @@ function AdminNotifications() {
                 if (pendingPayments.length > 0) {
                     pinnedAlerts.push({
                         id: 'payment-resolution',
-                        title: '⚠️ Payment Resolution Required',
+                        title: 'Payment Resolution Required',
                         message: `${pendingPayments.length} completed session${pendingPayments.length === 1 ? '' : 's'} with outstanding balance. Artist compensation is pending until payment is collected.`,
                         type: 'payment_resolution',
                         severity: 'critical',
@@ -178,9 +178,9 @@ function AdminNotifications() {
             case 'new_review':
                 return { color: '#be9055', bg: 'rgba(218, 165, 32, 0.1)', label: 'Review' };
             case 'payment_action_required':
-                return { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.1)', label: '⚠️ Urgent' };
+                return { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.1)', label: 'Urgent' };
             case 'payment_resolution':
-                return { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.12)', label: '⚠️ Action Required' };
+                return { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.12)', label: 'Action Required' };
             case 'contact_inquiry':
                 return { color: '#be9055', bg: 'rgba(193, 154, 107, 0.12)', label: 'Inquiry' };
             default:

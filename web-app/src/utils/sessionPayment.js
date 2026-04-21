@@ -17,7 +17,7 @@
  * inserted during the booking flow.
  */
 const isFollowUpSession = (session) => {
-    return (session.notes || '').includes('📋 Follow-up of Booking');
+    return (session.notes || '').includes('Follow-up of Booking');
 };
 
 /**

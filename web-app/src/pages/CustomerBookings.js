@@ -541,7 +541,7 @@ function CustomerBookings(){
             if (bookingData.bookingType === 'followup' && bookingData.followupAppointmentId) {
                 const refAppt = completedAppointments.find(a => a.id === bookingData.followupAppointmentId);
                 const refCode = refAppt ? getDisplayCode(refAppt.booking_code, refAppt.id) : `#${bookingData.followupAppointmentId}`;
-                followupNote = `\n\n📋 Follow-up of Booking ${refCode}`;
+                followupNote = `\n\nFollow-up of Booking ${refCode}`;
             }
 
             const consultMethodPayload = derivedType === 'Consultation' ? (bookingData.consultationMethod === 'Online' ? `Online (${bookingData.onlinePlatform || 'TBD'})` : 'Face-to-Face') : null;
@@ -1933,7 +1933,7 @@ function CustomerBookings(){
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             margin: '0 auto 20px', border: '2px solid rgba(193,154,107,0.2)'
                         }}>
-                            <span style={{ fontSize: '32px' }}>📋</span>
+                            <span style={{ fontSize: '32px', color: '#be9055', fontWeight: 700 }}>i</span>
                         </div>
                         <h2 style={{ color: '#1e293b', fontSize: '1.3rem', fontWeight: 700, margin: '0 0 8px' }}>
                             Prior Consultation Data Found!
@@ -1947,7 +1947,7 @@ function CustomerBookings(){
                             marginBottom: '24px'
                         }}>
                             <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', lineHeight: 1.6 }}>
-                                💡 You can now view and track {migrationModal.count > 1 ? 'these bookings' : 'this booking'} in your <strong style={{ color: '#1e293b' }}>My Bookings</strong> page. Our team will reach out to confirm details.
+                                You can now view and track {migrationModal.count > 1 ? 'these bookings' : 'this booking'} in your <strong style={{ color: '#1e293b' }}>My Bookings</strong> page. Our team will reach out to confirm details.
                             </p>
                         </div>
                         <button

@@ -188,7 +188,7 @@ function AdminSettings() {
 
             {isSaved && (
                 <div className="success-message">
-                    ✓ Settings saved successfully
+                    Settings saved successfully
                 </div>
             )}
 

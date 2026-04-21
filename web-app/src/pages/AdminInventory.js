@@ -922,6 +922,7 @@ function AdminInventory() {
                                                     <input
                                                         type="number"
                                                         step="0.01"
+                                                        min="0"
                                                         value={formData.cost}
                                                         onChange={(e) => handleInventoryInputChange('cost', filterMoney(e.target.value))}
                                                         className={`form-input ${errors.cost ? 'error' : ''}`}
@@ -933,6 +934,7 @@ function AdminInventory() {
                                                     <input
                                                         type="number"
                                                         step="0.01"
+                                                        min="0"
                                                         value={formData.retailPrice}
                                                         onChange={(e) => handleInventoryInputChange('retailPrice', filterMoney(e.target.value))}
                                                         className={`form-input admin-st-45e16daa ${errors.retailPrice ? 'error' : ''}`}
@@ -951,6 +953,7 @@ function AdminInventory() {
                                                 <label className="admin-st-4d4ffce1">Initial / Current Quantity</label>
                                                 <input
                                                     type="number"
+                                                    min="0"
                                                     value={formData.currentStock}
                                                     onChange={(e) => handleInventoryInputChange('currentStock', clampNumber(e.target.value, 0, 999999))}
                                                     className={`form-input admin-st-7047dd0b ${errors.currentStock ? 'error' : ''}`}
@@ -966,6 +969,7 @@ function AdminInventory() {
                                                     <label className="admin-st-496ebd9a">Min (Alert)</label>
                                                     <input
                                                         type="number"
+                                                        min="0"
                                                         value={formData.minStock}
                                                         onChange={(e) => handleInventoryInputChange('minStock', clampNumber(e.target.value, 0, 999999))}
                                                         className={`form-input ${errors.minStock ? 'error' : ''}`}
@@ -976,6 +980,7 @@ function AdminInventory() {
                                                     <label className="admin-st-496ebd9a">Max (Goal)</label>
                                                     <input
                                                         type="number"
+                                                        min="0"
                                                         value={formData.maxStock}
                                                         onChange={(e) => handleInventoryInputChange('maxStock', clampNumber(e.target.value, 0, 999999))}
                                                         className={`form-input ${errors.maxStock ? 'error' : ''}`}

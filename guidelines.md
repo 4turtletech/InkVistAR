@@ -49,6 +49,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
   - **`clampNumber()` wrapping** on all numeric `onChange` handlers (rate fields, quantities, multipliers).
   - **`filterMoney()` wrapping** on all currency/price inputs (invoices, payouts, costs, payments).
   - **`filterName()` / `filterDigits()`** on name and phone fields respectively.
+  - **`min="0"` HTML attribute** on ALL `type="number"` inputs (prices, quantities, stock levels, experience years, valuations). This provides native browser-level enforcement against negative values, complementing the JavaScript `clampNumber()` / `filterMoney()` handlers.
   - **Visual feedback:** Invalid fields must display clear, inline error messages (red border + helper text). Do NOT use `alert()` for form validation.
   - **Edge-case handling:** Empty strings, whitespace-only inputs, negative numbers, past dates for future-only fields, and duplicate entries must all be explicitly handled.
 - **Server-Side Sanitization (Layer 2 — Zero-Trust):** The backend (`server.js`) MUST sanitize all incoming data before database insertion, regardless of client validation:
@@ -120,7 +121,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - **Pulsing Red Dot (`.urgent-pulse-dot`):** A 10px red circle with a `@keyframes urgentPulse` animation (scale 1→1.3→1 with expanding box-shadow). Used on the sidebar's Notifications menu item to indicate critical unresolved alerts. It persists until the underlying condition is resolved.
 - **Global Overlay Pattern (`PaymentAlertOverlay`):** A fixed-position overlay component mounted inside `AdminSideNav` (via React fragment) so it renders on every admin page automatically. Listens for `payment-alert` custom events dispatched by the sidebar's polling logic.
 - **Secondary Toast:** When an overlay popup is dismissed, a persistent bottom-right toast remains visible. Clicking the toast re-opens the popup.
-- **Notification Type `payment_action_required`:** Styled with red alert icon (`ShieldAlert`), red background tint, labeled "⚠️ Urgent" in the notification center.
+- **Notification Type `payment_action_required`:** Styled with red alert icon (`ShieldAlert`), red background tint, labeled "Urgent" in the notification center.
 
 ---
 
@@ -281,7 +282,7 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 10. **Phone Input Standardization:** All phone number inputs across all portals MUST use the reusable `CountryCodeSelect` component (`src/components/CountryCodeSelect.js`) paired with `getPhoneParts()` from `src/constants/countryCodes.js`. The component displays only the dial code (e.g., `+63`) when collapsed and a searchable list of 200+ countries when expanded. Do NOT use native `<select>` elements with hardcoded country lists for phone inputs.
 11. **Valid Service Types:** The only valid `service_type` values stored in `appointments` are: `"Tattoo Session"`, `"Consultation"`, `"Piercing"`, and `"Tattoo + Piercing"`. The obsolete values `"Follow-up"` and `"Touch-up"` have been removed from the booking flow.
 12. **Booking Flow (Customer Portal):** The "Book New Session" modal in `CustomerBookings.js` uses a two-phase Step 1:
-    - **Phase A:** Customer selects "New Booking" or "Follow-Up". Follow-ups require selecting a past completed appointment for traceability (embedded in notes as `📋 Follow-up of Booking INK-XXXX`).
+    - **Phase A:** Customer selects "New Booking" or "Follow-Up". Follow-ups require selecting a past completed appointment for traceability (embedded in notes as `Follow-up of Booking INK-XXXX`).
     - **Phase B:** Three checkbox-based service options appear: Tattoo Session, Consultation, Piercing. **Consultation is exclusive** — selecting it grays out Tattoo/Piercing, and vice versa. Tattoo + Piercing can be combined (stored as `"Tattoo + Piercing"` for backend compatibility).
     - The `CustomerBookingWizard.js` (public/anonymous wizard) is NOT affected — it remains a consultation-only flow.
 13. **Email Change Flow (Profile Pages):** Both `CustomerProfile.js` and `ArtistProfile.js` implement a consistent two-step modal for email changes:
@@ -360,6 +361,20 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - **Guard clause:** Every dispatch is wrapped in `if (oldAppt.guest_email)` / `if (oldAppt.guest_phone)` so it only fires for guest bookings (registered users use in-app notifications instead).
     - **Covered statuses:** Confirmed (green), Rejected (red), Cancelled (red), Rescheduled (amber), Completed (green), Price Quote (gold), and generic status updates (gold).
     - **Guest name extraction:** Parsed from the appointment `notes` field via regex `Client:\s*(.+?)(?:\n|$)`, falling back to `'Valued Guest'`.
+
+29. **No-Emoji Policy (Codebase-Wide):**
+    - **No colored emojis** (Unicode Emoji Presentation sequences like 🎨, 📋, 💾, ✅, ⚠️) are allowed anywhere in the frontend source code — not in UI labels, placeholders, console logs, data strings, or notification titles.
+    - **Standard Unicode text symbols** are permitted and encouraged as professional alternatives: `★` (U+2605, star rating), `☆` (U+2606, empty star), `✓` (U+2713, checkmark), `⚠` (U+26A0, warning sign without variation selector).
+    - **Icons MUST be from `lucide-react`** — never emojis. Example: use `<AlertTriangle />` instead of ⚠️, use `<Clipboard />` instead of 📋.
+    - **Database legacy handling:** Some older records may still contain emojis (e.g., aftercare templates in `server.js`). Frontend matchers should use `.includes()` substring checks that work regardless of whether the emoji prefix is present (backward-compatible). A future database migration script should sanitize these at the source.
+
+30. **Numerical Input HTML Constraints:**
+    - Every `<input type="number">` in the codebase MUST have an explicit `min` HTML attribute:
+      - **Monetary fields** (prices, costs, payments, valuations): `min="0"`
+      - **Quantity fields** (stock, transaction amounts, kit quantities): `min="0"` or `min="1"` as appropriate
+      - **Rate/percentage fields** (experience years, commission split): `min="0"` (or `min="1"` for non-zero fields) with corresponding `max`
+    - This is in addition to the JavaScript-layer `clampNumber()` / `filterMoney()` enforcement, providing defense-in-depth.
+    - **Chart/axis `type="number"` props** (e.g., Recharts `<XAxis type="number">`) are NOT user inputs and are exempt from this rule.
 
 ---
 

@@ -337,6 +337,8 @@ function AdminStaff() {
                     <label>Experience (Years)</label>
                     <input
                         type="number"
+                        min="0"
+                        max="100"
                         className="form-input"
                         value={formData.experience_years !== undefined ? formData.experience_years : ''}
                         onChange={e => handleProfileInputChange('experience_years', clampNumber(e.target.value, 0, 100))}
@@ -744,6 +746,7 @@ function AdminStaff() {
                                                     <label className="admin-st-19644797">Market Valuation (₱)</label>
                                                     <input
                                                         type="number"
+                                                        min="0"
                                                         step="0.01"
                                                         className="form-input"
                                                         value={workFormData.priceEstimate}

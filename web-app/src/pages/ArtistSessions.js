@@ -504,7 +504,7 @@ function ArtistSessions() {
 
         setIsSaving(true);
         try {
-            console.log('💾 Saving session details...');
+            console.log('Saving session details...');
             console.log(`   - Appointment ID: ${activeSession.id}`);
             console.log(`   - Notes: ${sessionData.notes ? sessionData.notes.substring(0, 50) + '...' : 'empty'}`);
             console.log(`   - Before Photo: ${sessionData.beforePhoto ? 'YES (' + (sessionData.beforePhoto.length / 1024 / 1024).toFixed(2) + ' MB)' : 'NO'}`);
@@ -515,7 +515,7 @@ function ArtistSessions() {
                 beforePhoto: sessionData.beforePhoto,
                 afterPhoto: sessionData.afterPhoto
             });
-            console.log('✅ Response:', res.data);
+            console.log('Response:', res.data);
             if (res.data.success) {
                 showAlert("Saved", "Session details saved successfully!", "success");
                 fetchSessions();
