@@ -4805,6 +4805,135 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
 });
 
 
+// ═══════════════ Billing Portal: Record Payment (Generate Financial Invoice) ═══════════════
+app.post('/api/admin/billing/record-payment', (req, res) => {
+  let { customerId, appointmentId, amount, method } = req.body;
+
+  // ── Server-Side Sanitization (Layer 2 — Zero-Trust) ──
+  customerId = parseInt(customerId, 10);
+  appointmentId = parseInt(appointmentId, 10);
+  amount = parseFloat(amount);
+  method = (method || 'Cash').substring(0, 50);
+
+  if (!customerId || isNaN(customerId)) {
+    return res.status(400).json({ success: false, message: 'A valid client selection is required.' });
+  }
+  if (!appointmentId || isNaN(appointmentId)) {
+    return res.status(400).json({ success: false, message: 'A valid appointment selection is required.' });
+  }
+  if (!amount || isNaN(amount) || amount <= 0) {
+    return res.status(400).json({ success: false, message: 'Settlement amount must be greater than 0.' });
+  }
+
+  // Clamp amount to safe range
+  amount = Math.min(Math.max(amount, 0.01), 99999999.99);
+
+  const validMethods = ['Cash', 'GCash', 'Bank Transfer', 'Card'];
+  if (!validMethods.includes(method)) method = 'Cash';
+
+  // Fetch appointment + balance
+  const checkQuery = `
+    SELECT ap.price, ap.design_title, ap.service_type, ap.customer_id, ap.artist_id, ap.status, ap.appointment_date,
+    ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) as total_paid,
+    u.name as client_name, u.email as cx_email
+    FROM appointments ap
+    JOIN users u ON ap.customer_id = u.id
+    WHERE ap.id = ? AND ap.customer_id = ? AND ap.is_deleted = 0
+  `;
+
+  db.query(checkQuery, [appointmentId, customerId], (checkErr, results) => {
+    if (checkErr) return res.status(500).json({ success: false, message: 'Database error' });
+    if (!results.length) return res.status(404).json({ success: false, message: 'Appointment not found for this client.' });
+
+    const apptData = results[0];
+    const remaining = Math.max(0, apptData.price - apptData.total_paid);
+
+    if (remaining <= 0) {
+      return res.status(400).json({ success: false, message: 'This appointment is already fully paid.' });
+    }
+
+    // Cap payment at remaining balance
+    const actualPayment = Math.min(amount, remaining);
+    const amountCentavos = Math.round(actualPayment * 100);
+    const paymentId = `BILLING-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const rawEvent = JSON.stringify({
+      type: 'billing_invoice',
+      method: method,
+      source: 'admin_billing_portal',
+      timestamp: new Date().toISOString()
+    });
+
+    // Insert payment
+    db.query(`INSERT INTO payments (appointment_id, paymongo_payment_id, amount, status, raw_event) VALUES (?, ?, ?, 'paid', ?)`,
+      [appointmentId, paymentId, amountCentavos, rawEvent], (payErr) => {
+        if (payErr) return res.status(500).json({ success: false, message: 'Failed to record payment.' });
+
+        // Update appointment payment_status
+        const updateStatusQuery = `
+          UPDATE appointments SET
+            payment_status = CASE
+              WHEN price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount >= price THEN 'paid'
+              WHEN price = 0 OR price IS NULL THEN 'paid'
+              ELSE 'downpayment_paid'
+            END,
+            status = CASE
+              WHEN status = 'pending' THEN 'confirmed'
+              ELSE status
+            END
+          WHERE id = ?
+        `;
+        db.query(updateStatusQuery, [appointmentId, appointmentId], (upErr) => {
+          // Generate sequential invoice number
+          db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invErr, invRes) => {
+            const nextNum = (invErr || !invRes[0]?.maxNum) ? 1 : invRes[0].maxNum + 1;
+            const invoiceNumber = `INV-${String(nextNum).padStart(6, '0')}`;
+
+            const serviceLabel = apptData.design_title || apptData.service_type || 'Session Payment';
+
+            // Create invoice record
+            const invoiceQuery = `INSERT INTO invoices (invoice_number, customer_id, appointment_id, client_name, service_type, amount, payment_method, change_given, discount_amount, discount_type, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, NULL, 'Paid', NOW())`;
+            db.query(invoiceQuery, [invoiceNumber, customerId, appointmentId, apptData.client_name, serviceLabel, actualPayment, method], (invInsertErr, invInsertRes) => {
+              if (invInsertErr) console.error('Invoice creation failed:', invInsertErr.message);
+
+              // Send notification to customer
+              const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
+              createNotification(customerId, 'Payment Received', customerMsg, 'payment_success', invInsertRes?.insertId || appointmentId);
+
+              // Send receipt email
+              sendReceiptEmail(apptData.cx_email, {
+                id: invoiceNumber,
+                amount: actualPayment,
+                method: method,
+                clientName: apptData.client_name,
+                designTitle: serviceLabel,
+                changeGiven: 0,
+                remaining: Math.max(0, remaining - actualPayment)
+              });
+
+              res.json({
+                success: true,
+                message: 'Payment recorded and invoice generated successfully.',
+                invoice: {
+                  invoiceNumber,
+                  invoiceId: invInsertRes?.insertId,
+                  clientName: apptData.client_name,
+                  serviceType: serviceLabel,
+                  amountPaid: actualPayment,
+                  paymentMethod: method,
+                  totalQuoted: apptData.price,
+                  totalPaid: apptData.total_paid + actualPayment,
+                  remainingBalance: Math.max(0, remaining - actualPayment),
+                  date: new Date().toISOString()
+                }
+              });
+            });
+          });
+        });
+      });
+  });
+});
+
+
 // Resend receipt email to customer for a specific invoice
 app.post('/api/admin/invoices/:id/resend', (req, res) => {
   const { id } = req.params;

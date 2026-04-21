@@ -217,6 +217,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `GET /api/admin/audit-logs` - Audit trail
 - `GET /api/admin/pending-payment-alerts` - Completed sessions with outstanding balance (powers PaymentAlertOverlay polling)
 - `POST /api/admin/appointments/:id/manual-payment` - Record manual payment (Cash, GCash, Bank Transfer, etc.)
+- `POST /api/admin/billing/record-payment` - Record payment from Billing portal (mirrors manual-payment: creates invoice, updates payment_status, sends notification + receipt email)
 
 ### Shared
 - `GET /api/gallery/categories` - Gallery categories

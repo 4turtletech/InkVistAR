@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Plus, Download, FileText, CreditCard, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { Plus, Download, FileText, CreditCard, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, SlidersHorizontal, User } from 'lucide-react';
 import { filterName, filterMoney, clampNumber } from '../utils/validation';
 import PhilippinePeso from '../components/PhilippinePeso';
 
@@ -26,10 +26,15 @@ function AdminBilling() {
     const [payoutModal, setPayoutModal] = useState({ mounted: false, visible: false });
     const [newPayout, setNewPayout] = useState({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
 
-
+    // Customer + Appointment selector state for invoice modal
+    const [customers, setCustomers] = useState([]);
+    const [clientSearch, setClientSearch] = useState('');
+    const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
+    const [customerAppointments, setCustomerAppointments] = useState([]);
+    const [loadingAppointments, setLoadingAppointments] = useState(false);
 
     const [invoiceModal, setInvoiceModal] = useState({ mounted: false, visible: false, mode: 'create', id: null });
-    const [newInvoice, setNewInvoice] = useState({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
+    const [newInvoice, setNewInvoice] = useState({ customerId: null, customerName: '', appointmentId: '', amount: '', type: '', method: 'Cash', status: 'Pending' });
     const [previewModal, setPreviewModal] = useState({ mounted: false, visible: false, invoice: null });
     
     // Validation states
@@ -39,11 +44,11 @@ function AdminBilling() {
     const validateInvoiceField = (field, value) => {
         let errorMsg = '';
         switch(field) {
-            case 'client':
-                if (!value.trim()) errorMsg = 'Client name is required';
+            case 'customerId':
+                if (!value) errorMsg = 'Client selection is required';
                 break;
-            case 'type':
-                if (!value) errorMsg = 'Service type is required';
+            case 'appointmentId':
+                if (!value) errorMsg = 'Appointment selection is required';
                 break;
             case 'amount':
                 if (!value || parseFloat(value) <= 0) errorMsg = 'Amount must be greater than 0';
@@ -91,19 +96,45 @@ function AdminBilling() {
         isAlert: false
     });
 
+    // Fetch appointments for a selected customer
+    const fetchCustomerAppointments = async (custId) => {
+        if (!custId) { setCustomerAppointments([]); return; }
+        setLoadingAppointments(true);
+        try {
+            const res = await Axios.get(`${API_URL}/api/admin/appointments`);
+            if (res.data.success) {
+                // Filter to this customer's appointments that have a price and are not fully paid
+                const custAppts = res.data.data.filter(a => {
+                    if (String(a.customer_id) !== String(custId)) return false;
+                    if (!a.price || a.price <= 0) return false;
+                    const paid = parseFloat(a.total_paid) || 0;
+                    return paid < a.price;
+                });
+                setCustomerAppointments(custAppts);
+            }
+        } catch (e) { console.error(e); }
+        setLoadingAppointments(false);
+    };
+
     // Modal animation handlers
     const openModal = (mode = 'create', invoice = null) => {
         if (mode === 'edit' && invoice) {
             setNewInvoice({
-                client: invoice.client_name,
+                customerId: invoice.customer_id || null,
+                customerName: invoice.client_name || '',
+                appointmentId: invoice.appointment_id || '',
                 amount: invoice.amount,
                 type: invoice.service_type,
+                method: 'Cash',
                 status: invoice.status
             });
+            setClientSearch(invoice.client_name || '');
             setInvoiceErrors({});
             setInvoiceModal({ mounted: true, visible: false, mode: 'edit', id: invoice.id });
         } else {
-            setNewInvoice({ client: '', amount: '', type: 'Tattoo Session', status: 'Pending' });
+            setNewInvoice({ customerId: null, customerName: '', appointmentId: '', amount: '', type: '', method: 'Cash', status: 'Pending' });
+            setClientSearch('');
+            setCustomerAppointments([]);
             setInvoiceErrors({});
             setInvoiceModal({ mounted: true, visible: false, mode: 'create', id: null });
         }
@@ -147,16 +178,20 @@ function AdminBilling() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [invRes, settingsRes, artistRes] = await Promise.all([
+            const [invRes, settingsRes, artistRes, usersRes] = await Promise.all([
                 Axios.get(`${API_URL}/api/admin/invoices`),
                 Axios.get(`${API_URL}/api/admin/settings`),
-                Axios.get(`${API_URL}/api/customer/artists`)
+                Axios.get(`${API_URL}/api/customer/artists`),
+                Axios.get(`${API_URL}/api/admin/users`)
             ]);
 
             if (invRes.data.success) setInvoices(invRes.data.data);
             if (settingsRes.data.success) { /* Settings loaded */ }
             if (artistRes.data.success) {
                 setArtists(artistRes.data.artists);
+            }
+            if (usersRes.data.success) {
+                setCustomers(usersRes.data.data.filter(u => u.user_type === 'customer' && !u.is_deleted));
             }
             
             // Real payouts fetch
@@ -172,26 +207,55 @@ function AdminBilling() {
 
     const handleInvoiceSubmit = async (e) => {
         e.preventDefault();
-        const clientValid = validateInvoiceField('client', newInvoice.client);
-        const typeValid = validateInvoiceField('type', newInvoice.type);
+
+        if (invoiceModal.mode === 'edit') {
+            // Edit mode — update existing invoice (keep original flow)
+            const clientValid = newInvoice.customerName && newInvoice.customerName.trim();
+            const amountValid = validateInvoiceField('amount', newInvoice.amount);
+            if (!clientValid || !amountValid) {
+                showAlert("Error", "Please fix validation errors before saving.", "warning");
+                return;
+            }
+            try {
+                await Axios.put(`${API_URL}/api/admin/invoices/${invoiceModal.id}`, {
+                    client: newInvoice.customerName,
+                    type: newInvoice.type,
+                    amount: newInvoice.amount,
+                    status: newInvoice.status
+                });
+                closeModal();
+                fetchData();
+            } catch (error) {
+                showAlert("Error", "Failed to update invoice: " + (error.response?.data?.message || error.message), "danger");
+            }
+            return;
+        }
+
+        // Create mode — use new billing/record-payment endpoint
+        const customerValid = validateInvoiceField('customerId', newInvoice.customerId);
+        const appointmentValid = validateInvoiceField('appointmentId', newInvoice.appointmentId);
         const amountValid = validateInvoiceField('amount', newInvoice.amount);
         
-        if (!clientValid || !typeValid || !amountValid) {
+        if (!customerValid || !appointmentValid || !amountValid) {
             showAlert("Error", "Please fix validation errors before saving.", "warning");
             return;
         }
 
         try {
-            if (invoiceModal.mode === 'edit') {
-                await Axios.put(`${API_URL}/api/admin/invoices/${invoiceModal.id}`, newInvoice);
-            } else {
-                await Axios.post(`${API_URL}/api/admin/invoices`, newInvoice);
+            const res = await Axios.post(`${API_URL}/api/admin/billing/record-payment`, {
+                customerId: newInvoice.customerId,
+                appointmentId: newInvoice.appointmentId,
+                amount: newInvoice.amount,
+                method: newInvoice.method
+            });
+            if (res.data.success) {
+                showAlert("Invoice Generated", `${res.data.invoice.invoiceNumber} -- Payment of ₱${Number(res.data.invoice.amountPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recorded for ${res.data.invoice.clientName}. Notification and receipt email sent.`, "success");
+                closeModal();
+                fetchData();
             }
-            closeModal();
-            fetchData(); // Refresh list
         } catch (error) {
-            console.error("Error saving invoice:", error);
-            showAlert("Error", "Failed to save invoice: " + (error.response?.data?.message || error.message), "danger");
+            console.error("Error recording payment:", error);
+            showAlert("Error", error.response?.data?.message || "Failed to record payment.", "danger");
         }
     };
 
@@ -517,40 +581,161 @@ function AdminBilling() {
                             </div>
                             <form onSubmit={handleInvoiceSubmit}>
                                 <div className="modal-body admin-st-7cea880d">
+
+                                    {/* ── Client Selector ── */}
                                     <div className="form-group admin-mb-20">
-                                        <label className={`admin-st-19644797 ${invoiceErrors.client ? 'text-red-500' : ''}`}>Recipient Entity (Client)</label>
-                                        <input type="text" className={`form-input ${invoiceErrors.client ? 'border-red-500 bg-red-50' : ''}`} required value={newInvoice.client} onChange={e => handleInvoiceChange('client', filterName(e.target.value).slice(0, 100))} maxLength={100} />
-                                        {invoiceErrors.client && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.client}</span>}
+                                        <label className={`admin-st-19644797 ${invoiceErrors.customerId ? 'text-red-500' : ''}`}>Recipient Entity (Client) <span style={{ color: '#ef4444' }}>*</span></label>
+                                        {invoiceModal.mode === 'edit' ? (
+                                            <input type="text" className="form-input" value={newInvoice.customerName} readOnly style={{ background: '#f8fafc', color: '#64748b' }} />
+                                        ) : newInvoice.customerId ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '10px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                                                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #be9055, #d4af37)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.85rem' }}>{(newInvoice.customerName || '?').charAt(0).toUpperCase()}</span>
+                                                </div>
+                                                <span style={{ fontWeight: 600, color: '#1e293b', flex: 1 }}>{newInvoice.customerName}</span>
+                                                <button type="button" onClick={() => { setNewInvoice(prev => ({ ...prev, customerId: null, customerName: '', appointmentId: '', amount: '', type: '' })); setClientSearch(''); setCustomerAppointments([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}>
+                                                    <X size={18} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ position: 'relative' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: `1px solid ${invoiceErrors.customerId ? '#ef4444' : '#e2e8f0'}`, borderRadius: '10px', padding: '0 12px', background: invoiceErrors.customerId ? '#fef2f2' : '#fff' }}>
+                                                    <Search size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                                                    <input
+                                                        type="text"
+                                                        className="form-input"
+                                                        style={{ border: 'none', padding: '10px 0', background: 'transparent' }}
+                                                        placeholder="Search for a registered client..."
+                                                        value={clientSearch}
+                                                        onChange={(e) => setClientSearch(filterName(e.target.value).slice(0, 100))}
+                                                        onFocus={() => setClientDropdownOpen(true)}
+                                                        onBlur={() => setTimeout(() => setClientDropdownOpen(false), 200)}
+                                                        maxLength={100}
+                                                    />
+                                                </div>
+                                                {clientDropdownOpen && clientSearch && (
+                                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 8px 25px rgba(0,0,0,0.12)', maxHeight: '200px', overflowY: 'auto', marginTop: '4px' }}>
+                                                        {customers.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).length > 0 ? (
+                                                            customers.filter(c => c.name && c.name.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
+                                                                <div key={c.id} onClick={() => {
+                                                                    setNewInvoice(prev => ({ ...prev, customerId: c.id, customerName: c.name, appointmentId: '', amount: '', type: '' }));
+                                                                    setClientSearch(c.name);
+                                                                    setClientDropdownOpen(false);
+                                                                    fetchCustomerAppointments(c.id);
+                                                                }} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}
+                                                                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                                >
+                                                                    <User size={16} color="#be9055" />
+                                                                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{c.name}</span>
+                                                                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: 'auto' }}>{c.email}</span>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div style={{ padding: '14px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No matching clients found</div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {invoiceErrors.customerId && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.customerId}</span>}
                                     </div>
+
+                                    {/* ── Appointment Selector (shown after client is picked) ── */}
+                                    {newInvoice.customerId && invoiceModal.mode !== 'edit' && (
+                                        <div className="form-group admin-mb-20">
+                                            <label className={`admin-st-19644797 ${invoiceErrors.appointmentId ? 'text-red-500' : ''}`}>Linked Appointment <span style={{ color: '#ef4444' }}>*</span></label>
+                                            {loadingAppointments ? (
+                                                <div style={{ padding: '12px', color: '#64748b', fontSize: '0.85rem' }}>Loading appointments...</div>
+                                            ) : customerAppointments.length > 0 ? (
+                                                <select
+                                                    className={`form-input ${invoiceErrors.appointmentId ? 'border-red-500 bg-red-50' : ''}`}
+                                                    value={newInvoice.appointmentId}
+                                                    onChange={e => {
+                                                        const apptId = e.target.value;
+                                                        const appt = customerAppointments.find(a => String(a.id) === String(apptId));
+                                                        if (appt) {
+                                                            const remaining = Math.max(0, appt.price - (parseFloat(appt.total_paid) || 0));
+                                                            setNewInvoice(prev => ({
+                                                                ...prev,
+                                                                appointmentId: apptId,
+                                                                type: appt.design_title || appt.service_type || 'Session Payment',
+                                                                amount: remaining.toFixed(2)
+                                                            }));
+                                                        } else {
+                                                            setNewInvoice(prev => ({ ...prev, appointmentId: apptId, type: '', amount: '' }));
+                                                        }
+                                                        validateInvoiceField('appointmentId', apptId);
+                                                    }}
+                                                >
+                                                    <option value="">Select an appointment with balance...</option>
+                                                    {customerAppointments.map(a => {
+                                                        const bal = Math.max(0, a.price - (parseFloat(a.total_paid) || 0));
+                                                        const code = a.booking_code || `APT-${String(a.id).padStart(4, '0')}`;
+                                                        const dateStr = a.appointment_date ? new Date(a.appointment_date).toLocaleDateString() : 'No date';
+                                                        return <option key={a.id} value={a.id}>{code} -- {a.design_title || a.service_type} -- {dateStr} -- Balance: ₱{bal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</option>;
+                                                    })}
+                                                </select>
+                                            ) : (
+                                                <div style={{ padding: '14px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '10px', color: '#92400e', fontSize: '0.85rem', fontWeight: 500 }}>
+                                                    This client has no appointments with an outstanding balance.
+                                                </div>
+                                            )}
+                                            {invoiceErrors.appointmentId && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.appointmentId}</span>}
+                                        </div>
+                                    )}
+
+                                    {/* ── Service Type (auto-populated, read-only in create) ── */}
+                                    {newInvoice.appointmentId && invoiceModal.mode !== 'edit' && (
+                                        <div className="form-group admin-mb-20">
+                                            <label className="admin-st-19644797">Service Classification</label>
+                                            <input type="text" className="form-input" value={newInvoice.type} readOnly style={{ background: '#f8fafc', color: '#475569', fontWeight: 600 }} />
+                                        </div>
+                                    )}
+
+                                    {/* ── Amount + Payment Method ── */}
                                     <div className="admin-st-f9a903f8">
                                         <div className="form-group">
-                                            <label className={`admin-st-19644797 ${invoiceErrors.type ? 'text-red-500' : ''}`}>Service Classification</label>
-                                            <select className={`form-input ${invoiceErrors.type ? 'border-red-500 bg-red-50' : ''}`} required value={newInvoice.type} onChange={e => handleInvoiceChange('type', e.target.value)}>
-                                                <option value="Tattoo Session">Tattoo Session</option>
-                                                <option value="Consultation">Consultation</option>
-                                                <option value="Piercing">Piercing</option>
-                                                <option value="Touch-up">Touch-up</option>
-                                                <option value="Aftercare Check">Aftercare Check</option>
-                                                <option value="Jewelry Purchase">Jewelry Purchase</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                            {invoiceErrors.type && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.type}</span>}
+                                            <label className={`admin-st-19644797 ${invoiceErrors.amount ? 'text-red-500' : ''}`}>Settlement Amount (₱) <span style={{ color: '#ef4444' }}>*</span></label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                className={`form-input ${invoiceErrors.amount ? 'border-red-500 bg-red-50' : ''}`}
+                                                required
+                                                value={newInvoice.amount}
+                                                onChange={e => handleInvoiceChange('amount', filterMoney(e.target.value))}
+                                            />
+                                            {invoiceErrors.amount && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.amount}</span>}
+                                            {newInvoice.appointmentId && invoiceModal.mode !== 'edit' && (() => {
+                                                const appt = customerAppointments.find(a => String(a.id) === String(newInvoice.appointmentId));
+                                                if (appt) {
+                                                    const bal = Math.max(0, appt.price - (parseFloat(appt.total_paid) || 0));
+                                                    return <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', display: 'block' }}>Remaining balance: ₱{bal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} -- Amount will be capped at balance.</span>;
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
                                         <div className="form-group">
-                                            <label className={`admin-st-19644797 ${invoiceErrors.amount ? 'text-red-500' : ''}`}>Settlement Amount (₱)</label>
-                                            <input type="number" step="0.01" min="0" className={`form-input ${invoiceErrors.amount ? 'border-red-500 bg-red-50' : ''}`} required value={newInvoice.amount} onChange={e => handleInvoiceChange('amount', filterMoney(e.target.value))} />
-                                            {invoiceErrors.amount && <span className="text-red-500 text-xs mt-1 block">{invoiceErrors.amount}</span>}
+                                            <label className="admin-st-19644797">Payment Method</label>
+                                            <select className="form-input" value={newInvoice.method} onChange={e => handleInvoiceChange('method', e.target.value)}>
+                                                <option value="Cash">Cash</option>
+                                                <option value="GCash">GCash</option>
+                                                <option value="Bank Transfer">Bank Transfer</option>
+                                                <option value="Card">Card</option>
+                                            </select>
                                         </div>
                                     </div>
+
                                     <div className="admin-st-7460b907">
                                         <p className="admin-st-76a35748">
-                                            * This action will generate a formal PDF invoice and log the transaction in the studio's centralized financial ledger.
+                                            * This action will record a payment against the selected appointment, generate an invoice, send a notification and receipt email to the client, and update payment status across the system.
                                         </p>
                                     </div>
                                 </div>
                                 <div className="modal-footer">
                                     <button type="button" className="btn btn-secondary" onClick={closeModal}>Discard</button>
-                                    <button type="submit" className="btn btn-primary admin-st-f9a92399">
+                                    <button type="submit" className="btn btn-primary admin-st-f9a92399" disabled={invoiceModal.mode !== 'edit' && (!newInvoice.customerId || !newInvoice.appointmentId || !newInvoice.amount || parseFloat(newInvoice.amount) <= 0)}>
                                         {invoiceModal.mode === 'edit' ? 'Update Invoice' : 'Commit & Generate'}
                                     </button>
                                 </div>
