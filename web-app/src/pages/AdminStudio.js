@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { useLocation } from 'react-router-dom';
-import { MapPin, Clock, Users, Power, Trash2, Edit2, Plus, X, Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { MapPin, Clock, Users, Power, Trash2, Edit2, Plus, X, Search, Filter, SlidersHorizontal, Mail } from 'lucide-react';
+import MarketingEmailModal from '../components/MarketingEmailModal';
 import AdminSideNav from '../components/AdminSideNav';
 import './PortalStyles.css';
 import './AdminStyles.css';
@@ -180,6 +181,105 @@ function AdminStudio() {
         b.address.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // ── Marketing Email Tab ─────────────────────────────────────────
+    const [showMarketingModal, setShowMarketingModal] = useState(false);
+
+    const MarketingEmailTab = () => (
+        <div className="portal-content" style={{ paddingTop: '24px' }}>
+            {/* Hero Banner */}
+            <div style={{
+                background: 'linear-gradient(135deg, rgba(190, 144, 85, 0.9), rgba(138, 108, 74, 0.95))',
+                backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+                borderRadius: '20px', padding: '32px', marginBottom: '28px',
+                position: 'relative', overflow: 'hidden',
+                border: '1.5px solid rgba(255, 255, 255, 0.25)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
+            }}>
+                <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.2)', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+                        <Mail size={32} color="#fff" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: '200px' }}>
+                        <h2 style={{ margin: '0 0 6px', fontSize: '1.3rem', fontWeight: 700, fontFamily: "'Playfair Display', serif", color: '#ffffff' }}>
+                            Email Marketing Center
+                        </h2>
+                        <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                            Compose and send promotional emails to all subscribed customers. Attach promo images and craft compelling subject lines.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => setShowMarketingModal(true)}
+                        style={{
+                            background: '#ffffff', color: '#1e293b', border: 'none',
+                            padding: '12px 28px', borderRadius: '10px', fontWeight: 700,
+                            cursor: 'pointer', fontSize: '0.95rem', flexShrink: 0,
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; }}
+                    >
+                        <Mail size={18} />
+                        Compose Broadcast
+                    </button>
+                </div>
+            </div>
+
+            {/* Info Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+                {[
+                    {
+                        title: 'Subscriber Targeting',
+                        desc: 'Emails are sent only to verified users who opted in to marketing communications during registration.',
+                        icon: <Users size={24} />
+                    },
+                    {
+                        title: 'Promo Image Support',
+                        desc: 'Attach a banner image (up to 2MB) that appears prominently at the top of the email, right after the subject.',
+                        icon: <Mail size={24} />
+                    },
+                    {
+                        title: 'Branded Template',
+                        desc: 'All broadcasts use the InkVistAR dark luxury email template with your studio logo and footer automatically.',
+                        icon: <Filter size={24} />
+                    }
+                ].map((card, i) => (
+                    <div key={i} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                        gap: '12px', padding: '24px 16px', background: '#fff',
+                        borderRadius: '12px', border: '1px solid #e2e8f0',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                    }}>
+                        <div style={{ color: '#be9055', background: 'rgba(190, 144, 85, 0.1)', padding: '14px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {card.icon}
+                        </div>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>{card.title}</h4>
+                        <span style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: '1.5' }}>{card.desc}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Advisory */}
+            <div style={{
+                background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px',
+                padding: '16px 20px', display: 'flex', alignItems: 'flex-start', gap: '12px'
+            }}>
+                <Mail size={18} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
+                <div style={{ fontSize: '0.82rem', color: '#92400e', lineHeight: 1.6 }}>
+                    <strong>Spam/Junk Advisory:</strong> Please also check your Spam/Junk folder for OTPs, invoices, and booking status emails. 
+                    Remind your customers to whitelist <strong>eloaltalt@gmail.com</strong> to ensure delivery.
+                </div>
+            </div>
+
+            {/* Marketing Modal (opens on top) */}
+            <MarketingEmailModal
+                isOpen={showMarketingModal}
+                onClose={() => setShowMarketingModal(false)}
+            />
+        </div>
+    );
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -192,24 +292,35 @@ function AdminStudio() {
                 </header>
 
                 <div className="admin-st-d14eab7d">
-                    <button 
-                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'branches' ? '2px solid #be9055' : '2px solid transparent', color: activeTab === 'branches' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
-                        onClick={() => setActiveTab('branches')}
-                    >
-                        Branches Directory
-                    </button>
-                    <button 
-                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'settings' ? '2px solid #be9055' : '2px solid transparent', color: activeTab === 'settings' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
-                        onClick={() => setActiveTab('settings')}
-                    >
-                        System Preferences
-                    </button>
-                    <button 
-                        style={{ padding: '1rem 0', background: 'transparent', border: 'none', borderBottom: activeTab === 'reviews' ? '2px solid #be9055' : '2px solid transparent', color: activeTab === 'reviews' ? '#1e293b' : '#64748b', fontWeight: 'bold', cursor: 'pointer', outline: 'none' }}
-                        onClick={() => setActiveTab('reviews')}
-                    >
-                        Customer Reviews
-                    </button>
+                    {[
+                        { key: 'branches', label: 'Branches Directory' },
+                        { key: 'settings', label: 'System Preferences' },
+                        { key: 'reviews', label: 'Customer Reviews' },
+                        { key: 'marketing', label: 'Marketing Emails' }
+                    ].map(tab => (
+                        <button
+                            key={tab.key}
+                            style={{
+                                padding: '0.85rem 1.2rem',
+                                background: activeTab === tab.key ? 'rgba(190, 144, 85, 0.1)' : 'transparent',
+                                border: 'none',
+                                borderBottom: activeTab === tab.key ? '2px solid #be9055' : '2px solid transparent',
+                                color: activeTab === tab.key ? '#1e293b' : '#64748b',
+                                fontWeight: activeTab === tab.key ? 700 : 600,
+                                cursor: 'pointer',
+                                outline: 'none',
+                                borderRadius: activeTab === tab.key ? '8px 8px 0 0' : '0',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                            }}
+                            onClick={() => setActiveTab(tab.key)}
+                        >
+                            {tab.key === 'marketing' && <Mail size={16} />}
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
                 {activeTab === 'branches' ? (
@@ -392,6 +503,8 @@ function AdminStudio() {
                     <AdminSettings />
                 ) : activeTab === 'reviews' ? (
                     <AdminReviews />
+                ) : activeTab === 'marketing' ? (
+                    <MarketingEmailTab />
                 ) : null}
 
                 <ConfirmModal 

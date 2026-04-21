@@ -18,10 +18,9 @@ import { getDisplayCode } from '../utils/formatters';
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
     User, Calendar, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
-    Eye, EyeOff, Camera, Mail
+    Eye, EyeOff, Camera
 } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
-import MarketingEmailModal from '../components/MarketingEmailModal';
 
 function AdminUsers() {
     const navigate = useNavigate();
@@ -95,7 +94,7 @@ function AdminUsers() {
     });
 
     // ─── Marketing Email Modal ───
-    const [showMarketingModal, setShowMarketingModal] = useState(false);
+
 
     const showAlert = (title, message, type = 'info') => {
         setConfirmDialog({
@@ -785,9 +784,6 @@ function AdminUsers() {
                         <h1>User Management</h1>
                     </div>
                     <div className="header-actions">
-                        <button className="btn btn-secondary" onClick={() => setShowMarketingModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Mail size={18} /> Send Promos
-                        </button>
                         <button className="btn btn-primary" onClick={handleAddNew}>
                             <UserPlus size={18} /> Add New User
                         </button>
@@ -1552,10 +1548,7 @@ function AdminUsers() {
                     type={confirmDialog.type} isAlert={confirmDialog.isAlert}
                 />
 
-                <MarketingEmailModal
-                    isOpen={showMarketingModal}
-                    onClose={() => setShowMarketingModal(false)}
-                />
+
             </div>
         </div>
     );

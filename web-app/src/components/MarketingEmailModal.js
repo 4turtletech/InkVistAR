@@ -1,14 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Axios from 'axios';
-import { X, Send, Mail, Users, AlertTriangle } from 'lucide-react';
+import { X, Send, Mail, Users, AlertTriangle, ImagePlus, Trash2 } from 'lucide-react';
 import { API_URL } from '../config';
 
 export default function MarketingEmailModal({ isOpen, onClose }) {
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
+    const [imageBase64, setImageBase64] = useState(null);
+    const [imageName, setImageName] = useState('');
     const [sending, setSending] = useState(false);
     const [result, setResult] = useState(null);
     const [confirmStep, setConfirmStep] = useState(false);
+    const fileInputRef = useRef(null);
+
+    const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            return;
+        }
+
+        // Validate file size (max 2MB for email)
+        if (file.size > 2 * 1024 * 1024) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setImageBase64(ev.target.result);
+            setImageName(file.name);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const removeImage = () => {
+        setImageBase64(null);
+        setImageName('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
 
     const handleSend = async () => {
         if (!subject.trim() || !body.trim()) return;
@@ -17,7 +48,8 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
         try {
             const response = await Axios.post(`${API_URL}/api/admin/broadcast-marketing-email`, {
                 subject: subject.trim(),
-                body: body.trim()
+                body: body.trim(),
+                imageBase64: imageBase64 || null
             });
             setResult({ success: true, message: response.data.message, sent: response.data.sent });
         } catch (err) {
@@ -30,6 +62,8 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
     const handleClose = () => {
         setSubject('');
         setBody('');
+        setImageBase64(null);
+        setImageName('');
         setResult(null);
         setConfirmStep(false);
         setSending(false);
@@ -47,13 +81,13 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
             <div style={{
                 background: '#ffffff', borderRadius: '20px', width: '94%', maxWidth: '580px',
                 boxShadow: '0 24px 64px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column',
-                animation: 'tosSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                animation: 'tosSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)', maxHeight: '90vh', overflow: 'hidden'
             }} onClick={(e) => e.stopPropagation()}>
 
                 {/* Header */}
                 <div style={{
                     padding: '22px 28px 18px', borderBottom: '1px solid #e2e8f0',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{
@@ -76,12 +110,10 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                     </button>
                 </div>
 
-                {/* Body */}
-                <div style={{ padding: '24px 28px' }}>
+                {/* Scrollable Body */}
+                <div style={{ padding: '24px 28px', overflowY: 'auto', flex: 1 }}>
                     {result ? (
-                        <div style={{
-                            textAlign: 'center', padding: '24px 0'
-                        }}>
+                        <div style={{ textAlign: 'center', padding: '24px 0' }}>
                             <div style={{
                                 width: '56px', height: '56px', borderRadius: '50%',
                                 background: result.success ? '#dcfce7' : '#fef2f2',
@@ -103,6 +135,7 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                         </div>
                     ) : (
                         <>
+                            {/* Subject */}
                             <div style={{ marginBottom: '16px' }}>
                                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Subject Line</label>
                                 <input
@@ -120,6 +153,64 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                                     onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                                 />
                             </div>
+
+                            {/* Promo Image Upload */}
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                                    Promo Image <span style={{ fontWeight: 400, color: '#94a3b8' }}>(optional, max 2MB)</span>
+                                </label>
+                                {imageBase64 ? (
+                                    <div style={{
+                                        position: 'relative', borderRadius: '12px', overflow: 'hidden',
+                                        border: '1px solid #e2e8f0', background: '#f8fafc'
+                                    }}>
+                                        <img
+                                            src={imageBase64}
+                                            alt="Promo preview"
+                                            style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }}
+                                        />
+                                        <button
+                                            onClick={removeImage}
+                                            style={{
+                                                position: 'absolute', top: '8px', right: '8px',
+                                                background: 'rgba(239, 68, 68, 0.9)', border: 'none', borderRadius: '8px',
+                                                width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                cursor: 'pointer', color: '#fff', backdropFilter: 'blur(4px)'
+                                            }}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                        <div style={{ padding: '8px 12px', fontSize: '0.75rem', color: '#64748b' }}>
+                                            {imageName}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        style={{
+                                            width: '100%', padding: '20px', borderRadius: '12px',
+                                            border: '2px dashed #cbd5e1', background: '#f8fafc',
+                                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                                            cursor: 'pointer', transition: 'all 0.2s', color: '#64748b'
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#be9055'; e.currentTarget.style.background = 'rgba(190, 144, 85, 0.04)'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f8fafc'; }}
+                                    >
+                                        <ImagePlus size={24} />
+                                        <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Click to upload a promo image</span>
+                                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>JPG, PNG, or WebP — displayed at the top of the email</span>
+                                    </button>
+                                )}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    style={{ display: 'none' }}
+                                />
+                            </div>
+
+                            {/* Email Body */}
                             <div style={{ marginBottom: '18px' }}>
                                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Email Body</label>
                                 <textarea
@@ -139,6 +230,7 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                                 />
                             </div>
 
+                            {/* Confirmation Warning */}
                             {confirmStep && (
                                 <div style={{
                                     padding: '14px 16px', borderRadius: '12px', background: '#fef3c7',
@@ -164,7 +256,7 @@ export default function MarketingEmailModal({ isOpen, onClose }) {
                 {!result && (
                     <div style={{
                         padding: '16px 28px 22px', borderTop: '1px solid #e2e8f0',
-                        display: 'flex', justifyContent: 'flex-end', gap: '10px'
+                        display: 'flex', justifyContent: 'flex-end', gap: '10px', flexShrink: 0
                     }}>
                         <button onClick={handleClose} style={{
                             padding: '10px 20px', borderRadius: '10px', border: '1px solid #e2e8f0',

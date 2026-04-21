@@ -2592,7 +2592,7 @@ app.post('/api/register', async (req, res) => {
 });
 // ========== MARKETING EMAIL BROADCAST ==========
 app.post('/api/admin/broadcast-marketing-email', (req, res) => {
-  let { subject, body } = req.body;
+  let { subject, body, imageBase64 } = req.body;
   if (!subject || !body) {
     return res.status(400).json({ success: false, message: 'Subject and body are required.' });
   }
@@ -2601,10 +2601,17 @@ app.post('/api/admin/broadcast-marketing-email', (req, res) => {
   subject = subject.substring(0, 150);
   body = body.substring(0, 5000);
 
+  // Build the promo image block if provided
+  const imageHtml = imageBase64
+    ? `<div style="margin:16px 0 20px;text-align:center;">
+         <img src="${imageBase64}" alt="Promo" style="max-width:100%;height:auto;border-radius:12px;display:block;margin:0 auto;" />
+       </div>`
+    : '';
+
   // Query all users who opted in to email promos
   db.query("SELECT email, name FROM users WHERE email_promo_consent = 1 AND is_deleted = 0 AND is_verified = 1", (err, subscribers) => {
     if (err) {
-      console.error('❌ Error fetching subscribers:', err.message);
+      console.error('Error fetching subscribers:', err.message);
       return res.status(500).json({ success: false, message: 'Database error.' });
     }
 
@@ -2619,6 +2626,7 @@ app.post('/api/admin/broadcast-marketing-email', (req, res) => {
       const html = buildEmailHtml(`
         <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">${subject}</h2>
         <p style="margin:0 0 12px;font-size:13px;color:#888;text-align:center;">Exclusive for you, ${sub.name.split(' ')[0]}!</p>
+        ${imageHtml}
         <div style="margin:16px 0;font-size:14px;color:#333;line-height:1.7;">${body.replace(/\n/g, '<br/>')}</div>
         <p style="margin:20px 0 0;font-size:11px;color:#aaa;text-align:center;">You are receiving this email because you opted in to marketing communications from Inkvictus Tattoo & Piercing. To unsubscribe, update your preferences in your account settings.</p>
       `);
@@ -2628,7 +2636,7 @@ app.post('/api/admin/broadcast-marketing-email', (req, res) => {
     });
 
     Promise.all(promises).then(() => {
-      console.log(`📧 Marketing broadcast complete: ${sentCount} sent, ${errorCount} failed`);
+      console.log(`Marketing broadcast complete: ${sentCount} sent, ${errorCount} failed`);
       res.json({ success: true, message: `Broadcast sent to ${sentCount} subscriber(s).`, sent: sentCount, failed: errorCount });
     });
   });
