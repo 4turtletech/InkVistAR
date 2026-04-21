@@ -8,7 +8,7 @@ import './CustomerStyles.css';
 import { API_URL } from '../config';
 
 const PHASE_CONFIG = {
-  initial: { label: 'Initial Healing', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: AlertTriangle },
+  initial: { label: 'Initial Healing', color: '#ff0000', bg: 'rgba(255, 0, 0, 0.15)', icon: AlertTriangle },
   peeling: { label: 'Peeling & Itching', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: Droplets },
   healing: { label: 'Final Healing', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: Heart }
 };
@@ -90,7 +90,7 @@ function CustomerAftercare() {
               {(() => {
                 const phaseThemes = {
                   initial: {
-                    glass: 'rgba(239, 68, 68, 0.85)',
+                    glass: 'rgba(255, 0, 0, 0.85)',
                     border: 'rgba(255, 255, 255, 0.3)',
                     shadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
                     ring: '#ffffff',
@@ -196,18 +196,25 @@ function CustomerAftercare() {
                 <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Shield size={20} color="#be9055" /> General Aftercare Rules
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
                   {[
-                    { icon: <Droplets size={16} />, text: 'Wash hands before touching your tattoo' },
-                    { icon: <Sun size={16} />, text: 'Avoid direct sunlight — use SPF 30+ once healed' },
-                    { icon: <AlertTriangle size={16} />, text: 'No swimming, baths, or hot tubs for 3-4 weeks' },
-                    { icon: <Heart size={16} />, text: 'Wear loose, breathable clothing' },
-                    { icon: <Shield size={16} />, text: 'Never scratch, pick, or peel flaking skin' },
-                    { icon: <Clock size={16} />, text: 'Use fragrance-free soap and lotion only' }
+                    { icon: <Droplets size={24} />, text: 'Wash hands before touching your tattoo' },
+                    { icon: <Sun size={24} />, text: 'Avoid direct sunlight — use SPF 30+ once healed' },
+                    { icon: <AlertTriangle size={24} />, text: 'No swimming, baths, or hot tubs for 3-4 weeks' },
+                    { icon: <Heart size={24} />, text: 'Wear loose, breathable clothing' },
+                    { icon: <Shield size={24} />, text: 'Never scratch, pick, or peel flaking skin' },
+                    { icon: <Clock size={24} />, text: 'Use fragrance-free soap and lotion only' }
                   ].map((rule, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                      <span style={{ color: '#be9055', flexShrink: 0, marginTop: '2px' }}>{rule.icon}</span>
-                      <span style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.4' }}>{rule.text}</span>
+                    <div key={i} style={{ 
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', 
+                        gap: '12px', padding: '24px 16px', background: '#f8fafc', 
+                        borderRadius: '12px', border: '1px solid #f1f5f9',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                    }}>
+                      <div style={{ color: '#be9055', background: 'rgba(190, 144, 85, 0.1)', padding: '14px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {rule.icon}
+                      </div>
+                      <span style={{ fontSize: '0.92rem', color: '#475569', lineHeight: '1.5', fontWeight: 600 }}>{rule.text}</span>
                     </div>
                   ))}
                 </div>
