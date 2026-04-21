@@ -208,7 +208,7 @@ function ArtistPortal() {
 
     const formatCurrency = (val) => `₱${Number(val || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-    const CHART_HEIGHT = 120;
+    const CHART_HEIGHT = 80;
 
     return (
         <div className="portal-layout">
@@ -271,9 +271,9 @@ function ArtistPortal() {
                     ) : (
                         <>
                             {/* ═══════════════ METRIC CARDS (AnalyticsMetricCards-style with mini charts) ═══════════════ */}
-                            <div className="metric-cards-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', padding: '0 2rem', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', padding: '0 2rem', marginBottom: '1.5rem' }}>
                                 {/* Total Earnings — AreaChart trend */}
-                                <div className="metric-card-box" onClick={() => navigate('/artist/earnings')}>
+                                <div className="card glass-card" style={{ cursor: 'pointer', padding: '20px', display: 'flex', flexDirection: 'column' }} onClick={() => navigate('/artist/earnings')}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <div style={{ background: '#f0fdf4', color: '#22c55e', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                             <PhilippinePeso size={22} />
@@ -301,7 +301,7 @@ function ArtistPortal() {
                                 </div>
 
                                 {/* This Month's Earnings — AreaChart monthly */}
-                                <div className="metric-card-box" onClick={() => navigate('/artist/earnings')}>
+                                <div className="card glass-card" style={{ cursor: 'pointer', padding: '20px', display: 'flex', flexDirection: 'column' }} onClick={() => navigate('/artist/earnings')}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <div style={{ background: '#fff7ed', color: '#f97316', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                             <TrendingUp size={22} />
@@ -329,7 +329,7 @@ function ArtistPortal() {
                                 </div>
 
                                 {/* Total Sessions — simple metric */}
-                                <div className="metric-card-box" onClick={() => navigate('/artist/appointments')}>
+                                <div className="card glass-card" style={{ cursor: 'pointer', padding: '20px', display: 'flex', flexDirection: 'column' }} onClick={() => navigate('/artist/appointments')}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <div style={{ background: '#eff6ff', color: '#3b82f6', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                             <Calendar size={22} />
