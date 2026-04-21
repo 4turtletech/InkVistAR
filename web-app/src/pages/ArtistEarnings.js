@@ -251,7 +251,7 @@ function ArtistEarnings() {
                         </div>
 
                         {/* ═══════════════ CHARTS ROW 1: Earnings Trend + Payment Status ═══════════════ */}
-                        <div className="analytics-dashboard-layout" style={{ padding: '0 2rem' }}>
+                        <div className="analytics-dashboard-layout" style={{ padding: '0 2rem', marginTop: '1.5rem' }}>
                             {/* Earnings Trend Bar Chart */}
                             <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
                                 <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Earnings Trend ({periodLabel})</h2>

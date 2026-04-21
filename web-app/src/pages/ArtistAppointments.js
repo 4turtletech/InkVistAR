@@ -333,15 +333,17 @@ function ArtistAppointments() {
             <div className="portal-container artist-portal">
                 <header className="portal-header">
                     <h1>Schedule Management</h1>
-                    <button className="btn btn-secondary" onClick={() => alert("Block date feature coming soon")}>
-                        Block Date
-                    </button>
-                    <button className="btn btn-secondary" onClick={handleExport}>
-                        Export CSV
-                    </button>
-                    <button className="btn btn-secondary" onClick={handlePrint}>
-                        Print
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+                        <button className="btn btn-secondary" onClick={() => alert("Block date feature coming soon")}>
+                            Block Date
+                        </button>
+                        <button className="btn btn-secondary" onClick={handleExport}>
+                            Export CSV
+                        </button>
+                        <button className="btn btn-secondary" onClick={handlePrint}>
+                            Print
+                        </button>
+                    </div>
                     <div className="view-toggle" style={{ display: 'flex', gap: '10px' }}>
                         <button
                             className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}

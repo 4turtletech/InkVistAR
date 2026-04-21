@@ -3,13 +3,14 @@ import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
     Calendar, TrendingUp, Clock, Bell, CheckCircle, RefreshCw,
-    Star, BarChart3, Activity, ArrowRight
+    BarChart3, Activity, ArrowRight
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, Cell
+    ResponsiveContainer, Cell, AreaChart, Area
 } from 'recharts';
 import PhilippinePeso from '../components/PhilippinePeso';
+import Pagination from '../components/Pagination';
 
 import './PortalStyles.css';
 import './ArtistStyles.css';
@@ -23,7 +24,7 @@ const ARTIST_CHART_COLORS = ['#be9055', '#d4af37', '#c19a6b', '#a67c52', '#8b691
 function ArtistPortal() {
     const navigate = useNavigate();
     const [artist, setArtist] = useState({
-        name: '', rating: 0, total_reviews: 0, earnings: 0,
+        name: '', earnings: 0,
         appointments: 0, monthly_earnings: 0, hourly_rate: 0
     });
     const [appointments, setAppointments] = useState([]);
@@ -34,6 +35,10 @@ function ArtistPortal() {
     const [showNotifDropdown, setShowNotifDropdown] = useState(false);
     const [isRefreshingNotifs, setIsRefreshingNotifs] = useState(false);
     const notifRef = useRef(null);
+
+    // Pagination state for upcoming sessions
+    const [upcomingPage, setUpcomingPage] = useState(1);
+    const [upcomingPerPage, setUpcomingPerPage] = useState(5);
 
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
@@ -176,6 +181,15 @@ function ArtistPortal() {
         return Object.values(monthMap).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
     }, [appointments, artist.commission_rate]);
 
+    // ── Cumulative earnings trend for mini AreaChart in Total Earnings card ──
+    const cumulativeEarningsTrend = useMemo(() => {
+        let running = 0;
+        return monthlyEarningsTrend.map(m => {
+            running += m.earned;
+            return { month: m.month, total: running };
+        });
+    }, [monthlyEarningsTrend]);
+
     // ── Upcoming appointments (for table) ──
     const upcomingAppointments = useMemo(() => {
         const now = new Date();
@@ -188,7 +202,13 @@ function ArtistPortal() {
         }).sort((a, b) => new Date(a.appointment_date || a.date) - new Date(b.appointment_date || b.date));
     }, [appointments]);
 
+    // Pagination for upcoming
+    const upcomingTotalPages = Math.ceil(upcomingAppointments.length / upcomingPerPage);
+    const currentUpcoming = upcomingAppointments.slice((upcomingPage - 1) * upcomingPerPage, upcomingPage * upcomingPerPage);
+
     const formatCurrency = (val) => `₱${Number(val || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const CHART_HEIGHT = 120;
 
     return (
         <div className="portal-layout">
@@ -250,31 +270,93 @@ function ArtistPortal() {
                         </div>
                     ) : (
                         <>
-                            {/* ═══════════════ METRIC CARDS ═══════════════ */}
-                            <div className="metrics-section" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                                {[
-                                    { label: 'Total Earnings', value: formatCurrency(artist.earnings), icon: <PhilippinePeso size={28} />, color: '#10b981', sub: 'From all completed sessions', link: '/artist/earnings' },
-                                    { label: "This Month's Earnings", value: formatCurrency(artist.monthly_earnings), icon: <TrendingUp size={28} />, color: '#be9055', sub: 'Current month revenue', link: '/artist/earnings' },
-                                    { label: 'Total Sessions', value: artist.appointments || 0, icon: <Calendar size={28} />, color: '#3b82f6', sub: `${upcomingAppointments.length} upcoming`, link: '/artist/appointments' },
-                                    { label: 'Average Rating', value: artist.rating ? `${Number(artist.rating).toFixed(1)} ★` : 'No ratings', icon: <Star size={28} />, color: '#f59e0b', sub: `${artist.total_reviews || 0} review${(artist.total_reviews || 0) !== 1 ? 's' : ''}`, link: '/artist/portfolio' },
-                                ].map((m, i) => (
-                                    <div key={i} className="metric-card glass-card" style={{ cursor: 'pointer', transition: 'transform 0.3s, box-shadow 0.3s' }}
-                                        onClick={() => navigate(m.link)}
-                                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = ''; }}
-                                    >
-                                        <div className="metric-icon" style={{ color: m.color, opacity: 0.85 }}>{m.icon}</div>
-                                        <div className="metric-content">
-                                            <p className="metric-label">{m.label}</p>
-                                            <p className="metric-value" style={{ color: '#1e293b' }}>{m.value}</p>
-                                            <p className="metric-info">{m.sub}</p>
+                            {/* ═══════════════ METRIC CARDS (AnalyticsMetricCards-style with mini charts) ═══════════════ */}
+                            <div className="metric-cards-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', padding: '0 2rem', marginBottom: '1.5rem' }}>
+                                {/* Total Earnings — AreaChart trend */}
+                                <div className="metric-card-box" onClick={() => navigate('/artist/earnings')}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ background: '#f0fdf4', color: '#22c55e', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <PhilippinePeso size={22} />
+                                        </div>
+                                        <div style={{ minWidth: 0 }}>
+                                            <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: '2px' }}>Total Earnings</span>
+                                            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatCurrency(artist.earnings)}</h3>
                                         </div>
                                     </div>
-                                ))}
+                                    <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px' }}>
+                                        <ResponsiveContainer>
+                                            <AreaChart data={cumulativeEarningsTrend} margin={{ top: 10, right: 5, left: 5, bottom: 0 }}>
+                                                <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                                                <Area type="monotone" dataKey="total" stroke="#10b981" fill="#dcfce7" strokeWidth={2} activeDot={{ r: 4 }} />
+                                                <Tooltip
+                                                    formatter={(value) => [formatCurrency(value), 'Cumulative']}
+                                                    contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div style={{ marginTop: 'auto', paddingTop: '12px', fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>
+                                        View full earnings report →
+                                    </div>
+                                </div>
+
+                                {/* This Month's Earnings — AreaChart monthly */}
+                                <div className="metric-card-box" onClick={() => navigate('/artist/earnings')}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ background: '#fff7ed', color: '#f97316', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <TrendingUp size={22} />
+                                        </div>
+                                        <div style={{ minWidth: 0 }}>
+                                            <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: '2px' }}>This Month's Earnings</span>
+                                            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatCurrency(artist.monthly_earnings)}</h3>
+                                        </div>
+                                    </div>
+                                    <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px' }}>
+                                        <ResponsiveContainer>
+                                            <AreaChart data={monthlyEarningsTrend} margin={{ top: 10, right: 5, left: 5, bottom: 0 }}>
+                                                <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                                                <Area type="monotone" dataKey="earned" stroke="#be9055" fill="#fef3c7" strokeWidth={2} activeDot={{ r: 4 }} />
+                                                <Tooltip
+                                                    formatter={(value) => [formatCurrency(value), 'Monthly']}
+                                                    contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div style={{ marginTop: 'auto', paddingTop: '12px', fontSize: '0.75rem', fontWeight: 600, color: '#be9055' }}>
+                                        View monthly breakdown →
+                                    </div>
+                                </div>
+
+                                {/* Total Sessions — simple metric */}
+                                <div className="metric-card-box" onClick={() => navigate('/artist/appointments')}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ background: '#eff6ff', color: '#3b82f6', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <Calendar size={22} />
+                                        </div>
+                                        <div style={{ minWidth: 0 }}>
+                                            <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: '2px' }}>Total Sessions</span>
+                                            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#1e293b' }}>{artist.appointments || 0}</h3>
+                                        </div>
+                                    </div>
+                                    <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(248, 250, 252, 0.6)', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Upcoming</span>
+                                            <span style={{ fontWeight: 800, fontSize: '1.15rem', color: '#3b82f6' }}>{upcomingAppointments.length}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(248, 250, 252, 0.6)', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Today</span>
+                                            <span style={{ fontWeight: 800, fontSize: '1.15rem', color: '#10b981' }}>{todaysAppointments.length}</span>
+                                        </div>
+                                    </div>
+                                    <div style={{ marginTop: 'auto', paddingTop: '12px', fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6' }}>
+                                        View full schedule →
+                                    </div>
+                                </div>
                             </div>
 
                             {/* ═══════════════ CHARTS ROW: Week Ahead + Recent Activity ═══════════════ */}
-                            <div className="analytics-dashboard-layout" style={{ padding: '0 2rem' }}>
+                            <div className="analytics-dashboard-layout" style={{ padding: '0 2rem', marginTop: '1.5rem' }}>
                                 {/* Upcoming Sessions by Day */}
                                 <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
                                     <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Week Ahead</h2>
@@ -431,7 +513,7 @@ function ArtistPortal() {
                                 </div>
                             </div>
 
-                            {/* ═══════════════ UPCOMING SESSIONS TABLE ═══════════════ */}
+                            {/* ═══════════════ UPCOMING SESSIONS TABLE (with pagination) ═══════════════ */}
                             <div style={{ padding: '1.5rem 2rem 0' }}>
                                 <div className="card glass-card">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -457,7 +539,7 @@ function ArtistPortal() {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {upcomingAppointments.slice(0, 5).map((apt) => (
+                                                    {currentUpcoming.map((apt) => (
                                                         <tr key={apt.id} style={{ cursor: 'pointer' }} onClick={() => navigate('/artist/appointments')}>
                                                             <td style={{ fontWeight: 600 }}>{apt.client_name || apt.client || 'N/A'}</td>
                                                             <td>{apt.appointment_date ? new Date(apt.appointment_date).toLocaleDateString() : 'N/A'}</td>
@@ -475,6 +557,17 @@ function ArtistPortal() {
                                             </div>
                                         )}
                                     </div>
+                                    {upcomingAppointments.length > 0 && (
+                                        <Pagination
+                                            currentPage={upcomingPage}
+                                            totalPages={upcomingTotalPages}
+                                            onPageChange={setUpcomingPage}
+                                            itemsPerPage={upcomingPerPage}
+                                            onItemsPerPageChange={(newVal) => { setUpcomingPerPage(newVal); setUpcomingPage(1); }}
+                                            totalItems={upcomingAppointments.length}
+                                            unit="sessions"
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </>
