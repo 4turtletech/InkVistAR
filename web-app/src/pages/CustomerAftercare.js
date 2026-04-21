@@ -90,49 +90,43 @@ function CustomerAftercare() {
               {(() => {
                 const phaseThemes = {
                   initial: {
-                    bg: 'rgba(239, 68, 68, 0.08)',
-                    glass: 'rgba(255, 240, 240, 0.65)',
-                    glow: 'rgba(239, 68, 68, 0.2)',
-                    border: 'rgba(239, 68, 68, 0.25)',
-                    shadow: '0 8px 32px rgba(239, 68, 68, 0.12)',
-                    ring: '#ef4444',
-                    ringTrack: 'rgba(239, 68, 68, 0.15)',
-                    accent: '#dc2626',
-                    accentBg: 'rgba(239, 68, 68, 0.08)',
-                    accentBorder: 'rgba(239, 68, 68, 0.2)',
-                    textPrimary: '#1e293b',
-                    textSecondary: '#64748b',
-                    tipText: '#991b1b'
+                    glass: 'rgba(239, 68, 68, 0.85)',
+                    border: 'rgba(255, 255, 255, 0.3)',
+                    shadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+                    ring: '#ffffff',
+                    ringTrack: 'rgba(255, 255, 255, 0.3)',
+                    accent: '#ffffff',
+                    accentBg: 'rgba(255, 255, 255, 0.2)',
+                    accentBorder: 'rgba(255, 255, 255, 0.4)',
+                    textPrimary: '#ffffff',
+                    textSecondary: 'rgba(255, 255, 255, 0.9)',
+                    tipText: '#ffffff'
                   },
                   peeling: {
-                    bg: 'rgba(245, 158, 11, 0.08)',
-                    glass: 'rgba(255, 248, 235, 0.65)',
-                    glow: 'rgba(245, 158, 11, 0.2)',
-                    border: 'rgba(245, 158, 11, 0.25)',
-                    shadow: '0 8px 32px rgba(245, 158, 11, 0.12)',
-                    ring: '#f59e0b',
-                    ringTrack: 'rgba(245, 158, 11, 0.15)',
-                    accent: '#d97706',
-                    accentBg: 'rgba(245, 158, 11, 0.08)',
-                    accentBorder: 'rgba(245, 158, 11, 0.2)',
-                    textPrimary: '#1e293b',
-                    textSecondary: '#64748b',
-                    tipText: '#92400e'
+                    glass: 'rgba(245, 158, 11, 0.85)',
+                    border: 'rgba(255, 255, 255, 0.3)',
+                    shadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+                    ring: '#ffffff',
+                    ringTrack: 'rgba(255, 255, 255, 0.3)',
+                    accent: '#ffffff',
+                    accentBg: 'rgba(255, 255, 255, 0.2)',
+                    accentBorder: 'rgba(255, 255, 255, 0.4)',
+                    textPrimary: '#ffffff',
+                    textSecondary: 'rgba(255, 255, 255, 0.9)',
+                    tipText: '#ffffff'
                   },
                   healing: {
-                    bg: 'rgba(16, 185, 129, 0.08)',
-                    glass: 'rgba(236, 253, 245, 0.65)',
-                    glow: 'rgba(16, 185, 129, 0.2)',
-                    border: 'rgba(16, 185, 129, 0.25)',
-                    shadow: '0 8px 32px rgba(16, 185, 129, 0.12)',
-                    ring: '#10b981',
-                    ringTrack: 'rgba(16, 185, 129, 0.15)',
-                    accent: '#059669',
-                    accentBg: 'rgba(16, 185, 129, 0.08)',
-                    accentBorder: 'rgba(16, 185, 129, 0.2)',
-                    textPrimary: '#1e293b',
-                    textSecondary: '#64748b',
-                    tipText: '#065f46'
+                    glass: 'rgba(16, 185, 129, 0.85)',
+                    border: 'rgba(255, 255, 255, 0.3)',
+                    shadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+                    ring: '#ffffff',
+                    ringTrack: 'rgba(255, 255, 255, 0.3)',
+                    accent: '#ffffff',
+                    accentBg: 'rgba(255, 255, 255, 0.2)',
+                    accentBorder: 'rgba(255, 255, 255, 0.4)',
+                    textPrimary: '#ffffff',
+                    textSecondary: 'rgba(255, 255, 255, 0.9)',
+                    tipText: '#ffffff'
                   }
                 };
                 const theme = phaseThemes[aftercare.phase] || phaseThemes.healing;
@@ -152,7 +146,7 @@ function CustomerAftercare() {
                           <circle cx="60" cy="60" r="54" fill="none" stroke={theme.ringTrack} strokeWidth="8" />
                           <circle cx="60" cy="60" r="54" fill="none" stroke={theme.ring} strokeWidth="8"
                             strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
-                            style={{ transition: 'stroke-dashoffset 1s ease-out', filter: `drop-shadow(0 0 6px ${theme.ring}40)` }} />
+                            style={{ transition: 'stroke-dashoffset 1s ease-out' }} />
                         </svg>
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                           <span style={{ fontSize: '2rem', fontWeight: 800, color: theme.ring, lineHeight: 1 }}>{aftercare.currentDay}</span>
@@ -164,9 +158,9 @@ function CustomerAftercare() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                           {(() => {
                             const PhaseIcon = PHASE_CONFIG[aftercare.phase]?.icon || Heart;
-                            return <PhaseIcon size={18} color={PHASE_CONFIG[aftercare.phase]?.color} />;
+                            return <PhaseIcon size={18} color={theme.accent} />;
                           })()}
-                          <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: PHASE_CONFIG[aftercare.phase]?.bg, color: PHASE_CONFIG[aftercare.phase]?.color, textTransform: 'uppercase', letterSpacing: '0.5px', backdropFilter: 'blur(8px)' }}>
+                          <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: theme.accentBg, color: theme.accent, textTransform: 'uppercase', letterSpacing: '0.5px', backdropFilter: 'blur(8px)' }}>
                             {PHASE_CONFIG[aftercare.phase]?.label}
                           </span>
                         </div>
@@ -220,7 +214,7 @@ function CustomerAftercare() {
               </div>
 
               {/* 30-Day Timeline */}
-              <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', textAlign: 'left' }}>
                 <h3 style={{ margin: '0 0 20px', fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Clock size={20} color="#be9055" /> 30-Day Healing Timeline
                 </h3>
@@ -237,11 +231,11 @@ function CustomerAftercare() {
                   return (
                     <div key={phaseGroup.phase} style={{ marginBottom: '24px' }}>
                       {/* Phase Header */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', padding: '12px 16px', background: config.bg, borderRadius: '12px', border: `1px solid ${config.color}25` }}>
-                        <config.icon size={18} color={config.color} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', padding: '12px 16px', background: config.color, borderRadius: '12px', border: `1px solid ${config.color}`, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                        <config.icon size={18} color="#fff" />
                         <div>
-                          <span style={{ fontWeight: 700, color: config.color, fontSize: '0.9rem' }}>{phaseGroup.label}</span>
-                          <span style={{ marginLeft: '10px', fontSize: '0.8rem', color: '#64748b' }}>{phaseGroup.days} — {phaseGroup.desc}</span>
+                          <span style={{ fontWeight: 700, color: '#fff', fontSize: '0.9rem' }}>{phaseGroup.label}</span>
+                          <span style={{ marginLeft: '10px', fontSize: '0.8rem', color: 'rgba(255,255,255,0.9)' }}>{phaseGroup.days} — {phaseGroup.desc}</span>
                         </div>
                       </div>
 
@@ -289,7 +283,7 @@ function CustomerAftercare() {
                                 </p>
                                 {tpl.tips && (
                                   <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: '1.4' }}>
-                                    💡 {tpl.tips}
+                                    Tip: {tpl.tips}
                                   </p>
                                 )}
                               </div>
