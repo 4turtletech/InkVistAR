@@ -16,6 +16,8 @@ import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { ConfirmModal } from '../src/components/shared/ConfirmModal';
+import { ClientProfileModal } from '../src/components/Admin/ClientProfileModal';
+import { ArtistProfileModal } from '../src/components/Admin/ArtistProfileModal';
 import { getInitials } from '../src/utils/formatters';
 import { getAllUsersForAdmin, deleteUserByAdmin, createUserByAdmin, updateUserByAdmin } from '../src/utils/api';
 
@@ -194,8 +196,24 @@ export const AdminUserManagement = ({ navigation }) => {
         />
       )}
 
-      {/* Add/Edit Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      {/* Customer Modal */}
+      <ClientProfileModal
+        visible={modalVisible && editingUser?.user_type === 'customer'}
+        client={editingUser}
+        onClose={() => setModalVisible(false)}
+        onRefreshUsers={loadUsers}
+      />
+
+      {/* Artist Modal */}
+      <ArtistProfileModal
+        visible={modalVisible && editingUser?.user_type === 'artist'}
+        artist={editingUser}
+        onClose={() => setModalVisible(false)}
+        onRefreshUsers={loadUsers}
+      />
+
+      {/* Add/Edit Modal for Admins & Managers */}
+      <Modal visible={modalVisible && (!editingUser || ['admin', 'manager'].includes(editingUser.user_type))} animationType="slide" transparent>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
