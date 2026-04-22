@@ -230,7 +230,7 @@ const PayMongoPayment = () => {
                                 </span>
                             </div>
                         </div>
-                        <button onClick={handlePayment} className="btn btn-primary" style={{ ...btnBase, backgroundColor: '#10b981' }}>
+                        <button onClick={handlePayment} className="btn" style={{ ...btnBase, background: 'white', color: '#1e293b', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                             Proceed to PayMongo
                         </button>
                         {type !== 'balance' && (
