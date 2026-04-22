@@ -211,3 +211,70 @@
     border-radius: 12px;
     padding: 8px 16px;
 }
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .admin-page.page-container-enter {
+        padding: 1rem;
+    }
+
+    .invoice-paper {
+        padding: 1.5rem;
+        min-height: auto;
+        max-width: 100%;
+    }
+
+    .invoice-header {
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 1.5rem;
+    }
+
+    .invoice-meta {
+        text-align: left;
+    }
+
+    .invoice-meta h2 {
+        font-size: 1.3rem;
+    }
+
+    .invoice-table th,
+    .invoice-table td {
+        padding: 10px 8px;
+        font-size: 0.8rem;
+    }
+
+    .invoice-table tfoot td {
+        font-size: 1.1rem;
+        padding-top: 1rem;
+    }
+
+    .invoice-bill-to {
+        margin-bottom: 1.5rem;
+    }
+
+    .invoice-divider {
+        margin-bottom: 1.5rem;
+    }
+
+    .invoice-footer {
+        padding-top: 2rem;
+        font-size: 0.8rem;
+    }
+
+    .signature-line {
+        margin-top: 2rem;
+    }
+
+    .preview-modal-content {
+        width: 100%;
+        max-width: 100%;
+        padding: 1.25rem;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .preview-modal-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+    }
+}

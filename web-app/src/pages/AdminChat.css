@@ -290,3 +290,64 @@
     transform: scale(1.05);
     background: #d4a86a !important;
 }
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .admin-chat-layout {
+        flex-direction: column;
+        height: calc(100vh - 80px);
+        margin: 0 0.75rem 0.75rem;
+    }
+
+    .appointment-list-container {
+        width: 100%;
+        max-height: 200px;
+        border-right: none;
+        border-bottom: 2px solid rgba(190, 144, 85, 0.2);
+    }
+
+    .appointment-item {
+        padding: 12px 16px;
+    }
+
+    .appointment-item-name {
+        font-size: 0.95rem;
+    }
+
+    .chat-section-divider {
+        padding: 8px 16px;
+        font-size: 0.7rem;
+    }
+
+    .chat-window-container {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .no-chat-selected h3 {
+        font-size: 1rem;
+    }
+
+    .chat-loader {
+        padding: 30px;
+    }
+
+    .chat-widget-wrapper .chat-header {
+        padding: 1rem !important;
+    }
+
+    .chat-widget-wrapper .chat-title {
+        font-size: 1rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-chat-layout {
+        margin: 0 0.5rem 0.5rem;
+        height: calc(100vh - 60px);
+    }
+
+    .appointment-list-container {
+        max-height: 160px;
+    }
+}

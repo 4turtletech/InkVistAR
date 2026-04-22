@@ -542,3 +542,60 @@
     display: flex;
     align-items: center;
 }
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+    /* Calendar 7-column -> horizontal scroll */
+    .artist-calendar-grid {
+        grid-template-columns: repeat(7, minmax(36px, 1fr));
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        font-size: 0.75rem;
+    }
+
+    /* Session grid (minmax(400px, 1fr) 350px) -> single column */
+    .artist-session-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+
+    /* Portal grid layout (2fr 1fr) -> single column */
+    .artist-portal-grid-layout {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+
+    /* Gallery grid (minmax(300px, 1fr) 320px) -> single column */
+    .artist-gallery-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+
+    /* Gallery grid 2 (1fr 1fr) -> single column */
+    .artist-gallery-grid-2 {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+
+    /* Notification dropdown -> full-width mobile */
+    .notif-dropdown-v2 {
+        position: fixed !important;
+        left: 8px !important;
+        right: 8px !important;
+        width: auto !important;
+        max-width: none !important;
+        top: 56px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .artist-calendar-grid {
+        font-size: 0.65rem;
+    }
+
+    .notif-dropdown-v2 {
+        left: 4px !important;
+        right: 4px !important;
+        top: 50px !important;
+    }
+}

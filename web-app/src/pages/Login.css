@@ -139,76 +139,82 @@ body {
     .login-page-wrapper {
         justify-content: center;
         padding: 1rem;
+        background-attachment: scroll;
     }
 
     .login-card {
-        padding: 2rem;
+        padding: 2rem 1.5rem;
+        max-width: 100%;
+        border-radius: 16px;
+    }
+
+    .login-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .login-logo {
+        font-size: 1.8rem;
+    }
+
+    .login-tagline {
+        font-size: 0.85rem;
+    }
+
+    .login-title {
+        font-size: 1.4rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .login-form .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .login-form .form-input {
+        padding: 0.85rem;
+        font-size: 0.95rem;
+    }
+
+    .login-btn {
+        padding: 0.85rem;
+        font-size: 1rem;
+    }
+
+    .login-footer {
+        margin-top: 1.5rem;
+        font-size: 0.85rem;
+    }
+
+    .error-message {
+        font-size: 0.85rem;
+        padding: 0.7rem;
     }
 }
 
-/* Navigation Styles (Copied from Home.css) */
-.home-nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem 3rem;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
-    z-index: 100;
-}
+@media (max-width: 480px) {
+    .login-page-wrapper {
+        padding: 0.75rem;
+    }
 
-.home-logo {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #be9055;
-    text-decoration: none;
-}
+    .login-card {
+        padding: 1.5rem 1.25rem;
+        border-radius: 14px;
+    }
 
-.home-nav-links {
-    display: flex;
-    gap: 2.5rem;
-}
+    .login-logo {
+        font-size: 1.5rem;
+    }
 
-.home-nav-links a {
-    color: white;
-    text-decoration: none;
-    font-size: 1rem;
-    transition: color 0.3s;
-}
+    .login-form .form-input {
+        padding: 0.8rem;
+        font-size: 0.9rem;
+        border-radius: 8px;
+    }
 
-.home-nav-links a:hover {
-    color: #be9055;
-}
-
-.home-auth-buttons {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-}
-
-.home-auth-buttons .login-link {
-    color: white;
-    text-decoration: none;
-    font-size: 1rem;
-}
-
-.home-auth-buttons .signup-btn {
-    background-color: #be9055;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 50px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.home-auth-buttons .signup-btn:hover {
-    background-color: #d4af87;
+    .login-btn {
+        padding: 0.8rem;
+        font-size: 0.95rem;
+        border-radius: 8px;
+    }
 }
 
 .form-input.error {

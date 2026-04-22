@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
 import './Artists.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
@@ -9,49 +10,64 @@ function Artists() {
     const navigate = useNavigate();
     const [artists, setArtists] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    const STYLES = [
-        'All',
-        'Black & Grey Realism',
-        'Fine Line Geometry',
-        'Traditional Japanese',
-        'Neo-Traditional',
-        'Surrealism',
-        'Dotwork & Mandala',
-        'Watercolor',
-        'Tribal / Polynesian',
-        'Minimalist'
-    ];
     const [activeFilter, setActiveFilter] = useState('All');
 
-    const MOCK_ARTISTS = [
-        { id: '1', name: 'Artist Troy', nickname: 'Troy', specialization: 'Black & Grey Realism', profile_image: '/images/tattoos/media__1775672821008.jpg' },
-        { id: '2', name: 'Artist Lloid', nickname: 'Lloid', specialization: 'Fine Line Geometry', profile_image: '/images/tattoos/media__1775672821025.jpg' },
-        { id: '3', name: 'Artist Ken', nickname: 'Ken', specialization: 'Traditional Japanese', profile_image: '/images/tattoos/media__1775672821057.jpg' },
-        { id: '4', name: 'Artist Mar', nickname: 'Mar', specialization: 'Neo-Traditional', profile_image: '/images/tattoos/media__1775672821061.jpg' },
-        { id: '5', name: 'Artist Brian', nickname: 'Brian', specialization: 'Surrealism', profile_image: '/images/tattoos/media__1775671277040.jpg' },
-        { id: '6', name: 'Artist JeaR', nickname: 'JeaR', specialization: 'Dotwork & Mandala', profile_image: '/images/tattoos/media__1775667820757.jpg' },
-        { id: '7', name: 'Artist Lem', nickname: 'Lem', specialization: 'Watercolor', profile_image: '/images/tattoos/media__1775667820770.jpg' },
-        { id: '8', name: 'Artist Renz', nickname: 'Renz', specialization: 'Tribal / Polynesian', profile_image: '/images/tattoos/media__1775667820781.jpg' },
-        { id: '9', name: 'Artist Carl', nickname: 'Carl', specialization: 'Minimalist', profile_image: '/images/tattoos/media__1775667820747.jpg' }
-    ];
-
+    // Fetch artists dynamically from the backend
     useEffect(() => {
-        // Mock API fetch delay for UX
         setLoading(true);
-        const timer = setTimeout(() => {
-            setArtists(MOCK_ARTISTS);
-            setLoading(false);
-        }, 600);
-        return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetch(`${API_URL}/api/customer/artists`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.artists) {
+                    setArtists(data.artists);
+                } else {
+                    setArtists([]);
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching artists:', err);
+                setArtists([]);
+            })
+            .finally(() => setLoading(false));
     }, []);
+
+    // Dynamically build unique style filters from fetched data
+    const styleFilters = useMemo(() => {
+        const uniqueSpecs = [...new Set(
+            artists
+                .map(a => a.specialization)
+                .filter(s => s && s !== 'General Artist')
+        )].sort();
+        return ['All', ...uniqueSpecs];
+    }, [artists]);
 
     const filteredArtists = artists.filter(artist => {
         if (activeFilter === 'All') return true;
         const spec = artist.specialization || '';
         return spec.toLowerCase().includes(activeFilter.toLowerCase());
     });
+
+    // Resolve profile image: supports base64, URLs, or static file fallback
+    const getProfileImage = (artist) => {
+        if (artist.profile_image) {
+            // Base64 data URIs or full URLs pass through directly
+            if (artist.profile_image.startsWith('data:') || artist.profile_image.startsWith('http')) {
+                return artist.profile_image;
+            }
+            // Static file paths
+            return artist.profile_image;
+        }
+        // Fallback placeholder
+        return '/images/tattoos/default_artist.jpg';
+    };
+
+    // Derive a short nickname from the artist's full name
+    const getNickname = (artist) => {
+        if (!artist.name) return '';
+        // If name follows "Artist <Name>" pattern, extract the second part
+        const parts = artist.name.split(' ');
+        return parts.length > 1 ? parts.slice(1).join(' ') : parts[0];
+    };
 
     return (
         <>
@@ -65,12 +81,14 @@ function Artists() {
                     <span className="artists-hero-tagline">The Inkvictus Collective</span>
                     <h1>Our Elite Artists</h1>
                     <p className="artists-hero-subtitle">
-                        Nine world-class tattoo artists. One legendary studio.
+                        {artists.length > 0
+                            ? `${artists.length} world-class tattoo artists. One legendary studio.`
+                            : 'World-class tattoo artists. One legendary studio.'}
                     </p>
                 </div>
             </header>
 
-            {/* Team Group Photo Placeholder (16:9 landscape) */}
+            {/* Team Group Photo (16:9 landscape) */}
             <section className="artists-team-photo-section">
                 <div className="artists-team-photo-wrapper">
                     <img
@@ -98,7 +116,7 @@ function Artists() {
                         value={activeFilter}
                         onChange={(e) => setActiveFilter(e.target.value)}
                     >
-                        {STYLES.map(style => (
+                        {styleFilters.map(style => (
                             <option key={style} value={style}>{style}</option>
                         ))}
                     </select>
@@ -107,7 +125,7 @@ function Artists() {
                 <div className="artists-grid-container">
                     {loading ? (
                         /* Skeleton loading cards for visual feedback */
-                        Array.from({ length: 9 }).map((_, i) => (
+                        Array.from({ length: 6 }).map((_, i) => (
                             <div key={i} className="artist-profile-card artist-card-skeleton">
                                 <div className="artist-portrait-wrapper skeleton-shimmer"></div>
                                 <div className="artist-profile-info">
@@ -128,7 +146,7 @@ function Artists() {
                                 >
                                     <div className="artist-portrait-wrapper">
                                         <img
-                                            src={artist.profile_image}
+                                            src={getProfileImage(artist)}
                                             alt={`${artist.name} — ${artist.specialization}`}
                                             loading="lazy"
                                         />
@@ -137,7 +155,7 @@ function Artists() {
                                     <div className="artist-profile-info">
                                         <div className="artist-name-block">
                                             <h2>{artist.name}</h2>
-                                            <p className="artist-aka">"{artist.nickname}"</p>
+                                            <p className="artist-aka">"{getNickname(artist)}"</p>
                                             <div className="artist-name-divider"></div>
                                         </div>
                                         <p className="artist-spec-label">{artist.specialization}</p>

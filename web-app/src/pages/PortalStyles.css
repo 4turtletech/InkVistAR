@@ -1539,3 +1539,241 @@ body.sidenav-collapsed .portal-layout .portal-container {
     background: #a38240;
     box-shadow: 0 4px 12px rgba(183, 149, 78, 0.4);
 }
+
+/* ========== ENHANCED MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .portal-container {
+        padding: 1rem 0.75rem;
+    }
+
+    /* Modal -> near fullscreen */
+    .modal-content {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 16px 16px 0 0;
+        margin: auto 0 0 0;
+    }
+
+    .modal-content.large,
+    .modal-content.xl {
+        max-width: 100%;
+    }
+
+    .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modal-header {
+        padding: 1rem 1.25rem;
+        padding-right: 3.5rem;
+    }
+
+    .modal-header h2,
+    .modal-header h3 {
+        font-size: 1.15rem;
+    }
+
+    .modal-body {
+        padding: 1rem 1.25rem;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.25rem;
+        flex-wrap: wrap;
+    }
+
+    /* Gallery modal -> single column */
+    .gallery-modal {
+        max-width: 100% !important;
+        width: 100% !important;
+        max-height: 100vh;
+        border-radius: 16px 16px 0 0 !important;
+    }
+
+    .modal-inner {
+        flex-direction: column;
+    }
+
+    .modal-image-side {
+        min-height: 250px;
+        max-height: 300px;
+    }
+
+    .modal-info-side {
+        padding: 20px 16px;
+        max-height: none;
+    }
+
+    /* Gallery grid -> 2 column */
+    .gallery-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    /* Gallery tabs -> horizontal scroll */
+    .gallery-tabs {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .gallery-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .tab-btn {
+        white-space: nowrap;
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    /* Stats grid -> ensure single column */
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card-v2 {
+        padding: 1rem;
+    }
+
+    .stat-value-v2 {
+        font-size: 1.25rem;
+    }
+
+    /* Stat card icon -> smaller */
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+    }
+
+    .stat-value {
+        font-size: 1.4rem;
+    }
+
+    /* Data cards -> tighter */
+    .data-card-v2 {
+        margin-bottom: 1rem;
+    }
+
+    .card-header-v2 {
+        padding: 1rem;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Premium table -> cell padding reduced */
+    .premium-table th,
+    .premium-table td {
+        padding: 0.65rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    /* Price value -> smaller on mobile */
+    .price-value {
+        font-size: 1.5rem;
+    }
+
+    .price-estimate-box {
+        padding: 18px;
+    }
+
+    /* Notification records -> stack */
+    .notification-record {
+        padding: 16px;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .notif-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .notif-actions {
+        flex-wrap: wrap;
+    }
+
+    /* Empty state -> less padding */
+    .empty-state {
+        padding: 2.5rem 1rem;
+    }
+
+    /* Profile info -> single column */
+    .profile-info {
+        grid-template-columns: 1fr;
+    }
+
+    /* Actions grid -> 2 col on mobile */
+    .actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Artists grid -> single col */
+    .artists-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Buttons -> touch-friendly min height */
+    .premium-btn {
+        min-height: 44px;
+        padding: 10px 16px;
+        font-size: 0.85rem;
+    }
+
+    .action-btn {
+        min-height: 44px;
+    }
+
+    /* Table card min-height -> remove on mobile to avoid white space */
+    .table-card-container {
+        min-height: auto;
+    }
+
+    /* Booking button -> adapt */
+    .booking-btn {
+        padding: 14px;
+        font-size: 1rem;
+    }
+
+    /* Dashboard loader -> less padding */
+    .dashboard-loader-container {
+        padding: 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .portal-container {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .gallery-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stat-icon-wrapper {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+    }
+
+    .stat-value-v2 {
+        font-size: 1.1rem;
+    }
+
+    .modal-content {
+        border-radius: 12px 12px 0 0;
+    }
+
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .price-value {
+        font-size: 1.25rem;
+    }
+}

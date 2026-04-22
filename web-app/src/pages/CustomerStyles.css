@@ -1524,3 +1524,65 @@
     background: rgba(59, 130, 246, 0.06);
     color: #3b82f6;
 }
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+    /* All 2-column grids -> single column */
+    .customer-st-5c49f804,
+    .customer-st-e66d54ba {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+
+    /* Detail panel grids (1.2fr 1fr) -> single column */
+    .customer-st-d1b64d7a {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+
+    /* Fixed-width elements -> fluid */
+    .customer-st-e64759bd {
+        width: 100% !important;
+    }
+
+    .customer-st-a1410f35 {
+        min-width: 100%;
+    }
+
+    /* Constrained containers -> full width with padding */
+    .customer-st-252946b6 {
+        max-width: 100%;
+        padding: 0 12px;
+    }
+
+    /* Large font sizes -> smaller */
+    .customer-st-f1b3ed19 {
+        font-size: 1.75rem !important;
+    }
+
+    .customer-st-f26d6ce7,
+    .customer-st-05fe7b62 {
+        font-size: 1.3rem !important;
+    }
+
+    /* Inspiration banner -> stack */
+    .inspiration-banner__grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+
+    .inspiration-banner__text {
+        min-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .customer-st-f1b3ed19 {
+        font-size: 1.5rem !important;
+    }
+
+    .customer-st-f26d6ce7,
+    .customer-st-05fe7b62 {
+        font-size: 1.1rem !important;
+    }
+}

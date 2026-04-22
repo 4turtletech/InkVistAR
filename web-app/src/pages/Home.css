@@ -702,24 +702,60 @@ h1, h2, h3, h4 {
 }
 
 @media (max-width: 768px) {
+    .hero-header { height: 85vh; }
     .hero-title { font-size: 2.5rem; line-height: 1.2; text-shadow: 0 5px 15px rgba(0,0,0,0.8); }
-    .hero-tagline { font-size: 0.8rem; margin-bottom: 1rem; }
+    .hero-tagline { font-size: 0.75rem; margin-bottom: 1rem; letter-spacing: 3px; }
+    .hero-content { margin-top: 0; padding: 0 1.25rem; }
     .cta-title { font-size: 2.3rem; }
-    .section-title { font-size: 2.3rem; }
+    .section-title { font-size: 2rem; }
+    .section-subtitle { font-size: 0.8rem; letter-spacing: 3px; }
     .hero-parallax-bg { grid-template-columns: 1fr; }
     .hero-parallax-img:nth-child(n+2) { display: none; }
-    .glass-card-premium { padding: 1.5rem; }
-    .matrix-images { grid-template-columns: 1fr; grid-template-rows: auto; }
+    .glass-card-premium { padding: 1.25rem; }
+    .matrix-grid { gap: 2rem; }
+    .matrix-content { padding-right: 0; text-align: center; }
+    .matrix-text { font-size: 0.95rem; line-height: 1.7; margin-bottom: 1.25rem; }
+    .matrix-images { grid-template-columns: 1fr; grid-template-rows: 200px 160px 160px; }
     .matrix-img-box:nth-child(1) { grid-row: auto; }
-    .services-container { flex-direction: column; }
-    .service-item { min-width: 100%; border-left: none; border-right: none; }
-    .premium-section { padding: 4rem 1rem; }
-    .section-header { margin-bottom: 2.5rem; }
-    .btn-gold-luxury { padding: 1rem 2rem; font-size: 0.9rem; }
-    .final-cta-section { padding: 5rem 1rem; }
-    .artists-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; }
-    .artist-name { font-size: 1.2rem; }
-    .artist-overlay { padding: 1rem; }
-    .hero-content { margin-top: 0; }
+    .services-container { flex-direction: column; gap: 1.25rem; }
+    .service-item { min-width: 100%; padding: 2rem 1.5rem; }
+    .service-title { font-size: 1.25rem; }
+    .service-desc { font-size: 0.88rem; }
+    .premium-section { padding: 3.5rem 1rem; }
+    .section-header { margin-bottom: 2rem; }
+    .btn-gold-luxury { padding: 1rem 2rem; font-size: 0.85rem; letter-spacing: 1.5px; width: 100%; justify-content: center; }
+    .final-cta-section { padding: 4rem 1rem; }
     .scroll-indicator { bottom: 16px; }
+    .home-artist-overlay { padding: 1.5rem 1.25rem 1.25rem; }
+    .home-artist-name { font-size: 1.4rem; }
+    .home-artist-style { font-size: 0.75rem; letter-spacing: 2px; }
+    .perspective-carousel { height: 340px; }
+    .perspective-slide { max-width: 92%; }
+    .perspective-card { padding: 1.75rem; }
+    .perspective-comment { font-size: 0.95rem; line-height: 1.7; min-height: 60px; }
+    .perspective-quote-mark { font-size: 3.5rem; }
+    .perspective-name { font-size: 0.95rem; }
+    .carousel-btn { width: 40px; height: 40px; }
+    .carousel-controls { gap: 14px; margin-top: 1.5rem; }
+}
+
+/* Small phone breakpoint */
+@media (max-width: 480px) {
+    .hero-header { height: 80vh; }
+    .hero-title { font-size: 2rem; letter-spacing: 1px; }
+    .hero-tagline { font-size: 0.65rem; letter-spacing: 2px; }
+    .section-title { font-size: 1.6rem; }
+    .premium-section { padding: 2.5rem 0.75rem; }
+    .section-header { margin-bottom: 1.5rem; }
+    .glass-card-premium { padding: 1rem; border-radius: 10px; }
+    .matrix-images { grid-template-rows: 180px 140px 140px; }
+    .service-item { padding: 1.5rem 1rem; }
+    .perspective-carousel { height: 320px; }
+    .perspective-card { padding: 1.25rem; border-radius: 14px; }
+    .perspective-comment { font-size: 0.88rem; }
+    .perspective-stars { margin-bottom: 1rem; }
+    .perspective-avatar { width: 38px; height: 38px; font-size: 1rem; }
+    .btn-gold-luxury { padding: 0.9rem 1.5rem; font-size: 0.8rem; }
+    .cta-title { font-size: 1.8rem; }
+    .final-cta-section { padding: 3rem 0.75rem; }
 }

@@ -2809,3 +2809,112 @@
     /* Take up available space to push to right */
     margin-left: 2rem;
 }
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+    /* All 2-column grids -> single column */
+    .admin-st-c200c71d,
+    .admin-st-2f580e88,
+    .admin-st-e7646dcc,
+    .admin-st-b97f1a79,
+    .admin-st-fefecdf0,
+    .admin-st-e5b0a825 {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+
+    /* Detail panel grids (1.2fr 1fr) -> single column */
+    .admin-st-232d6dae,
+    .admin-st-f9a903f8,
+    .admin-st-ede7eeea {
+        grid-template-columns: 1fr !important;
+        gap: 16px;
+    }
+
+    /* 3-column grid -> single column */
+    .admin-st-4155de1d {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+
+    /* Calendar 7-column grid -> horizontal scroll */
+    .admin-st-3d636867 {
+        grid-template-columns: repeat(7, minmax(40px, 1fr));
+        overflow-x: auto;
+        font-size: 0.75rem;
+    }
+
+    /* Auto-fit grids with large minimums -> smaller */
+    .admin-st-6e0f6c6a {
+        grid-template-columns: 1fr !important;
+    }
+
+    .admin-st-c68bdd5b {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .admin-st-ece89b73 {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    /* Tab bar -> horizontal scroll */
+    .admin-st-d14eab7d {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 0.75rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 4px;
+    }
+
+    .admin-st-d14eab7d::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Margin containers -> tighter */
+    .admin-st-277a8390 {
+        margin: 0 0.75rem 1rem 0.75rem;
+    }
+
+    /* Large padding -> reduced */
+    .admin-st-7cea880d,
+    .admin-st-92565e46 {
+        padding: 16px !important;
+    }
+
+    /* Header actions -> wrap and center */
+    .header-actions-group {
+        margin-left: 0;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+
+    /* Flex between rows -> stack on mobile */
+    .admin-flex-between {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Large gap reductions */
+    .admin-gap-30 { gap: 16px; }
+    .admin-gap-20 { gap: 12px; }
+}
+
+@media (max-width: 480px) {
+    .admin-st-7cea880d,
+    .admin-st-92565e46 {
+        padding: 12px !important;
+    }
+
+    .admin-st-277a8390 {
+        margin: 0 0.5rem 0.75rem 0.5rem;
+    }
+
+    .admin-st-3d636867 {
+        font-size: 0.65rem;
+    }
+
+    .admin-gap-30 { gap: 10px; }
+    .admin-gap-20 { gap: 8px; }
+    .admin-gap-15 { gap: 8px; }
+}

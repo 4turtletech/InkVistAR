@@ -210,3 +210,20 @@
         to { opacity: 1; transform: translateY(0); }
     }
 }
+
+@media (max-width: 480px) {
+    .home-nav {
+        padding: 0.75rem 1rem;
+    }
+    .home-logo {
+        font-size: 1.4rem;
+        letter-spacing: 1px;
+    }
+    .mobile-drawer {
+        padding: 16px 20px 24px;
+    }
+    .mobile-drawer a {
+        font-size: 0.92rem;
+        padding: 12px 0;
+    }
+}

@@ -1105,4 +1105,103 @@
     .header-search {
         width: 100%;
     }
+
+    .stats-section {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .detail-grid-v2 {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .detail-item-v2.full-width {
+        grid-column: span 1;
+    }
+
+    .portal-container {
+        margin-left: 0;
+        padding: 1rem;
+    }
+
+    .portal-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .portal-stats-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .filter-bar {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-wrap: nowrap;
+    }
+
+    .filter-bar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .filter-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .notification-record {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .notif-main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .notif-body {
+        white-space: normal;
+    }
+
+    .notif-time {
+        text-align: left;
+        min-width: auto;
+    }
+
+    .subject-text {
+        min-width: auto;
+    }
+
+    .premium-chart {
+        height: 180px;
+        padding: 1.5rem 1rem 1rem;
+        gap: 6px;
+    }
+
+    .bar-rail {
+        width: 20px;
+    }
+
+    .card-header-v2 {
+        padding: 1rem;
+    }
+
+    .card-actions {
+        gap: 0.5rem;
+    }
+
+    .modal-footer-v2 {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .confirmation-modal {
+        max-width: 100%;
+    }
 }

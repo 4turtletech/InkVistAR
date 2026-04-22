@@ -450,35 +450,105 @@ body {
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .gallery-header {
-    padding: 20px 16px 12px;
-    margin-top: 70px;
+    padding: 16px 16px 12px;
+    margin-top: 60px;
   }
   .gallery-header h1 {
-    font-size: 1.8rem;
-    margin-bottom: 16px;
+    font-size: 1.5rem;
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
   }
   .portfolio-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    width: 92%;
-    padding-bottom: 40px;
+    gap: 10px;
+    width: 94%;
+    padding-bottom: 30px;
+  }
+  .filter-nav-container {
+    gap: 8px;
   }
   .filter-nav {
     gap: 6px;
-    padding: 0 12px;
+    padding: 0 8px;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+  }
+  .filter-nav select {
+    min-width: 100% !important;
+    width: 100%;
   }
   .filter-btn {
-    padding: 6px 14px;
-    font-size: 0.75rem;
+    padding: 8px 16px;
+    font-size: 0.78rem;
+    width: 100%;
+  }
+  .glass-price-container {
+    max-width: 100%;
+    padding: 12px 16px;
+  }
+  .price-info {
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 14px;
+  }
+  .gallery-modal-overlay {
+    padding: 10px;
   }
   .gallery-modal-content {
-    max-width: 95vw;
-    max-height: 85vh;
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 10px;
+  }
+  .gallery-modal-image-container {
+    min-height: 220px;
+    max-height: 40vh;
   }
   .gallery-modal-info {
-    padding: 20px;
+    padding: 16px;
   }
   .gallery-modal-info h2 {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+  }
+  .gallery-modal-info p {
+    font-size: 0.88rem;
+  }
+  .modal-artist, .modal-category {
+    font-size: 0.8rem;
+  }
+  .image-card-category {
+    font-size: 0.55rem;
+    padding: 3px 8px;
+    top: 8px;
+    left: 8px;
+  }
+  .watermark {
+    font-size: 0.55rem;
+    bottom: 8px;
+    left: 8px;
+  }
+  .gallery-pagination {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem !important;
+    padding: 1.5rem 0 !important;
+  }
+}
+
+/* Small phone breakpoint */
+@media (max-width: 480px) {
+  .gallery-header h1 {
+    font-size: 1.2rem;
+  }
+  .portfolio-grid {
+    gap: 8px;
+    width: 96%;
+  }
+  .gallery-modal-info {
+    padding: 14px;
+  }
+  .gallery-modal-info h2 {
+    font-size: 1.05rem;
   }
 }

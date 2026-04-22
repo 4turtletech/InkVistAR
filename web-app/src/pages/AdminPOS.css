@@ -619,3 +619,108 @@
     cursor: pointer;
     color: #64748b;
 }
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .pos-layout {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+
+    .pos-main {
+        padding: 1rem;
+        overflow-y: visible;
+    }
+
+    .pos-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .pos-title-area h1 {
+        font-size: 1.3rem;
+    }
+
+    .pos-search {
+        width: 100%;
+    }
+
+    .pos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .pos-card {
+        padding: 1rem;
+    }
+
+    .pos-sidebar {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .cart-container {
+        padding: 1rem;
+    }
+
+    .pos-categories {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-wrap: nowrap;
+    }
+
+    .pos-categories::-webkit-scrollbar {
+        display: none;
+    }
+
+    .cat-pill, .cat-pill-v2 {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .receipt-modal {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+        padding: 1.25rem;
+    }
+
+    .invoice-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .invoice-meta {
+        text-align: left;
+    }
+
+    .summary-row.total {
+        font-size: 1.2rem;
+    }
+
+    .pos-no-items {
+        padding: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .pos-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pos-main {
+        padding: 0.75rem;
+    }
+
+    .checkout-btn {
+        height: 48px;
+        font-size: 1rem;
+    }
+}

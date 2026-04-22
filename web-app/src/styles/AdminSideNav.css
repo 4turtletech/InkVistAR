@@ -339,6 +339,19 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
     .admin-sidenav.mobile-open {
         transform: translateX(0);
     }
+
+    .admin-page-with-sidenav .admin-page {
+        margin-left: 0;
+        width: 100%;
+        max-width: 100%;
+        padding-top: 60px;
+    }
+
+    body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
+        margin-left: 0;
+        width: 100%;
+        max-width: 100%;
+    }
 }
 
 /* Scrollbar Styling for Sidebar */
