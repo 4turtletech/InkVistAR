@@ -332,14 +332,53 @@ body.sidenav-collapsed .admin-page-with-sidenav .admin-page {
 }
 
 @media (max-width: 768px) {
-    .admin-sidenav {
+    /* Force sidebar off-screen regardless of collapsed state */
+    .admin-sidenav,
+    .admin-sidenav.collapsed {
         transform: translateX(-100%);
+        width: 260px !important;
+        overflow: visible;
     }
-    
-    .admin-sidenav.mobile-open {
+
+    /* When hamburger opens it, slide in as full drawer */
+    .admin-sidenav.mobile-open,
+    .admin-sidenav.collapsed.mobile-open {
         transform: translateX(0);
     }
 
+    /* Force-show all text that collapsed state hides */
+    .admin-sidenav.collapsed .logo-text,
+    .admin-sidenav.collapsed .menu-text,
+    .admin-sidenav.collapsed .menu-label,
+    .admin-sidenav.collapsed .dropdown-arrow,
+    .admin-sidenav.collapsed .dropdown-menu {
+        display: flex !important;
+    }
+
+    .admin-sidenav.collapsed .menu-label {
+        display: block !important;
+    }
+
+    .admin-sidenav.collapsed .menu-item {
+        justify-content: flex-start;
+        padding: 10px 16px;
+    }
+
+    .admin-sidenav.collapsed .sidenav-header {
+        justify-content: flex-start;
+        padding: 24px 16px;
+    }
+
+    .admin-sidenav.collapsed .logo-container {
+        justify-content: flex-start;
+    }
+
+    /* Hide the desktop collapse toggle chevron on mobile */
+    .sidenav-toggle {
+        display: none !important;
+    }
+
+    /* Main content takes full width */
     .admin-page-with-sidenav .admin-page {
         margin-left: 0;
         width: 100%;
