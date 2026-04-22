@@ -3569,6 +3569,7 @@ app.get('/api/gallery/works', (req, res) => {
     JOIN users u ON pw.artist_id = u.id
     LEFT JOIN artists a ON u.id = a.user_id
     WHERE pw.is_public = 1 AND (pw.is_deleted = 0 OR pw.is_deleted IS NULL)
+    AND pw.price_estimate IS NOT NULL AND pw.price_estimate > 0
   `;
   const params = [];
 
@@ -3584,13 +3585,8 @@ app.get('/api/gallery/works', (req, res) => {
   }
 
   if (minPrice !== undefined && maxPrice !== undefined) {
-    if (Number(minPrice) === 0) {
-      query += ` AND (pw.price_estimate BETWEEN ? AND ? OR pw.price_estimate IS NULL OR pw.price_estimate <= 0)`;
-      params.push(Number(minPrice), Number(maxPrice));
-    } else {
-      query += ` AND pw.price_estimate BETWEEN ? AND ?`;
-      params.push(Number(minPrice), Number(maxPrice));
-    }
+    query += ` AND pw.price_estimate BETWEEN ? AND ?`;
+    params.push(Number(minPrice), Number(maxPrice));
   }
 
   if (req.query.artistId) {

@@ -875,10 +875,12 @@ function CustomerBookings(){
                                                                 >
                                                                     <CreditCard size={14}/> Pay Deposit
                                                                 </button>
-                                                            ) : a.payment_status === 'paid' ? (
+                                                            ) : a.payment_status === 'paid' && a.price > 0 ? (
                                                                 <span className="status-badge-v2 confirmed customer-st-abded735" >
                                                                     <CheckCircle size={12}/> Fully Paid
                                                                 </span>
+                                                            ) : a.payment_status === 'paid' && (!a.price || a.price <= 0) ? (
+                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic' }}>Free</span>
                                                             ) : a.payment_status === 'downpayment_paid' ? (
                                                                 <button 
                                                                     className="btn btn-primary" 
@@ -1100,7 +1102,7 @@ function CustomerBookings(){
                                 </button>
                             )}
                             
-                            {selectedApt.payment_status === 'paid' && (
+                            {selectedApt.payment_status === 'paid' && selectedApt.price > 0 && (
                                 <div className="status-badge-v2 confirmed customer-st-472abd65" >
                                     <CheckCircle size={18}/> Fully Paid
                                 </div>
