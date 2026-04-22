@@ -111,12 +111,25 @@ function AdminAppointments() {
         setTimeout(() => setAppointmentModal({ mounted: true, visible: true }), 10);
     };
 
+    // Dirty check: compare current form state against snapshot taken when modal opened
+    const isFormDirty = () => {
+        if (!initialFormDataRef.current) return false;
+        const tracked = ['clientId', 'artistId', 'secondaryArtistId', 'commissionSplit',
+            'serviceType', 'designTitle', 'date', 'time', 'status', 'paymentStatus',
+            'notes', 'price', 'rejectionReason'];
+        return tracked.some(key => {
+            const a = formData[key] ?? '';
+            const b = initialFormDataRef.current[key] ?? '';
+            return String(a) !== String(b);
+        });
+    };
+
     const closeModal = (skipDirtyCheck = false) => {
-        if (!skipDirtyCheck) {
+        if (!skipDirtyCheck && isFormDirty()) {
             setConfirmDialog({
                 isOpen: true,
-                title: 'Unsaved Changes',
-                message: 'Any unsaved changes will be lost. Are you sure you want to close?',
+                title: 'Discard Unsaved Changes?',
+                message: 'You have unsaved changes in this appointment. If you close now, all modifications will be lost. Do you want to discard and close?',
                 type: 'warning',
                 isAlert: false,
                 onConfirm: () => {
@@ -649,7 +662,10 @@ function AdminAppointments() {
         };
 
         showConfirm(
-            selectedAppointment ? 'Save changes to this appointment?' : 'Create this new appointment?',
+            selectedAppointment ? 'Confirm Update' : 'Confirm Creation',
+            selectedAppointment
+                ? `Are you sure you want to save the changes made to this appointment for ${clientSearch || 'this client'}? This will update the appointment record and may trigger a notification to the customer.`
+                : `Are you sure you want to create a new appointment for ${clientSearch || 'this client'}? A notification will be sent to them once confirmed.`,
             doSave
         );
     };
@@ -1380,9 +1396,9 @@ function AdminAppointments() {
                             </div>
                             <div className="modal-body">
                                 {modalTab === 'details' && (
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', alignItems: 'stretch' }}>
                                         {/* Left Column: People & Service */}
-                                        <div className="admin-st-d295c8d6">
+                                        <div className="admin-st-d295c8d6" style={{ justifyContent: 'flex-start' }}>
                                             <div>
                                                 <label className="premium-input-label">Client Information</label>
                                                 {formData.clientId ? (
@@ -1493,7 +1509,7 @@ function AdminAppointments() {
                                         </div>
 
                                         {/* Column 2: Staff & Schedule */}
-                                        <div className="admin-st-d295c8d6">
+                                        <div className="admin-st-d295c8d6" style={{ justifyContent: 'flex-start' }}>
                                             <div>
                                                 <label className="premium-input-label">Staff Assignment</label>
                                                 {(() => {
@@ -1600,7 +1616,7 @@ function AdminAppointments() {
                                         </div>
 
                                         {/* Column 3: Status */}
-                                        <div className="admin-st-d295c8d6">
+                                        <div className="admin-st-d295c8d6" style={{ justifyContent: 'flex-start' }}>
                                             <div>
                                                 <label className="premium-input-label">Booking Status</label>
                                                 <div className="admin-st-efc8b70e">
