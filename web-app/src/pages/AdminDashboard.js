@@ -694,23 +694,23 @@ function AdminDashboard() {
                                             <tbody>
                                                 {displayedAppointments.length > 0 ? displayedAppointments.map((appointment) => (
                                                     <tr key={appointment.id}>
-                                                        <td data-label="Client">{appointment.client_name}</td>
-                                                        <td data-label="Staff">{appointment.artist_name}</td>
-                                                        <td data-label="Service">
+                                                        <td>{appointment.client_name}</td>
+                                                        <td>{appointment.artist_name}</td>
+                                                        <td>
                                                             <span className="badge-v2 pending admin-st-606efc58">
                                                                 {appointment.service_type || 'Tattoo Session'}
                                                             </span>
                                                         </td>
-                                                        <td data-label="Date" className="date-time-cell">
+                                                        <td className="date-time-cell">
                                                             <div className="primary-date">{new Date(appointment.appointment_date).toLocaleDateString()}</div>
                                                             <div className="secondary-time">{appointment.start_time}</div>
                                                         </td>
-                                                        <td data-label="Status">
+                                                        <td>
                                                             <span className={`badge-v2 ${appointment.status.toLowerCase()}`}>
                                                                 {appointment.status}
                                                             </span>
                                                         </td>
-                                                        <td data-label="Actions">
+                                                        <td>
                                                             <div className="table-actions-v2">
                                                                 {appointment.status === 'pending' && appointment.service_type?.toLowerCase() === 'consultation' && (
                                                                     <>

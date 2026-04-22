@@ -567,12 +567,14 @@
     display: grid;
     grid-template-columns: 1fr 320px;
     gap: 1.5rem;
+    min-width: 0;
 }
 
 .layout-column {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    min-width: 0;
 }
 
 /* Card Headers */
@@ -726,6 +728,8 @@
 /* Tables */
 .modern-table-wrapper {
     overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
 }
 
 .premium-table {
@@ -1301,58 +1305,6 @@
     }
 
     .pos-banner-btn {
-        width: 100%;
-    }
-    /* Responsive Table to Cards */
-    .premium-table, 
-    .premium-table thead, 
-    .premium-table tbody, 
-    .premium-table th, 
-    .premium-table td, 
-    .premium-table tr {
-        display: block;
-    }
-
-    .premium-table thead tr {
-        position: absolute;
-        top: -9999px;
-        left: -9999px;
-    }
-
-    .premium-table tr {
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-        padding: 1rem 0;
-    }
-
-    .premium-table td {
-        border: none;
-        position: relative;
-        padding: 0.5rem 0 0.5rem 40%;
-        text-align: right;
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .premium-table td::before {
-        content: attr(data-label);
-        position: absolute;
-        left: 0;
-        width: 35%;
-        padding-right: 10px;
-        white-space: nowrap;
-        text-align: left;
-        font-weight: 600;
-        color: var(--text-muted);
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        display: flex;
-        align-items: center;
-    }
-    
-    .table-actions-v2 {
-        justify-content: flex-end;
         width: 100%;
     }
 }
