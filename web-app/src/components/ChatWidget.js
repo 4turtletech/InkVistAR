@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
-import { MessageSquare, X, Send, User, Bot, UserSquare } from 'lucide-react';
+import { MessageSquare, X, Send, User, Bot, UserSquare, Check, CheckCheck } from 'lucide-react';
 import { API_URL } from '../config';
 import './ChatWidget.css';
 
@@ -61,6 +61,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -112,9 +113,23 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
     socket.on('receive_message', receiveMessageHandler);
     socket.on('session_closed', sessionClosedHandler);
 
+    // Listen for read receipts
+    const messagesReadHandler = (data) => {
+      if (data.room !== activeRoom) return;
+      // Mark all messages sent by the current user as read
+      setHumanMessages(prev => prev.map(msg => {
+        if (msg.sender === currentUser && !msg.read) {
+          return { ...msg, read: true };
+        }
+        return msg;
+      }));
+    };
+    socket.on('messages_read', messagesReadHandler);
+
     return () => {
       socket.off('receive_message', receiveMessageHandler);
       socket.off('session_closed', sessionClosedHandler);
+      socket.off('messages_read', messagesReadHandler);
     };
   }, [activeRoom, isHumanMode, isAdminMode, humanMessages.length]);
 
@@ -137,7 +152,8 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
         id: Date.now(),
         sender: currentUser,
         text: messageText,
-        timestamp: new Date()
+        timestamp: new Date(),
+        read: false
       }]);
     } else {
       // Send to AI Bot
@@ -185,6 +201,22 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
   ];
 
   const activeMessages = isHumanMode ? humanMessages : botMessages;
+
+  // Emit mark_read when the chat is visible and there are unread messages from the other party
+  useEffect(() => {
+    if (!isHumanMode || !isOpen) return;
+    const hasUnread = humanMessages.some(msg => msg.sender !== currentUser && msg.sender !== 'system' && !msg.read);
+    if (hasUnread) {
+      socket.emit('mark_read', { room: activeRoom, reader: currentUser });
+      // Locally mark them as read too
+      setHumanMessages(prev => prev.map(msg => {
+        if (msg.sender !== currentUser && msg.sender !== 'system' && !msg.read) {
+          return { ...msg, read: true };
+        }
+        return msg;
+      }));
+    }
+  }, [humanMessages, isOpen, isHumanMode, activeRoom, currentUser]);
 
   return (
     <>
@@ -234,14 +266,16 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
             }
             const isUser = msg.sender === 'user' || msg.sender === currentUser;
             return (
-              <div
-                key={msg.id}
-                className={`chat-message ${isUser ? 'user' : 'bot'}`}
-              >
+              <div key={msg.id} className={`chat-message ${isUser ? 'user' : 'bot'}`}>
                 <div className={`message-bubble ${isUser ? 'user-bubble' : 'bot-bubble'}`}>
                   <p>{msg.text}</p>
                   <span className="message-time">
                     {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    {isUser && isHumanMode && (
+                      <span className={`read-indicator ${msg.read ? 'read' : ''}`} title={msg.read ? 'Read' : 'Sent'}>
+                        {msg.read ? <CheckCheck size={14} /> : <Check size={14} />}
+                      </span>
+                    )}
                   </span>
                 </div>
               </div>

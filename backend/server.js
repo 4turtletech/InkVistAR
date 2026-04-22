@@ -8159,12 +8159,16 @@ io.on('connection', (socket) => {
   socket.on('send_message', (data) => {
     console.log('Message received:', data);
 
+    const msgId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
     // Save message memory to active sessions log
     if (activeSupportSessions[data.room]) {
       activeSupportSessions[data.room].messages.push({
+        id: msgId,
         sender: data.sender,
         text: data.text,
-        timestamp: new Date()
+        timestamp: new Date(),
+        read: false
       });
       activeSupportSessions[data.room].lastMessage = data.text;
       activeSupportSessions[data.room].timestamp = new Date();
@@ -8207,8 +8211,26 @@ io.on('connection', (socket) => {
       }
     }
 
-    // Broadcast the message to the other user in the room
-    socket.to(data.room).emit('receive_message', data);
+    // Broadcast the message to the other user in the room (include msgId)
+    socket.to(data.room).emit('receive_message', { ...data, id: msgId });
+  });
+
+  // Mark messages as read
+  socket.on('mark_read', (data) => {
+    const { room, reader } = data;
+    if (activeSupportSessions[room]) {
+      let changed = false;
+      activeSupportSessions[room].messages.forEach(msg => {
+        if (msg.sender !== reader && !msg.read) {
+          msg.read = true;
+          changed = true;
+        }
+      });
+      if (changed) {
+        // Notify everyone in the room that messages were read
+        io.to(room).emit('messages_read', { room, reader });
+      }
+    }
   });
 
   // End support session (from either customer or admin)
