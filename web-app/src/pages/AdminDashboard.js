@@ -835,16 +835,16 @@ function AdminDashboard() {
                         </div>
 
                         {/* Standalone POS Launcher Wrapper */}
-                        <div className="admin-st-pos-banner" style={{ marginTop: '28px', marginBottom: '28px' }}>
-                            <div className="clickable" onClick={() => navigate('/admin/pos')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '24px', padding: '28px', background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderRadius: '20px', border: '1.5px solid rgba(59, 130, 246, 0.3)', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)' }}>
-                                <div style={{ background: 'rgba(59, 130, 246, 0.15)', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+                        <div className="admin-st-pos-banner">
+                            <div className="pos-banner-card clickable" onClick={() => navigate('/admin/pos')}>
+                                <div className="pos-banner-icon-wrap">
                                     <ShoppingCart size={32} color="#3b82f6" />
                                 </div>
-                                <div style={{ textAlign: 'left', flex: 1 }}>
-                                    <h2 style={{ margin: '0 0 6px', fontSize: '1.3rem', fontWeight: 700, fontFamily: "'Playfair Display', serif", color: '#ffffff' }}>Launch POS System</h2>
-                                    <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>Process walk-ins, merchandise, and retail inventory sales independently</p>
+                                <div className="pos-banner-text">
+                                    <h2>Launch POS System</h2>
+                                    <p>Process walk-ins, merchandise, and retail inventory sales independently</p>
                                 </div>
-                                <button style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '0.95rem', flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); navigate('/admin/pos'); }}>
+                                <button className="pos-banner-btn" onClick={(e) => { e.stopPropagation(); navigate('/admin/pos'); }}>
                                     Launch Terminal
                                 </button>
                             </div>

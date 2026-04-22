@@ -1,6 +1,12 @@
 /* web-app/src/pages/AdminStyles.css */
 
-/* Core Layouts */
+/* Core Layouts & Resets */
+.admin-page-with-sidenav *,
+.admin-page-with-sidenav *::before,
+.admin-page-with-sidenav *::after {
+    box-sizing: border-box;
+}
+
 .admin-flex-center {
     display: flex;
     align-items: center;
