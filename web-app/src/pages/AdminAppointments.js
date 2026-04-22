@@ -1353,7 +1353,7 @@ function AdminAppointments() {
 
                 {/* Main Appointment Modal */}
                 {appointmentModal.mounted && (
-                    <div className={`modal-overlay ${appointmentModal.visible ? 'open' : ''}`} onClick={closeModal}>
+                    <div className={`modal-overlay ${appointmentModal.visible ? 'open' : ''}`} onClick={() => closeModal()}>
                         <div className="modal-content xl" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <div className="admin-st-15246701">
@@ -1392,7 +1392,7 @@ function AdminAppointments() {
                                         )}
                                     </div>
                                 </div>
-                                <button className="close-btn" onClick={closeModal}><X size={24} /></button>
+                                <button className="close-btn" onClick={() => closeModal()}><X size={24} /></button>
                             </div>
                             <div className="modal-body">
                                 {modalTab === 'details' && (
@@ -1463,7 +1463,7 @@ function AdminAppointments() {
 
                                             <div>
                                                 <label className="premium-input-label">Service Details</label>
-                                                <div className="admin-st-efc8b70e">
+                                                <div>
                                                     <div className="admin-st-fefecdf0">
                                                         <div className="premium-input-group">
                                                             <label className={`admin-st-b8618eb2 ${errors.serviceType ? 'text-red-500' : ''}`}>Service Type *</label>
@@ -1523,7 +1523,7 @@ function AdminAppointments() {
                                                         ? <span>Secondary Staff <span style={{ color: '#ef4444' }}>*</span></span>
                                                         : 'Secondary Staff';
                                                     return (
-                                                <div className="admin-st-efc8b70e">
+                                                <div>
                                                     <div className="admin-st-fefecdf0">
                                                         <div className="premium-input-group">
                                                             <label className="admin-st-b8618eb2">{primaryLabel}</label>
@@ -1569,7 +1569,7 @@ function AdminAppointments() {
                                                     </label>
                                                     {selectedAppointment ? (
                                                         /* ── Read-only info cards for existing appointments ── */
-                                                        <div className="admin-st-efc8b70e">
+                                                        <div>
                                                             <div style={{ display: 'grid', gridTemplateColumns: formData.time ? '1fr 1fr' : '1fr', gap: '12px' }}>
                                                                 <div style={{
                                                                     background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0',
@@ -1595,7 +1595,7 @@ function AdminAppointments() {
                                                         </div>
                                                     ) : (
                                                         /* ── Editable inputs for new appointments ── */
-                                                        <div className="admin-st-efc8b70e">
+                                                        <div>
                                                             <div className="admin-st-fefecdf0">
                                                                 <div className="premium-input-group">
                                                                     <label className={`admin-st-b8618eb2 ${errors.date ? 'text-red-500' : ''}`}>Date *</label>
@@ -1619,7 +1619,7 @@ function AdminAppointments() {
                                         <div className="admin-st-d295c8d6" style={{ justifyContent: 'flex-start' }}>
                                             <div>
                                                 <label className="premium-input-label">Booking Status</label>
-                                                <div className="admin-st-efc8b70e">
+                                                <div>
                                                     <div className="premium-input-group">
                                                         <label className="admin-st-b8618eb2">Booking Status</label>
                                                         <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="premium-select-v2">
@@ -1919,7 +1919,7 @@ function AdminAppointments() {
                                         {selectedAppointment ? 'Update Appointment' : 'Create Appointment'}
                                     </button>
                                 </div>
-                                <button className="btn btn-secondary admin-st-2b5b349d" onClick={closeModal} onMouseEnter={(e) => e.target.style.backgroundColor = '#e2e8f0'}
+                                <button className="btn btn-secondary admin-st-2b5b349d" onClick={() => closeModal()} onMouseEnter={(e) => e.target.style.backgroundColor = '#e2e8f0'}
                                     onMouseLeave={(e) => e.target.style.backgroundColor = '#f1f5f9'}
                                 >
                                     Close

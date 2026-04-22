@@ -2565,6 +2565,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
+    align-items: start;
 }
 
 .admin-st-dd4f6313 {
