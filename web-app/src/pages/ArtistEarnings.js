@@ -415,7 +415,7 @@ function ArtistEarnings() {
                                                                 </span>
                                                             ) : session.isReferral ? (
                                                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                                                    🤝 Referral (70%)
+                                                                    Referral (70%)
                                                                 </span>
                                                             ) : (
                                                                 <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Solo</span>

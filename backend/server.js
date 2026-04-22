@@ -4610,7 +4610,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         // 5. Referral Status Change — Notify artist
         if (isReferral !== undefined && !!isReferral !== !!oldAppt.is_referral) {
           if (isReferral) {
-            notifyArtist('Referral Commission Activated 🤝', `Session #${id} for "${guestDesign}" has been marked as your referral. Your commission is now 70% Artist / 30% Studio.`, 'referral_activated');
+            notifyArtist('Referral Commission Activated', `Session #${id} for "${guestDesign}" has been marked as your referral. Your commission is now 70% Artist / 30% Studio.`, 'referral_activated');
           } else {
             notifyArtist('Referral Commission Removed', `Session #${id} for "${guestDesign}" is no longer marked as a referral. Commission reverted to 30% Artist / 70% Studio.`, 'referral_removed');
           }

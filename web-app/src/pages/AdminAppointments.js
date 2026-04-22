@@ -1607,7 +1607,7 @@ function AdminAppointments() {
                                                                 disabled={!canToggle}
                                                                 style={{ accentColor: '#10b981', width: '16px', height: '16px', cursor: canToggle ? 'pointer' : 'not-allowed' }}
                                                             />
-                                                            🤝 Artist Referral
+                                                            Artist Referral
                                                         </label>
                                                     );
                                                 })()}

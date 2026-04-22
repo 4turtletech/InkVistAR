@@ -465,7 +465,7 @@ function AdminStaff() {
                                 <td>
                                     {e.isReferral ? (
                                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, border: '1px solid rgba(16,185,129,0.2)' }}>
-                                            🤝 Referral ({(e.effectiveRate * 100).toFixed(0)}%)
+                                            Referral ({(e.effectiveRate * 100).toFixed(0)}%)
                                         </span>
                                     ) : (
                                         <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
