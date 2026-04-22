@@ -2810,45 +2810,243 @@
     margin-left: 2rem;
 }
 
-/* ========== MOBILE RESPONSIVE ========== */
+/* ========== COMPREHENSIVE ADMIN MOBILE RESPONSIVE ========== */
 @media (max-width: 768px) {
-    /* All 2-column grids -> single column */
+
+    /* === GLOBAL: Prevent ALL horizontal overflow on admin pages === */
+    .admin-page,
+    .admin-page-with-sidenav .admin-page {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+        box-sizing: border-box;
+    }
+
+    .admin-page > * {
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* === Admin Page Padding === */
+    .page-container-enter {
+        padding: 1rem 0.75rem !important;
+    }
+
+    /* === Dashboard-specific === */
+    .admin-dashboard-container {
+        padding: 1rem 0.75rem !important;
+        overflow-x: hidden;
+    }
+
+    .dashboard-top-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0 0 1rem 0;
+    }
+
+    .top-nav-right {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .header-search {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Stats grid -> single column */
+    .stats-section {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
+    }
+
+    /* Dashboard layout -> single column */
+    .dashboard-layout-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+
+    /* Chart bars -> compact */
+    .premium-chart {
+        height: 180px;
+        padding: 1.5rem 0.75rem 1rem;
+        gap: 4px;
+        overflow-x: auto;
+    }
+
+    .bar-rail {
+        width: 18px;
+        min-width: 18px;
+    }
+
+    /* Notification dropdown -> full width */
+    .notif-dropdown {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        right: -1rem;
+        left: auto;
+    }
+
+    .notif-dropdown-card {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Detail grids -> single column */
+    .detail-grid-v2 {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+
+    .detail-item-v2.full-width {
+        grid-column: span 1;
+    }
+
+    /* Card headers -> wrap */
+    .card-header-v2 {
+        padding: 1rem;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .card-actions {
+        width: 100%;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    /* Filter groups -> scroll */
+    .filter-group-v2 {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-wrap: nowrap;
+    }
+
+    .filter-group-v2::-webkit-scrollbar {
+        display: none;
+    }
+
+    .filter-label-v2 {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Tables -> horizontal scroll wrapper */
+    .modern-table-wrapper {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -0.5rem;
+        padding: 0 0.5rem;
+    }
+
+    .premium-table {
+        min-width: 600px;
+    }
+
+    .premium-table th,
+    .premium-table td {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.78rem;
+        white-space: nowrap;
+    }
+
+    /* Modal -> fullscreen bottom sheet */
+    .modal-overlay-v2 {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modal-v2 {
+        max-width: 100% !important;
+        width: 100% !important;
+        border-radius: 16px 16px 0 0;
+        max-height: 90vh;
+    }
+
+    .confirmation-modal {
+        max-width: 100% !important;
+    }
+
+    .modal-footer-v2 {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* Portal stats row */
+    .portal-stats-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Filter bar -> scroll */
+    .filter-bar {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        flex-wrap: nowrap;
+    }
+
+    .filter-bar::-webkit-scrollbar { display: none; }
+
+    .filter-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Notification records -> stack */
+    .notification-record {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .notif-main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        width: 100%;
+    }
+
+    .notif-body {
+        white-space: normal;
+    }
+
+    .notif-time {
+        text-align: left;
+        min-width: auto;
+    }
+
+    .subject-text {
+        min-width: auto;
+    }
+
+    /* === All hashed admin grids -> single column === */
     .admin-st-c200c71d,
     .admin-st-2f580e88,
     .admin-st-e7646dcc,
     .admin-st-b97f1a79,
     .admin-st-fefecdf0,
-    .admin-st-e5b0a825 {
-        grid-template-columns: 1fr !important;
-        gap: 12px;
-    }
-
-    /* Detail panel grids (1.2fr 1fr) -> single column */
+    .admin-st-e5b0a825,
     .admin-st-232d6dae,
     .admin-st-f9a903f8,
-    .admin-st-ede7eeea {
-        grid-template-columns: 1fr !important;
-        gap: 16px;
-    }
-
-    /* 3-column grid -> single column */
-    .admin-st-4155de1d {
+    .admin-st-ede7eeea,
+    .admin-st-4155de1d,
+    .admin-st-6e0f6c6a {
         grid-template-columns: 1fr !important;
         gap: 12px;
     }
 
-    /* Calendar 7-column grid -> horizontal scroll */
+    /* Calendar grid -> compact */
     .admin-st-3d636867 {
-        grid-template-columns: repeat(7, minmax(40px, 1fr));
+        grid-template-columns: repeat(7, minmax(36px, 1fr));
         overflow-x: auto;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
 
-    /* Auto-fit grids with large minimums -> smaller */
-    .admin-st-6e0f6c6a {
-        grid-template-columns: 1fr !important;
-    }
-
+    /* Auto-fit grids -> smaller minimums */
     .admin-st-c68bdd5b {
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     }
@@ -2867,9 +3065,7 @@
         padding-bottom: 4px;
     }
 
-    .admin-st-d14eab7d::-webkit-scrollbar {
-        display: none;
-    }
+    .admin-st-d14eab7d::-webkit-scrollbar { display: none; }
 
     /* Margin containers -> tighter */
     .admin-st-277a8390 {
@@ -2882,25 +3078,77 @@
         padding: 16px !important;
     }
 
-    /* Header actions -> wrap and center */
+    /* Header actions -> wrap */
     .header-actions-group {
         margin-left: 0;
         justify-content: center;
         gap: 0.75rem;
     }
 
-    /* Flex between rows -> stack on mobile */
+    /* Flex utilities -> wrap on mobile */
     .admin-flex-between {
         flex-wrap: wrap;
         gap: 8px;
     }
 
-    /* Large gap reductions */
+    /* Gap reductions */
     .admin-gap-30 { gap: 16px; }
     .admin-gap-20 { gap: 12px; }
+
+    /* === Filters / Search sections === */
+    .filters-section {
+        grid-template-columns: 1fr !important;
+        gap: 10px;
+    }
+
+    .premium-filter-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* === Inline style data tables -> scrollable === */
+    .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* === Calendar split view (Appointments) === */
+    .calendar-split-view {
+        grid-template-columns: 1fr !important;
+    }
+
+    .day-view-panel {
+        max-height: none;
+    }
+
+    /* Calendar cells -> compact */
+    .calendar-day {
+        min-height: 50px !important;
+        padding: 4px !important;
+        font-size: 0.75rem;
+    }
+
+    /* === Settings page === */
+    .settings-container {
+        grid-template-columns: 1fr !important;
+        padding: 1rem !important;
+    }
+
+    /* === Staff cards === */
+    .staff-grid {
+        grid-template-columns: 1fr !important;
+    }
 }
 
 @media (max-width: 480px) {
+    .admin-dashboard-container {
+        padding: 0.75rem 0.5rem !important;
+    }
+
+    .page-container-enter {
+        padding: 0.75rem 0.5rem !important;
+    }
+
     .admin-st-7cea880d,
     .admin-st-92565e46 {
         padding: 12px !important;
@@ -2911,10 +3159,33 @@
     }
 
     .admin-st-3d636867 {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
     }
 
     .admin-gap-30 { gap: 10px; }
     .admin-gap-20 { gap: 8px; }
     .admin-gap-15 { gap: 8px; }
+
+    .premium-table {
+        min-width: 500px;
+    }
+
+    .premium-table th,
+    .premium-table td {
+        padding: 0.5rem 0.5rem;
+        font-size: 0.72rem;
+    }
+
+    .stat-card-v2 {
+        padding: 0.75rem;
+    }
+
+    .stat-value-v2 {
+        font-size: 1.1rem;
+    }
+
+    .bar-rail {
+        width: 14px;
+        min-width: 14px;
+    }
 }
