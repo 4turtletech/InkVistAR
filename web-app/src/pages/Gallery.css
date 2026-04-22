@@ -80,6 +80,12 @@ body {
   box-shadow: 0 0 10px rgba(193, 154, 107, 0.3);
 }
 
+/* Cross-platform fix: ensure dropdown options are readable on Windows */
+.filter-nav select option {
+  background: #ffffff;
+  color: #1e293b;
+}
+
 /* Price Filter UI Enhancements */
 .glass-price-container {
   background: rgba(255, 255, 255, 0.05);

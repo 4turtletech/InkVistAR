@@ -440,7 +440,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 
 .info-group label {
     display: block;
-    color: #667eea;
+    color: #be9055;
     font-weight: 600;
     font-size: 0.9rem;
     margin-bottom: 0.5rem;
@@ -471,7 +471,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 
 .artist-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.15);
+    box-shadow: 0 8px 16px rgba(190, 144, 85, 0.15);
 }
 
 .artist-card h3 {
@@ -516,13 +516,13 @@ body.sidenav-collapsed .portal-layout .portal-container {
 
 .action-card:hover {
     background: #f9fafb;
-    border-color: #667eea;
-    box-shadow: 0 8px 16px rgba(102, 126, 234, 0.15);
+    border-color: #be9055;
+    box-shadow: 0 8px 16px rgba(190, 144, 85, 0.15);
     transform: translateY(-3px);
 }
 
 .action-card svg {
-    color: #667eea;
+    color: #be9055;
 }
 
 /* --- Gallery Grid for Portals (Artist Portfolio, etc.) --- */

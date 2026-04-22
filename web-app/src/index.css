@@ -139,3 +139,19 @@ code {
 .premium-filter-item .premium-select-v2 {
   flex: 1;
 }
+
+/* ═══════ Cross-Platform Dropdown Fix ═══════
+   On Windows, native <option> popups use a white background by default,
+   but inherit the parent <select> text color. When a <select> has light
+   text (e.g. on dark-themed pages), options become invisible (white-on-white).
+   These rules force all <option> elements to use dark text on white background,
+   ensuring readability across all operating systems.
+   ═══════════════════════════════════════════ */
+.premium-select-v2 option,
+.form-input option,
+.pagination-select option,
+.select-input option,
+select option {
+  background: #ffffff;
+  color: #1e293b;
+}

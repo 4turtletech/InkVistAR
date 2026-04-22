@@ -764,12 +764,12 @@ function ArtistAppointments() {
                                                                             style={{ 
                                                                                 padding: '10px 24px', 
                                                                                 borderRadius: '20px', 
-                                                                                background: publishStatus[selectedAppointment.id] === 'success' ? '#10b981' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', 
+                                                                                background: publishStatus[selectedAppointment.id] === 'success' ? '#10b981' : 'linear-gradient(135deg, #1e293b, #0f172a)', 
                                                                                 color: 'white', 
                                                                                 border: 'none', 
                                                                                 cursor: publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing' ? 'not-allowed' : 'pointer', 
                                                                                 fontWeight: '600',
-                                                                                boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
+                                                                                boxShadow: '0 4px 15px rgba(190, 144, 85, 0.3)',
                                                                                 transition: 'all 0.3s'
                                                                             }}
                                                                         >
@@ -793,7 +793,7 @@ function ArtistAppointments() {
                                                         <button
                                                             onClick={() => { setSelectedAppointment(null); navigate(`/artist/sessions?appointment=${selectedAppointment.id}`); }}
                                                             className="btn btn-primary"
-                                                            style={{ padding: '8px 16px', borderRadius: '8px', backgroundColor: '#6366f1', border: 'none', cursor: 'pointer', fontWeight: '500', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: '500', color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}
                                                         >
                                                             <Play size={14} /> Manage Session
                                                         </button>

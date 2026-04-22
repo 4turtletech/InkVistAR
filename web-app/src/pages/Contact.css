@@ -150,6 +150,12 @@
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
+/* Cross-platform fix: ensure dropdown options are readable on Windows */
+select.contact-input option {
+  background: #ffffff;
+  color: #1e293b;
+}
+
 .contact-textarea {
   min-height: 130px;
   resize: vertical;

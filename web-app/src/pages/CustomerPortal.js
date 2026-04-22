@@ -742,7 +742,7 @@ function CustomerPortal() {
                         </div>
                         <div className="modal-footer" style={{ borderTop: '1px solid rgba(99,102,241,0.15)' }}>
                             <button className="btn btn-secondary" onClick={() => setShowPreCareModal(false)}>Got It!</button>
-                            <button className="btn btn-primary" onClick={() => { setShowPreCareModal(false); navigate('/customer/bookings'); }} style={{ background: '#6366f1' }}>View My Booking</button>
+                            <button className="btn btn-primary" onClick={() => { setShowPreCareModal(false); navigate('/customer/bookings'); }}>View My Booking</button>
                         </div>
                     </div>
                 </div>

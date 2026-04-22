@@ -767,7 +767,7 @@ function AdminPOS() {
                                         className="btn btn-primary"
                                         onClick={handleSendReceipt} 
                                         disabled={isSending || !lastOrder.customerId}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '10px', fontWeight: 600, cursor: lastOrder.customerId ? 'pointer' : 'not-allowed', opacity: lastOrder.customerId ? 1 : 0.5 }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '10px', cursor: lastOrder.customerId ? 'pointer' : 'not-allowed', opacity: lastOrder.customerId ? 1 : 0.5 }}
                                     >
                                         <Send size={16} /> {isSending ? 'Sending...' : 'Send to Customer'}
                                     </button>

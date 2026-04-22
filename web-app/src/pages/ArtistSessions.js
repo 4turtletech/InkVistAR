@@ -310,9 +310,20 @@ function ArtistSessions() {
             afterPhoto: session.after_photo || null
         });
         setErrors({});
-        setSessionElapsed(0);
+        setSessionElapsed(session.session_duration || 0);
         setIsSessionPaused(false);
-        setAuditLog([]);
+        // Load stored audit log for completed/incomplete sessions
+        if ((session.status === 'completed' || session.status === 'incomplete') && session.audit_log) {
+            try {
+                const parsed = typeof session.audit_log === 'string' ? JSON.parse(session.audit_log) : session.audit_log;
+                setAuditLog(Array.isArray(parsed) ? parsed : []);
+            } catch (e) {
+                console.warn('Failed to parse stored audit log:', e);
+                setAuditLog([]);
+            }
+        } else {
+            setAuditLog([]);
+        }
         setSessionTab('overview');
         setPaymentInfo(null);
         openSessionModal();
@@ -848,7 +859,7 @@ function ArtistSessions() {
                                     <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <Package size={14}/> Consumption Log
                                     </label>
-                                    {isCompletingSession || activeSession.status === 'confirmed' || activeSession.status === 'in_progress' ? (
+                                    {isCompletingSession || activeSession.status === 'confirmed' || activeSession.status === 'in_progress' || activeSession.status === 'completed' ? (
                                         <>
                                             <div style={{ flex: 1, overflowY: 'auto' }}>
                                                 {sessionMaterials.length === 0 ? (
@@ -879,6 +890,7 @@ function ArtistSessions() {
                                                     <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Total Material Cost</span>
                                                     <span style={{ fontWeight: 800, color: '#b7954e' }}>₱{sessionCost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 </div>
+                                                {activeSession.status !== 'completed' && (
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     <button className="btn-glass" style={{ flex: 1, fontSize: '0.75rem', justifyContent: 'center', padding: '8px' }} onClick={openInventoryModal} disabled={addingMaterial}>
                                                         <Plus size={14}/> Add Item
@@ -890,6 +902,7 @@ function ArtistSessions() {
                                                         </select>
                                                     )}
                                                 </div>
+                                                )}
                                             </div>
                                         </>
                                     ) : (
@@ -1020,7 +1033,7 @@ function ArtistSessions() {
                                     </button>
                                 )}
                                 {activeSession.status === 'completed' && (
-                                    <button className="btn btn-primary" style={{ padding: '10px 24px', background: '#6366f1' }} onClick={() => { closeSessionModal(); }}>
+                                    <button className="btn btn-primary" style={{ padding: '10px 24px' }} onClick={() => { closeSessionModal(); }}>
                                         <Archive size={16} /> Archive Session
                                     </button>
                                 )}
@@ -1092,7 +1105,7 @@ function ArtistSessions() {
                                                         {item.category} • {item.current_stock} {item.unit} available
                                                     </div>
                                                 </div>
-                                                <button className="btn-glass" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Add</button>
+                                                <button className="btn-glass" style={{ padding: '6px 12px', fontSize: '0.75rem', color: '#1e293b', background: '#e2e8f0', border: '1px solid #cbd5e1', fontWeight: 600 }}>Add</button>
                                             </div>
                                         )) : <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>No matching items found.</div>;
                                     })()

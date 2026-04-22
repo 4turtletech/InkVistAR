@@ -1185,7 +1185,7 @@ function CustomerBookings(){
                                             className="btn btn-primary"
                                             disabled={isRescheduling}
                                             onClick={handleSubmitReschedule}
-                                            style={{ background: '#6366f1', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minWidth: '160px' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minWidth: '160px' }}
                                         >
                                             {isRescheduling ? 'Rescheduling...' : <><CalendarDays size={16}/> Yes, Reschedule</>}
                                         </button>
@@ -1260,7 +1260,7 @@ function CustomerBookings(){
                                     className="btn btn-primary"
                                     disabled={!rescheduleDate || !rescheduleReason || (rescheduleReason === 'Other' && !rescheduleReasonText.trim())}
                                     onClick={handleReschedulePreSubmit}
-                                    style={{ background: '#6366f1', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', opacity: (!rescheduleDate || !rescheduleReason) ? 0.5 : 1 }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: (!rescheduleDate || !rescheduleReason) ? 0.5 : 1 }}
                                 >
                                     <CalendarDays size={16}/> Reschedule Session
                                 </button>

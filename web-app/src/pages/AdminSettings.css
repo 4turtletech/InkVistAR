@@ -28,7 +28,7 @@
 
 .btn.btn-primary {
     background: white;
-    color: #667eea;
+    color: #be9055;
 }
 
 .btn.btn-primary:hover {
@@ -150,8 +150,8 @@
 
 .form-input:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #be9055;
+    box-shadow: 0 0 0 3px rgba(190, 144, 85, 0.1);
 }
 
 textarea.form-input {
@@ -187,7 +187,7 @@ textarea.form-input {
     height: 20px;
     margin-top: 2px;
     cursor: pointer;
-    accent-color: #667eea;
+    accent-color: #be9055;
 }
 
 .toggle-label {

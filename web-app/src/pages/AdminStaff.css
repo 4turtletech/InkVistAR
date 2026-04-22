@@ -17,23 +17,8 @@
 }
 
 
-.btn-indigo-sm {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    border: none;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(190, 144, 85, 0.2);
-}
+/* Legacy .btn-indigo-sm removed — use .btn.btn-primary instead */
 
-.btn-indigo-sm:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(190, 144, 85, 0.3);
-}
 
 .staff-stats-grid {
     display: grid;
