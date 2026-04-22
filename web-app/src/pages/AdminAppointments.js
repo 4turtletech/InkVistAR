@@ -1533,9 +1533,9 @@ function AdminAppointments() {
                                                             </select>
                                                         </div>
                                                         <div className="premium-input-group">
-                                                            <label className="admin-st-b8618eb2">
+                                                            <label className="admin-st-b8618eb2" style={{ whiteSpace: 'nowrap' }}>
                                                                 {secondaryLabel}
-                                                                {selectedAppointment?.status === 'completed' && <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginLeft: '6px' }}>(Locked)</span>}
+                                                                {selectedAppointment?.status === 'completed' && <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginLeft: '4px', fontWeight: 500 }}>(Locked)</span>}
                                                             </label>
                                                             <select value={formData.secondaryArtistId || ''} onChange={(e) => handleInputChange('secondaryArtistId', e.target.value)} className="premium-select-v2" disabled={selectedAppointment?.status === 'completed'}
                                                                 style={requiresDualStaff && !formData.secondaryArtistId ? { borderColor: '#f59e0b', boxShadow: '0 0 0 2px rgba(245,158,11,0.15)' } : {}}
@@ -1570,14 +1570,14 @@ function AdminAppointments() {
                                                     {selectedAppointment ? (
                                                         /* ── Read-only info cards for existing appointments ── */
                                                         <div>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: formData.time ? '1fr 1fr' : '1fr', gap: '12px' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: formData.time ? '1fr 1fr' : '1fr', gap: '12px', alignItems: 'stretch' }}>
                                                                 <div style={{
                                                                     background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0',
                                                                     padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px'
                                                                 }}>
                                                                     <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Scheduled Date</span>
-                                                                    <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b' }}>
-                                                                        {formData.date ? new Date(formData.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }) : '—'}
+                                                                    <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#1e293b' }}>
+                                                                        {formData.date ? new Date(formData.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                                                                     </span>
                                                                 </div>
                                                                 {formData.time && (
@@ -1586,7 +1586,7 @@ function AdminAppointments() {
                                                                         padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px'
                                                                     }}>
                                                                         <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Time Slot</span>
-                                                                        <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b' }}>
+                                                                        <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#1e293b' }}>
                                                                             {(() => { const [h, m] = formData.time.split(':'); const hr = parseInt(h); return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`; })()}
                                                                         </span>
                                                                     </div>
