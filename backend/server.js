@@ -4055,7 +4055,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
               return res.status(500).json({ success: false, message: 'Database error (retry failed): ' + retryErr.message });
             }
             // Continue using result from retry
-            processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason });
+            processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason, isReferral: body.isReferral });
           });
         }
         console.error('❌ Error updating admin appointment:', err);
@@ -4065,7 +4065,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
         return res.status(404).json({ success: false, message: 'Appointment not found.' });
       }
 
-      processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason, rescheduleReason });
+      processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason, rescheduleReason, isReferral: body.isReferral });
     });
   });
 });
@@ -4218,7 +4218,7 @@ function sendGuestStatusSMS(guestPhone, guestName, bookingCode, message) {
 }
 
 function processAdminPostUpdate(res, db, id, oldAppt, fields) {
-  const { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason, rescheduleReason } = fields;
+  const { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason, rescheduleReason, isReferral } = fields;
 
   // Auto-recalculate payment_status based on updated price and manual_paid_amount
   const recalculateStatusQuery = `
@@ -4605,6 +4605,15 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         // 4. Action Required for New Assignment
         if (currentData.status === 'pending' && oldAppt.artist_id !== currentData.artist_id) {
           notifyArtist('Action Required: New Assignment', `You have been assigned a new session #${id}. Please accept or decline.`, 'action_required');
+        }
+
+        // 5. Referral Status Change — Notify artist
+        if (isReferral !== undefined && !!isReferral !== !!oldAppt.is_referral) {
+          if (isReferral) {
+            notifyArtist('Referral Commission Activated 🤝', `Session #${id} for "${guestDesign}" has been marked as your referral. Your commission is now 70% Artist / 30% Studio.`, 'referral_activated');
+          } else {
+            notifyArtist('Referral Commission Removed', `Session #${id} for "${guestDesign}" is no longer marked as a referral. Commission reverted to 30% Artist / 70% Studio.`, 'referral_removed');
+          }
         }
       }
     } catch (err) {

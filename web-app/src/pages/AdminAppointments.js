@@ -1568,71 +1568,47 @@ function AdminAppointments() {
                                                     );
                                                 })()}
 
-                                                {/* ── Referral Commission Toggle ── */}
+                                                {/* ── Artist Referral Checkbox ── */}
                                                 {(() => {
                                                     const isSolo = !formData.secondaryArtistId || String(formData.secondaryArtistId) === '' || String(formData.secondaryArtistId) === 'null';
                                                     const isCompleted = selectedAppointment?.status === 'completed';
+                                                    const canToggle = isSolo && !isCompleted;
+
+                                                    const handleReferralToggle = (e) => {
+                                                        const newValue = e.target.checked;
+                                                        const newSplit = newValue ? '70% Artist / 30% Studio' : '30% Artist / 70% Studio';
+                                                        showConfirm(
+                                                            newValue ? 'Enable Artist Referral' : 'Remove Artist Referral',
+                                                            `This will change the commission split to ${newSplit}. Proceed?`,
+                                                            () => {
+                                                                handleInputChange('isReferral', newValue);
+                                                                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                                                            }
+                                                        );
+                                                    };
+
                                                     return (
-                                                        <div style={{
-                                                            marginTop: '12px',
-                                                            padding: '12px 16px',
-                                                            background: formData.isReferral ? 'rgba(16, 185, 129, 0.06)' : 'rgba(255,255,255,0.02)',
+                                                        <label style={{
+                                                            display: 'flex', alignItems: 'center', gap: '8px',
+                                                            marginTop: '14px', padding: '10px 14px',
+                                                            background: formData.isReferral ? 'rgba(16, 185, 129, 0.06)' : 'transparent',
                                                             border: `1px solid ${formData.isReferral ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.06)'}`,
-                                                            borderRadius: '10px',
-                                                            transition: 'all 0.3s ease',
-                                                            opacity: isSolo ? 1 : 0.4,
-                                                            pointerEvents: isSolo ? 'auto' : 'none'
+                                                            borderRadius: '8px',
+                                                            cursor: canToggle ? 'pointer' : 'not-allowed',
+                                                            opacity: canToggle ? 1 : 0.4,
+                                                            transition: 'all 0.2s ease',
+                                                            fontSize: '0.82rem', fontWeight: 600,
+                                                            color: formData.isReferral ? '#10b981' : '#94a3b8'
                                                         }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                                                                <div style={{ flex: 1 }}>
-                                                                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: formData.isReferral ? '#10b981' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                        🤝 Artist Referral
-                                                                        {formData.isReferral && <span style={{ fontSize: '0.65rem', background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>ACTIVE</span>}
-                                                                    </div>
-                                                                    <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', lineHeight: 1.4 }}>
-                                                                        {formData.isReferral
-                                                                            ? 'Commission reversed: 70% Artist / 30% Studio'
-                                                                            : 'Enable if the artist referred this customer (swaps to 70/30)'
-                                                                        }
-                                                                    </div>
-                                                                    {!isSolo && (
-                                                                        <div style={{ fontSize: '0.65rem', color: '#f59e0b', marginTop: '4px' }}>
-                                                                            ⚠ Referral only applies to solo sessions
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <label style={{
-                                                                    position: 'relative', display: 'inline-block', width: '44px', height: '24px', flexShrink: 0, cursor: isCompleted ? 'not-allowed' : 'pointer'
-                                                                }}>
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={!!formData.isReferral}
-                                                                        onChange={(e) => handleInputChange('isReferral', e.target.checked)}
-                                                                        disabled={isCompleted || !isSolo}
-                                                                        style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-                                                                    />
-                                                                    <span style={{
-                                                                        position: 'absolute', cursor: isCompleted ? 'not-allowed' : 'pointer',
-                                                                        top: 0, left: 0, right: 0, bottom: 0,
-                                                                        backgroundColor: formData.isReferral ? '#10b981' : '#374151',
-                                                                        borderRadius: '12px',
-                                                                        transition: 'all 0.3s ease',
-                                                                    }}>
-                                                                        <span style={{
-                                                                            position: 'absolute',
-                                                                            content: '""',
-                                                                            height: '18px', width: '18px',
-                                                                            left: formData.isReferral ? '22px' : '3px',
-                                                                            bottom: '3px',
-                                                                            backgroundColor: '#fff',
-                                                                            borderRadius: '50%',
-                                                                            transition: 'all 0.3s ease',
-                                                                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
-                                                                        }} />
-                                                                    </span>
-                                                                </label>
-                                                            </div>
-                                                        </div>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!!formData.isReferral}
+                                                                onChange={canToggle ? handleReferralToggle : undefined}
+                                                                disabled={!canToggle}
+                                                                style={{ accentColor: '#10b981', width: '16px', height: '16px', cursor: canToggle ? 'pointer' : 'not-allowed' }}
+                                                            />
+                                                            🤝 Artist Referral
+                                                        </label>
                                                     );
                                                 })()}
                                             </div>
