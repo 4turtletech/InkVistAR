@@ -260,6 +260,8 @@
 .pos-banner-text {
     text-align: left;
     flex: 1;
+    min-width: 0;
+    word-break: break-word;
 }
 
 .pos-banner-text h2 {
@@ -837,12 +839,17 @@
 .occupancy-info {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
 }
 
 .artist-name-v2 {
     font-weight: 500;
     font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .occupancy-dot {
@@ -941,6 +948,8 @@
 
 .entry-content {
     flex: 1;
+    min-width: 0;
+    word-break: break-word;
 }
 
 .entry-time {

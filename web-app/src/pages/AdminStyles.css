@@ -2820,11 +2820,16 @@
 @media (max-width: 768px) {
 
     /* === GLOBAL: Prevent ALL horizontal overflow on admin pages === */
+    html, body {
+        overflow-x: hidden !important;
+        width: 100%;
+    }
+
     .admin-page,
     .admin-page-with-sidenav .admin-page {
         overflow-x: hidden !important;
-        max-width: 100vw !important;
-        box-sizing: border-box;
+        max-width: 100% !important;
+        width: 100% !important;
     }
 
     .admin-page > * {
