@@ -3461,7 +3461,7 @@ app.get('/api/customer/:customerId/appointments', (req, res) => {
 // Customer Reschedule Endpoint
 app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
   const { id } = req.params;
-  const { customerId, newDate, newTime } = req.body;
+  const { customerId, newDate, newTime, reason } = req.body;
 
   if (!customerId || !newDate) {
     return res.status(400).json({ success: false, message: 'Missing required fields (customerId, newDate).' });
@@ -3482,10 +3482,10 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
         return res.status(400).json({ success: false, message: 'Cannot reschedule a completed or cancelled appointment.' });
       }
 
-      // 3. Check reschedule limit (max 2)
+      // 3. Check reschedule limit (max 1)
       const currentCount = appt.reschedule_count || 0;
-      if (currentCount >= 2) {
-        return res.status(400).json({ success: false, message: 'You have reached the maximum number of reschedules (2). Please contact the studio for assistance.' });
+      if (currentCount >= 1) {
+        return res.status(400).json({ success: false, message: 'You have already used your 1 allowed reschedule for this appointment. Please contact the studio for assistance.' });
       }
 
       // 4. Check 1-week restriction
@@ -3515,20 +3515,25 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
             return res.status(400).json({ success: false, message: 'You already have another session booked on this date. Please choose a different date.' });
           }
 
-          // 7. Perform the reschedule
+          // 7. Perform the reschedule + append reason to notes
+          const reasonSuffix = reason ? `\n\n--- Reschedule Reason (by customer) ---\n${reason}` : '';
+          const updatedNotes = (appt.notes || '') + reasonSuffix;
+
           db.query(
-            `UPDATE appointments SET appointment_date = ?, start_time = COALESCE(?, start_time), reschedule_count = reschedule_count + 1 WHERE id = ?`,
-            [newDate, newTime || null, id],
+            `UPDATE appointments SET appointment_date = ?, start_time = COALESCE(?, start_time), reschedule_count = reschedule_count + 1, notes = ? WHERE id = ?`,
+            [newDate, newTime || null, updatedNotes, id],
             (updateErr, result) => {
               if (updateErr) return res.status(500).json({ success: false, message: 'Failed to reschedule: ' + updateErr.message });
 
-              console.log(`📅 Customer ${customerId} rescheduled Appt #${id} to ${newDate} ${newTime || ''}`);
+              console.log(`📅 Customer ${customerId} rescheduled Appt #${id} to ${newDate} ${newTime || ''} (Reason: ${reason || 'Not provided'})`);
+
+              const reasonText = reason ? `\nReason: ${reason}` : '';
 
               // Notify artist
               if (appt.artist_id) {
                 db.query('SELECT user_type FROM users WHERE id = ?', [appt.artist_id], (aErr, aRes) => {
                   if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
-                    createNotification(appt.artist_id, 'Appointment Rescheduled 📅', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+                    createNotification(appt.artist_id, 'Appointment Rescheduled 📅', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.${reasonText}`, 'appointment_rescheduled', id);
                   }
                 });
               }
@@ -3536,14 +3541,14 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
               db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
                 if (!adminErr && admins.length > 0) {
                   admins.forEach(admin => {
-                    createNotification(admin.id, 'Appointment Rescheduled', `Customer rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+                    createNotification(admin.id, 'Appointment Rescheduled', `Customer rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.${reasonText}`, 'appointment_rescheduled', id);
                   });
                 }
               });
               // Notify customer
               createNotification(customerId, 'Reschedule Confirmed', `Your appointment #${id} has been rescheduled to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
 
-              res.json({ success: true, message: 'Appointment rescheduled successfully.', remainingReschedules: 2 - (currentCount + 1) });
+              res.json({ success: true, message: 'Appointment rescheduled successfully.' });
             }
           );
         } // end conflict check callback

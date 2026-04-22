@@ -113,6 +113,9 @@ function CustomerBookings(){
     const [rescheduleTime, setRescheduleTime] = useState('');
     const [rescheduleMonth, setRescheduleMonth] = useState(new Date());
     const [isRescheduling, setIsRescheduling] = useState(false);
+    const [rescheduleReason, setRescheduleReason] = useState('');
+    const [rescheduleReasonText, setRescheduleReasonText] = useState('');
+    const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
 
     // Cancellation states
     const [cancelModal, setCancelModal] = useState({ isOpen: false, appointmentId: null, reason: '' });
@@ -581,13 +584,22 @@ function CustomerBookings(){
         "Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Hand", "Neck", "Wrist", "Ankle"
     ];
 
+    const rescheduleReasonOptions = [
+        'Schedule conflict',
+        'Medical/Health reason',
+        'Travel/Transportation issue',
+        'Personal emergency',
+        'Availability of companion',
+        'Other'
+    ];
+
     const handleOpenReschedule = (appt) => {
         const now = new Date();
         const apptDate = new Date(appt.appointment_date);
         const msInAWeek = 7 * 24 * 60 * 60 * 1000;
 
-        if ((appt.reschedule_count || 0) >= 2) {
-            showAlert("Reschedule Limit Reached", "You have already used your 2 allowed reschedules for this appointment. If this is an emergency, please contact the studio directly.", "warning");
+        if ((appt.reschedule_count || 0) >= 1) {
+            showAlert("Reschedule Limit Reached", "You have already used your 1 allowed reschedule for this appointment. If this is an emergency, please contact the studio directly.", "warning");
             return;
         }
 
@@ -599,24 +611,42 @@ function CustomerBookings(){
         setRescheduleDate('');
         setRescheduleTime('');
         setRescheduleMonth(new Date());
+        setRescheduleReason('');
+        setRescheduleReasonText('');
+        setShowRescheduleConfirm(false);
         setIsRescheduleModalOpen(true);
     };
 
-    const handleSubmitReschedule = async () => {
+    const handleReschedulePreSubmit = () => {
         if (!rescheduleDate) {
             showAlert("Required", "Please select a new date.", "warning");
             return;
         }
+        if (!rescheduleReason) {
+            showAlert("Required", "Please select a reason for rescheduling.", "warning");
+            return;
+        }
+        if (rescheduleReason === 'Other' && !rescheduleReasonText.trim()) {
+            showAlert("Required", "Please describe your reason for rescheduling.", "warning");
+            return;
+        }
+        setShowRescheduleConfirm(true);
+    };
+
+    const handleSubmitReschedule = async () => {
+        const finalReason = rescheduleReason === 'Other' ? rescheduleReasonText.trim() : rescheduleReason;
         setIsRescheduling(true);
         try {
             const res = await Axios.put(`${API_URL}/api/customer/appointments/${selectedApt.id}/reschedule`, {
                 customerId,
                 newDate: rescheduleDate,
-                newTime: rescheduleTime || null
+                newTime: rescheduleTime || null,
+                reason: finalReason
             });
             if (res.data.success) {
-                showAlert("Rescheduled", res.data.message + (res.data.remainingReschedules !== undefined ? ` (${res.data.remainingReschedules} reschedule(s) remaining)` : ''), "success");
+                showAlert("Rescheduled", res.data.message, "success");
                 setIsRescheduleModalOpen(false);
+                setShowRescheduleConfirm(false);
                 setIsModalOpen(false);
                 // Refresh appointments
                 const fetchRes = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
@@ -626,6 +656,7 @@ function CustomerBookings(){
             showAlert("Reschedule Failed", err.response?.data?.message || "An error occurred while rescheduling.", "danger");
         } finally {
             setIsRescheduling(false);
+            setShowRescheduleConfirm(false);
         }
     };
 
@@ -1029,10 +1060,17 @@ function CustomerBookings(){
                             {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && (
                                 <button 
                                     className="btn btn-secondary" 
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #6366f1', color: '#6366f1', background: '#eef2ff' }}
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '6px', 
+                                        border: `1px solid ${(selectedApt.reschedule_count || 0) >= 1 ? '#cbd5e1' : '#6366f1'}`, 
+                                        color: (selectedApt.reschedule_count || 0) >= 1 ? '#94a3b8' : '#6366f1', 
+                                        background: (selectedApt.reschedule_count || 0) >= 1 ? '#f1f5f9' : '#eef2ff',
+                                        cursor: (selectedApt.reschedule_count || 0) >= 1 ? 'not-allowed' : 'pointer',
+                                        opacity: (selectedApt.reschedule_count || 0) >= 1 ? 0.6 : 1
+                                    }}
                                     onClick={() => handleOpenReschedule(selectedApt)}
                                 >
-                                    <CalendarDays size={16}/> Reschedule
+                                    <CalendarDays size={16}/> Reschedule{(selectedApt.reschedule_count || 0) >= 1 ? ' (Used)' : ''}
                                 </button>
                             )}
                             
@@ -1115,52 +1153,117 @@ function CustomerBookings(){
             
             {/* Reschedule Modal */}
             {isRescheduleModalOpen && selectedApt && (
-                <div className="modal-overlay" onClick={() => setIsRescheduleModalOpen(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                <div className="modal-overlay" onClick={() => { setIsRescheduleModalOpen(false); setShowRescheduleConfirm(false); }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
                         <div className="modal-header">
                             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><CalendarDays size={20} color="#6366f1" /> Reschedule Appointment</h3>
-                            <button className="close-btn" onClick={() => setIsRescheduleModalOpen(false)}><X size={20} /></button>
+                            <button className="close-btn" onClick={() => { setIsRescheduleModalOpen(false); setShowRescheduleConfirm(false); }}><X size={20} /></button>
                         </div>
                         <div className="modal-body" style={{ padding: '20px' }}>
-                            <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '10px', padding: '12px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                                <AlertTriangle size={18} color="#6366f1" style={{ marginTop: '2px', flexShrink: 0 }} />
-                                <div style={{ fontSize: '0.85rem', color: '#4338ca', lineHeight: '1.5' }}>
-                                    <strong>Reschedule Policy:</strong> You may reschedule up to 2 times per appointment. Rescheduling is only allowed if the appointment is more than 1 week away.
-                                    <br/><span style={{ opacity: 0.8 }}>Used: {selectedApt.reschedule_count || 0}/2</span>
+                            {/* Confirmation overlay */}
+                            {showRescheduleConfirm ? (
+                                <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+                                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                        <AlertTriangle size={28} color="#f59e0b" />
+                                    </div>
+                                    <h3 style={{ margin: '0 0 8px', color: '#1e293b', fontSize: '1.15rem' }}>Are you sure you want to reschedule?</h3>
+                                    <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.6', margin: '0 0 8px' }}>
+                                        You are only allowed to reschedule this appointment <strong style={{ color: '#dc2626' }}>once</strong>.
+                                    </p>
+                                    <p style={{ color: '#ef4444', fontSize: '0.85rem', fontWeight: '600', margin: '0 0 20px' }}>
+                                        After this, you will not be able to reschedule again.
+                                    </p>
+                                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '20px', textAlign: 'left' }}>
+                                        <p style={{ margin: '0 0 6px', fontSize: '0.85rem', color: '#64748b' }}><strong style={{ color: '#1e293b' }}>New Date:</strong> {new Date(rescheduleDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}><strong style={{ color: '#1e293b' }}>Reason:</strong> {rescheduleReason === 'Other' ? rescheduleReasonText : rescheduleReason}</p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                                        <button className="btn btn-secondary" onClick={() => setShowRescheduleConfirm(false)} style={{ minWidth: '100px' }}>Go Back</button>
+                                        <button 
+                                            className="btn btn-primary"
+                                            disabled={isRescheduling}
+                                            onClick={handleSubmitReschedule}
+                                            style={{ background: '#6366f1', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minWidth: '160px' }}
+                                        >
+                                            {isRescheduling ? 'Rescheduling...' : <><CalendarDays size={16}/> Yes, Reschedule</>}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <>
+                                    <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                        <AlertTriangle size={18} color="#d97706" style={{ marginTop: '2px', flexShrink: 0 }} />
+                                        <div style={{ fontSize: '0.85rem', color: '#92400e', lineHeight: '1.5' }}>
+                                            <strong>Reschedule Policy:</strong> You may reschedule <strong>once</strong> per appointment. Rescheduling is only allowed if the appointment is more than 1 week away. This action cannot be undone.
+                                        </div>
+                                    </div>
 
-                            <p style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '12px', fontWeight: '600' }}>Select a new date:</p>
-                            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                    <button type="button" onClick={() => setRescheduleMonth(new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() - 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronLeft size={20}/></button>
-                                    <span style={{ fontWeight: '700', color: '#1e293b' }}>{monthNames[rescheduleMonth.getMonth()]} {rescheduleMonth.getFullYear()}</span>
-                                    <button type="button" onClick={() => setRescheduleMonth(new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronRight size={20}/></button>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem' }}>
-                                    {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} style={{ fontWeight: '700', color: '#94a3b8', padding: '6px 0' }}>{d}</div>)}
-                                    {renderRescheduleCalendar()}
-                                </div>
-                            </div>
+                                    <p style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '12px', fontWeight: '600' }}>Select a new date:</p>
+                                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <button type="button" onClick={() => setRescheduleMonth(new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() - 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronLeft size={20}/></button>
+                                            <span style={{ fontWeight: '700', color: '#1e293b' }}>{monthNames[rescheduleMonth.getMonth()]} {rescheduleMonth.getFullYear()}</span>
+                                            <button type="button" onClick={() => setRescheduleMonth(new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronRight size={20}/></button>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem' }}>
+                                            {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} style={{ fontWeight: '700', color: '#94a3b8', padding: '6px 0' }}>{d}</div>)}
+                                            {renderRescheduleCalendar()}
+                                        </div>
+                                    </div>
 
-                            {rescheduleDate && (
-                                <div style={{ marginTop: '16px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <CheckCircle size={18} color="#16a34a" />
-                                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#166534' }}>New date: {new Date(rescheduleDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
-                                </div>
+                                    {rescheduleDate && (
+                                        <div style={{ marginTop: '16px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <CheckCircle size={18} color="#16a34a" />
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#166534' }}>New date: {new Date(rescheduleDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Reschedule Reason */}
+                                    <div style={{ marginTop: '20px' }}>
+                                        <label style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Reason for rescheduling <span style={{ color: '#ef4444' }}>*</span></label>
+                                        <select 
+                                            value={rescheduleReason} 
+                                            onChange={(e) => { setRescheduleReason(e.target.value); if (e.target.value !== 'Other') setRescheduleReasonText(''); }}
+                                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', color: rescheduleReason ? '#1e293b' : '#94a3b8', background: 'white', outline: 'none', cursor: 'pointer' }}
+                                        >
+                                            <option value="" disabled>Select a reason...</option>
+                                            {rescheduleReasonOptions.map(opt => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                            ))}
+                                        </select>
+
+                                        {rescheduleReason === 'Other' && (
+                                            <div style={{ marginTop: '10px' }}>
+                                                <textarea
+                                                    value={rescheduleReasonText}
+                                                    onChange={(e) => { if (e.target.value.length <= 300) setRescheduleReasonText(e.target.value); }}
+                                                    placeholder="Please describe your reason..."
+                                                    maxLength={300}
+                                                    rows={3}
+                                                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', color: '#1e293b', resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                                                />
+                                                <span style={{ fontSize: '0.75rem', color: rescheduleReasonText.length >= 280 ? '#ef4444' : '#94a3b8', float: 'right', marginTop: '4px' }}>
+                                                    {rescheduleReasonText.length}/300
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
                             )}
                         </div>
-                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid #e2e8f0' }}>
-                            <button className="btn btn-secondary" onClick={() => setIsRescheduleModalOpen(false)}>Cancel</button>
-                            <button 
-                                className="btn btn-primary"
-                                disabled={!rescheduleDate || isRescheduling}
-                                onClick={handleSubmitReschedule}
-                                style={{ background: '#6366f1', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', opacity: !rescheduleDate ? 0.5 : 1 }}
-                            >
-                                {isRescheduling ? 'Rescheduling...' : <><CalendarDays size={16}/> Confirm Reschedule</>}
-                            </button>
-                        </div>
+                        {!showRescheduleConfirm && (
+                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid #e2e8f0' }}>
+                                <button className="btn btn-secondary" onClick={() => setIsRescheduleModalOpen(false)}>Cancel</button>
+                                <button 
+                                    className="btn btn-primary"
+                                    disabled={!rescheduleDate || !rescheduleReason || (rescheduleReason === 'Other' && !rescheduleReasonText.trim())}
+                                    onClick={handleReschedulePreSubmit}
+                                    style={{ background: '#6366f1', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', opacity: (!rescheduleDate || !rescheduleReason) ? 0.5 : 1 }}
+                                >
+                                    <CalendarDays size={16}/> Reschedule Session
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
