@@ -1,251 +1,176 @@
-// c:\Users\Ella\Desktop\InkVistAR\mobile-app\screens\ArtistProfile.jsx
+/**
+ * ArtistProfile.jsx -- Profile Editing & Password Change
+ * Themed upgrade with lucide icons and proper theme tokens.
+ */
+
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
+  Modal, TextInput, Alert,
+} from 'react-native';
+import {
+  LogOut, Edit3, X, ChevronDown, ChevronUp, Lock, User, Phone, Briefcase,
+  Clock, DollarSign, Percent,
+} from 'lucide-react-native';
+import { colors, typography, borderRadius, shadows } from '../src/theme';
+import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { getInitials, formatCurrency } from '../src/utils/formatters';
 import { getArtistDashboard, updateArtistProfile, changeArtistPassword } from '../src/utils/api';
 
 export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState({
-    name: userName || '',
-    email: userEmail || '',
-    phone: '',
-    experience_years: 0,
-    specialization: 'General',
-    hourly_rate: 0,
-    commission_rate: 0.60
+    name: userName || '', email: userEmail || '', phone: '',
+    experience_years: 0, specialization: 'General', hourly_rate: 0, commission_rate: 0.60,
   });
-
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editForm, setEditForm] = useState({});
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({
-    current: '',
-    new: '',
-    confirm: ''
-  });
+  const [showPwd, setShowPwd] = useState(false);
+  const [pwdForm, setPwdForm] = useState({ current: '', new: '', confirm: '' });
 
-  useEffect(() => {
-    fetchProfileData();
-  }, [userId]);
+  useEffect(() => { fetchProfile(); }, [userId]);
 
-  const fetchProfileData = async () => {
+  const fetchProfile = async () => {
     if (!userId) return;
     setLoading(true);
     try {
-      const response = await getArtistDashboard(userId);
-      if (response.success && response.artist) {
+      const res = await getArtistDashboard(userId);
+      if (res.success && res.artist) {
         setProfile({
-          name: response.artist.name,
-          email: response.artist.email,
-          phone: response.artist.phone || '', 
-          experience_years: response.artist.experience_years,
-          specialization: response.artist.specialization,
-          hourly_rate: response.artist.hourly_rate,
-          commission_rate: response.artist.commission_rate
+          name: res.artist.name, email: res.artist.email, phone: res.artist.phone || '',
+          experience_years: res.artist.experience_years, specialization: res.artist.specialization,
+          hourly_rate: res.artist.hourly_rate, commission_rate: res.artist.commission_rate,
         });
       }
-    } catch (error) {
-      console.error('Failed to load profile:', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error('Profile load error:', e); }
+    finally { setLoading(false); }
   };
 
   const handleEdit = () => {
-    setEditForm({ ...profile });
-    setShowPasswordSection(false);
-    setPasswordForm({ current: '', new: '', confirm: '' });
-    setEditModalVisible(true);
+    setEditForm({ ...profile }); setShowPwd(false);
+    setPwdForm({ current: '', new: '', confirm: '' }); setEditModalVisible(true);
   };
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Handle Password Change if section is visible and current password is provided
-      if (showPasswordSection && passwordForm.current) {
-        if (passwordForm.new !== passwordForm.confirm) {
-          Alert.alert('Error', 'New passwords do not match.');
-          setLoading(false);
-          return;
+      if (showPwd && pwdForm.current) {
+        if (pwdForm.new !== pwdForm.confirm) {
+          Alert.alert('Error', 'New passwords do not match.'); setLoading(false); return;
         }
-        const pwdResult = await changeArtistPassword(userId, passwordForm.current, passwordForm.new);
-        if (!pwdResult.success) {
-          Alert.alert('Security Error', pwdResult.message || 'Failed to change password.');
-          setLoading(false);
-          return;
+        const pwdRes = await changeArtistPassword(userId, pwdForm.current, pwdForm.new);
+        if (!pwdRes.success) {
+          Alert.alert('Security Error', pwdRes.message || 'Failed to change password.'); setLoading(false); return;
         }
       }
-
-      const result = await updateArtistProfile(userId, editForm);
-      if (result.success) {
-        Alert.alert('Success', 'Profile updated successfully');
-        setProfile(editForm);
-        setEditModalVisible(false);
+      const res = await updateArtistProfile(userId, editForm);
+      if (res.success) {
+        Alert.alert('Success', 'Profile updated'); setProfile(editForm); setEditModalVisible(false);
       } else {
-        Alert.alert('Error', result.message || 'Failed to update profile');
+        Alert.alert('Error', res.message || 'Failed to update profile');
       }
-    } catch (error) {
-      Alert.alert('Error', 'An error occurred while saving.');
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { Alert.alert('Error', 'An error occurred'); }
+    finally { setLoading(false); }
   };
 
-  if (loading && !editModalVisible) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#daa520" />
-      </View>
-    );
-  }
+  if (loading && !editModalVisible) return <SafeAreaView style={styles.container}><PremiumLoader message="Loading profile..." /></SafeAreaView>;
+
+  const details = [
+    { Icon: Briefcase, label: 'Specialization', value: profile.specialization },
+    { Icon: Clock, label: 'Experience', value: `${profile.experience_years} Years` },
+    { Icon: DollarSign, label: 'Hourly Rate', value: `P${formatCurrency(profile.hourly_rate || 0)}/hr` },
+    { Icon: Percent, label: 'Commission', value: `${((profile.commission_rate || 0) * 100).toFixed(0)}%` },
+    { Icon: Phone, label: 'Phone', value: profile.phone || 'Not set' },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Profile</Text>
           <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
-            <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+            <LogOut size={20} color={colors.error} />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>{profile.name ? profile.name.charAt(0).toUpperCase() : 'A'}</Text>
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarBox}>
+            <Text style={styles.avatarText}>{getInitials(profile.name)}</Text>
           </View>
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.email}>{profile.email}</Text>
-          <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-            <Text style={styles.editButtonText}>Edit Profile</Text>
+          <TouchableOpacity style={styles.editBtn} onPress={handleEdit} activeOpacity={0.7}>
+            <Edit3 size={14} color={colors.textSecondary} />
+            <Text style={styles.editBtnText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Details */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Professional Details</Text>
-          
-          <View style={styles.row}>
-            <Text style={styles.label}>Specialization</Text>
-            <Text style={styles.value}>{profile.specialization}</Text>
-          </View>
-          
-          <View style={styles.row}>
-            <Text style={styles.label}>Experience</Text>
-            <Text style={styles.value}>{profile.experience_years} Years</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Hourly Rate</Text>
-            <Text style={styles.value}>${profile.hourly_rate}/hr</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Commission</Text>
-            <Text style={styles.value}>{(profile.commission_rate * 100).toFixed(0)}%</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Phone</Text>
-            <Text style={styles.value}>{profile.phone || 'Not set'}</Text>
-          </View>
+          {details.map((d, i) => (
+            <View key={i} style={styles.row}>
+              <View style={styles.rowLeft}>
+                <d.Icon size={16} color={colors.textTertiary} />
+                <Text style={styles.rowLabel}>{d.label}</Text>
+              </View>
+              <Text style={styles.rowValue}>{d.value}</Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
 
       {/* Edit Modal */}
-      <Modal visible={editModalVisible} animationType="slide" transparent={true}>
+      <Modal visible={editModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Profile</Text>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <X size={22} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            
-            <ScrollView>
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <TextInput 
-                style={styles.input} 
-                value={editForm.name} 
-                onChangeText={(text) => setEditForm({...editForm, name: text})} 
-              />
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {[
+                { label: 'Full Name', key: 'name', kb: 'default' },
+                { label: 'Phone Number', key: 'phone', kb: 'phone-pad' },
+                { label: 'Specialization', key: 'specialization', kb: 'default' },
+                { label: 'Experience (Years)', key: 'experience_years', kb: 'numeric' },
+                { label: 'Hourly Rate (PHP)', key: 'hourly_rate', kb: 'numeric' },
+              ].map(field => (
+                <View key={field.key}>
+                  <Text style={styles.inputLabel}>{field.label}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={String(editForm[field.key] || '')}
+                    onChangeText={t => setEditForm({ ...editForm, [field.key]: t })}
+                    keyboardType={field.kb}
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                </View>
+              ))}
 
-              <Text style={styles.inputLabel}>Phone Number</Text>
-              <TextInput 
-                style={styles.input} 
-                value={editForm.phone} 
-                onChangeText={(text) => setEditForm({...editForm, phone: text})} 
-                keyboardType="phone-pad"
-              />
-
-              <Text style={styles.inputLabel}>Specialization</Text>
-              <TextInput 
-                style={styles.input} 
-                value={editForm.specialization} 
-                onChangeText={(text) => setEditForm({...editForm, specialization: text})} 
-              />
-
-              <Text style={styles.inputLabel}>Experience (Years)</Text>
-              <TextInput 
-                style={styles.input} 
-                value={String(editForm.experience_years)} 
-                onChangeText={(text) => setEditForm({...editForm, experience_years: text})} 
-                keyboardType="numeric"
-              />
-
-              <Text style={styles.inputLabel}>Hourly Rate ($)</Text>
-              <TextInput 
-                style={styles.input} 
-                value={String(editForm.hourly_rate)} 
-                onChangeText={(text) => setEditForm({...editForm, hourly_rate: text})} 
-                keyboardType="numeric"
-              />
-
-              <TouchableOpacity 
-                style={styles.passwordToggle} 
-                onPress={() => setShowPasswordSection(!showPasswordSection)}
-              >
-                <Text style={styles.passwordToggleText}>
-                  {showPasswordSection ? 'Hide Password Settings' : 'Change Password'}
-                </Text>
-                <Ionicons name={showPasswordSection ? "chevron-up" : "chevron-down"} size={16} color="#daa520" />
+              <TouchableOpacity style={styles.pwdToggle} onPress={() => setShowPwd(!showPwd)}>
+                <Lock size={16} color={colors.primary} />
+                <Text style={styles.pwdToggleText}>{showPwd ? 'Hide Password Settings' : 'Change Password'}</Text>
+                {showPwd ? <ChevronUp size={16} color={colors.primary} /> : <ChevronDown size={16} color={colors.primary} />}
               </TouchableOpacity>
 
-              {showPasswordSection && (
-                <View style={styles.passwordSection}>
+              {showPwd && (
+                <View style={styles.pwdSection}>
                   <Text style={styles.inputLabel}>Current Password</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    secureTextEntry
-                    value={passwordForm.current}
-                    onChangeText={(text) => setPasswordForm({...passwordForm, current: text})}
-                    placeholder="Required to change password"
-                  />
-
+                  <TextInput style={styles.input} secureTextEntry value={pwdForm.current} onChangeText={t => setPwdForm({ ...pwdForm, current: t })} placeholder="Required" placeholderTextColor={colors.textTertiary} />
                   <Text style={styles.inputLabel}>New Password</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    secureTextEntry
-                    value={passwordForm.new}
-                    onChangeText={(text) => setPasswordForm({...passwordForm, new: text})}
-                    placeholder="At least 6 characters"
-                  />
-
-                  <Text style={styles.inputLabel}>Confirm New Password</Text>
-                  <TextInput 
-                    style={[
-                      styles.input, 
-                      passwordForm.new !== passwordForm.confirm && passwordForm.confirm !== '' ? { borderColor: '#ef4444' } : null
-                    ]} 
-                    secureTextEntry
-                    value={passwordForm.confirm}
-                    onChangeText={(text) => setPasswordForm({...passwordForm, confirm: text})}
-                  />
+                  <TextInput style={styles.input} secureTextEntry value={pwdForm.new} onChangeText={t => setPwdForm({ ...pwdForm, new: t })} placeholder="At least 6 characters" placeholderTextColor={colors.textTertiary} />
+                  <Text style={styles.inputLabel}>Confirm Password</Text>
+                  <TextInput style={[styles.input, pwdForm.new !== pwdForm.confirm && pwdForm.confirm !== '' && { borderColor: colors.error }]} secureTextEntry value={pwdForm.confirm} onChangeText={t => setPwdForm({ ...pwdForm, confirm: t })} placeholderTextColor={colors.textTertiary} />
                 </View>
               )}
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Save Changes</Text>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
+                <Text style={styles.saveBtnText}>Save Changes</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -256,33 +181,59 @@ export const ArtistProfile = ({ userId, userName, userEmail, onLogout }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
   scrollContent: { paddingBottom: 40 },
-  header: { padding: 20, paddingTop: 50, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111' },
-  logoutBtn: { padding: 5 },
-  profileHeader: { alignItems: 'center', padding: 20, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#eee' },
-  avatarContainer: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#daa520', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  avatarText: { fontSize: 40, color: 'white', fontWeight: 'bold' },
-  name: { fontSize: 22, fontWeight: 'bold', color: '#111' },
-  email: { fontSize: 16, color: '#6b7280', marginBottom: 15 },
-  editButton: { paddingHorizontal: 20, paddingVertical: 8, backgroundColor: '#f3f4f6', borderRadius: 20 },
-  editButtonText: { color: '#374151', fontWeight: '600' },
-  section: { marginTop: 20, backgroundColor: 'white', padding: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#111' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  label: { color: '#6b7280', fontSize: 16 },
-  value: { color: '#111', fontSize: 16, fontWeight: '500' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalContent: { backgroundColor: 'white', borderRadius: 12, padding: 20, maxHeight: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold' },
-  inputLabel: { fontSize: 14, color: '#6b7280', marginBottom: 5, marginTop: 10 },
-  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, padding: 10, fontSize: 16 },
-  passwordToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, padding: 10, borderTopWidth: 1, borderTopColor: '#eee' },
-  passwordToggleText: { color: '#daa520', fontWeight: 'bold', marginRight: 5 },
-  passwordSection: { backgroundColor: '#f9fafb', padding: 10, borderRadius: 8, marginTop: 5 },
-  saveButton: { marginTop: 25, backgroundColor: '#daa520', padding: 15, borderRadius: 8, alignItems: 'center' },
-  saveButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
+  header: {
+    padding: 16, paddingTop: 52, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  logoutBtn: { padding: 8 },
+  profileCard: {
+    alignItems: 'center', paddingVertical: 24,
+    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  avatarBox: {
+    width: 90, height: 90, borderRadius: 45, backgroundColor: colors.primary,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 14,
+  },
+  avatarText: { fontSize: 34, color: '#ffffff', fontWeight: '800' },
+  name: { ...typography.h2, color: colors.textPrimary, marginBottom: 4 },
+  email: { ...typography.body, color: colors.textSecondary, marginBottom: 14 },
+  editBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 18, paddingVertical: 8, backgroundColor: colors.lightBgSecondary,
+    borderRadius: borderRadius.round,
+  },
+  editBtnText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
+  section: { marginTop: 16, backgroundColor: '#ffffff', padding: 16 },
+  sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 12 },
+  row: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.borderLight,
+  },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rowLabel: { ...typography.body, color: colors.textSecondary },
+  rowValue: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', padding: 16 },
+  modalCard: { backgroundColor: '#ffffff', borderRadius: borderRadius.xxl, padding: 20, maxHeight: '85%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { ...typography.h3, color: colors.textPrimary },
+  inputLabel: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600', marginBottom: 4, marginTop: 12 },
+  input: {
+    borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.md,
+    padding: 12, ...typography.body, color: colors.textPrimary,
+  },
+  pwdToggle: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    marginTop: 20, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.borderLight,
+  },
+  pwdToggleText: { ...typography.bodySmall, color: colors.primary, fontWeight: '700' },
+  pwdSection: { backgroundColor: colors.lightBgSecondary, padding: 12, borderRadius: borderRadius.md, marginTop: 6 },
+  saveBtn: {
+    marginTop: 24, backgroundColor: colors.primary, paddingVertical: 14,
+    borderRadius: borderRadius.md, alignItems: 'center', ...shadows.button,
+  },
+  saveBtnText: { ...typography.button, color: '#ffffff', fontSize: 16 },
 });

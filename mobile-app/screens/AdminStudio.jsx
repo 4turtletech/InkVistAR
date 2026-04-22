@@ -1,41 +1,50 @@
-﻿import React from 'react';
+/**
+ * AdminStudio.jsx -- Studio Command Center (hub for admin sub-screens)
+ * Grid navigation to all operational modules.
+ */
+
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  Scissors, Users, Package, CheckSquare, ShoppingCart,
+  MessageSquare, BarChart3, Settings, Star,
+} from 'lucide-react-native';
+import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
+
+const modules = [
+  { id: 'admin-services', title: 'Services', Icon: Scissors, color: '#ec4899', desc: 'Tattoo types & pricing' },
+  { id: 'admin-staff', title: 'Staff', Icon: Users, color: '#10b981', desc: 'Artist scheduling & roles' },
+  { id: 'admin-inventory', title: 'Inventory', Icon: Package, color: '#3b82f6', desc: 'Session supplies tracking' },
+  { id: 'admin-tasks', title: 'Tasks', Icon: CheckSquare, color: '#f59e0b', desc: 'Studio maintenance' },
+  { id: 'admin-pos', title: 'Point of Sale', Icon: ShoppingCart, color: '#14b8a6', desc: 'Manual billing entry' },
+  { id: 'admin-chat', title: 'Live Chat', Icon: MessageSquare, color: '#6366f1', desc: 'Customer support' },
+  { id: 'admin-analytics', title: 'Analytics', Icon: BarChart3, color: '#8b5cf6', desc: 'Studio performance' },
+  { id: 'admin-reviews', title: 'Reviews', Icon: Star, color: '#f97316', desc: 'Review moderation' },
+  { id: 'admin-settings', title: 'Settings', Icon: Settings, color: '#64748b', desc: 'System configuration' },
+];
 
 export function AdminStudio({ navigation }) {
-  const adminModules = [
-    { id: 'admin-services', title: 'Services', icon: 'cut', color: '#ec4899', desc: 'Manage tattoo types & prices' },
-    { id: 'admin-staff', title: 'Staff', icon: 'people', color: '#10b981', desc: 'Artist scheduling & roles' },
-    { id: 'admin-inventory', title: 'Inventory', icon: 'cube', color: '#3b82f6', desc: 'Session supplies tracking' },
-    { id: 'admin-tasks', title: 'Tasks', icon: 'checkmark-circle', color: '#f59e0b', desc: 'Studio maintenance' },
-    { id: 'admin-pos', title: 'Point of Sale', icon: 'cash', color: '#14b8a6', desc: 'Manual billing entry' },
-    { id: 'admin-chat', title: 'Live Chat', icon: 'chatbubbles', color: '#6366f1', desc: 'Active customer support' },
-    { id: 'admin-analytics', title: 'Analytics', icon: 'bar-chart', color: '#8b5cf6', desc: 'Studio performance' },
-    { id: 'admin-settings', title: 'Settings', icon: 'settings', color: '#6b7280', desc: 'System configuration' },
-  ];
-
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#ffffff', '#f9fafb']} style={styles.header}>
+      <View style={styles.header}>
         <Text style={styles.headerTitle}>Studio Command Center</Text>
-        <Text style={styles.headerSubtitle}>Manage all operational modules</Text>
-      </LinearGradient>
+        <Text style={styles.headerSub}>Manage all operational modules</Text>
+      </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.grid}>
-          {adminModules.map((module) => (
-            <TouchableOpacity 
-              key={module.id} 
+          {modules.map((mod) => (
+            <TouchableOpacity
+              key={mod.id}
               style={styles.card}
-              onPress={() => navigation.navigate(module.id)}
-              activeOpacity={0.8}
+              onPress={() => navigation?.navigate?.(mod.id)}
+              activeOpacity={0.7}
             >
-              <View style={[styles.iconBox, { backgroundColor: `${module.color}15` }]}>
-                <Ionicons name={module.icon} size={28} color={module.color} />
+              <View style={[styles.iconBox, { backgroundColor: `${mod.color}18` }]}>
+                <mod.Icon size={26} color={mod.color} />
               </View>
-              <Text style={styles.cardTitle}>{module.title}</Text>
-              <Text style={styles.cardDesc} numberOfLines={2}>{module.desc}</Text>
+              <Text style={styles.cardTitle}>{mod.title}</Text>
+              <Text style={styles.cardDesc} numberOfLines={2}>{mod.desc}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -45,40 +54,24 @@ export function AdminStudio({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f3f4f6' },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
   header: {
-    padding: 24,
-    paddingTop: 50,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    marginBottom: 16,
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 16,
+    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 4 },
-  headerSubtitle: { fontSize: 14, color: '#6b7280' },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  headerSub: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 4 },
   scrollContent: { padding: 16, paddingBottom: 40 },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: {
-    width: '48%',
-    backgroundcolor: '#111827',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 3, shadowOffset: { width: 0, height: 4 }
+    width: '48%', backgroundColor: '#ffffff', borderRadius: borderRadius.xl,
+    padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border,
+    ...shadows.subtle,
   },
   iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    width: 48, height: 48, borderRadius: borderRadius.lg,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 10,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#ffffff', marginBottom: 4 },
-  cardDesc: { fontSize: 12, color: '#6b7280', lineHeight: 16 }
+  cardTitle: { ...typography.body, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 },
+  cardDesc: { ...typography.bodyXSmall, color: colors.textTertiary, lineHeight: 16 },
 });
-
-

@@ -1,0 +1,11 @@
+Starting project at C:\Users\Ella\Desktop\InkVistAR\mobile-app
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+The following packages should be updated for best compatibility with the installed expo version:
+  react-native@0.83.2 - expected version: 0.83.4
+  react-native-reanimated@4.3.0 - expected version: 4.2.1
+  react-native-svg@15.15.4 - expected version: 15.15.3
+Your project may not work correctly until you install the expected versions of the packages.
+Waiting on http://localhost:8081
+Logs for your project will appear below.

@@ -1,20 +1,27 @@
+/**
+ * ArtistSchedule.jsx -- Calendar + List Schedule for Artist
+ * Themed with lucide icons. Filters, sort, calendar, appointment cards, detail & add modals.
+ */
+
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  ArrowLeft, Calendar, CheckCircle2, ArrowUpDown, ChevronLeft, ChevronRight,
+  Clock, User, PlayCircle, X,
+} from 'lucide-react-native';
+import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { getArtistAppointments, updateAppointmentStatus, createArtistAppointment, updateAppointmentDetails } from '../src/utils/api';
 
 export function ArtistSchedule({ onBack, artistId, navigation }) {
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' = Oldest first, 'desc' = Newest first
+  const [sortOrder, setSortOrder] = useState('asc');
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [visibleCount, setVisibleCount] = useState(10);
-  
-  // Modal State
   const [modalVisible, setModalVisible] = useState(false);
   const [newClientEmail, setNewClientEmail] = useState('');
   const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
@@ -22,504 +29,212 @@ export function ArtistSchedule({ onBack, artistId, navigation }) {
   const [newDesign, setNewDesign] = useState('');
 
   const filters = [
-    { id: 'all', label: 'All' },
-    { id: 'today', label: 'Today' },
-    { id: 'upcoming', label: 'Upcoming' },
-    { id: 'pending', label: 'Pending' },
-    { id: 'completed', label: 'Finished' },
-    { id: 'cancelled', label: 'Cancelled' },
+    { id: 'all', label: 'All' }, { id: 'today', label: 'Today' }, { id: 'upcoming', label: 'Upcoming' },
+    { id: 'pending', label: 'Pending' }, { id: 'completed', label: 'Finished' }, { id: 'cancelled', label: 'Cancelled' },
   ];
 
-  useEffect(() => {
-    loadAppointments();
-  }, [artistId]);
+  useEffect(() => { loadAppointments(); }, [artistId]);
 
   const loadAppointments = async () => {
     if (!artistId) return;
     setLoading(true);
-    const result = await getArtistAppointments(artistId);
-    if (result.success) {
-      console.log('📅 Appointments loaded:', result.appointments?.length);
-      setAppointments(result.appointments || []);
-    }
+    const r = await getArtistAppointments(artistId);
+    if (r.success) setAppointments(r.appointments || []);
     setLoading(false);
   };
 
   const handleStatusUpdate = async (id, newStatus) => {
-    const result = await updateAppointmentStatus(id, newStatus);
-    if (result.success) {
-      loadAppointments();
-    } else {
-      Alert.alert('Error', 'Failed to update status');
-    }
+    const r = await updateAppointmentStatus(id, newStatus);
+    r.success ? loadAppointments() : Alert.alert('Error', 'Failed to update status');
   };
 
   const handleAddAppointment = async () => {
-    if (!newClientEmail || !newDate || !newTime) {
-      Alert.alert('Missing Fields', 'Please fill in all required fields');
-      return;
-    }
-
-    const result = await createArtistAppointment({
-      artistId,
-      clientEmail: newClientEmail,
-      date: newDate,
-      startTime: newTime,
-      designTitle: newDesign || 'Consultation'
-    });
-
-    if (result.success) {
-      Alert.alert('Success', 'Appointment scheduled!');
-      setModalVisible(false);
-      loadAppointments();
-    } else {
-      Alert.alert('Error', result.message || 'Failed to schedule');
-    }
+    if (!newClientEmail || !newDate || !newTime) { Alert.alert('Missing Fields', 'Fill in all required fields.'); return; }
+    const r = await createArtistAppointment({ artistId, clientEmail: newClientEmail, date: newDate, startTime: newTime, designTitle: newDesign || 'Consultation' });
+    r.success ? (Alert.alert('Success', 'Appointment scheduled!'), setModalVisible(false), loadAppointments()) : Alert.alert('Error', r.message || 'Failed to schedule');
   };
 
-  const goToToday = () => {
-    const now = new Date();
-    setCurrentMonth(now);
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    setSelectedDate(dateStr);
-    if (selectedFilter === 'today') setSelectedFilter('all');
-  };
-
-  const handleLoadMore = () => {
-    setVisibleCount(prev => prev + 10);
-  };
-
-  // Calendar Logic
-  const changeMonth = (increment) => {
-    const newDate = new Date(currentMonth);
-    newDate.setMonth(newDate.getMonth() + increment);
-    setCurrentMonth(newDate);
-  };
+  const changeMonth = (inc) => { const d = new Date(currentMonth); d.setMonth(d.getMonth() + inc); setCurrentMonth(d); };
 
   const renderCalendar = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
+    const year = currentMonth.getFullYear(), month = currentMonth.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDay = new Date(year, month, 1).getDay();
-    
     const days = [];
-    
-    // Empty slots
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<View key={`empty-${i}`} style={styles.dayCell} />);
-    }
-
-    // Days
+    for (let i = 0; i < firstDay; i++) days.push(<View key={`e-${i}`} style={styles.dayCell} />);
     for (let i = 1; i <= daysInMonth; i++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-      const isSelected = selectedDate === dateStr;
-      
-      const appsOnDay = appointments.filter(a => {
-        if (!a.appointment_date) return false;
-        const apptDate = typeof a.appointment_date === 'string' ? a.appointment_date.substring(0, 10) : new Date(a.appointment_date).toISOString().split('T')[0];
-        return apptDate === dateStr;
-      });
-
+      const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const isSel = selectedDate === ds;
+      const appsOnDay = appointments.filter(a => { if (!a.appointment_date) return false; const ad = typeof a.appointment_date === 'string' ? a.appointment_date.substring(0, 10) : new Date(a.appointment_date).toISOString().split('T')[0]; return ad === ds; });
       let dotColor = null;
-      if (appsOnDay.length > 0) {
-        if (appsOnDay.some(a => a.status === 'confirmed')) dotColor = '#b8860b';
-        else if (appsOnDay.some(a => a.status === 'pending')) dotColor = '#ef4444';
-        else dotColor = '#9ca3af';
-      }
-
+      if (appsOnDay.length > 0) { if (appsOnDay.some(a => a.status === 'confirmed')) dotColor = colors.primary; else if (appsOnDay.some(a => a.status === 'pending')) dotColor = colors.error; else dotColor = colors.textTertiary; }
       days.push(
-        <TouchableOpacity 
-          key={i} 
-          style={[styles.dayCell, isSelected && styles.selectedDayCell]}
-          onPress={() => {
-            setSelectedDate(isSelected ? null : dateStr);
-            if (selectedFilter === 'today') setSelectedFilter('all');
-          }}
-        >
-          <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>{i}</Text>
-          {dotColor && <View style={[styles.calendarDot, { backgroundColor: dotColor }]} />}
+        <TouchableOpacity key={i} style={[styles.dayCell, isSel && styles.selectedDay]} onPress={() => { setSelectedDate(isSel ? null : ds); if (selectedFilter === 'today') setSelectedFilter('all'); }}>
+          <Text style={[styles.dayText, isSel && styles.selectedDayText]}>{i}</Text>
+          {dotColor && <View style={[styles.calDot, { backgroundColor: dotColor }]} />}
         </TouchableOpacity>
       );
     }
     return days;
   };
 
-  // Filter appointments based on selected tab
   const filteredAppointments = appointments.filter(apt => {
-    if (selectedFilter === 'today') {
-      const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      return apt.appointment_date && apt.appointment_date.startsWith(todayStr);
-    }
-
-    if (selectedDate && (!apt.appointment_date || !apt.appointment_date.startsWith(selectedDate))) {
-      return false;
-    }
-
+    if (selectedFilter === 'today') { const now = new Date(); const ts = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`; return apt.appointment_date?.startsWith(ts); }
+    if (selectedDate && (!apt.appointment_date || !apt.appointment_date.startsWith(selectedDate))) return false;
     if (selectedFilter === 'all') return true;
-    const status = apt.status ? apt.status.toLowerCase() : 'pending';
-    
-    if (selectedFilter === 'upcoming') return status === 'confirmed';
-    if (selectedFilter === 'pending') return status === 'pending';
-    if (selectedFilter === 'completed') return status === 'completed';
-    if (selectedFilter === 'cancelled') return status === 'cancelled';
-    
+    const s = (apt.status || 'pending').toLowerCase();
+    if (selectedFilter === 'upcoming') return s === 'confirmed';
+    if (selectedFilter === 'pending') return s === 'pending';
+    if (selectedFilter === 'completed') return s === 'completed';
+    if (selectedFilter === 'cancelled') return s === 'cancelled';
     return true;
   }).sort((a, b) => {
-    const getDateObj = (dateStr, timeStr) => {
-      const d = new Date(dateStr);
-      if (timeStr) {
-        const [hours, minutes] = timeStr.split(':');
-        d.setHours(parseInt(hours || 0, 10), parseInt(minutes || 0, 10), 0, 0);
-      }
-      return d;
-    };
-
-    const dateA = getDateObj(a.appointment_date, a.start_time);
-    const dateB = getDateObj(b.appointment_date, b.start_time);
-    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+    const gd = (ds, ts) => { const d = new Date(ds); if (ts) { const [h, m] = ts.split(':'); d.setHours(parseInt(h || 0), parseInt(m || 0)); } return d; };
+    return sortOrder === 'asc' ? gd(a.appointment_date, a.start_time) - gd(b.appointment_date, b.start_time) : gd(b.appointment_date, b.start_time) - gd(a.appointment_date, a.start_time);
   });
 
-  const toggleSort = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  const getStatusStyle = (s) => {
+    switch (s?.toLowerCase()) {
+      case 'confirmed': return { bg: colors.primaryLight, color: colors.primaryDark };
+      case 'pending': return { bg: '#fee2e2', color: colors.error };
+      case 'completed': return { bg: '#d1fae5', color: colors.success };
+      case 'cancelled': return { bg: colors.lightBgSecondary, color: colors.textTertiary };
+      default: return { bg: colors.lightBgSecondary, color: colors.textTertiary };
+    }
   };
+
+  const getPaymentColor = (ps) => ps === 'paid' ? colors.success : ps === 'pending' ? colors.warning : colors.textTertiary;
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={['#000000', '#b8860b']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={onBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={20} color="#ffffff" />
-            </TouchableOpacity>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Hero Header */}
+        <LinearGradient colors={['#0f172a', colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={20} color="#fff" /></TouchableOpacity>
             <Text style={styles.headerTitle}>My Schedule</Text>
-            {/* <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => setModalVisible(true)}
-            >
-              <Ionicons name="add" size={24} color="#ffffff" />
-            </TouchableOpacity> */}
             <View style={{ width: 40 }} />
           </View>
-
           <View style={styles.statsRow}>
-            <View style={styles.statBadge}>
-              <Ionicons name="calendar" size={16} color="#ffffff" />
-              <Text style={styles.statBadgeText}>{appointments.length} Total</Text>
-            </View>
-            <View style={styles.statBadge}>
-              <Ionicons name="checkmark-circle" size={16} color="#ffffff" />
-              <Text style={styles.statBadgeText}>{appointments.filter(a => a.status === 'confirmed').length} Confirmed</Text>
-            </View>
+            <View style={styles.statBadge}><Calendar size={14} color="#fff" /><Text style={styles.statText}>{appointments.length} Total</Text></View>
+            <View style={styles.statBadge}><CheckCircle2 size={14} color="#fff" /><Text style={styles.statText}>{appointments.filter(a => a.status === 'confirmed').length} Confirmed</Text></View>
           </View>
         </LinearGradient>
 
         <View style={styles.content}>
-          <View style={styles.controlsRow}>
-            <TouchableOpacity style={styles.sortButton} onPress={toggleSort}>
-              <Ionicons name={sortOrder === 'asc' ? "arrow-up" : "arrow-down"} size={16} color="#6b7280" />
-              <Text style={styles.sortButtonText}>Date: {sortOrder === 'asc' ? 'Oldest' : 'Newest'}</Text>
+          {/* Sort */}
+          <View style={styles.sortRow}>
+            <TouchableOpacity style={styles.sortBtn} onPress={() => setSortOrder(p => p === 'asc' ? 'desc' : 'asc')}>
+              <ArrowUpDown size={14} color={colors.textSecondary} />
+              <Text style={styles.sortText}>Date: {sortOrder === 'asc' ? 'Oldest' : 'Newest'}</Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersContainer}
-          >
-            {filters.map((filter) => (
-              <TouchableOpacity
-                key={filter.id}
-                onPress={() => {
-                  if (filter.id === 'today') {
-                    const now = new Date();
-                    setCurrentMonth(now); // Refresh calendar to current month
-                    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                    setSelectedDate(dateStr); // Mark yellow
-                    setSelectedFilter('today');
-                  } else {
-                    setSelectedFilter(filter.id);
-                    setSelectedDate(null);
-                  }
-                  setVisibleCount(10); // Reset pagination on filter change
-                }}
-                style={[
-                  styles.filterButton,
-                  selectedFilter === filter.id && styles.filterButtonActive
-                ]}
-              >
-                <Text style={[
-                  styles.filterText,
-                  selectedFilter === filter.id && styles.filterTextActive
-                ]}>
-                  {filter.label}
-                </Text>
+          {/* Filters */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {filters.map(f => (
+              <TouchableOpacity key={f.id} onPress={() => {
+                if (f.id === 'today') { const n = new Date(); setCurrentMonth(n); const ds = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`; setSelectedDate(ds); setSelectedFilter('today'); }
+                else { setSelectedFilter(f.id); setSelectedDate(null); }
+                setVisibleCount(10);
+              }} style={[styles.filterChip, selectedFilter === f.id && styles.filterChipActive]}>
+                <Text style={[styles.filterText, selectedFilter === f.id && styles.filterTextActive]}>{f.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
-          {/* Calendar View */}
-          <View style={styles.calendarContainer}>
-            <View style={styles.calendarHeader}>
-              <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.monthButton}>
-                <Ionicons name="chevron-back" size={20} color="#374151" />
-              </TouchableOpacity>
-              <Text style={styles.monthText}>
-                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </Text>
-              <TouchableOpacity onPress={() => changeMonth(1)} style={styles.monthButton}>
-                <Ionicons name="chevron-forward" size={20} color="#374151" />
-              </TouchableOpacity>
+          {/* Calendar */}
+          <View style={styles.calCard}>
+            <View style={styles.calHeader}>
+              <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.monthBtn}><ChevronLeft size={18} color={colors.textPrimary} /></TouchableOpacity>
+              <Text style={styles.monthText}>{currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
+              <TouchableOpacity onPress={() => changeMonth(1)} style={styles.monthBtn}><ChevronRight size={18} color={colors.textPrimary} /></TouchableOpacity>
             </View>
-            <View style={styles.weekRow}>
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-                <Text key={index} style={styles.weekDayText}>{day}</Text>
-              ))}
-            </View>
-            <View style={styles.daysGrid}>
-              {renderCalendar()}
-            </View>
-            {selectedDate && (
-              <TouchableOpacity onPress={() => setSelectedDate(null)} style={styles.clearDateButton}>
-                <Text style={styles.clearDateText}>Clear Date Filter</Text>
-              </TouchableOpacity>
-            )}
+            <View style={styles.weekRow}>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <Text key={i} style={styles.weekDayText}>{d}</Text>)}</View>
+            <View style={styles.daysGrid}>{renderCalendar()}</View>
+            {selectedDate && <TouchableOpacity onPress={() => setSelectedDate(null)} style={styles.clearDate}><Text style={styles.clearDateText}>Clear Date Filter</Text></TouchableOpacity>}
           </View>
 
-          {loading && <ActivityIndicator size="large" color="#daa520" />}
+          {loading && <ActivityIndicator size="large" color={colors.primary} />}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Appointments</Text>
-            {filteredAppointments.length === 0 && (
-              <Text style={{ color: '#999', fontStyle: 'italic', marginTop: 10 }}>No appointments found for this filter.</Text>
-            )}
-            {filteredAppointments.slice(0, visibleCount).map((apt) => (
-              <TouchableOpacity 
-                key={apt.id} 
-                style={styles.appointmentCard}
-                onPress={() => setSelectedAppointment(apt)}
-              >
-                <View style={styles.appointmentHeader}>
-                  <View style={styles.appointmentTime}>
-                    <Ionicons name="time" size={20} color="#daa520" />
-                    <Text style={styles.timeText}>
-                      {apt.start_time}
-                    </Text>
-                    <View style={styles.dateBadge}>
-                      <Text style={styles.dateText}>
-                        {new Date(apt.appointment_date).toLocaleDateString()}
-                      </Text>
-                    </View>
+          {/* Appointments List */}
+          <Text style={styles.sectionTitle}>Appointments</Text>
+          {filteredAppointments.length === 0 && <Text style={{ color: colors.textTertiary, fontStyle: 'italic', marginTop: 8 }}>No appointments found for this filter.</Text>}
+          {filteredAppointments.slice(0, visibleCount).map(apt => {
+            const ss = getStatusStyle(apt.status);
+            return (
+              <TouchableOpacity key={apt.id} style={styles.aptCard} onPress={() => setSelectedAppointment(apt)} activeOpacity={0.85}>
+                <View style={styles.aptHeader}>
+                  <View style={styles.aptTimeRow}>
+                    <Clock size={16} color={colors.primary} />
+                    <Text style={styles.aptTime}>{apt.start_time}</Text>
+                    <View style={styles.aptDateBadge}><Text style={styles.aptDateText}>{new Date(apt.appointment_date).toLocaleDateString()}</Text></View>
                   </View>
-                  <View style={[
-                    styles.statusBadge,
-                    apt.status === 'confirmed' ? styles.statusConfirmed : 
-                    apt.status === 'completed' ? styles.statusCompleted :
-                    apt.status === 'cancelled' ? styles.statusCancelled :
-                    styles.statusPending
-                  ]}>
-                    <Text style={[
-                      styles.statusText,
-                      apt.status === 'confirmed' ? styles.statusTextConfirmed : 
-                      apt.status === 'completed' ? styles.statusTextCompleted :
-                      apt.status === 'cancelled' ? styles.statusTextCancelled :
-                      styles.statusTextPending
-                    ]}>
-                      {apt.status ? apt.status.charAt(0).toUpperCase() + apt.status.slice(1) : 'Pending'}
-                    </Text>
-                  </View>
+                  <View style={[styles.statusPill, { backgroundColor: ss.bg }]}><Text style={[styles.statusPillText, { color: ss.color }]}>{apt.status ? apt.status.charAt(0).toUpperCase() + apt.status.slice(1) : 'Pending'}</Text></View>
                 </View>
-
-                <View style={styles.appointmentDetails}>
-                  <View style={styles.clientInfo}>
-                    <View style={styles.clientAvatar}>
-                      <Ionicons name="person" size={20} color="#6b7280" />
-                    </View>
-                    <View style={styles.clientDetails}>
+                <View style={styles.aptDetails}>
+                  <View style={styles.clientRow}>
+                    <View style={styles.clientAvatar}><User size={18} color={colors.textTertiary} /></View>
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.clientName}>{apt.client_name}</Text>
-                      <Text style={styles.appointmentType}>{apt.design_title || 'Consultation'}</Text>
+                      <Text style={styles.aptType}>{apt.design_title || 'Consultation'}</Text>
                     </View>
                   </View>
-                  <View style={styles.durationBadge}>
-                    <Ionicons name="time-outline" size={14} color="#6b7280" />
-                    <Text style={styles.durationText}>1h</Text>
-                  </View>
+                  <View style={styles.durationBadge}><Clock size={12} color={colors.textTertiary} /><Text style={styles.durationText}>1h</Text></View>
                 </View>
-
-                {/* Added Price and Payment Status below client info */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f3f4f6' }}>
-                  <Text style={{ fontWeight: 'bold', color: '#111827' }}>₱{parseFloat(apt.price || 0).toLocaleString()}</Text>
+                <View style={styles.aptFooter}>
+                  <Text style={styles.aptPrice}>P{parseFloat(apt.price || 0).toLocaleString()}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{ 
-                      width: 8, 
-                      height: 8, 
-                      borderRadius: 4, 
-                      backgroundColor: apt.payment_status === 'paid' ? '#10b981' : (apt.payment_status === 'pending' ? '#f59e0b' : '#9ca3af'),
-                      marginRight: 4
-                    }} />
-                    <Text style={{ fontSize: 12, color: '#6b7280', textTransform: 'uppercase', fontWeight: '600' }}>
-                      {apt.payment_status || 'unpaid'}
-                    </Text>
+                    <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: getPaymentColor(apt.payment_status), marginRight: 4 }} />
+                    <Text style={styles.aptPayment}>{apt.payment_status || 'unpaid'}</Text>
                   </View>
                 </View>
-
-                <View style={styles.appointmentActions}>
-                  {(apt.status === 'confirmed' || apt.status === 'in_progress') && (
-                    <TouchableOpacity 
-                      style={[styles.actionButton, styles.actionButtonPrimary]}
-                      onPress={() => navigation.navigate('artist-active-session', { appointment: apt })}
-                    >
-                      <Ionicons name="play-circle" size={18} color="#ffffff" />
-                      <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>Manage Session</Text>
+                {(apt.status === 'confirmed' || apt.status === 'in_progress') && (
+                  <View style={styles.aptActions}>
+                    <TouchableOpacity style={styles.manageBtn} onPress={() => navigation.navigate('artist-active-session', { appointment: apt })}>
+                      <PlayCircle size={16} color="#ffffff" /><Text style={styles.manageBtnText}>Manage Session</Text>
                     </TouchableOpacity>
-                  )}
-                  {/* {apt.status === 'confirmed' && (
-                    <TouchableOpacity 
-                      style={[styles.actionButton, { backgroundColor: '#059669', borderColor: '#059669' }]}
-                      onPress={() => handleStatusUpdate(apt.id, 'completed')}
-                    >
-                      <Text style={[styles.actionButtonText, { color: '#fff' }]}>Mark Complete</Text>
-                    </TouchableOpacity>
-                  )} */}
-                </View>
+                  </View>
+                )}
               </TouchableOpacity>
-            ))}
-            {visibleCount < filteredAppointments.length && (
-              <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
-                <Text style={styles.loadMoreText}>Load More</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+            );
+          })}
+          {visibleCount < filteredAppointments.length && (
+            <TouchableOpacity style={styles.loadMore} onPress={() => setVisibleCount(p => p + 10)}><Text style={styles.loadMoreText}>Load More</Text></TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
-      {/* <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => setModalVisible(true)}
-      >
-        <LinearGradient
-          colors={['#000000', '#daa520']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.fabGradient}
-        >
-          <Ionicons name="add" size={28} color="#ffffff" />
-        </LinearGradient>
-      </TouchableOpacity> */}
-
       {/* Add Appointment Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Appointment</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000" />
-              </TouchableOpacity>
-            </View>
-            
-            <Text style={styles.label}>Client Email</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="client@email.com" 
-              value={newClientEmail}
-              onChangeText={setNewClientEmail}
-              autoCapitalize="none"
-            />
-
-            <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="2024-01-30" 
-              value={newDate}
-              onChangeText={setNewDate}
-            />
-
-            <Text style={styles.label}>Time (HH:MM)</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="14:00" 
-              value={newTime}
-              onChangeText={setNewTime}
-            />
-
-            <Text style={styles.label}>Design / Type</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Sleeve (Session 1/4), Touch-up..." 
-              value={newDesign}
-              onChangeText={setNewDesign}
-            />
-
-            <TouchableOpacity style={styles.saveButton} onPress={handleAddAppointment}>
-              <Text style={styles.saveButtonText}>Schedule</Text>
-            </TouchableOpacity>
+      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
+        <View style={modalS.overlay}>
+          <View style={modalS.content}>
+            <View style={modalS.header}><Text style={modalS.title}>New Appointment</Text><TouchableOpacity onPress={() => setModalVisible(false)}><X size={22} color={colors.textPrimary} /></TouchableOpacity></View>
+            <Text style={modalS.label}>Client Email</Text><TextInput style={modalS.input} placeholder="client@email.com" placeholderTextColor={colors.textTertiary} value={newClientEmail} onChangeText={setNewClientEmail} autoCapitalize="none" />
+            <Text style={modalS.label}>Date (YYYY-MM-DD)</Text><TextInput style={modalS.input} placeholder="2024-01-30" placeholderTextColor={colors.textTertiary} value={newDate} onChangeText={setNewDate} />
+            <Text style={modalS.label}>Time (HH:MM)</Text><TextInput style={modalS.input} placeholder="14:00" placeholderTextColor={colors.textTertiary} value={newTime} onChangeText={setNewTime} />
+            <Text style={modalS.label}>Design / Type</Text><TextInput style={modalS.input} placeholder="Sleeve, Touch-up..." placeholderTextColor={colors.textTertiary} value={newDesign} onChangeText={setNewDesign} />
+            <TouchableOpacity style={modalS.saveBtn} onPress={handleAddAppointment}><LinearGradient colors={['#0f172a', colors.primary]} style={modalS.saveGradient}><Text style={modalS.saveBtnText}>Schedule</Text></LinearGradient></TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Appointment Details Modal */}
-      <Modal
-        visible={!!selectedAppointment}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setSelectedAppointment(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Appointment Details</Text>
-              <TouchableOpacity onPress={() => setSelectedAppointment(null)}>
-                <Ionicons name="close" size={24} color="#000" />
-              </TouchableOpacity>
-            </View>
-            
+      {/* Detail Modal */}
+      <Modal visible={!!selectedAppointment} transparent animationType="slide" onRequestClose={() => setSelectedAppointment(null)}>
+        <View style={modalS.overlay}>
+          <View style={modalS.content}>
+            <View style={modalS.header}><Text style={modalS.title}>Appointment Details</Text><TouchableOpacity onPress={() => setSelectedAppointment(null)}><X size={22} color={colors.textPrimary} /></TouchableOpacity></View>
             {selectedAppointment && (
-              <ScrollView>
-                <Text style={styles.label}>Client</Text>
-                <Text style={styles.value}>{selectedAppointment.client_name}</Text>
-                <Text style={styles.subValue}>{selectedAppointment.client_email}</Text>
-
-                <Text style={styles.label}>Date & Time</Text>
-                <Text style={styles.value}>{new Date(selectedAppointment.appointment_date).toDateString()} at {selectedAppointment.start_time}</Text>
-
-                <Text style={styles.label}>Service</Text>
-                <Text style={styles.value}>{selectedAppointment.design_title}</Text>
-
-                <Text style={styles.label}>Price</Text>
-                <Text style={[styles.value, { fontWeight: 'bold' }]}>₱{parseFloat(selectedAppointment.price || 0).toLocaleString()}</Text>
-
-                <Text style={styles.label}>Status</Text>
-                <Text style={[styles.value, {color: '#daa520', fontWeight: 'bold'}]}>{selectedAppointment.status.toUpperCase()}</Text>
-
-                <Text style={styles.label}>Payment Status</Text>
-                <Text style={[styles.value, { 
-                    color: selectedAppointment.payment_status === 'paid' ? '#16a34a' : 
-                           selectedAppointment.payment_status === 'pending' ? '#b45309' : '#6b7280', 
-                    fontWeight: 'bold' 
-                }]}>
-                    {(selectedAppointment.payment_status || 'unpaid').toUpperCase()}
-                </Text>
-
-                {selectedAppointment.notes && (
-                  <>
-                    <Text style={styles.label}>Notes</Text>
-                    <Text style={styles.value}>{selectedAppointment.notes}</Text>
-                  </>
-                )}
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {[
+                  ['Client', () => <><Text style={modalS.value}>{selectedAppointment.client_name}</Text><Text style={modalS.subValue}>{selectedAppointment.client_email}</Text></>],
+                  ['Date & Time', () => <Text style={modalS.value}>{new Date(selectedAppointment.appointment_date).toDateString()} at {selectedAppointment.start_time}</Text>],
+                  ['Service', () => <Text style={modalS.value}>{selectedAppointment.design_title}</Text>],
+                  ['Price', () => <Text style={[modalS.value, { fontWeight: '700' }]}>P{parseFloat(selectedAppointment.price || 0).toLocaleString()}</Text>],
+                  ['Status', () => <Text style={[modalS.value, { color: colors.primary, fontWeight: '700' }]}>{selectedAppointment.status?.toUpperCase()}</Text>],
+                  ['Payment', () => <Text style={[modalS.value, { color: getPaymentColor(selectedAppointment.payment_status), fontWeight: '700' }]}>{(selectedAppointment.payment_status || 'unpaid').toUpperCase()}</Text>],
+                  ...(selectedAppointment.notes ? [['Notes', () => <Text style={modalS.value}>{selectedAppointment.notes}</Text>]] : []),
+                ].map(([label, render], i) => <View key={i} style={modalS.row}><Text style={modalS.label}>{label}</Text>{render()}</View>)}
               </ScrollView>
             )}
           </View>
@@ -530,370 +245,74 @@ export function ArtistSchedule({ onBack, artistId, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    padding: 24,
-    paddingTop: 60,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  statBadgeText: {
-    fontSize: 14,
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 80,
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 12,
-  },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  sortButtonText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  filtersContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  filterButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  filterButtonActive: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  filterTextActive: {
-    color: '#ffffff',
-  },
-  calendarContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  monthButton: { padding: 4 },
-  monthText: { fontSize: 16, fontWeight: 'bold', color: '#111827' },
-  todayButton: { backgroundColor: '#f3f4f6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  todayButtonText: { fontSize: 12, color: '#374151', fontWeight: '600' },
-  weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  weekDayText: { width: '14.28%', textAlign: 'center', fontSize: 12, color: '#9ca3af', fontWeight: '600' },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: { padding: 24, paddingTop: 56, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { ...typography.h2, color: '#ffffff' },
+  statsRow: { flexDirection: 'row', gap: 10 },
+  statBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 7, borderRadius: borderRadius.round },
+  statText: { ...typography.bodySmall, color: '#ffffff', fontWeight: '600' },
+  content: { padding: 16, paddingBottom: 60 },
+  sortRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10 },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  sortText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
+  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#ffffff', borderRadius: borderRadius.round, borderWidth: 1, borderColor: colors.border },
+  filterChipActive: { backgroundColor: '#0f172a', borderColor: '#0f172a' },
+  filterText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
+  filterTextActive: { color: '#ffffff' },
+  calCard: { backgroundColor: '#ffffff', borderRadius: borderRadius.xl, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: colors.border },
+  calHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  monthBtn: { padding: 4 },
+  monthText: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
+  weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  weekDayText: { width: '14.28%', textAlign: 'center', ...typography.bodyXSmall, color: colors.textTertiary, fontWeight: '600' },
   daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  dayCell: {
-    width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center',
-    borderRadius: 20, marginBottom: 4
-  },
-  selectedDayCell: { backgroundColor: '#daa520' },
-  dayText: { fontSize: 14, color: '#374151' },
-  selectedDayText: { color: 'white', fontWeight: 'bold' },
-  calendarDot: { width: 4, height: 4, borderRadius: 2, marginTop: 2 },
-  clearDateButton: {
-    marginTop: 12,
-    alignItems: 'center',
-    padding: 8,
-  },
-  clearDateText: {
-    color: '#daa520',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  appointmentCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  appointmentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  appointmentTime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  timeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  dateBadge: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  dateText: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  statusConfirmed: {
-    backgroundColor: '#fef3c7',
-  },
-  statusPending: {
-    backgroundColor: '#fee2e2',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextConfirmed: {
-    color: '#b8860b',
-  },
-  statusTextPending: {
-    color: '#dc2626',
-  },
-  statusCompleted: {
-    backgroundColor: '#d1fae5',
-  },
-  statusTextCompleted: {
-    color: '#059669',
-  },
-  statusCancelled: {
-    backgroundColor: '#f3f4f6',
-  },
-  statusTextCancelled: {
-    color: '#6b7280',
-  },
-  appointmentDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  clientInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  clientAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  clientDetails: {
-    flex: 1,
-  },
-  clientName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  appointmentType: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  durationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  durationText: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  appointmentActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
-  },
-  actionButtonPrimary: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  actionButtonText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  actionButtonTextPrimary: {
-    color: '#ffffff',
-  },
-  loadMoreButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 10,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  loadMoreText: {
-    fontSize: 14,
-    color: '#4b5563',
-    fontWeight: '600',
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  fabGradient: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: { fontSize: 20, fontWeight: 'bold' },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 8, color: '#333' },
-  value: { fontSize: 16, color: '#111', marginBottom: 12 },
-  subValue: { fontSize: 14, color: '#6b7280', marginBottom: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  saveButton: {
-    backgroundColor: '#000',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  saveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  dayCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 20, marginBottom: 4 },
+  selectedDay: { backgroundColor: colors.primary },
+  dayText: { ...typography.bodySmall, color: colors.textPrimary },
+  selectedDayText: { color: '#ffffff', fontWeight: '700' },
+  calDot: { width: 4, height: 4, borderRadius: 2, marginTop: 2 },
+  clearDate: { marginTop: 10, alignItems: 'center', padding: 6 },
+  clearDateText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
+  sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 10 },
+  aptCard: { backgroundColor: '#ffffff', borderRadius: borderRadius.xl, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
+  aptHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  aptTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  aptTime: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
+  aptDateBadge: { backgroundColor: colors.lightBgSecondary, paddingHorizontal: 8, paddingVertical: 3, borderRadius: borderRadius.sm },
+  aptDateText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600' },
+  statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: borderRadius.md },
+  statusPillText: { ...typography.bodyXSmall, fontWeight: '700' },
+  aptDetails: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  clientRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  clientAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.lightBgSecondary, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  clientName: { ...typography.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+  aptType: { ...typography.bodySmall, color: colors.textSecondary },
+  durationBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.lightBgSecondary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: borderRadius.md },
+  durationText: { ...typography.bodyXSmall, color: colors.textTertiary, fontWeight: '600' },
+  aptFooter: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.borderLight },
+  aptPrice: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
+  aptPayment: { ...typography.bodyXSmall, color: colors.textTertiary, textTransform: 'uppercase', fontWeight: '600' },
+  aptActions: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  manageBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: borderRadius.md, backgroundColor: '#0f172a' },
+  manageBtnText: { ...typography.bodySmall, color: '#ffffff', fontWeight: '600' },
+  loadMore: { paddingVertical: 12, alignItems: 'center', marginTop: 8, backgroundColor: '#ffffff', borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border },
+  loadMoreText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
+});
+
+const modalS = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', padding: 20 },
+  content: { backgroundColor: '#ffffff', borderRadius: borderRadius.xxl, padding: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  title: { ...typography.h3, color: colors.textPrimary },
+  label: { ...typography.bodySmall, fontWeight: '600', marginBottom: 6, color: colors.textSecondary },
+  value: { ...typography.body, color: colors.textPrimary, marginBottom: 10 },
+  subValue: { ...typography.bodySmall, color: colors.textTertiary, marginBottom: 10 },
+  row: { marginBottom: 4 },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.md, padding: 12, marginBottom: 14, ...typography.body, color: colors.textPrimary },
+  saveBtn: { borderRadius: borderRadius.xl, overflow: 'hidden', marginTop: 6 },
+  saveGradient: { paddingVertical: 14, alignItems: 'center' },
+  saveBtnText: { ...typography.button, color: '#ffffff' },
 });

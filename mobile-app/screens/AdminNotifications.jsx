@@ -1,123 +1,141 @@
-﻿import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { getNotifications, markNotificationAsRead } from '../src/utils/api';
+/**
+ * AdminNotifications.jsx -- Full notifications page
+ * Mark read/unread, type-based icons, time ago display.
+ */
+
+import React, { useState, useEffect } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, RefreshControl,
+} from 'react-native';
+import {
+  ArrowLeft, Bell, CreditCard, Calendar, Info, CheckCircle, AlertTriangle,
+} from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { EmptyState } from '../src/components/shared/EmptyState';
+import { getNotifications, markNotificationAsRead } from '../src/utils/api';
 
 const timeAgo = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
-  const now = new Date();
-  const seconds = Math.round((now - date) / 1000);
-  const minutes = Math.round(seconds / 60);
-  const hours = Math.round(minutes / 60);
-  const days = Math.round(hours / 24);
-
+  const seconds = Math.round((Date.now() - new Date(dateString).getTime()) / 1000);
   if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
-  return `${days}d ago`;
+  return `${Math.round(hours / 24)}d ago`;
+};
+
+const getNotifConfig = (type) => {
+  switch (type) {
+    case 'payment_success': return { Icon: CreditCard, color: colors.success, bg: colors.successBg };
+    case 'appointment_request': return { Icon: Calendar, color: colors.info, bg: colors.infoBg };
+    case 'appointment_confirmed': return { Icon: CheckCircle, color: colors.success, bg: colors.successBg };
+    case 'appointment_cancelled': return { Icon: AlertTriangle, color: colors.error, bg: colors.errorBg };
+    default: return { Icon: Info, color: colors.iconPurple, bg: colors.iconPurpleBg };
+  }
 };
 
 export const AdminNotifications = ({ navigation }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadNotifications();
-  }, []);
-
   const loadNotifications = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const userStr = await AsyncStorage.getItem('user');
+      const userStr = await AsyncStorage.getItem('user_session');
       const userId = userStr ? JSON.parse(userStr).id : 1;
-      
       const result = await getNotifications(userId, { limit: 50 });
       if (result.success) {
         setNotifications(result.notifications || []);
       }
     } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+      console.error('Error loading notifications:', err);
     }
+    setLoading(false);
   };
+
+  useEffect(() => { loadNotifications(); }, []);
 
   const handlePress = async (notif) => {
     if (!notif.is_read) {
       await markNotificationAsRead(notif.id);
-      setNotifications(notifications.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
-    }
-    // If it's a payment success, nav to billing/pos
-    if (notif.type === 'payment_success' || notif.path === '/admin/billing') {
-        // Just mock nav to Dashboard if Billing is missing, or do nothing gracefully
-        // navigation.navigate('AdminPOS');
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
     }
   };
 
-  const getNotifStyle = (type) => {
-    switch(type) {
-      case 'payment_success': return { icon: 'cash', color: '#10b981', bg: 'rgba(16, 185, 129, 0.2)' };
-      case 'appointment_request': return { icon: 'calendar', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.2)' };
-      default: return { icon: 'information-circle', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.2)' };
-    }
-  };
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-  <View style={styles.container}>
-    <View style={styles.header}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={24} color="white" />
-      </TouchableOpacity>
-      <View style={styles.headerTitleContainer}>
-        <Ionicons name="notifications" size={24} color="#f59e0b" style={{ marginRight: 10 }} />
-        <Text style={styles.headerTitle}>Notifications</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation?.goBack?.()} style={styles.backBtn}>
+          <ArrowLeft size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerTitle}>Notifications</Text>
+          {unreadCount > 0 && <Text style={styles.headerSub}>{unreadCount} unread</Text>}
+        </View>
       </View>
-    </View>
-    <ScrollView contentContainerStyle={styles.content}>
-      {loading ? (
-        <ActivityIndicator size="large" color="#f59e0b" style={{ marginTop: 50 }} />
-      ) : notifications.length === 0 ? (
-        <Text style={{ color: '#6b7280', textAlign: 'center', marginTop: 50 }}>No new notifications.</Text>
-      ) : (
-        notifications.map(notif => {
-          const style = getNotifStyle(notif.type);
-          return (
-            <TouchableOpacity key={notif.id} style={[styles.card, !notif.is_read && { borderLeftWidth: 4, borderLeftColor: style.color }]} onPress={() => handlePress(notif)}>
-              <View style={[styles.iconContainer, { backgroundColor: style.bg }]}>
-                <Ionicons name={style.icon} size={24} color={style.color} />
-              </View>
-              <View style={styles.cardContent}>
-                <View style={styles.cardHeader}>
-                  <Text style={[styles.cardTitle, !notif.is_read && { fontWeight: '900', color: '#f59e0b' }]}>{notif.title}</Text>
-                  <Text style={styles.cardTime}>{timeAgo(notif.created_at)}</Text>
-                </View>
-                <Text style={styles.cardMessage}>{notif.message}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })
+
+      {loading ? <PremiumLoader message="Loading notifications..." /> : (
+        <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={loading} onRefresh={loadNotifications} tintColor={colors.primary} />}>
+          {notifications.length === 0 ? (
+            <EmptyState icon={Bell} title="No notifications" subtitle="You're all caught up" />
+          ) : (
+            notifications.map(notif => {
+              const config = getNotifConfig(notif.type);
+              return (
+                <TouchableOpacity
+                  key={notif.id}
+                  style={[styles.card, !notif.is_read && styles.cardUnread]}
+                  onPress={() => handlePress(notif)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.iconWrap, { backgroundColor: config.bg }]}>
+                    <config.Icon size={20} color={config.color} />
+                  </View>
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardTop}>
+                      <Text style={[styles.cardTitle, !notif.is_read && styles.cardTitleUnread]} numberOfLines={1}>{notif.title}</Text>
+                      <Text style={styles.cardTime}>{timeAgo(notif.created_at)}</Text>
+                    </View>
+                    <Text style={styles.cardMessage} numberOfLines={2}>{notif.message}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+          <View style={{ height: 30 }} />
+        </ScrollView>
       )}
-    </ScrollView>
-  </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  backButton: { padding: 8, marginRight: 8 },
-  headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-  content: { padding: 20 },
-  card: { flexDirection: 'row', backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 12 },
-  iconContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
+    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  backBtn: { padding: 4 },
+  headerInfo: { flex: 1 },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  headerSub: { ...typography.bodyXSmall, color: colors.primary, fontWeight: '600', marginTop: 2 },
+  scrollContent: { padding: 16 },
+  card: {
+    flexDirection: 'row', backgroundColor: '#ffffff', padding: 14,
+    borderRadius: borderRadius.xl, marginBottom: 8, borderWidth: 1, borderColor: colors.border,
+  },
+  cardUnread: { borderLeftWidth: 3, borderLeftColor: colors.primary, backgroundColor: 'rgba(190,144,85,0.04)' },
+  iconWrap: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   cardContent: { flex: 1 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  cardTitle: { color: '#111827', fontSize: 16, fontWeight: 'bold' },
-  cardTime: { color: '#6b7280', fontSize: 12 },
-  cardMessage: { color: '#4b5563', fontSize: 14, lineHeight: 20 },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  cardTitle: { ...typography.body, fontWeight: '600', color: colors.textPrimary, flex: 1, marginRight: 8 },
+  cardTitleUnread: { fontWeight: '800', color: colors.primary },
+  cardTime: { ...typography.bodyXSmall, color: colors.textTertiary },
+  cardMessage: { ...typography.bodySmall, color: colors.textSecondary, lineHeight: 20 },
 });
-
-

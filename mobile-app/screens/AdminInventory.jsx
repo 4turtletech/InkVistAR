@@ -1,255 +1,453 @@
-﻿import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, SafeAreaView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { getAdminInventory, createAdminInventory, updateAdminInventory, deleteAdminInventory } from '../src/utils/api';
+/**
+ * AdminInventory.jsx -- Full Inventory CRUD
+ * 1:1 parity with web's AdminInventory.js
+ * Features: Stock CRUD, low-stock alerts, search, filter, add/edit modal, stock transactions
+ */
+
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput,
+  Alert, Modal, ScrollView, SafeAreaView, RefreshControl, KeyboardAvoidingView, Platform,
+} from 'react-native';
+import {
+  Search, Plus, Pencil, Trash2, X, Package, AlertTriangle,
+  TrendingDown, TrendingUp, Archive, ChevronLeft, ChevronRight,
+} from 'lucide-react-native';
+import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { EmptyState } from '../src/components/shared/EmptyState';
+import { ConfirmModal } from '../src/components/shared/ConfirmModal';
+import { formatCurrency } from '../src/utils/formatters';
+import {
+  getAdminInventory, createAdminInventory, updateAdminInventory,
+  deleteAdminInventory, fetchAPI,
+} from '../src/utils/api';
 
 export const AdminInventory = ({ navigation }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all'); // all, low, out
 
-  const [formData, setFormData] = useState({
-    name: '',
-    category: 'ink',
-    currentStock: '0',
-    unit: 'pcs',
-    cost: '0',
-    retailPrice: '0',
-    minStock: '5',
-    maxStock: '100',
+  // Modal
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [form, setForm] = useState({
+    name: '', category: 'Supplies', unit: 'pcs',
+    current_stock: '', min_stock: '', cost_per_unit: '',
   });
 
-  const loadInventory = async () => {
+  // Transaction modal
+  const [txModalVisible, setTxModalVisible] = useState(false);
+  const [txItem, setTxItem] = useState(null);
+  const [txType, setTxType] = useState('in');
+  const [txQty, setTxQty] = useState('');
+  const [txNotes, setTxNotes] = useState('');
+
+  // Delete
+  const [deleteModal, setDeleteModal] = useState({ visible: false, itemId: null, itemName: '' });
+
+  const loadData = async () => {
     setLoading(true);
     const result = await getAdminInventory();
-    if (result.success && result.data) {
-      setItems(result.data.filter(item => item.is_deleted === 0));
+    if (result.success) {
+      setItems(result.data || result.inventory || []);
     }
     setLoading(false);
   };
 
-  useEffect(() => {
-    loadInventory();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const openModal = (item = null) => {
+  const openForm = (item = null) => {
     if (item) {
-      setSelectedItem(item);
-      setFormData({
-        name: item.name,
-        category: item.category,
-        currentStock: item.current_stock.toString(),
-        unit: item.unit,
-        cost: item.cost.toString(),
-        retailPrice: (item.retail_price || 0).toString(),
-        minStock: (item.min_stock || 0).toString(),
-        maxStock: (item.max_stock || 0).toString(),
+      setEditingItem(item);
+      setForm({
+        name: item.name, category: item.category || 'Supplies',
+        unit: item.unit || 'pcs',
+        current_stock: String(item.current_stock || 0),
+        min_stock: String(item.min_stock || 0),
+        cost_per_unit: String(item.cost_per_unit || 0),
       });
     } else {
-      setSelectedItem(null);
-      setFormData({
-        name: '', category: 'ink', currentStock: '0', unit: 'pcs',
-        cost: '0', retailPrice: '0', minStock: '5', maxStock: '100',
-      });
+      setEditingItem(null);
+      setForm({ name: '', category: 'Supplies', unit: 'pcs', current_stock: '', min_stock: '', cost_per_unit: '' });
     }
     setModalVisible(true);
   };
 
   const handleSave = async () => {
-    if (!formData.name) {
-      Alert.alert('Error', 'Name is required');
+    if (!form.name?.trim()) {
+      Alert.alert('Validation Error', 'Item name is required');
       return;
     }
-    
-    setIsSaving(true);
     const payload = {
-      ...formData,
-      currentStock: Number(formData.currentStock) || 0,
-      cost: Number(formData.cost) || 0,
-      retailPrice: Number(formData.retailPrice) || 0,
-      minStock: Number(formData.minStock) || 0,
-      maxStock: Number(formData.maxStock) || 0,
+      ...form,
+      current_stock: parseInt(form.current_stock) || 0,
+      min_stock: parseInt(form.min_stock) || 0,
+      cost_per_unit: parseFloat(form.cost_per_unit) || 0,
     };
 
-    let result;
-    if (selectedItem) {
-      result = await updateAdminInventory(selectedItem.id, payload);
-    } else {
-      result = await createAdminInventory(payload);
-    }
+    const result = editingItem
+      ? await updateAdminInventory(editingItem.id, payload)
+      : await createAdminInventory(payload);
 
     if (result.success) {
-      Alert.alert('Success', 'Inventory updated successfully');
+      Alert.alert('Success', editingItem ? 'Item updated' : 'Item added');
       setModalVisible(false);
-      loadInventory();
+      loadData();
     } else {
       Alert.alert('Error', result.message || 'Failed to save');
     }
-    setIsSaving(false);
   };
 
-  const handleDelete = () => {
-    if (!selectedItem) return;
-    Alert.alert('Details', 'Are you sure you want to delete this item?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        setIsSaving(true);
-        const result = await deleteAdminInventory(selectedItem.id);
-        if (result.success) {
-          setModalVisible(false);
-          loadInventory();
-        } else {
-          Alert.alert('Error', 'Failed to delete');
-        }
-        setIsSaving(false);
-      }}
-    ]);
+  const handleDelete = async () => {
+    const result = await deleteAdminInventory(deleteModal.itemId);
+    setDeleteModal({ visible: false, itemId: null, itemName: '' });
+    if (result.success) {
+      loadData();
+    } else {
+      Alert.alert('Error', result.message || 'Failed to delete');
+    }
   };
 
-  const getStatus = (current, min) => {
-    if (current === 0) return { label: 'OUT', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.2)' };
-    if (current <= min) return { label: 'LOW', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.2)' };
-    return { label: 'GOOD', color: '#10b981', bg: 'rgba(16, 185, 129, 0.2)' };
+  const openTxModal = (item) => {
+    setTxItem(item);
+    setTxType('in');
+    setTxQty('');
+    setTxNotes('');
+    setTxModalVisible(true);
+  };
+
+  const handleTransaction = async () => {
+    if (!txQty || parseInt(txQty) <= 0) {
+      Alert.alert('Validation Error', 'Enter a valid quantity');
+      return;
+    }
+    const result = await fetchAPI(`/admin/inventory/${txItem.id}/transaction`, {
+      method: 'POST',
+      body: JSON.stringify({
+        type: txType,
+        quantity: parseInt(txQty),
+        notes: txNotes.trim(),
+      }),
+    });
+    if (result.success) {
+      Alert.alert('Success', `Stock ${txType === 'in' ? 'added' : 'deducted'} successfully`);
+      setTxModalVisible(false);
+      loadData();
+    } else {
+      Alert.alert('Error', result.message || 'Transaction failed');
+    }
+  };
+
+  // Filter
+  const filtered = items.filter(item => {
+    const matchSearch = (item.name || '').toLowerCase().includes(search.toLowerCase());
+    if (filter === 'low') return matchSearch && item.current_stock <= item.min_stock && item.current_stock > 0;
+    if (filter === 'out') return matchSearch && item.current_stock <= 0;
+    return matchSearch;
+  });
+
+  const lowStockCount = items.filter(i => i.current_stock <= i.min_stock && i.current_stock > 0).length;
+  const outOfStockCount = items.filter(i => i.current_stock <= 0).length;
+
+  const renderItem = ({ item }) => {
+    const isLow = item.current_stock <= item.min_stock && item.current_stock > 0;
+    const isOut = item.current_stock <= 0;
+    return (
+      <View style={[styles.itemCard, isOut && styles.itemCardOut, isLow && styles.itemCardLow]}>
+        <View style={styles.itemTop}>
+          <View style={styles.itemTopLeft}>
+            <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+            <Text style={styles.itemCategory}>{item.category || 'General'}</Text>
+          </View>
+          <View style={styles.stockBadge}>
+            <Text style={[
+              styles.stockText,
+              isOut ? { color: colors.error } :
+              isLow ? { color: colors.warning } :
+              { color: colors.success }
+            ]}>
+              {item.current_stock} {item.unit || 'pcs'}
+            </Text>
+            {isLow && <AlertTriangle size={14} color={colors.warning} />}
+            {isOut && <AlertTriangle size={14} color={colors.error} />}
+          </View>
+        </View>
+
+        <View style={styles.itemMeta}>
+          <Text style={styles.metaText}>Min: {item.min_stock || 0}</Text>
+          <Text style={styles.metaText}>Cost: P{formatCurrency(item.cost_per_unit || 0)}/{item.unit || 'pc'}</Text>
+        </View>
+
+        <View style={styles.itemActions}>
+          <TouchableOpacity style={styles.txBtn} onPress={() => openTxModal(item)}>
+            <TrendingUp size={14} color={colors.success} />
+            <Text style={[styles.txBtnText, { color: colors.success }]}>Stock In/Out</Text>
+          </TouchableOpacity>
+          <View style={styles.iconActions}>
+            <TouchableOpacity style={[styles.iconBtn, styles.editBtn]} onPress={() => openForm(item)}>
+              <Pencil size={14} color={colors.warning} />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.iconBtn, styles.delBtn]} onPress={() => setDeleteModal({ visible: true, itemId: item.id, itemName: item.name })}>
+              <Trash2 size={14} color={colors.error} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Ionicons name="cube" size={24} color="#ec4899" style={{ marginRight: 10 }} />
-          <Text style={styles.headerTitle}>Inventory</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => navigation?.goBack?.()} style={{ marginRight: 15 }}>
+            <ChevronLeft size={24} color="#0f172a" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>Inventory</Text>
+            <Text style={styles.headerSub}>{items.length} items total</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={() => openModal()}>
-          <Ionicons name="add" size={24} color="white" />
+        <TouchableOpacity style={styles.addBtn} onPress={() => openForm(null)}>
+          <Plus size={20} color="#ffffff" />
         </TouchableOpacity>
       </View>
 
-      {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#ec4899" />
+      {/* Alert banner */}
+      {(lowStockCount > 0 || outOfStockCount > 0) && (
+        <View style={styles.alertBanner}>
+          <AlertTriangle size={16} color={colors.warning} />
+          <Text style={styles.alertText}>
+            {lowStockCount > 0 ? `${lowStockCount} low stock` : ''}
+            {lowStockCount > 0 && outOfStockCount > 0 ? ' | ' : ''}
+            {outOfStockCount > 0 ? `${outOfStockCount} out of stock` : ''}
+          </Text>
         </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.content}>
-          {items.map(item => {
-            const status = getStatus(item.current_stock, item.min_stock);
-            return (
-              <TouchableOpacity key={item.id} style={styles.itemCard} onPress={() => openModal(item)}>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <Text style={styles.itemStock}>Stock: {item.current_stock} {item.unit} (Min: {item.min_stock})</Text>
-                  <Text style={styles.itemStock}>Cost: â‚±{item.cost}</Text>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-                  <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#6b7280" style={{marginLeft: 10}} />
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
       )}
 
-      {/* Add / Edit Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectedItem ? 'Edit Item' : 'Add Item'}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
+      {/* Search */}
+      <View style={styles.searchBar}>
+        <Search size={18} color={colors.textTertiary} />
+        <TextInput style={styles.searchInput} placeholder="Search items..." placeholderTextColor={colors.textTertiary} value={search} onChangeText={setSearch} />
+      </View>
 
-            <ScrollView style={{ maxHeight: '80%' }}>
+      {/* Filters */}
+      <View style={styles.filterRow}>
+        {[{ key: 'all', label: 'All' }, { key: 'low', label: 'Low Stock' }, { key: 'out', label: 'Out of Stock' }].map(f => (
+          <TouchableOpacity key={f.key} style={[styles.filterPill, filter === f.key && styles.filterPillActive]} onPress={() => setFilter(f.key)}>
+            <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>{f.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* List */}
+      {loading ? <PremiumLoader message="Loading inventory..." /> : (
+        <FlatList
+          data={filtered}
+          renderItem={renderItem}
+          keyExtractor={item => (item.id || Math.random()).toString()}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={<EmptyState icon={Package} title="No inventory items" subtitle="Add items to start tracking" actionLabel="Add Item" onAction={() => openForm(null)} />}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.primary} />}
+        />
+      )}
+
+      {/* Add/Edit Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{editingItem ? 'Edit Item' : 'Add New Item'}</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}><X size={22} color={colors.textSecondary} /></TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.inputLabel}>Item Name</Text>
-              <TextInput style={styles.input} value={formData.name} onChangeText={(text) => setFormData({...formData, name: text})} />
+              <TextInput style={styles.input} value={form.name} onChangeText={t => setForm({ ...form, name: t })} placeholder="e.g. Disposable Gloves" placeholderTextColor={colors.textTertiary} />
 
               <Text style={styles.inputLabel}>Category</Text>
-              <TextInput style={styles.input} value={formData.category} onChangeText={(text) => setFormData({...formData, category: text})} />
-
-              <View style={styles.row}>
-                <View style={{ flex: 1, marginRight: 5 }}>
-                  <Text style={styles.inputLabel}>Current Stock</Text>
-                  <TextInput style={styles.input} keyboardType="numeric" value={formData.currentStock} onChangeText={(text) => setFormData({...formData, currentStock: text})} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 5 }}>
-                  <Text style={styles.inputLabel}>Unit (e.g. pcs, oz)</Text>
-                  <TextInput style={styles.input} value={formData.unit} onChangeText={(text) => setFormData({...formData, unit: text})} />
-                </View>
-              </View>
-
-              <View style={styles.row}>
-                <View style={{ flex: 1, marginRight: 5 }}>
-                  <Text style={styles.inputLabel}>Cost</Text>
-                  <TextInput style={styles.input} keyboardType="numeric" value={formData.cost} onChangeText={(text) => setFormData({...formData, cost: text})} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 5 }}>
-                  <Text style={styles.inputLabel}>Retail Price</Text>
-                  <TextInput style={styles.input} keyboardType="numeric" value={formData.retailPrice} onChangeText={(text) => setFormData({...formData, retailPrice: text})} />
-                </View>
-              </View>
-
-              <View style={styles.row}>
-                <View style={{ flex: 1, marginRight: 5 }}>
-                  <Text style={styles.inputLabel}>Low Stock Alert At</Text>
-                  <TextInput style={styles.input} keyboardType="numeric" value={formData.minStock} onChangeText={(text) => setFormData({...formData, minStock: text})} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 5 }}>
-                  <Text style={styles.inputLabel}>Max Capacity</Text>
-                  <TextInput style={styles.input} keyboardType="numeric" value={formData.maxStock} onChangeText={(text) => setFormData({...formData, maxStock: text})} />
-                </View>
-              </View>
-
-              <View style={styles.actionButtons}>
-                {selectedItem && (
-                  <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} disabled={isSaving}>
-                    <Ionicons name="trash-outline" size={20} color="white" />
+              <View style={styles.typeRow}>
+                {['Supplies', 'Ink', 'Needles', 'Equipment', 'Other'].map(cat => (
+                  <TouchableOpacity key={cat} style={[styles.typeBtn, form.category === cat && styles.typeBtnActive]} onPress={() => setForm({ ...form, category: cat })}>
+                    <Text style={[styles.typeText, form.category === cat && styles.typeTextActive]}>{cat}</Text>
                   </TouchableOpacity>
-                )}
-                <TouchableOpacity style={[styles.saveBtn, selectedItem && {flex: 1}]} onPress={handleSave} disabled={isSaving}>
-                  {isSaving ? <ActivityIndicator color="white" /> : <Text style={styles.btnText}>Save Item</Text>}
+                ))}
+              </View>
+
+              <Text style={styles.inputLabel}>Unit</Text>
+              <View style={styles.typeRow}>
+                {['pcs', 'bottles', 'boxes', 'sets', 'ml', 'g'].map(u => (
+                  <TouchableOpacity key={u} style={[styles.typeBtn, form.unit === u && styles.typeBtnActive]} onPress={() => setForm({ ...form, unit: u })}>
+                    <Text style={[styles.typeText, form.unit === u && styles.typeTextActive]}>{u}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.inputLabel}>Current Stock</Text>
+              <TextInput style={styles.input} value={form.current_stock} onChangeText={t => setForm({ ...form, current_stock: t })} keyboardType="numeric" />
+
+              <Text style={styles.inputLabel}>Minimum Stock (Alert Threshold)</Text>
+              <TextInput style={styles.input} value={form.min_stock} onChangeText={t => setForm({ ...form, min_stock: t })} keyboardType="numeric" />
+
+              <Text style={styles.inputLabel}>Cost per Unit (PHP)</Text>
+              <TextInput style={styles.input} value={form.cost_per_unit} onChangeText={t => setForm({ ...form, cost_per_unit: t })} keyboardType="decimal-pad" />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                  <Text style={styles.saveBtnText}>{editingItem ? 'Update' : 'Add Item'}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Stock Transaction Modal */}
+      <Modal visible={txModalVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Stock Transaction</Text>
+              <TouchableOpacity onPress={() => setTxModalVisible(false)}><X size={22} color={colors.textSecondary} /></TouchableOpacity>
+            </View>
+            {txItem && (
+              <View style={{ padding: 4 }}>
+                <Text style={styles.txItemName}>{txItem.name}</Text>
+                <Text style={styles.txItemStock}>Current: {txItem.current_stock} {txItem.unit}</Text>
+
+                <Text style={styles.inputLabel}>Transaction Type</Text>
+                <View style={styles.typeRow}>
+                  <TouchableOpacity style={[styles.typeBtn, txType === 'in' && { backgroundColor: colors.success }]} onPress={() => setTxType('in')}>
+                    <Text style={[styles.typeText, txType === 'in' && { color: '#fff' }]}>Stock In</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.typeBtn, txType === 'out' && { backgroundColor: colors.error }]} onPress={() => setTxType('out')}>
+                    <Text style={[styles.typeText, txType === 'out' && { color: '#fff' }]}>Stock Out</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.inputLabel}>Quantity</Text>
+                <TextInput style={styles.input} value={txQty} onChangeText={setTxQty} keyboardType="numeric" placeholder="0" placeholderTextColor={colors.textTertiary} />
+
+                <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                <TextInput style={[styles.input, { height: 60 }]} value={txNotes} onChangeText={setTxNotes} multiline placeholder="Reason for transaction..." placeholderTextColor={colors.textTertiary} />
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setTxModalVisible(false)}>
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.saveBtn, txType === 'out' && { backgroundColor: colors.error }]} onPress={handleTransaction}>
+                    <Text style={styles.saveBtnText}>Submit</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Delete Confirm */}
+      <ConfirmModal
+        visible={deleteModal.visible}
+        title="Delete Item"
+        message={`Delete "${deleteModal.itemName}" from inventory?`}
+        confirmText="Delete"
+        destructive
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteModal({ visible: false, itemId: null, itemName: '' })}
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  backButton: { padding: 8 },
-  headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-  addButton: { padding: 8 },
-  content: { padding: 20 },
-  itemCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 12 },
-  itemInfo: { flex: 1 },
-  itemName: { color: '#111827', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-  itemStock: { color: '#6b7280', fontSize: 14 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 12, fontWeight: 'bold' },
-  
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#ffffff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, paddingBottom: 40 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-  inputLabel: { color: '#6b7280', marginBottom: 5, fontSize: 14 },
-  input: { backgroundColor: '#f3f4f6', color: '#111827', padding: 12, borderRadius: 8, marginBottom: 15 },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  actionButtons: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  deleteBtn: { backgroundColor: '#dc2626', padding: 15, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  saveBtn: { flex: 1, backgroundColor: '#ec4899', padding: 15, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  btnText: { color: '#111827', fontWeight: 'bold', fontSize: 16 }
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
+    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  headerSub: { ...typography.bodyXSmall, color: colors.textTertiary, marginTop: 2 },
+  addBtn: { backgroundColor: colors.primary, padding: 10, borderRadius: borderRadius.md, ...shadows.button },
+
+  // Alert
+  alertBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.warningBg, margin: 16, marginBottom: 0,
+    padding: 10, borderRadius: borderRadius.md,
+  },
+  alertText: { ...typography.bodySmall, color: colors.warning, fontWeight: '600' },
+
+  // Search
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#ffffff', margin: 16, marginBottom: 8,
+    borderRadius: borderRadius.md, paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  searchInput: { flex: 1, ...typography.body, color: colors.textPrimary },
+
+  // Filters
+  filterRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 6, marginBottom: 8, flexWrap: 'wrap' },
+  filterPill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: borderRadius.round, backgroundColor: colors.lightBgSecondary },
+  filterPillActive: { backgroundColor: colors.primary },
+  filterText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600' },
+  filterTextActive: { color: '#ffffff' },
+
+  // List
+  listContent: { paddingHorizontal: 16, paddingBottom: 24 },
+
+  // Item Card
+  itemCard: {
+    backgroundColor: '#ffffff', padding: 14, borderRadius: borderRadius.xl,
+    marginBottom: 8, borderWidth: 1, borderColor: colors.border,
+  },
+  itemCardLow: { borderLeftWidth: 3, borderLeftColor: colors.warning },
+  itemCardOut: { borderLeftWidth: 3, borderLeftColor: colors.error },
+  itemTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  itemTopLeft: { flex: 1, marginRight: 8 },
+  itemName: { ...typography.body, fontWeight: '600', color: colors.textPrimary },
+  itemCategory: { ...typography.bodyXSmall, color: colors.textTertiary, marginTop: 2 },
+  stockBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  stockText: { ...typography.body, fontWeight: '700' },
+  itemMeta: { flexDirection: 'row', gap: 16, marginTop: 8 },
+  metaText: { ...typography.bodyXSmall, color: colors.textTertiary },
+  itemActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
+  txBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 6 },
+  txBtnText: { ...typography.bodyXSmall, fontWeight: '600' },
+  iconActions: { flexDirection: 'row', gap: 6 },
+  iconBtn: { padding: 7, borderRadius: borderRadius.sm },
+  editBtn: { backgroundColor: colors.warningBg },
+  delBtn: { backgroundColor: colors.errorBg },
+
+  // Modal shared
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: 20 },
+  modalCard: { backgroundColor: '#ffffff', borderRadius: borderRadius.xxl, padding: 20, maxHeight: '80%', ...shadows.cardStrong },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { ...typography.h3, color: colors.textPrimary },
+  inputLabel: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600', marginBottom: 4, marginTop: 4 },
+  input: {
+    backgroundColor: colors.lightBgSecondary, color: colors.textPrimary,
+    padding: 12, borderRadius: borderRadius.md, marginBottom: 10,
+    ...typography.body, borderWidth: 1, borderColor: colors.border,
+  },
+  typeRow: { flexDirection: 'row', gap: 6, marginBottom: 10, flexWrap: 'wrap' },
+  typeBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: borderRadius.md, backgroundColor: colors.lightBgSecondary },
+  typeBtnActive: { backgroundColor: colors.primary },
+  typeText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '700' },
+  typeTextActive: { color: '#ffffff' },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: borderRadius.md, backgroundColor: colors.lightBgSecondary, alignItems: 'center' },
+  cancelBtnText: { ...typography.button, color: colors.textSecondary },
+  saveBtn: { flex: 1, paddingVertical: 12, borderRadius: borderRadius.md, backgroundColor: colors.primary, alignItems: 'center', ...shadows.button },
+  saveBtnText: { ...typography.button, color: '#ffffff' },
+
+  // TX modal
+  txItemName: { ...typography.h4, color: colors.textPrimary, marginBottom: 4 },
+  txItemStock: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: 12 },
 });
-
-

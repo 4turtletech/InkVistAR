@@ -1,110 +1,74 @@
+/**
+ * OTPVerification.jsx -- 6-digit OTP Entry
+ * Themed with lucide icons. Preserves countdown, verify, resend, and cancel.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { ShieldCheck } from 'lucide-react-native';
+import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { verifyOTP } from '../src/utils/api';
 
 export function OTPVerification({ email, userType, onOTPVerified, onResendOTP, onCancel, autoSend = true }) {
   const [otp, setOTP] = useState('');
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(300); // 5 minutes
+  const [countdown, setCountdown] = useState(300);
   const [canResend, setCanResend] = useState(false);
 
   const handleSendOTP = async () => {
     try {
       const result = await onResendOTP();
-      if (result && result.success) {
-        Alert.alert('OTP Sent', `Code sent to ${email}`);
-        setCountdown(300);
-        setCanResend(false);
-      } else {
-        Alert.alert('Error', result?.message || 'Failed to send OTP');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send OTP');
-    }
+      if (result && result.success) { Alert.alert('OTP Sent', `Code sent to ${email}`); setCountdown(300); setCanResend(false); }
+      else { Alert.alert('Error', result?.message || 'Failed to send OTP'); }
+    } catch (error) { Alert.alert('Error', 'Failed to send OTP'); }
   };
 
+  useEffect(() => { if (autoSend) handleSendOTP(); }, []);
+
   useEffect(() => {
-    // Send OTP automatically on mount
-    if (autoSend) {
-      handleSendOTP();
-    }
-
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          setCanResend(true);
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown(prev => { if (prev <= 1) { setCanResend(true); clearInterval(timer); return 0; } return prev - 1; });
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
   const handleVerify = async () => {
-    if (otp.length !== 6) {
-      return Alert.alert('Invalid Code', 'Please enter the 6-digit code.');
-    }
+    if (otp.length !== 6) { Alert.alert('Invalid Code', 'Please enter the 6-digit code.'); return; }
     setLoading(true);
     const result = await verifyOTP(email, otp, userType);
     setLoading(false);
-
-    if (result.success) {
-      onOTPVerified(result.user);
-    } else {
-      Alert.alert('Invalid OTP', result.message || 'The code is incorrect or has expired.');
-    }
+    result.success ? onOTPVerified(result.user) : Alert.alert('Invalid OTP', result.message || 'Code is incorrect or expired.');
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   return (
-    <LinearGradient colors={['#000000', '#1f1f1f', '#b8860b']} style={styles.container}>
+    <LinearGradient colors={['#0f172a', '#1e293b', colors.primaryDark]} style={styles.container}>
       <View style={styles.card}>
-        <Ionicons name="shield-checkmark" size={64} color="#daa520" style={styles.icon} />
+        <LinearGradient colors={['#0f172a', colors.primary]} style={styles.iconWrap}>
+          <ShieldCheck size={32} color="#ffffff" />
+        </LinearGradient>
         <Text style={styles.title}>Enter OTP</Text>
         <Text style={styles.subtitle}>for {email}</Text>
 
-        <View style={styles.otpContainer}>
-          <TextInput
-            style={styles.otpInput}
-            value={otp}
-            onChangeText={setOTP}
-            keyboardType="number-pad"
-            maxLength={6}
-          />
+        <View style={styles.otpWrap}>
+          <TextInput style={styles.otpInput} value={otp} onChangeText={setOTP} keyboardType="number-pad" maxLength={6} />
         </View>
 
-        {/* ONE TIMER */}
-        {!canResend ? (
-          <Text style={styles.timer}>
-            Resend code in {formatTime(countdown)}
-          </Text>
-        ) : null}
+        {!canResend && <Text style={styles.timer}>Resend code in {formatTime(countdown)}</Text>}
 
-        {/* VERIFY BUTTON */}
-        <TouchableOpacity style={[styles.button, (loading || otp.length !== 6) && styles.disabledButton]} onPress={handleVerify} disabled={loading || otp.length !== 6}>
-          <Text style={styles.buttonText}>
-            {loading ? 'Verifying...' : 'Verify OTP'}
-          </Text>
+        <TouchableOpacity style={[styles.button, (loading || otp.length !== 6) && styles.buttonDisabled]} onPress={handleVerify} disabled={loading || otp.length !== 6} activeOpacity={0.8}>
+          <Text style={styles.buttonText}>{loading ? 'Verifying...' : 'Verify OTP'}</Text>
         </TouchableOpacity>
 
-        {/* RESEND BUTTON */}
-        {canResend ? (
-          <TouchableOpacity onPress={handleSendOTP} style={styles.resendButton} disabled={!canResend}>
+        {canResend && (
+          <TouchableOpacity onPress={handleSendOTP} style={styles.resendBtn}>
             <Text style={styles.resendText}>Resend OTP</Text>
           </TouchableOpacity>
-        ) : null}
+        )}
 
-        <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
+        <TouchableOpacity onPress={onCancel} style={{ marginTop: 10 }}>
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
       </View>
@@ -114,53 +78,17 @@ export function OTPVerification({ email, userType, onOTPVerified, onResendOTP, o
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 20 },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 32,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  icon: { marginBottom: 20 },
-  title: { fontSize: 28, fontWeight: '700', color: '#111827', marginBottom: 8 },
-  subtitle: { fontSize: 16, color: '#6b7280', marginBottom: 32, textAlign: 'center' },
-  otpContainer: { marginBottom: 24 },
-  otpInput: {
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    width: 200,
-    height: 60,
-    fontSize: 24,
-    textAlign: 'center',
-    letterSpacing: 8,
-    fontWeight: '600',
-    borderColor: '#daa520',
-  },
-  timer: { fontSize: 14, color: '#6b7280', marginBottom: 24 },
-  button: {
-    backgroundColor: '#daa520',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-    minWidth: 200,
-    alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#b8860b', // A slightly faded gold
-  },
-  buttonText: { color: 'white', fontSize: 18, fontWeight: '600' },
-  resendButton: { padding: 12, marginTop: 8 },
-  resendText: { color: '#daa520', fontSize: 16, fontWeight: '500' },
-  cancelButton: {
-    marginTop: 10,
-  },
-  cancelText: {
-    color: '#6b7280',
-    fontSize: 14,
-  },
+  card: { backgroundColor: '#ffffff', borderRadius: borderRadius.xxl, padding: 28, alignItems: 'center', ...shadows.cardStrong },
+  iconWrap: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: 18 },
+  title: { ...typography.h1, color: colors.textPrimary, marginBottom: 6 },
+  subtitle: { ...typography.body, color: colors.textSecondary, marginBottom: 28, textAlign: 'center' },
+  otpWrap: { marginBottom: 20 },
+  otpInput: { borderWidth: 2, borderColor: colors.primary, borderRadius: borderRadius.lg, width: 200, height: 56, fontSize: 22, textAlign: 'center', letterSpacing: 8, fontWeight: '700', color: colors.textPrimary },
+  timer: { ...typography.bodySmall, color: colors.textTertiary, marginBottom: 20 },
+  button: { backgroundColor: colors.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: borderRadius.lg, minWidth: 200, alignItems: 'center' },
+  buttonDisabled: { backgroundColor: colors.primaryDark, opacity: 0.7 },
+  buttonText: { ...typography.button, color: '#ffffff', fontSize: 16 },
+  resendBtn: { padding: 12, marginTop: 6 },
+  resendText: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  cancelText: { ...typography.bodySmall, color: colors.textTertiary },
 });

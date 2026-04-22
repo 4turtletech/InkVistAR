@@ -1,6 +1,17 @@
-﻿import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, ActivityIndicator, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+/**
+ * AdminSettings.jsx -- App Settings with toggles
+ * Themed upgrade matching web's AdminSettings controls.
+ */
+
+import React, { useState, useEffect } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, SafeAreaView,
+} from 'react-native';
+import {
+  ArrowLeft, Settings, Bell, Lock, Wrench, Building2, LogOut,
+} from 'lucide-react-native';
+import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { getAdminSettings, updateAdminSettings } from '../src/utils/api';
 
 export const AdminSettings = ({ navigation }) => {
@@ -8,7 +19,7 @@ export const AdminSettings = ({ navigation }) => {
     studio_name: 'InkVistAR Studio',
     allow_registrations: true,
     maintenance_mode: false,
-    push_notifications: true
+    push_notifications: true,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -18,10 +29,7 @@ export const AdminSettings = ({ navigation }) => {
       setLoading(true);
       const res = await getAdminSettings();
       if (res.success && res.data) {
-        setSettings(prev => ({
-          ...prev,
-          ...res.data
-        }));
+        setSettings(prev => ({ ...prev, ...res.data }));
       }
       setLoading(false);
     };
@@ -29,93 +37,92 @@ export const AdminSettings = ({ navigation }) => {
   }, []);
 
   const handleToggle = async (key) => {
+    const prev = settings;
     const newVal = !settings[key];
-    const newSettings = { ...settings, [key]: newVal };
-    setSettings(newSettings);
-    
+    setSettings({ ...settings, [key]: newVal });
     setSaving(true);
     const res = await updateAdminSettings({ [key === 'allow_registrations' ? 'allowGuests' : key]: newVal });
     if (!res.success) {
-      // rever back
       Alert.alert('Error', 'Failed to update setting');
-      setSettings(settings);
+      setSettings(prev);
     }
     setSaving(false);
   };
 
-  const renderSettingItem = (icon, title, key, type = 'arrow') => (
-    <View style={styles.settingItem}>
-      <View style={styles.settingLeft}>
-        <Ionicons name={icon} size={24} color="#6b7280" style={styles.settingIcon} />
-        <Text style={styles.settingText}>{title}</Text>
-      </View>
-      {type === 'arrow' ? (
-        <Ionicons name="chevron-forward" size={20} color="#6b7280" />
-      ) : (
-        <Switch 
-           trackColor={{ false: "#f3f4f6", true: "#f59e0b" }} 
-           thumbColor="white" 
-           value={settings[key]} 
-           onValueChange={() => handleToggle(key)} 
-           disabled={saving}
-        />
-      )}
-    </View>
-  );
+  if (loading) return <View style={styles.loadingContainer}><PremiumLoader message="Loading settings..." /></View>;
 
   return (
-  <View style={styles.container}>
-    <View style={styles.header}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={24} color="white" />
-      </TouchableOpacity>
-      <View style={styles.headerTitleContainer}>
-        <Ionicons name="settings" size={24} color="#f59e0b" style={{ marginRight: 10 }} />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation?.goBack?.()} style={styles.backBtn}>
+          <ArrowLeft size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
-    </View>
-    {loading ? (
-      <ActivityIndicator size="large" color="#f59e0b" style={{marginTop: 50}} />
-    ) : (
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.sectionHeader}>General</Text>
-        <TouchableOpacity style={styles.settingItem}>
-           <View style={styles.settingLeft}>
-             <Ionicons name="business" size={24} color="#6b7280" style={styles.settingIcon} />
-             <Text style={styles.settingText}>{settings.studio_name}</Text>
-           </View>
-        </TouchableOpacity>
-        
-        <Text style={styles.sectionHeader}>App Configuration</Text>
-        {renderSettingItem('notifications', 'Push Notifications', 'push_notifications', 'switch')}
-        {renderSettingItem('lock-closed', 'Allow New Registrations', 'allow_registrations', 'switch')}
-        {renderSettingItem('construct', 'Maintenance Mode', 'maintenance_mode', 'switch')}
 
-        <Text style={styles.sectionHeader}>Account</Text>
-        <TouchableOpacity style={styles.settingItem}>
-           <View style={styles.settingLeft}>
-             <Ionicons name="log-out" size={24} color="#ef4444" style={styles.settingIcon} />
-             <Text style={[styles.settingText, {color: '#ef4444'}]}>Log Out</Text>
-           </View>
-        </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Studio Info */}
+        <Text style={styles.sectionHeader}>General</Text>
+        <View style={styles.settingCard}>
+          <View style={styles.settingLeft}>
+            <Building2 size={20} color={colors.textSecondary} />
+            <View>
+              <Text style={styles.settingTitle}>Studio Name</Text>
+              <Text style={styles.settingValue}>{settings.studio_name}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* App Config */}
+        <Text style={styles.sectionHeader}>App Configuration</Text>
+        <SettingToggle icon={Bell} title="Push Notifications" subtitle="Send alerts to mobile devices" value={settings.push_notifications} onToggle={() => handleToggle('push_notifications')} disabled={saving} />
+        <SettingToggle icon={Lock} title="Allow New Registrations" subtitle="Let new users create accounts" value={settings.allow_registrations} onToggle={() => handleToggle('allow_registrations')} disabled={saving} />
+        <SettingToggle icon={Wrench} title="Maintenance Mode" subtitle="Temporarily disable the platform" value={settings.maintenance_mode} onToggle={() => handleToggle('maintenance_mode')} disabled={saving} destructive />
       </ScrollView>
-    )}
-  </View>
+    </SafeAreaView>
   );
 };
 
+const SettingToggle = ({ icon: Icon, title, subtitle, value, onToggle, disabled, destructive }) => (
+  <View style={styles.settingCard}>
+    <View style={styles.settingLeft}>
+      <Icon size={20} color={destructive ? colors.error : colors.textSecondary} />
+      <View>
+        <Text style={[styles.settingTitle, destructive && { color: colors.error }]}>{title}</Text>
+        {subtitle && <Text style={styles.settingSub}>{subtitle}</Text>}
+      </View>
+    </View>
+    <Switch
+      trackColor={{ false: colors.lightBgSecondary, true: destructive ? colors.error : colors.primary }}
+      thumbColor="#ffffff"
+      value={value}
+      onValueChange={onToggle}
+      disabled={disabled}
+    />
+  </View>
+);
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  backButton: { padding: 8, marginRight: 8 },
-  headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-  content: { padding: 20 },
-  sectionHeader: { color: '#f59e0b', fontSize: 14, fontWeight: 'bold', marginTop: 16, marginBottom: 8, textTransform: 'uppercase' },
-  settingItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 8 },
-  settingLeft: { flexDirection: 'row', alignItems: 'center' },
-  settingIcon: { marginRight: 16 },
-  settingText: { color: '#111827', fontSize: 16 },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
+    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  backBtn: { padding: 4 },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  sectionHeader: {
+    ...typography.label, color: colors.primary, marginTop: 16, marginBottom: 8,
+  },
+  settingCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#ffffff', padding: 16, borderRadius: borderRadius.xl,
+    marginBottom: 8, borderWidth: 1, borderColor: colors.border,
+  },
+  settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginRight: 12 },
+  settingTitle: { ...typography.body, fontWeight: '600', color: colors.textPrimary },
+  settingValue: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 2 },
+  settingSub: { ...typography.bodyXSmall, color: colors.textTertiary, marginTop: 2 },
 });
-
-

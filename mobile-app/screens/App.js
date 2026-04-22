@@ -1,11 +1,19 @@
-// App.js - UPDATED WITH SIMPLE COMPONENTS
+/**
+ * screens/App.js -- Main Navigation Hub
+ * Tab bar icons migrated from Ionicons to lucide-react-native.
+ * All auth flows, tab navigators, and stack screens preserved.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Platform, View, Text, TouchableOpacity, Alert, ScrollView, TextInput, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as NavigationBar from 'expo-navigation-bar';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  Home, Images, Camera, MessageSquare, Calendar, UserRound, ShieldCheck,
+  Users, Server, ArrowLeft, Briefcase,
+} from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 // Import main screens
@@ -48,9 +56,8 @@ import { AdminNotifications } from './screens/AdminNotifications.jsx';
 import { AdminAnalytics } from './screens/AdminAnalytics.jsx';
 import { AdminSettings } from './screens/AdminSettings.jsx';
 
-// Import SIMPLE components (no dependency conflicts)
+// Import SIMPLE components
 import { SimpleARPreview } from './components/Mobile/SimpleARPreview';
-import { SimpleChatbot } from './components/Mobile/SimpleChatbot';
 import { CustomerBooking } from './screens/CustomerBooking.jsx';
 import { CustomerGallery } from './screens/CustomerGallery.jsx';
 
@@ -60,15 +67,19 @@ import { OTPVerification } from './components/OTPVerification';
 // Import API
 import { loginUser, registerUser, sendOTP, resetUserPassword, deleteArtistWork, saveAuthToken } from './src/utils/api';
 
+import { colors } from './src/theme';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// ArtistClientDetails component is now imported from a separate file
+// Tab icon map for lucide
+const CUSTOMER_TAB_ICONS = { Home, Gallery: Images, AR: Camera, Chat: MessageSquare, Appointments: Calendar, Profile: UserRound };
+const ARTIST_TAB_ICONS = { Home, Schedule: Calendar, Clients: Users, Works: Images, Profile: UserRound };
+const ADMIN_TAB_ICONS = { Dashboard: ShieldCheck, Users, Bookings: Calendar, System: Server };
 
 // Artist Appointment Details Screen
 const ArtistAppointmentDetailsScreen = ({ navigation, route }) => {
   const { appointment } = route.params || {};
-
   if (!appointment) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' }}>
@@ -83,7 +94,7 @@ const ArtistAppointmentDetailsScreen = ({ navigation, route }) => {
   return (
     <View style={{ flex: 1, backgroundColor: 'white', paddingTop: 50 }}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 20, marginBottom: 20, flexDirection: 'row', alignItems: 'center' }}>
-        <Ionicons name="arrow-back" size={24} color="#333" />
+        <ArrowLeft size={22} color="#333" />
         <Text style={{ marginLeft: 10, fontSize: 16, color: '#333' }}>Back to Schedule</Text>
       </TouchableOpacity>
       
@@ -94,32 +105,22 @@ const ArtistAppointmentDetailsScreen = ({ navigation, route }) => {
         {appointment.reference_image && (
           <View style={{ marginBottom: 20 }}>
             <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 10, color: '#111' }}>Reference Image</Text>
-            <Image 
-              source={{ uri: appointment.reference_image }} 
-              style={{ width: '100%', height: 300, borderRadius: 12, backgroundColor: '#f3f4f6' }}
-              resizeMode="contain"
-            />
+            <Image source={{ uri: appointment.reference_image }} style={{ width: '100%', height: 300, borderRadius: 12, backgroundColor: '#f3f4f6' }} resizeMode="contain" />
           </View>
         )}
 
         <View style={{ backgroundColor: '#f3f4f6', borderRadius: 12, padding: 20, marginBottom: 20 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 15, color: '#111' }}>Details</Text>
-          
-          <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: '#6b7280' }}>Date</Text>
-            <Text style={{ fontSize: 16, color: '#1f2937', fontWeight: '500' }}>{new Date(appointment.appointment_date).toLocaleDateString()}</Text>
-          </View>
-
-          <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: '#6b7280' }}>Time</Text>
-            <Text style={{ fontSize: 16, color: '#1f2937', fontWeight: '500' }}>{appointment.start_time}</Text>
-          </View>
-
-          <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: '#6b7280' }}>Status</Text>
-            <Text style={{ fontSize: 16, color: '#1f2937', fontWeight: 'bold', textTransform: 'capitalize' }}>{appointment.status}</Text>
-          </View>
-
+          {[
+            ['Date', new Date(appointment.appointment_date).toLocaleDateString()],
+            ['Time', appointment.start_time],
+            ['Status', appointment.status],
+          ].map(([label, val]) => (
+            <View key={label} style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 14, color: '#6b7280' }}>{label}</Text>
+              <Text style={{ fontSize: 16, color: '#1f2937', fontWeight: '500', textTransform: label === 'Status' ? 'capitalize' : 'none' }}>{val}</Text>
+            </View>
+          ))}
           <View>
             <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Client Notes</Text>
             <Text style={{ fontSize: 16, color: '#1f2937' }}>{appointment.notes || 'No notes provided.'}</Text>
@@ -139,72 +140,46 @@ export default function App() {
   const [loginUserType, setLoginUserType] = useState('customer');
   
   useEffect(() => {
-    console.log('👤 User state changed:', user ? `Logged in as ${user.name}` : 'Not logged in');
+    console.log('User state changed:', user ? `Logged in as ${user.name}` : 'Not logged in');
   }, [user]);
   
   const hideNavigationBar = () => {
-    // Re-hides the navigation bar when the user interacts with the app
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync("hidden");
     }
   };
   
   useEffect(() => {
-    console.log('🚀 App starting - ensuring clean state');
+    console.log('App starting - ensuring clean state');
     setUser(null);
-
-    // Hide Android system navigation bar to prevent blocking bottom tabs
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync("hidden");
       NavigationBar.setBehaviorAsync("overlay-swipe");
     }
-  }, []); // This effect runs only once on mount
+  }, []);
 
   const handleResendVerification = async (email) => {
     try {
-      // Determine API URL (Android Emulator uses 10.0.2.2, iOS/Web uses localhost)
       const baseUrl = Platform.OS === 'android' ? 'http://10.0.2.2:3001' : 'http://localhost:3001';
-      
       const response = await fetch(`${baseUrl}/api/resend-verification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email })
       });
-      
       const result = await response.json();
-      if (result.success) {
-        Alert.alert('Success', result.message);
-      } else {
-        Alert.alert('Error', result.message || 'Failed to resend link');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Could not connect to server');
-    }
+      result.success ? Alert.alert('Success', result.message) : Alert.alert('Error', result.message || 'Failed to resend link');
+    } catch (error) { Alert.alert('Error', 'Could not connect to server'); }
   };
 
   const handleLogin = async (email, password, userType) => {
-    console.log('🔐 REAL LOGIN ATTEMPT with:', { email, userType });
-    
     const result = await loginUser(email, password, userType);
-    console.log('🔐 API RESPONSE:', result);
-    
     if (result && result.success === true && result.user && result.user.name) {
-      console.log(`✅ Login successful for ${result.user.email}`);
-      if (result.token) {
-        await saveAuthToken(result.token);
-      }
+      if (result.token) await saveAuthToken(result.token);
       setUser(result.user);
     } else {
-      console.log('❌ INVALID login - NOT setting user');
       if (result?.requireVerification) {
-        Alert.alert(
-          'Verification Required',
-          result.message,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Resend Link', onPress: () => handleResendVerification(email) }
-          ]
-        );
+        Alert.alert('Verification Required', result.message, [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Resend Link', onPress: () => handleResendVerification(email) }
+        ]);
       } else {
         alert('Login failed: ' + (result?.message || 'Invalid credentials'));
       }
@@ -215,57 +190,27 @@ export default function App() {
   const handleForgotPassword = async (email, type) => {
     const selectedType = type || 'customer';
     const result = await sendOTP(email, selectedType);
-    
     if (result.success) {
-      setLoginEmail(email);
-      setLoginUserType(selectedType);
-      setIsResetMode(true);
-      setShowOTP(true);
-    } else {
-      alert(result.message || 'Failed to send OTP. Account may not exist.');
-    }
+      setLoginEmail(email); setLoginUserType(selectedType); setIsResetMode(true); setShowOTP(true);
+    } else { alert(result.message || 'Failed to send OTP.'); }
   };
 
   const handleOTPVerified = (verifiedUser) => {
-    console.log('✅ OTP Verified for user:', verifiedUser);
-    if (isResetMode) {
-      setShowOTP(false);
-      setShowResetPassword(true);
-    } else {
-      setUser(verifiedUser);
-      setShowOTP(false);
-    }
+    if (isResetMode) { setShowOTP(false); setShowResetPassword(true); }
+    else { setUser(verifiedUser); setShowOTP(false); }
   };
 
   const handlePasswordReset = async (newPassword) => {
     const result = await resetUserPassword(loginEmail, newPassword);
-    if (result.success) {
-      alert('Password updated successfully! Please login.');
-      setShowResetPassword(false);
-      setIsResetMode(false);
-      // Navigate back to login implicitly by clearing states
-    } else {
-      alert('Failed to update password: ' + result.message);
-    }
+    if (result.success) { alert('Password updated successfully! Please login.'); setShowResetPassword(false); setIsResetMode(false); }
+    else { alert('Failed to update password: ' + result.message); }
   };
 
   const handleRegister = async (name, email, password, phone, userType, navigation) => {
-    console.log('📝 Register attempt:', { name, email, phone, userType });
-    
     const registerResult = await registerUser(name, email, password, userType, phone);
-    console.log('📝 Register result:', registerResult);
-    
     if (registerResult.success && registerResult.message) {
-      // Use the server's message, which is more accurate (e.g., "check your email")
-      if (navigation) {
-        navigation.navigate('login', { 
-          prefillEmail: email,
-          message: registerResult.message
-        });
-      }
-    } else {
-      alert('Registration failed: ' + (registerResult.message || 'Please try again'));
-    }
+      if (navigation) navigation.navigate('login', { prefillEmail: email, message: registerResult.message });
+    } else { alert('Registration failed: ' + (registerResult.message || 'Please try again')); }
     return registerResult;
   };
 
@@ -274,24 +219,12 @@ export default function App() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: { 
-          backgroundColor: '#ffffff', 
-          borderTopColor: '#e5e7eb',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8
-        },
-        tabBarActiveTintColor: '#daa520',
+        tabBarStyle: { backgroundColor: '#ffffff', borderTopColor: '#e5e7eb', height: 60, paddingBottom: 8, paddingTop: 8 },
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: '#9ca3af',
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Gallery') iconName = focused ? 'images' : 'images-outline';
-          else if (route.name === 'AR') iconName = focused ? 'camera' : 'camera-outline';
-          else if (route.name === 'Chat') iconName = focused ? 'chatbubble' : 'chatbubble-outline';
-          else if (route.name === 'Appointments') iconName = focused ? 'calendar' : 'calendar-outline';
-          else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
-          return <Ionicons name={iconName} size={24} color={color} />;
+        tabBarIcon: ({ color, size }) => {
+          const Icon = CUSTOMER_TAB_ICONS[route.name];
+          return Icon ? <Icon size={22} color={color} /> : null;
         },
       })}
     >
@@ -305,7 +238,7 @@ export default function App() {
         {(props) => <SimpleARPreview {...props} selectedDesign={{ name: 'Sample', type: 'Preview' }} onBack={() => props.navigation.navigate('Home')} />}
       </Tab.Screen>
       <Tab.Screen name="Chat">
-        {(props) => <SimpleChatbot {...props} onBack={() => props.navigation.navigate('Home')} />}
+        {(props) => <CustomerChatbotPage {...props} userId={user.id} userName={user.name} onBack={() => props.navigation.navigate('Home')} />}
       </Tab.Screen>
       <Tab.Screen name="Appointments">
         {(props) => <CustomerAppointments {...props} customerId={user.id} onBack={() => props.navigation.navigate('Home')} onBookNew={() => props.navigation.navigate('booking-create')} />}
@@ -321,22 +254,12 @@ export default function App() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: { 
-          backgroundColor: '#1f2937', // Dark theme for admin
-          borderTopColor: '#374151',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8
-        },
-        tabBarActiveTintColor: '#f59e0b', // Amber
+        tabBarStyle: { backgroundColor: '#1f2937', borderTopColor: '#374151', height: 60, paddingBottom: 8, paddingTop: 8 },
+        tabBarActiveTintColor: '#f59e0b',
         tabBarInactiveTintColor: '#9ca3af',
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Dashboard') iconName = focused ? 'shield' : 'shield-outline';
-          else if (route.name === 'Users') iconName = focused ? 'people' : 'people-outline';
-          else if (route.name === 'Bookings') iconName = focused ? 'calendar' : 'calendar-outline';
-          else if (route.name === 'System') iconName = focused ? 'server' : 'server-outline';
-          return <Ionicons name={iconName} size={24} color={color} />;
+        tabBarIcon: ({ color, size }) => {
+          const Icon = ADMIN_TAB_ICONS[route.name];
+          return Icon ? <Icon size={22} color={color} /> : null;
         },
       })}
     >
@@ -354,23 +277,12 @@ export default function App() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: { 
-          backgroundColor: '#ffffff', 
-          borderTopColor: '#e5e7eb',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8
-        },
-        tabBarActiveTintColor: '#daa520',
+        tabBarStyle: { backgroundColor: '#ffffff', borderTopColor: '#e5e7eb', height: 60, paddingBottom: 8, paddingTop: 8 },
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: '#9ca3af',
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Schedule') iconName = focused ? 'calendar' : 'calendar-outline';
-          else if (route.name === 'Clients') iconName = focused ? 'people' : 'people-outline';
-          else if (route.name === 'Works') iconName = focused ? 'images' : 'images-outline';
-          else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
-          return <Ionicons name={iconName} size={24} color={color} />;
+        tabBarIcon: ({ color, size }) => {
+          const Icon = ARTIST_TAB_ICONS[route.name];
+          return Icon ? <Icon size={22} color={color} /> : null;
         },
       })}
     >
@@ -397,12 +309,9 @@ export default function App() {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {user ? (
-            // LOGGED IN (User is set)
             user.type === 'admin' ? (
-              // ADMIN Screens
               <>
               <Stack.Screen name="admin-main" component={AdminTabs} />
-              
               <Stack.Screen name="admin-services" component={AdminServices} />
               <Stack.Screen name="admin-staff" component={AdminStaffScheduling} />
               <Stack.Screen name="admin-inventory" component={AdminInventory} />
@@ -411,184 +320,84 @@ export default function App() {
               <Stack.Screen name="admin-analytics" component={AdminAnalytics} />
               <Stack.Screen name="admin-settings" component={AdminSettings} />
               </>
-            
             ) : user.type === 'artist' ? (
-             // ARTIST Screens
               <>
-                {/* Main Tab Navigator for Artist */}
                 <Stack.Screen name="artist-main" component={ArtistTabs} />
-                
-                {/* Stack screens that sit on top of tabs */}
                 <Stack.Screen name="artist-earnings">
-                  {(props) => (
-                    <ArtistEarnings
-                      {...props}
-                      artistId={user.id}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                  {(props) => <ArtistEarnings {...props} artistId={user.id} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="artist-notifications">
-                  {(props) => (
-                    <ArtistNotifications
-                      {...props}
-                      userId={user.id}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                  {(props) => <ArtistNotifications {...props} userId={user.id} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="artist-client-details">
-                  {(props) => (
-                    <ArtistClientDetails
-                      {...props}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                  {(props) => <ArtistClientDetails {...props} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="artist-appointment-details" component={ArtistAppointmentDetailsScreen} />
-
                 <Stack.Screen name="artist-active-session">
                   {(props) => (
                     <ArtistActiveSession
                       {...props}
                       appointment={props.route.params.appointment}
                       onBack={() => props.navigation.goBack()}
-                      onComplete={() => {
-                        props.navigation.goBack();
-                        // Optional: trigger refresh in schedule if needed
-                      }}
+                      onComplete={() => props.navigation.goBack()}
                     />
                   )}
                 </Stack.Screen>
-
                 <Stack.Screen name="artist-work-details">
                   {(props) => (
                     <View style={{flex:1, backgroundColor:'white', justifyContent:'center', alignItems:'center'}}>
                       <Text>Work Details (Coming Soon)</Text>
-                      
-                      {/* TEMPORARY TEST BUTTON FOR SOFT DELETE */}
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={{marginTop: 20, padding: 10, backgroundColor: 'red'}}
                         onPress={() => deleteArtistWork('test-id-123')}
                       >
                         <Text style={{color: 'white'}}>TEST SOFT DELETE</Text>
                       </TouchableOpacity>
-
                       <TouchableOpacity onPress={() => props.navigation.goBack()}><Text>Back</Text></TouchableOpacity>
                     </View>
                   )}
                 </Stack.Screen>
               </>
             ) : (
-              // CUSTOMER Screens
               <>
-                {/* Main Tab Navigator for Customer */}
                 <Stack.Screen name="customer-main" component={CustomerTabs} />
-
-                {/* Stack screens that sit on top of tabs */}
                 <Stack.Screen name="chatbot-enhanced">
-                  {(props) => (
-                    <SimpleChatbot
-                      {...props}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                  {(props) => <CustomerChatbotPage {...props} userId={user.id} userName={user.name} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="customer-notifications">
-                  {(props) => (
-                    <ArtistNotifications
-                      {...props}
-                      userId={user.id}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                  {(props) => <ArtistNotifications {...props} userId={user.id} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="customer-artists">
-                  {(props) => (
-                    <CustomerArtistDirectory
-                      {...props}
-                      onBack={() => props.navigation.goBack()}
-                      onNavigate={props.navigation.navigate}
-                    />
-                  )}
+                  {(props) => <CustomerArtistDirectory {...props} onBack={() => props.navigation.goBack()} onNavigate={props.navigation.navigate} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="CustomerArtistProfile">
-                  {(props) => (
-                    <CustomerArtistProfile
-                      {...props}
-                      onBack={() => props.navigation.goBack()}
-                      onNavigate={props.navigation.navigate}
-                    />
-                  )}
+                  {(props) => <CustomerArtistProfile {...props} onBack={() => props.navigation.goBack()} onNavigate={props.navigation.navigate} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="booking-create">
-                  {(props) => (
-                    <CustomerBooking
-                      {...props}
-                      customerId={user.id}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                  {(props) => <CustomerBooking {...props} customerId={user.id} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
               </>
             )
           ) : showOTP ? (
-            // OTP SCREEN
             <Stack.Screen name="otp">
               {(props) => (
-                <OTPVerification
-                  {...props}
-                  email={loginEmail}
-                  userType={loginUserType}
-                  onOTPVerified={handleOTPVerified}
-                  onResendOTP={() => sendOTP(loginEmail, loginUserType)}
-                  onCancel={() => setShowOTP(false)}
-                  autoSend={false}
-                />
+                <OTPVerification {...props} email={loginEmail} userType={loginUserType} onOTPVerified={handleOTPVerified} onResendOTP={() => sendOTP(loginEmail, loginUserType)} onCancel={() => setShowOTP(false)} autoSend={false} />
               )}
             </Stack.Screen>
           ) : showResetPassword ? (
-            // RESET PASSWORD SCREEN
             <Stack.Screen name="reset-password">
-              {(props) => (
-                <ResetPasswordPage 
-                  email={loginEmail}
-                  onSubmit={handlePasswordReset}
-                />
-              )}
+              {(props) => <ResetPasswordPage email={loginEmail} onSubmit={handlePasswordReset} />}
             </Stack.Screen>
           ) : (
-            // Authentication screens
             <>
               <Stack.Screen name="login">
                 {(props) => (
-                  <LoginPage
-                    {...props}
-                    onLogin={(email, password, userType) => 
-                      handleLogin(email, password, userType, props.navigation)
-                    }
-                    onForgotPassword={handleForgotPassword}
-                    onSwitchToRegister={() => props.navigation.navigate('register')}
-                  />
+                  <LoginPage {...props} onLogin={(email, password, userType) => handleLogin(email, password, userType, props.navigation)} onForgotPassword={handleForgotPassword} onSwitchToRegister={() => props.navigation.navigate('register')} />
                 )}
               </Stack.Screen>
-
               <Stack.Screen name="register">
                 {(props) => (
-                  <RegisterPage
-                    {...props}
-                    onRegister={(name, email, password, phone, userType) => 
-                      handleRegister(name, email, password, phone, userType, props.navigation)
-                    }
-                    onSwitchToLogin={() => props.navigation.navigate('login')}
-                  />
+                  <RegisterPage {...props} onRegister={(name, email, password, phone, userType) => handleRegister(name, email, password, phone, userType, props.navigation)} onSwitchToLogin={() => props.navigation.navigate('login')} />
                 )}
               </Stack.Screen>
             </>

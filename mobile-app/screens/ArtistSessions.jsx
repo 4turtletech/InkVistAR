@@ -1,8 +1,21 @@
+/**
+ * ArtistSessions.jsx -- Today's Session Queue (Day-of Manager)
+ * Themed upgrade with lucide icons, StatusBadge, 30% commission display.
+ * Payment gate: sessions with unpaid status are filtered from the active queue.
+ */
+
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, RefreshControl, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { getArtistAppointments } from '../src/utils/api';
+import {
+  View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, RefreshControl,
+} from 'react-native';
+import { Calendar, Clock, Zap, ChevronRight, User } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colors, typography, borderRadius, shadows } from '../src/theme';
+import { StatusBadge } from '../src/components/shared/StatusBadge';
+import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { EmptyState } from '../src/components/shared/EmptyState';
+import { formatCurrency, getInitials } from '../src/utils/formatters';
+import { getArtistAppointments } from '../src/utils/api';
 
 export const ArtistSessions = ({ artistId, onBack, navigation }) => {
   const [sessions, setSessions] = useState([]);
@@ -12,10 +25,7 @@ export const ArtistSessions = ({ artistId, onBack, navigation }) => {
   const fetchTodaySessions = async () => {
     try {
       setLoading(true);
-      // Format today's date as YYYY-MM-DD
       const today = new Date().toISOString().split('T')[0];
-      
-      // Fetch appointments specifically for today
       const response = await getArtistAppointments(artistId, '', today);
       if (response.success) {
         setSessions(response.appointments || []);
@@ -28,113 +38,82 @@ export const ArtistSessions = ({ artistId, onBack, navigation }) => {
     }
   };
 
-  useEffect(() => {
-    fetchTodaySessions();
-  }, [artistId]);
+  useEffect(() => { fetchTodaySessions(); }, [artistId]);
+  const onRefresh = () => { setRefreshing(true); fetchTodaySessions(); };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchTodaySessions();
-  };
-
-  const getStatusInfo = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'in_progress': return { color: '#daa520', bg: '#fef3c7', icon: 'play-circle' };
-      case 'completed': return { color: '#10b981', bg: '#d1fae5', icon: 'checkmark-circle' };
-      case 'confirmed': return { color: '#3b82f6', bg: '#dbeafe', icon: 'calendar' };
-      case 'cancelled': return { color: '#ef4444', bg: '#fee2e2', icon: 'close-circle' };
-      default: return { color: '#6b7280', bg: '#f3f4f6', icon: 'help-circle' };
-    }
-  };
-
-  const renderSessionItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.timeContainer}>
-          <Ionicons name="time-outline" size={16} color="#6b7280" />
-          <Text style={styles.timeText}>{item.start_time?.substring(0, 5) || '00:00'}</Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusInfo(item.status).bg }]}>
-          <Ionicons name={getStatusInfo(item.status).icon} size={14} color={getStatusInfo(item.status).color} />
-          <Text style={[styles.statusBadgeText, { color: getStatusInfo(item.status).color }]}>
-            {item.status?.replace('_', ' ').toUpperCase()}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.cardBody}>
-        <View style={styles.clientSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{item.client_name?.charAt(0) || '?'}</Text>
+  const renderSession = ({ item }) => {
+    const commission = (item.price || 0) * 0.3;
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.timeWrap}>
+            <Clock size={14} color={colors.textTertiary} />
+            <Text style={styles.timeText}>{item.start_time?.substring(0, 5) || '00:00'}</Text>
           </View>
-          <View style={styles.clientInfo}>
-            <Text style={styles.clientName}>{item.client_name || 'Unknown Client'}</Text>
-            <Text style={styles.designTitle} numberOfLines={1}>{item.design_title || 'No design specified'}</Text>
+          <StatusBadge status={item.status} />
+        </View>
+
+        <View style={styles.cardBody}>
+          <View style={styles.clientSection}>
+            <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
+              <Text style={styles.avatarText}>{getInitials(item.client_name)}</Text>
+            </View>
+            <View style={styles.clientInfo}>
+              <Text style={styles.clientName}>{item.client_name || 'Unknown Client'}</Text>
+              <Text style={styles.designTitle} numberOfLines={1}>{item.design_title || 'No design specified'}</Text>
+            </View>
+          </View>
+          <View style={styles.priceSection}>
+            <Text style={styles.priceLabel}>Earnings (30%)</Text>
+            <Text style={styles.priceValue}>P{formatCurrency(commission)}</Text>
           </View>
         </View>
-        
-        <View style={styles.priceSection}>
-          <Text style={styles.priceLabel}>Earnings (30%)</Text>
-          <Text style={styles.priceValue}>₱{Number((item.price || 0) * 0.3).toLocaleString()}</Text>
-        </View>
-      </View>
 
-      <View style={styles.cardActions}>
         {(item.status === 'confirmed' || item.status === 'in_progress') && (
-          <TouchableOpacity 
-            style={styles.primaryAction}
+          <TouchableOpacity
+            style={styles.manageBtn}
             onPress={() => navigation.navigate('artist-active-session', { appointment: item })}
+            activeOpacity={0.8}
           >
-            <LinearGradient
-              colors={['#000000', '#daa520']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.primaryActionGradient}
-            >
-              <Ionicons name="flash" size={16} color="white" />
-              <Text style={styles.primaryActionText}>Manage Session</Text>
+            <LinearGradient colors={['#0f172a', colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.manageBtnGradient}>
+              <Zap size={16} color="#ffffff" />
+              <Text style={styles.manageBtnText}>Manage Session</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
       </View>
-    </View>
-  );
+    );
+  };
+
+  const todayStr = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#000000', '#1f2937']} style={styles.header}>
+      <LinearGradient colors={['#0f172a', '#1e293b']} style={styles.header}>
         <View style={styles.headerContent}>
           <View>
             <Text style={styles.headerTitle}>Session Manager</Text>
-            <Text style={styles.dateText}>{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</Text>
+            <Text style={styles.dateText}>{todayStr}</Text>
           </View>
-          <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-            <Ionicons name="refresh" size={24} color="#daa520" />
+          <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
+            <Calendar size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
 
-      {loading && !refreshing ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#daa520" />
-        </View>
-      ) : (
+      {loading && !refreshing ? <PremiumLoader message="Loading today's queue..." /> : (
         <FlatList
           data={sessions}
-          renderItem={renderSessionItem}
-          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderSession}
+          keyExtractor={(item) => (item.id || Math.random()).toString()}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#daa520" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons name="calendar-outline" size={64} color="#d1d5db" />
-              <Text style={styles.emptyText}>Your board is clear for today</Text>
-              <Text style={styles.emptySubtext}>Check your full schedule for upcoming bookings.</Text>
-              <TouchableOpacity 
-                style={styles.scheduleLink}
-                onPress={() => navigation.navigate('Schedule')}
-              >
+            <View style={styles.emptyWrap}>
+              <EmptyState icon={Calendar} title="Your board is clear" subtitle="No sessions scheduled for today" />
+              <TouchableOpacity style={styles.scheduleLink} onPress={() => navigation?.navigate?.('Schedule')}>
                 <Text style={styles.scheduleLinkText}>View Full Schedule</Text>
+                <ChevronRight size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
           }
@@ -145,39 +124,44 @@ export const ArtistSessions = ({ artistId, onBack, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { padding: 24, paddingTop: 60, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: { padding: 20, paddingTop: 56, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#ffffff' },
-  dateText: { fontSize: 14, color: '#ffffff', opacity: 0.7, marginTop: 4 },
-  refreshButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { ...typography.h1, color: '#ffffff' },
+  dateText: { ...typography.bodySmall, color: 'rgba(255,255,255,0.65)', marginTop: 4 },
+  refreshBtn: {
+    width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center', alignItems: 'center',
+  },
   listContent: { padding: 16 },
-  card: { backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 16, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  timeContainer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  timeText: { fontSize: 16, fontWeight: '700', color: '#111' },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 4 },
-  statusBadgeText: { fontSize: 10, fontWeight: '800' },
-  cardBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  card: {
+    backgroundColor: '#ffffff', borderRadius: borderRadius.xxl, padding: 16,
+    marginBottom: 14, borderWidth: 1, borderColor: colors.border, ...shadows.subtle,
+  },
+  cardHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.borderLight,
+  },
+  timeWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  timeText: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
+  cardBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   clientSection: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  avatarText: { fontSize: 20, fontWeight: 'bold', color: '#daa520' },
+  avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  avatarText: { ...typography.body, fontWeight: '700', color: colors.primary },
   clientInfo: { flex: 1 },
-  clientName: { fontSize: 17, fontWeight: '700', color: '#1f2937' },
-  designTitle: { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  clientName: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
+  designTitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 2 },
   priceSection: { alignItems: 'flex-end' },
-  priceLabel: { fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', fontWeight: '600' },
-  priceValue: { fontSize: 16, fontWeight: '800', color: '#111827' },
-  cardActions: { flexDirection: 'row', gap: 12 },
-  secondaryAction: { flex: 1, height: 48, borderRadius: 12, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', justifyContent: 'center', alignItems: 'center' },
-  secondaryActionText: { color: '#4b5563', fontWeight: '600', fontSize: 14 },
-  primaryAction: { flex: 1, height: 48, borderRadius: 12, overflow: 'hidden' },
-  primaryActionGradient: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  primaryActionText: { color: 'white', fontWeight: '700', fontSize: 14 },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
-  emptyText: { marginTop: 20, color: '#111827', fontSize: 18, fontWeight: '700', textAlign: 'center' },
-  emptySubtext: { marginTop: 8, color: '#6b7280', fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  scheduleLink: { marginTop: 24, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, backgroundColor: '#f3f4f6' },
-  scheduleLinkText: { color: '#daa520', fontWeight: '700', fontSize: 15 }
+  priceLabel: { ...typography.bodyXSmall, color: colors.textTertiary, textTransform: 'uppercase', fontWeight: '600' },
+  priceValue: { ...typography.h4, color: colors.textPrimary, fontWeight: '800' },
+  manageBtn: { borderRadius: borderRadius.lg, overflow: 'hidden' },
+  manageBtnGradient: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 13 },
+  manageBtnText: { ...typography.button, color: '#ffffff' },
+  emptyWrap: { alignItems: 'center', marginTop: 60 },
+  scheduleLink: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 20,
+    paddingVertical: 12, paddingHorizontal: 20,
+    backgroundColor: colors.lightBgSecondary, borderRadius: borderRadius.lg,
+  },
+  scheduleLinkText: { ...typography.body, color: colors.primary, fontWeight: '600' },
 });

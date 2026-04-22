@@ -1,36 +1,31 @@
-// components/PlaceholderScreen.jsx
+/**
+ * PlaceholderScreen.jsx -- "Coming Soon" stub
+ * Themed with lucide icons.
+ */
+
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeft, Wrench } from 'lucide-react-native';
+import { colors, typography, borderRadius } from '../src/theme';
 
 export default function PlaceholderScreen({ navigation, title, feature }) {
   return (
-    <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+    <LinearGradient colors={['#0f172a', '#1e293b']} style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <ArrowLeft size={22} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>
-        <View style={{ width: 40 }} /> {/* Spacer for alignment */}
+        <View style={{ width: 40 }} />
       </View>
-      
       <View style={styles.content}>
-        <Ionicons name="construct" size={80} color="#daa520" />
+        <Wrench size={64} color={colors.primary} />
         <Text style={styles.title}>Coming Soon!</Text>
-        <Text style={styles.subtitle}>
-          {feature} feature is under development
-        </Text>
-        <Text style={styles.description}>
-          This feature will be available in the next update.
-          Check back soon for amazing new functionality!
-        </Text>
-        
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.buttonText}>Go Back</Text>
+        <Text style={styles.subtitle}>{feature} feature is under development</Text>
+        <Text style={styles.desc}>This feature will be available in the next update. Check back soon for amazing new functionality!</Text>
+        <TouchableOpacity style={styles.btn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+          <Text style={styles.btnText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -38,59 +33,14 @@ export default function PlaceholderScreen({ navigation, title, feature }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    paddingTop: 60,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#daa520',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  description: {
-    fontSize: 16,
-    color: '#ccc',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 30,
-  },
-  button: {
-    backgroundColor: '#daa520',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 10,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 56 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { ...typography.h3, color: '#ffffff' },
+  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
+  title: { fontSize: 30, fontWeight: '800', color: '#ffffff', marginTop: 18, marginBottom: 8 },
+  subtitle: { ...typography.body, color: colors.primary, marginBottom: 18, textAlign: 'center', fontWeight: '600' },
+  desc: { ...typography.body, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 24, marginBottom: 28 },
+  btn: { backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 14, borderRadius: borderRadius.lg },
+  btnText: { ...typography.button, color: '#ffffff', fontSize: 16 },
 });

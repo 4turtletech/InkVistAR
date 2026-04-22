@@ -1,12 +1,24 @@
+/**
+ * CustomerGallery.jsx -- Inspiration Gallery with Favorites & My Tattoos
+ * Themed with lucide icons, search, category chips, sort, detail modal.
+ */
+
 import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, TextInput, StyleSheet, ScrollView, 
-  SafeAreaView, Image, ActivityIndicator, TouchableOpacity,
-  Modal, Dimensions, Pressable
+import {
+  View, Text, TextInput, StyleSheet, ScrollView,
+  SafeAreaView, Image, TouchableOpacity,
+  Modal, Dimensions, Pressable,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient'; // Fixed: Added missing import
-import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  Search, XCircle, ArrowUpDown, Check, Images, Heart, X, User, Tag,
+  Calendar, DollarSign, Maximize2,
+} from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { colors, typography, borderRadius, shadows } from '../src/theme';
+import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { EmptyState } from '../src/components/shared/EmptyState';
+import { formatCurrency } from '../src/utils/formatters';
 import { getGalleryWorks } from '../src/utils/api';
 import { getCustomerFavoriteWorks, getCustomerMyTattoos, toggleFavoriteWork } from '../src/api/customerAPI';
 
@@ -15,16 +27,14 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export function CustomerGallery({ onBack, userId }) {
   const navigation = useNavigation();
   const route = useRoute();
-  
-  // Accept initial search query and view mode from route params
   const initialQuery = route.params?.searchQuery || '';
   const initialViewMode = route.params?.initialViewMode || 'All';
-  
+
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortOrder, setSortOrder] = useState('desc'); // desc = newest first
+  const [sortOrder, setSortOrder] = useState('desc');
   const [works, setWorks] = useState([]);
-  const [viewMode, setViewMode] = useState(initialViewMode); // All, Favorites, My Tattoos
+  const [viewMode, setViewMode] = useState(initialViewMode);
   const [favorites, setFavorites] = useState([]);
   const [myTattoos, setMyTattoos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,343 +43,183 @@ export function CustomerGallery({ onBack, userId }) {
   const [togglingFavorite, setTogglingFavorite] = useState(false);
 
   useEffect(() => {
-    if (!userId && viewMode !== 'All') {
-      // If not logged in, restrict to All mode only.
-      setViewMode('All');
-      return;
-    }
+    if (!userId && viewMode !== 'All') { setViewMode('All'); return; }
     fetchWorks();
   }, [viewMode, userId]);
 
   useEffect(() => {
-    if (route.params?.searchQuery) {
-      setSearchQuery(route.params.searchQuery);
-    }
-    if (route.params?.initialViewMode && route.params.initialViewMode !== viewMode) {
-      setViewMode(route.params.initialViewMode);
-    }
+    if (route.params?.searchQuery) setSearchQuery(route.params.searchQuery);
+    if (route.params?.initialViewMode && route.params.initialViewMode !== viewMode) setViewMode(route.params.initialViewMode);
   }, [route.params?.searchQuery, route.params?.initialViewMode]);
 
   const fetchWorks = async () => {
     setLoading(true);
     try {
       if (viewMode === 'All') {
-        const result = await getGalleryWorks();
-        if (result.success) setWorks(result.works || []);
-
-        if (userId) {
-          const favResult = await getCustomerFavoriteWorks(userId);
-          if (favResult.success) setFavorites((favResult.favorites || []).map((item)=>item.id));
-        }
+        const r = await getGalleryWorks();
+        if (r.success) setWorks(r.works || []);
+        if (userId) { const fr = await getCustomerFavoriteWorks(userId); if (fr.success) setFavorites((fr.favorites || []).map(i => i.id)); }
       } else if (viewMode === 'Favorites') {
-        if (!userId) {
-          setWorks([]);
-          setFavorites([]);
-          return;
-        }
-        const favResult = await getCustomerFavoriteWorks(userId);
-        if (favResult.success) {
-          setWorks(favResult.favorites || []);
-          setFavorites((favResult.favorites || []).map((item)=>item.id));
-        }
+        if (!userId) { setWorks([]); setFavorites([]); return; }
+        const fr = await getCustomerFavoriteWorks(userId);
+        if (fr.success) { setWorks(fr.favorites || []); setFavorites((fr.favorites || []).map(i => i.id)); }
       } else if (viewMode === 'My Tattoos') {
-        if (!userId) {
-          setMyTattoos([]);
-          return;
-        }
-        const tattooResult = await getCustomerMyTattoos(userId);
-        if (tattooResult.success) {
-          setMyTattoos(tattooResult.tattoos || []);
-        }
+        if (!userId) { setMyTattoos([]); return; }
+        const tr = await getCustomerMyTattoos(userId);
+        if (tr.success) setMyTattoos(tr.tattoos || []);
       }
-    } catch (error) {
-      console.error('Failed to load gallery:', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error('Gallery load error:', e); }
+    finally { setLoading(false); }
   };
 
   const handleToggleFavorite = async (workId) => {
-    if (!userId) {
-      navigation.navigate('login');
-      return;
-    }
-
+    if (!userId) { navigation.navigate('login'); return; }
     setTogglingFavorite(true);
     try {
-      const result = await toggleFavoriteWork(userId, workId);
-      if (result.success) {
-        if (result.favorited) {
-          setFavorites((prev) => [...new Set([...prev, workId])]);
-          if (viewMode === 'Favorites') {
-            const updated = await getCustomerFavoriteWorks(userId);
-            if (updated.success) setWorks(updated.favorites || []);
-          }
+      const r = await toggleFavoriteWork(userId, workId);
+      if (r.success) {
+        if (r.favorited) {
+          setFavorites(p => [...new Set([...p, workId])]);
+          if (viewMode === 'Favorites') { const u = await getCustomerFavoriteWorks(userId); if (u.success) setWorks(u.favorites || []); }
         } else {
-          setFavorites((prev) => prev.filter((id) => id !== workId));
-          if (viewMode === 'Favorites') setWorks((prev) => prev.filter((item) => item.id !== workId));
+          setFavorites(p => p.filter(id => id !== workId));
+          if (viewMode === 'Favorites') setWorks(p => p.filter(i => i.id !== workId));
         }
       }
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
-    } finally {
-      setTogglingFavorite(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setTogglingFavorite(false); }
   };
 
   const displayItems = viewMode === 'My Tattoos' ? myTattoos : works;
-
-  const filteredWorks = displayItems.filter((work) => {
-    const searchLower = searchQuery.toLowerCase();
-    const titleMatch = (work.title || '').toLowerCase().includes(searchLower);
-    const artistMatch = (work.artist_name || '').toLowerCase().includes(searchLower);
-    const descriptionMatch = (work.description || '').toLowerCase().includes(searchLower);
-    const categoryMatch = (work.category || '').toLowerCase().includes(searchLower);
-
-    const matchesSearch = titleMatch || artistMatch || descriptionMatch || categoryMatch;
-    const matchesCategory = selectedCategory === 'All' || (work.category || '').toLowerCase() === selectedCategory.toLowerCase();
-
-    return matchesSearch && matchesCategory;
+  const filteredWorks = displayItems.filter(w => {
+    const q = searchQuery.toLowerCase();
+    const matchSearch = (w.title || '').toLowerCase().includes(q) || (w.artist_name || '').toLowerCase().includes(q) || (w.description || '').toLowerCase().includes(q) || (w.category || '').toLowerCase().includes(q);
+    const matchCat = selectedCategory === 'All' || (w.category || '').toLowerCase() === selectedCategory.toLowerCase();
+    return matchSearch && matchCat;
   }).sort((a, b) => {
-    const dateA = new Date(a.created_at || a.appointment_date || 0);
-    const dateB = new Date(b.created_at || b.appointment_date || 0);
-    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+    const dA = new Date(a.created_at || a.appointment_date || 0);
+    const dB = new Date(b.created_at || b.appointment_date || 0);
+    return sortOrder === 'asc' ? dA - dB : dB - dA;
   });
 
-  const openDetail = (work) => {
-    setSelectedWork(work);
-    setModalVisible(true);
-  };
-
-  const closeDetail = () => {
-    setModalVisible(false);
-    setSelectedWork(null);
-  };
-
-  const handleBookSimilar = () => {
-    closeDetail();
-    // Pass the style/category as context to the booking screen if needed
-    navigation.navigate('booking-create', { 
-      prefillNote: `I'm interested in a consultation for a design similar to "${selectedWork?.title}".` 
-    });
-  };
+  const openDetail = (w) => { setSelectedWork(w); setModalVisible(true); };
+  const closeDetail = () => { setModalVisible(false); setSelectedWork(null); };
+  const handleBookSimilar = () => { closeDetail(); navigation.navigate('booking-create', { prefillNote: `I'm interested in a design similar to "${selectedWork?.title}".` }); };
 
   const categories = ['All', 'Realism', 'Traditional', 'Japanese', 'Tribal', 'Fine Line', 'Watercolor', 'Minimalist', 'Blackwork'];
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Inspiration Gallery</Text>
-          <TouchableOpacity onPress={onBack} style={styles.headerButton}>
-            <Text style={styles.headerButtonText}>Back</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.headerTitle}>Inspiration Gallery</Text>
+        <TouchableOpacity onPress={onBack}><Text style={styles.headerBack}>Back</Text></TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color="#9ca3af" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search by style, artist, or title..."
-              placeholderTextColor="#9ca3af"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color="#9ca3af" />
-              </TouchableOpacity>
-            )}
+          {/* Search */}
+          <View style={styles.searchWrap}>
+            <Search size={18} color={colors.textTertiary} />
+            <TextInput style={styles.searchInput} placeholder="Search by style, artist, or title..." placeholderTextColor={colors.textTertiary} value={searchQuery} onChangeText={setSearchQuery} />
+            {searchQuery.length > 0 && <TouchableOpacity onPress={() => setSearchQuery('')}><XCircle size={18} color={colors.textTertiary} /></TouchableOpacity>}
           </View>
 
-          <View style={styles.controlsRow}>
-            <TouchableOpacity style={styles.sortButton} onPress={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}>
-              <Ionicons name={sortOrder === 'asc' ? "arrow-up" : "arrow-down"} size={16} color="#6b7280" />
-              <Text style={styles.sortButtonText}>{sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}</Text>
+          {/* Sort */}
+          <View style={styles.sortRow}>
+            <TouchableOpacity style={styles.sortBtn} onPress={() => setSortOrder(p => p === 'asc' ? 'desc' : 'asc')}>
+              <ArrowUpDown size={14} color={colors.textSecondary} />
+              <Text style={styles.sortText}>{sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}</Text>
             </TouchableOpacity>
           </View>
 
+          {/* View Mode */}
           <View style={styles.viewModeRow}>
-            {['All', 'Favorites', 'My Tattoos'].map((mode) => (
-              <TouchableOpacity
-                key={mode}
-                style={[styles.viewModeBtn, viewMode === mode && styles.viewModeBtnActive]}
-                onPress={() => setViewMode(mode)}
-              >
-                <Text style={[styles.viewModeText, viewMode === mode && styles.viewModeTextActive]}>
-                  {mode}{mode === 'Favorites' ? ` (${favorites.length})` : ''}
-                </Text>
+            {['All', 'Favorites', 'My Tattoos'].map(mode => (
+              <TouchableOpacity key={mode} style={[styles.viewModeBtn, viewMode === mode && styles.viewModeBtnActive]} onPress={() => setViewMode(mode)}>
+                <Text style={[styles.viewModeText, viewMode === mode && styles.viewModeTextActive]}>{mode}{mode === 'Favorites' ? ` (${favorites.length})` : ''}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          {/* Style Filters (Checkboxes/Chips) */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
-            contentContainerStyle={styles.categoriesContainer}
-          >
-            {categories.map((cat) => (
-              <TouchableOpacity 
-                key={cat}
-                style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipSelected]}
-                onPress={() => setSelectedCategory(cat)}
-              >
-                {selectedCategory === cat && <Ionicons name="checkmark" size={14} color="white" style={{ marginRight: 4 }} />}
-                <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextSelected]}>{cat}</Text>
+          {/* Category Chips */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
+            {categories.map(cat => (
+              <TouchableOpacity key={cat} style={[styles.catChip, selectedCategory === cat && styles.catChipActive]} onPress={() => setSelectedCategory(cat)}>
+                {selectedCategory === cat && <Check size={13} color="#ffffff" />}
+                <Text style={[styles.catText, selectedCategory === cat && styles.catTextActive]}>{cat}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
 
-          {loading ? (
-            <ActivityIndicator size="large" color="#daa520" style={{ marginTop: 40 }} />
-          ) : (
-            <View style={styles.worksGrid}>
+          {/* Grid */}
+          {loading ? <PremiumLoader message="Loading gallery..." /> : (
+            <View style={styles.grid}>
               {filteredWorks.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Ionicons name="images-outline" size={48} color="#d1d5db" />
-                  <Text style={styles.emptyStateText}>No works found</Text>
-                  <Text style={styles.emptyStateSubtext}>
-                    {searchQuery ? `No matches for "${searchQuery}"` : "The gallery is currently empty."}
-                  </Text>
-                </View>
-              ) : (
-                filteredWorks.map((work) => (
-                  <TouchableOpacity 
-                    key={work.id} 
-                    style={styles.workCard} 
-                    onPress={() => openDetail(work)}
-                    activeOpacity={0.8}
-                  >
-                    <Image source={{ uri: work.image_url }} style={styles.workImage} />
-
-                    <TouchableOpacity
-                      style={styles.favoriteToggle}
-                      onPress={(e) => {
-                        e.stopPropagation && e.stopPropagation();
-                        handleToggleFavorite(work.id);
-                      }}
-                      disabled={togglingFavorite}
-                    >
-                      <Ionicons
-                        name={favorites.includes(work.id) ? 'heart' : 'heart-outline'}
-                        size={20}
-                        color={favorites.includes(work.id) ? '#ff4d4d' : '#f1f5f9'}
-                      />
-                    </TouchableOpacity>
-
-                    <View style={styles.workDetails}>
-                      <Text style={styles.workTitle} numberOfLines={1}>{work.title}</Text>
-                      <Text style={styles.workArtist} numberOfLines={1}>by {work.artist_name}</Text>
-                    </View>
-                    <View style={styles.tapHint}>
-                      <Ionicons name="expand-outline" size={14} color="#9ca3af" />
-                    </View>
+                <EmptyState icon={Images} title="No works found" subtitle={searchQuery ? `No matches for "${searchQuery}"` : 'The gallery is currently empty.'} />
+              ) : filteredWorks.map(w => (
+                <TouchableOpacity key={w.id} style={styles.workCard} onPress={() => openDetail(w)} activeOpacity={0.85}>
+                  <Image source={{ uri: w.image_url }} style={styles.workImg} />
+                  <TouchableOpacity style={styles.favBtn} onPress={() => handleToggleFavorite(w.id)} disabled={togglingFavorite}>
+                    <Heart size={16} color={favorites.includes(w.id) ? '#ff4d4d' : '#d1d5db'} fill={favorites.includes(w.id) ? '#ff4d4d' : 'none'} />
                   </TouchableOpacity>
-                ))
-              )}
+                  <View style={styles.workInfo}>
+                    <Text style={styles.workTitle} numberOfLines={1}>{w.title}</Text>
+                    <Text style={styles.workArtist} numberOfLines={1}>by {w.artist_name}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
           )}
         </View>
       </ScrollView>
 
-      {/* Detail Modal (Bottom Sheet Style) */}
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={closeDetail}
-      >
-        <Pressable style={styles.modalOverlay} onPress={closeDetail}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            {/* Close button */}
-            <View style={styles.modalHandle}>
-              <View style={styles.handleBar} />
-            </View>
-            <TouchableOpacity style={styles.modalCloseButton} onPress={closeDetail}>
-              <Ionicons name="close" size={24} color="#374151" />
-            </TouchableOpacity>
-
+      {/* Detail Modal */}
+      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={closeDetail}>
+        <Pressable style={modalS.overlay} onPress={closeDetail}>
+          <Pressable style={modalS.sheet} onPress={e => e.stopPropagation()}>
+            <View style={modalS.handle}><View style={modalS.handleBar} /></View>
+            <TouchableOpacity style={modalS.closeBtn} onPress={closeDetail}><X size={22} color={colors.textSecondary} /></TouchableOpacity>
             {selectedWork && (
               <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-                {/* High-res image */}
-                <Image 
-                  source={{ uri: selectedWork.image_url }} 
-                  style={styles.modalImage} 
-                  resizeMode="cover"
-                />
-
-                <View style={styles.modalBody}>
-                  {/* Title & Artist */}
-                  <Text style={styles.modalTitle}>{selectedWork.title || 'Untitled Work'}</Text>
-                  <View style={styles.artistRow}>
-                    <View style={styles.artistBadge}>
-                      <Ionicons name="person" size={14} color="#daa520" />
-                    </View>
-                    <Text style={styles.modalArtist}>{selectedWork.artist_name || 'Unknown Artist'}</Text>
+                <Image source={{ uri: selectedWork.image_url }} style={modalS.image} resizeMode="cover" />
+                <View style={modalS.body}>
+                  <Text style={modalS.title}>{selectedWork.title || 'Untitled Work'}</Text>
+                  <View style={modalS.artistRow}>
+                    <View style={modalS.artistBadge}><User size={13} color={colors.primary} /></View>
+                    <Text style={modalS.artistName}>{selectedWork.artist_name || 'Unknown Artist'}</Text>
                   </View>
-
-                  {/* Category badge */}
                   {selectedWork.category && (
-                    <View style={styles.categoryContainer}>
-                      <View style={styles.modalCategoryBadge}>
-                        <Ionicons name="pricetag" size={12} color="#6b7280" />
-                        <Text style={styles.modalCategoryText}>{selectedWork.category}</Text>
-                      </View>
-                    </View>
+                    <View style={modalS.catWrap}><Tag size={12} color={colors.textSecondary} /><Text style={modalS.catText}>{selectedWork.category}</Text></View>
                   )}
-
-                  {/* Description */}
                   {selectedWork.description ? (
-                    <View style={styles.descriptionContainer}>
-                      <Text style={styles.descriptionLabel}>About this piece</Text>
-                      <Text style={styles.descriptionText}>{selectedWork.description}</Text>
+                    <View style={modalS.descWrap}>
+                      <Text style={modalS.descLabel}>About this piece</Text>
+                      <Text style={modalS.descText}>{selectedWork.description}</Text>
                     </View>
                   ) : null}
-
-                  {/* Price Estimate */}
                   {selectedWork.price_estimate ? (
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: '#fef9ee', borderRadius: 10, marginBottom: 16, borderWidth: 1, borderColor: '#f5deb3'}}>
-                      <Text style={{fontSize: 16}}>💰</Text>
-                      <Text style={{fontWeight: '700', color: '#92400e', fontSize: 15}}>Estimated Price: ₱{Number(selectedWork.price_estimate).toLocaleString()}</Text>
+                    <View style={modalS.priceRow}>
+                      <DollarSign size={16} color={colors.primaryDark} />
+                      <Text style={modalS.priceText}>Estimated: P{formatCurrency(selectedWork.price_estimate)}</Text>
                     </View>
                   ) : null}
-
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                    <TouchableOpacity
-                      style={[styles.bookSimilarButton, { flex: 1 }]}
-                      onPress={handleBookSimilar}
-                    >
-                      <LinearGradient
-                        colors={['#000000', '#b8860b']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.bookSimilarGradient}
-                      >
-                        <Ionicons name="calendar" size={20} color="#ffffff" />
-                        <Text style={styles.bookSimilarText}>Request Consultation</Text>
+                  <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+                    <TouchableOpacity style={[modalS.actionBtn, { flex: 1 }]} onPress={handleBookSimilar} activeOpacity={0.8}>
+                      <LinearGradient colors={['#0f172a', colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={modalS.actionGradient}>
+                        <Calendar size={18} color="#ffffff" />
+                        <Text style={modalS.actionText}>Request Consultation</Text>
                       </LinearGradient>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.bookSimilarButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd' }]}
-                      onPress={() => handleToggleFavorite(selectedWork.id)}
-                      disabled={togglingFavorite}
-                    >
-                      <Ionicons name={favorites.includes(selectedWork.id) ? 'heart' : 'heart-outline'} size={20} color={favorites.includes(selectedWork.id) ? '#ff4d4d' : '#374151'} />
-                      <Text style={[styles.bookSimilarText, { color: '#374151' }]}>
-                        {favorites.includes(selectedWork.id) ? 'Unfavorite' : 'Favorite'}
-                      </Text>
+                    <TouchableOpacity style={modalS.favActionBtn} onPress={() => handleToggleFavorite(selectedWork.id)} disabled={togglingFavorite}>
+                      <Heart size={18} color={favorites.includes(selectedWork.id) ? '#ff4d4d' : colors.textSecondary} fill={favorites.includes(selectedWork.id) ? '#ff4d4d' : 'none'} />
+                      <Text style={modalS.favActionText}>{favorites.includes(selectedWork.id) ? 'Saved' : 'Save'}</Text>
                     </TouchableOpacity>
                   </View>
-
                   {viewMode === 'My Tattoos' && selectedWork.appointment_date && (
-                    <View style={{padding: 12, borderColor: '#e5e7eb', borderWidth: 1, borderRadius: 10, marginBottom: 16}}>
-                      <Text style={{fontWeight: '700', marginBottom: 8}}>Tattoo session</Text>
-                      <Text>Date: {new Date(selectedWork.appointment_date).toLocaleDateString()}</Text>
-                      <Text>Artist: {selectedWork.artist_name || 'N/A'}</Text>
+                    <View style={modalS.sessionInfo}>
+                      <Text style={{ fontWeight: '700', marginBottom: 6, color: colors.textPrimary }}>Tattoo Session</Text>
+                      <Text style={{ color: colors.textSecondary }}>Date: {new Date(selectedWork.appointment_date).toLocaleDateString()}</Text>
+                      <Text style={{ color: colors.textSecondary }}>Artist: {selectedWork.artist_name || 'N/A'}</Text>
                     </View>
                   )}
                 </View>
@@ -383,314 +233,58 @@ export function CustomerGallery({ onBack, userId }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  scrollView: { flex: 1 },
-  header: {
-    padding: 20,
-    paddingTop: 50,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111' },
-  headerButton: { padding: 8 },
-  headerButtonText: { color: '#6b7280', fontSize: 16 },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 52, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  headerBack: { ...typography.body, color: colors.textSecondary },
   content: { padding: 16 },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    height: 50,
-  },
-  searchInput: {
-    flex: 1,
-    height: 48,
-    marginLeft: 12,
-    fontSize: 16,
-    color: '#111827',
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 16,
-  },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  sortButtonText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  // Checkbox/Chip Styles
-  categoriesContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    paddingRight: 16,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginRight: 8,
-  },
-  categoryChipSelected: {
-    backgroundColor: '#111',
-    borderColor: '#111',
-  },
-  categoryText: { fontSize: 14, color: '#374151', fontWeight: '500' },
-  categoryTextSelected: { color: 'white' },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.lg, paddingHorizontal: 14, marginBottom: 14, height: 48 },
+  searchInput: { flex: 1, height: 46, marginLeft: 10, ...typography.body, color: colors.textPrimary },
+  sortRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  sortText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
+  viewModeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, gap: 6 },
+  viewModeBtn: { flex: 1, paddingVertical: 8, borderRadius: borderRadius.round, borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: '#fff' },
+  viewModeBtnActive: { backgroundColor: '#0f172a', borderColor: '#0f172a' },
+  viewModeText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600' },
+  viewModeTextActive: { color: colors.primary },
+  catRow: { flexDirection: 'row', marginBottom: 16, paddingRight: 16 },
+  catChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 7, borderRadius: borderRadius.round, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border, marginRight: 8, gap: 4 },
+  catChipActive: { backgroundColor: '#0f172a', borderColor: '#0f172a' },
+  catText: { ...typography.bodySmall, color: colors.textPrimary, fontWeight: '500' },
+  catTextActive: { color: '#ffffff' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  workCard: { width: '48%', backgroundColor: '#ffffff', borderRadius: borderRadius.xl, overflow: 'hidden', marginBottom: 14, borderWidth: 1, borderColor: colors.border, position: 'relative' },
+  workImg: { width: '100%', height: 170, resizeMode: 'cover' },
+  favBtn: { position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.95)', justifyContent: 'center', alignItems: 'center', zIndex: 10, ...shadows.subtle },
+  workInfo: { padding: 10 },
+  workTitle: { ...typography.bodySmall, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
+  workArtist: { ...typography.bodyXSmall, color: colors.textTertiary },
+});
 
-  viewModeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    marginTop: 12,
-  },
-  viewModeBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    marginHorizontal: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  viewModeBtnActive: {
-    backgroundColor: '#111827',
-    borderColor: '#111827',
-  },
-  viewModeText: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  viewModeTextActive: {
-    color: '#fcd34d',
-  },
-
-  worksGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  workCard: {
-    width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-    position: 'relative',
-  },
-  favoriteToggle: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  workImage: {
-    width: '100%',
-    height: 180,
-    resizeMode: 'cover',
-  },
-  workDetails: {
-    padding: 12,
-  },
-  workTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  workArtist: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  tapHint: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyState: {
-    width: '100%',
-    alignItems: 'center',
-    padding: 32,
-    marginTop: 20,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    marginTop: 12,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#9ca3af',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-    minHeight: '50%',
-  },
-  modalHandle: {
-    alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  handleBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#d1d5db',
-  },
-  modalCloseButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  modalImage: {
-    width: '100%',
-    height: 300,
-    backgroundColor: '#f3f4f6',
-  },
-  modalBody: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  artistRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  artistBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#fef3c7',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  modalArtist: {
-    fontSize: 16,
-    color: '#4b5563',
-    fontWeight: '500',
-  },
-  categoryContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  modalCategoryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 4,
-  },
-  modalCategoryText: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  descriptionContainer: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  descriptionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#9ca3af',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  descriptionText: {
-    fontSize: 15,
-    color: '#374151',
-    lineHeight: 22,
-  },
-  bookSimilarButton: {
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  bookSimilarGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 10,
-  },
-  bookSimilarText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
+const modalS = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%', minHeight: '50%' },
+  handle: { alignItems: 'center', paddingTop: 12, paddingBottom: 4 },
+  handleBar: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
+  closeBtn: { position: 'absolute', top: 14, right: 14, width: 36, height: 36, borderRadius: 18, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  image: { width: '100%', height: 280, backgroundColor: '#f3f4f6' },
+  body: { padding: 20, paddingBottom: 40 },
+  title: { ...typography.h2, color: colors.textPrimary, marginBottom: 8 },
+  artistRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  artistBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
+  artistName: { ...typography.body, color: colors.textSecondary, fontWeight: '500' },
+  catWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.lightBgSecondary, paddingHorizontal: 10, paddingVertical: 6, borderRadius: borderRadius.sm, alignSelf: 'flex-start', gap: 5, marginBottom: 16 },
+  catText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
+  descWrap: { backgroundColor: '#f8fafc', borderRadius: borderRadius.lg, padding: 14, marginBottom: 16 },
+  descLabel: { ...typography.bodyXSmall, fontWeight: '600', color: colors.textTertiary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  descText: { ...typography.body, color: colors.textSecondary, lineHeight: 22 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: colors.primaryLight, borderRadius: borderRadius.lg, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(190,144,85,0.2)' },
+  priceText: { ...typography.body, fontWeight: '700', color: colors.primaryDark },
+  actionBtn: { borderRadius: borderRadius.xl, overflow: 'hidden' },
+  actionGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 8 },
+  actionText: { ...typography.button, color: '#ffffff', fontSize: 15 },
+  favActionBtn: { paddingHorizontal: 16, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: colors.border, justifyContent: 'center', alignItems: 'center', gap: 4 },
+  favActionText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600' },
+  sessionInfo: { padding: 12, borderColor: colors.border, borderWidth: 1, borderRadius: borderRadius.lg, marginBottom: 16 },
 });

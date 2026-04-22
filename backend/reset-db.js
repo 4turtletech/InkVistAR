@@ -3,11 +3,11 @@ require('dotenv').config();
 
 // MySQL Connection Configuration (mirrored from server.js)
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || 'banana',
-  database: process.env.DB_NAME || 'inkvistar',
-  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
+  host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+  user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
+  password: process.env.MYSQLPASSWORD || process.env.DB_PASS || 'banana',
+  database: process.env.MYSQLDATABASE || process.env.DB_NAME || 'inkvistar',
+  port: process.env.MYSQLPORT ? Number(process.env.MYSQLPORT) : (process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306),
   connectionLimit: 1, // Only need one connection for this script
   waitForConnections: true,
   queueLimit: 0

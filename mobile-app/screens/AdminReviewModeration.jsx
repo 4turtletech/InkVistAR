@@ -1,26 +1,32 @@
-﻿import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+/**
+ * AdminReviewModeration.jsx -- Review Approval/Rejection
+ * Star ratings, comments, approve/reject actions.
+ */
+
+import React, { useState, useEffect } from 'react';
+import {
+  View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Alert, RefreshControl,
+} from 'react-native';
+import { ArrowLeft, Star, CheckCircle, XCircle } from 'lucide-react-native';
+import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { EmptyState } from '../src/components/shared/EmptyState';
 import { getAdminReviews, updateReviewStatus } from '../src/utils/api';
 
 export const AdminReviewModeration = ({ navigation }) => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadReviews();
-  }, []);
-
   const loadReviews = async () => {
     setLoading(true);
     const res = await getAdminReviews();
-    if (res.success && res.reviews) {
-      setReviews(res.reviews);
-    }
+    if (res.success && res.reviews) setReviews(res.reviews);
     setLoading(false);
   };
 
-  const handleStatusChange = async (id, status) => {
+  useEffect(() => { loadReviews(); }, []);
+
+  const handleStatus = async (id, status) => {
     const res = await updateReviewStatus(id, status);
     if (res.success) {
       loadReviews();
@@ -29,42 +35,54 @@ export const AdminReviewModeration = ({ navigation }) => {
     }
   };
 
+  const StatusTag = ({ status }) => {
+    const cfg = status === 'approved' ? { bg: colors.successBg, color: colors.success }
+      : status === 'rejected' ? { bg: colors.errorBg, color: colors.error }
+      : { bg: colors.warningBg, color: colors.warning };
+    return (
+      <View style={[styles.statusTag, { backgroundColor: cfg.bg }]}>
+        <Text style={[styles.statusText, { color: cfg.color }]}>{(status || 'pending').toUpperCase()}</Text>
+      </View>
+    );
+  };
+
+  const StarRow = ({ rating }) => (
+    <View style={styles.starRow}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <Star key={i} size={14} color={i <= rating ? '#f59e0b' : colors.borderLight} fill={i <= rating ? '#f59e0b' : 'transparent'} />
+      ))}
+      <Text style={styles.ratingNum}>{rating}/5</Text>
+    </View>
+  );
+
   const renderItem = ({ item }) => (
     <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.userInfo}>
+      <View style={styles.cardTop}>
+        <View style={styles.cardTopLeft}>
           <Text style={styles.customerName}>{item.customer_name}</Text>
           <Text style={styles.artistName}>for {item.artist_name}</Text>
         </View>
-        <View style={styles.ratingBadge}>
-          <Ionicons name="star" size={14} color="#f59e0b" />
-          <Text style={styles.ratingText}>{item.rating}/5</Text>
-        </View>
+        <StarRow rating={item.rating} />
       </View>
-      
+
       {item.comment ? (
         <Text style={styles.comment}>"{item.comment}"</Text>
       ) : (
         <Text style={styles.noComment}>No written feedback provided.</Text>
       )}
 
-      <Text style={styles.date}>{new Date(item.created_at).toLocaleDateString()}</Text>
+      <Text style={styles.dateText}>{new Date(item.created_at).toLocaleDateString()}</Text>
 
       <View style={styles.actionRow}>
-        <View style={[styles.statusTag, { backgroundColor: item.status === 'approved' ? 'rgba(16, 185, 129, 0.1)' : item.status === 'rejected' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)' }]}>
-          <Text style={[styles.statusText, { color: item.status === 'approved' ? '#10b981' : item.status === 'rejected' ? '#ef4444' : '#f59e0b' }]}>
-            {item.status.toUpperCase()}
-          </Text>
-        </View>
-        
+        <StatusTag status={item.status} />
         {item.status === 'pending' && (
-          <View style={styles.buttons}>
-            <TouchableOpacity style={styles.rejectBtn} onPress={() => handleStatusChange(item.id, 'rejected')}>
-              <Ionicons name="close" size={16} color="white" />
+          <View style={styles.actionBtns}>
+            <TouchableOpacity style={styles.rejectBtn} onPress={() => handleStatus(item.id, 'rejected')}>
+              <XCircle size={15} color="#ffffff" />
               <Text style={styles.btnText}>Reject</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.approveBtn} onPress={() => handleStatusChange(item.id, 'approved')}>
-              <Ionicons name="checkmark" size={16} color="white" />
+            <TouchableOpacity style={styles.approveBtn} onPress={() => handleStatus(item.id, 'approved')}>
+              <CheckCircle size={15} color="#ffffff" />
               <Text style={styles.btnText}>Approve</Text>
             </TouchableOpacity>
           </View>
@@ -76,27 +94,20 @@ export const AdminReviewModeration = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+        <TouchableOpacity onPress={() => navigation?.goBack?.()} style={styles.backBtn}>
+          <ArrowLeft size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Review Moderation</Text>
       </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#f59e0b" style={{ marginTop: 50 }} />
-      ) : reviews.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="star-outline" size={48} color="#4b5563" />
-          <Text style={styles.emptyText}>No reviews found.</Text>
-        </View>
-      ) : (
+      {loading ? <PremiumLoader message="Loading reviews..." /> : (
         <FlatList
           data={reviews}
           renderItem={renderItem}
-          keyExtractor={item => item.id.toString()}
+          keyExtractor={item => (item.id || Math.random()).toString()}
           contentContainerStyle={styles.listContent}
-          onRefresh={loadReviews}
-          refreshing={loading}
+          ListEmptyComponent={<EmptyState icon={Star} title="No reviews" subtitle="Customer reviews will appear here" />}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadReviews} tintColor={colors.primary} />}
         />
       )}
     </SafeAreaView>
@@ -104,29 +115,42 @@ export const AdminReviewModeration = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff' },
-  backButton: { marginRight: 15 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-  listContent: { padding: 20 },
-  card: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 15 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  customerName: { color: '#111827', fontWeight: 'bold', fontSize: 16 },
-  artistName: { color: '#6b7280', fontSize: 12 },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(245, 158, 11, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  ratingText: { color: '#f59e0b', fontWeight: 'bold', marginLeft: 4, fontSize: 12 },
-  comment: { color: '#374151', fontSize: 14, fontStyle: 'italic', marginBottom: 10 },
-  noComment: { color: '#6b7280', fontSize: 14, fontStyle: 'italic', marginBottom: 10 },
-  date: { color: '#64748b', fontSize: 10, marginBottom: 15 },
-  actionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 12 },
-  statusTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  statusText: { fontSize: 10, fontWeight: 'bold' },
-  buttons: { flexDirection: 'row', gap: 10 },
-  rejectBtn: { backgroundColor: '#ef4444', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, gap: 4 },
-  approveBtn: { backgroundColor: '#10b981', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, gap: 4 },
-  btnText: { color: '#111827', fontWeight: 'bold', fontSize: 12 },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { color: '#6b7280', marginTop: 10, fontSize: 16 }
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
+    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  backBtn: { padding: 4 },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  listContent: { padding: 16, paddingBottom: 30 },
+  card: {
+    backgroundColor: '#ffffff', padding: 16, borderRadius: borderRadius.xl,
+    marginBottom: 12, borderWidth: 1, borderColor: colors.border,
+  },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+  cardTopLeft: { flex: 1, marginRight: 8 },
+  customerName: { ...typography.body, fontWeight: '600', color: colors.textPrimary },
+  artistName: { ...typography.bodyXSmall, color: colors.textSecondary, marginTop: 2 },
+  starRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  ratingNum: { ...typography.bodyXSmall, color: colors.warning, fontWeight: '700', marginLeft: 4 },
+  comment: { ...typography.bodySmall, color: colors.textSecondary, fontStyle: 'italic', marginBottom: 8, lineHeight: 20 },
+  noComment: { ...typography.bodySmall, color: colors.textTertiary, fontStyle: 'italic', marginBottom: 8 },
+  dateText: { ...typography.bodyXSmall, color: colors.textTertiary, marginBottom: 12 },
+  actionRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: colors.borderLight, paddingTop: 12,
+  },
+  statusTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: borderRadius.md },
+  statusText: { fontSize: 10, fontWeight: '700' },
+  actionBtns: { flexDirection: 'row', gap: 8 },
+  rejectBtn: {
+    backgroundColor: colors.error, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: borderRadius.md, gap: 4,
+  },
+  approveBtn: {
+    backgroundColor: colors.success, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: borderRadius.md, gap: 4,
+  },
+  btnText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700' },
 });
-
-

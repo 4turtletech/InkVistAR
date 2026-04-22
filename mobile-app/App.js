@@ -1,44 +1,49 @@
-// App.js - UPDATED WITH SIMPLE COMPONENTS
-import React, { useState, useEffect } from 'react';
-import { Platform, View, Text, TouchableOpacity, Alert, ScrollView, TextInput, Image } from 'react-native';
+/**
+ * App.js -- Root Navigator for InkVistAR Mobile
+ * Handles auth state, role-based routing, and nested navigation.
+ * Expo Go compatible -- zero native modules.
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import { Platform, View, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 
-// Import main screens
+// Auth Screens
 import { LoginPage } from './screens/LoginPage.jsx';
 import { RegisterPage } from './screens/RegisterPage.jsx';
-import { CustomerDashboard } from './screens/CustomerDashboard.jsx';
-import { ArtistDashboard } from './screens/ArtistDashboard.jsx';
 import { ResetPasswordPage } from './screens/ResetPasswordPage.jsx';
+import { OTPVerification } from './components/OTPVerification';
 
-// Import customer pages
+// Customer Screens
+import { CustomerDashboard } from './screens/CustomerDashboard.jsx';
 import { CustomerProfilePage } from './screens/CustomerProfilePage.jsx';
-import { CustomerARPage } from './screens/CustomerARPage.jsx';
-import { CustomerChatbotPage } from './screens/CustomerChatbotPage.jsx';
 import { CustomerAppointments } from './screens/CustomerAppointments.jsx';
-import ChatScreen from './screens/ChatScreen.jsx';
+import { CustomerChatbotPage } from './screens/CustomerChatbotPage.jsx';
+import { CustomerBooking } from './screens/CustomerBooking.jsx';
+import { CustomerGallery } from './screens/CustomerGallery.jsx';
+import { CustomerTransactions } from './screens/CustomerTransactions.jsx';
+import { CustomerReview } from './screens/CustomerReview.jsx';
+import { CustomerNotifications } from './screens/CustomerNotifications.jsx';
 
-// Import artist pages
+// Artist Screens
+import { ArtistDashboard } from './screens/ArtistDashboard.jsx';
 import { ArtistProfile } from './screens/ArtistProfile.jsx';
 import { ArtistSchedule } from './screens/ArtistSchedule.jsx';
 import { ArtistSessions } from './screens/ArtistSessions.jsx';
-import { ArtistWorks } from './screens/ArtistWorks.jsx';
 import { ArtistActiveSession } from './screens/ArtistActiveSession.jsx';
+import { ArtistWorks } from './screens/ArtistWorks.jsx';
 import { ArtistEarnings } from './screens/ArtistEarnings.jsx';
 import { ArtistNotifications } from './screens/ArtistNotifications.jsx';
-import { CustomerNotifications } from './screens/CustomerNotifications.jsx';
 
-// Import Admin pages
+// Admin Screens
 import { AdminDashboard } from './screens/AdminDashboard.jsx';
 import { AdminUserManagement } from './screens/AdminUserManagement.jsx';
 import { AdminAppointmentManagement } from './screens/AdminAppointmentManagement.jsx';
 import { AdminStudio } from './screens/AdminStudio.jsx';
-
-// Import New Admin Features
 import { AdminServices } from './screens/AdminServices.jsx';
 import { AdminStaffScheduling } from './screens/AdminStaffScheduling.jsx';
 import { AdminInventory } from './screens/AdminInventory.jsx';
@@ -50,184 +55,185 @@ import { AdminChat } from './screens/AdminChat.jsx';
 import { AdminPOS } from './screens/AdminPOS.jsx';
 import { AdminReviewModeration } from './screens/AdminReviewModeration.jsx';
 
-// Import SIMPLE components (no dependency conflicts)
-import { SimpleARPreview } from './components/Mobile/SimpleARPreview';
-import { ARDesignPicker } from './components/Mobile/ARDesignPicker';
-import { SimpleChatbot } from './components/Mobile/SimpleChatbot';
-import { CustomerBooking } from './screens/CustomerBooking.jsx';
-import { CustomerGallery } from './screens/CustomerGallery.jsx';
-import { CustomerTransactions } from './screens/CustomerTransactions.jsx';
-import { CustomerReview } from './screens/CustomerReview.jsx';
+// Placeholder for AR Tab
+import PlaceholderScreen from './components/PlaceholderScreen.jsx';
 
-// Import OTP Component
-import { OTPVerification } from './components/OTPVerification';
+// API utilities
+import {
+  loginUser, registerUser, sendOTP, resetUserPassword,
+  saveAuthToken, updatePushToken, removeAuthToken,
+} from './src/utils/api';
+import { registerForPushNotifications } from './src/utils/pushNotifications';
 
-// Import API
-import { loginUser, registerUser, sendOTP, resetUserPassword, deleteArtistWork, saveAuthToken, updatePushToken } from './src/utils/api';
-import { registerForPushNotifications, addNotificationTapListener } from './src/utils/pushNotifications';
+// Theme
+import { colors } from './src/theme';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Simple Artist Client Details Screen
-const ArtistClientDetailsScreen = ({ navigation, route }) => {
-  const { client, session } = route.params || {};
-  const targetId = client?.id || session?.customer_id;
-  const [details, setDetails] = useState(null);
-  
-  useEffect(() => {
-    if (targetId) {
-      // Always use the production Render backend URL
-      const baseUrl = 'https://inkvistar-api.onrender.com';
-      fetch(`${baseUrl}/api/customer/profile/${targetId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) setDetails(data.profile);
-        })
-        .catch(err => console.error('Error fetching client details:', err));
-    }
-  }, [targetId]);
-  
-  // Use display name from session or client
-  const displayName = session?.client_name || client?.name || details?.name || 'Unknown Client';
-  const displayEmail = session?.client_email || client?.email || details?.email || 'No email';
+// ============================================================
+// TAB NAVIGATORS (one per role)
+// ============================================================
 
-  return (
-    <View style={{ flex: 1, backgroundColor: 'white', padding: 20, paddingTop: 50 }}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 20, flexDirection: 'row', alignItems: 'center' }}>
-        <Ionicons name="arrow-back" size={24} color="#333" />
-        <Text style={{ marginLeft: 10, fontSize: 16, color: '#333' }}>Back</Text>
-      </TouchableOpacity>
-      
-      <View style={{ alignItems: 'center', marginBottom: 30 }}>
-        <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#daa520', justifyContent: 'center', alignItems: 'center', marginBottom: 15 }}>
-          <Text style={{ fontSize: 32, color: 'white', fontWeight: 'bold' }}>
-            {displayName.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#1f2937' }}>{displayName}</Text>
-        <Text style={{ fontSize: 16, color: '#6b7280' }}>{displayEmail}</Text>
-      </View>
-      
-      {session && (
-        <View style={{ backgroundColor: '#fff7ed', borderRadius: 12, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: '#fbbf24' }}>
-          <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 15, color: '#b45309' }}>Session Details</Text>
-          
-          <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: '#b45309' }}>Date</Text>
-            <Text style={{ fontSize: 16, color: '#78350f', fontWeight: 'bold' }}>{session.appointment_date}</Text>
-          </View>
+const CustomerTabs = ({ user, onLogout }) => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarStyle: {
+        backgroundColor: '#ffffff',
+        borderTopColor: colors.border,
+        height: 60,
+        paddingBottom: 8,
+        paddingTop: 8,
+      },
+      tabBarActiveTintColor: colors.tabActive,
+      tabBarInactiveTintColor: colors.tabInactive,
+      tabBarIcon: ({ focused, color }) => {
+        const icons = {
+          Home: focused ? 'home' : 'home-outline',
+          Gallery: focused ? 'images' : 'images-outline',
+          AR: focused ? 'camera' : 'camera-outline',
+          Chat: focused ? 'chatbubble' : 'chatbubble-outline',
+          Appointments: focused ? 'calendar' : 'calendar-outline',
+          Profile: focused ? 'person' : 'person-outline',
+        };
+        return <Ionicons name={icons[route.name] || 'ellipse'} size={24} color={color} />;
+      },
+    })}
+  >
+    <Tab.Screen name="Home">
+      {(props) => <CustomerDashboard {...props} userName={user.name} userId={user.id} onNavigate={props.navigation.navigate} onLogout={onLogout} />}
+    </Tab.Screen>
+    <Tab.Screen name="Gallery">
+      {(props) => <CustomerGallery {...props} userId={user?.id} onBack={() => props.navigation.navigate('Home')} />}
+    </Tab.Screen>
+    <Tab.Screen name="AR">
+      {(props) => <PlaceholderScreen navigation={props.navigation} title="AR Tattoo Preview" feature="Augmented Reality" />}
+    </Tab.Screen>
+    <Tab.Screen name="Chat">
+      {(props) => <CustomerChatbotPage {...props} userId={user.id} userName={user.name} onBack={() => props.navigation.navigate('Home')} />}
+    </Tab.Screen>
+    <Tab.Screen name="Appointments">
+      {(props) => <CustomerAppointments {...props} customerId={user.id} onBack={() => props.navigation.navigate('Home')} onBookNew={() => props.navigation.navigate('booking-create')} />}
+    </Tab.Screen>
+    <Tab.Screen name="Profile">
+      {(props) => <CustomerProfilePage {...props} userName={user.name} userEmail={user.email} userId={user.id} onBack={() => props.navigation.navigate('Home')} onLogout={onLogout} />}
+    </Tab.Screen>
+  </Tab.Navigator>
+);
 
-          <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: '#b45309' }}>Time</Text>
-            <Text style={{ fontSize: 16, color: '#78350f', fontWeight: 'bold' }}>{session.start_time}</Text>
-          </View>
+const ArtistTabs = ({ user, onLogout }) => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarStyle: {
+        backgroundColor: '#ffffff',
+        borderTopColor: colors.border,
+        height: 60,
+        paddingBottom: 8,
+        paddingTop: 8,
+      },
+      tabBarActiveTintColor: colors.tabActive,
+      tabBarInactiveTintColor: colors.tabInactive,
+      tabBarIcon: ({ focused, color }) => {
+        const icons = {
+          Home: focused ? 'home' : 'home-outline',
+          Schedule: focused ? 'calendar' : 'calendar-outline',
+          Sessions: focused ? 'flash' : 'flash-outline',
+          Works: focused ? 'images' : 'images-outline',
+          Profile: focused ? 'person' : 'person-outline',
+        };
+        return <Ionicons name={icons[route.name] || 'ellipse'} size={24} color={color} />;
+      },
+    })}
+  >
+    <Tab.Screen name="Home">
+      {(props) => <ArtistDashboard {...props} userName={user.name} userEmail={user.email} userId={user.id} onNavigate={props.navigation.navigate} onLogout={onLogout} />}
+    </Tab.Screen>
+    <Tab.Screen name="Schedule">
+      {(props) => <ArtistSchedule {...props} artistId={user.id} onBack={() => props.navigation.navigate('Home')} />}
+    </Tab.Screen>
+    <Tab.Screen name="Sessions">
+      {(props) => <ArtistSessions {...props} artistId={user.id} onBack={() => props.navigation.navigate('Home')} />}
+    </Tab.Screen>
+    <Tab.Screen name="Works">
+      {(props) => <ArtistWorks {...props} artistId={user.id} onBack={() => props.navigation.navigate('Home')} />}
+    </Tab.Screen>
+    <Tab.Screen name="Profile">
+      {(props) => <ArtistProfile {...props} userId={user.id} userName={user.name} userEmail={user.email} onBack={() => props.navigation.navigate('Home')} onLogout={onLogout} />}
+    </Tab.Screen>
+  </Tab.Navigator>
+);
 
-          <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: '#b45309' }}>Design</Text>
-            <Text style={{ fontSize: 16, color: '#78350f', fontWeight: 'bold' }}>{session.design_title}</Text>
-          </View>
+const AdminTabs = ({ user, onLogout }) => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarStyle: {
+        backgroundColor: colors.adminBar,
+        borderTopColor: colors.borderDark,
+        height: 60,
+        paddingBottom: 8,
+        paddingTop: 8,
+      },
+      tabBarActiveTintColor: colors.adminAccent,
+      tabBarInactiveTintColor: colors.tabInactive,
+      tabBarIcon: ({ focused, color }) => {
+        const icons = {
+          Dashboard: focused ? 'shield' : 'shield-outline',
+          Users: focused ? 'people' : 'people-outline',
+          Bookings: focused ? 'calendar' : 'calendar-outline',
+          Studio: focused ? 'grid' : 'grid-outline',
+        };
+        return <Ionicons name={icons[route.name] || 'ellipse'} size={24} color={color} />;
+      },
+    })}
+  >
+    <Tab.Screen name="Dashboard">
+      {(props) => <AdminDashboard {...props} onLogout={onLogout} />}
+    </Tab.Screen>
+    <Tab.Screen name="Users" component={AdminUserManagement} />
+    <Tab.Screen name="Bookings" component={AdminAppointmentManagement} />
+    <Tab.Screen name="Studio" component={AdminStudio} />
+  </Tab.Navigator>
+);
 
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: '#b45309' }}>Status</Text>
-            <Text style={{ fontSize: 16, color: '#78350f', fontWeight: 'bold', textTransform: 'uppercase' }}>{session.status}</Text>
-          </View>
-        </View>
-      )}
+const ManagerTabs = ({ user, onLogout }) => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarStyle: {
+        backgroundColor: colors.darkBgSecondary,
+        borderTopColor: colors.borderDark,
+        height: 60,
+        paddingBottom: 8,
+        paddingTop: 8,
+      },
+      tabBarActiveTintColor: colors.primary,
+      tabBarInactiveTintColor: colors.tabInactive,
+      tabBarIcon: ({ focused, color }) => {
+        const icons = {
+          Dashboard: focused ? 'shield' : 'shield-outline',
+          Users: focused ? 'people' : 'people-outline',
+          Bookings: focused ? 'calendar' : 'calendar-outline',
+          Inventory: focused ? 'cube' : 'cube-outline',
+        };
+        return <Ionicons name={icons[route.name] || 'ellipse'} size={24} color={color} />;
+      },
+    })}
+  >
+    <Tab.Screen name="Dashboard">
+      {(props) => <AdminDashboard {...props} onLogout={onLogout} />}
+    </Tab.Screen>
+    <Tab.Screen name="Users" component={AdminUserManagement} />
+    <Tab.Screen name="Bookings" component={AdminAppointmentManagement} />
+    <Tab.Screen name="Inventory" component={AdminInventory} />
+  </Tab.Navigator>
+);
 
-      <View style={{ backgroundColor: '#f3f4f6', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-        <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 15, color: '#111' }}>Contact Information</Text>
-        
-        <View style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Phone</Text>
-          <Text style={{ fontSize: 16, color: '#1f2937' }}>{details?.phone || client?.phone || 'Not provided'}</Text>
-        </View>
-        
-        <View style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Location</Text>
-          <Text style={{ fontSize: 16, color: '#1f2937' }}>{details?.location || 'Not provided'}</Text>
-        </View>
-
-        <View>
-          <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Notes</Text>
-          <Text style={{ fontSize: 16, color: '#1f2937' }}>{details?.notes || 'No notes available'}</Text>
-        </View>
-      </View>
-      
-      <TouchableOpacity 
-        style={{ backgroundColor: '#daa520', padding: 15, borderRadius: 10, alignItems: 'center' }}
-        onPress={() => Alert.alert('Coming Soon', 'Booking directly from client profile will be available soon.')}
-      >
-        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Book Appointment</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-// Artist Appointment Details Screen
-const ArtistAppointmentDetailsScreen = ({ navigation, route }) => {
-  const { appointment } = route.params || {};
-
-  if (!appointment) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' }}>
-        <Text>No appointment data found.</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 20, padding: 10, backgroundColor: '#f3f4f6', borderRadius: 8 }}>
-          <Text>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{ flex: 1, backgroundColor: 'white', paddingTop: 50 }}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingHorizontal: 20, marginBottom: 20, flexDirection: 'row', alignItems: 'center' }}>
-        <Ionicons name="arrow-back" size={24} color="#333" />
-        <Text style={{ marginLeft: 10, fontSize: 16, color: '#333' }}>Back to Schedule</Text>
-      </TouchableOpacity>
-      
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#1f2937', marginBottom: 8 }}>{appointment.design_title || 'Appointment Details'}</Text>
-        <Text style={{ fontSize: 16, color: '#6b7280', marginBottom: 20 }}>For: {appointment.client_name}</Text>
-
-        {appointment.reference_image && (
-          <View style={{ marginBottom: 20 }}>
-            <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 10, color: '#111' }}>Reference Image</Text>
-            <Image 
-              source={{ uri: appointment.reference_image }} 
-              style={{ width: '100%', height: 300, borderRadius: 12, backgroundColor: '#f3f4f6' }}
-              resizeMode="contain"
-            />
-          </View>
-        )}
-
-        <View style={{ backgroundColor: '#f3f4f6', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-          <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 15, color: '#111' }}>Details</Text>
-          
-          <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: '#6b7280' }}>Date</Text>
-            <Text style={{ fontSize: 16, color: '#1f2937', fontWeight: '500' }}>{new Date(appointment.appointment_date).toLocaleDateString()}</Text>
-          </View>
-
-          <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: '#6b7280' }}>Time</Text>
-            <Text style={{ fontSize: 16, color: '#1f2937', fontWeight: '500' }}>{appointment.start_time}</Text>
-          </View>
-
-          <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: '#6b7280' }}>Status</Text>
-            <Text style={{ fontSize: 16, color: '#1f2937', fontWeight: 'bold', textTransform: 'capitalize' }}>{appointment.status}</Text>
-          </View>
-
-          <View>
-            <Text style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Client Notes</Text>
-            <Text style={{ fontSize: 16, color: '#1f2937' }}>{appointment.notes || 'No notes provided.'}</Text>
-          </View>
-        </View>
-      </ScrollView>
-    </View>
-  );
-};
+// ============================================================
+// MAIN APP
+// ============================================================
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -236,99 +242,91 @@ export default function App() {
   const [isResetMode, setIsResetMode] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginUserType, setLoginUserType] = useState('customer');
-  
+
+  // Hide Android system nav bar
   useEffect(() => {
-    console.log('👤 User state changed:', user ? `Logged in as ${user.name}` : 'Not logged in');
-  }, [user]);
-  
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('overlay-swipe');
+    }
+  }, []);
+
+  // Restore persisted session on mount
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('user_session');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.id && parsed.name) {
+            setUser(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('Session restore failed:', e.message);
+      }
+    };
+    restoreSession();
+  }, []);
+
   const hideNavigationBar = () => {
-    // Re-hides the navigation bar when the user interacts with the app
     if (Platform.OS === 'android') {
-      NavigationBar.setVisibilityAsync("hidden");
-    }
-  };
-  
-  useEffect(() => {
-    console.log('🚀 App starting - ensuring clean state');
-    setUser(null);
-
-    // Hide Android system navigation bar to prevent blocking bottom tabs
-    if (Platform.OS === 'android') {
-      NavigationBar.setVisibilityAsync("hidden");
-      NavigationBar.setBehaviorAsync("overlay-swipe");
-    }
-  }, []); // This effect runs only once on mount
-
-  const handleResendVerification = async (email) => {
-    try {
-      // Always use the production Render backend URL
-      const baseUrl = 'https://inkvistar-api.onrender.com';
-      const response = await fetch(`${baseUrl}/api/api/resend-verification`, {
-
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-      
-      const result = await response.json();
-      if (result.success) {
-        Alert.alert('Success', result.message);
-      } else {
-        Alert.alert('Error', result.message || 'Failed to resend link');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Could not connect to server');
+      NavigationBar.setVisibilityAsync('hidden');
     }
   };
 
-  const handleLogin = async (email, password, userType) => {
-    console.log('🔐 REAL LOGIN ATTEMPT with:', { email, userType });
-    
+  const handleLogin = useCallback(async (email, password, userType) => {
     const result = await loginUser(email, password, userType);
-    console.log('🔐 API RESPONSE:', result);
-    
     if (result && result.success === true && result.user && result.user.name) {
-      console.log(`✅ Login successful for ${result.user.email}`);
-      if (result.token) {
-        await saveAuthToken(result.token);
-      }
+      if (result.token) await saveAuthToken(result.token);
       setUser(result.user);
-      // Register push token after login
+      await AsyncStorage.setItem('user_session', JSON.stringify(result.user));
       registerForPushNotifications(result.user.id).catch(e => console.warn('[PUSH] Registration failed:', e.message));
     } else {
-      console.log('❌ INVALID login - NOT setting user');
       if (result?.requireVerification) {
-        Alert.alert(
-          'Verification Required',
-          result.message,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Resend Link', onPress: () => handleResendVerification(email) }
-          ]
-        );
+        Alert.alert('Verification Required', result.message, [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Resend Link', onPress: () => {} },
+        ]);
       } else {
-        alert('Login failed: ' + (result?.message || 'Invalid credentials'));
+        Alert.alert('Login Failed', result?.message || 'Invalid credentials');
       }
     }
     return result;
-  };
+  }, []);
 
-  const handleForgotPassword = async (email, type) => {
+  const handleLogout = useCallback(async () => {
+    await removeAuthToken();
+    await AsyncStorage.removeItem('user_session');
+    setUser(null);
+  }, []);
+
+  const handleRegister = useCallback(async (name, email, password, phone, userType, orphanAppointmentId, navigation) => {
+    const result = await registerUser(name, email, password, userType, phone, orphanAppointmentId);
+    if (result.success && result.message) {
+      if (navigation) {
+        navigation.navigate('login', { prefillEmail: email, message: result.message });
+      }
+    } else {
+      Alert.alert('Registration Failed', result.message || 'Please try again');
+    }
+    return result;
+  }, []);
+
+  const handleForgotPassword = useCallback(async (email, type) => {
     const selectedType = type || 'customer';
     const result = await sendOTP(email, selectedType);
-    
     if (result.success) {
       setLoginEmail(email);
       setLoginUserType(selectedType);
       setIsResetMode(true);
       setShowOTP(true);
     } else {
-      alert(result.message || 'Failed to send OTP. Account may not exist.');
+      Alert.alert('Error', result.message || 'Failed to send OTP.');
     }
-  };
+  }, []);
 
-  const handleOTPVerified = (verifiedUser) => {
-    console.log('✅ OTP Verified for user:', verifiedUser);
+  const handleOTPVerified = useCallback((verifiedUser) => {
     if (isResetMode) {
       setShowOTP(false);
       setShowResetPassword(true);
@@ -336,314 +334,94 @@ export default function App() {
       setUser(verifiedUser);
       setShowOTP(false);
     }
-  };
+  }, [isResetMode]);
 
-  const handlePasswordReset = async (newPassword) => {
+  const handlePasswordReset = useCallback(async (newPassword) => {
     const result = await resetUserPassword(loginEmail, newPassword);
     if (result.success) {
-      alert('Password updated successfully! Please login.');
+      Alert.alert('Success', 'Password updated successfully! Please login.');
       setShowResetPassword(false);
       setIsResetMode(false);
-      // Navigate back to login implicitly by clearing states
     } else {
-      alert('Failed to update password: ' + result.message);
+      Alert.alert('Error', 'Failed to update password: ' + result.message);
     }
-  };
+  }, [loginEmail]);
 
-  const handleRegister = async (name, email, password, phone, userType, orphanAppointmentId, navigation) => {
-    console.log('📝 Register attempt:', { name, email, phone, userType });
-    
-    const registerResult = await registerUser(name, email, password, userType, phone, orphanAppointmentId);
-    console.log('📝 Register result:', registerResult);
-    
-    if (registerResult.success && registerResult.message) {
-      // Use the server's message, which is more accurate (e.g., "check your email")
-      if (navigation) {
-        navigation.navigate('login', { 
-          prefillEmail: email,
-          message: registerResult.message
-        });
-      }
-    } else {
-      alert('Registration failed: ' + (registerResult.message || 'Please try again'));
-    }
-    return registerResult;
-  };
-
-  // AR Tab Wrapper — manages design picker → AR camera flow
-  const ARTabWrapper = ({ onNavigateHome }) => {
-    const [selectedDesign, setSelectedDesign] = useState(null);
-    
-    if (!selectedDesign) {
-      return (
-        <ARDesignPicker
-          onSelectDesign={(design) => setSelectedDesign(design)}
-          onBack={onNavigateHome}
-        />
-      );
-    }
-    
-    return (
-      <SimpleARPreview
-        selectedDesign={selectedDesign}
-        onBack={() => setSelectedDesign(null)}
-        onChangeDesign={() => setSelectedDesign(null)}
-      />
-    );
-  };
-
-  // Customer Tab Navigator
-  const CustomerTabs = () => (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarStyle: { 
-          backgroundColor: '#ffffff', 
-          borderTopColor: '#e5e7eb',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8
-        },
-        tabBarActiveTintColor: '#daa520',
-        tabBarInactiveTintColor: '#9ca3af',
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Gallery') iconName = focused ? 'images' : 'images-outline';
-          else if (route.name === 'AR') iconName = focused ? 'camera' : 'camera-outline';
-          else if (route.name === 'Chat') iconName = focused ? 'chatbubble' : 'chatbubble-outline';
-          else if (route.name === 'Appointments') iconName = focused ? 'calendar' : 'calendar-outline';
-          else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
-          return <Ionicons name={iconName} size={24} color={color} />;
-        },
-      })}
-    >
-      <Tab.Screen name="Home">
-        {(props) => <CustomerDashboard {...props} userName={user.name} userId={user.id} onNavigate={props.navigation.navigate} onLogout={() => setUser(null)} />}
-      </Tab.Screen>
-      <Tab.Screen name="Gallery">
-        {(props) => <CustomerGallery {...props} userId={user?.id} onBack={() => props.navigation.navigate('Home')} />}
-      </Tab.Screen>
-      <Tab.Screen name="AR">
-        {(props) => <ARTabWrapper {...props} onNavigateHome={() => props.navigation.navigate('Home')} />}
-      </Tab.Screen>
-      <Tab.Screen name="Chat">
-        {(props) => <CustomerChatbotPage {...props} userId={user.id} userName={user.name} onBack={() => props.navigation.navigate('Home')} />}
-      </Tab.Screen>
-      <Tab.Screen name="Appointments">
-        {(props) => <CustomerAppointments {...props} customerId={user.id} onBack={() => props.navigation.navigate('Home')} onBookNew={() => props.navigation.navigate('booking-create')} />}
-      </Tab.Screen>
-      <Tab.Screen name="Profile">
-        {(props) => <CustomerProfilePage {...props} userName={user.name} userEmail={user.email} userId={user.id} onBack={() => props.navigation.navigate('Home')} onLogout={() => setUser(null)} />}
-      </Tab.Screen>
-    </Tab.Navigator>
-  );
-
-  // Admin Tab Navigator
-  const AdminTabs = () => (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarStyle: { 
-          backgroundColor: '#1f2937', // Dark theme for admin
-          borderTopColor: '#374151',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8
-        },
-        tabBarActiveTintColor: '#f59e0b', // Amber
-        tabBarInactiveTintColor: '#9ca3af',
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Dashboard') iconName = focused ? 'shield' : 'shield-outline';
-          else if (route.name === 'Users') iconName = focused ? 'people' : 'people-outline';
-          else if (route.name === 'Bookings') iconName = focused ? 'calendar' : 'calendar-outline';
-          else if (route.name === 'Studio') iconName = focused ? 'grid' : 'grid-outline';
-          return <Ionicons name={iconName} size={24} color={color} />;
-        },
-      })}
-    >
-      <Tab.Screen name="Dashboard">
-        {(props) => <AdminDashboard {...props} onLogout={() => setUser(null)} />}
-      </Tab.Screen>
-      <Tab.Screen name="Users" component={AdminUserManagement} />
-      <Tab.Screen name="Bookings" component={AdminAppointmentManagement} />
-      <Tab.Screen name="Studio" component={AdminStudio} />
-    </Tab.Navigator>
-  );
-
-  // Artist Tab Navigator
-  const ArtistTabs = () => (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarStyle: { 
-          backgroundColor: '#ffffff', 
-          borderTopColor: '#e5e7eb',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8
-        },
-        tabBarActiveTintColor: '#daa520',
-        tabBarInactiveTintColor: '#9ca3af',
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Schedule') iconName = focused ? 'calendar' : 'calendar-outline';
-          else if (route.name === 'Sessions') iconName = focused ? 'flash' : 'flash-outline';
-          else if (route.name === 'Works') iconName = focused ? 'images' : 'images-outline';
-          else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
-          return <Ionicons name={iconName} size={24} color={color} />;
-        },
-      })}
-    >
-      <Tab.Screen name="Home">
-        {(props) => <ArtistDashboard {...props} userName={user.name} userEmail={user.email} userId={user.id} onNavigate={props.navigation.navigate} onLogout={() => setUser(null)} />}
-      </Tab.Screen>
-      <Tab.Screen name="Schedule">
-        {(props) => <ArtistSchedule {...props} artistId={user.id} onBack={() => props.navigation.navigate('Home')} />}
-      </Tab.Screen>
-      <Tab.Screen name="Sessions">
-        {(props) => <ArtistSessions {...props} artistId={user.id} onBack={() => props.navigation.navigate('Home')} />}
-      </Tab.Screen>
-      <Tab.Screen name="Works">
-        {(props) => <ArtistWorks {...props} artistId={user.id} onBack={() => props.navigation.navigate('Home')} />}
-      </Tab.Screen>
-      <Tab.Screen name="Profile">
-        {(props) => <ArtistProfile {...props} userId={user.id} userName={user.name} userEmail={user.email} onBack={() => props.navigation.navigate('Home')} onLogout={() => setUser(null)} />}
-      </Tab.Screen>
-    </Tab.Navigator>
-  );
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <View style={{ flex: 1 }} onTouchStart={Platform.OS === 'android' ? hideNavigationBar : undefined}>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {user ? (
-            // LOGGED IN (User is set)
+            // ----- LOGGED IN -----
             user.type === 'admin' ? (
-              // ADMIN Screens
               <>
-              <Stack.Screen name="admin-main" component={AdminTabs} />
-              
-              <Stack.Screen name="admin-services" component={AdminServices} />
-              <Stack.Screen name="admin-staff" component={AdminStaffScheduling} />
-              <Stack.Screen name="admin-inventory" component={AdminInventory} />
-              <Stack.Screen name="admin-tasks" component={AdminTasks} />
-              <Stack.Screen name="admin-notifications" component={AdminNotifications} />
-              <Stack.Screen name="admin-analytics" component={AdminAnalytics} />
-              <Stack.Screen name="admin-settings" component={AdminSettings} />
-              <Stack.Screen name="admin-chat" component={AdminChat} />
-              <Stack.Screen name="admin-pos" component={AdminPOS} />
-              <Stack.Screen name="admin-reviews" component={AdminReviewModeration} />
+                <Stack.Screen name="admin-main">
+                  {() => <AdminTabs user={user} onLogout={handleLogout} />}
+                </Stack.Screen>
+                <Stack.Screen name="admin-services" component={AdminServices} />
+                <Stack.Screen name="admin-staff" component={AdminStaffScheduling} />
+                <Stack.Screen name="admin-inventory" component={AdminInventory} />
+                <Stack.Screen name="admin-tasks" component={AdminTasks} />
+                <Stack.Screen name="admin-notifications" component={AdminNotifications} />
+                <Stack.Screen name="admin-analytics" component={AdminAnalytics} />
+                <Stack.Screen name="admin-settings" component={AdminSettings} />
+                <Stack.Screen name="admin-chat" component={AdminChat} />
+                <Stack.Screen name="admin-pos" component={AdminPOS} />
+                <Stack.Screen name="admin-reviews" component={AdminReviewModeration} />
               </>
-            
-            ) : user.type === 'artist' ? (
-             // ARTIST Screens
+            ) : user.type === 'manager' ? (
               <>
-                {/* Main Tab Navigator for Artist */}
-                <Stack.Screen name="artist-main" component={ArtistTabs} />
-                
-                {/* Stack screens that sit on top of tabs */}
+                <Stack.Screen name="manager-main">
+                  {() => <ManagerTabs user={user} onLogout={handleLogout} />}
+                </Stack.Screen>
+                <Stack.Screen name="admin-inventory" component={AdminInventory} />
+                <Stack.Screen name="admin-staff" component={AdminStaffScheduling} />
+                <Stack.Screen name="admin-analytics" component={AdminAnalytics} />
+                <Stack.Screen name="admin-notifications" component={AdminNotifications} />
+              </>
+            ) : user.type === 'artist' ? (
+              <>
+                <Stack.Screen name="artist-main">
+                  {() => <ArtistTabs user={user} onLogout={handleLogout} />}
+                </Stack.Screen>
                 <Stack.Screen name="artist-earnings">
-                  {(props) => (
-                    <ArtistEarnings
-                      {...props}
-                      artistId={user.id}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                  {(props) => <ArtistEarnings {...props} artistId={user.id} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="artist-notifications">
-                  {(props) => (
-                    <CustomerNotifications
-                      {...props}
-                      userId={user.id}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                  {(props) => <ArtistNotifications {...props} userId={user.id} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
-
-                <Stack.Screen name="artist-client-details" component={ArtistClientDetailsScreen} />
-
-                <Stack.Screen name="artist-appointment-details" component={ArtistAppointmentDetailsScreen} />
-
                 <Stack.Screen name="artist-active-session">
                   {(props) => (
                     <ArtistActiveSession
                       {...props}
-                      appointment={props.route.params.appointment}
+                      appointment={props.route.params?.appointment}
                       onBack={() => props.navigation.goBack()}
-                      onComplete={() => {
-                        props.navigation.goBack();
-                      }}
+                      onComplete={() => props.navigation.goBack()}
                     />
-                  )}
-                </Stack.Screen>
-
-                <Stack.Screen name="artist-work-details">
-                  {(props) => (
-                    <View style={{flex:1, backgroundColor:'white', justifyContent:'center', alignItems:'center'}}>
-                      <Text>Work Details (Coming Soon)</Text>
-                      
-                      {/* TEMPORARY TEST BUTTON FOR SOFT DELETE */}
-                      <TouchableOpacity 
-                        style={{marginTop: 20, padding: 10, backgroundColor: 'red'}}
-                        onPress={() => deleteArtistWork('test-id-123')}
-                      >
-                        <Text style={{color: 'white'}}>TEST SOFT DELETE</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity onPress={() => props.navigation.goBack()}><Text>Back</Text></TouchableOpacity>
-                    </View>
                   )}
                 </Stack.Screen>
               </>
             ) : (
-              // CUSTOMER Screens
+              // CUSTOMER (default)
               <>
-                {/* Main Tab Navigator for Customer */}
-                <Stack.Screen name="customer-main" component={CustomerTabs} />
-
-                {/* Stack screens that sit on top of tabs */}
-                <Stack.Screen name="chatbot-enhanced">
-                  {(props) => (
-                    <CustomerChatbotPage
-                      {...props}
-                      userId={user.id}
-                      userName={user.name}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                <Stack.Screen name="customer-main">
+                  {() => <CustomerTabs user={user} onLogout={handleLogout} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="customer-notifications">
-                  {(props) => (
-                    <CustomerNotifications
-                      {...props}
-                      userId={user.id}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                  {(props) => <CustomerNotifications {...props} userId={user.id} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="booking-create">
-                  {(props) => (
-                    <CustomerBooking
-                      {...props}
-                      customerId={user.id}
-                      onBack={() => props.navigation.goBack()}
-                    />
-                  )}
+                  {(props) => <CustomerBooking {...props} customerId={user.id} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
-
                 <Stack.Screen name="customer-transactions" component={CustomerTransactions} />
                 <Stack.Screen name="customer-review" component={CustomerReview} />
               </>
             )
           ) : showOTP ? (
-            // OTP SCREEN
             <Stack.Screen name="otp">
               {(props) => (
                 <OTPVerification
@@ -658,36 +436,27 @@ export default function App() {
               )}
             </Stack.Screen>
           ) : showResetPassword ? (
-            // RESET PASSWORD SCREEN
             <Stack.Screen name="reset-password">
-              {(props) => (
-                <ResetPasswordPage 
-                  email={loginEmail}
-                  onSubmit={handlePasswordReset}
-                />
-              )}
+              {() => <ResetPasswordPage email={loginEmail} onSubmit={handlePasswordReset} />}
             </Stack.Screen>
           ) : (
-            // Authentication screens
+            // ----- NOT LOGGED IN -- straight to Login -----
             <>
               <Stack.Screen name="login">
                 {(props) => (
                   <LoginPage
                     {...props}
-                    onLogin={(email, password, userType) => 
-                      handleLogin(email, password, userType, props.navigation)
-                    }
+                    onLogin={(email, password, userType) => handleLogin(email, password, userType)}
                     onForgotPassword={handleForgotPassword}
                     onSwitchToRegister={() => props.navigation.navigate('register')}
                   />
                 )}
               </Stack.Screen>
-
               <Stack.Screen name="register">
                 {(props) => (
                   <RegisterPage
                     {...props}
-                    onRegister={(name, email, password, phone, userType, orphanAppointmentId) => 
+                    onRegister={(name, email, password, phone, userType, orphanAppointmentId) =>
                       handleRegister(name, email, password, phone, userType, orphanAppointmentId, props.navigation)
                     }
                     onSwitchToLogin={() => props.navigation.navigate('login')}

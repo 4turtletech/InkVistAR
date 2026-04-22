@@ -1,109 +1,81 @@
-﻿import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+/**
+ * AdminFeatures.jsx -- Placeholder Admin Pages
+ * Themed with lucide icons. These are scaffold screens for future features.
+ */
 
-// Reusable Layout Component
-const AdminPageLayout = ({ title, icon, children, onBack }) => (
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { ArrowLeft, List, Clock, Package, CheckSquare, Bell, BarChart3, Settings } from 'lucide-react-native';
+import { colors, typography, borderRadius } from '../src/theme';
+
+const ICON_MAP = {
+  Services: List, 'Staff Scheduling': Clock, Inventory: Package,
+  Tasks: CheckSquare, Notifications: Bell, Analytics: BarChart3, Settings: Settings,
+};
+
+const AdminPageLayout = ({ title, children, onBack }) => (
   <View style={styles.container}>
     <View style={styles.header}>
-      <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={24} color="white" />
+      <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+        <ArrowLeft size={20} color={colors.textPrimary} />
       </TouchableOpacity>
-      <View style={styles.headerTitleContainer}>
-        <Ionicons name={icon} size={24} color="#f59e0b" style={{ marginRight: 10 }} />
+      <View style={styles.headerTitleWrap}>
+        {ICON_MAP[title] && React.createElement(ICON_MAP[title], { size: 20, color: colors.primary })}
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
     </View>
-    <ScrollView contentContainerStyle={styles.content}>
-      {children}
-    </ScrollView>
+    <ScrollView contentContainerStyle={styles.content}>{children}</ScrollView>
   </View>
 );
 
 export const AdminServices = ({ navigation }) => (
-  <AdminPageLayout title="Services" icon="list" onBack={() => navigation.goBack()}>
+  <AdminPageLayout title="Services" onBack={() => navigation.goBack()}>
     <Text style={styles.placeholder}>Manage tattoo styles, piercing services, and pricing.</Text>
-    {/* Add Service List & CRUD here */}
   </AdminPageLayout>
 );
 
 export const AdminStaffScheduling = ({ navigation }) => (
-  <AdminPageLayout title="Staff Scheduling" icon="time" onBack={() => navigation.goBack()}>
+  <AdminPageLayout title="Staff Scheduling" onBack={() => navigation.goBack()}>
     <Text style={styles.placeholder}>Manage artist shifts, time off, and availability.</Text>
-    {/* Add Calendar/Shift view here */}
   </AdminPageLayout>
 );
 
 export const AdminInventory = ({ navigation }) => (
-  <AdminPageLayout title="Inventory" icon="cube" onBack={() => navigation.goBack()}>
+  <AdminPageLayout title="Inventory" onBack={() => navigation.goBack()}>
     <Text style={styles.placeholder}>Track needles, ink, gloves, and other supplies.</Text>
-    {/* Add Inventory List & Stock Levels here */}
   </AdminPageLayout>
 );
 
 export const AdminTasks = ({ navigation }) => (
-  <AdminPageLayout title="Tasks" icon="checkbox" onBack={() => navigation.goBack()}>
+  <AdminPageLayout title="Tasks" onBack={() => navigation.goBack()}>
     <Text style={styles.placeholder}>Assign and track studio tasks (cleaning, ordering, etc.).</Text>
-    {/* Add Task List here */}
   </AdminPageLayout>
 );
 
 export const AdminNotifications = ({ navigation }) => (
-  <AdminPageLayout title="Notifications" icon="notifications" onBack={() => navigation.goBack()}>
+  <AdminPageLayout title="Notifications" onBack={() => navigation.goBack()}>
     <Text style={styles.placeholder}>View system alerts and send announcements.</Text>
-    {/* Add Notification Center here */}
   </AdminPageLayout>
 );
 
 export const AdminAnalytics = ({ navigation }) => (
-  <AdminPageLayout title="Analytics" icon="bar-chart" onBack={() => navigation.goBack()}>
+  <AdminPageLayout title="Analytics" onBack={() => navigation.goBack()}>
     <Text style={styles.placeholder}>View revenue, appointment trends, and artist performance.</Text>
-    {/* Add Charts/Graphs here */}
   </AdminPageLayout>
 );
 
 export const AdminSettings = ({ navigation }) => (
-  <AdminPageLayout title="Settings" icon="settings" onBack={() => navigation.goBack()}>
+  <AdminPageLayout title="Settings" onBack={() => navigation.goBack()}>
     <Text style={styles.placeholder}>Configure app settings, studio details, and permissions.</Text>
-    {/* Add Settings Form here */}
   </AdminPageLayout>
 );
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 50,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  content: {
-    padding: 20,
-  },
-  placeholder: {
-    color: '#6b7280',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 50,
-  },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 16, paddingTop: 52, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.lightBgSecondary, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  headerTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerTitle: { ...typography.h3, color: colors.textPrimary },
+  content: { padding: 20 },
+  placeholder: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: 50 },
 });
-

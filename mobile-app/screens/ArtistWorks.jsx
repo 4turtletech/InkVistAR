@@ -1,482 +1,206 @@
-// ArtistWorks.jsx - UPDATED VERSION WITH VISIBILITY AND SYNCED CATEGORIES
+/**
+ * ArtistWorks.jsx -- Portfolio Manager with Upload, Edit, Visibility Toggle
+ * Themed with lucide icons. Search, category chips, sort, grid, upload/detail modals.
+ */
+
 import { useState, useEffect } from 'react';
-import { 
-  View, Text, TextInput, TouchableOpacity, StyleSheet, 
-  ScrollView, SafeAreaView, Image, Alert, Modal, ActivityIndicator 
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  ScrollView, SafeAreaView, Image, Alert, Modal, ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  ArrowLeft, Plus, Search, ArrowUpDown, Grid3x3, Eye, Palette, Brush,
+  Flame, Pencil, X, Upload, Globe, Lock, Trash2, Edit3, Images, DollarSign,
+} from 'lucide-react-native';
+import { colors, typography, borderRadius, shadows } from '../src/theme';
+import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { EmptyState } from '../src/components/shared/EmptyState';
 import { getArtistPortfolio, addArtistWork, deleteArtistWork, updateArtistWorkVisibility } from '../src/utils/api';
 import { API_URL } from '../src/config';
+
+const CAT_ICONS = { all: Grid3x3, Realism: Eye, Traditional: Palette, Japanese: Brush, Tribal: Flame, 'Fine Line': Pencil };
 
 export function ArtistWorks({ onBack, artistId }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [sortBy, setSortBy] = useState('newest'); 
+  const [sortBy, setSortBy] = useState('newest');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [newWorkTitle, setNewWorkTitle] = useState('');
   const [titleError, setTitleError] = useState('');
   const [newWorkDescription, setNewWorkDescription] = useState('');
   const [newWorkCategory, setNewWorkCategory] = useState('Realism');
   const [isPublic, setIsPublic] = useState(true);
-  const [newWorkImage, setNewWorkImage] = useState(''); 
+  const [newWorkImage, setNewWorkImage] = useState('');
   const [newWorkPriceEstimate, setNewWorkPriceEstimate] = useState('');
   const [works, setWorks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [uploadType, setUploadType] = useState('url'); // 'url' or 'upload'
+  const [uploadType, setUploadType] = useState('url');
   const [selectedWork, setSelectedWork] = useState(null);
   const [editingWorkId, setEditingWorkId] = useState(null);
 
   const categories = [
-    { id: 'all', label: 'All', icon: 'grid' },
-    { id: 'Realism', label: 'Realism', icon: 'eye' },
-    { id: 'Traditional', label: 'Traditional', icon: 'color-palette' },
-    { id: 'Japanese', label: 'Japanese', icon: 'brush' },
-    { id: 'Tribal', label: 'Tribal', icon: 'flame' },
-    { id: 'Fine Line', label: 'Fine Line', icon: 'pencil' },
+    { id: 'all', label: 'All' }, { id: 'Realism', label: 'Realism' }, { id: 'Traditional', label: 'Traditional' },
+    { id: 'Japanese', label: 'Japanese' }, { id: 'Tribal', label: 'Tribal' }, { id: 'Fine Line', label: 'Fine Line' },
   ];
 
-  useEffect(() => {
-    loadPortfolio();
-  }, [artistId]);
+  useEffect(() => { loadPortfolio(); }, [artistId]);
 
   useEffect(() => {
     if (newWorkTitle.length > 0) {
-      if (newWorkTitle.length < 3 || newWorkTitle.length > 50) {
-        setTitleError('Title must be between 3 and 50 characters.');
-      }
-      else if (!/^[a-zA-Z0-9 ]+$/.test(newWorkTitle)) {
-        setTitleError('Title can only contain letters, numbers, and spaces.');
-      }
-      else {
-        setTitleError('');
-      }
-    } else {
-      setTitleError('');
-    }
+      if (newWorkTitle.length < 3 || newWorkTitle.length > 50) setTitleError('Title must be between 3 and 50 characters.');
+      else if (!/^[a-zA-Z0-9 ]+$/.test(newWorkTitle)) setTitleError('Only letters, numbers, and spaces allowed.');
+      else setTitleError('');
+    } else setTitleError('');
   }, [newWorkTitle]);
 
-  const loadPortfolio = async () => {
-    if (!artistId) return;
-    setLoading(true);
-    const result = await getArtistPortfolio(artistId);
-    if (result.success) {
-      setWorks(result.works || []);
-    }
-    setLoading(false);
-  };
+  const loadPortfolio = async () => { if (!artistId) return; setLoading(true); const r = await getArtistPortfolio(artistId); if (r.success) setWorks(r.works || []); setLoading(false); };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'We need access to your photos to upload work.');
-      return;
-    }
-
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.5,
-      base64: true,
-    });
-
-    if (!result.canceled) {
-      setNewWorkImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
-    }
+    if (status !== 'granted') { Alert.alert('Permission needed', 'Photo access is required.'); return; }
+    let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.5, base64: true });
+    if (!result.canceled) setNewWorkImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
   };
 
-  const resetForm = () => {
-    setNewWorkTitle('');
-    setNewWorkImage('');
-    setNewWorkDescription('');
-    setNewWorkPriceEstimate('');
-    setTitleError('');
-    setIsPublic(true);
-    setEditingWorkId(null);
-    setUploadType('url');
-  };
+  const resetForm = () => { setNewWorkTitle(''); setNewWorkImage(''); setNewWorkDescription(''); setNewWorkPriceEstimate(''); setTitleError(''); setIsPublic(true); setEditingWorkId(null); setUploadType('url'); };
 
   const handleUploadWork = async () => {
     if (!newWorkTitle.trim() || titleError) return;
-    if (!newWorkImage.trim()) {
-      Alert.alert('Missing Image', 'Please provide an image (URL or Upload).');
-      return;
-    }
-
-    // Inline Sanitization: Trim and strip HTML tags
-    const sanitize = (text) => text.trim().replace(/<[^>]*>?/gm, '');
-
-    const payload = {
-      title: sanitize(newWorkTitle),
-      description: sanitize(newWorkDescription),
-      category: newWorkCategory,
-      imageUrl: newWorkImage,
-      isPublic: isPublic,
-      priceEstimate: newWorkPriceEstimate ? sanitize(newWorkPriceEstimate) : null
-    };
-
+    if (!newWorkImage.trim()) { Alert.alert('Missing Image', 'Please provide an image.'); return; }
+    const sanitize = (t) => t.trim().replace(/<[^>]*>?/gm, '');
+    const payload = { title: sanitize(newWorkTitle), description: sanitize(newWorkDescription), category: newWorkCategory, imageUrl: newWorkImage, isPublic, priceEstimate: newWorkPriceEstimate ? sanitize(newWorkPriceEstimate) : null };
     setLoading(true);
     let result;
-    if (editingWorkId) {
-      try {
-        const response = await fetch(`${API_URL}/api/artist/portfolio/${editingWorkId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        result = await response.json();
-      } catch (e) {
-        result = { success: false, message: 'Network error occurred while updating.' };
-      }
-    } else {
-      result = await addArtistWork(artistId, payload);
-    }
+    if (editingWorkId) { try { result = await (await fetch(`${API_URL}/api/artist/portfolio/${editingWorkId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })).json(); } catch (e) { result = { success: false, message: 'Network error.' }; } }
+    else result = await addArtistWork(artistId, payload);
     setLoading(false);
-
-    if (result.success) {
-      Alert.alert('Success!', editingWorkId ? 'Work updated successfully.' : 'Your work has been uploaded to your portfolio.');
-      resetForm();
-      setShowUploadModal(false);
-      loadPortfolio();
-    } else {
-      Alert.alert('Error', result.message || 'Failed to upload work.');
-    }
+    if (result.success) { Alert.alert('Success!', editingWorkId ? 'Work updated.' : 'Uploaded to portfolio.'); resetForm(); setShowUploadModal(false); loadPortfolio(); }
+    else Alert.alert('Error', result.message || 'Failed.');
   };
 
-  const handleEditWork = (work) => {
-    setEditingWorkId(work.id);
-    setNewWorkTitle(work.title);
-    setNewWorkDescription(work.description || '');
-    setNewWorkCategory(work.category || 'Realism');
-    setIsPublic(work.is_public === 1 || work.is_public === true);
-    setNewWorkImage(work.image_url);
-    setNewWorkPriceEstimate(work.price_estimate ? String(work.price_estimate) : '');
-    setUploadType(work.image_url?.startsWith('data:') ? 'upload' : 'url');
-    setShowUploadModal(true);
-  };
+  const handleEditWork = (w) => { setEditingWorkId(w.id); setNewWorkTitle(w.title); setNewWorkDescription(w.description || ''); setNewWorkCategory(w.category || 'Realism'); setIsPublic(w.is_public === 1 || w.is_public === true); setNewWorkImage(w.image_url); setNewWorkPriceEstimate(w.price_estimate ? String(w.price_estimate) : ''); setUploadType(w.image_url?.startsWith('data:') ? 'upload' : 'url'); setShowUploadModal(true); };
 
-  const handleDeleteWork = (id) => {
-    Alert.alert(
-      'Delete Work',
-      'Are you sure you want to delete this work?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            const result = await deleteArtistWork(id);
-            if (result.success) {
-              loadPortfolio();
-            } else {
-              Alert.alert('Error', 'Failed to delete work');
-            }
-          }
-        }
-      ]
-    );
-  };
+  const handleDeleteWork = (id) => { Alert.alert('Delete Work', 'Are you sure?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => { const r = await deleteArtistWork(id); r.success ? loadPortfolio() : Alert.alert('Error', 'Failed.'); } }]); };
 
-  const filteredWorks = works.filter(work => {
-    const matchesCategory = selectedCategory === 'all' || (work.category || '').toLowerCase() === selectedCategory.toLowerCase();
-    const matchesSearch = (work.title || '').toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  }).sort((a, b) => {
-    if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at);
-    if (sortBy === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
-    if (sortBy === 'az') return a.title.localeCompare(b.title);
-    return 0;
-  });
+  const filteredWorks = works.filter(w => {
+    const matchCat = selectedCategory === 'all' || (w.category || '').toLowerCase() === selectedCategory.toLowerCase();
+    const matchSearch = (w.title || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return matchCat && matchSearch;
+  }).sort((a, b) => { if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at); if (sortBy === 'oldest') return new Date(a.created_at) - new Date(b.created_at); if (sortBy === 'az') return a.title.localeCompare(b.title); return 0; });
 
-  const toggleSort = () => {
-    if (sortBy === 'newest') setSortBy('oldest');
-    else if (sortBy === 'oldest') setSortBy('az');
-    else setSortBy('newest');
-  };
+  const toggleSort = () => { if (sortBy === 'newest') setSortBy('oldest'); else if (sortBy === 'oldest') setSortBy('az'); else setSortBy('newest'); };
+
+  const VisibilityToggle = ({ value, onToggle }) => (
+    <TouchableOpacity style={styles.visToggle} onPress={onToggle}>
+      {value ? <Globe size={18} color={colors.primary} /> : <Lock size={18} color={colors.textTertiary} />}
+      <Text style={[styles.visText, value && styles.visTextActive]}>{value ? 'Public Portfolio' : 'Private Portfolio'}</Text>
+      <View style={[styles.toggleTrack, value && styles.toggleTrackActive]}><View style={[styles.toggleThumb, value && styles.toggleThumbActive]} /></View>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={['#000000', '#b8860b']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={onBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={20} color="#ffffff" />
-            </TouchableOpacity>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Hero Header */}
+        <LinearGradient colors={['#0f172a', colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={20} color="#fff" /></TouchableOpacity>
             <Text style={styles.headerTitle}>My Portfolio</Text>
-            <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => setShowUploadModal(true)}
-            >
-              <Ionicons name="add" size={24} color="#ffffff" />
-            </TouchableOpacity>
+            <TouchableOpacity style={styles.addBtn} onPress={() => setShowUploadModal(true)}><Plus size={22} color="#fff" /></TouchableOpacity>
           </View>
-
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>{works.length}</Text>
-              <Text style={styles.statLabel}>Total Works</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>
-                {works.filter(w => w.is_public).length}
-              </Text>
-              <Text style={styles.statLabel}>Public</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>
-                {works.filter(w => !w.is_public).length}
-              </Text>
-              <Text style={styles.statLabel}>Private</Text>
-            </View>
+            {[['Total Works', works.length], ['Public', works.filter(w => w.is_public).length], ['Private', works.filter(w => !w.is_public).length]].map(([label, num]) => (
+              <View key={label} style={styles.statCard}><Text style={styles.statNum}>{num}</Text><Text style={styles.statLabel}>{label}</Text></View>
+            ))}
           </View>
         </LinearGradient>
 
         <View style={styles.content}>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color="#9ca3af" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search your works..."
-              placeholderTextColor="#9ca3af"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
+          {/* Search */}
+          <View style={styles.searchWrap}><Search size={18} color={colors.textTertiary} /><TextInput style={styles.searchInput} placeholder="Search your works..." placeholderTextColor={colors.textTertiary} value={searchQuery} onChangeText={setSearchQuery} /></View>
 
-          <View style={styles.controlsRow}>
-            <TouchableOpacity style={styles.sortButton} onPress={toggleSort}>
-              <Ionicons name="filter" size={16} color="#6b7280" />
-              <Text style={styles.sortButtonText}>Sort: {sortBy.toUpperCase()}</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Sort */}
+          <View style={styles.sortRow}><TouchableOpacity style={styles.sortBtn} onPress={toggleSort}><ArrowUpDown size={14} color={colors.textSecondary} /><Text style={styles.sortText}>Sort: {sortBy.toUpperCase()}</Text></TouchableOpacity></View>
 
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesContainer}
-          >
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                onPress={() => setSelectedCategory(category.id)}
-                style={[
-                  styles.categoryButton,
-                  selectedCategory === category.id && styles.categoryButtonActive
-                ]}
-              >
-                <Ionicons 
-                  name={category.icon} 
-                  size={16} 
-                  color={selectedCategory === category.id ? '#ffffff' : '#6b7280'} 
-                />
-                <Text style={[
-                  styles.categoryText,
-                  selectedCategory === category.id && styles.categoryTextActive
-                ]}>
-                  {category.label}
-                </Text>
+          {/* Categories */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
+            {categories.map(cat => { const Icon = CAT_ICONS[cat.id] || Grid3x3; return (
+              <TouchableOpacity key={cat.id} onPress={() => setSelectedCategory(cat.id)} style={[styles.catChip, selectedCategory === cat.id && styles.catChipActive]}>
+                <Icon size={14} color={selectedCategory === cat.id ? '#fff' : colors.textSecondary} />
+                <Text style={[styles.catText, selectedCategory === cat.id && styles.catTextActive]}>{cat.label}</Text>
               </TouchableOpacity>
-            ))}
+            ); })}
           </ScrollView>
 
-          {loading && <ActivityIndicator size="large" color="#daa520" style={{ marginTop: 20 }} />}
+          {loading && <PremiumLoader message="Loading portfolio..." />}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Portfolio Items</Text>
-            <View style={styles.worksGrid}>
-              {!loading && filteredWorks.length === 0 && (
-                <View style={styles.emptyState}>
-                  <Ionicons name="search-outline" size={48} color="#d1d5db" />
-                  <Text style={styles.emptyStateText}>No works found</Text>
-                </View>
-              )}
-
-              {filteredWorks.map((work) => (
-                <TouchableOpacity 
-                  key={work.id} 
-                  style={styles.workCard}
-                  onPress={() => setSelectedWork(work)}
-                >
-                  {work.image_url ? (
-                    <Image source={{ uri: work.image_url }} style={styles.workImage} />
-                  ) : (
-                    <View style={[styles.workImage, { backgroundColor: '#333' }]}>
-                      <Ionicons name="images" size={40} color="#666" />
-                    </View>
-                  )}
-                  <View style={styles.workDetails}>
-                    <Text style={styles.workTitle} numberOfLines={1}>{work.title}</Text>
-                    <View style={styles.workMeta}>
-                      <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryBadgeText}>{work.category || 'Art'}</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <Ionicons 
-                          name={work.is_public ? "globe-outline" : "lock-closed-outline"} 
-                          size={12} 
-                          color={work.is_public ? "#daa520" : "#9ca3af"} 
-                        />
-                        <Text style={styles.workDate}>
-                          {new Date(work.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                        </Text>
-                      </View>
+          {/* Grid */}
+          <Text style={styles.sectionTitle}>Portfolio Items</Text>
+          <View style={styles.grid}>
+            {!loading && filteredWorks.length === 0 && <EmptyState icon={Search} title="No works found" subtitle="Try a different search or category" />}
+            {filteredWorks.map(w => (
+              <TouchableOpacity key={w.id} style={styles.workCard} onPress={() => setSelectedWork(w)} activeOpacity={0.85}>
+                {w.image_url ? <Image source={{ uri: w.image_url }} style={styles.workImg} /> : (
+                  <View style={[styles.workImg, { backgroundColor: '#1e293b', justifyContent: 'center', alignItems: 'center' }]}><Images size={36} color={colors.textTertiary} /></View>
+                )}
+                <View style={styles.workInfo}>
+                  <Text style={styles.workTitle} numberOfLines={1}>{w.title}</Text>
+                  <View style={styles.workMeta}>
+                    <View style={styles.catBadge}><Text style={styles.catBadgeText}>{w.category || 'Art'}</Text></View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                      {w.is_public ? <Globe size={10} color={colors.primary} /> : <Lock size={10} color={colors.textTertiary} />}
+                      <Text style={styles.workDate}>{new Date(w.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</Text>
                     </View>
                   </View>
-                  <TouchableOpacity 
-                    style={styles.workEdit}
-                    onPress={() => handleEditWork(work)}
-                  >
-                    <Ionicons name="pencil-outline" size={16} color="#daa520" />
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.workDelete}
-                    onPress={() => handleDeleteWork(work.id)}
-                  >
-                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              ))}
-            </View>
+                </View>
+                <TouchableOpacity style={styles.editFloatBtn} onPress={() => handleEditWork(w)}><Edit3 size={14} color={colors.primary} /></TouchableOpacity>
+                <TouchableOpacity style={styles.deleteFloatBtn} onPress={() => handleDeleteWork(w.id)}><Trash2 size={14} color={colors.error} /></TouchableOpacity>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
       </ScrollView>
 
-      {/* Upload Modal */}
+      {/* Upload/Edit Modal */}
       <Modal visible={showUploadModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={modalS.overlay}>
+          <View style={modalS.sheet}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{editingWorkId ? 'Edit Work' : 'Add New Work'}</Text>
-                <TouchableOpacity onPress={() => { setShowUploadModal(false); resetForm(); }}>
-                  <Ionicons name="close" size={24} color="#111827" />
-                </TouchableOpacity>
-              </View>
+              <View style={modalS.header}><Text style={modalS.title}>{editingWorkId ? 'Edit Work' : 'Add New Work'}</Text><TouchableOpacity onPress={() => { setShowUploadModal(false); resetForm(); }}><X size={22} color={colors.textPrimary} /></TouchableOpacity></View>
 
-              {/* Image Input */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Image Source</Text>
-                <View style={styles.tabContainer}>
-                  <TouchableOpacity 
-                    style={[styles.tabButton, uploadType === 'url' && styles.tabButtonActive]}
-                    onPress={() => setUploadType('url')}
-                  >
-                    <Text style={[styles.tabButtonText, uploadType === 'url' && styles.tabButtonTextActive]}>URL</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.tabButton, uploadType === 'upload' && styles.tabButtonActive]}
-                    onPress={() => setUploadType('upload')}
-                  >
-                    <Text style={[styles.tabButtonText, uploadType === 'upload' && styles.tabButtonTextActive]}>Upload</Text>
-                  </TouchableOpacity>
+              {/* Image Source */}
+              <View style={modalS.group}><Text style={modalS.label}>Image Source</Text>
+                <View style={modalS.tabWrap}>
+                  {['url', 'upload'].map(t => <TouchableOpacity key={t} style={[modalS.tab, uploadType === t && modalS.tabActive]} onPress={() => setUploadType(t)}><Text style={[modalS.tabText, uploadType === t && modalS.tabTextActive]}>{t === 'url' ? 'URL' : 'Upload'}</Text></TouchableOpacity>)}
                 </View>
-
-                {uploadType === 'url' ? (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="https://example.com/image.jpg"
-                    value={newWorkImage}
-                    onChangeText={setNewWorkImage}
-                  />
-                ) : (
-                  <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
-                    {newWorkImage ? (
-                      <Image source={{ uri: newWorkImage }} style={styles.imagePreview} />
-                    ) : (
-                      <View style={styles.imagePickerPlaceholder}>
-                        <Ionicons name="cloud-upload-outline" size={32} color="#6b7280" />
-                        <Text style={styles.imagePickerText}>Select Image</Text>
-                      </View>
+                {uploadType === 'url' ? <TextInput style={modalS.input} placeholder="https://example.com/image.jpg" placeholderTextColor={colors.textTertiary} value={newWorkImage} onChangeText={setNewWorkImage} /> : (
+                  <TouchableOpacity style={modalS.imgPicker} onPress={pickImage}>
+                    {newWorkImage ? <Image source={{ uri: newWorkImage }} style={modalS.imgPreview} /> : (
+                      <View style={modalS.imgPlaceholder}><Upload size={28} color={colors.textTertiary} /><Text style={modalS.imgPickerText}>Select Image</Text></View>
                     )}
                   </TouchableOpacity>
                 )}
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Title</Text>
-                <TextInput
-                  style={[styles.input, titleError ? styles.inputError : null]}
-                  placeholder="Enter title"
-                  value={newWorkTitle}
-                  onChangeText={setNewWorkTitle}
-                />
-                {titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
-              </View>
+              <View style={modalS.group}><Text style={modalS.label}>Title</Text><TextInput style={[modalS.input, titleError && { borderColor: colors.error }]} placeholder="Enter title" placeholderTextColor={colors.textTertiary} value={newWorkTitle} onChangeText={setNewWorkTitle} />{titleError ? <Text style={modalS.error}>{titleError}</Text> : null}</View>
+              <View style={modalS.group}><Text style={modalS.label}>Description</Text><TextInput style={[modalS.input, { height: 80, textAlignVertical: 'top' }]} placeholder="Tell more about this piece..." placeholderTextColor={colors.textTertiary} value={newWorkDescription} onChangeText={setNewWorkDescription} multiline /></View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Description</Text>
-                <TextInput
-                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                  placeholder="Tell more about this piece..."
-                  value={newWorkDescription}
-                  onChangeText={setNewWorkDescription}
-                  multiline
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Category</Text>
+              <View style={modalS.group}><Text style={modalS.label}>Category</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {categories.slice(1).map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[styles.categoryOption, newWorkCategory === cat.id && styles.categoryOptionActive]}
-                      onPress={() => setNewWorkCategory(cat.id)}
-                    >
-                      <Text style={[styles.categoryOptionText, newWorkCategory === cat.id && styles.categoryOptionTextActive]}>
-                        {cat.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {categories.slice(1).map(c => <TouchableOpacity key={c.id} style={[modalS.catOpt, newWorkCategory === c.id && modalS.catOptActive]} onPress={() => setNewWorkCategory(c.id)}><Text style={[modalS.catOptText, newWorkCategory === c.id && modalS.catOptTextActive]}>{c.label}</Text></TouchableOpacity>)}
                 </ScrollView>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Price Estimate (₱)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. 2500"
-                  value={newWorkPriceEstimate}
-                  onChangeText={setNewWorkPriceEstimate}
-                  keyboardType="numeric"
-                />
-              </View>
+              <View style={modalS.group}><Text style={modalS.label}>Price Estimate (P)</Text><TextInput style={modalS.input} placeholder="e.g. 2500" placeholderTextColor={colors.textTertiary} value={newWorkPriceEstimate} onChangeText={setNewWorkPriceEstimate} keyboardType="numeric" /></View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Settings</Text>
-                <TouchableOpacity 
-                  style={styles.visibilityToggle}
-                  onPress={() => setIsPublic(!isPublic)}
-                >
-                  <Ionicons name={isPublic ? "globe-outline" : "lock-closed-outline"} size={20} color={isPublic ? "#daa520" : "#6b7280"} />
-                  <Text style={[styles.visibilityText, isPublic && styles.visibilityTextActive]}>
-                    {isPublic ? "Public Portfolio" : "Private Portfolio"}
-                  </Text>
-                  <View style={[styles.toggleSwitch, isPublic && styles.toggleSwitchActive]}>
-                    <View style={[styles.toggleThumb, isPublic && styles.toggleThumbActive]} />
-                  </View>
-                </TouchableOpacity>
-              </View>
+              <View style={modalS.group}><Text style={modalS.label}>Settings</Text><VisibilityToggle value={isPublic} onToggle={() => setIsPublic(!isPublic)} /></View>
 
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelButton} onPress={() => { setShowUploadModal(false); resetForm(); }}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.uploadButton, (!newWorkTitle.trim() || !!titleError) && styles.disabledButton]} 
-                  onPress={handleUploadWork}
-                  disabled={!newWorkTitle.trim() || !!titleError}
-                >
-                  <LinearGradient colors={['#000', '#daa520']} style={styles.uploadButtonGradient}>
-                    <Text style={styles.uploadButtonText}>{editingWorkId ? 'Save Changes' : 'Upload Work'}</Text>
-                  </LinearGradient>
+              <View style={modalS.actions}>
+                <TouchableOpacity style={modalS.cancelBtn} onPress={() => { setShowUploadModal(false); resetForm(); }}><Text style={modalS.cancelText}>Cancel</Text></TouchableOpacity>
+                <TouchableOpacity style={[modalS.uploadBtn, (!newWorkTitle.trim() || !!titleError) && { opacity: 0.5 }]} onPress={handleUploadWork} disabled={!newWorkTitle.trim() || !!titleError}>
+                  <LinearGradient colors={['#0f172a', colors.primary]} style={modalS.uploadGradient}><Text style={modalS.uploadText}>{editingWorkId ? 'Save Changes' : 'Upload Work'}</Text></LinearGradient>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -484,171 +208,123 @@ export function ArtistWorks({ onBack, artistId }) {
         </View>
       </Modal>
 
-      {/* Selected Work Details Modal */}
+      {/* Detail Modal */}
       <Modal visible={!!selectedWork} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={modalS.overlay}>
+          <View style={modalS.sheet}>
             {selectedWork && (
               <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Work Details</Text>
-                  <TouchableOpacity onPress={() => setSelectedWork(null)}>
-                    <Ionicons name="close" size={24} color="#111827" />
-                  </TouchableOpacity>
-                </View>
-
-                {selectedWork.image_url ? (
-                  <Image source={{ uri: selectedWork.image_url }} style={{ width: '100%', height: 300, borderRadius: 12, marginBottom: 16 }} resizeMode="cover" />
-                ) : (
-                  <View style={{ width: '100%', height: 300, borderRadius: 12, backgroundColor: '#333', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-                    <Ionicons name="images" size={60} color="#666" />
-                  </View>
+                <View style={modalS.header}><Text style={modalS.title}>Work Details</Text><TouchableOpacity onPress={() => setSelectedWork(null)}><X size={22} color={colors.textPrimary} /></TouchableOpacity></View>
+                {selectedWork.image_url ? <Image source={{ uri: selectedWork.image_url }} style={{ width: '100%', height: 280, borderRadius: borderRadius.xl, marginBottom: 14 }} resizeMode="cover" /> : (
+                  <View style={{ width: '100%', height: 280, borderRadius: borderRadius.xl, backgroundColor: '#1e293b', justifyContent: 'center', alignItems: 'center', marginBottom: 14 }}><Images size={48} color={colors.textTertiary} /></View>
                 )}
-
-                <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 8, color: '#111827' }}>{selectedWork.title}</Text>
-                
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryBadgeText}>{selectedWork.category || 'Art'}</Text>
-                  </View>
-                  <Text style={{ marginLeft: 12, color: '#6b7280', fontSize: 14 }}>
-                    {new Date(selectedWork.created_at).toLocaleDateString()}
-                  </Text>
+                <Text style={{ ...typography.h2, color: colors.textPrimary, marginBottom: 8 }}>{selectedWork.title}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+                  <View style={styles.catBadge}><Text style={styles.catBadgeText}>{selectedWork.category || 'Art'}</Text></View>
+                  <Text style={{ marginLeft: 12, color: colors.textTertiary, ...typography.bodySmall }}>{new Date(selectedWork.created_at).toLocaleDateString()}</Text>
                 </View>
-
-                {selectedWork.description ? (
-                  <Text style={{ fontSize: 16, color: '#4b5563', marginBottom: 24, lineHeight: 24 }}>
-                    {selectedWork.description}
-                  </Text>
-                ) : null}
-
+                {selectedWork.description ? <Text style={{ ...typography.body, color: colors.textSecondary, marginBottom: 20, lineHeight: 22 }}>{selectedWork.description}</Text> : null}
                 {selectedWork.price_estimate ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: '#fef9ee', borderRadius: 10, marginBottom: 20, borderWidth: 1, borderColor: '#f5deb3' }}>
-                    <Text style={{ fontSize: 16 }}>💰</Text>
-                    <Text style={{ fontWeight: '700', color: '#92400e', fontSize: 15 }}>Estimated Price: ₱{Number(selectedWork.price_estimate).toLocaleString()}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: colors.primaryLight, borderRadius: borderRadius.lg, marginBottom: 18, borderWidth: 1, borderColor: 'rgba(190,144,85,0.2)' }}>
+                    <DollarSign size={16} color={colors.primaryDark} /><Text style={{ fontWeight: '700', color: colors.primaryDark, ...typography.body }}>Estimated: P{Number(selectedWork.price_estimate).toLocaleString()}</Text>
                   </View>
                 ) : null}
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Visibility Settings</Text>
-                  <TouchableOpacity 
-                    style={styles.visibilityToggle}
-                    onPress={async () => {
-                      const newIsPublic = !selectedWork.is_public;
-                      setSelectedWork({ ...selectedWork, is_public: newIsPublic });
-                      const result = await updateArtistWorkVisibility(selectedWork.id, newIsPublic);
-                      if (result.success) {
-                        setWorks(works.map(w => w.id === selectedWork.id ? { ...w, is_public: newIsPublic } : w));
-                      } else {
-                        Alert.alert('Error', 'Failed to update visibility');
-                        setSelectedWork({ ...selectedWork, is_public: !newIsPublic }); // revert visual state
-                      }
-                    }}
-                  >
-                    <Ionicons name={selectedWork.is_public ? "globe-outline" : "lock-closed-outline"} size={20} color={selectedWork.is_public ? "#daa520" : "#6b7280"} />
-                    <Text style={[styles.visibilityText, selectedWork.is_public && styles.visibilityTextActive]}>
-                      {selectedWork.is_public ? "Public Portfolio" : "Private Portfolio"}
-                    </Text>
-                    <View style={[styles.toggleSwitch, selectedWork.is_public && styles.toggleSwitchActive]}>
-                      <View style={[styles.toggleThumb, selectedWork.is_public && styles.toggleThumbActive]} />
-                    </View>
-                  </TouchableOpacity>
+                <View style={modalS.group}><Text style={modalS.label}>Visibility Settings</Text>
+                  <VisibilityToggle value={selectedWork.is_public} onToggle={async () => {
+                    const nv = !selectedWork.is_public; setSelectedWork({ ...selectedWork, is_public: nv });
+                    const r = await updateArtistWorkVisibility(selectedWork.id, nv);
+                    if (r.success) setWorks(works.map(w => w.id === selectedWork.id ? { ...w, is_public: nv } : w));
+                    else { Alert.alert('Error', 'Failed to update.'); setSelectedWork({ ...selectedWork, is_public: !nv }); }
+                  }} />
                 </View>
-
-                <TouchableOpacity 
-                  style={[styles.cancelButton, { marginTop: 16, backgroundColor: '#f3f4f6' }]} 
-                  onPress={() => {
-                    handleEditWork(selectedWork);
-                    setSelectedWork(null);
-                  }}
-                >
-                  <Text style={[styles.cancelButtonText, { color: '#daa520' }]}>Edit Work Details</Text>
-                </TouchableOpacity>
+                <TouchableOpacity style={modalS.editDetailBtn} onPress={() => { handleEditWork(selectedWork); setSelectedWork(null); }}><Text style={modalS.editDetailText}>Edit Work Details</Text></TouchableOpacity>
               </ScrollView>
             )}
           </View>
         </View>
       </Modal>
 
-      <TouchableOpacity style={styles.fab} onPress={() => { resetForm(); setShowUploadModal(true); }}>
-        <LinearGradient colors={['#000', '#daa520']} style={styles.fabGradient}>
-          <Ionicons name="add" size={32} color="#fff" />
-        </LinearGradient>
+      {/* FAB */}
+      <TouchableOpacity style={styles.fab} onPress={() => { resetForm(); setShowUploadModal(true); }} activeOpacity={0.8}>
+        <LinearGradient colors={['#0f172a', colors.primary]} style={styles.fabGradient}><Plus size={28} color="#fff" /></LinearGradient>
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  scrollView: { flex: 1 },
-  header: { padding: 24, paddingTop: 60, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.2)', justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 24, fontWeight: '700', color: '#ffffff' },
-  addButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.2)', justifyContent: 'center', alignItems: 'center' },
-  statsRow: { flexDirection: 'row', gap: 12 },
-  statCard: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 12, padding: 12, alignItems: 'center' },
-  statNumber: { fontSize: 20, fontWeight: '700', color: '#ffffff', marginBottom: 2 },
-  statLabel: { fontSize: 10, color: '#ffffff', opacity: 0.8 },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: { padding: 24, paddingTop: 56, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { ...typography.h2, color: '#ffffff' },
+  addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  statsRow: { flexDirection: 'row', gap: 10 },
+  statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: borderRadius.lg, padding: 10, alignItems: 'center' },
+  statNum: { fontSize: 20, fontWeight: '800', color: '#ffffff', marginBottom: 2 },
+  statLabel: { ...typography.bodyXSmall, color: '#ffffff', opacity: 0.8 },
   content: { padding: 16, paddingBottom: 100 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 12, paddingHorizontal: 16, marginBottom: 16, height: 48, elevation: 2 },
-  searchInput: { flex: 1, marginLeft: 12, fontSize: 16, color: '#111827' },
-  controlsRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 16 },
-  sortButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sortButtonText: { fontSize: 12, color: '#6b7280', fontWeight: '600' },
-  categoriesContainer: { flexDirection: 'row', marginBottom: 24 },
-  categoryButton: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#e5e7eb', marginRight: 12 },
-  categoryButtonActive: { backgroundColor: '#000000', borderColor: '#000000' },
-  categoryText: { fontSize: 14, color: '#6b7280', fontWeight: '600' },
-  categoryTextActive: { color: '#ffffff' },
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 16 },
-  worksGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  workCard: { width: '47%', backgroundColor: '#ffffff', borderRadius: 16, overflow: 'hidden', marginBottom: 8, elevation: 3 },
-  workImage: { width: '100%', height: 150, resizeMode: 'cover' },
-  workDetails: { padding: 10 },
-  workTitle: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 4 },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: borderRadius.lg, paddingHorizontal: 14, marginBottom: 14, height: 46, borderWidth: 1, borderColor: colors.border },
+  searchInput: { flex: 1, marginLeft: 10, ...typography.body, color: colors.textPrimary },
+  sortRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  sortText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600' },
+  catRow: { flexDirection: 'row', marginBottom: 20 },
+  catChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#ffffff', borderRadius: borderRadius.round, borderWidth: 1, borderColor: colors.border, marginRight: 8 },
+  catChipActive: { backgroundColor: '#0f172a', borderColor: '#0f172a' },
+  catText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
+  catTextActive: { color: '#ffffff' },
+  sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 14 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  workCard: { width: '47%', backgroundColor: '#ffffff', borderRadius: borderRadius.xl, overflow: 'hidden', marginBottom: 6, borderWidth: 1, borderColor: colors.border, position: 'relative' },
+  workImg: { width: '100%', height: 140, resizeMode: 'cover' },
+  workInfo: { padding: 10 },
+  workTitle: { ...typography.bodySmall, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 },
   workMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  categoryBadge: { backgroundColor: '#f3f4f6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  categoryBadgeText: { fontSize: 10, color: '#374151' },
-  workDate: { fontSize: 10, color: '#9ca3af' },
-  workDelete: { position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center' },
-  workEdit: { position: 'absolute', top: 8, right: 40, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: '700' },
-  inputGroup: { marginBottom: 16 },
-  inputLabel: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
-  input: { backgroundColor: '#f9f9f9', borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 12, fontSize: 16 },
-  tabContainer: { flexDirection: 'row', marginBottom: 12, backgroundColor: '#eee', borderRadius: 12, padding: 4 },
-  tabButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
-  tabButtonActive: { backgroundColor: '#fff' },
-  tabButtonText: { fontSize: 12, color: '#666' },
-  tabButtonTextActive: { color: '#000', fontWeight: 'bold' },
-  imagePickerButton: { height: 150, backgroundColor: '#f9f9f9', borderRadius: 12, borderStyle: 'dashed', borderWidth: 2, borderColor: '#ddd', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  imagePreview: { width: '100%', height: '100%' },
-  imagePickerPlaceholder: { alignItems: 'center' },
-  imagePickerText: { fontSize: 12, color: '#999', marginTop: 8 },
-  categoryOption: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#f3f4f6', borderRadius: 20, marginRight: 8, borderElevation: 1 },
-  categoryOptionActive: { backgroundColor: '#000' },
-  categoryOptionText: { fontSize: 12, color: '#666' },
-  categoryOptionTextActive: { color: '#fff' },
-  visibilityToggle: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#f9f9f9', borderRadius: 12, borderWidth: 1, borderColor: '#eee' },
-  visibilityText: { flex: 1, marginLeft: 12, fontSize: 14, color: '#666' },
-  visibilityTextActive: { color: '#000', fontWeight: '600' },
-  toggleSwitch: { width: 40, height: 22, backgroundColor: '#eee', borderRadius: 11, padding: 2 },
-  toggleSwitchActive: { backgroundColor: '#daa520' },
-  toggleThumb: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff' },
+  catBadge: { backgroundColor: colors.lightBgSecondary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: borderRadius.sm },
+  catBadgeText: { ...typography.bodyXSmall, color: colors.textSecondary },
+  workDate: { ...typography.bodyXSmall, color: colors.textTertiary },
+  editFloatBtn: { position: 'absolute', top: 8, right: 38, width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.92)', justifyContent: 'center', alignItems: 'center' },
+  deleteFloatBtn: { position: 'absolute', top: 8, right: 8, width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.92)', justifyContent: 'center', alignItems: 'center' },
+  visToggle: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#f8fafc', borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.border },
+  visText: { flex: 1, marginLeft: 10, ...typography.bodySmall, color: colors.textTertiary },
+  visTextActive: { color: colors.textPrimary, fontWeight: '600' },
+  toggleTrack: { width: 40, height: 22, backgroundColor: colors.lightBgSecondary, borderRadius: 11, padding: 2 },
+  toggleTrackActive: { backgroundColor: colors.primary },
+  toggleThumb: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#ffffff' },
   toggleThumbActive: { transform: [{ translateX: 18 }] },
-  modalActions: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  cancelButton: { flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 12 },
-  cancelButtonText: { fontWeight: '600', color: '#666' },
-  uploadButton: { flex: 2 },
-  uploadButtonGradient: { height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  uploadButtonText: { color: '#fff', fontWeight: 'bold' },
-  disabledButton: { opacity: 0.5 },
-  fab: { position: 'absolute', bottom: 30, right: 20, width: 64, height: 64, borderRadius: 32, elevation: 5 },
-  fabGradient: { width: '100%', height: '100%', borderRadius: 32, justifyContent: 'center', alignItems: 'center' },
+  fab: { position: 'absolute', bottom: 28, right: 20, width: 60, height: 60, borderRadius: 30, overflow: 'hidden', ...shadows.button },
+  fabGradient: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+});
+
+const modalS = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 22, maxHeight: '90%' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  title: { ...typography.h3, color: colors.textPrimary },
+  group: { marginBottom: 14 },
+  label: { ...typography.bodySmall, fontWeight: '600', marginBottom: 6, color: colors.textSecondary },
+  input: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.lg, padding: 12, ...typography.body, color: colors.textPrimary },
+  error: { ...typography.bodyXSmall, color: colors.error, marginTop: 4 },
+  tabWrap: { flexDirection: 'row', marginBottom: 10, backgroundColor: colors.lightBgSecondary, borderRadius: borderRadius.lg, padding: 3 },
+  tab: { flex: 1, paddingVertical: 7, alignItems: 'center', borderRadius: borderRadius.md },
+  tabActive: { backgroundColor: '#ffffff' },
+  tabText: { ...typography.bodyXSmall, color: colors.textTertiary },
+  tabTextActive: { color: colors.textPrimary, fontWeight: '700' },
+  imgPicker: { height: 140, backgroundColor: '#f8fafc', borderRadius: borderRadius.lg, borderStyle: 'dashed', borderWidth: 2, borderColor: colors.border, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  imgPreview: { width: '100%', height: '100%' },
+  imgPlaceholder: { alignItems: 'center' },
+  imgPickerText: { ...typography.bodyXSmall, color: colors.textTertiary, marginTop: 6 },
+  catOpt: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: colors.lightBgSecondary, borderRadius: borderRadius.round, marginRight: 8 },
+  catOptActive: { backgroundColor: '#0f172a' },
+  catOptText: { ...typography.bodyXSmall, color: colors.textTertiary },
+  catOptTextActive: { color: '#ffffff' },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 20, marginBottom: 20 },
+  cancelBtn: { flex: 1, paddingVertical: 13, alignItems: 'center', backgroundColor: colors.lightBgSecondary, borderRadius: borderRadius.lg },
+  cancelText: { ...typography.body, fontWeight: '600', color: colors.textTertiary },
+  uploadBtn: { flex: 2, borderRadius: borderRadius.lg, overflow: 'hidden' },
+  uploadGradient: { height: 48, justifyContent: 'center', alignItems: 'center' },
+  uploadText: { ...typography.button, color: '#ffffff' },
+  editDetailBtn: { paddingVertical: 13, alignItems: 'center', backgroundColor: colors.lightBgSecondary, borderRadius: borderRadius.lg, marginTop: 14, marginBottom: 20 },
+  editDetailText: { ...typography.body, fontWeight: '600', color: colors.primary },
 });

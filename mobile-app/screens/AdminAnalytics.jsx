@@ -1,161 +1,167 @@
-﻿import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { getAdminAnalytics } from '../src/utils/api';
+/**
+ * AdminAnalytics.jsx -- Analytics Dashboard with Charts
+ * Uses react-native-chart-kit for pie/bar charts.
+ * Themed upgrade matching web's AdminAnalytics.js
+ */
+
+import React, { useState, useEffect } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, RefreshControl, SafeAreaView,
+} from 'react-native';
+import { ArrowLeft, BarChart3, TrendingUp, Users, Calendar, Package, DollarSign } from 'lucide-react-native';
 import { BarChart, PieChart } from 'react-native-chart-kit';
+import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { EmptyState } from '../src/components/shared/EmptyState';
+import { formatCurrency } from '../src/utils/formatters';
+import { getAdminAnalytics } from '../src/utils/api';
+
+const SCREEN_W = Dimensions.get('window').width;
+const CHART_W = SCREEN_W - 64;
+
+const chartConfig = {
+  backgroundColor: '#ffffff',
+  backgroundGradientFrom: '#ffffff',
+  backgroundGradientTo: '#ffffff',
+  decimalPlaces: 0,
+  color: (opacity = 1) => `rgba(190, 144, 85, ${opacity})`,
+  labelColor: () => colors.textTertiary,
+  barPercentage: 0.5,
+  propsForBackgroundLines: { strokeDasharray: '', stroke: colors.borderLight },
+};
 
 export const AdminAnalytics = ({ navigation }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      const res = await getAdminAnalytics();
-      if (res.success && res.data) {
-        setData(res.data);
-      }
-      setLoading(false);
-    };
-    fetchStats();
-  }, []);
+  const loadData = async () => {
+    setLoading(true);
+    const res = await getAdminAnalytics();
+    if (res.success && res.data) setData(res.data);
+    setLoading(false);
+  };
 
-  const screenWidth = Dimensions.get('window').width - 40;
+  useEffect(() => { loadData(); }, []);
 
-  if (loading) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#0ea5e9" />
-      </View>
-    );
-  }
+  if (loading) return <View style={styles.loadingContainer}><PremiumLoader message="Loading analytics..." /></View>;
 
-  // Fallback for empty data
-  const revValue = data?.revenue?.total || 0;
-  
+  const revenue = data?.revenue?.total || 0;
+  const apptTotal = data?.appointments?.total || 0;
   const apptCompleted = parseInt(data?.appointments?.completed || 0);
   const apptScheduled = parseInt(data?.appointments?.scheduled || 0);
   const apptCancelled = parseInt(data?.appointments?.cancelled || 0);
-  
+
   const pieData = [
-    { name: 'Completed', count: apptCompleted, color: '#10b981', legendFontColor: '#6b7280', legendFontSize: 12 },
-    { name: 'Scheduled', count: apptScheduled, color: '#3b82f6', legendFontColor: '#6b7280', legendFontSize: 12 },
-    { name: 'Cancelled', count: apptCancelled, color: '#ef4444', legendFontColor: '#6b7280', legendFontSize: 12 },
+    { name: 'Completed', count: apptCompleted, color: colors.success, legendFontColor: colors.textSecondary, legendFontSize: 12 },
+    { name: 'Scheduled', count: apptScheduled, color: colors.info, legendFontColor: colors.textSecondary, legendFontSize: 12 },
+    { name: 'Cancelled', count: apptCancelled, color: colors.error, legendFontColor: colors.textSecondary, legendFontSize: 12 },
   ].filter(d => d.count > 0);
 
-  const artistNames = (data?.artists || []).slice(0, 4).map(a => a.name.split(' ')[0]);
-  const artistRevs = (data?.artists || []).slice(0, 4).map(a => a.revenue || 0);
-
+  const artists = data?.artists || [];
   const barData = {
-    labels: artistNames.length ? artistNames : ['None'],
-    datasets: [{ data: artistRevs.length ? artistRevs : [0] }]
+    labels: artists.length > 0 ? artists.slice(0, 5).map(a => (a.name || '').split(' ')[0]) : ['None'],
+    datasets: [{ data: artists.length > 0 ? artists.slice(0, 5).map(a => a.revenue || 0) : [0] }],
   };
 
+  const inventoryItems = data?.inventory || [];
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+        <TouchableOpacity onPress={() => navigation?.goBack?.()} style={styles.backBtn}>
+          <ArrowLeft size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Ionicons name="bar-chart" size={24} color="#0ea5e9" style={{ marginRight: 10 }} />
-          <Text style={styles.headerTitle}>Analytics</Text>
-        </View>
+        <Text style={styles.headerTitle}>Analytics</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
 
-        <View style={styles.cardRow}>
-           <View style={[styles.statCard, { borderLeftColor: '#0ea5e9', borderLeftWidth: 4 }]}>
-             <Text style={styles.statLabel}>Total Revenue</Text>
-             <Text style={styles.statValue}>â‚±{revValue}</Text>
-           </View>
-           <View style={[styles.statCard, { borderLeftColor: '#f59e0b', borderLeftWidth: 4 }]}>
-             <Text style={styles.statLabel}>Total Appts</Text>
-             <Text style={styles.statValue}>{data?.appointments?.total || 0}</Text>
-           </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.primary} />}>
+        {/* Stat Cards */}
+        <View style={styles.statsRow}>
+          <StatCard icon={DollarSign} label="Revenue" value={`P${formatCurrency(revenue)}`} color={colors.success} bg={colors.successBg} />
+          <StatCard icon={Calendar} label="Appointments" value={String(apptTotal)} color={colors.iconPurple} bg={colors.iconPurpleBg} />
         </View>
 
-        <View style={styles.chartTitleContainer}>
-          <Text style={styles.chartTitle}>Appointments Status</Text>
-        </View>
-        {pieData.length > 0 ? (
-          <View style={styles.chartCard}>
-            <PieChart
-              data={pieData}
-              width={screenWidth}
-              height={180}
-              chartConfig={{ color: () => '#fff' }}
-              accessor="count"
-              backgroundColor="transparent"
-              paddingLeft="15"
-              absolute
-            />
-          </View>
-        ) : (
-          <View style={styles.emptyCard}><Text style={{color:'#6b7280'}}>No appointment data</Text></View>
-        )}
-
-        <View style={styles.chartTitleContainer}>
-          <Text style={styles.chartTitle}>Top Artists Revenue</Text>
-        </View>
-        <View style={styles.chartCard}>
-          <BarChart
-            data={barData}
-            width={screenWidth}
-            height={220}
-            yAxisLabel="â‚±"
-            chartConfig={{
-              backgroundColor: '#ffffff',
-              backgroundGradientFrom: '#ffffff',
-              backgroundGradientTo: '#ffffff',
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(14, 165, 233, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
-              barPercentage: 0.5,
-            }}
-            style={{ borderRadius: 12 }}
-          />
-        </View>
-
-        <View style={styles.chartTitleContainer}>
-          <Text style={styles.chartTitle}>Top Consumed Inventory</Text>
-        </View>
-        <View style={styles.chartCard}>
-          {(data?.inventory || []).length === 0 ? (
-             <Text style={{color:'#6b7280', textAlign:'center', padding: 20}}>No inventory transactions yet</Text>
+        {/* Appointment Status Pie */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Appointment Status</Text>
+          {pieData.length > 0 ? (
+            <PieChart data={pieData} width={CHART_W} height={180} chartConfig={chartConfig} accessor="count" backgroundColor="transparent" paddingLeft="15" absolute />
           ) : (
-            (data?.inventory || []).slice(0, 5).map((item, idx) => (
-              <View key={idx} style={styles.listRow}>
-                <Text style={styles.listName}>{item.name}</Text>
-                <Text style={styles.listValue}>{item.used} {item.unit}</Text>
+            <EmptyState icon={Calendar} title="No appointment data" />
+          )}
+        </View>
+
+        {/* Artist Revenue Bar */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Top Artist Revenue</Text>
+          <BarChart data={barData} width={CHART_W} height={220} yAxisLabel="P" chartConfig={chartConfig} style={{ borderRadius: 12 }} />
+        </View>
+
+        {/* Top Consumed Inventory */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Top Consumed Inventory</Text>
+          {inventoryItems.length === 0 ? (
+            <EmptyState icon={Package} title="No data yet" subtitle="Inventory transactions will appear here" />
+          ) : (
+            inventoryItems.slice(0, 8).map((item, i) => (
+              <View key={i} style={styles.invRow}>
+                <View style={styles.invLeft}>
+                  <View style={styles.invDot} />
+                  <Text style={styles.invName}>{item.name}</Text>
+                </View>
+                <Text style={styles.invValue}>{item.used} {item.unit}</Text>
               </View>
             ))
           )}
         </View>
 
+        <View style={{ height: 40 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
+const StatCard = ({ icon: Icon, label, value, color, bg }) => (
+  <View style={styles.statCard}>
+    <View style={[styles.statIcon, { backgroundColor: bg }]}>
+      <Icon size={20} color={color} />
+    </View>
+    <Text style={styles.statLabel}>{label}</Text>
+    <Text style={styles.statValue}>{value}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  backButton: { padding: 8, marginRight: 8 },
-  headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-  content: { padding: 20, paddingBottom: 50 },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  statCard: { backgroundColor: '#ffffff', padding: 20, borderRadius: 12, width: '48%' },
-  statLabel: { color: '#6b7280', fontSize: 13, marginBottom: 8 },
-  statValue: { color: '#111827', fontSize: 22, fontWeight: 'bold' },
-  chartTitleContainer: { marginBottom: 10, marginTop: 10 },
-  chartTitle: { color: '#111827', fontSize: 16, fontWeight: 'bold' },
-  chartCard: { backgroundColor: '#ffffff', borderRadius: 12, paddingVertical: 15, marginBottom: 20, alignItems: 'center' },
-  emptyCard: { backgroundColor: '#ffffff', borderRadius: 12, paddingVertical: 30, marginBottom: 20, alignItems: 'center' },
-  listRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6', width: '100%' },
-  listName: { color: '#4b5563', fontSize: 14, flex: 1 },
-  listValue: { color: '#10b981', fontSize: 14, fontWeight: 'bold' },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
+    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  backBtn: { padding: 4 },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  scrollContent: { padding: 16 },
+  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  statCard: {
+    flex: 1, backgroundColor: '#ffffff', borderRadius: borderRadius.xl,
+    padding: 14, borderWidth: 1, borderColor: colors.border, ...shadows.subtle,
+  },
+  statIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  statLabel: { ...typography.bodyXSmall, color: colors.textSecondary, marginBottom: 2 },
+  statValue: { ...typography.h3, color: colors.textPrimary },
+  card: {
+    backgroundColor: '#ffffff', borderRadius: borderRadius.xl, padding: 16,
+    marginBottom: 16, borderWidth: 1, borderColor: colors.border,
+    ...shadows.subtle, alignItems: 'center',
+  },
+  cardTitle: { ...typography.h4, color: colors.textPrimary, alignSelf: 'flex-start', marginBottom: 12 },
+  invRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    width: '100%', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.borderLight,
+  },
+  invLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  invDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary },
+  invName: { ...typography.body, color: colors.textPrimary },
+  invValue: { ...typography.bodySmall, color: colors.success, fontWeight: '700' },
 });
-
-

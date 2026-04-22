@@ -1,16 +1,26 @@
-﻿import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { getCustomerTransactions } from '../src/utils/api';
+/**
+ * CustomerTransactions.jsx -- Payment History
+ * Themed with lucide icons, StatusBadge, and proper currency formatting.
+ */
+
+import React, { useState, useEffect } from 'react';
+import {
+  View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView,
+} from 'react-native';
+import { ArrowLeft, CreditCard, Banknote, Receipt } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors, typography, borderRadius, shadows } from '../src/theme';
+import { StatusBadge } from '../src/components/shared/StatusBadge';
+import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { EmptyState } from '../src/components/shared/EmptyState';
+import { formatCurrency, formatDate } from '../src/utils/formatters';
+import { getCustomerTransactions } from '../src/utils/api';
 
 export const CustomerTransactions = ({ navigation }) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadTransactions();
-  }, []);
+  useEffect(() => { loadTransactions(); }, []);
 
   const loadTransactions = async () => {
     try {
@@ -19,57 +29,51 @@ export const CustomerTransactions = ({ navigation }) => {
       if (userStr) {
         const user = JSON.parse(userStr);
         const res = await getCustomerTransactions(user.id);
-        if (res.success && res.transactions) {
-          setTransactions(res.transactions);
-        }
+        if (res.success && res.transactions) setTransactions(res.transactions);
       }
-    } catch (error) {
-      console.error('Error loading transactions', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error('Transactions error:', e); }
+    finally { setLoading(false); }
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.typeTag}>
-          <Ionicons name={item.type === 'digital' ? 'card-outline' : 'cash-outline'} size={14} color="#f59e0b" style={{marginRight: 4}} />
-          <Text style={styles.typeText}>{item.type.toUpperCase()}</Text>
+  const renderItem = ({ item }) => {
+    const isDigital = item.type === 'digital';
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={[styles.typeTag, { backgroundColor: isDigital ? colors.infoBg : colors.warningBg }]}>
+            {isDigital ? <CreditCard size={12} color={colors.info} /> : <Banknote size={12} color={colors.warning} />}
+            <Text style={[styles.typeText, { color: isDigital ? colors.info : colors.warning }]}>
+              {(item.type || 'payment').toUpperCase()}
+            </Text>
+          </View>
+          <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
         </View>
-        <Text style={styles.dateText}>{new Date(item.created_at).toLocaleDateString()}</Text>
-      </View>
-      <Text style={styles.title}>{item.description}</Text>
-      <View style={styles.footer}>
-        <Text style={styles.amount}>â‚±{item.amount}</Text>
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+        <Text style={styles.title} numberOfLines={2}>{item.description}</Text>
+        <View style={styles.footer}>
+          <Text style={styles.amount}>P{formatCurrency(item.amount)}</Text>
+          <StatusBadge status={item.status || 'paid'} />
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <ArrowLeft size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Transaction History</Text>
+        <View style={{ width: 36 }} />
       </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#f59e0b" style={{ marginTop: 50 }} />
-      ) : transactions.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="receipt-outline" size={48} color="#4b5563" />
-          <Text style={styles.emptyText}>No transactions found.</Text>
-        </View>
+      {loading ? <PremiumLoader message="Loading transactions..." /> : transactions.length === 0 ? (
+        <EmptyState icon={Receipt} title="No transactions" subtitle="Your payment history will appear here" />
       ) : (
         <FlatList
           data={transactions}
           renderItem={renderItem}
-          keyExtractor={(item, idx) => idx.toString()}
+          keyExtractor={(item, idx) => (item.id || idx).toString()}
           contentContainerStyle={styles.listContent}
           onRefresh={loadTransactions}
           refreshing={loading}
@@ -78,25 +82,28 @@ export const CustomerTransactions = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#ffffff' },
-  backButton: { marginRight: 15 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-  listContent: { padding: 20 },
-  card: { backgroundColor: '#ffffff', padding: 16, borderRadius: 12, marginBottom: 15 },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 16, paddingTop: 52, backgroundColor: '#ffffff',
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.lightBgSecondary, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { ...typography.h3, color: colors.textPrimary },
+  listContent: { padding: 16 },
+  card: {
+    backgroundColor: '#ffffff', padding: 16, borderRadius: borderRadius.xl,
+    marginBottom: 12, borderWidth: 1, borderColor: colors.border, ...shadows.subtle,
+  },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  typeTag: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  typeText: { color: '#f59e0b', fontSize: 10, fontWeight: 'bold' },
-  dateText: { color: '#6b7280', fontSize: 12 },
-  title: { fontSize: 16, color: '#111827', fontWeight: 'bold', marginBottom: 12 },
+  typeTag: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: borderRadius.sm,
+  },
+  typeText: { ...typography.bodyXSmall, fontWeight: '700' },
+  dateText: { ...typography.bodyXSmall, color: colors.textTertiary },
+  title: { ...typography.body, color: colors.textPrimary, fontWeight: '600', marginBottom: 10 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  amount: { fontSize: 20, color: '#10b981', fontWeight: 'bold' },
-  statusBadge: { backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  statusText: { color: '#10b981', fontSize: 12, fontWeight: 'bold' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { color: '#6b7280', marginTop: 10, fontSize: 16 }
+  amount: { ...typography.h3, color: colors.success, fontWeight: '800' },
 });
-
-

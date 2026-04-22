@@ -13,6 +13,8 @@ dist/
 
 # Local App development and IDE settings
 TattooARApp/
+ar-tattoo-native/
 .vscode/
+
 # AI Rules
 gemini.md

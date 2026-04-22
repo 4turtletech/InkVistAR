@@ -1,262 +1,110 @@
+/**
+ * ArtistActiveSession.jsx -- Live Tattoo Session Manager
+ * Themed with lucide icons. Materials tracking, photos, notes, status transitions.
+ */
+
 import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, TextInput, TouchableOpacity, StyleSheet, 
-  ScrollView, SafeAreaView, Image, Alert, ActivityIndicator 
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  ScrollView, SafeAreaView, Image, Alert, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  ArrowLeft, Play, CheckCircle2, Camera, Package, Palette,
+  XCircle, Briefcase, Zap, Plus, Save,
+} from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { API_URL } from '../src/config';
 
 export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(appointment?.status || 'confirmed');
-  const [sessionData, setSessionData] = useState({
-    notes: appointment?.notes || '',
-    beforePhoto: null,
-    afterPhoto: null
-  });
-
+  const [sessionData, setSessionData] = useState({ notes: appointment?.notes || '', beforePhoto: null, afterPhoto: null });
   const [sessionMaterials, setSessionMaterials] = useState([]);
   const [sessionCost, setSessionCost] = useState(0);
   const [inventoryItems, setInventoryItems] = useState([]);
   const [serviceKits, setServiceKits] = useState({});
   const [addingMaterial, setAddingMaterial] = useState(false);
 
-  useEffect(() => {
-    fetchInventory();
-    fetchServiceKits();
-    if (status === 'in_progress') {
-      fetchSessionMaterials();
-    }
-  }, [appointment?.id, status]);
+  useEffect(() => { fetchInventory(); fetchServiceKits(); if (status === 'in_progress') fetchSessionMaterials(); }, [appointment?.id, status]);
 
-  const fetchInventory = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/admin/inventory`);
-      const data = await response.json();
-      if (data.success && data.data) {
-        setInventoryItems(data.data.filter(item => item.current_stock > 0));
-      }
-    } catch (e) { console.error('Error fetching inventory', e); }
-  };
-
-  const fetchServiceKits = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/admin/service-kits`);
-      const data = await response.json();
-      if (data.success) setServiceKits(data.data || {});
-    } catch (e) { console.error('Error fetching kits', e); }
-  };
-
-  const fetchSessionMaterials = async () => {
-    if (!appointment?.id) return;
-    try {
-      const response = await fetch(`${API_URL}/api/appointments/${appointment.id}/materials`);
-      const data = await response.json();
-      if (data.success) {
-        setSessionMaterials(data.materials || []);
-        setSessionCost(data.totalCost || 0);
-      }
-    } catch (e) { console.error('Error fetching materials', e); }
-  };
+  const fetchInventory = async () => { try { const r = await (await fetch(`${API_URL}/api/admin/inventory`)).json(); if (r.success && r.data) setInventoryItems(r.data.filter(i => i.current_stock > 0)); } catch (e) { console.error(e); } };
+  const fetchServiceKits = async () => { try { const r = await (await fetch(`${API_URL}/api/admin/service-kits`)).json(); if (r.success) setServiceKits(r.data || {}); } catch (e) { console.error(e); } };
+  const fetchSessionMaterials = async () => { if (!appointment?.id) return; try { const r = await (await fetch(`${API_URL}/api/appointments/${appointment.id}/materials`)).json(); if (r.success) { setSessionMaterials(r.materials || []); setSessionCost(r.totalCost || 0); } } catch (e) { console.error(e); } };
 
   const handleQuickAdd = async (inventoryId, quantity = 1) => {
     setAddingMaterial(true);
-    try {
-      const response = await fetch(`${API_URL}/api/appointments/${appointment.id}/materials`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inventory_id: inventoryId, quantity })
-      });
-      const data = await response.json();
-      if (data.success) {
-        fetchSessionMaterials();
-      } else {
-        Alert.alert('Error', data.message || 'Failed to add material. Check stock.');
-      }
-    } catch (e) {
-      Alert.alert('Error', 'Connection failed');
-    } finally {
-      setAddingMaterial(false);
-    }
+    try { const r = await (await fetch(`${API_URL}/api/appointments/${appointment.id}/materials`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inventory_id: inventoryId, quantity }) })).json(); if (r.success) fetchSessionMaterials(); else Alert.alert('Error', r.message || 'Failed. Check stock.'); }
+    catch (e) { Alert.alert('Error', 'Connection failed'); } finally { setAddingMaterial(false); }
   };
 
   const handleQuickAddKit = async (kitItems) => {
-    if (!appointment?.id || !kitItems || kitItems.length === 0) return;
+    if (!appointment?.id || !kitItems?.length) return;
     setAddingMaterial(true);
-    try {
-      for (const item of kitItems) {
-        await fetch(`${API_URL}/api/appointments/${appointment.id}/materials`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            inventory_id: item.inventory_id, 
-            quantity: item.default_quantity 
-          })
-        });
-      }
-      fetchSessionMaterials();
-      Alert.alert('Kit Added', 'All items from the kit have been added to the session.');
-    } catch (e) {
-      Alert.alert('Error', 'Failed to add kit items.');
-    } finally {
-      setAddingMaterial(false);
-    }
+    try { for (const item of kitItems) await fetch(`${API_URL}/api/appointments/${appointment.id}/materials`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inventory_id: item.inventory_id, quantity: item.default_quantity }) }); fetchSessionMaterials(); Alert.alert('Kit Added', 'All items added.'); }
+    catch (e) { Alert.alert('Error', 'Failed to add kit.'); } finally { setAddingMaterial(false); }
   };
 
-  const handleReleaseMaterial = async (materialId) => {
+  const handleReleaseMaterial = (materialId) => {
     if (!appointment?.id || !materialId) return;
-    Alert.alert(
-      'Return to Stock',
-      'Are you sure you want to return this item to inventory?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Return Item', 
-          onPress: async () => {
-            try {
-              const res = await fetch(`${API_URL}/api/appointments/${appointment.id}/release-material`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ materialId: Number(materialId) })
-              });
-              const data = await res.json();
-              if (data.success) {
-                Alert.alert('Success', 'Item returned to inventory successfully');
-              } else {
-                Alert.alert('Error', data.message || 'Failed to return item to inventory');
-              }
-            } catch (e) { 
-              Alert.alert('Error', 'Connection failed'); 
-            } finally {
-              // Always refetch to ensure UI is in sync
-              fetchSessionMaterials();
-            }
-          }
-        }
-      ]
-    );
+    Alert.alert('Return to Stock', 'Return this item to inventory?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Return Item', onPress: async () => {
+        try { const r = await (await fetch(`${API_URL}/api/appointments/${appointment.id}/release-material`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ materialId: Number(materialId) }) })).json(); r.success ? Alert.alert('Success', 'Returned.') : Alert.alert('Error', r.message || 'Failed.'); }
+        catch (e) { Alert.alert('Error', 'Connection failed'); } finally { fetchSessionMaterials(); }
+      }},
+    ]);
   };
 
   const pickImage = async (type) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'We need access to your photos to upload.');
-      return;
-    }
-
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.5,
-      base64: true,
-    });
-
-    if (!result.canceled) {
-      setSessionData(prev => ({ 
-        ...prev, 
-        [type]: `data:image/jpeg;base64,${result.assets[0].base64}` 
-      }));
-    }
+    if (status !== 'granted') { Alert.alert('Permission Denied', 'Photo access is required.'); return; }
+    let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.5, base64: true });
+    if (!result.canceled) setSessionData(p => ({ ...p, [type]: `data:image/jpeg;base64,${result.assets[0].base64}` }));
   };
 
   const handleUpdateStatus = async (newStatus) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/appointments/${appointment.id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
-      const data = await response.json();
-      if (data.success) {
+      const r = await (await fetch(`${API_URL}/api/appointments/${appointment.id}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) })).json();
+      if (r.success) {
         setStatus(newStatus);
-        
-        if (newStatus === 'completed') {
-          // Alert artist of the cost of the session
-          Alert.alert(
-            'Session Completed',
-            `Session finished! Total material cost: ₱${sessionCost.toLocaleString()}.\nThis cost has been recorded.`,
-            [{ text: 'OK', onPress: () => { onComplete && onComplete(); } }]
-          );
-        } else if (newStatus === 'in_progress') {
-          // Give the backend a second to load the kit, then fetch materials
-          setTimeout(fetchSessionMaterials, 1000);
-        }
-      } else {
-        Alert.alert('Error', 'Failed to update status');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Connection failed');
-    } finally {
-      setLoading(false);
-    }
+        if (newStatus === 'completed') Alert.alert('Session Completed', `Total material cost: P${sessionCost.toLocaleString()}.`, [{ text: 'OK', onPress: () => onComplete?.() }]);
+        else if (newStatus === 'in_progress') setTimeout(fetchSessionMaterials, 1000);
+      } else Alert.alert('Error', 'Failed to update status');
+    } catch (e) { Alert.alert('Error', 'Connection failed'); } finally { setLoading(false); }
   };
 
   const handleSaveDetails = async () => {
     if (!appointment?.id) return;
     setLoading(true);
     try {
-      // Materials are tracked dynamically now, so just save notes
-      const response = await fetch(`${API_URL}/api/appointments/${appointment.id}/details`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          notes: sessionData.notes,
-          beforePhoto: sessionData.beforePhoto,
-          afterPhoto: sessionData.afterPhoto
-        })
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        Alert.alert('Success', 'Session details saved successfully!');
-      } else {
-        Alert.alert('Error', 'Failed to save details');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Connection failed');
-    } finally {
-      setLoading(false);
-    }
+      const r = await (await fetch(`${API_URL}/api/appointments/${appointment.id}/details`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes: sessionData.notes, beforePhoto: sessionData.beforePhoto, afterPhoto: sessionData.afterPhoto }) })).json();
+      r.success ? Alert.alert('Success', 'Session details saved!') : Alert.alert('Error', 'Failed to save.');
+    } catch (e) { Alert.alert('Error', 'Connection failed'); } finally { setLoading(false); }
   };
+
+  const getStatusBg = (s) => { switch (s) { case 'confirmed': return colors.info; case 'in_progress': return colors.primary; case 'completed': return colors.success; default: return colors.textTertiary; } };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={['#000000', '#b8860b']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
-          <View style={styles.headerContent}>
-            <TouchableOpacity onPress={onBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={20} color="#ffffff" />
-            </TouchableOpacity>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Hero Header */}
+        <LinearGradient colors={['#0f172a', colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={onBack} style={styles.backBtn}><ArrowLeft size={20} color="#ffffff" /></TouchableOpacity>
             <Text style={styles.headerTitle}>Active Session</Text>
             <View style={{ width: 40 }} />
           </View>
-
           <View style={styles.clientOverview}>
             <Text style={styles.clientName}>{appointment?.client_name}</Text>
             <Text style={styles.designTitle}>{appointment?.design_title}</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-                <Text style={{ color: 'white', opacity: 0.8, fontSize: 13 }}>₱{parseFloat(appointment?.price || 0).toLocaleString()}</Text>
-                <Text style={{ 
-                    color: appointment?.payment_status === 'paid' ? '#4ade80' : '#fbbf24', 
-                    fontSize: 13, 
-                    fontWeight: 'bold' 
-                }}>
-                    {(appointment?.payment_status || 'unpaid').toUpperCase()}
-                </Text>
+              <Text style={{ color: '#fff', opacity: 0.8, fontSize: 13 }}>P{parseFloat(appointment?.price || 0).toLocaleString()}</Text>
+              <Text style={{ color: appointment?.payment_status === 'paid' ? '#4ade80' : '#fbbf24', fontSize: 13, fontWeight: '700' }}>{(appointment?.payment_status || 'unpaid').toUpperCase()}</Text>
             </View>
-            <View style={[styles.statusBadge, styles[status]]}>
-              <Text style={styles.statusText}>{status.toUpperCase()}</Text>
-            </View>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusBg(status) }]}><Text style={styles.statusText}>{status.toUpperCase()}</Text></View>
           </View>
         </LinearGradient>
 
@@ -264,134 +112,82 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
           {/* Action Buttons */}
           <View style={styles.actionSection}>
             {status === 'confirmed' && (
-              <TouchableOpacity 
-                style={[styles.primaryButton, styles.startButton]}
-                onPress={() => handleUpdateStatus('in_progress')}
-                disabled={loading}
-              >
-                <Ionicons name="play" size={20} color="white" />
-                <Text style={styles.buttonText}>Start Session</Text>
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#0f172a' }]} onPress={() => handleUpdateStatus('in_progress')} disabled={loading} activeOpacity={0.8}>
+                <Play size={18} color="#ffffff" /><Text style={styles.actionBtnText}>Start Session</Text>
               </TouchableOpacity>
             )}
             {status === 'in_progress' && (
-              <TouchableOpacity 
-                style={[styles.primaryButton, styles.completeButton]}
-                onPress={() => handleUpdateStatus('completed')}
-                disabled={loading}
-              >
-                <Ionicons name="checkmark-circle" size={20} color="white" />
-                <Text style={styles.buttonText}>Complete Session</Text>
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.success }]} onPress={() => handleUpdateStatus('completed')} disabled={loading} activeOpacity={0.8}>
+                <CheckCircle2 size={18} color="#ffffff" /><Text style={styles.actionBtnText}>Complete Session</Text>
               </TouchableOpacity>
             )}
-            {loading && <ActivityIndicator color="#daa520" style={{ marginTop: 10 }} />}
+            {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: 10 }} />}
           </View>
 
-          {/* Photo Section */}
+          {/* Photos */}
           <Text style={styles.sectionTitle}>Session Media</Text>
           <View style={styles.photoGrid}>
-            <TouchableOpacity style={styles.photoBox} onPress={() => pickImage('beforePhoto')}>
-              {sessionData.beforePhoto ? (
-                <Image source={{ uri: sessionData.beforePhoto }} style={styles.uploadedPhoto} />
-              ) : (
-                <View style={styles.photoPlaceholder}>
-                  <Ionicons name="camera-outline" size={32} color="#9ca3af" />
-                  <Text style={styles.photoLabel}>Before Photo</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.photoBox} onPress={() => pickImage('afterPhoto')}>
-              {sessionData.afterPhoto ? (
-                <Image source={{ uri: sessionData.afterPhoto }} style={styles.uploadedPhoto} />
-              ) : (
-                <View style={styles.photoPlaceholder}>
-                  <Ionicons name="camera-outline" size={32} color="#9ca3af" />
-                  <Text style={styles.photoLabel}>After Photo</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            {['beforePhoto', 'afterPhoto'].map(type => (
+              <TouchableOpacity key={type} style={styles.photoBox} onPress={() => pickImage(type)}>
+                {sessionData[type] ? <Image source={{ uri: sessionData[type] }} style={styles.uploadedPhoto} /> : (
+                  <View style={styles.photoPlaceholder}><Camera size={28} color={colors.textTertiary} /><Text style={styles.photoLabel}>{type === 'beforePhoto' ? 'Before Photo' : 'After Photo'}</Text></View>
+                )}
+              </TouchableOpacity>
+            ))}
           </View>
-          {/* Advanced Session Materials */}
+
+          {/* Materials (only when in_progress) */}
           {status === 'in_progress' && (
             <>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <Text style={styles.sectionTitle}>Session Materials</Text>
-                <View style={styles.costBadge}>
-                  <Text style={styles.costBadgeText}>₱{sessionCost.toLocaleString()}</Text>
-                </View>
+                <View style={styles.costBadge}><Text style={styles.costBadgeText}>P{sessionCost.toLocaleString()}</Text></View>
               </View>
-              
-              {/* Used Materials List */}
-              <View style={styles.materialsContainer}>
+
+              <View style={styles.materialsWrap}>
                 {sessionMaterials.length === 0 ? (
-                  <View style={styles.emptyStateContainer}>
-                    <Ionicons name="cube-outline" size={32} color="#9ca3af" />
-                    <Text style={styles.emptyStateText}>No materials logged.</Text>
-                  </View>
+                  <View style={styles.emptyMat}><Package size={28} color={colors.textTertiary} /><Text style={styles.emptyMatText}>No materials logged.</Text></View>
                 ) : (
-                  <View style={styles.materialsList}>
-                    {sessionMaterials.map((mat) => (
-                      <View key={mat.id} style={styles.materialCard}>
-                        <View style={styles.materialIconBg}>
-                          <Ionicons name="color-palette-outline" size={18} color="#b8860b" />
+                  <View style={styles.matList}>
+                    {sessionMaterials.map(mat => (
+                      <View key={mat.id} style={styles.matCard}>
+                        <View style={styles.matIcon}><Palette size={16} color={colors.primaryDark} /></View>
+                        <View style={{ flex: 1, marginLeft: 10 }}>
+                          <Text style={styles.matName}>{mat.item_name}</Text>
+                          <Text style={styles.matUnit}>{mat.unit}</Text>
                         </View>
-                        <View style={{ flex: 1, marginLeft: 12 }}>
-                          <Text style={styles.materialName}>{mat.item_name}</Text>
-                          <Text style={styles.materialUnit}>{mat.unit}</Text>
-                        </View>
-                        <View style={styles.materialQtyBadge}>
-                          <Text style={styles.materialQtyText}>{mat.quantity}</Text>
-                        </View>
-                        {mat.status === 'hold' && (
-                          <TouchableOpacity onPress={() => handleReleaseMaterial(mat.id)} style={{ marginLeft: 10 }}>
-                            <Ionicons name="close-circle" size={20} color="#ef4444" />
-                          </TouchableOpacity>
-                        )}
+                        <View style={styles.matQty}><Text style={styles.matQtyText}>{mat.quantity}</Text></View>
+                        {mat.status === 'hold' && <TouchableOpacity onPress={() => handleReleaseMaterial(mat.id)} style={{ marginLeft: 8 }}><XCircle size={18} color={colors.error} /></TouchableOpacity>}
                       </View>
                     ))}
                   </View>
                 )}
-                
-                {/* Quick Add Buttons */}
-                <View style={styles.quickAddSection}>
+
+                {/* Quick Add Section */}
+                <View style={styles.quickSection}>
                   {Object.keys(serviceKits).length > 0 && (
-                    <View style={{ marginBottom: 15 }}>
-                      <Text style={styles.quickAddTitle}>
-                        <Ionicons name="briefcase" size={16} color="#daa520" /> Apply Service Kit
-                      </Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickAddScroll}>
+                    <View style={{ marginBottom: 14 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}><Briefcase size={14} color={colors.primary} /><Text style={styles.quickTitle}>Apply Service Kit</Text></View>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16 }}>
                         {Object.keys(serviceKits).map(kitName => (
-                          <TouchableOpacity 
-                            key={kitName}
-                            style={[styles.quickAddChip, { backgroundColor: '#000' }]}
-                            onPress={() => handleQuickAddKit(serviceKits[kitName])}
-                          >
-                            <Text style={[styles.quickAddChipText, { color: '#fff' }]}>{kitName}</Text>
+                          <TouchableOpacity key={kitName} style={[styles.quickChip, { backgroundColor: '#0f172a' }]} onPress={() => handleQuickAddKit(serviceKits[kitName])}>
+                            <Text style={[styles.quickChipText, { color: '#fff' }]}>{kitName}</Text>
                           </TouchableOpacity>
                         ))}
                       </ScrollView>
                     </View>
                   )}
-                  <Text style={styles.quickAddTitle}>
-                    <Ionicons name="flash" size={16} color="#daa520" /> Quick Add Item (+1)
-                  </Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickAddScroll}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}><Zap size={14} color={colors.primary} /><Text style={styles.quickTitle}>Quick Add Item (+1)</Text></View>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16 }}>
                     {inventoryItems.slice(0, 8).map(item => (
-                      <TouchableOpacity 
-                        key={item.id}
-                        style={styles.quickAddChip}
-                        onPress={() => handleQuickAdd(item.id, 1)}
-                        disabled={addingMaterial}
-                      >
-                        <Text style={styles.quickAddChipText}>{item.name}</Text>
-                        <View style={styles.quickAddPlusIcon}>
-                          <Ionicons name="add" size={14} color="#ffffff" />
-                        </View>
+                      <TouchableOpacity key={item.id} style={styles.quickChip} onPress={() => handleQuickAdd(item.id, 1)} disabled={addingMaterial}>
+                        <Text style={styles.quickChipText}>{item.name}</Text>
+                        <View style={styles.quickPlusIcon}><Plus size={12} color="#ffffff" /></View>
                       </TouchableOpacity>
                     ))}
-                    {inventoryItems.length === 0 && <Text style={{ color: '#9ca3af', padding: 10 }}>No stock available</Text>}
+                    {inventoryItems.length === 0 && <Text style={{ color: colors.textTertiary, padding: 10 }}>No stock available</Text>}
                   </ScrollView>
-                  {addingMaterial && <ActivityIndicator size="small" color="#daa520" style={{ marginTop: 10 }} />}
+                  {addingMaterial && <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 8 }} />}
                 </View>
               </View>
             </>
@@ -399,29 +195,11 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
           {/* Notes */}
           <Text style={styles.sectionTitle}>Session Notes</Text>
-          <View style={styles.inputCard}>
-            <View style={styles.inputGroup}>
-              <TextInput
-                style={[styles.input, styles.textArea, { marginBottom: 0 }]}
-                placeholder="Record session details, skin reaction, etc..."
-                value={sessionData.notes}
-                onChangeText={(text) => setSessionData(prev => ({...prev, notes: text}))}
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-
-            <TouchableOpacity 
-              style={styles.saveButton}
-              onPress={handleSaveDetails}
-              disabled={loading}
-            >
-              <LinearGradient
-                colors={['#000000', '#daa520']}
-                style={styles.saveButtonGradient}
-              >
-                <Ionicons name="save-outline" size={20} color="white" />
-                <Text style={styles.saveButtonText}>Save Details</Text>
+          <View style={styles.notesCard}>
+            <TextInput style={styles.notesInput} placeholder="Record session details, skin reaction, etc..." placeholderTextColor={colors.textTertiary} value={sessionData.notes} onChangeText={t => setSessionData(p => ({ ...p, notes: t }))} multiline numberOfLines={4} />
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveDetails} disabled={loading} activeOpacity={0.8}>
+              <LinearGradient colors={['#0f172a', colors.primary]} style={styles.saveGradient}>
+                <Save size={18} color="#ffffff" /><Text style={styles.saveBtnText}>Save Details</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -432,297 +210,46 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  scrollView: { flex: 1 },
-  header: {
-    padding: 24,
-    paddingTop: 60,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  clientOverview: {
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  clientName: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 4,
-  },
-  designTitle: {
-    fontSize: 16,
-    color: '#ffffff',
-    opacity: 0.9,
-    marginBottom: 12,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  confirmed: { backgroundColor: '#3b82f6' },
-  in_progress: { backgroundColor: '#daa520' },
-  completed: { backgroundColor: '#10b981' },
-  statusText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+  header: { padding: 24, paddingTop: 56, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { ...typography.h3, color: '#ffffff' },
+  clientOverview: { alignItems: 'center', marginBottom: 8 },
+  clientName: { fontSize: 24, fontWeight: '800', color: '#ffffff', marginBottom: 4 },
+  designTitle: { ...typography.body, color: '#ffffff', opacity: 0.9, marginBottom: 10 },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: borderRadius.round },
+  statusText: { color: '#ffffff', ...typography.bodyXSmall, fontWeight: '700' },
   content: { padding: 20 },
-  actionSection: {
-    marginBottom: 30,
-    alignItems: 'center',
-  },
-  primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 30,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  startButton: { backgroundColor: '#000000' },
-  completeButton: { backgroundColor: '#10b981' },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 0,
-  },
-  costBadge: {
-    backgroundColor: '#fffbeb',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#fde68a',
-  },
-  costBadgeText: {
-    color: '#b45309',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  materialsContainer: {
-    marginBottom: 30,
-  },
-  emptyStateContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 30,
-    alignItems: 'center',
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderStyle: 'dashed',
-  },
-  emptyStateText: {
-    color: '#9ca3af',
-    marginTop: 8,
-    fontSize: 14,
-  },
-  materialsList: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  materialCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
-  },
-  materialIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#fef3c7',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  materialName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  materialUnit: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  materialQtyBadge: {
-    backgroundColor: '#1f2937',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  materialQtyText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  quickAddSection: {
-    marginTop: 5,
-  },
-  quickAddTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 10,
-  },
-  quickAddScroll: {
-    paddingRight: 20, // Add padding to end of scroll
-  },
-  quickAddChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingLeft: 16,
-    paddingRight: 6,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  quickAddChipText: {
-    color: '#111827',
-    fontSize: 13,
-    fontWeight: '600',
-    marginRight: 8,
-  },
-  quickAddPlusIcon: {
-    backgroundColor: '#10b981',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 30,
-  },
-  photoBox: {
-    width: '48%',
-    aspectRatio: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  uploadedPhoto: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  photoPlaceholder: {
-    alignItems: 'center',
-  },
-  photoLabel: {
-    marginTop: 8,
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  inputCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 15,
-    color: '#111827',
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  saveButton: {
-    marginTop: 10,
-  },
-  saveButtonGradient: {
-    flexDirection: 'row',
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  actionSection: { marginBottom: 28, alignItems: 'center' },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, paddingHorizontal: 28, borderRadius: borderRadius.round, width: '100%', gap: 10, ...shadows.button },
+  actionBtnText: { color: '#ffffff', fontSize: 17, fontWeight: '700' },
+  sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 14 },
+  photoGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
+  photoBox: { width: '48%', aspectRatio: 1, backgroundColor: '#ffffff', borderRadius: borderRadius.xl, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  uploadedPhoto: { width: '100%', height: '100%', resizeMode: 'cover' },
+  photoPlaceholder: { alignItems: 'center' },
+  photoLabel: { marginTop: 6, ...typography.bodyXSmall, color: colors.textTertiary, fontWeight: '600' },
+  costBadge: { backgroundColor: colors.primaryLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: borderRadius.md, borderWidth: 1, borderColor: 'rgba(190,144,85,0.2)' },
+  costBadgeText: { color: colors.primaryDark, fontWeight: '700', ...typography.bodySmall },
+  materialsWrap: { marginBottom: 28 },
+  emptyMat: { backgroundColor: '#ffffff', borderRadius: borderRadius.xl, padding: 28, alignItems: 'center', marginBottom: 14, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed' },
+  emptyMatText: { color: colors.textTertiary, marginTop: 8, ...typography.bodySmall },
+  matList: { backgroundColor: '#ffffff', borderRadius: borderRadius.xl, padding: 14, marginBottom: 14, ...shadows.subtle },
+  matCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: borderRadius.lg, padding: 10, marginBottom: 6, borderWidth: 1, borderColor: colors.borderLight },
+  matIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center' },
+  matName: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary },
+  matUnit: { ...typography.bodyXSmall, color: colors.textTertiary, marginTop: 1 },
+  matQty: { backgroundColor: '#0f172a', width: 26, height: 26, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
+  matQtyText: { color: '#ffffff', fontWeight: '700', ...typography.bodyXSmall },
+  quickSection: { marginTop: 4 },
+  quickTitle: { ...typography.bodySmall, fontWeight: '700', color: colors.textSecondary },
+  quickChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', paddingLeft: 14, paddingRight: 6, paddingVertical: 7, borderRadius: borderRadius.round, marginRight: 8, borderWidth: 1, borderColor: colors.border },
+  quickChipText: { color: colors.textPrimary, ...typography.bodyXSmall, fontWeight: '600', marginRight: 6 },
+  quickPlusIcon: { backgroundColor: colors.success, width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  notesCard: { backgroundColor: '#ffffff', borderRadius: borderRadius.xl, padding: 16, ...shadows.subtle, marginBottom: 40 },
+  notesInput: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.lg, padding: 12, ...typography.body, color: colors.textPrimary, height: 100, textAlignVertical: 'top', marginBottom: 14 },
+  saveBtn: { borderRadius: borderRadius.xl, overflow: 'hidden' },
+  saveGradient: { flexDirection: 'row', height: 52, justifyContent: 'center', alignItems: 'center', gap: 10 },
+  saveBtnText: { color: '#ffffff', ...typography.button, fontSize: 16 },
 });
