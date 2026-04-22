@@ -425,10 +425,7 @@ function AdminDashboard() {
                         <h1>Admin Dashboard</h1>
                     </div>
                     <div className="header-actions">
-                        <div className="header-search">
-                            <Search size={18} />
-                            <input type="text" placeholder="Search system..." />
-                        </div>
+
 
                         <div className="notif-btn-wrapper admin-st-fab32c0e" ref={notifRef} >
                             <button className="notif-trigger-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
