@@ -1546,27 +1546,57 @@ function AdminAppointments() {
                                                 })()}
                                             </div>
 
-                                            {!selectedAppointment && (
-                                                <div>
-                                                    <label className="premium-input-label">Booking Date & Time</label>
-                                                    <div className="admin-st-efc8b70e">
-                                                        <div className="admin-st-fefecdf0">
-                                                            <div className="premium-input-group">
-                                                                <label className={`admin-st-b8618eb2 ${errors.date ? 'text-red-500' : ''}`}>Date *</label>
-                                                                <input type="date" value={formData.date} onChange={(e) => handleInputChange('date', e.target.value)} className={`premium-input-v2 ${errors.date ? 'border-red-500 bg-red-50' : ''}`} />
-                                                                {errors.date && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.date}</span>}
-                                                            </div>
-                                                            {formData.serviceType === 'Consultation' && (
-                                                                <div className="premium-input-group">
-                                                                    <label className={`admin-st-b8618eb2 ${errors.time ? 'text-red-500' : ''}`}>Time *</label>
-                                                                    <input type="time" value={formData.time} onChange={(e) => handleInputChange('time', e.target.value)} className={`premium-input-v2 ${errors.time ? 'border-red-500 bg-red-50' : ''}`} />
-                                                                    {errors.time && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.time}</span>}
+                                            <div>
+                                                    <label className="premium-input-label">
+                                                        <Clock size={14} style={{ marginRight: '6px', verticalAlign: '-2px' }} />
+                                                        Booking Date & Time
+                                                    </label>
+                                                    {selectedAppointment ? (
+                                                        /* ── Read-only info cards for existing appointments ── */
+                                                        <div className="admin-st-efc8b70e">
+                                                            <div style={{ display: 'grid', gridTemplateColumns: formData.time ? '1fr 1fr' : '1fr', gap: '12px' }}>
+                                                                <div style={{
+                                                                    background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0',
+                                                                    padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px'
+                                                                }}>
+                                                                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Scheduled Date</span>
+                                                                    <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b' }}>
+                                                                        {formData.date ? new Date(formData.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }) : '—'}
+                                                                    </span>
                                                                 </div>
-                                                            )}
+                                                                {formData.time && (
+                                                                    <div style={{
+                                                                        background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0',
+                                                                        padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px'
+                                                                    }}>
+                                                                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Time Slot</span>
+                                                                        <span style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b' }}>
+                                                                            {(() => { const [h, m] = formData.time.split(':'); const hr = parseInt(h); return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`; })()}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    ) : (
+                                                        /* ── Editable inputs for new appointments ── */
+                                                        <div className="admin-st-efc8b70e">
+                                                            <div className="admin-st-fefecdf0">
+                                                                <div className="premium-input-group">
+                                                                    <label className={`admin-st-b8618eb2 ${errors.date ? 'text-red-500' : ''}`}>Date *</label>
+                                                                    <input type="date" value={formData.date} onChange={(e) => handleInputChange('date', e.target.value)} className={`premium-input-v2 ${errors.date ? 'border-red-500 bg-red-50' : ''}`} />
+                                                                    {errors.date && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.date}</span>}
+                                                                </div>
+                                                                {formData.serviceType === 'Consultation' && (
+                                                                    <div className="premium-input-group">
+                                                                        <label className={`admin-st-b8618eb2 ${errors.time ? 'text-red-500' : ''}`}>Time *</label>
+                                                                        <input type="time" value={formData.time} onChange={(e) => handleInputChange('time', e.target.value)} className={`premium-input-v2 ${errors.time ? 'border-red-500 bg-red-50' : ''}`} />
+                                                                        {errors.time && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.time}</span>}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
                                         </div>
 
                                         {/* Column 3: Status */}

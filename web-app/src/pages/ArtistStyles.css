@@ -536,3 +536,9 @@
 }
 .notif-dropdown-footer button:hover { color: #b8860b; text-decoration: underline; }
 
+/* Notification wrapper (synced from AdminStyles) */
+.admin-st-fab32c0e {
+    position: relative;
+    display: flex;
+    align-items: center;
+}

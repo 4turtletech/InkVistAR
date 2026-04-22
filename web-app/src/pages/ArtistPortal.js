@@ -219,7 +219,7 @@ function ArtistPortal() {
                         <h1>Artist Dashboard</h1>
                     </div>
                     <div className="header-actions">
-                        <div className="notif-btn-wrapper" ref={notifRef} style={{ position: 'relative' }}>
+                        <div className="notif-btn-wrapper admin-st-fab32c0e" ref={notifRef}>
                             <button className="notif-trigger-btn" onClick={() => setShowNotifDropdown(!showNotifDropdown)}>
                                 <Bell size={20} />
                                 {unreadCount > 0 && <span className="notif-badge-dot"></span>}
