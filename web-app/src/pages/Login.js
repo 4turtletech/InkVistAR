@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle } from 'lucide-react';
@@ -34,8 +34,21 @@ function Login() {
         hasNumber: false, hasSymbol: false
     });
 
+    // OTP resend cooldown state
+    const [resendTimer, setResendTimer] = useState(300);
+    const [resendAttempts, setResendAttempts] = useState(0);
+    const [resending, setResending] = useState(false);
+
     // Success modal state
     const [successModal, setSuccessModal] = useState({ mounted: false, visible: false });
+
+    // Timer countdown for OTP views
+    useEffect(() => {
+        if ((view === 'forgot-otp' || view === 'verify-account') && resendTimer > 0) {
+            const interval = setInterval(() => setResendTimer(prev => prev - 1), 1000);
+            return () => clearInterval(interval);
+        }
+    }, [view, resendTimer]);
     
     const navigate = useNavigate();
 
@@ -148,6 +161,8 @@ function Login() {
                         email: errData.verificationEmail,
                         purpose: 'account-verification'
                     });
+                    setResendTimer(300);
+                    setResendAttempts(0);
                     setView('verify-account');
                 } catch (otpErr) {
                     setError('Failed to send verification OTP. Please try again.');
@@ -195,6 +210,8 @@ function Login() {
                 email: resetEmail
             });
             if (response.data.success) {
+                setResendTimer(300);
+                setResendAttempts(0);
                 setView('forgot-otp');
             } else {
                 setError(response.data.message);
@@ -433,9 +450,39 @@ function Login() {
                                 ))}
                             </div>
                         </div>
+                        <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#94a3b8', margin: '12px 0 4px', lineHeight: 1.5 }}>
+                            📧 Please also check your <strong>Spam</strong> or <strong>Junk</strong> folder.
+                        </p>
                         <button type="submit" className="login-btn" disabled={loading || otp.join('').length < 6}>{loading ? 'Verifying...' : 'Verify OTP'}</button>
-                        <div className="login-footer">
-                            <button type="button" onClick={() => { setView('forgot-email'); setError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer'}}>Back</button>
+                        <div className="login-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                            {resendTimer > 0 ? (
+                                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
+                                    Resend code in {Math.floor(resendTimer / 60)}:{(resendTimer % 60).toString().padStart(2, '0')}
+                                </p>
+                            ) : resendAttempts >= 3 ? (
+                                <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: 0, fontWeight: 500 }}>
+                                    Maximum resend attempts reached. Please try again later.
+                                </p>
+                            ) : (
+                                <button type="button" disabled={resending} onClick={async () => {
+                                    setResending(true);
+                                    setError('');
+                                    try {
+                                        await Axios.post(`${API_URL}/api/send-otp`, { email: resetEmail });
+                                        setResendTimer(300);
+                                        setResendAttempts(prev => prev + 1);
+                                        setOtp(['', '', '', '', '', '']);
+                                        otpRefs.current[0]?.focus();
+                                    } catch (err) {
+                                        setError('Failed to resend OTP.');
+                                    } finally {
+                                        setResending(false);
+                                    }
+                                }} style={{background: 'none', border: 'none', color: '#be9055', cursor: resending ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.85rem', textDecoration: 'underline', padding: 0}}>
+                                    {resending ? 'Resending...' : "Didn't receive it? Resend Code"}
+                                </button>
+                            )}
+                            <button type="button" onClick={() => { setView('forgot-email'); setError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '0.85rem'}}>Back</button>
                         </div>
                     </form>
                     </>
@@ -567,21 +614,40 @@ function Login() {
                                 ))}
                             </div>
                         </div>
+                        <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#94a3b8', margin: '12px 0 4px', lineHeight: 1.5 }}>
+                            📧 Please also check your <strong>Spam</strong> or <strong>Junk</strong> folder.
+                        </p>
                         <button type="submit" className="login-btn" disabled={loading || otp.join('').length < 6}>
                             {loading ? 'Verifying...' : 'Verify Account'}
                         </button>
                         <div className="login-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                            <button type="button" onClick={async () => {
-                                setError('');
-                                try {
-                                    await Axios.post(`${API_URL}/api/send-otp`, { email: verificationEmail, purpose: 'account-verification' });
+                            {resendTimer > 0 ? (
+                                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
+                                    Resend code in {Math.floor(resendTimer / 60)}:{(resendTimer % 60).toString().padStart(2, '0')}
+                                </p>
+                            ) : resendAttempts >= 3 ? (
+                                <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: 0, fontWeight: 500 }}>
+                                    Maximum resend attempts reached. Please try again later.
+                                </p>
+                            ) : (
+                                <button type="button" disabled={resending} onClick={async () => {
+                                    setResending(true);
                                     setError('');
-                                    setOtp(['', '', '', '', '', '']);
-                                    otpRefs.current[0]?.focus();
-                                } catch (err) {
-                                    setError('Failed to resend OTP.');
-                                }
-                            }} style={{background: 'none', border: 'none', color: '#be9055', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem'}}>Resend OTP</button>
+                                    try {
+                                        await Axios.post(`${API_URL}/api/send-otp`, { email: verificationEmail, purpose: 'account-verification' });
+                                        setResendTimer(300);
+                                        setResendAttempts(prev => prev + 1);
+                                        setOtp(['', '', '', '', '', '']);
+                                        otpRefs.current[0]?.focus();
+                                    } catch (err) {
+                                        setError('Failed to resend OTP.');
+                                    } finally {
+                                        setResending(false);
+                                    }
+                                }} style={{background: 'none', border: 'none', color: '#be9055', cursor: resending ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '0.85rem', textDecoration: 'underline', padding: 0}}>
+                                    {resending ? 'Resending...' : "Didn't receive it? Resend Code"}
+                                </button>
+                            )}
                             <button type="button" onClick={() => { setView('login'); setError(''); }} style={{background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '0.85rem'}}>Back to Login</button>
                         </div>
                     </form>

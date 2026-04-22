@@ -251,6 +251,15 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 if (!currentUser && response.data.id) {
                     sessionStorage.setItem('orphanAppointmentId', response.data.id);
                 }
+                if (!currentUser) {
+                    sessionStorage.setItem('wizardPrefill', JSON.stringify({
+                        firstName: formData.firstName,
+                        lastName: formData.lastName,
+                        suffix: formData.suffix,
+                        email: formData.email,
+                        phone: formData.phone
+                    }));
+                }
                 setStep(5); // Show consultation completed screen on step 5
             } else {
                 alert('Request Failed: ' + (response.data.message || 'An unknown error occurred.'));
@@ -983,7 +992,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     {/* CTA Buttons — always visible */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '320px' }}>
                         <button
-                            onClick={() => navigate('/register', { state: { prefill: { name: formData.name, email: formData.email, phone: formData.phone } } })}
+                            onClick={() => navigate('/register')}
                             className="btn btn-primary"
                             style={{
                                 padding: '14px 28px',

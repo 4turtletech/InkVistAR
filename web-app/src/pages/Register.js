@@ -46,12 +46,20 @@ const PasswordStrengthMeter = ({ feedback }) => {
 };
 
 function Register() {
+  // Read wizard prefill data from sessionStorage (set by CustomerBookingWizard)
+  const wizardPrefill = (() => {
+    try {
+      const raw = sessionStorage.getItem('wizardPrefill');
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  })();
+
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    suffix: '',
-    email: '',
-    phone: '',
+    firstName: wizardPrefill.firstName || '',
+    lastName: wizardPrefill.lastName || '',
+    suffix: wizardPrefill.suffix || '',
+    email: wizardPrefill.email || '',
+    phone: wizardPrefill.phone || '',
     countryCode: '+63',
     password: '',
     confirmPassword: ''
@@ -208,6 +216,7 @@ function Register() {
       });
 
       if (response.data.success) {
+        sessionStorage.removeItem('wizardPrefill');
         setShowSuccessModal(true);
       }
     } catch (error) {

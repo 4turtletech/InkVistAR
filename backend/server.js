@@ -1809,28 +1809,42 @@ app.post('/api/login', async (req, res) => {
         });
       }
 
-      // Successful login — check for migrated guest appointments
+      // ═══ Migrate ALL orphan appointments by guest_email match (same as registration) ═══
       db.query(
-        'SELECT COUNT(*) as cnt FROM appointments WHERE guest_email = ? AND customer_id = ? AND is_deleted = 0',
-        [user.email, user.id],
-        (migErr, migRows) => {
-          const migratedAppointments = (!migErr && migRows && migRows[0]) ? migRows[0].cnt : 0;
+        'UPDATE appointments SET customer_id = ? WHERE guest_email = ? AND customer_id != ? AND is_deleted = 0',
+        [user.id, user.email, user.id],
+        (migErr, migResult) => {
+          const emailMigratedCount = migResult ? migResult.affectedRows : 0;
+          if (emailMigratedCount > 0) {
+            console.log(`📦 Login migration: Claimed ${emailMigratedCount} orphan appointment(s) for ${user.name} (${user.email})`);
+            createNotification(user.id, 'Prior Bookings Found!', `We found ${emailMigratedCount} consultation request(s) linked to your email from before. They have been automatically added to your account.`, 'appointment_request');
+          }
 
-          res.json({
-            success: true,
-            user: {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              type: user.user_type,
-              is_superadmin: user.is_superadmin === 1
-            },
-            message: 'Login successful!',
-            migratedAppointments: migratedAppointments
-          });
+          // Count total migrated appointments (includes both orphanId and email-based)
+          db.query(
+            'SELECT COUNT(*) as cnt FROM appointments WHERE guest_email = ? AND customer_id = ? AND is_deleted = 0',
+            [user.email, user.id],
+            (cntErr, cntRows) => {
+              const migratedAppointments = (!cntErr && cntRows && cntRows[0]) ? cntRows[0].cnt : 0;
+
+              res.json({
+                success: true,
+                user: {
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                  type: user.user_type,
+                  is_superadmin: user.is_superadmin === 1
+                },
+                message: 'Login successful!',
+                migratedAppointments: migratedAppointments
+              });
+            }
+          );
         }
       );
-    });
+
+    }); // close outer db.query callback
 
   } catch (error) {
     console.error('🔥 Unhandled error in login:', error);
