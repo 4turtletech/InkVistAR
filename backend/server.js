@@ -3525,8 +3525,12 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
               console.log(`📅 Customer ${customerId} rescheduled Appt #${id} to ${newDate} ${newTime || ''}`);
 
               // Notify artist
-              if (appt.artist_id && appt.artist_id !== 1) {
-                createNotification(appt.artist_id, 'Appointment Rescheduled 📅', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+              if (appt.artist_id) {
+                db.query('SELECT user_type FROM users WHERE id = ?', [appt.artist_id], (aErr, aRes) => {
+                  if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+                    createNotification(appt.artist_id, 'Appointment Rescheduled 📅', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.`, 'appointment_rescheduled', id);
+                  }
+                });
               }
               // Notify admins
               db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager")', (adminErr, admins) => {
@@ -3919,8 +3923,13 @@ app.post('/api/admin/appointments', async (req, res) => {
           }
         } else {
           createNotification(customerId, 'Appointment Scheduled', `Your appointment [${bookingCode}] has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
-          if (artistId && artistId !== 1) {
-            createNotification(artistId, 'New Session Assigned', `You have been scheduled for a new session [${bookingCode}] on ${date}.`, 'appointment_confirmed', result.insertId);
+          if (artistId) {
+            // Only notify if the artist is not an admin user
+            db.query('SELECT user_type FROM users WHERE id = ?', [artistId], (aErr, aRes) => {
+              if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+                createNotification(artistId, 'New Session Assigned', `You have been scheduled for a new session [${bookingCode}] on ${date}.`, 'appointment_confirmed', result.insertId);
+              }
+            });
           }
         }
 
@@ -4230,10 +4239,14 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         const oldDate = parseDateOnly(oldAppt.appointment_date);
         const newDate = parseDateOnly(date);
 
-        // Helper to avoid notifying user 1 (Admin/Unassigned) since Admin has a separate dashboard
+        // Helper to avoid notifying admin users posing as placeholder artists
         const notifyArtist = (title, msg, type) => {
-          if (currentData.artist_id && currentData.artist_id !== 1) {
-            createNotification(currentData.artist_id, title, msg, type, id);
+          if (currentData.artist_id) {
+            db.query('SELECT user_type FROM users WHERE id = ?', [currentData.artist_id], (aErr, aRes) => {
+              if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+                createNotification(currentData.artist_id, title, msg, type, id);
+              }
+            });
           }
         };
 
@@ -4575,7 +4588,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         }
 
         // 4. Action Required for New Assignment
-        if (currentData.status === 'pending' && currentData.artist_id !== 1 && oldAppt.artist_id !== currentData.artist_id) {
+        if (currentData.status === 'pending' && oldAppt.artist_id !== currentData.artist_id) {
           notifyArtist('Action Required: New Assignment', `You have been assigned a new session #${id}. Please accept or decline.`, 'action_required');
         }
       }
@@ -4769,16 +4782,36 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
               createNotification(apptData.customer_id, 'Payment Received', customerMsg, 'payment_success', invInsertRes?.insertId || id);
 
               // Notify the artist about payment collected for their session
-              if (apptData.artist_id && apptData.artist_id !== 1) {
-                const artistCut = (actualPayment * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-                createNotification(apptData.artist_id, 'Payment Collected', `A payment of ₱${actualPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (${method || 'Cash'}) was collected for session #${id}. Your 30% commission share: ₱${artistCut}.`, 'payment_success', id);
+              if (apptData.artist_id) {
+                db.query('SELECT user_type FROM users WHERE id = ?', [apptData.artist_id], (aErr, aRes) => {
+                  if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+                    const artistCut = (actualPayment * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+                    createNotification(apptData.artist_id, 'Payment Collected', `A payment of ₱${actualPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (${method || 'Cash'}) was collected for session #${id}. Your 30% commission share: ₱${artistCut}.`, 'payment_success', id);
+
+                    // Check if session is now fully paid — send distinct notification
+                    db.query('SELECT price, manual_paid_amount, (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = \'paid\') as digital_paid FROM appointments WHERE id = ?', [id, id], (fpErr, fpRes) => {
+                      if (!fpErr && fpRes.length) {
+                        const totalPaid = (fpRes[0].digital_paid / 100) + (fpRes[0].manual_paid_amount || 0);
+                        const sessionPrice = fpRes[0].price || 0;
+                        if (sessionPrice > 0 && totalPaid >= sessionPrice) {
+                          const designTitle = apptData.design_title || 'Session';
+                          createNotification(apptData.artist_id, 'Session Fully Paid 🎉', `Great news! Session #${id} for "${designTitle}" is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', id);
+                        }
+                      }
+                    });
+                  }
+                });
               }
 
               const isConfirmedNow = apptData.status === 'confirmed' || apptData.status === 'pending';
-              if (apptData.artist_id && apptData.artist_id !== 1 && isConfirmedNow) {
-                const apptDate = new Date(apptData.appointment_date || Date.now());
-                const dateStr = !isNaN(apptDate) ? apptDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the scheduled date';
-                createNotification(apptData.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr}.`, 'appointment_confirmed', id);
+              if (apptData.artist_id && isConfirmedNow) {
+                db.query('SELECT user_type FROM users WHERE id = ?', [apptData.artist_id], (aErr, aRes) => {
+                  if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+                    const apptDate = new Date(apptData.appointment_date || Date.now());
+                    const dateStr = !isNaN(apptDate) ? apptDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'the scheduled date';
+                    createNotification(apptData.artist_id, 'Appointment Scheduled', `You have an appointment scheduled on ${dateStr}.`, 'appointment_confirmed', id);
+                  }
+                });
               }
 
               sendReceiptEmail(apptData.cx_email, {
@@ -4911,10 +4944,24 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
               const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
               createNotification(customerId, 'Payment Received', customerMsg, 'payment_success', invInsertRes?.insertId || appointmentId);
 
-              // Notify the artist about payment collected for their session
-              if (apptData.artist_id && apptData.artist_id !== 1) {
-                const artistCut = (actualPayment * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-                createNotification(apptData.artist_id, 'Payment Collected', `A payment of ₱${actualPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (${method}) was collected for your session. Your 30% commission share: ₱${artistCut}.`, 'payment_success', appointmentId);
+              if (apptData.artist_id) {
+                db.query('SELECT user_type FROM users WHERE id = ?', [apptData.artist_id], (aErr, aRes) => {
+                  if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+                    const artistCut = (actualPayment * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+                    createNotification(apptData.artist_id, 'Payment Collected', `A payment of ₱${actualPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (${method}) was collected for your session. Your 30% commission share: ₱${artistCut}.`, 'payment_success', appointmentId);
+
+                    // Check if session is now fully paid
+                    db.query('SELECT price, manual_paid_amount, (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = \'paid\') as digital_paid FROM appointments WHERE id = ?', [appointmentId, appointmentId], (fpErr, fpRes) => {
+                      if (!fpErr && fpRes.length) {
+                        const totalPaid = (fpRes[0].digital_paid / 100) + (fpRes[0].manual_paid_amount || 0);
+                        const sessionPrice = fpRes[0].price || 0;
+                        if (sessionPrice > 0 && totalPaid >= sessionPrice) {
+                          createNotification(apptData.artist_id, 'Session Fully Paid 🎉', `Great news! Session #${appointmentId} is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', appointmentId);
+                        }
+                      }
+                    });
+                  }
+                });
               }
 
               // Send receipt email
@@ -5805,10 +5852,25 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                   createNotification(appt.customer_id, 'Payment Received', `Your payment of ₱${customerAmtStr} for appointment #${appointmentId} (${paymentTypeStr}) has been successfully confirmed.`, 'payment_success', appointmentId);
 
                   // Notify artist about payment collected for their session
-                  if (appt.artist_id && appt.artist_id !== 1) {
-                    const payAmt = amountCentavos / 100;
-                    const artistCut = (payAmt * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-                    createNotification(appt.artist_id, 'Payment Collected', `A payment of ₱${payAmt.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (PayMongo - ${paymentTypeStr}) was collected for appointment #${appointmentId}. Your 30% commission share: ₱${artistCut}.`, 'payment_success', appointmentId);
+                  if (appt.artist_id) {
+                    db.query('SELECT user_type FROM users WHERE id = ?', [appt.artist_id], (aErr, aRes) => {
+                      if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+                        const payAmt = amountCentavos / 100;
+                        const artistCut = (payAmt * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+                        createNotification(appt.artist_id, 'Payment Collected', `A payment of ₱${payAmt.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (PayMongo - ${paymentTypeStr}) was collected for appointment #${appointmentId}. Your 30% commission share: ₱${artistCut}.`, 'payment_success', appointmentId);
+
+                        // Check if session is now fully paid
+                        db.query('SELECT price, manual_paid_amount, (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = \'paid\') as digital_paid FROM appointments WHERE id = ?', [appointmentId, appointmentId], (fpErr, fpRes) => {
+                          if (!fpErr && fpRes.length) {
+                            const totalPaid = (fpRes[0].digital_paid / 100) + (fpRes[0].manual_paid_amount || 0);
+                            const sessionPrice = fpRes[0].price || 0;
+                            if (sessionPrice > 0 && totalPaid >= sessionPrice) {
+                              createNotification(appt.artist_id, 'Session Fully Paid 🎉', `Great news! Appointment #${appointmentId} is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', appointmentId);
+                            }
+                          }
+                        });
+                      }
+                    });
                   }
 
                   const wasPending = currentAptStatus?.toLowerCase() === 'pending';
@@ -8242,63 +8304,258 @@ app.delete('/api/admin/testimonials/:id', (req, res) => {
   });
 });
 
-// ========== APPOINTMENT REMINDERS ==========
+// ========== APPOINTMENT REMINDERS (Enhanced) ==========
+// Runs at 9:00 AM GMT+8 daily:
+//   - Customer: Same-day reminder ("You have a session TODAY")
+//   - Artist: Tomorrow's sessions (with customer names) + today's remaining sessions
+//   - Deduplication: checks if a reminder was already sent today for this appointment
 function startAppointmentReminders() {
-  // Check every minute if it's 9:00 AM
+  setInterval(() => {
+    // Calculate current time in GMT+8 (Philippine Time)
+    const now = new Date();
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const pht = new Date(utcMs + 8 * 3600000);
+    const phtHour = pht.getHours();
+    const phtMinute = pht.getMinutes();
+
+    if (phtHour !== 9 || phtMinute !== 0) return;
+
+    console.log('🔔 Running daily appointment reminder job (9:00 AM PHT)...');
+
+    // Date strings in PHT
+    const todayStr = pht.toISOString().split('T')[0];
+    const tomorrow = new Date(pht.getTime() + 86400000);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const formatTime12h = (t) => {
+      if (!t) return 'TBD';
+      try { const [h, m] = t.split(':'); const hr = parseInt(h); return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`; }
+      catch { return t; }
+    };
+
+    // ── 1. Customer Same-Day Reminders ──
+    const todayQuery = `
+      SELECT a.id, a.customer_id, a.artist_id, a.appointment_date, a.start_time, a.design_title,
+             u.email as customer_email, u.name as customer_name, ar.name as artist_name
+      FROM appointments a
+      LEFT JOIN users u ON a.customer_id = u.id
+      LEFT JOIN users ar ON a.artist_id = ar.id
+      WHERE a.is_deleted = 0 AND a.status = 'confirmed'
+      AND DATE(a.appointment_date) = ?
+    `;
+    db.query(todayQuery, [todayStr], (err, todayAppts) => {
+      if (err) return console.error('❌ Error finding today reminders:', err);
+      console.log(`📅 Found ${todayAppts.length} appointment(s) today`);
+
+      todayAppts.forEach(appt => {
+        // Deduplicate: check if we already sent a same-day reminder for this appointment today
+        db.query("SELECT id FROM notifications WHERE user_id = ? AND type = 'appointment_reminder' AND related_id = ? AND message LIKE '%session today%' AND DATE(created_at) = CURDATE() LIMIT 1",
+          [appt.customer_id, appt.id], (dupErr, dupRes) => {
+            if (dupErr || (dupRes && dupRes.length > 0)) return; // Already sent or error
+
+            const timeStr = formatTime12h(appt.start_time);
+            const customerMsg = `Reminder: You have a session today for "${appt.design_title}" at ${timeStr}! Get plenty of rest and stay hydrated. We can't wait to see you!`;
+            createNotification(appt.customer_id, 'Session Today! ⏰', customerMsg, 'appointment_reminder', appt.id);
+
+            // Email reminder
+            if (appt.customer_email) {
+              const html = buildEmailHtml(`
+                <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Your Session is Today!</h2>
+                <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Don't forget — your tattoo appointment is happening today!</p>
+                <p style="margin:0 0 16px;">Hello ${appt.customer_name},</p>
+                <p style="margin:0 0 16px;">This is a friendly reminder that your session is scheduled for today. Here are the details:</p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                  <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Design:</strong> <span style="color:#C19A6B;">${appt.design_title}</span></p>
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Time:</strong> <span style="color:#C19A6B;">${timeStr}</span></p>
+                    <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Artist:</strong> <span style="color:#C19A6B;">${appt.artist_name || 'Your Artist'}</span></p>
+                  </div>
+                </td></tr></table>
+                <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">Please arrive 10 minutes early. See you soon!</p>
+              `);
+              sendEmail(appt.customer_email, `Reminder: Your Tattoo Session is Today!`, html);
+            }
+          }
+        );
+      });
+    });
+
+    // ── 2. Artist Reminders: Tomorrow's sessions + Today's sessions ──
+    const artistQuery = `
+      SELECT a.id, a.artist_id, a.appointment_date, a.start_time, a.design_title,
+             u.name as customer_name, DATE(a.appointment_date) as appt_date
+      FROM appointments a
+      LEFT JOIN users u ON a.customer_id = u.id
+      WHERE a.is_deleted = 0 AND a.status = 'confirmed'
+      AND (DATE(a.appointment_date) = ? OR DATE(a.appointment_date) = ?)
+      ORDER BY a.artist_id, a.appointment_date, a.start_time
+    `;
+    db.query(artistQuery, [todayStr, tomorrowStr], (err, allAppts) => {
+      if (err) return console.error('❌ Error finding artist reminders:', err);
+
+      // Group by artist
+      const artistSessions = {};
+      allAppts.forEach(appt => {
+        if (!artistSessions[appt.artist_id]) {
+          artistSessions[appt.artist_id] = { today: [], tomorrow: [] };
+        }
+        const apptDateStr = new Date(appt.appointment_date).toISOString().split('T')[0];
+        if (apptDateStr === todayStr) {
+          artistSessions[appt.artist_id].today.push(appt);
+        } else {
+          artistSessions[appt.artist_id].tomorrow.push(appt);
+        }
+      });
+
+      Object.entries(artistSessions).forEach(([artistId, sessions]) => {
+        // Deduplicate: check if we already sent this artist a reminder today
+        db.query("SELECT id FROM notifications WHERE user_id = ? AND type = 'appointment_reminder' AND message LIKE '%schedule overview%' AND DATE(created_at) = CURDATE() LIMIT 1",
+          [artistId], (dupErr, dupRes) => {
+            if (dupErr || (dupRes && dupRes.length > 0)) return;
+
+            // Only send if the artist is not an admin user
+            db.query('SELECT user_type FROM users WHERE id = ?', [artistId], (aErr, aRes) => {
+              if (aErr || !aRes.length || aRes[0].user_type === 'admin') return;
+
+              let msgParts = ['Here is your daily schedule overview:\n'];
+
+              // Today's sessions
+              if (sessions.today.length > 0) {
+                msgParts.push(`📌 TODAY (${sessions.today.length} session${sessions.today.length > 1 ? 's' : ''}):`);
+                sessions.today.forEach(s => {
+                  const time = formatTime12h(s.start_time);
+                  msgParts.push(`  • ${time} — "${s.design_title}" with ${s.customer_name || 'Client'}`);
+                });
+                msgParts.push('');
+              }
+
+              // Tomorrow's sessions
+              if (sessions.tomorrow.length > 0) {
+                msgParts.push(`📅 TOMORROW (${sessions.tomorrow.length} session${sessions.tomorrow.length > 1 ? 's' : ''}):`);
+                sessions.tomorrow.forEach(s => {
+                  const time = formatTime12h(s.start_time);
+                  msgParts.push(`  • ${time} — "${s.design_title}" with ${s.customer_name || 'Client'}`);
+                });
+              }
+
+              const fullMsg = msgParts.join('\n');
+              createNotification(parseInt(artistId), 'Daily Schedule Overview ⏰', fullMsg, 'appointment_reminder');
+            });
+          }
+        );
+      });
+    });
+
+    // ── 3. Tomorrow-only customer reminder (existing behavior) ──
+    const tomorrowQuery = `
+      SELECT a.id, a.customer_id, a.artist_id, a.appointment_date, a.start_time, a.design_title, u.email as customer_email, u.name as customer_name
+      FROM appointments a
+      LEFT JOIN users u ON a.customer_id = u.id
+      WHERE a.is_deleted = 0 AND a.status = 'confirmed' 
+      AND DATE(a.appointment_date) = ?
+    `;
+    db.query(tomorrowQuery, [tomorrowStr], (err, tomorrowAppts) => {
+      if (err) return console.error('Error finding tomorrow reminders:', err);
+
+      tomorrowAppts.forEach(appt => {
+        // Deduplicate
+        db.query("SELECT id FROM notifications WHERE user_id = ? AND type = 'appointment_reminder' AND related_id = ? AND message LIKE '%coming up tomorrow%' AND DATE(created_at) = CURDATE() LIMIT 1",
+          [appt.customer_id, appt.id], (dupErr, dupRes) => {
+            if (dupErr || (dupRes && dupRes.length > 0)) return;
+
+            const title = "Upcoming Session Reminder ⏰";
+            const message = `Reminder: Your tattoo session for "${appt.design_title}" is coming up tomorrow at ${appt.start_time}! Get plenty of rest and stay hydrated.`;
+            createNotification(appt.customer_id, title, message, 'appointment_reminder', appt.id);
+
+            if (appt.customer_email) {
+              const html = buildEmailHtml(`
+                <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Upcoming Session Reminder</h2>
+                <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your tattoo appointment is tomorrow!</p>
+                <p style="margin:0 0 16px;">Hello ${appt.customer_name},</p>
+                <p style="margin:0 0 16px;">This is a quick reminder that your tattoo session is happening tomorrow. Please review your session details below:</p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                  <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Design:</strong> <span style="color:#C19A6B;">${appt.design_title}</span></p>
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Date:</strong> <span style="color:#C19A6B;">Tomorrow</span></p>
+                    <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Time:</strong> <span style="color:#C19A6B;">${appt.start_time}</span></p>
+                  </div>
+                </td></tr></table>
+                <p style="margin:0 0 16px;line-height:1.6;"><strong>Important reminders before your session:</strong></p>
+                <ul style="margin:0 0 20px;padding-left:20px;color:#94a3b8;font-size:14px;line-height:1.6;">
+                  <li style="margin-bottom:8px;"><strong style="color:#e2e8f0;">Stay hydrated</strong> and get plenty of rest tonight.</li>
+                  <li style="margin-bottom:8px;"><strong style="color:#e2e8f0;">Eat a good meal</strong> before arriving to keep your blood sugar stable.</li>
+                  <li>Please aim to <strong style="color:#e2e8f0;">arrive 10 minutes early</strong>.</li>
+                </ul>
+                <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">We can't wait to see you in the studio!</p>
+              `);
+              sendEmail(appt.customer_email, `Reminder: Upcoming Tattoo Session Tomorrow!`, html);
+            }
+          }
+        );
+      });
+    });
+  }, 1000 * 60);
+}
+
+// ========== BI-WEEKLY PAYOUT AVAILABILITY REMINDERS ==========
+// Runs every other Monday at 10:00 AM GMT+8.
+// Notifies artists with ≥₱500 in unclaimed commissions.
+function startPayoutReminders() {
   setInterval(() => {
     const now = new Date();
-    if (now.getHours() === 9 && now.getMinutes() === 0) {
-      const timezoneOffsetMs = now.getTimezoneOffset() * 60000;
-      const localTomorrow = new Date(now.getTime() - timezoneOffsetMs + 86400000);
-      const tomorrowStr = localTomorrow.toISOString().split('T')[0];
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const pht = new Date(utcMs + 8 * 3600000);
+    const phtHour = pht.getHours();
+    const phtMinute = pht.getMinutes();
+    const phtDay = pht.getDay(); // 0=Sun, 1=Mon
 
-      const query = `
-        SELECT a.id, a.customer_id, a.artist_id, a.appointment_date, a.start_time, a.design_title, u.email as customer_email, u.name as customer_name
-        FROM appointments a
-        LEFT JOIN users u ON a.customer_id = u.id
-        WHERE a.is_deleted = 0 AND a.status = 'confirmed' 
-        AND a.appointment_date LIKE ?
-      `;
-      db.query(query, [`${tomorrowStr}%`], (err, appointments) => {
-        if (err) return console.error('Error finding reminders:', err);
+    if (phtDay !== 1 || phtHour !== 10 || phtMinute !== 0) return;
 
-        appointments.forEach(appt => {
-          const title = "Upcoming Session Reminder ⏰";
-          const message = `Reminder: Your tattoo session for "${appt.design_title}" is coming up tomorrow at ${appt.start_time}! Get plenty of rest and stay hydrated.`;
-          createNotification(appt.customer_id, title, message, 'appointment_reminder', appt.id);
+    // Check if this is an "every other Monday" — use ISO week number (odd weeks)
+    const startOfYear = new Date(pht.getFullYear(), 0, 1);
+    const weekNum = Math.ceil(((pht - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+    if (weekNum % 2 !== 0) return; // Only even weeks (every other Monday)
 
-          if (appt.customer_email) {
-            const html = buildEmailHtml(`
-              <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Upcoming Session Reminder</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your tattoo appointment is tomorrow!</p>
-              <p style="margin:0 0 16px;">Hello ${appt.customer_name},</p>
-              <p style="margin:0 0 16px;">This is a quick reminder that your tattoo session is happening tomorrow. Please review your session details below:</p>
-              
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
-                <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
-                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Design:</strong> <span style="color:#C19A6B;">${appt.design_title}</span></p>
-                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Date:</strong> <span style="color:#C19A6B;">Tomorrow</span></p>
-                  <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Time:</strong> <span style="color:#C19A6B;">${appt.start_time}</span></p>
-                </div>
-              </td></tr></table>
+    console.log('💰 Running bi-weekly payout reminder job...');
 
-              <p style="margin:0 0 16px;line-height:1.6;"><strong>Important reminders before your session:</strong></p>
-              <ul style="margin:0 0 20px;padding-left:20px;color:#94a3b8;font-size:14px;line-height:1.6;">
-                <li style="margin-bottom:8px;"><strong style="color:#e2e8f0;">Stay hydrated</strong> and get plenty of rest tonight.</li>
-                <li style="margin-bottom:8px;"><strong style="color:#e2e8f0;">Eat a good meal</strong> before arriving to keep your blood sugar stable.</li>
-                <li>Please aim to <strong style="color:#e2e8f0;">arrive 10 minutes early</strong>.</li>
-              </ul>
-              
-              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">We can't wait to see you in the studio!</p>
-            `);
-            sendResendEmail(appt.customer_email, `Reminder: Upcoming Tattoo Session Tomorrow!`, html);
+    // Find all artists and calculate their unclaimed commission balance
+    const query = `
+      SELECT u.id as artist_id, u.name as artist_name,
+        COALESCE((
+          SELECT SUM(
+            CASE 
+              WHEN a.commission_split IS NOT NULL AND a.secondary_artist_id = u.id 
+                THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30 * ((100 - a.commission_split) / 100)
+              WHEN a.commission_split IS NOT NULL AND a.artist_id = u.id 
+                THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30 * (a.commission_split / 100)
+              ELSE ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30
+            END
+          )
+          FROM appointments a
+          WHERE (a.artist_id = u.id OR a.secondary_artist_id = u.id)
+            AND a.is_deleted = 0 AND a.status IN ('confirmed', 'completed')
+        ), 0) - COALESCE((SELECT SUM(amount) FROM payouts WHERE artist_id = u.id), 0) as unclaimed_balance
+      FROM users u
+      WHERE u.user_type = 'artist' AND u.is_deleted = 0
+      HAVING unclaimed_balance >= 500
+    `;
+
+    db.query(query, (err, artists) => {
+      if (err) return console.error('❌ Error calculating payout balances:', err);
+
+      console.log(`💰 Found ${artists.length} artist(s) with unclaimed commissions ≥ ₱500`);
+
+      artists.forEach(artist => {
+        const balance = parseFloat(artist.unclaimed_balance).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+        // Deduplicate: only one payout reminder per artist per day
+        db.query("SELECT id FROM notifications WHERE user_id = ? AND type = 'payout_processed' AND message LIKE '%available for claiming%' AND DATE(created_at) = CURDATE() LIMIT 1",
+          [artist.artist_id], (dupErr, dupRes) => {
+            if (dupErr || (dupRes && dupRes.length > 0)) return;
+            createNotification(artist.artist_id, 'Payout Available 💰', `You have ₱${balance} in commissions available for claiming. Please coordinate with the studio to process your payout.`, 'payout_processed');
           }
-
-          const artistMsg = `Reminder: You have a scheduled session tomorrow at ${appt.start_time} for "${appt.design_title}".`;
-          createNotification(appt.artist_id, title, artistMsg, 'appointment_reminder', appt.id);
-        });
+        );
       });
-    }
+    });
   }, 1000 * 60);
 }
 
@@ -8469,8 +8726,12 @@ app.post('/api/reviews', (req, res) => {
           createNotification(1, 'New Review Received', `A client submitted a new ${rating}-star review for session #${appointment_id}. Take a moment to review and showcase it!`, 'new_review', appointment_id);
 
           // Notify the reviewed artist
-          if (artist_id && artist_id !== 1) {
-            createNotification(artist_id, 'New Review Received', `A client left a ${rating}-star review for your session #${appointment_id}.${comment ? ' "' + comment.substring(0, 100) + (comment.length > 100 ? '...' : '') + '"' : ''} Thank you for your work!`, 'new_review', appointment_id);
+          if (artist_id) {
+            db.query('SELECT user_type FROM users WHERE id = ?', [artist_id], (aErr, aRes) => {
+              if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+                createNotification(artist_id, 'New Review Received', `A client left a ${rating}-star review for your session #${appointment_id}.${comment ? ' "' + comment.substring(0, 100) + (comment.length > 100 ? '...' : '') + '"' : ''} Thank you for your work!`, 'new_review', appointment_id);
+              }
+            });
           }
 
           // Send thank-you notification to the customer
@@ -8901,4 +9162,5 @@ server.listen(PORT, '0.0.0.0', () => {
 
   startAppointmentReminders();
   startAftercareCron();
+  startPayoutReminders();
 });
