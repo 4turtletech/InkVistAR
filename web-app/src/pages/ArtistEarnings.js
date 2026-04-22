@@ -166,7 +166,7 @@ function ArtistEarnings() {
                 new Date(s.appointment_date).toLocaleDateString(),
                 s.client_name || '—',
                 s.design_title || '',
-                s.isCollab ? `Collab ${s.splitPercent}%` : 'Solo',
+                s.isCollab ? `Collab ${s.splitPercent}%` : (s.isReferral ? 'Referral (70%)' : 'Solo'),
                 `₱${(s.basePrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`,
                 `₱${(s.artistShare || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`,
                 s.payment_status === 'paid' ? 'Paid' : 'Unpaid'
@@ -412,6 +412,10 @@ function ArtistEarnings() {
                                                             {session.isCollab ? (
                                                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(183, 149, 78, 0.1)', color: '#b7954e', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(183, 149, 78, 0.2)' }}>
                                                                     {session.splitPercent}% {session.collabPartnerName ? `w/ ${session.collabPartnerName}` : ''}
+                                                                </span>
+                                                            ) : session.isReferral ? (
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                                                    🤝 Referral (70%)
                                                                 </span>
                                                             ) : (
                                                                 <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Solo</span>

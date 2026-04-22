@@ -256,7 +256,7 @@ db.getConnection((err, connection) => {
         experience_years INT,
         specialization VARCHAR(255),
         hourly_rate DECIMAL(10, 2),
-        commission_rate DECIMAL(5, 2) DEFAULT 0.60,
+        commission_rate DECIMAL(5, 2) DEFAULT 0.30,
         rating DECIMAL(3, 2) DEFAULT 5.00,
         total_reviews INT DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -270,7 +270,7 @@ db.getConnection((err, connection) => {
       db.query("SHOW COLUMNS FROM artists LIKE 'commission_rate'", (err, results) => {
         if (!err && results.length === 0) {
           console.log('🔄 Migrating artists table: Adding commission_rate column...');
-          db.query("ALTER TABLE artists ADD COLUMN commission_rate DECIMAL(5, 2) DEFAULT 0.60");
+          db.query("ALTER TABLE artists ADD COLUMN commission_rate DECIMAL(5, 2) DEFAULT 0.30");
           console.log('✅ Added commission_rate column');
         }
       });
@@ -858,6 +858,14 @@ db.getConnection((err, connection) => {
             console.log('🔄 Migrating appointments: Adding guest_phone column...');
             db.query("ALTER TABLE appointments ADD COLUMN guest_phone VARCHAR(50) NULL");
             console.log('✅ Added guest_phone column to appointments');
+          }
+        });
+        // MIGRATION: Add 'is_referral' column for referral commission tracking
+        db.query("SHOW COLUMNS FROM appointments LIKE 'is_referral'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding is_referral column...');
+            db.query("ALTER TABLE appointments ADD COLUMN is_referral BOOLEAN DEFAULT 0");
+            console.log('✅ Added is_referral column to appointments');
           }
         });
       }
@@ -1465,7 +1473,7 @@ function createDefaultUsers() {
         db.query(createArtist, [artistPass], (err, result) => {
           if (!err && result.insertId) {
             const artistId = result.insertId;
-            const createProfile = "INSERT INTO artists (user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate) VALUES (?, 'InkVistAR Studio', 5, 'Realism', 150.00, 0.60)";
+            const createProfile = "INSERT INTO artists (user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate) VALUES (?, 'InkVistAR Studio', 5, 'Realism', 150.00, 0.30)";
             db.query(createProfile, [artistId], (err) => {
               if (!err) console.log('✅ Default Artist Created: artist@inkvistar.com / artist123');
             });
@@ -2682,7 +2690,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
       COALESCE(a.experience_years, 0) as experience_years,
       COALESCE(a.specialization, 'General Artist') as specialization,
       COALESCE(a.hourly_rate, 0) as hourly_rate,
-      COALESCE(a.commission_rate, 0.60) as commission_rate,
+      COALESCE(a.commission_rate, 0.30) as commission_rate,
       COALESCE(a.rating, 0) as rating,
       COALESCE(a.total_reviews, 0) as total_reviews,
       a.profile_image
@@ -2740,7 +2748,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
 
     db.query(appointmentsQuery, [artistId], (apptErr, apptResults) => {
       const appointments = apptResults || [];
-      const commissionRate = artist.commission_rate || 0.60;
+      const commissionRate = artist.commission_rate || 0.30;
 
       // Calculate earnings correctly (Completed & Paid only, net of commission)
       // Robust case-insensitive comparison
@@ -3994,6 +4002,12 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (manualPaymentMethod !== undefined) { updates.push('manual_payment_method = ?'); params.push(manualPaymentMethod); }
   if (beforePhoto !== undefined) { updates.push('before_photo = ?'); params.push(beforePhoto); }
   if (consultationMethod !== undefined) { updates.push('consultation_method = ?'); params.push(consultationMethod); }
+
+  // Referral flag: admin-only toggle (only applies to solo sessions)
+  if (body.isReferral !== undefined) {
+    updates.push('is_referral = ?');
+    params.push(body.isReferral ? 1 : 0);
+  }
 
   if (updates.length === 0) {
     return res.status(400).json({ success: false, message: 'No fields to update.' });
@@ -5362,15 +5376,16 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
   const { id } = req.params;
 
   // Fetch the artist's actual commission rate from the DB
-  db.query('SELECT COALESCE(commission_rate, 0.60) as commission_rate FROM artists WHERE user_id = ?', [id], (rateErr, rateResults) => {
+  db.query('SELECT COALESCE(commission_rate, 0.30) as commission_rate FROM artists WHERE user_id = ?', [id], (rateErr, rateResults) => {
     if (rateErr) return res.status(500).json({ success: false, message: 'Database error fetching commission rate' });
 
-    const ARTIST_RATE = rateResults.length > 0 ? Number(rateResults[0].commission_rate) : 0.60;
+    const ARTIST_RATE = rateResults.length > 0 ? Number(rateResults[0].commission_rate) : 0.30;
+    const REFERRAL_RATE = 0.70; // Referral: 70% artist / 30% studio
 
     // 2. Get Completed Appointments
     const apptsQuery = `
       SELECT ap.id, ap.appointment_date, ap.design_title, ap.price, ap.payment_status, ap.status, 
-             ap.artist_id, ap.secondary_artist_id, ap.commission_split,
+             ap.artist_id, ap.secondary_artist_id, ap.commission_split, ap.is_referral,
              u_cust.name as client_name,
              u_sec.name as secondary_artist_name,
              u_pri.name as primary_artist_name
@@ -5399,6 +5414,7 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
           let collabPartnerName = null;
 
           if (isCollab) {
+            // Referral does NOT apply to collab sessions
             const split = a.commission_split || 50; // default 50/50
             if (isPrimary) {
               artistShare = a.price * ARTIST_RATE * (split / 100);
@@ -5410,7 +5426,9 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
               collabPartnerName = a.primary_artist_name;
             }
           } else {
-            artistShare = a.price * ARTIST_RATE;
+            // Solo session: apply referral rate if flagged
+            const effectiveRate = a.is_referral ? REFERRAL_RATE : ARTIST_RATE;
+            artistShare = a.price * effectiveRate;
           }
           return {
             ...a,
@@ -5420,7 +5438,8 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
             isCollab,
             isPrimary,
             splitPercent,
-            collabPartnerName
+            collabPartnerName,
+            isReferral: !!a.is_referral
           };
         });
 

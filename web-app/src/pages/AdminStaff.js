@@ -421,13 +421,23 @@ function AdminStaff() {
     );
 
     const renderEarningsTab = () => {
+        const baseRate = artistDetails.profile.commission_rate || 0.30;
+        const REFERRAL_RATE = 0.70;
+
         const earnings = artistDetails.appointments
             .filter(a => a.status === 'completed')
-            .map(a => ({
-                ...a,
-                amount: a.price || 0, // Use actual price from appointment
-                commission: (a.price || 0) * (artistDetails.profile.commission_rate || 0.6)
-            }));
+            .map(a => {
+                const isReferral = !!a.is_referral;
+                const isSolo = !a.secondary_artist_id;
+                const effectiveRate = (isReferral && isSolo) ? REFERRAL_RATE : baseRate;
+                return {
+                    ...a,
+                    amount: a.price || 0,
+                    commission: (a.price || 0) * effectiveRate,
+                    isReferral: isReferral && isSolo,
+                    effectiveRate
+                };
+            });
 
         return (
             <div className="tab-content">
@@ -442,8 +452,9 @@ function AdminStaff() {
                         <tr>
                             <th>Date</th>
                             <th>Client</th>
+                            <th>Type</th>
                             <th>Total Amount</th>
-                            <th>Artist Commission ({((artistDetails.profile.commission_rate || 0.6) * 100)}%)</th>
+                            <th>Artist Commission</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -451,8 +462,21 @@ function AdminStaff() {
                             <tr key={e.id}>
                                 <td>{new Date(e.appointment_date).toLocaleDateString()}</td>
                                 <td>{e.client_name}</td>
+                                <td>
+                                    {e.isReferral ? (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, border: '1px solid rgba(16,185,129,0.2)' }}>
+                                            🤝 Referral ({(e.effectiveRate * 100).toFixed(0)}%)
+                                        </span>
+                                    ) : (
+                                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                                            Standard ({(e.effectiveRate * 100).toFixed(0)}%)
+                                        </span>
+                                    )}
+                                </td>
                                 <td>₱{e.amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                <td className="admin-st-9e10b928">₱{Number(e.commission).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td className="admin-st-9e10b928" style={e.isReferral ? { color: '#10b981' } : {}}>
+                                    ₱{Number(e.commission).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
                             </tr>
                         ))}
                     </tbody>

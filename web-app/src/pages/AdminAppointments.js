@@ -116,7 +116,7 @@ function AdminAppointments() {
         if (!initialFormDataRef.current) return false;
         const tracked = ['clientId', 'artistId', 'secondaryArtistId', 'commissionSplit',
             'serviceType', 'designTitle', 'date', 'time', 'status', 'paymentStatus',
-            'notes', 'price', 'rejectionReason'];
+            'notes', 'price', 'rejectionReason', 'isReferral'];
         return tracked.some(key => {
             const a = formData[key] ?? '';
             const b = initialFormDataRef.current[key] ?? '';
@@ -209,7 +209,10 @@ function AdminAppointments() {
                         manualPaidAmount: apt.manual_paid_amount || 0,
                         manualPaymentMethod: apt.manual_payment_method || 'Cash',
                         clientAvatar: apt.client_avatar,
-                        consultationMethod: apt.consultation_method || null
+                        consultationMethod: apt.consultation_method || null,
+                        secondary_artist_id: apt.secondary_artist_id || null,
+                        commission_split: apt.commission_split || 50,
+                        isReferral: !!apt.is_referral
                     };
                 });
                 setAppointments(mappedAppointments);
@@ -460,7 +463,8 @@ function AdminAppointments() {
             manualPaidAmount: appointment.manualPaidAmount || 0,
             manualPaymentMethod: appointment.manualPaymentMethod || 'Cash',
             rejectionReason: appointment.rejectionReason || '',
-            rescheduleReason: ''
+            rescheduleReason: '',
+            isReferral: !!appointment.isReferral
         });
         setClientSearch(appointment.clientName);
         initialFormDataRef.current = {
@@ -481,7 +485,8 @@ function AdminAppointments() {
             manualPaidAmount: appointment.manualPaidAmount || 0,
             manualPaymentMethod: appointment.manualPaymentMethod || 'Cash',
             rejectionReason: appointment.rejectionReason || '',
-            rescheduleReason: ''
+            rescheduleReason: '',
+            isReferral: !!appointment.isReferral
         };
         openModal();
     };
@@ -518,10 +523,11 @@ function AdminAppointments() {
             manualPaidAmount: 0,
             manualPaymentMethod: 'Cash',
             rejectionReason: '',
-            rescheduleReason: ''
+            rescheduleReason: '',
+            isReferral: false
         });
         setClientSearch('');
-        initialFormDataRef.current = { ...formData, clientId: '', artistId: '', secondaryArtistId: '', commissionSplit: 50, serviceType: '', date: prefilledDate || new Date().toISOString().split('T')[0], time: '13:00', status: 'pending', paymentStatus: 'unpaid', notes: '', price: 0, beforePhoto: null, referenceImage: null, manualPaidAmount: 0, manualPaymentMethod: 'Cash', rejectionReason: '', rescheduleReason: '' };
+        initialFormDataRef.current = { ...formData, clientId: '', artistId: '', secondaryArtistId: '', commissionSplit: 50, serviceType: '', date: prefilledDate || new Date().toISOString().split('T')[0], time: '13:00', status: 'pending', paymentStatus: 'unpaid', notes: '', price: 0, beforePhoto: null, referenceImage: null, manualPaidAmount: 0, manualPaymentMethod: 'Cash', rejectionReason: '', rescheduleReason: '', isReferral: false };
         openModal();
     };
 
@@ -642,7 +648,8 @@ function AdminAppointments() {
                     manualPaidAmount: parseFloat(formData.manualPaidAmount) || 0,
                     manualPaymentMethod: formData.manualPaymentMethod,
                     rejectionReason: formData.status === 'rejected' ? formData.rejectionReason : null,
-                    rescheduleReason: formData.rescheduleReason
+                    rescheduleReason: formData.rescheduleReason,
+                    isReferral: formData.isReferral || false
                 };
 
                 if (selectedAppointment) {
@@ -1558,6 +1565,74 @@ function AdminAppointments() {
                                                         </div>
                                                     )}
                                                 </div>
+                                                    );
+                                                })()}
+
+                                                {/* ── Referral Commission Toggle ── */}
+                                                {(() => {
+                                                    const isSolo = !formData.secondaryArtistId || String(formData.secondaryArtistId) === '' || String(formData.secondaryArtistId) === 'null';
+                                                    const isCompleted = selectedAppointment?.status === 'completed';
+                                                    return (
+                                                        <div style={{
+                                                            marginTop: '12px',
+                                                            padding: '12px 16px',
+                                                            background: formData.isReferral ? 'rgba(16, 185, 129, 0.06)' : 'rgba(255,255,255,0.02)',
+                                                            border: `1px solid ${formData.isReferral ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.06)'}`,
+                                                            borderRadius: '10px',
+                                                            transition: 'all 0.3s ease',
+                                                            opacity: isSolo ? 1 : 0.4,
+                                                            pointerEvents: isSolo ? 'auto' : 'none'
+                                                        }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: formData.isReferral ? '#10b981' : '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                        🤝 Artist Referral
+                                                                        {formData.isReferral && <span style={{ fontSize: '0.65rem', background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>ACTIVE</span>}
+                                                                    </div>
+                                                                    <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', lineHeight: 1.4 }}>
+                                                                        {formData.isReferral
+                                                                            ? 'Commission reversed: 70% Artist / 30% Studio'
+                                                                            : 'Enable if the artist referred this customer (swaps to 70/30)'
+                                                                        }
+                                                                    </div>
+                                                                    {!isSolo && (
+                                                                        <div style={{ fontSize: '0.65rem', color: '#f59e0b', marginTop: '4px' }}>
+                                                                            ⚠ Referral only applies to solo sessions
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <label style={{
+                                                                    position: 'relative', display: 'inline-block', width: '44px', height: '24px', flexShrink: 0, cursor: isCompleted ? 'not-allowed' : 'pointer'
+                                                                }}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={!!formData.isReferral}
+                                                                        onChange={(e) => handleInputChange('isReferral', e.target.checked)}
+                                                                        disabled={isCompleted || !isSolo}
+                                                                        style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+                                                                    />
+                                                                    <span style={{
+                                                                        position: 'absolute', cursor: isCompleted ? 'not-allowed' : 'pointer',
+                                                                        top: 0, left: 0, right: 0, bottom: 0,
+                                                                        backgroundColor: formData.isReferral ? '#10b981' : '#374151',
+                                                                        borderRadius: '12px',
+                                                                        transition: 'all 0.3s ease',
+                                                                    }}>
+                                                                        <span style={{
+                                                                            position: 'absolute',
+                                                                            content: '""',
+                                                                            height: '18px', width: '18px',
+                                                                            left: formData.isReferral ? '22px' : '3px',
+                                                                            bottom: '3px',
+                                                                            backgroundColor: '#fff',
+                                                                            borderRadius: '50%',
+                                                                            transition: 'all 0.3s ease',
+                                                                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                                                                        }} />
+                                                                    </span>
+                                                                </label>
+                                                            </div>
+                                                        </div>
                                                     );
                                                 })()}
                                             </div>
