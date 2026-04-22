@@ -574,7 +574,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
             {/* Main layout: 3D Model on left, stacked button grids on right */}
             {(showTattoo || showPiercing) && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '12px' }}>
                     <Suspense fallback={<div style={{ height: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRadius: '16px', color: '#94a3b8' }}>Loading 3D Model...</div>}>
                         <BodyModelViewer
                             selectedTattoo={formData.placement.filter(p => tattooBodyParts.includes(p))}
@@ -682,7 +682,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             </h3>
             <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.95rem'}}>Select a date for your free in-studio consultation.</p>
             
-            <div style={{display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', alignItems: 'start'}}>
+            <div style={{display: 'grid', gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1.2fr 1fr', gap: window.innerWidth <= 768 ? '16px' : '24px', alignItems: 'start'}}>
                 <div>{renderCalendar()}</div>
                 <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                      <label style={{fontWeight: '700', color: '#1e293b', marginBottom: '12px', display: 'block', fontSize: '0.9rem', textTransform: 'uppercase'}}>Available Times</label>
@@ -742,7 +742,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.95rem'}}>How should we reach out regarding your request?</p>
 
             <div style={{ padding: '24px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: '16px', marginBottom: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr 100px', gap: window.innerWidth <= 768 ? '12px' : '16px', marginBottom: '16px' }}>
                     <div className="form-group" style={{ position: 'relative' }}>
                         <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>First Name *</label>
                         <input
@@ -1150,17 +1150,14 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     if (step === 5) return renderConsultationCompletedPage();
 
     return (
-        <div className="data-card" style={{border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', borderRadius: '24px', position: 'relative', height: '90vh', maxHeight: '850px', display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
+        <div className="data-card" style={{border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', borderRadius: '24px', position: 'relative', height: window.innerWidth <= 768 ? 'auto' : '90vh', maxHeight: window.innerWidth <= 768 ? 'none' : '850px', display: 'flex', flexDirection: 'column', overflow: window.innerWidth <= 768 ? 'visible' : 'hidden'}}>
             
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', borderBottom: '1px solid #f1f5f9', paddingBottom: '32px'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                    <h2 style={{margin: 0, fontSize: '1.4rem', fontWeight: '800', color: '#1e293b'}}>Request Consultation</h2>
-                    <span style={{backgroundColor: '#fef3c7', color: '#92400e', fontSize: '0.75rem', fontWeight: '700', padding: '4px 10px', borderRadius: '20px', textTransform: 'uppercase'}}>Studio-Lead Flow</span>
-                </div>
-                <div style={{display: 'flex', gap: '12px'}}> {/* Progress bar for 4 steps */}
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: window.innerWidth <= 480 ? 'flex-start' : 'center', flexDirection: window.innerWidth <= 480 ? 'column' : 'row', gap: window.innerWidth <= 480 ? '12px' : '16px', marginBottom: window.innerWidth <= 768 ? '24px' : '40px', borderBottom: '1px solid #f1f5f9', paddingBottom: window.innerWidth <= 768 ? '20px' : '32px'}}>
+                <h2 style={{margin: 0, fontSize: window.innerWidth <= 480 ? '1.15rem' : '1.4rem', fontWeight: '800', color: '#1e293b'}}>Request Consultation</h2>
+                <div style={{display: 'flex', gap: '8px', flexShrink: 0}}>
                     {[1, 2, 3, 4].map(s => (
                         <div key={s} style={{
-                            width: '30px', height: '4px', borderRadius: '2px', 
+                            width: window.innerWidth <= 480 ? '24px' : '30px', height: '4px', borderRadius: '2px', 
                             backgroundColor: step >= s ? '#be9055' : '#e2e8f0',
                             transition: 'all 0.4s ease'
                         }} />
