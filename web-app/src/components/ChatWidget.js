@@ -250,11 +250,6 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
                 {isHumanMode ? <UserSquare size={18} /> : <Bot size={18} />}
               </button>
             )}
-            {!isAdminMode && (
-              <button className="close-btn" onClick={() => setIsOpen(false)}>
-                <X size={20} />
-              </button>
-            )}
           </div>
         </div>
 

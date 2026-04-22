@@ -8081,11 +8081,11 @@ app.post('/api/chat', async (req, res) => {
       const fallback = getFallbackResponse(message);
       res.json({ success: true, response: fallback });
     }
+  } else {
+    // Fallback if no Groq API key is configured
+    const fallback = getFallbackResponse(message);
+    res.json({ success: true, response: fallback });
   }
-
-  // Fallback if Gemini fails or no key
-  const fallback = getFallbackResponse(message);
-  res.json({ success: true, response: fallback });
 });
 
 console.log('⚡️ Chatbot endpoint (/api/chat) is registered.');
