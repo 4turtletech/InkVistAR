@@ -28,6 +28,7 @@ import Axios from 'axios';
 import { API_URL } from '../config';
 import ConfirmModal from './ConfirmModal';
 import PaymentAlertOverlay from './PaymentAlertOverlay';
+import NotificationAlertOverlay from './NotificationAlertOverlay';
 import '../styles/AdminSideNav.css';
 
 function AdminSideNav() {
@@ -107,6 +108,13 @@ function AdminSideNav() {
                         const newCount = res.data.unreadCount || 0;
                         return newCount !== prev ? newCount : prev;
                     });
+                    
+                    if (res.data.notifications && res.data.notifications.length > 0) {
+                        const latestUnread = res.data.notifications.find(n => !n.is_read);
+                        if (latestUnread) {
+                            window.dispatchEvent(new CustomEvent('latest-notification', { detail: { notif: latestUnread, role: 'admin' } }));
+                        }
+                    }
                 }
             } catch (e) { /* silent */ }
         };
@@ -310,6 +318,7 @@ function AdminSideNav() {
             />
         </aside>
         <PaymentAlertOverlay />
+        <NotificationAlertOverlay />
         </>
     );
 }
