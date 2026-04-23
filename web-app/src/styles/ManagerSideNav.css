@@ -15,6 +15,7 @@
     box-shadow: none;
     z-index: 1000;
     transition: width 0.3s ease, transform 0.3s ease;
+    z-index: 1100;
 }
 
 /* Header */
@@ -161,13 +162,82 @@
     padding: 20px 0;
 }
 
+/* Mobile Menu Toggle (hamburger) */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1100;
+    background: #1e293b;
+    border: none;
+    color: white;
+    padding: 0.6rem;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+.mobile-menu-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Overlay (mobile backdrop) */
+.sidenav-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+}
+
 @media (max-width: 768px) {
-    .manager-sidenav {
-        transform: translateX(-100%);
+    .mobile-menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-    
-    .manager-sidenav.mobile-open {
+
+    .manager-sidenav,
+    .manager-sidenav.collapsed {
+        transform: translateX(-100%);
+        width: 260px !important;
+        overflow: visible;
+    }
+
+    .manager-sidenav.mobile-open,
+    .manager-sidenav.collapsed.mobile-open {
         transform: translateX(0);
+    }
+
+    .manager-sidenav.collapsed .menu-text,
+    .manager-sidenav.collapsed .menu-label,
+    .manager-sidenav.collapsed .sidenav-header span {
+        display: block !important;
+    }
+
+    .manager-sidenav.collapsed .menu-item {
+        justify-content: flex-start;
+        padding: 12px 25px;
+    }
+
+    .manager-sidenav.collapsed .sidenav-header {
+        justify-content: flex-start;
+        padding: 20px;
+    }
+
+    .close-nav {
+        display: none !important;
+    }
+
+    .portal-layout .portal-container {
+        margin-left: 0 !important;
+        padding-top: 60px;
+        width: 100% !important;
+        max-width: 100% !important;
     }
 }
 

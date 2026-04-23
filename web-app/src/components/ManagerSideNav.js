@@ -12,7 +12,8 @@ import {
     ChevronRight,
     LogOut,
     Building2,
-    Bell
+    Bell,
+    Menu
 } from 'lucide-react';
 import Axios from 'axios';
 import { API_URL } from '../config';
@@ -21,6 +22,7 @@ import '../styles/ManagerSideNav.css';
 function ManagerSideNav() {
     const navigate = useNavigate();
     const location = useLocation();
+    const [mobileOpen, setMobileOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(() => {
         const stored = localStorage.getItem('managerSidenavCollapsed');
         return stored === 'true';
@@ -76,8 +78,18 @@ function ManagerSideNav() {
         navigate('/login');
     };
 
+    const handleNavigate = (path) => {
+        navigate(path);
+        setMobileOpen(false);
+    };
+
     return (
-        <aside className={`manager-sidenav ${collapsed ? 'collapsed' : ''}`}>
+        <>
+        <button className="mobile-menu-toggle" onClick={() => setMobileOpen(!mobileOpen)}>
+            <Menu size={22} />
+        </button>
+        {mobileOpen && <div className="sidenav-overlay" onClick={() => setMobileOpen(false)} />}
+        <aside className={`manager-sidenav ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
             <div className="sidenav-header">
                 <div className="logo-container" onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div className="logo-box" style={{ background: 'rgba(193, 154, 107, 0.1)', color: '#be9055', padding: '6px', borderRadius: '8px', display: 'flex' }}>
@@ -101,7 +113,7 @@ function ManagerSideNav() {
                                 <li key={index}>
                                     <button
                                         className={`menu-item ${isActive ? 'active' : ''}`}
-                                        onClick={() => navigate(item.path)}
+                                        onClick={() => handleNavigate(item.path)}
                                     >
                                         <Icon size={20} />
                                         <span className="menu-text">{item.label}</span>
@@ -123,6 +135,7 @@ function ManagerSideNav() {
                 </div>
             </nav>
         </aside>
+        </>
     );
 }
 

@@ -667,3 +667,95 @@
         padding: 1rem !important;
     }
 }
+
+/* ========== ALL ARTIST PAGES — SHARED MOBILE OVERRIDES ========== */
+@media (max-width: 768px) {
+
+    /* ── ArtistAppointments: tab/filter pill row → wrap & scroll */
+    .artist-portal .portal-header > div {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+    }
+
+    /* ── ArtistAppointments: calendar split-view → stack vertically */
+    .calendar-split-view {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+    }
+
+    .calendar-main-pane,
+    .day-view-panel {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* ── ArtistNotifications: stats row → compact single row */
+    .portal-stats-row {
+        flex-direction: row !important;
+        gap: 12px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .portal-stats-row .glass-card {
+        padding: 12px 8px !important;
+        flex: 1;
+    }
+
+    .portal-stats-row .glass-card span:last-child {
+        font-size: 1.4rem !important;
+    }
+
+    /* ── ArtistNotifications: filter bar → wrap */
+    .filter-bar {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    /* ── ArtistNotifications: notification record → prevent text cut-off */
+    .notification-record .notif-main {
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+    }
+
+    .notification-record .notif-body {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+    }
+
+    /* ── ArtistEarnings: 3fr/1fr table grid → single column */
+    .artist-portal > div > div[style*="3fr 1fr"],
+    div[style*="gridTemplateColumns: '3fr 1fr'"] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+        padding: 0 1rem !important;
+    }
+
+    /* ArtistEarnings: chart padding */
+    .artist-portal .analytics-dashboard-layout {
+        padding: 0 1rem !important;
+    }
+
+    /* ── ArtistGallery / ArtistProfile: modal body inner grid → single col */
+    .modal-body [style*="minmax(300px, 1fr)"],
+    .modal-body [style*="gridTemplateColumns: 'minmax"] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+
+    /* ── ArtistProfile: 1fr 1fr form grids inside data-card → single col */
+    .data-card [style*="gridTemplateColumns: '1fr 1fr'"],
+    .data-card [style*="gridTemplateColumns: \"1fr 1fr\""] {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+
+    /* Header subtitle: fix negative margin on mobile */
+    .header-subtitle {
+        margin-right: 0 !important;
+    }
+}
