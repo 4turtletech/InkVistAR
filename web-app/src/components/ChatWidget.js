@@ -225,7 +225,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
       >
         <div className="chat-header">
           <div className="chat-header-info">
-            <span className="chat-title">{isHumanMode ? 'Live Chat support' : 'Tattoo AI Assistant'}</span>
+            <span className="chat-title">{isHumanMode ? 'Live Chat Support' : 'Tattoo AI Assistant'}</span>
             <span className="chat-subtitle">{isHumanMode ? 'Talking to an artist' : 'Always here to help'}</span>
           </div>
           <div className="chat-header-actions">
@@ -239,26 +239,29 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
               </button>
             )}
             {!isAdminMode && (
-              <>
+              <div className="chat-mode-switcher">
+                {/* AI Chatbot button */}
                 <button
-                  className={`human-toggle-btn ${isHumanMode ? 'active' : ''}`}
+                  className={`chat-mode-btn ${!isHumanMode ? 'active' : ''}`}
+                  onClick={() => { if (isHumanMode) setIsHumanMode(false); }}
+                  title={isHumanMode ? 'Switch to AI Chatbot' : 'Currently using AI Chatbot'}
+                >
+                  <Bot size={16} />
+                  <span className="chat-mode-label">Chatbot</span>
+                </button>
+                {/* Live Agent button */}
+                <button
+                  className={`chat-mode-btn ${isHumanMode ? 'active' : ''}`}
                   onClick={() => {
                     if (!isHumanMode && !isShopOpen) return;
-                    setIsHumanMode(!isHumanMode);
+                    if (!isHumanMode) setIsHumanMode(true);
                   }}
-                  title={!isShopOpen ? "Live agents are currently offline (Hours: 1 PM - 8 PM)" : isHumanMode ? "Switch back to AI Assistant" : "Talk to a Live Agent"}
+                  title={!isShopOpen ? 'Live agents are currently offline (Hours: 1 PM - 8 PM)' : isHumanMode ? 'Currently chatting with an agent' : 'Switch to Live Agent'}
                 >
-                  {isHumanMode ? <UserSquare size={18} /> : <Bot size={18} />}
+                  <User size={16} />
+                  <span className="chat-mode-label">Live Agent</span>
                 </button>
-                <button
-                  className="human-toggle-btn"
-                  onClick={() => setIsOpen(false)}
-                  title="Close Chat"
-                  style={{ marginLeft: '4px' }}
-                >
-                  <X size={18} />
-                </button>
-              </>
+              </div>
             )}
           </div>
         </div>
