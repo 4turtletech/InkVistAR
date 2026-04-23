@@ -21,8 +21,7 @@ import {
     ChevronDown,
     ChevronUp,
     AppWindow,
-    Bell,
-    CheckCircle
+    Bell
 } from 'lucide-react';
 import io from 'socket.io-client';
 import Axios from 'axios';
@@ -183,7 +182,6 @@ function AdminSideNav() {
         { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', description: 'Overview' },
         { label: 'User Management', icon: Users, path: '/admin/users', description: 'Manage all users' },
         { label: 'Appointments', icon: Calendar, path: '/admin/appointments', description: 'View appointments' },
-        { label: 'Completed Sessions', icon: CheckCircle, path: '/admin/completed-sessions', description: 'View completed sessions' },
         { label: 'Chat', icon: MessageSquare, path: '/admin/chat', description: 'Chat with customers' },
         { label: 'Inventory', icon: Package, path: '/admin/inventory', description: 'Manage inventory' },
         { label: 'POS System', icon: ShoppingCart, path: '/admin/pos', description: 'Point of Sale' },

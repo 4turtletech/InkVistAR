@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -14,6 +14,14 @@ import { API_URL } from '../config';
 import { getDisplayCode } from '../utils/formatters';
 import { filterName, filterDigits, clampNumber } from '../utils/validation';
 import { generateReportHeader, downloadCsv, escapeCsv } from '../utils/csvExport';
+
+const formatDuration = (totalSeconds) => {
+    if (!totalSeconds || totalSeconds <= 0) return 'N/A';
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    if (hrs > 0) return `${hrs}h ${String(mins).padStart(2, '0')}m`;
+    return `${mins}m`;
+};
 
 function AdminAppointments() {
     const navigate = useNavigate();
@@ -66,6 +74,10 @@ function AdminAppointments() {
     const [selectedDay, setSelectedDay] = useState(null); // tracks the keyboard-focused day
     const calendarRef = useRef(null);
     const initialFormDataRef = useRef(null);
+
+    // Archive mode: when viewing a completed appointment, show the read-only Archive Record modal
+    const [archiveMode, setArchiveMode] = useState(false);
+    const [archiveMaterials, setArchiveMaterials] = useState({ materials: [], totalCost: 0 });
 
     // Validation state
     const [errors, setErrors] = useState({});
@@ -216,7 +228,10 @@ function AdminAppointments() {
                         quotedPrice: apt.quoted_price || '',
                         secondary_artist_id: apt.secondary_artist_id || null,
                         commission_split: apt.commission_split || 50,
-                        isReferral: !!apt.is_referral
+                        isReferral: !!apt.is_referral,
+                        sessionDuration: apt.session_duration || null,
+                        auditLog: apt.audit_log || null,
+                        totalCost: apt.total_material_cost || 0
                     };
                 });
                 setAppointments(mappedAppointments);
@@ -229,6 +244,19 @@ function AdminAppointments() {
             console.error("Error fetching appointments:", error);
             setLoading(false);
             return []; // Return empty on error
+        }
+    };
+
+    const fetchSessionMaterials = async (id) => {
+        try {
+            const res = await Axios.get(`${API_URL}/api/appointments/${id}/materials`);
+            if (res.data.success) {
+                return { materials: res.data.materials || [], totalCost: res.data.totalCost || 0 };
+            }
+            return { materials: [], totalCost: 0 };
+        } catch (e) {
+            console.error(e);
+            return { materials: [], totalCost: 0 };
         }
     };
 
@@ -441,7 +469,19 @@ function AdminAppointments() {
         }
     }, [location.search, appointments]);
 
-    const handleEdit = (appointment) => {
+    const handleEdit = async (appointment) => {
+        // Completed appointments → open read-only Archive Record modal
+        if (appointment.status === 'completed') {
+            setSelectedAppointment(appointment);
+            const materialsData = await fetchSessionMaterials(appointment.id);
+            setArchiveMaterials(materialsData);
+            setArchiveMode(true);
+            openModal();
+            return;
+        }
+
+        // Non-completed → standard editable modal
+        setArchiveMode(false);
         setSelectedAppointment(appointment);
         setModalTab('details');
         
@@ -1369,8 +1409,210 @@ function AdminAppointments() {
                     </>
                 )}
 
-                {/* Main Appointment Modal */}
-                {appointmentModal.mounted && (
+                {/* Archive Record Modal — Read-only view for completed sessions */}
+                {appointmentModal.mounted && archiveMode && selectedAppointment && (
+                    <div className={`modal-overlay ${appointmentModal.visible ? 'open' : ''}`} onClick={() => closeModal(true)}>
+                        <div className="modal-content xl admin-st-980ed307" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <div className="admin-flex-center admin-gap-20">
+                                    <div className="admin-st-e836bc9c">
+                                        <Image size={28} className="text-bronze" />
+                                    </div>
+                                    <div>
+                                        <h2 className="admin-m-0">Archive Record: {selectedAppointment.clientName}</h2>
+                                        <p className="admin-st-107902df">Project: {selectedAppointment.designTitle}</p>
+                                    </div>
+                                </div>
+                                <button className="close-btn" onClick={() => closeModal(true)}><X size={24} /></button>
+                            </div>
+
+                            <div className="modal-body admin-st-92565e46">
+                                <div className="admin-st-232d6dae">
+                                    {/* Left Column: Visual Archive & Notes */}
+                                    <div className="admin-st-14907636">
+                                        {/* Performance Metrics Row */}
+                                        <div className="admin-st-4155de1d">
+                                            <div className="admin-st-6af16ee8">
+                                                <label className="admin-st-8e71d7c8">Procedure Date</label>
+                                                <div className="admin-st-e9a1fb1d">{selectedAppointment.date}</div>
+                                                <div className="admin-st-76f4deed">Started at {selectedAppointment.time}</div>
+                                            </div>
+                                            <div className="admin-st-6af16ee8">
+                                                <label className="admin-st-8e71d7c8">Primary Artist</label>
+                                                <div className="admin-st-e9a1fb1d">{selectedAppointment.artistName}</div>
+                                                <div className="admin-st-76f4deed">Senior Tattoo Artist</div>
+                                            </div>
+                                            <div className="admin-st-6af16ee8">
+                                                <label className="admin-st-8e71d7c8">Session Duration</label>
+                                                <div className="admin-st-e9a1fb1d" style={{ fontFamily: 'monospace' }}>{formatDuration(selectedAppointment.sessionDuration)}</div>
+                                                <div className="admin-st-76f4deed">Total active time</div>
+                                            </div>
+                                            <div className="admin-st-306fe11e">
+                                                <label className="admin-st-e634a3e2">Revenue Item</label>
+                                                <div className="admin-st-7626e003">₱{selectedAppointment.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                                <div className="admin-st-f6d8a8be">Payment Confirmed</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Visual Documentation */}
+                                        <div className="admin-st-2f580e88">
+                                            <div className="admin-st-02ffc1e1">
+                                                <label className="admin-st-c3be2f4d">Before State</label>
+                                                <div className="admin-st-e36c5fa1">
+                                                    {selectedAppointment.beforePhoto ? (
+                                                        <img src={selectedAppointment.beforePhoto} alt="Before" className="admin-st-9e218869" />
+                                                    ) : (
+                                                        <div className="admin-st-d8e4e0a4">
+                                                            <Image size={32} className="admin-st-c4c91f37" />
+                                                            <div className="admin-st-fb2a7115">No initial documentation</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="admin-st-02ffc1e1">
+                                                <label className="admin-st-c3be2f4d">After State</label>
+                                                <div className="admin-st-e36c5fa1">
+                                                    {selectedAppointment.afterPhoto ? (
+                                                        <img src={selectedAppointment.afterPhoto} alt="After" className="admin-st-9e218869" />
+                                                    ) : (
+                                                        <div className="admin-st-d8e4e0a4">
+                                                            <Image size={32} className="admin-st-c4c91f37" />
+                                                            <div className="admin-st-fb2a7115">No final documentation</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Artist Notes Archive */}
+                                        <div className="admin-st-02ffc1e1">
+                                            <label className="admin-st-f7d8f00c">
+                                                <FileText size={14} /> Procedure Narrative
+                                            </label>
+                                            <div className="admin-st-a5a703dd">
+                                                {selectedAppointment.notes || 'No notes were recorded for this session.'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Column: Logistics & Supplies */}
+                                    <div className="admin-st-ff43421e">
+                                        {/* Audit Trail */}
+                                        {(() => {
+                                            let parsedLog = [];
+                                            try {
+                                                if (selectedAppointment.auditLog) {
+                                                    parsedLog = typeof selectedAppointment.auditLog === 'string' ? JSON.parse(selectedAppointment.auditLog) : selectedAppointment.auditLog;
+                                                }
+                                            } catch (e) { /* ignore parse errors */ }
+                                            return parsedLog.length > 0 ? (
+                                                <div className="admin-st-8f4d2ab5" style={{ marginBottom: '16px' }}>
+                                                    <label className="admin-st-3092c0d2">
+                                                        <List size={14} /> Session Audit Trail
+                                                    </label>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0', marginTop: '12px' }}>
+                                                        {parsedLog.map((entry, idx) => (
+                                                            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 0', borderBottom: idx < parsedLog.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: entry.action && entry.action.includes('Started') ? '#10b981' : entry.action && entry.action.includes('Completed') ? '#6366f1' : entry.action && entry.action.includes('Paused') ? '#f59e0b' : entry.action && entry.action.includes('Aborted') ? '#ef4444' : '#3b82f6', marginTop: '5px', flexShrink: 0 }} />
+                                                                <div style={{ flex: 1 }}>
+                                                                    <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#1e293b' }}>{entry.action}</span>
+                                                                </div>
+                                                                <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>{entry.timestamp}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : null;
+                                        })()}
+
+                                        <div className="admin-st-8f4d2ab5">
+                                            <label className="admin-st-3092c0d2">
+                                                <Package size={14} /> Logistics & Consumables
+                                            </label>
+
+                                            <div className="admin-st-6ece488c">
+                                                {archiveMaterials.materials && archiveMaterials.materials.length > 0 ? (
+                                                    <div className="admin-st-b8aaf979">
+                                                        {archiveMaterials.materials.map((mat, idx) => (
+                                                            <div key={idx} className="admin-st-432a8b30">
+                                                                <div className="admin-st-19bd18ad">
+                                                                    <span className="admin-st-34acc2e5">{mat.quantity}x {mat.item_name}</span>
+                                                                    <span className="admin-st-fef01c14">Itemized Consumable</span>
+                                                                </div>
+                                                                <span className={`badge status-consumed admin-st-12e5feb7`} >{mat.status.toUpperCase()}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="admin-st-998876b3">
+                                                        <Package size={32} className="admin-st-f0ce07d4" />
+                                                        <p className="admin-st-ab5697c1">No materials were itemized for this specific procedure.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="admin-st-0e3ab090">
+                                                <div>
+                                                    <div className="admin-st-3de2cbb8">Logistics Cost</div>
+                                                    <div className="admin-st-0481d00f">₱{archiveMaterials.totalCost?.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 0}</div>
+                                                </div>
+                                                <div className="admin-st-7851dbc0">
+                                                    <div className="admin-st-def2f630">{archiveMaterials.materials ? archiveMaterials.materials.length : 0}</div>
+                                                    <div className="admin-st-3de2cbb8">Items Used</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <button
+                                    className="btn"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#eff6ff', color: '#2563eb', borderColor: '#bfdbfe' }}
+                                    onClick={() => {
+                                        // Switch to editable mode
+                                        setArchiveMode(false);
+                                        setModalTab('details');
+                                        const storedArtistId = selectedAppointment.artistId || selectedAppointment.artist_id;
+                                        const isRealArtist = artists.some(a => String(a.id) === String(storedArtistId));
+                                        setFormData({
+                                            clientId: selectedAppointment.clientId || selectedAppointment.customer_id,
+                                            artistId: isRealArtist ? storedArtistId : '',
+                                            secondaryArtistId: selectedAppointment.secondary_artist_id || '',
+                                            commissionSplit: selectedAppointment.commission_split || 50,
+                                            serviceType: selectedAppointment.serviceType || selectedAppointment.service_type,
+                                            designTitle: selectedAppointment.designTitle || selectedAppointment.design_title,
+                                            date: selectedAppointment.date || selectedAppointment.appointment_date,
+                                            time: selectedAppointment.time || selectedAppointment.start_time,
+                                            status: selectedAppointment.status,
+                                            paymentStatus: (!selectedAppointment.price || selectedAppointment.price <= 0) ? 'unpaid' : (selectedAppointment.paymentStatus || selectedAppointment.payment_status || 'unpaid'),
+                                            notes: selectedAppointment.notes,
+                                            price: selectedAppointment.price,
+                                            beforePhoto: selectedAppointment.beforePhoto,
+                                            referenceImage: selectedAppointment.referenceImage,
+                                            manualPaidAmount: selectedAppointment.manualPaidAmount || 0,
+                                            manualPaymentMethod: selectedAppointment.manualPaymentMethod || 'Cash',
+                                            rejectionReason: selectedAppointment.rejectionReason || '',
+                                            rescheduleReason: '',
+                                            isReferral: !!selectedAppointment.isReferral,
+                                            consultationNotes: selectedAppointment.consultationNotes || '',
+                                            quotedPrice: selectedAppointment.quotedPrice || ''
+                                        });
+                                        setClientSearch(selectedAppointment.clientName);
+                                        initialFormDataRef.current = null;
+                                    }}
+                                >
+                                    <FileText size={16} /> Edit Appointment
+                                </button>
+                                <button className="btn btn-primary admin-st-6948e5f9" onClick={() => closeModal(true)}>Done Reviewing</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Main Appointment Modal (Editable) */}
+                {appointmentModal.mounted && !archiveMode && (
                     <div className={`modal-overlay ${appointmentModal.visible ? 'open' : ''}`} onClick={() => closeModal()}>
                         <div className="modal-content xl" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
