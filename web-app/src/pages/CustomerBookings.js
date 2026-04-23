@@ -128,6 +128,10 @@ function CustomerBookings(){
     const [cancelModal, setCancelModal] = useState({ isOpen: false, appointmentId: null, reason: '' });
     const [isCancelling, setIsCancelling] = useState(false);
 
+    // Cancellation deadline quick-cancel states
+    const [graceCancelModal, setGraceCancelModal] = useState({ isOpen: false, appointment: null, reason: '', customReason: '' });
+    const [isGraceCancelling, setIsGraceCancelling] = useState(false);
+
     const showAlert = (title, message, type = 'info') => {
         setConfirmModal({
             isOpen: true,
@@ -784,6 +788,61 @@ function CustomerBookings(){
         }
     };
 
+    // ────── Cancellation Deadline Logic ──────
+    const getGraceSecondsRemaining = (appointment) => {
+        if (!appointment?.appointment_date) return 0;
+        
+        const serviceType = (appointment.service_type || '').toLowerCase();
+        const isConsultation = serviceType.includes('consultation');
+        const deadlineDays = isConsultation ? 3 : 7;
+        
+        const apptDate = new Date(appointment.appointment_date);
+        apptDate.setHours(23, 59, 59, 999); // End of appointment day
+        
+        const deadlineDate = new Date(apptDate.getTime() - deadlineDays * 24 * 60 * 60 * 1000);
+        const remaining = Math.max(0, Math.floor((deadlineDate - new Date()) / 1000));
+        return remaining;
+    };
+
+    const isWithinGracePeriod = (appointment) => {
+        return getGraceSecondsRemaining(appointment) > 0;
+    };
+
+    const openGraceCancelModal = (appt) => {
+        setGraceCancelModal({ isOpen: true, appointment: appt, reason: '', customReason: '' });
+    };
+
+    const submitGracePeriodCancel = async () => {
+        const { appointment, reason, customReason } = graceCancelModal;
+        const finalReason = reason === 'Other' ? customReason.trim() : reason;
+
+        if (!finalReason || finalReason.length < 10) {
+            showAlert('Reason Required', 'Please select or type a reason (at least 10 characters).', 'warning');
+            return;
+        }
+
+        setIsGraceCancelling(true);
+        try {
+            const res = await Axios.put(`${API_URL}/api/customer/appointments/${appointment.id}/cancel`, {
+                customerId,
+                reason: finalReason,
+                isGracePeriod: true
+            });
+            if (res.data.success) {
+                showAlert('Booking Cancelled', res.data.message, 'success');
+                setGraceCancelModal({ isOpen: false, appointment: null, reason: '', customReason: '' });
+                setIsModalOpen(false);
+                // Refresh appointments
+                const fetchRes = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
+                if (fetchRes.data.success) setAppointments(fetchRes.data.appointments.map(a => ({ ...a, price: parseFloat(a.price) || 0 })));
+            }
+        } catch (err) {
+            showAlert('Cancellation Failed', err.response?.data?.message || 'An error occurred.', 'danger');
+        } finally {
+            setIsGraceCancelling(false);
+        }
+    };
+
     const renderRescheduleCalendar = () => {
         const days = [];
         const today = new Date();
@@ -932,7 +991,14 @@ function CustomerBookings(){
                                                     <td>{a.service_type || 'Tattoo'}</td>
                                                     <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
                                                     <td>{a.start_time}</td>
-                                                    <td><span className={`status-badge ${a.status.toLowerCase()}`}>{a.status}</span></td>
+                                                    <td>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                            <span className={`status-badge ${a.status.toLowerCase()}`}>{a.status}</span>
+                                                            {!['cancelled', 'completed', 'finished'].includes(a.status.toLowerCase()) && isWithinGracePeriod(a) && (
+                                                                <GracePeriodTimer appointment={a} onCancel={openGraceCancelModal} />
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                     <td>
                                                         {a.price > 0 ? (
                                                             <div className="customer-st-52ddb992" >₱{Number(a.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
@@ -1210,7 +1276,13 @@ function CustomerBookings(){
                                 </button>
                             )}
                             
-                            {selectedApt.status.toLowerCase() === 'pending' && (
+                            {/* Deadline Cancel (available before cutoff: 3 days for consultations, 7 days for sessions) */}
+                            {!['cancelled', 'completed', 'finished'].includes(selectedApt.status.toLowerCase()) && isWithinGracePeriod(selectedApt) && (
+                                <GracePeriodTimer appointment={selectedApt} onCancel={openGraceCancelModal} />
+                            )}
+
+                            {/* Standard Cancel (only for pending, unpaid, after deadline) */}
+                            {selectedApt.status.toLowerCase() === 'pending' && !isWithinGracePeriod(selectedApt) && (
                                 <button 
                                     className="btn btn-secondary" 
                                     style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #ef4444', color: '#ef4444', background: '#fef2f2' }}
@@ -2186,6 +2258,7 @@ function CustomerBookings(){
                 .calendar-day.disabled { cursor: not-allowed; pointer-events: none; }
                 .fade-in { animation: fadeIn 0.3s ease-in-out; }
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.03); } }
             `}</style>
 
             {/* Cancellation Reason Modal */}
@@ -2286,6 +2359,174 @@ function CustomerBookings(){
                 </div>
             )}
 
+            {/* Deadline Quick Cancel Modal */}
+            {graceCancelModal.isOpen && graceCancelModal.appointment && (
+                <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={() => !isGraceCancelling && setGraceCancelModal({ isOpen: false, appointment: null, reason: '', customReason: '' })}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+                        <div className="modal-header">
+                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', color: '#dc2626' }}>
+                                <AlertTriangle size={22} color="#dc2626" /> Quick Cancel
+                            </h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <GracePeriodTimer appointment={graceCancelModal.appointment} onCancel={() => {}} />
+                                <button className="close-btn" onClick={() => !isGraceCancelling && setGraceCancelModal({ isOpen: false, appointment: null, reason: '', customReason: '' })}>
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="modal-body" style={{ padding: '20px' }}>
+                            {/* Info Banner */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, #eff6ff, #f0f9ff)',
+                                border: '1px solid #bfdbfe',
+                                borderRadius: '12px',
+                                padding: '14px 16px',
+                                marginBottom: '20px',
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '10px'
+                            }}>
+                                <Info size={18} color="#3b82f6" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                <div>
+                                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#1e40af', fontWeight: 600 }}>Cancellation Deadline</p>
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#1d4ed8' }}>
+                                        You are within the allowed window to cancel this booking before your deadline. This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', marginBottom: '10px' }}>
+                                Why are you cancelling?
+                            </label>
+
+                            {/* Quick Reason Buttons */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                                {[
+                                    'Wrong service selected',
+                                    'Booked the wrong date',
+                                    'Accidental booking',
+                                    'Changed my mind',
+                                    'Duplicate booking',
+                                    'Wrong artist selected',
+                                    'Need to reschedule instead',
+                                    'Other'
+                                ].map(reason => (
+                                    <button
+                                        key={reason}
+                                        onClick={() => setGraceCancelModal(prev => ({
+                                            ...prev,
+                                            reason,
+                                            customReason: reason === 'Other' ? prev.customReason : ''
+                                        }))}
+                                        style={{
+                                            padding: '8px 14px',
+                                            borderRadius: '20px',
+                                            border: `1.5px solid ${graceCancelModal.reason === reason ? '#dc2626' : '#e2e8f0'}`,
+                                            background: graceCancelModal.reason === reason
+                                                ? 'linear-gradient(135deg, #fef2f2, #fff1f2)'
+                                                : '#f8fafc',
+                                            color: graceCancelModal.reason === reason ? '#dc2626' : '#475569',
+                                            fontSize: '0.82rem',
+                                            fontWeight: graceCancelModal.reason === reason ? 700 : 500,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            fontFamily: "'Inter', sans-serif",
+                                            transform: graceCancelModal.reason === reason ? 'scale(1.02)' : 'scale(1)',
+                                            boxShadow: graceCancelModal.reason === reason ? '0 2px 8px rgba(220, 38, 38, 0.15)' : 'none'
+                                        }}
+                                        disabled={isGraceCancelling}
+                                    >
+                                        {graceCancelModal.reason === reason ? '✓ ' : ''}{reason}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Custom reason textarea (shown when "Other" selected) */}
+                            {graceCancelModal.reason === 'Other' && (
+                                <div style={{ marginBottom: '12px' }}>
+                                    <textarea
+                                        value={graceCancelModal.customReason}
+                                        onChange={(e) => setGraceCancelModal(prev => ({ ...prev, customReason: e.target.value }))}
+                                        placeholder="Please describe why you're cancelling..."
+                                        rows={3}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px',
+                                            borderRadius: '10px',
+                                            border: `1px solid ${graceCancelModal.customReason.length >= 10 ? '#a7f3d0' : graceCancelModal.customReason.length > 0 ? '#fde68a' : '#e2e8f0'}`,
+                                            fontSize: '0.9rem',
+                                            resize: 'vertical',
+                                            fontFamily: 'inherit',
+                                            outline: 'none',
+                                            transition: 'border-color 0.2s',
+                                            background: '#f8fafc',
+                                            boxSizing: 'border-box'
+                                        }}
+                                        maxLength={500}
+                                        disabled={isGraceCancelling}
+                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                                        <span style={{ fontSize: '0.75rem', color: graceCancelModal.customReason.length < 10 && graceCancelModal.customReason.length > 0 ? '#f59e0b' : '#94a3b8' }}>
+                                            {graceCancelModal.customReason.length < 10 ? `${10 - graceCancelModal.customReason.length} more characters needed` : '✓ Reason is valid'}
+                                        </span>
+                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                            {graceCancelModal.customReason.length}/500
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Selected reason preview */}
+                            {graceCancelModal.reason && graceCancelModal.reason !== 'Other' && (
+                                <div style={{
+                                    background: '#f0fdf4',
+                                    border: '1px solid #bbf7d0',
+                                    borderRadius: '10px',
+                                    padding: '10px 14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    marginBottom: '4px'
+                                }}>
+                                    <Check size={16} color="#16a34a" />
+                                    <span style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>
+                                        Reason: {graceCancelModal.reason}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid #e2e8f0' }}>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setGraceCancelModal({ isOpen: false, appointment: null, reason: '', customReason: '' })}
+                                disabled={isGraceCancelling}
+                                style={{ padding: '8px 20px' }}
+                            >
+                                Keep Booking
+                            </button>
+                            <button
+                                className="btn btn-primary"
+                                onClick={submitGracePeriodCancel}
+                                disabled={isGraceCancelling || !graceCancelModal.reason || (graceCancelModal.reason === 'Other' && graceCancelModal.customReason.trim().length < 10)}
+                                style={{
+                                    padding: '8px 20px',
+                                    background: graceCancelModal.reason && (graceCancelModal.reason !== 'Other' || graceCancelModal.customReason.trim().length >= 10) ? 'linear-gradient(135deg, #ef4444, #dc2626)' : '#cbd5e1',
+                                    color: 'white',
+                                    border: 'none',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    cursor: graceCancelModal.reason && (graceCancelModal.reason !== 'Other' || graceCancelModal.customReason.trim().length >= 10) ? 'pointer' : 'not-allowed',
+                                    opacity: isGraceCancelling ? 0.7 : 1
+                                }}
+                            >
+                                {isGraceCancelling ? 'Cancelling...' : <><X size={16}/> Cancel This Booking</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <ConfirmModal 
                 isOpen={confirmModal.isOpen}
                 title={confirmModal.title}
@@ -2358,3 +2599,67 @@ function CustomerBookings(){
 }
 
 export default CustomerBookings;
+
+// ────── Cancellation Deadline Timer Button (Sub-component) ──────
+// Renders a live countdown cancel button based on service-type deadline.
+function GracePeriodTimer({ appointment, onCancel }) {
+    const [secondsLeft, setSecondsLeft] = useState(() => {
+        if (!appointment?.appointment_date) return 0;
+        
+        const serviceType = (appointment.service_type || '').toLowerCase();
+        const isConsultation = serviceType.includes('consultation');
+        const deadlineDays = isConsultation ? 3 : 7;
+        
+        const apptDate = new Date(appointment.appointment_date);
+        apptDate.setHours(23, 59, 59, 999); // End of appointment day
+        
+        const deadlineDate = new Date(apptDate.getTime() - deadlineDays * 24 * 60 * 60 * 1000);
+        return Math.max(0, Math.floor((deadlineDate - new Date()) / 1000));
+    });
+
+    useEffect(() => {
+        if (secondsLeft <= 0) return;
+        const interval = setInterval(() => {
+            setSecondsLeft(prev => {
+                if (prev <= 1) { clearInterval(interval); return 0; }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [secondsLeft > 0]);
+
+    if (secondsLeft <= 0) return null;
+
+    const days = Math.floor(secondsLeft / (24 * 3600));
+    const hours = Math.floor((secondsLeft % (24 * 3600)) / 3600);
+    const mins = Math.floor((secondsLeft % 3600) / 60);
+    const secs = secondsLeft % 60;
+
+    let timeString = '';
+    if (days > 0) timeString = `${days}d ${hours}h`;
+    else if (hours > 0) timeString = `${hours}h ${mins}m`;
+    else timeString = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+    // Urgency increases as time runs out (less than 2 hours, less than 24 hours, etc)
+    const urgency = secondsLeft < 2 * 3600 ? 1 : secondsLeft < 24 * 3600 ? 0.6 : 0.3;
+
+    return (
+        <button
+            onClick={(e) => { e.stopPropagation(); onCancel(appointment); }}
+            style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '6px 14px', borderRadius: '10px', fontSize: '0.8rem',
+                fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                border: '1px solid #fecaca',
+                background: `rgba(254, 226, 226, ${0.3 + urgency * 0.4})`,
+                color: '#dc2626',
+                transition: 'all 0.3s ease',
+                animation: secondsLeft < 60 ? 'pulse 1.5s ease-in-out infinite' : 'none'
+            }}
+            title="Cancel this booking before the deadline"
+        >
+            <Clock size={13} />
+            Cancel ({timeString})
+        </button>
+    );
+}

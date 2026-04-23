@@ -7057,28 +7057,54 @@ app.post('/api/admin/aftercare-templates/reset', (req, res) => {
 // Customer: Cancel a pending booking with reason
 app.put('/api/customer/appointments/:id/cancel', (req, res) => {
   const { id } = req.params;
-  const { customerId, reason } = req.body;
+  const { customerId, reason, isGracePeriod } = req.body;
 
   if (!customerId || !reason || reason.trim().length < 10) {
     return res.status(400).json({ success: false, message: 'A cancellation reason (min 10 characters) is required.' });
   }
 
-  // 1. Verify the appointment belongs to this customer and is pending
+  // 1. Verify the appointment belongs to this customer
   db.query('SELECT * FROM appointments WHERE id = ? AND customer_id = ?', [id, customerId], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Database error' });
     if (results.length === 0) return res.status(404).json({ success: false, message: 'Appointment not found or does not belong to you.' });
 
     const appointment = results[0];
 
-    if (appointment.status !== 'pending') {
-      return res.status(403).json({ success: false, message: 'Only pending bookings can be cancelled. Please contact the studio for confirmed appointments.' });
+    // Determine cancellation deadline based on service type (server-side enforcement)
+    // Consultations: cancellable up to 3 days before appointment
+    // Sessions (Tattoo/Piercing/etc.): cancellable up to 7 days before appointment
+    const now = new Date();
+    const apptDate = new Date(appointment.appointment_date);
+    apptDate.setHours(23, 59, 59, 999); // End of appointment day for generous cutoff
+    const msUntilAppt = apptDate - now;
+    const daysUntilAppt = msUntilAppt / (1000 * 60 * 60 * 24);
+
+    const serviceType = (appointment.service_type || '').toLowerCase();
+    const isConsultation = serviceType.includes('consultation');
+    const deadlineDays = isConsultation ? 3 : 7;
+    const withinCancellationWindow = daysUntilAppt >= deadlineDays;
+    const deadlineLabel = isConsultation ? '3 days' : '1 week';
+
+    if (isGracePeriod) {
+      // Service-aware cancel — server verifies the deadline hasn't passed
+      if (!withinCancellationWindow) {
+        return res.status(403).json({ success: false, message: `The cancellation window has closed. ${isConsultation ? 'Consultations' : 'Sessions'} must be cancelled at least ${deadlineLabel} before the scheduled date. Please contact the studio directly.` });
+      }
+      // Cannot cancel already-cancelled/completed appointments
+      if (['cancelled', 'completed', 'finished'].includes(appointment.status)) {
+        return res.status(403).json({ success: false, message: 'This booking has already been ' + appointment.status + ' and cannot be cancelled.' });
+      }
+    } else {
+      // Standard cancel — existing rules apply
+      if (appointment.status !== 'pending') {
+        return res.status(403).json({ success: false, message: 'Only pending bookings can be cancelled. Please contact the studio for confirmed appointments.' });
+      }
+      if (appointment.payment_status && appointment.payment_status !== 'unpaid') {
+        return res.status(403).json({ success: false, message: 'You cannot cancel an appointment that has already been paid for. Please contact the studio directly.' });
+      }
     }
 
-    if (appointment.payment_status && appointment.payment_status !== 'unpaid') {
-      return res.status(403).json({ success: false, message: 'You cannot cancel an appointment that has already been paid for. Please contact the studio directly.' });
-    }
-
-    // 2. Check cancellation limit (max 3 in last 30 days)
+    // 2. Check cancellation limit (max 3 in last 30 days) — applies to both flows
     db.query(
       "SELECT COUNT(*) as cancelCount FROM appointments WHERE customer_id = ? AND status = 'cancelled' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
       [customerId],
@@ -7091,7 +7117,8 @@ app.put('/api/customer/appointments/:id/cancel', (req, res) => {
         }
 
         // 3. Cancel the appointment
-        const appendedNotes = `${appointment.notes || ''}\n\n--- Customer Cancellation Reason ---\n${reason.trim()}`;
+        const cancelTag = isGracePeriod ? `--- Deadline Cancellation (${isConsultation ? 'Consultation — 3-day rule' : 'Session — 7-day rule'}) ---` : '--- Customer Cancellation Reason ---';
+        const appendedNotes = `${appointment.notes || ''}\n\n${cancelTag}\n${reason.trim()}`;
         db.query(
           'UPDATE appointments SET status = ?, notes = ?, updated_at = NOW() WHERE id = ?',
           ['cancelled', appendedNotes, id],
@@ -7101,6 +7128,7 @@ app.put('/api/customer/appointments/:id/cancel', (req, res) => {
             // 4. Get customer name for notification
             db.query('SELECT name FROM users WHERE id = ?', [customerId], (nameErr, nameResults) => {
               const customerName = nameResults?.[0]?.name || 'A customer';
+              const cancelType = isGracePeriod ? ` (deadline cancel — ${deadlineLabel} rule)` : '';
 
               // 5. Notify all admins
               db.query("SELECT id FROM users WHERE user_type = 'admin' AND is_deleted = 0", (admErr, admins) => {
@@ -7109,7 +7137,7 @@ app.put('/api/customer/appointments/:id/cancel', (req, res) => {
                     createNotification(
                       admin.id,
                       'Booking Cancelled by Customer',
-                      `${customerName} cancelled appointment #${id}.\n\nReason: ${reason.trim()}`,
+                      `${customerName} cancelled appointment #${id}${cancelType}.\n\nReason: ${reason.trim()}`,
                       'appointment_cancelled',
                       parseInt(id)
                     );
@@ -7122,14 +7150,14 @@ app.put('/api/customer/appointments/:id/cancel', (req, res) => {
                 createNotification(
                   appointment.artist_id,
                   'Client Cancelled Booking',
-                  `${customerName} cancelled their pending appointment #${id}.\n\nReason: ${reason.trim()}`,
+                  `${customerName} cancelled their ${isGracePeriod ? 'upcoming' : 'pending'} appointment #${id}${cancelType}.\n\nReason: ${reason.trim()}`,
                   'appointment_cancelled',
                   parseInt(id)
                 );
               }
 
-              logAction(customerId, 'CANCEL_BOOKING', `Customer cancelled appointment #${id}: ${reason.trim().substring(0, 100)}`, req.ip);
-              res.json({ success: true, message: 'Booking cancelled successfully. The studio has been notified.' });
+              logAction(customerId, 'CANCEL_BOOKING', `Customer cancelled appointment #${id}${cancelType}: ${reason.trim().substring(0, 100)}`, req.ip);
+              res.json({ success: true, message: isGracePeriod ? 'Booking cancelled within the cancellation deadline. The studio has been notified.' : 'Booking cancelled successfully. The studio has been notified.' });
             });
           }
         );
