@@ -724,13 +724,28 @@
         text-overflow: unset !important;
     }
 
-    /* ── ArtistEarnings: 3fr/1fr table grid → single column */
-    .artist-portal > div > div[style*="3fr 1fr"],
-    div[style*="gridTemplateColumns: '3fr 1fr'"] {
+    /* ── ArtistEarnings: Session Earnings + Payout History → stack on mobile */
+    .earnings-tables-grid {
         display: flex !important;
         flex-direction: column !important;
         gap: 16px !important;
-        padding: 0 1rem !important;
+        padding: 0 1rem 1rem !important;
+    }
+
+    /* Each card in the table grid: ensure table scrolls instead of clipping */
+    .earnings-tables-grid .card.glass-card {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Session Earnings table: allow horizontal scroll on mobile */
+    .earnings-tables-grid .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .earnings-tables-grid .portal-table {
+        min-width: 420px !important;
     }
 
     /* ArtistEarnings: chart padding */

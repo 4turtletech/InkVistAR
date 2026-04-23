@@ -381,7 +381,7 @@ function ArtistEarnings() {
                         </div>
 
                         {/* ═══════════════ TABLES ═══════════════ */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '20px', padding: '1.5rem 2rem 0' }}>
+                        <div className="earnings-tables-grid" style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '20px', padding: '1.5rem 2rem 0' }}>
                             {/* Session Earnings Table */}
                             <div className="card glass-card">
                                 <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
