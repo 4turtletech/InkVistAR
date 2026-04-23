@@ -1561,6 +1561,39 @@ body.sidenav-collapsed .portal-layout .portal-container {
 }
 
 /* Global Button Standards Additions */
+.btn {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn.btn-primary {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: white;
+}
+
+.btn.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(30, 41, 59, 0.4);
+}
+
+.btn.btn-secondary {
+    background-color: #e5e7eb;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.btn.btn-secondary:hover {
+    background-color: #d1d5db;
+}
+
 .btn.btn-brand-gold {
     background: #b7954e;
     color: #fff !important;
