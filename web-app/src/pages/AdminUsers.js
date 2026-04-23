@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AdminSideNav from '../components/AdminSideNav';
@@ -31,6 +31,18 @@ function AdminUsers() {
     const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = useRef(null);
+    
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
     const [filterRole, setFilterRole] = useState('all');
     const [filterStatus, setFilterStatus] = useState('active');
     const [sortBy, setSortBy] = useState('name');
@@ -793,13 +805,39 @@ function AdminUsers() {
 
                 {/* Filter Bar */}
                 <div className="premium-filter-bar premium-filter-bar--stacked">
-                    <div className="premium-search-box premium-search-box--full">
+                    <div className="premium-search-box premium-search-box--full" ref={searchRef}>
                         <Search size={16} className="text-muted" />
-                        <input type="text" list="search-suggestions-users" placeholder="Search by name, email, id..."
-                            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} maxLength={100} />
-                        <datalist id="search-suggestions-users">
-                            {searchSuggestions.map(s => <option key={s} value={s} />)}
-                        </datalist>
+                        <input 
+                            type="text" 
+                            placeholder="Search by name, email, id..."
+                            value={searchTerm} 
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setShowSuggestions(true);
+                            }}
+                            onFocus={() => setShowSuggestions(true)}
+                            maxLength={100} 
+                        />
+                        {showSuggestions && searchTerm && searchSuggestions.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 && (
+                            <div className="autocomplete-dropdown waterfall-dropdown">
+                                {searchSuggestions
+                                    .filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+                                    .slice(0, 8)
+                                    .map((suggestion, index) => (
+                                        <div 
+                                            key={suggestion} 
+                                            className="autocomplete-item waterfall-item"
+                                            style={{ animationDelay: `${index * 0.05}s` }}
+                                            onClick={() => {
+                                                setSearchTerm(suggestion);
+                                                setShowSuggestions(false);
+                                            }}
+                                        >
+                                            {suggestion}
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
                     </div>
                     <div className="premium-filters-row">
                         <div className="premium-filter-item">

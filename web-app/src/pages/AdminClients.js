@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import AdminSideNav from '../components/AdminSideNav';
 import './PortalStyles.css';
@@ -13,6 +13,19 @@ function AdminClients() {
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+    
     const [selectedClient, setSelectedClient] = useState(null);
     const [clientModal, setClientModal] = useState({ mounted: false, visible: false });
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
@@ -213,20 +226,38 @@ function AdminClients() {
                 <p className="header-subtitle">Maintain client relationships and session history</p>
 
                 <div className="premium-filter-bar">
-                    <div className="premium-search-box">
+                    <div className="premium-search-box" ref={searchRef}>
                         <Search size={18} className="text-muted" />
                         <input
                             type="text"
-                            list="search-suggestions-clients"
                             placeholder="Search clients by name, email, or id..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setShowSuggestions(true);
+                            }}
+                            onFocus={() => setShowSuggestions(true)}
                         />
-                        <datalist id="search-suggestions-clients">
-                            {searchSuggestions.map(suggestion => (
-                                <option key={suggestion} value={suggestion} />
-                            ))}
-                        </datalist>
+                        {showSuggestions && searchTerm && searchSuggestions.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 && (
+                            <div className="autocomplete-dropdown waterfall-dropdown">
+                                {searchSuggestions
+                                    .filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+                                    .slice(0, 8)
+                                    .map((suggestion, index) => (
+                                        <div 
+                                            key={suggestion} 
+                                            className="autocomplete-item waterfall-item"
+                                            style={{ animationDelay: `${index * 0.05}s` }}
+                                            onClick={() => {
+                                                setSearchTerm(suggestion);
+                                                setShowSuggestions(false);
+                                            }}
+                                        >
+                                            {suggestion}
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
                     </div>
                     <div className="premium-filters-group">
                         <div className="filter-label-group">

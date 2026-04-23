@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -26,6 +26,18 @@ function AdminStaff() {
     const [staff, setStaff] = useState([]);
     const [filteredStaff, setFilteredStaff] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
     const [roleFilter, setRoleFilter] = useState('all');
     const [loading, setLoading] = useState(true);
 
@@ -504,21 +516,39 @@ function AdminStaff() {
                 <p className="header-subtitle">Manage studio artists, managers, and administrative personnel</p>
 
                 <div className="premium-filter-bar">
-                    <div className="premium-search-box">
+                    <div className="premium-search-box" ref={searchRef}>
                         <Search size={18} className="text-muted" />
                         <input
                             type="text"
-                            list="search-suggestions-staff"
                             placeholder="Search staff by name, email, or id..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setShowSuggestions(true);
+                            }}
+                            onFocus={() => setShowSuggestions(true)}
                             maxLength={100}
                         />
-                        <datalist id="search-suggestions-staff">
-                            {searchSuggestions.map(suggestion => (
-                                <option key={suggestion} value={suggestion} />
-                            ))}
-                        </datalist>
+                        {showSuggestions && searchTerm && searchSuggestions.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 && (
+                            <div className="autocomplete-dropdown waterfall-dropdown">
+                                {searchSuggestions
+                                    .filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+                                    .slice(0, 8)
+                                    .map((suggestion, index) => (
+                                        <div 
+                                            key={suggestion} 
+                                            className="autocomplete-item waterfall-item"
+                                            style={{ animationDelay: `${index * 0.05}s` }}
+                                            onClick={() => {
+                                                setSearchTerm(suggestion);
+                                                setShowSuggestions(false);
+                                            }}
+                                        >
+                                            {suggestion}
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="premium-filters-group">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { Plus, Download, FileText, CreditCard, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, SlidersHorizontal, User } from 'lucide-react';
 import { filterName, filterMoney, clampNumber } from '../utils/validation';
@@ -19,6 +19,18 @@ function AdminBilling() {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
     const [statusFilter, setStatusFilter] = useState('all');
     const [sourceFilter, setSourceFilter] = useState('all');
     const [payouts, setPayouts] = useState([]);
@@ -367,21 +379,39 @@ function AdminBilling() {
                         </div>
 
                         <div className="premium-filter-bar premium-filter-bar--stacked">
-                            <div className="premium-search-box premium-search-box--full">
+                            <div className="premium-search-box premium-search-box--full" ref={searchRef} style={{ position: 'relative' }}>
                                 <Search size={16} className="premium-search-icon" />
                                 <input
                                     type="text"
-                                    list="search-suggestions-billing"
                                     placeholder="Search invoices by client or ID..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setShowSuggestions(true);
+                                    }}
+                                    onFocus={() => setShowSuggestions(true)}
                                     maxLength={100}
                                 />
-                                <datalist id="search-suggestions-billing">
-                                    {searchSuggestions.map(suggestion => (
-                                        <option key={suggestion} value={suggestion} />
-                                    ))}
-                                </datalist>
+                                {showSuggestions && searchTerm && searchSuggestions.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 && (
+                                    <div className="autocomplete-dropdown waterfall-dropdown">
+                                        {searchSuggestions
+                                            .filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            .slice(0, 8)
+                                            .map((suggestion, index) => (
+                                                <div 
+                                                    key={suggestion} 
+                                                    className="autocomplete-item waterfall-item"
+                                                    style={{ animationDelay: `${index * 0.05}s` }}
+                                                    onClick={() => {
+                                                        setSearchTerm(suggestion);
+                                                        setShowSuggestions(false);
+                                                    }}
+                                                >
+                                                    {suggestion}
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="premium-filters-row">

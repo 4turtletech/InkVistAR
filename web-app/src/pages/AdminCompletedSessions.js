@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, FileText, Image as ImageIcon, Package, Search, Filter, Calendar, Clock, User, X, List } from 'lucide-react';
@@ -24,6 +24,18 @@ function AdminCompletedSessions() {
     const [loading, setLoading] = useState(true);
     const [filteredSessions, setFilteredSessions] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
     const [statusFilter, setStatusFilter] = useState('completed');
     const [sortBy, setSortBy] = useState('date');
     const [selectedSession, setSelectedSession] = useState(null);
@@ -169,21 +181,40 @@ function AdminCompletedSessions() {
                             {/* Filters */}
                             <div className="admin-st-4d28b3db">
                                 <div className="admin-st-1d9faff6">
-                                    <div className="admin-st-d85c4e64">
+                                    <div className="admin-st-d85c4e64" ref={searchRef} style={{ position: 'relative', width: '100%' }}>
                                         <Search size={18} className="admin-st-5a5e8413" />
                                         <input
                                             type="text"
-                                            list="search-suggestions-sessions"
                                             placeholder="Search by ID, client, artist, or design..."
                                             value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            onChange={(e) => {
+                                                setSearchTerm(e.target.value);
+                                                setShowSuggestions(true);
+                                            }}
+                                            onFocus={() => setShowSuggestions(true)}
                                             className="admin-st-0be6745d"
+                                            style={{ width: '100%' }}
                                         />
-                                        <datalist id="search-suggestions-sessions">
-                                            {searchSuggestions.map(suggestion => (
-                                                <option key={suggestion} value={suggestion} />
-                                            ))}
-                                        </datalist>
+                                        {showSuggestions && searchTerm && searchSuggestions.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 && (
+                                            <div className="autocomplete-dropdown waterfall-dropdown">
+                                                {searchSuggestions
+                                                    .filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+                                                    .slice(0, 8)
+                                                    .map((suggestion, index) => (
+                                                        <div 
+                                                            key={suggestion} 
+                                                            className="autocomplete-item waterfall-item"
+                                                            style={{ animationDelay: `${index * 0.05}s` }}
+                                                            onClick={() => {
+                                                                setSearchTerm(suggestion);
+                                                                setShowSuggestions(false);
+                                                            }}
+                                                        >
+                                                            {suggestion}
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <select

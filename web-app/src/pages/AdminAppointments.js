@@ -34,6 +34,18 @@ function AdminAppointments() {
     const [viewMode, setViewMode] = useState('calendar'); // Defaults to calendar
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
     const [clientSearch, setClientSearch] = useState('');
     const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState('all');
@@ -1174,22 +1186,40 @@ function AdminAppointments() {
                 ) : (
                     <>
                         <div className="premium-filter-bar premium-filter-bar--stacked" style={{ margin: '0 0 2rem 0' }}>
-                            <div className="premium-search-box premium-search-box--full" style={{ position: 'relative' }}>
+                            <div className="premium-search-box premium-search-box--full" style={{ position: 'relative' }} ref={searchRef}>
                                 <Search size={16} className="text-muted" />
                                 <input
                                     type="text"
-                                    list="search-suggestions-appointments"
                                     placeholder="Search appointments by ID, client, or artist..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setShowSuggestions(true);
+                                    }}
+                                    onFocus={() => setShowSuggestions(true)}
                                     style={{ width: '100%', paddingRight: '120px' }}
                                     maxLength={100}
                                 />
-                                <datalist id="search-suggestions-appointments">
-                                    {searchSuggestions.map(suggestion => (
-                                        <option key={suggestion} value={suggestion} />
-                                    ))}
-                                </datalist>
+                                {showSuggestions && searchTerm && searchSuggestions.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 && (
+                                    <div className="autocomplete-dropdown waterfall-dropdown">
+                                        {searchSuggestions
+                                            .filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            .slice(0, 8)
+                                            .map((suggestion, index) => (
+                                                <div 
+                                                    key={suggestion} 
+                                                    className="autocomplete-item waterfall-item"
+                                                    style={{ animationDelay: `${index * 0.05}s` }}
+                                                    onClick={() => {
+                                                        setSearchTerm(suggestion);
+                                                        setShowSuggestions(false);
+                                                    }}
+                                                >
+                                                    {suggestion}
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
                                 {(searchTerm || statusFilter !== 'all' || serviceFilter !== 'all' || dateFilter) && (
                                     <button
                                         onClick={() => {

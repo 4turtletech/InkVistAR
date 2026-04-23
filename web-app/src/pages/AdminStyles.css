@@ -3145,9 +3145,39 @@
         padding: 1rem !important;
     }
 
-    /* === Staff cards === */
-    .staff-grid {
-        grid-template-columns: 1fr !important;
+    /* === Global Header Actions Mobile Wrap === */
+    .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 0.5rem;
+    }
+    
+    .header-actions .btn {
+        flex: 1;
+        min-width: calc(50% - 0.5rem);
+        justify-content: center;
+        padding: 0.6rem;
+        font-size: 0.85rem;
+    }
+    
+    .header-actions .btn-primary {
+        min-width: 100%;
+    }
+    
+    /* === Global Table Responsiveness === */
+    .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        display: block;
+        width: 100%;
+    }
+    
+    /* === Global Stats Grid Optimization (2 Columns) === */
+    .stats-section, .inventory-stats-grid, .dashboard-stats, .analytics-stats-grid, .billing-stats-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.8rem !important;
     }
 }
 
