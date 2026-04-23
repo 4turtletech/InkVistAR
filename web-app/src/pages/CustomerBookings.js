@@ -581,7 +581,7 @@ function CustomerBookings(){
     };
 
     const bodyParts = [
-        "Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Hand", "Neck", "Wrist", "Ankle"
+        "Face", "Neck", "Chest", "Back", "Left Shoulder", "Right Shoulder", "Left Upper Arm", "Right Upper Arm", "Left Forearm", "Right Forearm", "Left Wrist", "Right Wrist", "Left Hand", "Right Hand", "Left Ribs", "Right Ribs", "Left Hip", "Right Hip", "Left Thigh", "Right Thigh", "Left Calf", "Right Calf", "Left Ankle", "Right Ankle"
     ];
 
     const rescheduleReasonOptions = [
@@ -1509,8 +1509,8 @@ function CustomerBookings(){
 
                                 {bookingStep === 3 && (() => {
                                     const derivedType = getDerivedServiceType(bookingData.selectedServices);
-                                    const tattooBodyParts = ["Face", "Forearm", "Upper Arm", "Shoulder", "Chest", "Back", "Ribs", "Thigh", "Calf", "Neck", "Wrist", "Hand", "Ankle", "Other"];
-                                    const piercingBodyParts = ["Ear Lobe", "Helix", "Tragus", "Conch", "Industrial", "Nostril", "Septum", "Eyebrow", "Lip/Oral", "Navel", "Nipple", "Other"];
+                                    const tattooBodyParts = ["Face", "Neck", "Chest", "Back", "Left Shoulder", "Right Shoulder", "Left Upper Arm", "Right Upper Arm", "Left Forearm", "Right Forearm", "Left Wrist", "Right Wrist", "Left Hand", "Right Hand", "Left Ribs", "Right Ribs", "Left Hip", "Right Hip", "Left Thigh", "Right Thigh", "Left Calf", "Right Calf", "Left Ankle", "Right Ankle", "Other"];
+                                    const piercingBodyParts = ["Left Ear Lobe", "Right Ear Lobe", "Left Helix", "Right Helix", "Left Tragus", "Right Tragus", "Left Conch", "Right Conch", "Left Industrial", "Right Industrial", "Left Nostril", "Right Nostril", "Septum", "Left Eyebrow", "Right Eyebrow", "Lip/Oral", "Navel", "Left Nipple", "Right Nipple", "Other"];
 
                                     // Decide which placement buttons to show
                                     const showTattooPlacement = bookingData.selectedServices.includes('Tattoo Session')
@@ -1644,7 +1644,7 @@ function CustomerBookings(){
                                                             <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                 <Paintbrush size={15} color="#be9055" /> Tattoo Placement
                                                             </p>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '7px' }}>
                                                                 {tattooBodyParts.map(part => {
                                                                     const isSelected = bookingData.placement.includes(part);
                                                                     return (
@@ -1675,7 +1675,7 @@ function CustomerBookings(){
                                                             <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                 <Gem size={15} color="#4FC3F7" /> Piercing Placement
                                                             </p>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '7px' }}>
                                                                 {piercingBodyParts.map(part => {
                                                                     const isSelected = bookingData[piercingField].includes(part);
                                                                     return (

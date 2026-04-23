@@ -56,61 +56,65 @@ const BODY_PARTS = [
     { id: 'face',       placement: 'Face',     category: 'tattoo',  type: 'sphere',   args: [0.10, 24, 24],        pos: [0, 0.89, 0.10] },
 
     // ========== PIERCING LANDMARKS (face/ear) ==========
-    // Ears
-    { id: 'earlobe-l',    placement: 'Ear Lobe',    category: 'piercing', type: 'sphere', args: [0.025, 12, 12], pos: [-0.17, 0.84, 0] },
-    { id: 'earlobe-r',    placement: 'Ear Lobe',    category: 'piercing', type: 'sphere', args: [0.025, 12, 12], pos: [0.17, 0.84, 0] },
-    { id: 'helix-l',      placement: 'Helix',       category: 'piercing', type: 'sphere', args: [0.02, 10, 10],  pos: [-0.17, 0.97, 0] },
-    { id: 'helix-r',      placement: 'Helix',       category: 'piercing', type: 'sphere', args: [0.02, 10, 10],  pos: [0.17, 0.97, 0] },
-    { id: 'tragus-l',     placement: 'Tragus',      category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [-0.14, 0.89, 0.05] },
-    { id: 'tragus-r',     placement: 'Tragus',      category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [0.14, 0.89, 0.05] },
-    { id: 'conch-l',      placement: 'Conch',       category: 'piercing', type: 'sphere', args: [0.02, 10, 10],  pos: [-0.17, 0.90, 0] },
-    { id: 'conch-r',      placement: 'Conch',       category: 'piercing', type: 'sphere', args: [0.02, 10, 10],  pos: [0.17, 0.90, 0] },
-    { id: 'industrial-l', placement: 'Industrial',  category: 'piercing', type: 'capsule', args: [0.012, 0.04, 6, 8], pos: [-0.165, 0.95, 0.01], rot: [0, 0, 0.3] },
-    { id: 'industrial-r', placement: 'Industrial',  category: 'piercing', type: 'capsule', args: [0.012, 0.04, 6, 8], pos: [0.165, 0.95, 0.01], rot: [0, 0, -0.3] },
-    // Face piercings
-    { id: 'nostril-l',    placement: 'Nostril',     category: 'piercing', type: 'sphere', args: [0.016, 10, 10], pos: [-0.03, 0.86, 0.145] },
-    { id: 'nostril-r',    placement: 'Nostril',     category: 'piercing', type: 'sphere', args: [0.016, 10, 10], pos: [0.03, 0.86, 0.145] },
-    { id: 'septum',       placement: 'Septum',      category: 'piercing', type: 'sphere', args: [0.014, 10, 10], pos: [0, 0.845, 0.15] },
-    { id: 'eyebrow-l',    placement: 'Eyebrow',     category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [-0.06, 0.95, 0.12] },
-    { id: 'eyebrow-r',    placement: 'Eyebrow',     category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [0.06, 0.95, 0.12] },
-    { id: 'lip',          placement: 'Lip/Oral',    category: 'piercing', type: 'sphere', args: [0.02, 10, 10],  pos: [0, 0.81, 0.13] },
+    // Ears (Left / Right)
+    { id: 'earlobe-l',    placement: 'Left Ear Lobe',    category: 'piercing', type: 'sphere', args: [0.025, 12, 12], pos: [-0.17, 0.84, 0] },
+    { id: 'earlobe-r',    placement: 'Right Ear Lobe',   category: 'piercing', type: 'sphere', args: [0.025, 12, 12], pos: [0.17, 0.84, 0] },
+    { id: 'helix-l',      placement: 'Left Helix',       category: 'piercing', type: 'sphere', args: [0.02, 10, 10],  pos: [-0.17, 0.97, 0] },
+    { id: 'helix-r',      placement: 'Right Helix',      category: 'piercing', type: 'sphere', args: [0.02, 10, 10],  pos: [0.17, 0.97, 0] },
+    { id: 'tragus-l',     placement: 'Left Tragus',      category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [-0.14, 0.89, 0.05] },
+    { id: 'tragus-r',     placement: 'Right Tragus',     category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [0.14, 0.89, 0.05] },
+    { id: 'conch-l',      placement: 'Left Conch',       category: 'piercing', type: 'sphere', args: [0.02, 10, 10],  pos: [-0.17, 0.90, 0] },
+    { id: 'conch-r',      placement: 'Right Conch',      category: 'piercing', type: 'sphere', args: [0.02, 10, 10],  pos: [0.17, 0.90, 0] },
+    { id: 'industrial-l', placement: 'Left Industrial',  category: 'piercing', type: 'capsule', args: [0.012, 0.04, 6, 8], pos: [-0.165, 0.95, 0.01], rot: [0, 0, 0.3] },
+    { id: 'industrial-r', placement: 'Right Industrial', category: 'piercing', type: 'capsule', args: [0.012, 0.04, 6, 8], pos: [0.165, 0.95, 0.01], rot: [0, 0, -0.3] },
+    // Face piercings (Left / Right for paired, singular for center)
+    { id: 'nostril-l',    placement: 'Left Nostril',     category: 'piercing', type: 'sphere', args: [0.016, 10, 10], pos: [-0.03, 0.86, 0.145] },
+    { id: 'nostril-r',    placement: 'Right Nostril',    category: 'piercing', type: 'sphere', args: [0.016, 10, 10], pos: [0.03, 0.86, 0.145] },
+    { id: 'septum',       placement: 'Septum',           category: 'piercing', type: 'sphere', args: [0.014, 10, 10], pos: [0, 0.845, 0.15] },
+    { id: 'eyebrow-l',    placement: 'Left Eyebrow',     category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [-0.06, 0.95, 0.12] },
+    { id: 'eyebrow-r',    placement: 'Right Eyebrow',    category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [0.06, 0.95, 0.12] },
+    { id: 'lip',          placement: 'Lip/Oral',         category: 'piercing', type: 'sphere', args: [0.02, 10, 10],  pos: [0, 0.81, 0.13] },
 
     // ========== NECK ==========
     { id: 'neck',       placement: 'Neck',     category: 'tattoo',  type: 'cylinder', args: [0.055, 0.065, 0.10, 16], pos: [0, 0.74, 0] },
 
     // ========== TORSO (wider, more anatomical) ==========
-    { id: 'chest',      placement: 'Chest',    category: 'tattoo',  type: 'box', args: [0.42, 0.34, 0.09], pos: [0, 0.50, 0.06] },
-    { id: 'back',       placement: 'Back',     category: 'tattoo',  type: 'box', args: [0.42, 0.34, 0.09], pos: [0, 0.50, -0.06] },
-    { id: 'ribs-l',     placement: 'Ribs',     category: 'tattoo',  type: 'box', args: [0.05, 0.26, 0.14], pos: [-0.22, 0.51, 0] },
-    { id: 'ribs-r',     placement: 'Ribs',     category: 'tattoo',  type: 'box', args: [0.05, 0.26, 0.14], pos: [0.22, 0.51, 0] },
+    { id: 'chest',      placement: 'Chest',       category: 'tattoo',  type: 'box', args: [0.42, 0.34, 0.09], pos: [0, 0.50, 0.06] },
+    { id: 'back',       placement: 'Back',        category: 'tattoo',  type: 'box', args: [0.42, 0.34, 0.09], pos: [0, 0.50, -0.06] },
+    { id: 'ribs-l',     placement: 'Left Ribs',   category: 'tattoo',  type: 'box', args: [0.05, 0.26, 0.14], pos: [-0.22, 0.51, 0] },
+    { id: 'ribs-r',     placement: 'Right Ribs',  category: 'tattoo',  type: 'box', args: [0.05, 0.26, 0.14], pos: [0.22, 0.51, 0] },
 
-    // Torso piercing landmarks
-    { id: 'nipple-l',   placement: 'Nipple',   category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [-0.11, 0.56, 0.105] },
-    { id: 'nipple-r',   placement: 'Nipple',   category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [0.11, 0.56, 0.105] },
-    { id: 'navel',      placement: 'Navel',    category: 'piercing', type: 'sphere', args: [0.022, 12, 12], pos: [0, 0.30, 0.10] },
+    // Torso piercing landmarks (Left / Right for paired, singular for center)
+    { id: 'nipple-l',   placement: 'Left Nipple',  category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [-0.11, 0.56, 0.105] },
+    { id: 'nipple-r',   placement: 'Right Nipple', category: 'piercing', type: 'sphere', args: [0.018, 10, 10], pos: [0.11, 0.56, 0.105] },
+    { id: 'navel',      placement: 'Navel',        category: 'piercing', type: 'sphere', args: [0.022, 12, 12], pos: [0, 0.30, 0.10] },
 
-    // ========== SHOULDERS & ARMS ==========
-    { id: 'shoulder-l', placement: 'Shoulder', category: 'tattoo', type: 'sphere',  args: [0.075, 16, 16],      pos: [-0.295, 0.66, 0] },
-    { id: 'shoulder-r', placement: 'Shoulder', category: 'tattoo', type: 'sphere',  args: [0.075, 16, 16],      pos: [0.295, 0.66, 0] },
-    { id: 'uarm-l',     placement: 'Upper Arm', category: 'tattoo', type: 'capsule', args: [0.052, 0.18, 8, 16], pos: [-0.33, 0.45, 0] },
-    { id: 'uarm-r',     placement: 'Upper Arm', category: 'tattoo', type: 'capsule', args: [0.052, 0.18, 8, 16], pos: [0.33, 0.45, 0] },
-    { id: 'farm-l',     placement: 'Forearm',  category: 'tattoo', type: 'capsule', args: [0.044, 0.18, 8, 16], pos: [-0.35, 0.20, 0] },
-    { id: 'farm-r',     placement: 'Forearm',  category: 'tattoo', type: 'capsule', args: [0.044, 0.18, 8, 16], pos: [0.35, 0.20, 0] },
-    { id: 'wrist-l',    placement: 'Wrist',    category: 'tattoo', type: 'sphere',  args: [0.036, 12, 12],      pos: [-0.36, 0.06, 0] },
-    { id: 'wrist-r',    placement: 'Wrist',    category: 'tattoo', type: 'sphere',  args: [0.036, 12, 12],      pos: [0.36, 0.06, 0] },
-    { id: 'hand-l',     placement: 'Hand',     category: 'tattoo', type: 'box',     args: [0.055, 0.075, 0.028], pos: [-0.36, -0.025, 0] },
-    { id: 'hand-r',     placement: 'Hand',     category: 'tattoo', type: 'box',     args: [0.055, 0.075, 0.028], pos: [0.36, -0.025, 0] },
+    // ========== SHOULDERS & ARMS (Left / Right) ==========
+    { id: 'shoulder-l', placement: 'Left Shoulder',   category: 'tattoo', type: 'sphere',  args: [0.075, 16, 16],      pos: [-0.295, 0.66, 0] },
+    { id: 'shoulder-r', placement: 'Right Shoulder',  category: 'tattoo', type: 'sphere',  args: [0.075, 16, 16],      pos: [0.295, 0.66, 0] },
+    { id: 'uarm-l',     placement: 'Left Upper Arm',  category: 'tattoo', type: 'capsule', args: [0.052, 0.18, 8, 16], pos: [-0.33, 0.45, 0] },
+    { id: 'uarm-r',     placement: 'Right Upper Arm', category: 'tattoo', type: 'capsule', args: [0.052, 0.18, 8, 16], pos: [0.33, 0.45, 0] },
+    { id: 'farm-l',     placement: 'Left Forearm',    category: 'tattoo', type: 'capsule', args: [0.044, 0.18, 8, 16], pos: [-0.35, 0.20, 0] },
+    { id: 'farm-r',     placement: 'Right Forearm',   category: 'tattoo', type: 'capsule', args: [0.044, 0.18, 8, 16], pos: [0.35, 0.20, 0] },
+    { id: 'wrist-l',    placement: 'Left Wrist',      category: 'tattoo', type: 'sphere',  args: [0.036, 12, 12],      pos: [-0.36, 0.06, 0] },
+    { id: 'wrist-r',    placement: 'Right Wrist',     category: 'tattoo', type: 'sphere',  args: [0.036, 12, 12],      pos: [0.36, 0.06, 0] },
+    { id: 'hand-l',     placement: 'Left Hand',       category: 'tattoo', type: 'box',     args: [0.055, 0.075, 0.028], pos: [-0.36, -0.025, 0] },
+    { id: 'hand-r',     placement: 'Right Hand',      category: 'tattoo', type: 'box',     args: [0.055, 0.075, 0.028], pos: [0.36, -0.025, 0] },
 
     // ========== PELVIS (non-clickable landmark, wider) ==========
     { id: 'pelvis', placement: null, category: null, type: 'box', args: [0.36, 0.12, 0.18], pos: [0, 0.24, 0] },
 
-    // ========== LEGS ==========
-    { id: 'thigh-l',  placement: 'Thigh', category: 'tattoo', type: 'capsule', args: [0.072, 0.25, 8, 16], pos: [-0.12, -0.01, 0] },
-    { id: 'thigh-r',  placement: 'Thigh', category: 'tattoo', type: 'capsule', args: [0.072, 0.25, 8, 16], pos: [0.12, -0.01, 0] },
-    { id: 'calf-l',   placement: 'Calf',  category: 'tattoo', type: 'capsule', args: [0.054, 0.25, 8, 16], pos: [-0.12, -0.35, 0] },
-    { id: 'calf-r',   placement: 'Calf',  category: 'tattoo', type: 'capsule', args: [0.054, 0.25, 8, 16], pos: [0.12, -0.35, 0] },
-    { id: 'ankle-l',  placement: 'Ankle', category: 'tattoo', type: 'sphere',  args: [0.042, 12, 12],      pos: [-0.12, -0.55, 0] },
-    { id: 'ankle-r',  placement: 'Ankle', category: 'tattoo', type: 'sphere',  args: [0.042, 12, 12],      pos: [0.12, -0.55, 0] },
+    // ========== HIPS (Left / Right, clickable) ==========
+    { id: 'hip-l',    placement: 'Left Hip',  category: 'tattoo', type: 'sphere', args: [0.065, 14, 14], pos: [-0.16, 0.20, 0.04] },
+    { id: 'hip-r',    placement: 'Right Hip', category: 'tattoo', type: 'sphere', args: [0.065, 14, 14], pos: [0.16, 0.20, 0.04] },
+
+    // ========== LEGS (Left / Right) ==========
+    { id: 'thigh-l',  placement: 'Left Thigh',  category: 'tattoo', type: 'capsule', args: [0.072, 0.25, 8, 16], pos: [-0.12, -0.01, 0] },
+    { id: 'thigh-r',  placement: 'Right Thigh', category: 'tattoo', type: 'capsule', args: [0.072, 0.25, 8, 16], pos: [0.12, -0.01, 0] },
+    { id: 'calf-l',   placement: 'Left Calf',   category: 'tattoo', type: 'capsule', args: [0.054, 0.25, 8, 16], pos: [-0.12, -0.35, 0] },
+    { id: 'calf-r',   placement: 'Right Calf',  category: 'tattoo', type: 'capsule', args: [0.054, 0.25, 8, 16], pos: [0.12, -0.35, 0] },
+    { id: 'ankle-l',  placement: 'Left Ankle',  category: 'tattoo', type: 'sphere',  args: [0.042, 12, 12],      pos: [-0.12, -0.55, 0] },
+    { id: 'ankle-r',  placement: 'Right Ankle', category: 'tattoo', type: 'sphere',  args: [0.042, 12, 12],      pos: [0.12, -0.55, 0] },
     // Feet (non-clickable landmarks)
     { id: 'foot-l',   placement: null,    category: null,     type: 'box',     args: [0.055, 0.03, 0.10],  pos: [-0.12, -0.60, 0.025] },
     { id: 'foot-r',   placement: null,    category: null,     type: 'box',     args: [0.055, 0.03, 0.10],  pos: [0.12, -0.60, 0.025] },
