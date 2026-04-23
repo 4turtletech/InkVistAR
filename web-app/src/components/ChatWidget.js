@@ -239,16 +239,26 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
               </button>
             )}
             {!isAdminMode && (
-              <button
-                className={`human-toggle-btn ${isHumanMode ? 'active' : ''}`}
-                onClick={() => {
-                  if (!isHumanMode && !isShopOpen) return;
-                  setIsHumanMode(!isHumanMode);
-                }}
-                title={!isShopOpen ? "Live agents are currently offline (Hours: 1 PM - 8 PM)" : isHumanMode ? "Switch to AI" : "Talk to a person"}
-              >
-                {isHumanMode ? <UserSquare size={18} /> : <Bot size={18} />}
-              </button>
+              <>
+                <button
+                  className={`human-toggle-btn ${isHumanMode ? 'active' : ''}`}
+                  onClick={() => {
+                    if (!isHumanMode && !isShopOpen) return;
+                    setIsHumanMode(!isHumanMode);
+                  }}
+                  title={!isShopOpen ? "Live agents are currently offline (Hours: 1 PM - 8 PM)" : isHumanMode ? "Switch to AI" : "Talk to a person"}
+                >
+                  {isHumanMode ? <UserSquare size={18} /> : <Bot size={18} />}
+                </button>
+                <button
+                  className="human-toggle-btn"
+                  onClick={() => setIsOpen(false)}
+                  title="Close Chat"
+                  style={{ marginLeft: '4px' }}
+                >
+                  <X size={18} />
+                </button>
+              </>
             )}
           </div>
         </div>
