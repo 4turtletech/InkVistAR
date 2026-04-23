@@ -155,3 +155,34 @@ select option {
   background: #ffffff;
   color: #1e293b;
 }
+
+/* === MOBILE OPTIMIZATION FOR PREMIUM FILTERS === */
+@media (max-width: 768px) {
+  .premium-filter-bar--stacked {
+    margin: 0 1rem 1.5rem !important;
+    padding: 1rem !important;
+  }
+  
+  .premium-filters-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px 10px !important;
+    align-items: flex-end !important;
+  }
+  
+  .premium-filter-item {
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 4px !important;
+  }
+  
+  .premium-filter-item span {
+    font-size: 0.75rem;
+  }
+  
+  .premium-filter-item .premium-select-v2 {
+    width: 100% !important;
+    flex: none !important;
+    margin-top: 2px;
+  }
+}
