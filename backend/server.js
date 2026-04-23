@@ -5051,33 +5051,58 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               notifyArtist('Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed');
               sendPushNotification(currentData.customer_id, '✨ Session Complete!', `Your InkVistAR session #${id} is done! We hope you love your new ink.`, { screen: 'customer-notifications' });
 
+              const completedServiceLabel = (oldAppt.service_type || 'Tattoo Session');
+
+              // ── Aftercare tracker ad block (exclusive feature promotion) ──
+              const aftercareAdBlock = `
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:12px 0 16px;">
+                  <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:22px 24px;background:linear-gradient(135deg,#1a1816 0%,#14120f 100%);border:1px solid rgba(190,144,85,0.3);border-radius:14px;text-align:center;">
+                    <p style="margin:0 0 10px;font-size:16px;font-weight:700;color:#be9055;">Exclusive: Aftercare Tracking</p>
+                    <p style="margin:0 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;">Your tattoo journey doesn't end here. InkVistAR includes a built-in aftercare tracker — an exclusive feature designed to guide you through every stage of healing for the best possible results with your new ink.</p>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Day-by-day healing milestones with personalized reminders</td></tr>
+                      <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Track your healing progress with photo updates</td></tr>
+                      <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Expert aftercare guidance tailored to your service type</td></tr>
+                    </table>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:14px 0 4px;">
+                      <a href="${FRONTEND_URL}/customer/bookings" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#be9055,#a07840);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Start Aftercare Tracking &rarr;</a>
+                    </td></tr></table>
+                  </div>
+                </td></tr></table>
+              `;
+
               // ── Guest Email + SMS: Completed ──
               if (guestEmail) {
                 sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
                   `Session Complete [${guestBookingCode}]`,
                   'Session Complete!', '#10b981',
-                  `Your session has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio — we'd love to see you again.`,
+                  `Your <strong style="color:#C19A6B;">${completedServiceLabel}</strong> session for "<strong>${guestDesign}</strong>" has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio.`,
                   [
                     { label: 'Ref Code', value: guestBookingCode, mono: true },
+                    { label: 'Service', value: completedServiceLabel },
                     { label: 'Design', value: guestDesign },
-                    { label: 'Status', value: 'Completed' }
-                  ], accountTip
+                    { label: 'Result', value: 'Completed Successfully' }
+                  ], 'Create an InkVistAR account to access exclusive aftercare tracking and manage future appointments.'
                 );
               }
               if (guestPhone) {
                 sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your session is complete! Thank you for choosing InkVistAR Studio. We hope you love the result!`);
               }
 
-              // ── Registered User Email: Completed ──
+              // ── Registered User Email: Completed (with aftercare ad) ──
               if (isRegisteredUser) {
                 sendRegisteredUserStatusEmail(db, currentData.customer_id,
-                  'Session Complete!',
-                  'Session Complete! ✨', '#10b981',
-                  `Your session for "${guestDesign}" has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio.`,
+                  `Session Complete — ${completedServiceLabel} [${guestBookingCode}]`,
+                  'Session Complete!', '#10b981',
+                  `Your <strong style="color:#C19A6B;">${completedServiceLabel}</strong> session for "<strong>${guestDesign}</strong>" has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio.`,
                   [
+                    { label: 'Appointment', value: guestBookingCode, mono: true },
+                    { label: 'Service', value: completedServiceLabel },
                     { label: 'Design', value: guestDesign },
-                    { label: 'Status', value: 'Completed' }
-                  ]
+                    { label: 'Date', value: displayDate },
+                    { label: 'Result', value: 'Completed Successfully' }
+                  ],
+                  aftercareAdBlock
                 );
               }
             }
@@ -5793,8 +5818,33 @@ app.put('/api/appointments/:id/status', (req, res) => {
       // Send Notifications
       const dateStr = appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'your scheduled date';
       const designTitle = appointment.design_title || 'your tattoo session';
+      const serviceLabel = appointment.service_type || 'Tattoo Session';
+      const bookingRef = appointment.booking_code || `#${id}`;
+      const timeStr = appointment.start_time ? new Date(`2000-01-01T${appointment.start_time}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
 
-      if (status === 'confirmed') {
+      // ── SESSION STARTED ──
+      if (status === 'in_progress') {
+        const startTimestamp = `${dateStr}${timeStr ? ' ' + timeStr : ''}`;
+
+        // Customer
+        createNotification(appointment.customer_id, 'Session In Progress', `Your ${serviceLabel} session #${id} has started at ${startTimestamp}.`, 'session_started', id);
+
+        // Artist
+        if (appointment.artist_id) {
+          createNotification(appointment.artist_id, 'Session Started', `Appointment #${id} — "${designTitle}" — ${startTimestamp} is now in progress.`, 'session_started', id);
+        }
+
+        // All Admins
+        db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (adminErr, admins) => {
+          if (!adminErr && admins.length > 0) {
+            admins.forEach(admin => {
+              createNotification(admin.id, 'Session Started', `Appointment #${id} — "${designTitle}" — ${startTimestamp} has been started by the artist.`, 'session_started', id);
+            });
+          }
+        });
+
+      // ── CONFIRMED ──
+      } else if (status === 'confirmed') {
         createNotification(appointment.customer_id, 'Session Confirmed! ✅', `Great news! Your appointment on ${dateStr} for "${designTitle}" is now officially confirmed. We look forward to seeing you!`, 'appointment_confirmed', id);
         createNotification(appointment.artist_id, 'Appointment Confirmed', `Appointment #${id} for ${designTitle} is now confirmed.`, 'appointment_confirmed', id);
       } else if (status === 'cancelled') {
@@ -5805,6 +5855,8 @@ app.put('/api/appointments/:id/status', (req, res) => {
           createNotification(appointment.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment scheduled for ${dateStr} has been cancelled. Please contact the studio if you have any questions.`, 'appointment_cancelled', id);
           createNotification(appointment.artist_id, 'Appointment Cancelled', `Appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
         }
+
+      // ── SESSION COMPLETED ──
       } else if (status === 'completed') {
         if (isFullyComplete || isFullyComplete === undefined) {
           createNotification(appointment.customer_id, 'Tattoo Journey Complete! ✨', `Your session for "${designTitle}" is finished! We hope you love your new ink.`, 'appointment_completed', id);
@@ -5815,6 +5867,11 @@ app.put('/api/appointments/:id/status', (req, res) => {
           // Trigger Review Prompt
           createNotification(appointment.customer_id, 'How did we do? ⭐', `Please take a moment to leave a review for your artist! We value your feedback on your latest session.`, 'review_prompt', id);
 
+          // Notify the artist
+          if (appointment.artist_id) {
+            createNotification(appointment.artist_id, 'Session Completed', `Appointment #${id} — "${designTitle}" — ${dateStr} has been marked as completed.`, 'appointment_completed', id);
+          }
+
           // Notify all admins about session completion
           db.query('SELECT id FROM users WHERE user_type = \'admin\'', (adminErr, admins) => {
             if (!adminErr && admins.length > 0) {
@@ -5823,6 +5880,54 @@ app.put('/api/appointments/:id/status', (req, res) => {
               });
             }
           });
+
+          // ── Completed Session Email (aftercare tracker ad) ──
+          const aftercareAdBlock = `
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:12px 0 16px;">
+              <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:22px 24px;background:linear-gradient(135deg,#1a1816 0%,#14120f 100%);border:1px solid rgba(190,144,85,0.3);border-radius:14px;text-align:center;">
+                <p style="margin:0 0 10px;font-size:16px;font-weight:700;color:#be9055;">Exclusive: Aftercare Tracking</p>
+                <p style="margin:0 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;">Your tattoo journey doesn't end here. InkVistAR includes a built-in aftercare tracker — an exclusive feature designed to guide you through every stage of healing for the best possible results with your new ink.</p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Day-by-day healing milestones with personalized reminders</td></tr>
+                  <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Track your healing progress with photo updates</td></tr>
+                  <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Expert aftercare guidance tailored to your service type</td></tr>
+                </table>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:14px 0 4px;">
+                  <a href="${FRONTEND_URL}/customer/bookings" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#be9055,#a07840);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Start Aftercare Tracking &rarr;</a>
+                </td></tr></table>
+              </div>
+            </td></tr></table>
+          `;
+
+          // Email to registered user
+          sendRegisteredUserStatusEmail(db, appointment.customer_id,
+            `Session Complete — ${serviceLabel} [${bookingRef}]`,
+            'Session Complete!', '#10b981',
+            `Your <strong style="color:#C19A6B;">${serviceLabel}</strong> session for "<strong>${designTitle}</strong>" has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio.`,
+            [
+              { label: 'Appointment', value: bookingRef, mono: true },
+              { label: 'Service', value: serviceLabel },
+              { label: 'Design', value: designTitle },
+              { label: 'Date', value: dateStr },
+              { label: 'Result', value: 'Completed Successfully' }
+            ],
+            aftercareAdBlock
+          );
+
+          // Email to guest (if applicable)
+          if (appointment.guest_email) {
+            sendGuestStatusEmail(appointment.guest_email, 'Valued Guest', bookingRef,
+              `Session Complete [${bookingRef}]`,
+              'Session Complete!', '#10b981',
+              `Your <strong style="color:#C19A6B;">${serviceLabel}</strong> session for "<strong>${designTitle}</strong>" has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio.`,
+              [
+                { label: 'Ref Code', value: bookingRef, mono: true },
+                { label: 'Service', value: serviceLabel },
+                { label: 'Design', value: designTitle },
+                { label: 'Result', value: 'Completed Successfully' }
+              ], 'Create an InkVistAR account to access exclusive aftercare tracking and manage future appointments.'
+            );
+          }
 
           // 🚨 PAYMENT RESOLUTION CHECK: Fire urgent admin alert if outstanding balance exists
           const paymentCheckQuery = `
@@ -5882,9 +5987,17 @@ app.put('/api/appointments/:id/status', (req, res) => {
               [appointment.artist_id, artistCommission, 'System Default', 'Pending', `Commission Session #${id}`]);
           }
         });
+
+      // ── SESSION ABORTED / INCOMPLETE ──
       } else if (status === 'incomplete') {
         const abortReason = req.body.abortReason || '';
         createNotification(appointment.customer_id, 'Session Stopped Early ⚠️', `Your session for "${designTitle}" on ${dateStr} was marked as incomplete by your artist.${abortReason ? ' Reason: ' + abortReason : ''} The studio will follow up with you to reschedule.`, 'session_incomplete', id);
+
+        // Notify the artist
+        if (appointment.artist_id) {
+          createNotification(appointment.artist_id, 'Session Aborted', `Appointment #${id} — "${designTitle}" — ${dateStr} was marked as incomplete.${abortReason ? ' Reason: ' + abortReason : ''}`, 'session_incomplete', id);
+        }
+
         // Notify all admins
         db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (adminErr, admins) => {
           if (!adminErr && admins.length > 0) {
@@ -5893,6 +6006,64 @@ app.put('/api/appointments/:id/status', (req, res) => {
             });
           }
         });
+
+        // ── Aborted Session Email (partial aftercare + rebook CTA) ──
+        const abortReasonHtml = abortReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${abortReason}` : '';
+        const partialAftercareBlock = `
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:12px 0 16px;">
+            <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:22px 24px;background:linear-gradient(135deg,#1a1816 0%,#14120f 100%);border:1px solid rgba(234,179,8,0.3);border-radius:14px;">
+              <p style="margin:0 0 10px;font-size:15px;font-weight:700;color:#eab308;text-align:center;">Partial Aftercare Notice</p>
+              <p style="margin:0 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;">Even though your session was stopped early, any work that was done still requires proper aftercare to heal correctly. Please follow the standard healing guidelines until your next visit.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;">&#x2022; Keep the area clean and dry for the first 24 hours</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;">&#x2022; Avoid sun exposure, pools, and soaking until healed</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;">&#x2022; Do not pick or scratch the treated area</td></tr>
+              </table>
+              <p style="margin:14px 0 0;font-size:13px;color:#94a3b8;line-height:1.6;">Continuing your tattoo in a follow-up session is highly recommended for the best final result. The studio will coordinate with you to schedule your next appointment.</p>
+            </div>
+          </td></tr></table>
+        `;
+        const rebookBlock = `
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0 16px;">
+            <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:20px 24px;background:linear-gradient(135deg,#111827 0%,#1a1816 100%);border:1px solid rgba(190,144,85,0.3);border-radius:14px;text-align:center;">
+              <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#be9055;">Ready to Continue?</p>
+              <p style="margin:0 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;">Book your next session to pick up where you left off and bring your design to completion.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;">
+                <a href="${FRONTEND_URL}/customer/bookings" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#be9055,#a07840);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Book Next Session &rarr;</a>
+              </td></tr></table>
+            </div>
+          </td></tr></table>
+        `;
+
+        // Email to registered user
+        sendRegisteredUserStatusEmail(db, appointment.customer_id,
+          `Session Update — ${serviceLabel} [${bookingRef}]`,
+          'Session Update', '#eab308',
+          `Your <strong style="color:#C19A6B;">${serviceLabel}</strong> session for "<strong>${designTitle}</strong>" on ${dateStr} was stopped early. The studio will follow up with you to coordinate next steps.${abortReasonHtml}`,
+          [
+            { label: 'Appointment', value: bookingRef, mono: true },
+            { label: 'Service', value: serviceLabel },
+            { label: 'Design', value: designTitle },
+            { label: 'Date', value: dateStr },
+            { label: 'Status', value: 'Incomplete — Follow-up Required' }
+          ],
+          partialAftercareBlock + rebookBlock
+        );
+
+        // Email to guest (if applicable)
+        if (appointment.guest_email) {
+          sendGuestStatusEmail(appointment.guest_email, 'Valued Guest', bookingRef,
+            `Session Update [${bookingRef}]`,
+            'Session Update', '#eab308',
+            `Your ${serviceLabel} session for "${designTitle}" on ${dateStr} was stopped early. The studio will follow up with you to coordinate next steps.${abortReasonHtml}`,
+            [
+              { label: 'Ref Code', value: bookingRef, mono: true },
+              { label: 'Service', value: serviceLabel },
+              { label: 'Design', value: designTitle },
+              { label: 'Status', value: 'Incomplete — Follow-up Required' }
+            ], 'Create an InkVistAR account to track your aftercare, manage bookings, and schedule your continuation session.'
+          );
+        }
       }
 
       res.json({ success: true, message: 'Appointment status updated' });
