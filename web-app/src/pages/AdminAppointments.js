@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle, Printer } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -73,6 +73,8 @@ function AdminAppointments() {
         paymentStatus: 'unpaid',
         notes: '',
         price: 0,
+        tattooPrice: 0,
+        piercingPrice: 0,
         beforePhoto: null,
         referenceImage: null,
         manualPaidAmount: 0,
@@ -192,7 +194,7 @@ function AdminAppointments() {
         if (!initialFormDataRef.current) return false;
         const tracked = ['clientId', 'artistId', 'secondaryArtistId', 'commissionSplit',
             'serviceType', 'designTitle', 'date', 'time', 'status', 'paymentStatus',
-            'notes', 'price', 'rejectionReason', 'isReferral', 'consultationNotes', 'quotedPrice'];
+            'notes', 'price', 'tattooPrice', 'piercingPrice', 'rejectionReason', 'isReferral', 'consultationNotes', 'quotedPrice'];
         return tracked.some(key => {
             const a = formData[key] ?? '';
             const b = initialFormDataRef.current[key] ?? '';
@@ -281,6 +283,8 @@ function AdminAppointments() {
                         referenceImage: apt.reference_image,
                         afterPhoto: apt.after_photo,
                         price: apt.price || 0,
+                        tattooPrice: apt.tattoo_price || 0,
+                        piercingPrice: apt.piercing_price || 0,
                         totalPaid: apt.total_paid || 0,
                         manualPaidAmount: apt.manual_paid_amount || 0,
                         manualPaymentMethod: apt.manual_payment_method || 'Cash',
@@ -584,6 +588,8 @@ function AdminAppointments() {
             paymentStatus: (!appointment.price || appointment.price <= 0) ? 'unpaid' : (appointment.paymentStatus || appointment.payment_status || 'unpaid'),
             notes: appointment.notes,
             price: appointment.price,
+            tattooPrice: appointment.tattooPrice || appointment.tattoo_price || 0,
+            piercingPrice: appointment.piercingPrice || appointment.piercing_price || 0,
             beforePhoto: appointment.beforePhoto,
             referenceImage: appointment.referenceImage,
             manualPaidAmount: appointment.manualPaidAmount || 0,
@@ -608,6 +614,8 @@ function AdminAppointments() {
             paymentStatus: (!appointment.price || appointment.price <= 0) ? 'unpaid' : (appointment.paymentStatus || appointment.payment_status || 'unpaid'),
             notes: appointment.notes,
             price: appointment.price,
+            tattooPrice: appointment.tattooPrice || appointment.tattoo_price || 0,
+            piercingPrice: appointment.piercingPrice || appointment.piercing_price || 0,
             beforePhoto: appointment.beforePhoto,
             referenceImage: appointment.referenceImage,
             manualPaidAmount: appointment.manualPaidAmount || 0,
@@ -652,6 +660,8 @@ function AdminAppointments() {
             paymentStatus: 'unpaid',
             notes: '',
             price: 0,
+            tattooPrice: 0,
+            piercingPrice: 0,
             beforePhoto: null,
             referenceImage: null,
             manualPaidAmount: 0,
@@ -663,7 +673,7 @@ function AdminAppointments() {
             quotedPrice: ''
         });
         setClientSearch('');
-        initialFormDataRef.current = { ...formData, clientId: '', artistId: '', secondaryArtistId: '', commissionSplit: 50, serviceType: '', date: prefilledDate || new Date().toISOString().split('T')[0], time: '13:00', status: 'pending', paymentStatus: 'unpaid', notes: '', price: 0, beforePhoto: null, referenceImage: null, manualPaidAmount: 0, manualPaymentMethod: 'Cash', rejectionReason: '', rescheduleReason: '', isReferral: false };
+        initialFormDataRef.current = { ...formData, clientId: '', artistId: '', secondaryArtistId: '', commissionSplit: 50, serviceType: '', date: prefilledDate || new Date().toISOString().split('T')[0], time: '13:00', status: 'pending', paymentStatus: 'unpaid', notes: '', price: 0, tattooPrice: 0, piercingPrice: 0, beforePhoto: null, referenceImage: null, manualPaidAmount: 0, manualPaymentMethod: 'Cash', rejectionReason: '', rescheduleReason: '', isReferral: false };
         openModal();
     };
 
@@ -683,6 +693,8 @@ function AdminAppointments() {
             paymentStatus: 'unpaid',
             notes: `Continuation of project: ${appointment.designTitle || appointment.design_title}`,
             price: appointment.price || 0,
+            tattooPrice: appointment.tattooPrice || appointment.tattoo_price || 0,
+            piercingPrice: appointment.piercingPrice || appointment.piercing_price || 0,
             beforePhoto: null,
             referenceImage: appointment.referenceImage || '',
             manualPaidAmount: 0,
@@ -736,6 +748,21 @@ function AdminAppointments() {
         let priceValue = parseFloat(priceInput);
         const finalPrice = (!priceValue || priceValue < 0) ? 0 : priceValue;
 
+        // Dual-service split price validation
+        if (isDualService && !isCancellingOrRejecting) {
+            const tp = Number(formData.tattooPrice) || 0;
+            const pp = Number(formData.piercingPrice) || 0;
+            const newErrors = {};
+            if (tp <= 0) newErrors.tattooPrice = 'Tattoo quote is required';
+            if (pp <= 0) newErrors.piercingPrice = 'Piercing quote is required';
+            if (Object.keys(newErrors).length > 0) {
+                setErrors(newErrors);
+                setModalTab('pricing');
+                showAlert('Split Pricing Required', 'Both the Tattoo Quote and Piercing Quote must be greater than zero for a Tattoo + Piercing session.', 'warning');
+                return;
+            }
+        }
+
         // Block completing a tattoo session without staff + price
         if (isTattooSession && formData.status === 'completed') {
             if (hasNoArtist) {
@@ -761,9 +788,10 @@ function AdminAppointments() {
             return;
         }
 
+        // Minimum price check: ₱5,000 applies to the total (piercing portion is disregarded for the minimum)
         if (isTattooSession && finalPrice > 0 && finalPrice < 5000 && !isCancellingOrRejecting) {
             setModalTab('pricing');
-            showAlert('Minimum Price', 'The minimum quote for a Tattoo Session is ₱5,000. Please adjust the price accordingly.', 'warning');
+            showAlert('Minimum Price', 'The minimum quote for a Tattoo Session is ₱5,000 (base reservation/downpayment rate). Please adjust the price accordingly.', 'warning');
             return;
         }
 
@@ -789,7 +817,9 @@ function AdminAppointments() {
                     rescheduleReason: formData.rescheduleReason,
                     isReferral: formData.isReferral || false,
                     consultationNotes: formData.consultationNotes || null,
-                    quotedPrice: formData.quotedPrice || null
+                    quotedPrice: formData.quotedPrice || null,
+                    tattooPrice: isDualService ? (Number(formData.tattooPrice) || 0) : null,
+                    piercingPrice: isDualService ? (Number(formData.piercingPrice) || 0) : null
                 };
 
                 if (selectedAppointment) {
@@ -1711,44 +1741,53 @@ function AdminAppointments() {
                             </div>
 
                             <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <button
-                                    className="btn"
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#eff6ff', color: '#2563eb', borderColor: '#bfdbfe' }}
-                                    onClick={() => {
-                                        // Switch to editable mode
-                                        setArchiveMode(false);
-                                        setModalTab('details');
-                                        const storedArtistId = selectedAppointment.artistId || selectedAppointment.artist_id;
-                                        const isRealArtist = artists.some(a => String(a.id) === String(storedArtistId));
-                                        setFormData({
-                                            clientId: selectedAppointment.clientId || selectedAppointment.customer_id,
-                                            artistId: isRealArtist ? storedArtistId : '',
-                                            secondaryArtistId: selectedAppointment.secondary_artist_id || '',
-                                            commissionSplit: selectedAppointment.commission_split || 50,
-                                            serviceType: selectedAppointment.serviceType || selectedAppointment.service_type,
-                                            designTitle: selectedAppointment.designTitle || selectedAppointment.design_title,
-                                            date: selectedAppointment.date || selectedAppointment.appointment_date,
-                                            time: selectedAppointment.time || selectedAppointment.start_time,
-                                            status: selectedAppointment.status,
-                                            paymentStatus: (!selectedAppointment.price || selectedAppointment.price <= 0) ? 'unpaid' : (selectedAppointment.paymentStatus || selectedAppointment.payment_status || 'unpaid'),
-                                            notes: selectedAppointment.notes,
-                                            price: selectedAppointment.price,
-                                            beforePhoto: selectedAppointment.beforePhoto,
-                                            referenceImage: selectedAppointment.referenceImage,
-                                            manualPaidAmount: selectedAppointment.manualPaidAmount || 0,
-                                            manualPaymentMethod: selectedAppointment.manualPaymentMethod || 'Cash',
-                                            rejectionReason: selectedAppointment.rejectionReason || '',
-                                            rescheduleReason: '',
-                                            isReferral: !!selectedAppointment.isReferral,
-                                            consultationNotes: selectedAppointment.consultationNotes || '',
-                                            quotedPrice: selectedAppointment.quotedPrice || ''
-                                        });
-                                        setClientSearch(selectedAppointment.clientName);
-                                        initialFormDataRef.current = null;
-                                    }}
-                                >
-                                    <FileText size={16} /> Edit Appointment
-                                </button>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button
+                                        className="btn"
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#eff6ff', color: '#2563eb', borderColor: '#bfdbfe' }}
+                                        onClick={() => {
+                                            // Switch to editable mode
+                                            setArchiveMode(false);
+                                            setModalTab('details');
+                                            const storedArtistId = selectedAppointment.artistId || selectedAppointment.artist_id;
+                                            const isRealArtist = artists.some(a => String(a.id) === String(storedArtistId));
+                                            setFormData({
+                                                clientId: selectedAppointment.clientId || selectedAppointment.customer_id,
+                                                artistId: isRealArtist ? storedArtistId : '',
+                                                secondaryArtistId: selectedAppointment.secondary_artist_id || '',
+                                                commissionSplit: selectedAppointment.commission_split || 50,
+                                                serviceType: selectedAppointment.serviceType || selectedAppointment.service_type,
+                                                designTitle: selectedAppointment.designTitle || selectedAppointment.design_title,
+                                                date: selectedAppointment.date || selectedAppointment.appointment_date,
+                                                time: selectedAppointment.time || selectedAppointment.start_time,
+                                                status: selectedAppointment.status,
+                                                paymentStatus: (!selectedAppointment.price || selectedAppointment.price <= 0) ? 'unpaid' : (selectedAppointment.paymentStatus || selectedAppointment.payment_status || 'unpaid'),
+                                                notes: selectedAppointment.notes,
+                                                price: selectedAppointment.price,
+                                                beforePhoto: selectedAppointment.beforePhoto,
+                                                referenceImage: selectedAppointment.referenceImage,
+                                                manualPaidAmount: selectedAppointment.manualPaidAmount || 0,
+                                                manualPaymentMethod: selectedAppointment.manualPaymentMethod || 'Cash',
+                                                rejectionReason: selectedAppointment.rejectionReason || '',
+                                                rescheduleReason: '',
+                                                isReferral: !!selectedAppointment.isReferral,
+                                                consultationNotes: selectedAppointment.consultationNotes || '',
+                                                quotedPrice: selectedAppointment.quotedPrice || ''
+                                            });
+                                            setClientSearch(selectedAppointment.clientName);
+                                            initialFormDataRef.current = null;
+                                        }}
+                                    >
+                                        <FileText size={16} /> Edit Appointment
+                                    </button>
+                                    <button
+                                        className="btn"
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', color: '#475569', borderColor: '#e2e8f0' }}
+                                        onClick={() => window.open(`/admin/appointments/${selectedAppointment.id}/print`, '_blank')}
+                                    >
+                                        <Printer size={16} /> Print Record
+                                    </button>
+                                </div>
                                 <button className="btn btn-primary admin-st-6948e5f9" onClick={() => closeModal(true)}>Done Reviewing</button>
                             </div>
                         </div>
@@ -2011,11 +2050,13 @@ function AdminAppointments() {
                                                     const isDualConsultation = formData.serviceType === 'Consultation' && (formData.notes || '').toLowerCase().includes('piercing');
                                                     const requiresDualStaff = isDualService || isDualConsultation;
                                                     const primaryLabel = isDualService
-                                                        ? <span>Tattoo Staff <span style={{ color: '#ef4444' }}>*</span></span>
+                                                        ? <span>💉 Tattoo Artist <span style={{ color: '#ef4444' }}>*</span></span>
                                                         : <span>Primary Staff <span style={{ color: '#ef4444' }}>*</span></span>;
-                                                    const secondaryLabel = requiresDualStaff
-                                                        ? <span>Secondary Staff <span style={{ color: '#ef4444' }}>*</span></span>
-                                                        : 'Secondary Staff';
+                                                    const secondaryLabel = isDualService
+                                                        ? <span>🪛 Piercer <span style={{ color: '#ef4444' }}>*</span></span>
+                                                        : requiresDualStaff
+                                                            ? <span>Secondary Staff <span style={{ color: '#ef4444' }}>*</span></span>
+                                                            : 'Tattoo Artist 2';
                                                     return (
                                                 <div>
                                                     <div className="admin-st-fefecdf0">
@@ -2044,11 +2085,18 @@ function AdminAppointments() {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    {formData.secondaryArtistId && formData.serviceType !== 'Consultation' && (
+                                                    {/* Commission split slider: only for collab tattoo sessions (NOT for Tattoo + Piercing dual-service) */}
+                                                    {formData.secondaryArtistId && formData.serviceType !== 'Consultation' && formData.serviceType !== 'Tattoo + Piercing' && (
                                                         <div className="admin-st-953ba7ac">
-                                                            <label className="admin-st-15b3be7e">Split % (Pri/Sec):</label>
+                                                            <label className="admin-st-15b3be7e">Split % (Artist 1/Artist 2):</label>
                                                             <input type="number" min="1" max="99" value={formData.commissionSplit} onChange={(e) => setFormData({ ...formData, commissionSplit: clampNumber(e.target.value, 1, 99) })} className="premium-input-v2 admin-st-e070afd8" disabled={selectedAppointment?.status === 'completed'} />
                                                             <span className="admin-st-7206c648">/ {100 - (formData.commissionSplit || 0)}</span>
+                                                        </div>
+                                                    )}
+                                                    {/* Dual-service note: commission is per-service-line */}
+                                                    {formData.secondaryArtistId && formData.serviceType === 'Tattoo + Piercing' && (
+                                                        <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '0.75rem', color: '#166534', fontWeight: 500 }}>
+                                                            ✔ Commission calculated per service line — Tattoo Artist earns from tattoo quote, Piercer earns from piercing quote.
                                                         </div>
                                                     )}
                                                 </div>
@@ -2201,21 +2249,78 @@ function AdminAppointments() {
                                     <div className="fade-in admin-st-9628d1ce">
                                         <div className="admin-st-dd4f6313">
                                             <div className="admin-st-e5b0a825">
-                                                <div className="form-group">
-                                                    <label className={`admin-st-6ad161f7 ${errors.price ? 'text-red-500' : ''}`}>Total Quote (₱) *</label>
-                                                    <input 
-                                                        type="text" 
-                                                        inputMode="numeric"
-                                                        value={formData.price === 0 || formData.price === '0' ? '' : formData.price} 
-                                                        onChange={(e) => {
-                                                            const raw = e.target.value.replace(/[^0-9]/g, '');
-                                                            handleInputChange('price', raw === '' ? 0 : Number(raw));
-                                                        }} 
-                                                        placeholder="e.g. 5000"
-                                                        className={`premium-input-v2 admin-st-1a49bbe7 ${errors.price ? 'border-red-500 bg-red-50' : ''}`} 
-                                                    />
-                                                    {errors.price && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.price}</span>}
-                                                </div>
+                                                {/* Dual-service: show split price inputs */}
+                                                {formData.serviceType === 'Tattoo + Piercing' ? (
+                                                    <>
+                                                        <div className="form-group">
+                                                            <label className={`admin-st-6ad161f7 ${errors.tattooPrice ? 'text-red-500' : ''}`}>💉 Tattoo Quote (₱) *</label>
+                                                            <input 
+                                                                type="text" 
+                                                                inputMode="numeric"
+                                                                value={formData.tattooPrice === 0 || formData.tattooPrice === '0' ? '' : formData.tattooPrice} 
+                                                                onChange={(e) => {
+                                                                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                                    const val = raw === '' ? 0 : Number(raw);
+                                                                    setFormData(prev => ({ ...prev, tattooPrice: val, price: val + (Number(prev.piercingPrice) || 0) }));
+                                                                }} 
+                                                                placeholder="e.g. 5000"
+                                                                className={`premium-input-v2 admin-st-1a49bbe7 ${errors.tattooPrice ? 'border-red-500 bg-red-50' : ''}`} 
+                                                            />
+                                                            {errors.tattooPrice && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.tattooPrice}</span>}
+                                                        </div>
+                                                        <div className="form-group">
+                                                            <label className={`admin-st-6ad161f7 ${errors.piercingPrice ? 'text-red-500' : ''}`}>🪛 Piercing Quote (₱) *</label>
+                                                            <input 
+                                                                type="text" 
+                                                                inputMode="numeric"
+                                                                value={formData.piercingPrice === 0 || formData.piercingPrice === '0' ? '' : formData.piercingPrice} 
+                                                                onChange={(e) => {
+                                                                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                                    const val = raw === '' ? 0 : Number(raw);
+                                                                    setFormData(prev => ({ ...prev, piercingPrice: val, price: (Number(prev.tattooPrice) || 0) + val }));
+                                                                }} 
+                                                                placeholder="e.g. 2500"
+                                                                className={`premium-input-v2 admin-st-1a49bbe7 ${errors.piercingPrice ? 'border-red-500 bg-red-50' : ''}`} 
+                                                            />
+                                                            {errors.piercingPrice && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.piercingPrice}</span>}
+                                                        </div>
+                                                        {/* Auto-computed total display */}
+                                                        <div style={{ gridColumn: '1 / -1', marginTop: '4px', padding: '12px 16px', borderRadius: '10px', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid #e2e8f0' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Combined Total:</span>
+                                                                <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b' }}>₱{Number(formData.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                            {formData.secondaryArtistId && (Number(formData.tattooPrice) > 0 || Number(formData.piercingPrice) > 0) && (
+                                                                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
+                                                                        <span>💉 {artists.find(a => String(a.id) === String(formData.artistId))?.name || 'Tattoo Artist'} earns (30%):</span>
+                                                                        <span style={{ fontWeight: 600, color: '#059669' }}>₱{(Number(formData.tattooPrice) * 0.30).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                    </div>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
+                                                                        <span>🪛 {artists.find(a => String(a.id) === String(formData.secondaryArtistId))?.name || 'Piercer'} earns (30%):</span>
+                                                                        <span style={{ fontWeight: 600, color: '#059669' }}>₱{(Number(formData.piercingPrice) * 0.30).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="form-group">
+                                                        <label className={`admin-st-6ad161f7 ${errors.price ? 'text-red-500' : ''}`}>Total Quote (₱) *</label>
+                                                        <input 
+                                                            type="text" 
+                                                            inputMode="numeric"
+                                                            value={formData.price === 0 || formData.price === '0' ? '' : formData.price} 
+                                                            onChange={(e) => {
+                                                                const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                                handleInputChange('price', raw === '' ? 0 : Number(raw));
+                                                            }} 
+                                                            placeholder="e.g. 5000"
+                                                            className={`premium-input-v2 admin-st-1a49bbe7 ${errors.price ? 'border-red-500 bg-red-50' : ''}`} 
+                                                        />
+                                                        {errors.price && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.price}</span>}
+                                                    </div>
+                                                )}
                                                 <div className="form-group">
                                                     <label className="admin-st-6ad161f7">Payment Strategy</label>
                                                     <select value={formData.paymentStatus} onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })} className="premium-select-v2 admin-st-c8e7c63b">
@@ -2515,8 +2620,14 @@ function AdminAppointments() {
                                                     <Calendar size={16} /> Reschedule
                                                 </button>
                                                 )}
-
-
+                                                <button
+                                                    type="button"
+                                                    className="btn"
+                                                    onClick={() => window.open(`/admin/appointments/${selectedAppointment.id}/print`, '_blank')}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f8fafc', color: '#475569', borderColor: '#e2e8f0' }}
+                                                >
+                                                    <Printer size={16} /> Print Record
+                                                </button>
                                             </>
                                         )}
                                     </div>

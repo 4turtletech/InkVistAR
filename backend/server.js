@@ -912,6 +912,24 @@ db.getConnection((err, connection) => {
             console.log('✅ Added quoted_price column to appointments');
           }
         });
+
+        // MIGRATION: Add 'tattoo_price' column for dual-service split quotes
+        db.query("SHOW COLUMNS FROM appointments LIKE 'tattoo_price'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding tattoo_price column...');
+            db.query("ALTER TABLE appointments ADD COLUMN tattoo_price DECIMAL(10, 2) NULL DEFAULT NULL");
+            console.log('✅ Added tattoo_price column to appointments');
+          }
+        });
+
+        // MIGRATION: Add 'piercing_price' column for dual-service split quotes
+        db.query("SHOW COLUMNS FROM appointments LIKE 'piercing_price'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding piercing_price column...');
+            db.query("ALTER TABLE appointments ADD COLUMN piercing_price DECIMAL(10, 2) NULL DEFAULT NULL");
+            console.log('✅ Added piercing_price column to appointments');
+          }
+        });
       }
     });
 
@@ -3657,7 +3675,7 @@ app.post('/api/customer/appointments', async (req, res) => {
 app.get('/api/customer/:customerId/appointments', (req, res) => {
   const { customerId } = req.params;
   const query = `
-    SELECT ap.*, ap.price, u.name as artist_name, u.email as artist_email, 
+    SELECT ap.*, ap.price, ap.tattoo_price, ap.piercing_price, u.name as artist_name, u.email as artist_email, 
            COALESCE(a.studio_name, 'Independent Artist') as studio_name,
            ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
            ap.manual_payment_method,
@@ -4321,9 +4339,44 @@ app.get('/api/admin/appointments', (req, res) => {
   });
 });
 
+// GET single appointment by ID (for Print View)
+app.get('/api/admin/appointments/:id', (req, res) => {
+  const { id } = req.params;
+  const query = `
+    SELECT 
+      ap.*, 
+      u_cust.name as client_name, 
+      u_cust.email as client_email,
+      u_art.name as artist_name,
+      u_sec.name as secondary_artist_name,
+      ar.commission_rate,
+      ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
+      ap.manual_payment_method,
+      cust.profile_image as client_avatar
+    FROM appointments ap
+    JOIN users u_cust ON ap.customer_id = u_cust.id
+    JOIN users u_art ON ap.artist_id = u_art.id
+    LEFT JOIN users u_sec ON ap.secondary_artist_id = u_sec.id
+    LEFT JOIN artists ar ON ap.artist_id = ar.user_id
+    LEFT JOIN customers cust ON ap.customer_id = cust.user_id
+    WHERE ap.id = ? AND ap.is_deleted = 0
+  `;
+
+  db.query(query, [id], (err, results) => {
+    if (err) {
+      console.error('❌ Error fetching appointment:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+    res.json({ success: true, appointment: results[0] });
+  });
+});
+
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', async (req, res) => {
-  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone } = req.body;
+  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, tattooPrice, piercingPrice } = req.body;
 
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
@@ -4406,12 +4459,20 @@ app.post('/api/admin/appointments', async (req, res) => {
         return res.status(400).json({ success: false, message: 'Scheduling Conflict: The artist or client already has an appointment at this date and time.' });
       }
 
+      // Sanitize split prices for dual-service bookings
+      const sanitizedTattooPrice = (serviceType === 'Tattoo + Piercing' && tattooPrice !== undefined && tattooPrice !== null) ? (parseFloat(tattooPrice) || 0) : null;
+      const sanitizedPiercingPrice = (serviceType === 'Tattoo + Piercing' && piercingPrice !== undefined && piercingPrice !== null) ? (parseFloat(piercingPrice) || 0) : null;
+      // Auto-compute total from split prices for dual-service
+      const finalPrice = (serviceType === 'Tattoo + Piercing' && sanitizedTattooPrice !== null && sanitizedPiercingPrice !== null)
+        ? sanitizedTattooPrice + sanitizedPiercingPrice
+        : (price || 0);
+
       const query = `
         INSERT INTO appointments 
-          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?)
+          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?)
       `;
-      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', price || 0, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null], (err, result) => {
+      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null], (err, result) => {
         if (err) {
           console.error('❌ Error creating admin appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -4553,6 +4614,24 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (consultationMethod !== undefined) { updates.push('consultation_method = ?'); params.push(consultationMethod); }
   if (consultationNotes !== undefined) { updates.push('consultation_notes = ?'); params.push(consultationNotes); }
   if (quotedPrice !== undefined) { updates.push('quoted_price = ?'); params.push(quotedPrice); }
+
+  // Dual-service split pricing: sanitize and persist tattoo_price / piercing_price
+  const isDualServiceUpdate = (serviceType === 'Tattoo + Piercing');
+  if (body.tattooPrice !== undefined) {
+    const tp = isDualServiceUpdate ? (parseFloat(body.tattooPrice) || 0) : null;
+    updates.push('tattoo_price = ?');
+    params.push(tp);
+  }
+  if (body.piercingPrice !== undefined) {
+    const pp = isDualServiceUpdate ? (parseFloat(body.piercingPrice) || 0) : null;
+    updates.push('piercing_price = ?');
+    params.push(pp);
+  }
+  // If switching away from dual-service, explicitly clear split prices
+  if (serviceType !== undefined && serviceType !== 'Tattoo + Piercing') {
+    if (body.tattooPrice === undefined) { updates.push('tattoo_price = ?'); params.push(null); }
+    if (body.piercingPrice === undefined) { updates.push('piercing_price = ?'); params.push(null); }
+  }
 
   // Referral flag: admin-only toggle (only applies to solo sessions)
   if (body.isReferral !== undefined) {
@@ -6166,7 +6245,7 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
 
     // 2. Get Completed Appointments
     const apptsQuery = `
-      SELECT ap.id, ap.appointment_date, ap.design_title, ap.price, ap.payment_status, ap.status, 
+      SELECT ap.id, ap.appointment_date, ap.design_title, ap.price, ap.tattoo_price, ap.piercing_price, ap.service_type, ap.payment_status, ap.status, 
              ap.artist_id, ap.secondary_artist_id, ap.commission_split, ap.is_referral,
              u_cust.name as client_name,
              u_sec.name as secondary_artist_name,
@@ -6194,18 +6273,38 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
           const isPrimary = Number(a.artist_id) === Number(id);
           let splitPercent = 100;
           let collabPartnerName = null;
+          let serviceLine = null; // The service line this artist is being paid from
 
           if (isCollab) {
-            // Referral does NOT apply to collab sessions
-            const split = a.commission_split || 50; // default 50/50
-            if (isPrimary) {
-              artistShare = a.price * ARTIST_RATE * (split / 100);
-              splitPercent = split;
-              collabPartnerName = a.secondary_artist_name;
+            // Determine if this is a dual-service session with split pricing
+            const hasSplitPricing = a.tattoo_price !== null && a.piercing_price !== null;
+
+            if (hasSplitPricing) {
+              // Per-service-line commission: Tattoo artist earns from tattoo_price, Piercer earns from piercing_price
+              if (isPrimary) {
+                artistShare = a.tattoo_price * ARTIST_RATE;
+                splitPercent = Math.round((a.tattoo_price / a.price) * 100) || 0;
+                collabPartnerName = a.secondary_artist_name;
+                serviceLine = 'Tattoo';
+              } else {
+                artistShare = a.piercing_price * ARTIST_RATE;
+                splitPercent = Math.round((a.piercing_price / a.price) * 100) || 0;
+                collabPartnerName = a.primary_artist_name;
+                serviceLine = 'Piercing';
+              }
             } else {
-              artistShare = a.price * ARTIST_RATE * ((100 - split) / 100);
-              splitPercent = 100 - split;
-              collabPartnerName = a.primary_artist_name;
+              // Legacy collab or dual-tattoo-artist session: split by percentage slider
+              // Referral does NOT apply to collab sessions
+              const split = a.commission_split || 50;
+              if (isPrimary) {
+                artistShare = a.price * ARTIST_RATE * (split / 100);
+                splitPercent = split;
+                collabPartnerName = a.secondary_artist_name;
+              } else {
+                artistShare = a.price * ARTIST_RATE * ((100 - split) / 100);
+                splitPercent = 100 - split;
+                collabPartnerName = a.primary_artist_name;
+              }
             }
           } else {
             // Solo session: apply referral rate if flagged
@@ -6221,6 +6320,7 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
             isPrimary,
             splitPercent,
             collabPartnerName,
+            serviceLine,
             isReferral: !!a.is_referral
           };
         });
@@ -8346,6 +8446,8 @@ app.get('/api/admin/analytics', (req, res) => {
   `;
 
   // 3. Artist Productivity — filtered by timeframe
+  //    Uses per-service-line pricing when tattoo_price/piercing_price are set (dual-service split),
+  //    otherwise falls back to commission_split percentage (collab/legacy).
   const artistQuery = `
     SELECT name, SUM(appointments) as appointments, SUM(revenue) as revenue FROM (
       SELECT 
@@ -8353,7 +8455,13 @@ app.get('/api/admin/analytics', (req, res) => {
         COUNT(ap.id) as appointments,
         SUM(
           (((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0))
-          * CASE WHEN ap.secondary_artist_id IS NOT NULL THEN COALESCE(ap.commission_split, 50) / 100.0 ELSE 1 END
+          * CASE 
+              WHEN ap.secondary_artist_id IS NOT NULL AND ap.tattoo_price IS NOT NULL AND ap.piercing_price IS NOT NULL 
+                THEN ap.tattoo_price / NULLIF(ap.price, 0)
+              WHEN ap.secondary_artist_id IS NOT NULL 
+                THEN COALESCE(ap.commission_split, 50) / 100.0 
+              ELSE 1 
+            END
         ) as revenue
       FROM appointments ap
       JOIN users u ON ap.artist_id = u.id
@@ -8365,7 +8473,11 @@ app.get('/api/admin/analytics', (req, res) => {
         COUNT(ap.id) as appointments,
         SUM(
           (((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0))
-          * (100 - COALESCE(ap.commission_split, 50)) / 100.0
+          * CASE 
+              WHEN ap.tattoo_price IS NOT NULL AND ap.piercing_price IS NOT NULL 
+                THEN ap.piercing_price / NULLIF(ap.price, 0)
+              ELSE (100 - COALESCE(ap.commission_split, 50)) / 100.0 
+            END
         ) as revenue
       FROM appointments ap
       JOIN users u ON ap.secondary_artist_id = u.id

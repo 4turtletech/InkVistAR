@@ -26,6 +26,7 @@ import AdminClients from './pages/AdminClients';
 import AdminBilling from './pages/AdminBilling';
 import AdminChat from './pages/AdminChat';
 import AdminNotifications from './pages/AdminNotifications';
+import AppointmentPrintView from './pages/AppointmentPrintView';
 
 import CustomerNotifications from './pages/CustomerNotifications';
 
@@ -112,6 +113,7 @@ function App() {
             <Route path="/admin/billing" element={<ProtectedRoute allowedRoles={['admin']}><AdminBilling /></ProtectedRoute>} />
             <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={['admin']}><AdminChat /></ProtectedRoute>} />
             <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['admin']}><AdminNotifications /></ProtectedRoute>} />
+            <Route path="/admin/appointments/:id/print" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AppointmentPrintView /></ProtectedRoute>} />
             <Route path="/artist" element={<ProtectedRoute allowedRoles={['artist']}><ArtistPortal /></ProtectedRoute>} />
             <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']}><CustomerPortal /></ProtectedRoute>} />
             <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><ManagerPortal /></ProtectedRoute>} />

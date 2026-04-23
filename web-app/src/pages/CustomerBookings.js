@@ -1228,6 +1228,20 @@ function CustomerBookings(){
 
                                     <h4 className="customer-st-6f90639a" >Financial Summary</h4>
                                     <div className="billing-summary customer-st-aa822c5e" >
+                                        {/* Line-item breakdown for dual-service appointments */}
+                                        {selectedApt.service_type === 'Tattoo + Piercing' && (Number(selectedApt.tattoo_price) > 0 || Number(selectedApt.piercing_price) > 0) && (
+                                            <div style={{ marginBottom: '12px', padding: '10px 14px', borderRadius: '10px', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid #e2e8f0' }}>
+                                                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Service Breakdown</div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                                    <span style={{ fontSize: '0.88rem', color: '#475569' }}>💉 Tattoo Session</span>
+                                                    <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1e293b' }}>₱{Number(selectedApt.tattoo_price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.88rem', color: '#475569' }}>🪛 Piercing Service</span>
+                                                    <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1e293b' }}>₱{Number(selectedApt.piercing_price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="customer-st-56da6dbd" >
                                             <span className="customer-st-504f25fa" >Total Service Price:</span>
                                             <span className="customer-st-c6cdc897" >₱{selectedApt.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
