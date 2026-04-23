@@ -599,3 +599,71 @@
         top: 50px !important;
     }
 }
+
+/* ========== ARTIST DASHBOARD LAYOUT CLASSES ========== */
+
+/* 3-column Metric Cards Row */
+.artist-metric-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    padding: 0 2rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Chart Rows (Week Ahead / Schedule) */
+.artist-chart-row {
+    padding: 0 2rem;
+    margin-top: 1.5rem;
+}
+
+/* Upcoming Sessions Section */
+.artist-upcoming-section {
+    padding: 1.5rem 2rem 0;
+}
+
+/* ========== ARTIST DASHBOARD — MOBILE OVERRIDES ========== */
+@media (max-width: 768px) {
+
+    /* Metric cards: 3-col → 1-col stacked */
+    .artist-metric-cards {
+        grid-template-columns: 1fr !important;
+        padding: 0 1rem !important;
+        gap: 12px !important;
+        margin-bottom: 1rem !important;
+    }
+
+    /* Chart rows: reduce side padding */
+    .artist-chart-row {
+        padding: 0 1rem !important;
+        margin-top: 1rem !important;
+    }
+
+    /* Upcoming sessions: reduce side padding */
+    .artist-upcoming-section {
+        padding: 1rem 1rem 0 !important;
+    }
+
+    /* Header actions: keep notification bell accessible */
+    .portal-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Tables: horizontal scroll on mobile */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Today's schedule / Upcoming sessions card header: stack on very small screens */
+    .card glass-card > div:first-child {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* portal-container padding reduction on mobile */
+    .portal-container {
+        padding: 1rem !important;
+    }
+}

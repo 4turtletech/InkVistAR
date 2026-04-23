@@ -271,7 +271,7 @@ function ArtistPortal() {
                     ) : (
                         <>
                             {/* ═══════════════ METRIC CARDS (AnalyticsMetricCards-style with mini charts) ═══════════════ */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', padding: '0 2rem', marginBottom: '1.5rem' }}>
+                            <div className="artist-metric-cards">
                                 {/* Total Earnings — AreaChart trend */}
                                 <div className="card glass-card" style={{ cursor: 'pointer', padding: '20px', display: 'flex', flexDirection: 'column' }} onClick={() => navigate('/artist/earnings')}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -356,7 +356,7 @@ function ArtistPortal() {
                             </div>
 
                             {/* ═══════════════ CHARTS ROW: Week Ahead + Recent Activity ═══════════════ */}
-                            <div className="analytics-dashboard-layout" style={{ padding: '0 2rem', marginTop: '1.5rem' }}>
+                            <div className="analytics-dashboard-layout artist-chart-row">
                                 {/* Upcoming Sessions by Day */}
                                 <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
                                     <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Week Ahead</h2>
@@ -432,7 +432,7 @@ function ArtistPortal() {
                             </div>
 
                             {/* ═══════════════ ROW 2: Today's Schedule + Monthly Earnings ═══════════════ */}
-                            <div className="analytics-dashboard-layout" style={{ padding: '0 2rem', marginTop: '1.5rem' }}>
+                            <div className="analytics-dashboard-layout artist-chart-row">
                                 {/* Today's Schedule */}
                                 <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -514,7 +514,7 @@ function ArtistPortal() {
                             </div>
 
                             {/* ═══════════════ UPCOMING SESSIONS TABLE (with pagination) ═══════════════ */}
-                            <div style={{ padding: '1.5rem 2rem 0' }}>
+                            <div className="artist-upcoming-section">
                                 <div className="card glass-card">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                         <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
