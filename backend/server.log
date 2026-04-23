@@ -1,0 +1,27 @@
+[CONFIG] Redirects will point to: http://localhost:3000
+[CONFIG] Verification logic updated for dynamic host detection.
+Ignoring invalid configuration option passed to Connection: maxAllowedPacket. This is currently a warning, but in future versions of MySQL2, an error will be thrown if you pass an invalid configuration option to a Connection
+🤖 Verifying Groq API Key...
+⚡️ Chatbot endpoint (/api/chat) is registered.
+
+==================================================
+🚀 BACKEND SERVER STARTED
+🌐 http://localhost:3001
+🔌 Socket.IO chat server is waiting for connections...
+
+📡 Available Endpoints:
+   GET  http://localhost:3001/api/test
+   GET  http://localhost:3001/api/debug/db
+   GET  http://localhost:3001/api/debug/users
+   GET  http://localhost:3001/api/debug/user/1
+   POST http://localhost:3001/api/register
+   POST http://localhost:3001/api/login
+   POST http://localhost:3001/api/emergency-login
+   GET  http://localhost:3001/api/artist/dashboard/1
+   GET  http://localhost:3001/api/customer/dashboard/1
+==================================================
+
+❌ MySQL Connection Error: Access denied for user 'root'@'localhost' (using password: YES)
+❌ Error code: ER_ACCESS_DENIED_ERROR
+❌ Error SQL State: 28000
+✅ Groq API is WORKING! Response: Hello. How can I help you today?

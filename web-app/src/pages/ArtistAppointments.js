@@ -334,9 +334,6 @@ function ArtistAppointments() {
                 <header className="portal-header">
                     <h1>Schedule Management</h1>
                     <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
-                        <button className="btn btn-secondary" onClick={() => alert("Block date feature coming soon")}>
-                            Block Date
-                        </button>
                         <button className="btn btn-secondary" onClick={handleExport}>
                             Export CSV
                         </button>

@@ -256,6 +256,17 @@
     color: #92400e;
 }
 
+.badge.status-deactivated {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.badge.status-banned {
+    background-color: #fee2e2;
+    color: #991b1b;
+    font-weight: 700;
+}
+
 .badge.status-scheduled {
     background-color: #ede9fe;
     color: #5b21b6;
@@ -368,6 +379,14 @@
 
 .action-btn.delete-btn:hover {
     background-color: #dc2626;
+}
+
+.action-btn.manage-btn {
+    background-color: #f59e0b;
+}
+
+.action-btn.manage-btn:hover {
+    background-color: #d97706;
 }
 
 .action-btn.view {

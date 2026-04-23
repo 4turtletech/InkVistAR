@@ -105,9 +105,19 @@ function AdminUsers() {
         isOpen: false, title: '', message: '', onConfirm: null, type: 'danger', isAlert: false
     });
 
-    // ─── Marketing Email Modal ───
+    // ─── Status Management Modal ───
+    const [statusModal, setStatusModal] = useState({ mounted: false, visible: false, user: null });
+    const [statusFormData, setStatusFormData] = useState({ status: 'active', reason: '', adminNote: '' });
 
-
+    const openStatusModalAnim = (user) => {
+        setStatusModal({ mounted: true, visible: false, user });
+        setStatusFormData({ status: user.account_status || 'active', reason: '', adminNote: '' });
+        setTimeout(() => setStatusModal(prev => ({ ...prev, visible: true })), 10);
+    };
+    const closeStatusModal = () => {
+        setStatusModal(prev => ({ ...prev, visible: false }));
+        setTimeout(() => setStatusModal({ mounted: false, visible: false, user: null }), 400);
+    };
     const showAlert = (title, message, type = 'info') => {
         setConfirmDialog({
             isOpen: true, title, message, type, isAlert: true,
@@ -276,60 +286,41 @@ function AdminUsers() {
     };
 
     // ═══════════════════════════════════════════════════════════
-    // DELETE / RESTORE / PERMANENT DELETE (existing)
+    // STATUS MANAGEMENT
     // ═══════════════════════════════════════════════════════════
 
-    const handleDelete = (userId) => {
-        // Find the user to check super admin status
-        const targetUser = users.find(u => u.id === userId);
-        if (targetUser && targetUser.is_superadmin) {
-            showAlert("Restricted", "Cannot deactivate the system super admin.", "danger");
+    const handleManageStatusClick = (user) => {
+        if (user.is_superadmin) {
+            showAlert("Restricted", "Cannot change the status of the system super admin.", "danger");
             return;
         }
-        setConfirmDialog({
-            isOpen: true, title: 'Deactivate User', message: 'Are you sure you want to deactivate this user?',
-            onConfirm: async () => {
-                setConfirmDialog({ isOpen: false });
-                try {
-                    await Axios.delete(`${API_URL}/api/admin/users/${userId}`, {
-                        headers: { 'X-User-Email': currentUser.email || '' }
-                    });
-                    setUsers(users.filter(u => u.id !== userId));
-                } catch (error) {
-                    console.error("Error deactivating user:", error);
-                    showAlert("Error", error.response?.data?.message || 'Error deactivating user.', "danger");
-                }
-            }
-        });
+        openStatusModalAnim(user);
     };
 
-    const handleRestore = async (userId) => {
-        try { await Axios.put(`${API_URL}/api/admin/users/${userId}/restore`); setUsers(users.filter(u => u.id !== userId)); }
-        catch (error) { console.error("Error restoring user:", error); }
-    };
-
-    const handlePermanentDelete = (userId) => {
-        const targetUser = users.find(u => u.id === userId);
-        if (targetUser && targetUser.is_superadmin) {
-            showAlert("Restricted", "Cannot permanently delete the system super admin.", "danger");
+    const submitStatusChange = async () => {
+        if (statusFormData.status === 'banned' && !statusFormData.reason.trim()) {
+            showAlert("Error", "A reason is required when banning a user.", "danger");
             return;
         }
-        setConfirmDialog({
-            isOpen: true, title: 'Permanent Deletion', message: 'This will PERMANENTLY delete the user and cannot be undone. Continue?',
-            confirmText: 'Permanently Delete',
-            onConfirm: async () => {
-                setConfirmDialog({ isOpen: false });
-                try {
-                    await Axios.delete(`${API_URL}/api/admin/users/${userId}/permanent`, {
-                        headers: { 'X-User-Email': currentUser.email || '' }
-                    });
-                    setUsers(users.filter(u => u.id !== userId));
-                } catch (error) {
-                    console.error("Error deleting user:", error);
-                    showAlert("Error", error.response?.data?.message || 'Error deleting user.', "danger");
-                }
+
+        try {
+            const response = await Axios.put(`${API_URL}/api/admin/users/${statusModal.user.id}/status`, statusFormData, {
+                headers: { 'X-User-Email': currentUser.email || '' }
+            });
+            if (response.data.success) {
+                // Update local state without refetching immediately
+                setUsers(users.map(u => 
+                    u.id === statusModal.user.id 
+                    ? { ...u, account_status: statusFormData.status, status_reason: statusFormData.reason || statusFormData.adminNote } 
+                    : u
+                ));
+                showAlert("Success", "User status updated and email dispatched.", "success");
+                closeStatusModal();
             }
-        });
+        } catch (error) {
+            console.error("Error updating status:", error);
+            showAlert("Error", error.response?.data?.message || 'Error updating status.', "danger");
+        }
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -851,8 +842,11 @@ function AdminUsers() {
                         </div>
                         <div className="premium-filter-item">
                             <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="premium-select-v2">
+                                <option value="all">All Statuses</option>
                                 <option value="active">Active Users</option>
-                                <option value="deleted">Deactivated Users</option>
+                                <option value="deactivated">Deactivated</option>
+                                <option value="banned">Banned</option>
+                                <option value="deleted">Soft Deleted</option>
                             </select>
                         </div>
                         <div className="premium-filter-item">
@@ -920,18 +914,17 @@ function AdminUsers() {
                                             <td>{user.email}</td>
                                             <td>{user.phone || '-'}</td>
                                             <td><span className={`badge role-${user.user_type}`}>{user.user_type}</span></td>
-                                            <td><span className={`badge status-${user.is_deleted ? 'inactive' : 'active'}`}>{user.is_deleted ? 'Inactive' : 'Active'}</span></td>
+                                            <td>
+                                                <span className={`badge status-${user.account_status || (user.is_deleted ? 'inactive' : 'active')}`}>
+                                                    {user.account_status 
+                                                        ? user.account_status.charAt(0).toUpperCase() + user.account_status.slice(1) 
+                                                        : (user.is_deleted ? 'Deactivated' : 'Active')}
+                                                </span>
+                                            </td>
                                             <td className="actions-cell">
                                                 <button className="action-btn edit-btn" onClick={() => handleManage(user)}>Review</button>
                                                 {!user.is_superadmin && (
-                                                    !user.is_deleted ? (
-                                                        <button className="action-btn delete-btn" onClick={() => handleDelete(user.id)}>Deactivate</button>
-                                                    ) : (
-                                                        <>
-                                                            <button className="action-btn view-btn admin-st-f1f5ea52" onClick={() => handleRestore(user.id)}>Restore</button>
-                                                            <button className="action-btn delete-btn admin-st-2cf55662" onClick={() => handlePermanentDelete(user.id)}>Delete</button>
-                                                        </>
-                                                    )
+                                                    <button className="action-btn manage-btn" onClick={() => handleManageStatusClick(user)}>Status</button>
                                                 )}
                                             </td>
                                         </tr>
@@ -1018,8 +1011,8 @@ function AdminUsers() {
                             <div className="modal-footer">
                                 <div className="admin-st-c6588e1a">
                                     {selectedUser && !selectedUser.is_superadmin && (
-                                        <button className="action-btn delete-btn admin-st-af6a31d1" onClick={() => { handlePermanentDelete(selectedUser.id); closeAdminModal(); }}>
-                                            Delete Forever
+                                        <button className="action-btn manage-btn" onClick={() => { handleManageStatusClick(selectedUser); closeAdminModal(); }}>
+                                            Manage Status
                                         </button>
                                     )}
                                 </div>
@@ -1586,6 +1579,72 @@ function AdminUsers() {
                     type={confirmDialog.type} isAlert={confirmDialog.isAlert}
                 />
 
+                {/* Status Management Modal */}
+                {statusModal.mounted && (
+                    <div className={`modal-overlay ${statusModal.visible ? 'open' : ''}`} onClick={closeStatusModal}>
+                        <div className="modal-content medium" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2>Manage Account Status</h2>
+                                <button className="close-btn" onClick={closeStatusModal}><X size={24} /></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="form-group">
+                                    <label className="premium-label">Account Status</label>
+                                    <select
+                                        value={statusFormData.status}
+                                        onChange={(e) => setStatusFormData({ ...statusFormData, status: e.target.value })}
+                                        className="form-input"
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="deactivated">Deactivated (Temporary Suspension)</option>
+                                        <option value="banned">Banned (Permanent Hold)</option>
+                                    </select>
+                                </div>
+                                {statusFormData.status === 'banned' && (
+                                    <div className="form-group" style={{ marginTop: '15px' }}>
+                                        <label className="premium-label" style={{ color: '#ef4444' }}>Reason for Ban (Required) *</label>
+                                        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>
+                                            This will be sent to the user via email and recorded in audit logs.
+                                        </p>
+                                        <textarea
+                                            value={statusFormData.reason}
+                                            onChange={(e) => setStatusFormData({ ...statusFormData, reason: e.target.value })}
+                                            className="form-input"
+                                            placeholder="E.g., Repeated no-shows or policy violations."
+                                            rows={3}
+                                            required
+                                        ></textarea>
+                                    </div>
+                                )}
+                                {(statusFormData.status === 'deactivated' || statusFormData.status === 'active') && (
+                                    <div className="form-group" style={{ marginTop: '15px' }}>
+                                        <label className="premium-label">Administrative Note (Optional)</label>
+                                        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>
+                                            Internal note explaining the status change. Will be included in the email if deactivating.
+                                        </p>
+                                        <textarea
+                                            value={statusFormData.adminNote}
+                                            onChange={(e) => setStatusFormData({ ...statusFormData, adminNote: e.target.value })}
+                                            className="form-input"
+                                            placeholder="Optional context for the team..."
+                                            rows={2}
+                                        ></textarea>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button className="btn btn-secondary" onClick={closeStatusModal}>Cancel</button>
+                                <button 
+                                    className="btn btn-primary" 
+                                    onClick={submitStatusChange}
+                                    style={{ backgroundColor: statusFormData.status === 'banned' ? '#ef4444' : '#10b981' }}
+                                >
+                                    Confirm Status Change
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
             </div>
         </div>

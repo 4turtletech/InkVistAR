@@ -221,6 +221,10 @@ db.getConnection((err, connection) => {
         is_deleted BOOLEAN DEFAULT 0,
         failed_login_attempts INT DEFAULT 0,
         lockout_until DATETIME DEFAULT NULL,
+        account_status ENUM('active', 'deactivated', 'banned') DEFAULT 'active',
+        status_reason TEXT NULL,
+        appeal_status ENUM('none', 'pending', 'accepted', 'denied') DEFAULT 'none',
+        appeal_message TEXT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
@@ -241,6 +245,28 @@ db.getConnection((err, connection) => {
           if (!err && results.length === 0) {
             console.log('🔄 Migrating users: Adding lockout tracking columns...');
             db.query("ALTER TABLE users ADD COLUMN failed_login_attempts INT DEFAULT 0, ADD COLUMN lockout_until DATETIME DEFAULT NULL");
+          }
+        });
+
+        // MIGRATION: Add account status tracking for deactivations and bans
+        db.query("SHOW COLUMNS FROM users LIKE 'account_status'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating users: Adding account status and ban tracking columns...');
+            const alterQuery = `
+              ALTER TABLE users 
+              ADD COLUMN account_status ENUM('active', 'deactivated', 'banned') DEFAULT 'active',
+              ADD COLUMN status_reason TEXT NULL,
+              ADD COLUMN appeal_status ENUM('none', 'pending', 'accepted', 'denied') DEFAULT 'none',
+              ADD COLUMN appeal_message TEXT NULL
+            `;
+            db.query(alterQuery, (err2) => {
+              if (!err2) {
+                console.log('🔄 Migrating users: Mapping existing deleted users to deactivated...');
+                db.query("UPDATE users SET account_status = 'deactivated' WHERE is_deleted = 1 AND account_status = 'active'");
+              } else {
+                console.error('⚠️ Failed to add account status columns:', err2.message);
+              }
+            });
           }
         });
 
@@ -1862,6 +1888,23 @@ app.post('/api/login', async (req, res) => {
         return res.status(403).json({
           success: false,
           message: 'This account has been deactivated.'
+        });
+      }
+
+      // Check account status (banned / deactivated)
+      if (user.account_status === 'banned') {
+        return res.status(403).json({
+          success: false,
+          message: 'This account has been banned. If you believe this is an error, please contact support@inkvictusstudio.com to submit an appeal.',
+          banned: true
+        });
+      }
+
+      if (user.account_status === 'deactivated') {
+        return res.status(403).json({
+          success: false,
+          message: 'This account has been temporarily deactivated by an administrator. Please contact support for more information.',
+          deactivated: true
         });
       }
 
@@ -7533,12 +7576,21 @@ app.get('/api/admin/dashboard', (req, res) => {
 // Admin: Get All Users
 app.get('/api/admin/users', (req, res) => {
   const { search, status } = req.query;
-  let query = 'SELECT id, name, email, phone, user_type, is_verified, is_deleted, is_superadmin FROM users WHERE 1=1';
+  let query = 'SELECT id, name, email, phone, user_type, is_verified, is_deleted, is_superadmin, account_status, status_reason, appeal_status, appeal_message FROM users WHERE 1=1';
   let params = [];
 
+  // We map the incoming UI filter "status" to the DB states.
+  // The UI sends "active", "deactivated", "banned", or "deleted" (legacy).
   if (status === 'deleted') {
     query += ' AND is_deleted = 1';
+  } else if (status === 'deactivated') {
+    query += " AND account_status = 'deactivated' AND is_deleted = 0";
+  } else if (status === 'banned') {
+    query += " AND account_status = 'banned' AND is_deleted = 0";
+  } else if (status === 'active') {
+    query += " AND account_status = 'active' AND is_deleted = 0";
   } else {
+    // "all" or undefined: exclude soft-deleted users by default unless explicitly asked
     query += ' AND is_deleted = 0';
   }
 
@@ -7630,6 +7682,80 @@ app.put('/api/admin/users/:id', (req, res) => {
         res.json({ success: true, message: 'User updated successfully' });
       });
     }
+  });
+});
+
+// Admin: Update User Account Status (Active / Deactivated / Banned)
+app.put('/api/admin/users/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status, reason, adminNote } = req.body; // status: 'active' | 'deactivated' | 'banned'
+  const requestorEmail = req.headers['x-user-email'] || 'System Admin';
+
+  if (!['active', 'deactivated', 'banned'].includes(status)) {
+    return res.status(400).json({ success: false, message: 'Invalid status type provided.' });
+  }
+
+  if (status === 'banned' && !reason) {
+    return res.status(400).json({ success: false, message: 'A reason is required when banning a user.' });
+  }
+
+  // Safety: Don't change status of super admin
+  db.query('SELECT email, is_superadmin, name FROM users WHERE id = ?', [id], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error checking user' });
+    if (results.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
+    
+    const targetUser = results[0];
+    if (targetUser.is_superadmin) {
+      return res.status(403).json({ success: false, message: 'Cannot change the status of the system super admin.' });
+    }
+
+    const query = 'UPDATE users SET account_status = ?, status_reason = ? WHERE id = ?';
+    const finalReason = reason || adminNote || null;
+    
+    db.query(query, [status, finalReason, id], async (updateErr) => {
+      if (updateErr) return res.status(500).json({ success: false, message: updateErr.message });
+      
+      logAction(null, 'UPDATE_USER_STATUS', `Changed user ${id} status to ${status} (Reason: ${finalReason || 'N/A'})`, req.ip);
+      
+      // Send Email Notification to the user if they were deactivated or banned
+      if (status === 'deactivated' || status === 'banned') {
+        const actionTitle = status === 'banned' ? 'Account Banned' : 'Account Deactivated';
+        const actionColor = status === 'banned' ? '#ef4444' : '#f59e0b';
+        const adminMessage = adminNote || finalReason || 'No specific reason provided.';
+        
+        let appealInstruction = '';
+        if (status === 'banned') {
+          appealInstruction = `<p style="margin-top:20px; font-size:14px; color:#64748b;">If you believe this is an error, you may submit an appeal by contacting our support team at <a href="mailto:support@inkvictusstudio.com">support@inkvictusstudio.com</a>.</p>`;
+        }
+
+        const emailHtml = `
+          <div style="font-family:'Inter', sans-serif; max-width:600px; margin:0 auto; padding:30px; background-color:#ffffff; border:1px solid #e2e8f0; border-radius:12px;">
+            <div style="text-align:center; margin-bottom:30px;">
+              <h1 style="color:${actionColor}; font-size:24px; margin:0;">${actionTitle}</h1>
+            </div>
+            <p style="color:#334155; font-size:16px; line-height:1.6;">Hello ${targetUser.name},</p>
+            <p style="color:#334155; font-size:16px; line-height:1.6;">This email is to notify you that your InkVistAR Studio account has been <strong>${status}</strong> by an administrator.</p>
+            
+            <div style="background-color:#f8fafc; border-left:4px solid ${actionColor}; padding:15px; margin:20px 0;">
+              <p style="margin:0; font-size:14px; color:#475569; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Administrator's Note</p>
+              <p style="margin:8px 0 0; color:#1e293b; font-size:15px; font-style:italic;">"${adminMessage}"</p>
+            </div>
+            
+            ${appealInstruction}
+            
+            <p style="color:#64748b; font-size:14px; line-height:1.6; margin-top:30px;">Best regards,<br>The InkVistAR Studio Team</p>
+          </div>
+        `;
+        
+        try {
+          await sendEmail(targetUser.email, `InkVistAR: Important Account Update - ${actionTitle}`, emailHtml);
+        } catch (emailError) {
+          console.error("Failed to send status update email:", emailError.message);
+        }
+      }
+
+      res.json({ success: true, message: `User account successfully ${status}` });
+    });
   });
 });
 
