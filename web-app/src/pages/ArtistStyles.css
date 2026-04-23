@@ -738,12 +738,23 @@
         padding: 0 1rem !important;
     }
 
-    /* ── ArtistGallery / ArtistProfile: modal body inner grid → single col */
+    /* ── All modals: any inner grid → single col on mobile */
     .modal-body [style*="minmax(300px, 1fr)"],
-    .modal-body [style*="gridTemplateColumns: 'minmax"] {
+    .modal-body [style*="gridTemplateColumns: 'minmax"],
+    .modal-body [style*="1fr 1fr"],
+    .modal-body [style*="1fr 1fr 1fr"] {
         display: flex !important;
         flex-direction: column !important;
-        gap: 20px !important;
+        gap: 16px !important;
+    }
+
+    /* Modal itself: full-width on mobile */
+    .modal-content,
+    .modal-content.large {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        max-height: 90vh !important;
+        overflow-y: auto !important;
     }
 
     /* ── ArtistProfile: 1fr 1fr form grids inside data-card → single col */
