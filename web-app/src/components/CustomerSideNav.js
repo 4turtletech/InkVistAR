@@ -17,6 +17,8 @@ import ConfirmModal from './ConfirmModal';
 import Axios from 'axios';
 import { API_URL } from '../config';
 import '../styles/CustomerSideNav.css';
+import NotificationAlertOverlay from './NotificationAlertOverlay';
+import CustomerPaymentAlertOverlay from './CustomerPaymentAlertOverlay';
 
 function CustomerSideNav() {
     const navigate = useNavigate();
@@ -46,7 +48,7 @@ function CustomerSideNav() {
         localStorage.setItem('customerSidenavCollapsed', next ? 'true' : 'false');
     };
 
-    // Fetch unread notification count with polling (10s, silent merge)
+    // Fetch unread notification count and latest notification with polling (10s, silent merge)
     useEffect(() => {
         if (!customerId) return;
         const fetchCount = async () => {
@@ -57,11 +59,41 @@ function CustomerSideNav() {
                         const newCount = res.data.unreadCount || 0;
                         return newCount !== prev ? newCount : prev;
                     });
+                    
+                    // Dispatch the latest unread notification
+                    if (res.data.notifications && res.data.notifications.length > 0) {
+                        // Find the most recent unread notification
+                        const latestUnread = res.data.notifications.find(n => !n.is_read);
+                        if (latestUnread) {
+                            window.dispatchEvent(new CustomEvent('latest-notification', { detail: { notif: latestUnread, role: 'customer' } }));
+                        }
+                    }
                 }
             } catch (e) { /* silent */ }
         };
         fetchCount();
         const interval = setInterval(fetchCount, 10000);
+        return () => clearInterval(interval);
+    }, [customerId]);
+
+    // Poll for unpaid customer appointments
+    useEffect(() => {
+        if (!customerId) return;
+        const fetchPendingPayments = async () => {
+            try {
+                const res = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
+                if (res.data.success && Array.isArray(res.data.appointments)) {
+                    const unpaidAlerts = res.data.appointments.filter(a => 
+                        ['pending', 'confirmed', 'scheduled', 'completed'].includes((a.status || '').toLowerCase()) 
+                        && a.price > 0 
+                        && a.payment_status === 'unpaid'
+                    );
+                    window.dispatchEvent(new CustomEvent('customer-payment-alert', { detail: { alerts: unpaidAlerts } }));
+                }
+            } catch (e) { /* silent */ }
+        };
+        fetchPendingPayments();
+        const interval = setInterval(fetchPendingPayments, 15000); // 15s polling
         return () => clearInterval(interval);
     }, [customerId]);
 
@@ -135,6 +167,9 @@ function CustomerSideNav() {
                 onConfirm={handleLogout}
                 onClose={() => setShowLogoutConfirm(false)}
             />
+            
+            <NotificationAlertOverlay />
+            <CustomerPaymentAlertOverlay />
         </aside>
     );
 }

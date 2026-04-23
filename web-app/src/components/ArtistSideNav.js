@@ -18,6 +18,7 @@ import ConfirmModal from './ConfirmModal';
 import Axios from 'axios';
 import { API_URL } from '../config';
 import '../styles/ArtistSideNav.css';
+import NotificationAlertOverlay from './NotificationAlertOverlay';
 
 function ArtistSideNav() {
     const navigate = useNavigate();
@@ -58,6 +59,13 @@ function ArtistSideNav() {
                         const newCount = res.data.unreadCount || 0;
                         return newCount !== prev ? newCount : prev;
                     });
+                    
+                    if (res.data.notifications && res.data.notifications.length > 0) {
+                        const latestUnread = res.data.notifications.find(n => !n.is_read);
+                        if (latestUnread) {
+                            window.dispatchEvent(new CustomEvent('latest-notification', { detail: { notif: latestUnread, role: 'artist' } }));
+                        }
+                    }
                 }
             } catch (e) { /* silent */ }
         };
@@ -137,6 +145,7 @@ function ArtistSideNav() {
                 onConfirm={handleLogout}
                 onClose={() => setShowLogoutConfirm(false)}
             />
+            <NotificationAlertOverlay />
         </aside>
     );
 }
