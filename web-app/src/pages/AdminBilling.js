@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
-import { Plus, Download, FileText, CreditCard, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, SlidersHorizontal, User } from 'lucide-react';
+import { Plus, Download, FileText, CreditCard, CheckCircle, Printer, X, Trash2, Edit, Search, Filter, ChevronUp, ChevronDown, User } from 'lucide-react';
 import { filterName, filterMoney, clampNumber } from '../utils/validation';
 import PhilippinePeso from '../components/PhilippinePeso';
 
@@ -102,6 +102,15 @@ function AdminBilling() {
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+
+    const handleSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
     const [confirmDialog, setConfirmDialog] = useState({ 
         isOpen: false, 
         title: '', 
@@ -351,8 +360,37 @@ function AdminBilling() {
     };
 
     const filteredInvoices = invoices.filter(inv => {
-        const matchesSearch = (inv.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const searchLower = searchTerm.toLowerCase();
+        
+        let paymentMethod = 'Digital';
+        try {
+            const evt = typeof inv.raw_event === 'string' ? JSON.parse(inv.raw_event) : inv.raw_event;
+            if (evt?.method) paymentMethod = evt.method;
+        } catch(e) {}
+        
+        const dateObj = new Date(inv.created_at);
+        const dateStr1 = dateObj.toLocaleDateString(); 
+        const dateStr2 = dateObj.toISOString().split('T')[0]; 
+        const dateStr3 = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); 
+        const dateStr4 = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); 
+
+        const amountStr = Number(inv.amount).toString();
+        const amountFormatted = Number(inv.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        const invoiceNumStr = inv.invoice_number || `INV-${String(inv.id).padStart(6, '0')}`;
+
+        const matchesSearch = 
+            (inv.client_name || '').toLowerCase().includes(searchLower) || 
+            invoiceNumStr.toLowerCase().includes(searchLower) ||
+            (inv.service_type || '').toLowerCase().includes(searchLower) ||
+            paymentMethod.toLowerCase().includes(searchLower) ||
+            amountStr.includes(searchLower) ||
+            amountFormatted.includes(searchLower) ||
+            dateStr1.toLowerCase().includes(searchLower) ||
+            dateStr2.toLowerCase().includes(searchLower) ||
+            dateStr3.toLowerCase().includes(searchLower) ||
+            dateStr4.toLowerCase().includes(searchLower);
+
         const matchesStatus = statusFilter === 'all' || (inv.status || '').toLowerCase() === statusFilter.toLowerCase();
         const isPOS = (inv.service_type || '').toLowerCase().includes('retail') || (inv.service_type || '').toLowerCase().includes('pos');
         const matchesSource = sourceFilter === 'all' || 
@@ -362,14 +400,57 @@ function AdminBilling() {
         return matchesSearch && matchesStatus && matchesSource && matchesDate;
     });
 
+    const sortedInvoices = [...filteredInvoices].sort((a, b) => {
+        let valA, valB;
+        if (sortConfig.key === 'id') {
+            valA = a.id;
+            valB = b.id;
+        } else if (sortConfig.key === 'client_name') {
+            valA = (a.client_name || 'Walk-in Customer').toLowerCase();
+            valB = (b.client_name || 'Walk-in Customer').toLowerCase();
+        } else if (sortConfig.key === 'service_type') {
+            valA = (a.service_type || '').toLowerCase();
+            valB = (b.service_type || '').toLowerCase();
+        } else if (sortConfig.key === 'created_at') {
+            valA = new Date(a.created_at).getTime();
+            valB = new Date(b.created_at).getTime();
+        } else if (sortConfig.key === 'amount') {
+            valA = parseFloat(a.amount) || 0;
+            valB = parseFloat(b.amount) || 0;
+        } else if (sortConfig.key === 'payment_method') {
+            const getMethod = (inv) => {
+                try {
+                    const evt = typeof inv.raw_event === 'string' ? JSON.parse(inv.raw_event) : inv.raw_event;
+                    return (evt?.method || 'Digital').toLowerCase();
+                } catch(e) { return 'digital'; }
+            };
+            valA = getMethod(a);
+            valB = getMethod(b);
+        } else if (sortConfig.key === 'status') {
+            valA = (a.status || '').toLowerCase();
+            valB = (b.status || '').toLowerCase();
+        }
+        
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+
     // Pagination logic
-    const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
-    const paginatedInvoices = filteredInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    const totalPages = Math.ceil(sortedInvoices.length / itemsPerPage);
+    const paginatedInvoices = sortedInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     // Compute autocomplete suggestions dynamically from the dataset
     const searchSuggestions = Array.from(new Set([
-        ...invoices.map(i => (i.invoice_number || '').trim()),
-        ...invoices.map(i => (i.client_name || '').trim())
+        ...invoices.map(i => (i.invoice_number || `INV-${String(i.id).padStart(6, '0')}`).trim()),
+        ...invoices.map(i => (i.client_name || '').trim()),
+        ...invoices.map(i => (i.service_type || '').trim()),
+        ...invoices.map(i => {
+            try {
+                const evt = typeof i.raw_event === 'string' ? JSON.parse(i.raw_event) : i.raw_event;
+                return (evt?.method || '').trim();
+            } catch(e) { return ''; }
+        })
     ])).filter(Boolean);
 
     return (
@@ -462,15 +543,6 @@ function AdminBilling() {
                                 </div>
 
                                 <div className="premium-filter-item">
-                                    <SlidersHorizontal size={16} />
-                                    <span>Sort:</span>
-                                    <select className="premium-select-v2">
-                                        <option value="date">Date</option>
-                                        <option value="amount">Amount</option>
-                                    </select>
-                                </div>
-
-                                <div className="premium-filter-item">
                                     <Filter size={16} />
                                     <span>Source:</span>
                                     <select 
@@ -518,13 +590,26 @@ function AdminBilling() {
                                 <table className="data-table">
                                     <thead>
                                         <tr>
-                                            <th>Invoice ID</th>
-                                            <th>Client</th>
-                                            <th>Service Type</th>
-                                            <th>Date</th>
-                                            <th>Amount</th>
-                                            <th>Method</th>
-                                            <th>Status</th>
+                                            {[
+                                                { key: 'id', label: 'Invoice ID' },
+                                                { key: 'client_name', label: 'Client' },
+                                                { key: 'service_type', label: 'Service Type' },
+                                                { key: 'created_at', label: 'Date' },
+                                                { key: 'amount', label: 'Amount' },
+                                                { key: 'payment_method', label: 'Method' },
+                                                { key: 'status', label: 'Status' },
+                                            ].map(col => (
+                                                <th key={col.key} onClick={() => handleSort(col.key)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        {col.label}
+                                                        {sortConfig.key === col.key ? (
+                                                            sortConfig.direction === 'asc' ? <ChevronUp size={14} style={{ color: '#be9055' }} /> : <ChevronDown size={14} style={{ color: '#be9055' }} />
+                                                        ) : (
+                                                            <ChevronDown size={14} style={{ color: '#cbd5e1' }} />
+                                                        )}
+                                                    </span>
+                                                </th>
+                                            ))}
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -588,7 +673,7 @@ function AdminBilling() {
                                     setItemsPerPage(newVal);
                                     setCurrentPage(1);
                                 }}
-                                totalItems={filteredInvoices.length}
+                                totalItems={sortedInvoices.length}
                                 unit="invoices"
                             />
                         </div>
