@@ -1699,26 +1699,26 @@ function AdminAppointments() {
                                                         <div className="admin-st-b0dbc89c" style={{ gap: '16px' }}>
                                                             {selectedAppointment && selectedAppointment.clientAvatar ? (
                                                                 <div style={{
-                                                                    width: '64px', height: '64px', borderRadius: '50%',
+                                                                    width: '44px', height: '44px', borderRadius: '50%',
                                                                     backgroundColor: '#f1f5f9', overflow: 'hidden',
-                                                                    border: '3px solid white', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                                                                    border: '2px solid white', boxShadow: '0 2px 4px -1px rgba(0,0,0,0.1)',
                                                                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                                                                 }}>
                                                                     <img src={selectedAppointment.clientAvatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                                 </div>
                                                             ) : (
                                                                 <div style={{
-                                                                    width: '64px', height: '64px', borderRadius: '50%',
+                                                                    width: '44px', height: '44px', borderRadius: '50%',
                                                                     backgroundColor: '#f1f5f9', overflow: 'hidden',
-                                                                    border: '3px solid white', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                                                                    border: '2px solid white', boxShadow: '0 2px 4px -1px rgba(0,0,0,0.1)',
                                                                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                                                                 }}>
-                                                                    <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#be9055' }}>
+                                                                    <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#be9055' }}>
                                                                         {getInitials(clients.find(c => c.id == formData.clientId)?.name || clientSearch)}
                                                                     </span>
                                                                 </div>
                                                             )}
-                                                            <span className="admin-st-0e40c814" style={{ fontSize: '1.2rem', fontWeight: '600' }}>
+                                                            <span className="admin-st-0e40c814" style={{ fontSize: '0.95rem', fontWeight: '600' }}>
                                                                 {clients.find(c => c.id == formData.clientId)?.name || clientSearch}
                                                             </span>
                                                         </div>
@@ -1854,7 +1854,7 @@ function AdminAppointments() {
                                                     );
                                                 })()}
 
-                                                {/* ── Artist Referral Checkbox ── */}
+                                                {/* ── Artist Referral ── */}
                                                 {(() => {
                                                     const isSolo = !formData.secondaryArtistId || String(formData.secondaryArtistId) === '' || String(formData.secondaryArtistId) === 'null';
                                                     const isCompleted = selectedAppointment?.status === 'completed';
@@ -1874,27 +1874,33 @@ function AdminAppointments() {
                                                     };
 
                                                     return (
-                                                        <label style={{
-                                                            display: 'flex', alignItems: 'center', gap: '8px',
-                                                            marginTop: '14px', padding: '10px 14px',
-                                                            background: formData.isReferral ? 'rgba(16, 185, 129, 0.06)' : 'transparent',
-                                                            border: `1px solid ${formData.isReferral ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.06)'}`,
-                                                            borderRadius: '8px',
-                                                            cursor: canToggle ? 'pointer' : 'not-allowed',
-                                                            opacity: canToggle ? 1 : 0.4,
-                                                            transition: 'all 0.2s ease',
-                                                            fontSize: '0.82rem', fontWeight: 600,
-                                                            color: formData.isReferral ? '#10b981' : '#94a3b8'
-                                                        }}>
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={!!formData.isReferral}
-                                                                onChange={canToggle ? handleReferralToggle : undefined}
-                                                                disabled={!canToggle}
-                                                                style={{ accentColor: '#10b981', width: '16px', height: '16px', cursor: canToggle ? 'pointer' : 'not-allowed' }}
-                                                            />
-                                                            Artist Referral
-                                                        </label>
+                                                        <div className="premium-input-group" style={{ marginTop: '8px' }}>
+                                                            <label className="admin-st-b8618eb2">Commission</label>
+                                                            <label style={{
+                                                                display: 'flex', alignItems: 'center', gap: '10px',
+                                                                padding: '10px 14px',
+                                                                background: '#f8fafc',
+                                                                border: `1px solid ${formData.isReferral ? 'rgba(16, 185, 129, 0.35)' : '#e2e8f0'}`,
+                                                                borderRadius: '12px',
+                                                                cursor: canToggle ? 'pointer' : 'not-allowed',
+                                                                opacity: canToggle ? 1 : 0.45,
+                                                                transition: 'all 0.2s ease',
+                                                                fontSize: '0.88rem', fontWeight: 500,
+                                                                color: '#1e293b'
+                                                            }}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={!!formData.isReferral}
+                                                                    onChange={canToggle ? handleReferralToggle : undefined}
+                                                                    disabled={!canToggle}
+                                                                    style={{ accentColor: '#10b981', width: '16px', height: '16px', cursor: canToggle ? 'pointer' : 'not-allowed' }}
+                                                                />
+                                                                <span>Artist Referral</span>
+                                                                {formData.isReferral && (
+                                                                    <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 600, color: '#10b981' }}>70/30</span>
+                                                                )}
+                                                            </label>
+                                                        </div>
                                                     );
                                                 })()}
                                             </div>
@@ -2375,7 +2381,7 @@ function AdminAppointments() {
             {/* Reschedule Modal */}
             {rescheduleModal.isOpen && (
                 <div className="modal-overlay admin-st-032d51d4" onClick={() => setRescheduleModal({ ...rescheduleModal, isOpen: false })}>
-                    <div className="modal-content premium-modal admin-st-eabe81b2" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-content premium-modal admin-st-eabe81b2" style={{ maxWidth: '28vw' }} onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3>Reschedule Session</h3>
                             <button className="close-btn" onClick={() => setRescheduleModal({ ...rescheduleModal, isOpen: false })}><X size={20} /></button>

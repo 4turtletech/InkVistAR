@@ -211,7 +211,7 @@
     background: white;
     border-radius: 20px;
     width: 100%;
-    max-width: 600px;
+    max-width: 42vw;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     animation: modalSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
@@ -372,7 +372,7 @@
 
 .admin-modal-v2 {
     width: 90%;
-    max-width: 600px;
+    max-width: 42vw;
     max-height: 90vh;
     overflow-y: auto;
     background: white !important;
@@ -485,7 +485,7 @@
 }
 
 .confirmation-modal {
-    max-width: 450px;
+    max-width: 32vw;
     text-align: center;
 }
 
