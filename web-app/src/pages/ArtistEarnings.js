@@ -32,6 +32,8 @@ function ArtistEarnings() {
     const [commissionRate, setCommissionRate] = useState(30);
     const [loading, setLoading] = useState(true);
     const [periodFilter, setPeriodFilter] = useState('all');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
 
     // Pagination states
     const [sessionPage, setSessionPage] = useState(1);
@@ -70,23 +72,36 @@ function ArtistEarnings() {
         if (periodFilter === 'all') return true;
         const d = new Date(dateStr);
         const now = new Date();
+        if (periodFilter === 'weekly') {
+            const dayOfWeek = now.getDay();
+            const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - mondayOffset);
+            weekStart.setHours(0, 0, 0, 0);
+            return d >= weekStart;
+        }
         if (periodFilter === 'monthly') {
             return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         }
         if (periodFilter === 'yearly') {
             return d.getFullYear() === now.getFullYear();
         }
+        if (periodFilter === 'custom' && customStartDate && customEndDate) {
+            const start = new Date(customStartDate + 'T00:00:00');
+            const end = new Date(customEndDate + 'T23:59:59');
+            return d >= start && d <= end;
+        }
         return true;
     };
 
     const filteredSessions = useMemo(() =>
         sessionEarnings.filter(s => filterByPeriod(s.appointment_date)),
-        [sessionEarnings, periodFilter] // eslint-disable-line react-hooks/exhaustive-deps
+        [sessionEarnings, periodFilter, customStartDate, customEndDate] // eslint-disable-line react-hooks/exhaustive-deps
     );
 
     const filteredPayouts = useMemo(() =>
         payoutHistory.filter(p => filterByPeriod(p.created_at)),
-        [payoutHistory, periodFilter] // eslint-disable-line react-hooks/exhaustive-deps
+        [payoutHistory, periodFilter, customStartDate, customEndDate] // eslint-disable-line react-hooks/exhaustive-deps
     );
 
     // ── Computed Metrics (from filtered data) ──
@@ -145,7 +160,7 @@ function ArtistEarnings() {
     }, [filteredPayouts]);
 
     // ── Period Label ──
-    const periodLabel = periodFilter === 'monthly' ? 'This Month' : periodFilter === 'yearly' ? 'This Year' : 'All Time';
+    const periodLabel = periodFilter === 'weekly' ? 'This Week' : periodFilter === 'monthly' ? 'This Month' : periodFilter === 'yearly' ? 'This Year' : periodFilter === 'custom' ? `${customStartDate || '...'} — ${customEndDate || '...'}` : 'All Time';
 
     // ── CSV Export ──
     const handleExport = () => {
@@ -208,11 +223,20 @@ function ArtistEarnings() {
                         <div className="filter-group-glass">
                             <Filter size={16} color="#64748b" />
                             <span style={{ color: '#64748b', fontWeight: 600 }}>Period:</span>
-                            <select value={periodFilter} onChange={(e) => setPeriodFilter(e.target.value)} className="premium-select-glass">
+                            <select value={periodFilter} onChange={(e) => { setPeriodFilter(e.target.value); if (e.target.value !== 'custom') { setCustomStartDate(''); setCustomEndDate(''); } }} className="premium-select-glass">
+                                <option value="weekly">This Week</option>
                                 <option value="monthly">This Month</option>
                                 <option value="yearly">This Year</option>
                                 <option value="all">All Time</option>
+                                <option value="custom">Custom Range</option>
                             </select>
+                            {periodFilter === 'custom' && (
+                                <>
+                                    <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="premium-select-glass" style={{ width: '140px', padding: '6px 10px' }} />
+                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>to</span>
+                                    <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="premium-select-glass" style={{ width: '140px', padding: '6px 10px' }} />
+                                </>
+                            )}
                         </div>
                         <button className="btn btn-primary" onClick={handleExport} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                             <Download size={16} /> Export CSV

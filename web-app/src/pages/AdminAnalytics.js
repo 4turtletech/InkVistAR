@@ -51,6 +51,8 @@ function AdminAnalytics() {
 
     const [dateRange, setDateRange] = useState('month');
     const [revenueTimeframe, setRevenueTimeframe] = useState('monthly');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
     const [analytics, setAnalytics] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -67,12 +69,16 @@ function AdminAnalytics() {
         setConfirmDialog({ isOpen: true, title, message, type, isAlert: true, onConfirm: () => setConfirmDialog(prev => ({ ...prev, isOpen: false })) });
     };
 
-    useEffect(() => { fetchAnalytics(); fetchExpenses(); }, [revenueTimeframe]);
+    useEffect(() => { fetchAnalytics(); fetchExpenses(); }, [revenueTimeframe, customStartDate, customEndDate]);
 
     const fetchAnalytics = async () => {
         try {
             setLoading(true);
-            const res = await Axios.get(`${API_URL}/api/admin/analytics?timeframe=${revenueTimeframe}`);
+            let url = `${API_URL}/api/admin/analytics?timeframe=${revenueTimeframe}`;
+            if (revenueTimeframe === 'custom' && customStartDate && customEndDate) {
+                url += `&startDate=${customStartDate}&endDate=${customEndDate}`;
+            }
+            const res = await Axios.get(url);
             if (res.data.success) setAnalytics(res.data.data);
             setLoading(false);
         } catch (error) {
@@ -286,7 +292,7 @@ function AdminAnalytics() {
         return hrs > 0 ? `${hrs}h ${String(mins).padStart(2, '0')}m` : `${mins}m`;
     };
 
-    const timeframeLabel = revenueTimeframe === 'monthly' ? 'This Month' : revenueTimeframe === 'yearly' ? 'This Year' : 'All Time';
+    const timeframeLabel = revenueTimeframe === 'weekly' ? 'This Week' : revenueTimeframe === 'monthly' ? 'This Month' : revenueTimeframe === 'yearly' ? 'This Year' : revenueTimeframe === 'custom' ? `${customStartDate || '...'} — ${customEndDate || '...'}` : 'All Time';
 
     return (
         <div className="admin-page-with-sidenav">
@@ -300,11 +306,20 @@ function AdminAnalytics() {
                         <div className="filter-group-glass">
                             <Filter size={16} color="#64748b" />
                             <span style={{ color: '#64748b', fontWeight: 600 }}>Period:</span>
-                            <select value={revenueTimeframe} onChange={(e) => setRevenueTimeframe(e.target.value)} className="premium-select-glass">
+                            <select value={revenueTimeframe} onChange={(e) => { setRevenueTimeframe(e.target.value); if (e.target.value !== 'custom') { setCustomStartDate(''); setCustomEndDate(''); } }} className="premium-select-glass">
+                                <option value="weekly">This Week</option>
                                 <option value="monthly">This Month</option>
                                 <option value="yearly">This Year</option>
                                 <option value="all">All Time</option>
+                                <option value="custom">Custom Range</option>
                             </select>
+                            {revenueTimeframe === 'custom' && (
+                                <>
+                                    <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="premium-select-glass" style={{ width: '140px', padding: '6px 10px' }} />
+                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>to</span>
+                                    <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="premium-select-glass" style={{ width: '140px', padding: '6px 10px' }} />
+                                </>
+                            )}
                         </div>
                         <div style={{ position: 'relative' }}>
                             <button className="btn btn-secondary" onClick={() => setIsWidgetModalOpen(true)}><LayoutDashboard size={18} /> Layout</button>

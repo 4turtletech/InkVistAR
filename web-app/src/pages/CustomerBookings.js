@@ -16,6 +16,9 @@ function CustomerBookings(){
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('upcoming');
+    const [timePeriodFilter, setTimePeriodFilter] = useState('all');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const navigate = useNavigate();
@@ -252,6 +255,31 @@ function CustomerBookings(){
         }
         
         return matchesSearch && matchesStatus;
+    }).filter(apt => {
+        // Time period filter
+        if (timePeriodFilter === 'all') return true;
+        const d = new Date(apt.appointment_date);
+        const now = new Date();
+        if (timePeriodFilter === 'weekly') {
+            const dayOfWeek = now.getDay();
+            const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - mondayOffset);
+            weekStart.setHours(0, 0, 0, 0);
+            return d >= weekStart;
+        }
+        if (timePeriodFilter === 'monthly') {
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+        if (timePeriodFilter === 'yearly') {
+            return d.getFullYear() === now.getFullYear();
+        }
+        if (timePeriodFilter === 'custom' && customStartDate && customEndDate) {
+            const start = new Date(customStartDate + 'T00:00:00');
+            const end = new Date(customEndDate + 'T23:59:59');
+            return d >= start && d <= end;
+        }
+        return true;
     }).sort((a, b) => b.id - a.id); // Default to most recently added (highest ID)
 
     // Pagination Logic
@@ -967,6 +995,23 @@ function CustomerBookings(){
                                             <option value="confirmed">Confirmed Only</option>
                                             <option value="pending">Pending Only</option>
                                         </select>
+                                    </div>
+                                    <div className="customer-st-1910a4be" >
+                                        <Calendar size={18} color="#64748b" />
+                                        <select className="pagination-select customer-st-03930596" value={timePeriodFilter} onChange={(e) => { setTimePeriodFilter(e.target.value); if (e.target.value !== 'custom') { setCustomStartDate(''); setCustomEndDate(''); } setCurrentPage(1); }} >
+                                            <option value="all">All Time</option>
+                                            <option value="weekly">This Week</option>
+                                            <option value="monthly">This Month</option>
+                                            <option value="yearly">This Year</option>
+                                            <option value="custom">Custom Range</option>
+                                        </select>
+                                        {timePeriodFilter === 'custom' && (
+                                            <>
+                                                <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="pagination-select customer-st-03930596" style={{ width: '130px', padding: '4px 8px' }} />
+                                                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>to</span>
+                                                <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="pagination-select customer-st-03930596" style={{ width: '130px', padding: '4px 8px' }} />
+                                            </>
+                                        )}
                                     </div>
                                     <div className="customer-st-e64759bd" >
                                         <Search className="customer-st-73ad8fa0" size={16} />

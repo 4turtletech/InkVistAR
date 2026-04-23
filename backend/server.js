@@ -7974,7 +7974,9 @@ app.get('/api/admin/inventory/transactions', (req, res) => {
 
 // Admin: Analytics Data
 app.get('/api/admin/analytics', (req, res) => {
-  const timeframe = req.query.timeframe || 'all'; // 'monthly', 'yearly', 'all'
+  const timeframe = req.query.timeframe || 'all'; // 'weekly', 'monthly', 'yearly', 'all', 'custom'
+  const customStart = req.query.startDate || null;
+  const customEnd = req.query.endDate || null;
   
   // ─── UNIFIED DATE FILTERS ───
   // Build date filter clauses for EVERY table so all widgets respect the timeframe.
@@ -7988,7 +7990,14 @@ app.get('/api/admin/analytics', (req, res) => {
   let invoiceDateFilter = '';       // invoices.created_at
   let revenueDateFilter = '';       // appointments via ap.appointment_date (for revenue)
 
-  if (timeframe === 'monthly') {
+  if (timeframe === 'weekly') {
+    apptDateFilter      = "AND ap.appointment_date >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+    revenueDateFilter   = "AND ap.appointment_date >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+    invTxDateFilter     = "AND t.created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+    studioExpDateFilter = "AND created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+    payoutsDateFilter   = "AND created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+    invoiceDateFilter   = "AND created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+  } else if (timeframe === 'monthly') {
     apptDateFilter      = "AND ap.appointment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')";
     revenueDateFilter   = "AND ap.appointment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')";
     invTxDateFilter     = "AND t.created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
@@ -8002,6 +8011,15 @@ app.get('/api/admin/analytics', (req, res) => {
     studioExpDateFilter = "AND YEAR(created_at) = YEAR(NOW())";
     payoutsDateFilter   = "AND YEAR(created_at) = YEAR(NOW())";
     invoiceDateFilter   = "AND YEAR(created_at) = YEAR(NOW())";
+  } else if (timeframe === 'custom' && customStart && customEnd) {
+    const safeStart = db.escape(customStart);
+    const safeEnd = db.escape(customEnd);
+    apptDateFilter      = `AND ap.appointment_date >= ${safeStart} AND ap.appointment_date <= ${safeEnd}`;
+    revenueDateFilter   = `AND ap.appointment_date >= ${safeStart} AND ap.appointment_date <= ${safeEnd}`;
+    invTxDateFilter     = `AND t.created_at >= ${safeStart} AND DATE(t.created_at) <= ${safeEnd}`;
+    studioExpDateFilter = `AND created_at >= ${safeStart} AND DATE(created_at) <= ${safeEnd}`;
+    payoutsDateFilter   = `AND created_at >= ${safeStart} AND DATE(created_at) <= ${safeEnd}`;
+    invoiceDateFilter   = `AND created_at >= ${safeStart} AND DATE(created_at) <= ${safeEnd}`;
   } else {
     // 'all' — clamp to project start (April 2026)
     apptDateFilter      = `AND ap.appointment_date >= '${ALL_TIME_START}'`;
@@ -8013,7 +8031,7 @@ app.get('/api/admin/analytics', (req, res) => {
   }
 
   // How many days to show on mini-trend charts
-  const trendDays = timeframe === 'monthly' ? 30 : timeframe === 'yearly' ? 90 : 30;
+  const trendDays = timeframe === 'weekly' ? 7 : timeframe === 'monthly' ? 30 : timeframe === 'yearly' ? 90 : 30;
 
   const response = {
     revenue: { total: 0, growth: 0, chart: [], breakdown: [] },

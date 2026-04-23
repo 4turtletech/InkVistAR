@@ -52,6 +52,7 @@ function AdminAppointments() {
     const [serviceFilter, setServiceFilter] = useState('all');
     const [quickFilter, setQuickFilter] = useState('all'); // 'upcoming', 'latest', 'all'
     const [dateFilter, setDateFilter] = useState('');
+    const [timePeriodFilter, setTimePeriodFilter] = useState('all');
     const [sortBy, setSortBy] = useState('date');
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -340,7 +341,7 @@ function AdminAppointments() {
 
     useEffect(() => {
         filterAndSortAppointments();
-    }, [appointments, searchTerm, statusFilter, serviceFilter, quickFilter, dateFilter, sortBy]);
+    }, [appointments, searchTerm, statusFilter, serviceFilter, quickFilter, dateFilter, timePeriodFilter, sortBy]);
 
     const filterAndSortAppointments = () => {
         let filtered = appointments.filter(apt => {
@@ -356,13 +357,32 @@ function AdminAppointments() {
             const matchesService = serviceFilter === 'all' || apt.serviceType === serviceFilter;
             const matchesDate = !dateFilter || apt.date === dateFilter;
 
+            // Time period filter (weekly/monthly/yearly)
+            let matchesPeriod = true;
+            if (timePeriodFilter !== 'all' && !dateFilter) {
+                const aptDate = new Date(apt.date + 'T00:00:00');
+                const now = new Date();
+                if (timePeriodFilter === 'weekly') {
+                    const dayOfWeek = now.getDay();
+                    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - mondayOffset);
+                    weekStart.setHours(0, 0, 0, 0);
+                    matchesPeriod = aptDate >= weekStart;
+                } else if (timePeriodFilter === 'monthly') {
+                    matchesPeriod = aptDate.getMonth() === now.getMonth() && aptDate.getFullYear() === now.getFullYear();
+                } else if (timePeriodFilter === 'yearly') {
+                    matchesPeriod = aptDate.getFullYear() === now.getFullYear();
+                }
+            }
+
             let matchesQuick = true;
             if (quickFilter === 'upcoming') {
                 const today = new Date().toISOString().split('T')[0];
                 matchesQuick = apt.date >= today && apt.status !== 'cancelled' && apt.status !== 'completed';
             }
 
-            return matchesSearch && matchesStatus && matchesService && matchesDate && matchesQuick;
+            return matchesSearch && matchesStatus && matchesService && matchesDate && matchesPeriod && matchesQuick;
         });
 
         // Reset pagination on filter change
@@ -1290,7 +1310,7 @@ function AdminAppointments() {
                                             ))}
                                     </div>
                                 )}
-                                {(searchTerm || statusFilter !== 'all' || serviceFilter !== 'all' || dateFilter) && (
+                                {(searchTerm || statusFilter !== 'all' || serviceFilter !== 'all' || dateFilter || timePeriodFilter !== 'all') && (
                                     <button
                                         onClick={() => {
                                             setSearchTerm('');
@@ -1298,6 +1318,7 @@ function AdminAppointments() {
                                             setStatusFilter('all');
                                             setServiceFilter('all');
                                             setDateFilter('');
+                                            setTimePeriodFilter('all');
                                         }}
                                         className="btn btn-secondary"
                                         style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -1343,10 +1364,20 @@ function AdminAppointments() {
 
                                 <div className="premium-filter-item">
                                     <Calendar size={16} />
+                                    <select
+                                        value={timePeriodFilter}
+                                        onChange={(e) => { setTimePeriodFilter(e.target.value); if (e.target.value !== 'all') setDateFilter(''); }}
+                                        className="premium-select-v2"
+                                    >
+                                        <option value="all">All Time</option>
+                                        <option value="weekly">This Week</option>
+                                        <option value="monthly">This Month</option>
+                                        <option value="yearly">This Year</option>
+                                    </select>
                                     <input
                                         type="date"
                                         value={dateFilter}
-                                        onChange={(e) => setDateFilter(e.target.value)}
+                                        onChange={(e) => { setDateFilter(e.target.value); if (e.target.value) setTimePeriodFilter('all'); }}
                                         className="premium-select-v2"
                                         style={{ height: '38px', padding: '0 12px' }}
                                     />

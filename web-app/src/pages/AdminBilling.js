@@ -33,6 +33,9 @@ function AdminBilling() {
     }, []);
     const [statusFilter, setStatusFilter] = useState('all');
     const [sourceFilter, setSourceFilter] = useState('all');
+    const [timePeriodFilter, setTimePeriodFilter] = useState('all');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
     const [payouts, setPayouts] = useState([]);
     const [artists, setArtists] = useState([]);
     const [payoutModal, setPayoutModal] = useState({ mounted: false, visible: false });
@@ -320,6 +323,33 @@ function AdminBilling() {
 
 
 
+    // Helper for time period filtering
+    const matchesTimePeriod = (dateStr) => {
+        if (timePeriodFilter === 'all') return true;
+        const d = new Date(dateStr);
+        const now = new Date();
+        if (timePeriodFilter === 'weekly') {
+            const dayOfWeek = now.getDay();
+            const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - mondayOffset);
+            weekStart.setHours(0, 0, 0, 0);
+            return d >= weekStart;
+        }
+        if (timePeriodFilter === 'monthly') {
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+        if (timePeriodFilter === 'yearly') {
+            return d.getFullYear() === now.getFullYear();
+        }
+        if (timePeriodFilter === 'custom' && customStartDate && customEndDate) {
+            const start = new Date(customStartDate + 'T00:00:00');
+            const end = new Date(customEndDate + 'T23:59:59');
+            return d >= start && d <= end;
+        }
+        return true;
+    };
+
     const filteredInvoices = invoices.filter(inv => {
         const matchesSearch = (inv.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                               (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -328,7 +358,8 @@ function AdminBilling() {
         const matchesSource = sourceFilter === 'all' || 
             (sourceFilter === 'pos' && isPOS) || 
             (sourceFilter === 'session' && !isPOS);
-        return matchesSearch && matchesStatus && matchesSource;
+        const matchesDate = matchesTimePeriod(inv.created_at);
+        return matchesSearch && matchesStatus && matchesSource && matchesDate;
     });
 
     // Pagination logic
@@ -451,6 +482,29 @@ function AdminBilling() {
                                         <option value="session">Session Payments</option>
                                         <option value="pos">POS Sales</option>
                                     </select>
+                                </div>
+
+                                <div className="premium-filter-item">
+                                    <Filter size={16} />
+                                    <span>Period:</span>
+                                    <select
+                                        value={timePeriodFilter}
+                                        onChange={(e) => { setTimePeriodFilter(e.target.value); if (e.target.value !== 'custom') { setCustomStartDate(''); setCustomEndDate(''); } }}
+                                        className="premium-select-v2"
+                                    >
+                                        <option value="all">All Time</option>
+                                        <option value="weekly">This Week</option>
+                                        <option value="monthly">This Month</option>
+                                        <option value="yearly">This Year</option>
+                                        <option value="custom">Custom Range</option>
+                                    </select>
+                                    {timePeriodFilter === 'custom' && (
+                                        <>
+                                            <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="premium-select-v2" style={{ height: '38px', padding: '0 10px' }} />
+                                            <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>to</span>
+                                            <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="premium-select-v2" style={{ height: '38px', padding: '0 10px' }} />
+                                        </>
+                                    )}
                                 </div>
 
                                 <button className="btn btn-primary admin-st-4796037d" onClick={openModal} >
@@ -576,7 +630,7 @@ function AdminBilling() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {payouts.map(p => (
+                                    {payouts.filter(p => matchesTimePeriod(p.created_at)).map(p => (
                                         <tr key={p.id}>
                                             <td>{new Date(p.created_at).toLocaleDateString()}</td>
                                             <td>{p.artist_name || 'Artist #' + p.artist_id}</td>
@@ -586,7 +640,7 @@ function AdminBilling() {
                                             <td><span className="badge status-active">{p.status}</span></td>
                                         </tr>
                                     ))}
-                                    {payouts.length === 0 && <tr><td colSpan="6" className="admin-st-3927920f">No payouts recorded.</td></tr>}
+                                    {payouts.filter(p => matchesTimePeriod(p.created_at)).length === 0 && <tr><td colSpan="6" className="admin-st-3927920f">No payouts recorded.</td></tr>}
                                 </tbody>
                             </table>
                         </div>

@@ -37,6 +37,9 @@ function AdminCompletedSessions() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
     const [statusFilter, setStatusFilter] = useState('completed');
+    const [timePeriodFilter, setTimePeriodFilter] = useState('all');
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
     const [sortBy, setSortBy] = useState('date');
     const [selectedSession, setSelectedSession] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -62,7 +65,7 @@ function AdminCompletedSessions() {
 
     useEffect(() => {
         filterSessions();
-    }, [sessions, searchTerm, statusFilter, sortBy]);
+    }, [sessions, searchTerm, statusFilter, timePeriodFilter, customStartDate, customEndDate, sortBy]);
 
     const fetchSessions = async () => {
         try {
@@ -126,6 +129,31 @@ function AdminCompletedSessions() {
 
         if (statusFilter !== 'all' && statusFilter !== 'completed') {
             filtered = filtered.filter(s => s.status === statusFilter);
+        }
+
+        // Time period filter
+        if (timePeriodFilter !== 'all') {
+            const now = new Date();
+            filtered = filtered.filter(s => {
+                const d = new Date(s.date + 'T00:00:00');
+                if (timePeriodFilter === 'weekly') {
+                    const dayOfWeek = now.getDay();
+                    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - mondayOffset);
+                    weekStart.setHours(0, 0, 0, 0);
+                    return d >= weekStart;
+                } else if (timePeriodFilter === 'monthly') {
+                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                } else if (timePeriodFilter === 'yearly') {
+                    return d.getFullYear() === now.getFullYear();
+                } else if (timePeriodFilter === 'custom' && customStartDate && customEndDate) {
+                    const start = new Date(customStartDate + 'T00:00:00');
+                    const end = new Date(customEndDate + 'T23:59:59');
+                    return d >= start && d <= end;
+                }
+                return true;
+            });
         }
 
         if (sortBy === 'date') {
@@ -217,6 +245,24 @@ function AdminCompletedSessions() {
                                         )}
                                     </div>
                                 </div>
+                                <select
+                                    value={timePeriodFilter}
+                                    onChange={(e) => { setTimePeriodFilter(e.target.value); if (e.target.value !== 'custom') { setCustomStartDate(''); setCustomEndDate(''); } }}
+                                    className="admin-st-441149a3"
+                                >
+                                    <option value="all">All Time</option>
+                                    <option value="weekly">This Week</option>
+                                    <option value="monthly">This Month</option>
+                                    <option value="yearly">This Year</option>
+                                    <option value="custom">Custom Range</option>
+                                </select>
+                                {timePeriodFilter === 'custom' && (
+                                    <>
+                                        <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="admin-st-441149a3" style={{ width: '140px', padding: '6px 10px' }} />
+                                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', lineHeight: '38px' }}>to</span>
+                                        <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="admin-st-441149a3" style={{ width: '140px', padding: '6px 10px' }} />
+                                    </>
+                                )}
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
