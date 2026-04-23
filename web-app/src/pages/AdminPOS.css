@@ -273,6 +273,7 @@
     position: relative;
     overflow: hidden;
     max-height: 90vh; /* Limit height to prevent overflow */
+    color: #1e293b;
 }
 
 .receipt-success-header {
@@ -582,6 +583,7 @@
     font-size: 0.85rem;
     outline: none;
     background: #fff;
+    color: #1e293b;
 }
 
 .invoice-modal-actions {

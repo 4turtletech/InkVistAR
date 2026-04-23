@@ -209,6 +209,7 @@
 
 .dashboard-modal-content {
     background: white;
+    color: #1e293b;
     border-radius: 20px;
     width: 100%;
     max-width: 42vw;
@@ -376,6 +377,7 @@
     max-height: 90vh;
     overflow-y: auto;
     background: white !important;
+    color: #1e293b;
     border-radius: 16px;
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
     animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -454,6 +456,7 @@
 
 .btn-secondary-v2 {
     background: white;
+    color: #1e293b;
     border: 1px solid #e2e8f0;
     padding: 0.75rem 1.5rem;
     border-radius: 8px;

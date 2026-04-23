@@ -146,6 +146,8 @@
     font-size: 0.95rem;
     transition: border-color 0.2s;
     box-sizing: border-box;
+    background-color: #ffffff;
+    color: #1e293b;
 }
 
 .form-input:focus {
