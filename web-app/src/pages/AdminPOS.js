@@ -328,7 +328,7 @@ function AdminPOS() {
                                         )}
                                     </div>
                                     <div className="pos-card-info">
-                                        {item.current_stock <= item.min_stock && item.current_stock > 0 && <span className="low-stock-indicator" title="Low Stock"></span>}
+                                        {item.current_stock <= item.min_stock && item.current_stock > 0 && <span className="low-stock-indicator"><AlertCircle size={10} /> Low Stock</span>}
                                         <h3>{item.name}</h3>
                                         <span className="pos-category">{item.category}</span>
                                         <div className="pos-card-footer">
