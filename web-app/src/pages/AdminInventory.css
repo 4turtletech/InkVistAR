@@ -100,8 +100,45 @@
 }
 
 @media (max-width: 768px) {
+    .inventory-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+        padding: 0 1rem;
+    }
+    
+    .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    
+    .header-actions .btn {
+        flex: 1;
+        min-width: calc(50% - 0.5rem);
+        justify-content: center;
+        padding: 0.6rem;
+        font-size: 0.85rem;
+    }
+    
+    .header-actions .btn-primary {
+        min-width: 100%; /* Add Item takes full width on its own row */
+    }
+
+    .table-card-container.glass-card {
+        margin: 0 1rem 2rem;
+        width: calc(100% - 2rem);
+        max-width: 100%;
+    }
+
     .table-responsive {
-        font-size: 0.8rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        display: block;
+        width: 100%;
+    }
+    
+    .data-table {
+        min-width: 750px;
     }
 }
 
