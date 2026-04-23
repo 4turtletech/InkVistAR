@@ -233,74 +233,61 @@ function CustomerProfile() {
                 <CustomerSideNav />
                 <div className="portal-container customer-portal">
                     <header className="portal-header"><h1>My Profile</h1></header>
-                    <div className="portal-content customer-st-252946b6" >
-                        {/* Message Alert */}
-                        {message.text && (
-                            <div style={{
-                                padding: '12px 16px',
-                                borderRadius: '8px',
-                                marginBottom: '20px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                backgroundColor: message.type === 'success' ? '#dcfce7' : '#fee2e2',
-                                color: message.type === 'success' ? '#166534' : '#991b1b',
-                                border: `1px solid ${message.type === 'success' ? '#86efac' : '#fca5a5'}`
-                            }}>
-                                {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-                                <span>{message.text}</span>
-                            </div>
-                        )}
+                    <div className="portal-content">
                         {loading ? <div className="no-data">Loading...</div> : (
-                            <div className="data-card">
+                            <div className="data-card" style={{ maxWidth: '700px', margin: '0 auto' }}>
                                 {!isEditing ? (
-                                    <div className="profile-view">
-                                        <div className="customer-st-97d05a8d" >
-                                            <div className="customer-st-72b7213b" >
-                                                <div style={{
-                                                    width: '100px', height: '100px', borderRadius: '50%',
-                                                    backgroundColor: '#f1f5f9', overflow: 'hidden',
-                                                    border: '3px solid white', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                }}>
-                                                    {profile.profile_image ? (
-                                                        <img className="customer-st-81466193" src={profile.profile_image} alt="Profile" />
-                                                    ) : (
-                                                        <span className="customer-st-f1b3ed19" >{profile.name.charAt(0)}</span>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <h2 className="customer-st-f26d6ce7" >{profile.name}</h2>
-                                                    <p className="customer-st-211acdfd" >
-                                                        <Mail size={16} /> {profile.email}
-                                                    </p>
+                                    /* VIEW MODE */
+                                    <div>
+                                        <div className="artist-profile-picture-section">
+                                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                <div style={{ width: '140px', height: '140px', borderRadius: '50%', backgroundColor: '#e2e8f0', overflow: 'hidden', border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {profile.profile_image
+                                                        ? <img src={profile.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', backgroundColor: '#cbd5e1', width: '100%' }}><User size={56} strokeWidth={1.5} /></div>
+                                                    }
                                                 </div>
                                             </div>
-                                            <button className="btn btn-secondary customer-st-929a545b" onClick={() => { setOriginalProfile({ ...profile }); setIsEditing(true); }} >
+                                            <h2 style={{ margin: '12px 0 4px', fontSize: '1.5rem', fontWeight: '700', color: '#1e293b' }}>{profile.name}</h2>
+                                            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}><Mail size={14} /> {profile.email}</p>
+                                        </div>
+                                        <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '20px', marginBottom: '24px' }}>
+                                            <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <User size={20} color="#be9055" /> Personal Information
+                                            </h3>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                {[
+                                                    { icon: <Phone size={16} />, label: 'Phone Number', value: profile.phone || 'Not provided' },
+                                                    { icon: <MapPin size={16} />, label: 'Location', value: profile.location || 'Not provided' },
+                                                ].map((item, i) => (
+                                                    <div key={i} style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px', border: '1px solid #e2e8f0' }}>
+                                                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>{item.icon} {item.label}</span>
+                                                        <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>{item.value}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px', border: '1px solid #e2e8f0', marginTop: '12px' }}>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}><FileText size={16} /> Tattoo Preferences</span>
+                                                <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>{profile.preferences || 'No preferences listed'}</p>
+                                            </div>
+                                        </div>
+                                        {message.text && (
+                                            <div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: message.type === 'success' ? '#dcfce7' : '#fee2e2', color: message.type === 'success' ? '#166534' : '#991b1b', border: `1px solid ${message.type === 'success' ? '#86efac' : '#fca5a5'}` }}>
+                                                {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+                                                <span>{message.text}</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                            <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#be9055', border: 'none' }} onClick={() => { setOriginalProfile({ ...profile }); setIsEditing(true); }}>
                                                 <Edit2 size={16} /> Edit Profile
                                             </button>
-                                        </div>
-
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-                                            <div className="info-group">
-                                                <label><Phone size={16} /> Phone Number</label>
-                                                <p>{profile.phone || 'Not provided'}</p>
-                                            </div>
-                                            <div className="info-group">
-                                                <label><MapPin size={16} /> Location</label>
-                                                <p>{profile.location || 'Not provided'}</p>
-                                            </div>
-                                            <div className="info-group customer-st-d5e576b0" >
-                                                <label><FileText size={16} /> Tattoo Preferences</label>
-                                                <p>{profile.preferences || 'No preferences listed'}</p>
-                                            </div>
                                         </div>
                                     </div>
                                 ) : (
                                     <form onSubmit={handleSave}>
-                                        {/* Profile Picture Upload Section */}
-                                        <div className="customer-st-e48abace" >
-                                            <div className="customer-st-7293b2f9" >
+                                        {/* Profile Picture Upload */}
+                                        <div className="artist-profile-picture-section">
+                                            <div style={{ position: 'relative', display: 'inline-block' }}>
                                                 <div style={{
                                                     width: '120px', height: '120px', borderRadius: '50%',
                                                     backgroundColor: '#e2e8f0', overflow: 'hidden',
@@ -313,246 +300,115 @@ function CustomerProfile() {
                                                         <User size={48} color="#94a3b8" />
                                                     )}
                                                 </div>
-                                                <label style={{
-                                                    position: 'absolute', bottom: '0', right: '0',
-                                                    backgroundColor: '#be9055', color: 'white',
-                                                    padding: '8px', borderRadius: '50%', cursor: 'pointer',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                                                }}>
-                                                    <Camera size={18} />
+                                                <label style={{ position: 'absolute', bottom: '4px', right: '4px', backgroundColor: '#be9055', color: 'white', padding: '10px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid white', transition: 'transform 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                                                    <Camera size={20} />
                                                     <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
                                                 </label>
                                             </div>
-                                            <p className="customer-st-75b1ab67" >Update profile picture</p>
-                                        </div>
-
-                                        <div className="customer-st-a65ac038" >
-                                            <h2 className="customer-st-03930596" >Edit Profile</h2>
-                                            <button type="button" className="close-btn" onClick={() => { if (originalProfile) setProfile(originalProfile); setIsEditing(false); }}><X size={24} /></button>
+                                            <p style={{ marginTop: '12px', fontSize: '0.9rem', color: '#64748b' }}>Click the camera icon to upload a new photo</p>
+                                            <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Max size: 5MB. Recommended: 400x400px</p>
                                         </div>
 
                                         {/* Section 1: Personal Information */}
-                                        <div className="customer-st-11391c33" >
-                                            <h3 className="customer-st-001ffef5" >
-                                                <User size={20} color="#be9055" />
-                                                Personal Information
+                                        <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '16px', marginBottom: '24px' }}>
+                                            <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <User size={20} color="#be9055" /> Personal Information
                                             </h3>
-                                            <div className="customer-st-e66d54ba" >
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                                 <div className="form-group">
-                                                    <label style={formLabel}><User size={16} /> Name</label>
-                                                    <input
-                                                        type="text"
-                                                        className="form-input"
-                                                        value={profile.name}
-                                                        onChange={e => {
-                                                        const val = filterName(e.target.value).slice(0, 50);
-                                                        setProfile({ ...profile, name: val });
-                                                        validateProfileField('name', val);
-                                                    }}
-                                                    style={{ ...inputStyle, border: errors.name ? '1px solid #ef4444' : undefined }}
-                                                    maxLength={50}
-                                                />
-                                                {errors.name && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.name}</span>}
+                                                    <label className="artist-profile-form-label"><User size={16} /> Name <span style={{ color: '#ef4444' }}>*</span></label>
+                                                    <input type="text" className="form-input artist-profile-input" value={profile.name}
+                                                        onChange={e => { const val = filterName(e.target.value).slice(0, 50); setProfile({ ...profile, name: val }); validateProfileField('name', val); }}
+                                                        placeholder="Your full name" maxLength={50} style={{ border: errors.name ? '1px solid #ef4444' : undefined }} />
+                                                    {errors.name && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.name}</span>}
                                                 </div>
                                                 <div className="form-group">
-                                                    <label style={formLabel}><Mail size={16} /> Email</label>
+                                                    <label className="artist-profile-form-label"><Mail size={16} /> Email</label>
                                                     <div style={{ position: 'relative' }}>
-                                                        <input
-                                                            className="form-input customer-st-59f58c25"
-                                                            type="email"
-                                                            value={profile.email}
-                                                            disabled
-                                                            style={{ ...inputStyle, paddingRight: '44px', backgroundColor: '#f8fafc', color: '#64748b' }}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            title="Change email address"
+                                                        <input type="email" className="form-input artist-profile-input" value={profile.email} disabled style={{ backgroundColor: '#f1f5f9', color: '#64748b', paddingRight: '44px' }} />
+                                                        <button type="button" title="Change email address"
                                                             onClick={() => setEmailModal({ open: true, step: 'enterEmail', newEmail: '', emailError: '', otp: Array(6).fill(''), otpError: '', sending: false, confirming: false, resendTimer: 300, resendAttempts: 0, resending: false })}
-                                                            style={{
-                                                                position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-                                                                background: 'none', border: 'none', cursor: 'pointer',
-                                                                color: '#be9055', display: 'flex', alignItems: 'center'
-                                                            }}
-                                                        >
+                                                            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#be9055', display: 'flex', alignItems: 'center' }}>
                                                             <Edit2 size={15} />
                                                         </button>
                                                     </div>
                                                 </div>
                                                 <div className="form-group">
-                                                    <label style={formLabel}><Phone size={16} /> Phone</label>
-                                                    <div className="customer-st-4557600f" style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                                                        {(() => {
-                                                            const { code, currentNo } = getPhoneParts(profile.phone);
-                                                            return (
-                                                                <>
-                                                                    <CountryCodeSelect
-                                                                        value={code}
-                                                                        onChange={newCode => {
-                                                                            const { currentNo: num } = getPhoneParts(profile.phone);
-                                                                            setProfile({ ...profile, phone: newCode + num });
-                                                                        }}
-                                                                    />
-                                                                    <input className="form-input customer-st-282aded5" type="tel"
-                                                                        style={{ flex: 1 }}
-                                                                        value={currentNo}
-                                                                        onChange={e => {
-                                                                            const digits = e.target.value.replace(/[^\d]/g, '').slice(0, 11);
-                                                                            const { code: currentCode } = getPhoneParts(profile.phone);
-                                                                            setProfile({ ...profile, phone: currentCode + digits });
-                                                                        }}
-                                                                        placeholder="9123456789" maxLength={11} />
-                                                                </>
-                                                            );
-                                                        })()}
-                                                    </div>
+                                                    <label className="artist-profile-form-label"><Phone size={16} /> Phone Number</label>
+                                                    {(() => {
+                                                        const { code, currentNo } = getPhoneParts(profile.phone);
+                                                        return (
+                                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                                                <CountryCodeSelect value={code} onChange={newCode => { const { currentNo: num } = getPhoneParts(profile.phone); setProfile({ ...profile, phone: newCode + num }); }} />
+                                                                <input type="tel" className="form-input artist-profile-input" style={{ flex: 1 }} value={currentNo}
+                                                                    onChange={e => { const digits = e.target.value.replace(/[^\d]/g, '').slice(0, 11); const { code: currentCode } = getPhoneParts(profile.phone); setProfile({ ...profile, phone: currentCode + digits }); }}
+                                                                    placeholder="9123456789" maxLength={11} />
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                                 <div className="form-group">
-                                                    <label style={formLabel}><MapPin size={16} /> Location</label>
-                                                    <input
-                                                        type="text"
-                                                        className="form-input"
-                                                        value={profile.location}
-                                                        onChange={e => {
-                                                        const val = e.target.value;
-                                                        setProfile({ ...profile, location: val });
-                                                        validateProfileField('location', val);
-                                                    }}
-                                                    placeholder="City, Country"
-                                                    style={{ ...inputStyle, border: errors.location ? '1px solid #ef4444' : undefined }}
-                                                    maxLength={200}
-                                                />
-                                                {errors.location && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.location}</span>}
+                                                    <label className="artist-profile-form-label"><MapPin size={16} /> Location</label>
+                                                    <input type="text" className="form-input artist-profile-input" value={profile.location}
+                                                        onChange={e => { const val = e.target.value; setProfile({ ...profile, location: val }); validateProfileField('location', val); }}
+                                                        placeholder="City, Country" style={{ border: errors.location ? '1px solid #ef4444' : undefined }} maxLength={200} />
+                                                    {errors.location && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.location}</span>}
                                                 </div>
-                                                <div className="form-group customer-st-d5e576b0" >
-                                                    <label style={formLabel}><FileText size={16} /> Tattoo Preferences</label>
-                                                    <textarea
-                                                        className="form-input"
-                                                        value={profile.preferences}
-                                                        onChange={e => {
-                                                            const val = e.target.value;
-                                                            setProfile({ ...profile, preferences: val });
-                                                            validateProfileField('preferences', val);
-                                                        }}
-                                                        placeholder="E.g. Realism, Blackwork, Sleeve ideas..."
-                                                        rows="3"
-                                                        style={{ ...inputStyle, border: errors.preferences ? '1px solid #ef4444' : undefined }}
-                                                        maxLength={500}
-                                                    />
-                                                    {errors.preferences && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.preferences}</span>}
-                                                </div>
+                                            </div>
+                                            <div className="form-group" style={{ marginTop: '16px' }}>
+                                                <label className="artist-profile-form-label"><FileText size={16} /> Tattoo Preferences</label>
+                                                <textarea className="form-input artist-profile-input" value={profile.preferences}
+                                                    onChange={e => { const val = e.target.value; setProfile({ ...profile, preferences: val }); validateProfileField('preferences', val); }}
+                                                    placeholder="E.g. Realism, Blackwork, Sleeve ideas..." rows="3"
+                                                    style={{ border: errors.preferences ? '1px solid #ef4444' : undefined, resize: 'vertical' }} maxLength={500} />
+                                                {errors.preferences && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.preferences}</span>}
                                             </div>
                                         </div>
 
                                         {/* Section 2: Password & Security */}
-                                        <div className="customer-st-654b1414" >
-                                            <div className="customer-st-cea57272" >
-                                                <h3 className="customer-st-81119ad0" >
-                                                    <Lock size={20} color="#be9055" />
-                                                    Password & Security
+                                        <div style={{ marginBottom: '24px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Lock size={20} color="#be9055" /> Password &amp; Security
                                                 </h3>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowChangePassword(!showChangePassword)}
-                                                    style={{
-                                                        padding: '8px 16px',
-                                                        backgroundColor: showChangePassword ? '#f1f5f9' : '#be9055',
-                                                        color: showChangePassword ? '#475569' : 'white',
-                                                        border: 'none',
-                                                        borderRadius: '6px',
-                                                        cursor: 'pointer',
-                                                        fontSize: '0.875rem',
-                                                        fontWeight: '500',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                >
+                                                <button type="button" onClick={() => setShowChangePassword(!showChangePassword)}
+                                                    style={{ padding: '8px 16px', backgroundColor: showChangePassword ? '#f1f5f9' : '#be9055', color: showChangePassword ? '#475569' : 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', transition: 'all 0.2s' }}>
                                                     {showChangePassword ? 'Cancel' : 'Change Password'}
                                                 </button>
                                             </div>
-
                                             {showChangePassword && (
-                                                <div className="customer-st-7cf173a4" >
-                                                    <div className="form-group">
-                                                        <label style={formLabel}><Lock size={16} /> Current Password</label>
+                                                <div style={{ padding: '20px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                                    <div className="form-group" style={{ marginBottom: '16px' }}>
+                                                        <label className="artist-profile-form-label"><Lock size={16} /> Current Password</label>
                                                         <div style={{ position: 'relative' }}>
-                                                            <input
-                                                                className="form-input"
-                                                                type={showPassword ? 'text' : 'password'}
-                                                                value={passwords.currentPassword}
+                                                            <input className="form-input artist-profile-input" type={showPassword ? 'text' : 'password'} value={passwords.currentPassword}
                                                                 onChange={e => setPasswords({ ...passwords, currentPassword: e.target.value })}
-                                                                placeholder="Enter current password"
-                                                                style={{ ...inputStyle, paddingRight: '40px' }}
-                                                                maxLength={128}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setShowPassword(!showPassword)}
-                                                                style={{
-                                                                    position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                                                                    background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'
-                                                                }}
-                                                            >
+                                                                placeholder="Enter current password" style={{ paddingRight: '40px' }} maxLength={128} />
+                                                            <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
                                                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    <div className="customer-st-e66d54ba" style={{ display: 'flex', gap: '1rem' }} >
-                                                        <div className="form-group" style={{ flex: 1 }}>
-                                                            <label style={formLabel}><Lock size={16} /> New Password</label>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                                        <div className="form-group">
+                                                            <label className="artist-profile-form-label"><Lock size={16} /> New Password</label>
                                                             <div style={{ position: 'relative' }}>
-                                                                <input
-                                                                    type={showNewPassword ? "text" : "password"}
-                                                                    className="form-input"
-                                                                    value={passwords.newPassword}
-                                                                    onChange={e => {
-                                                                        const val = e.target.value.slice(0, 50);
-                                                                        setPasswords({ ...passwords, newPassword: val });
-                                                                        setPasswordFeedback({
-                                                                            hasMinLength: val.length >= 8,
-                                                                            hasUppercase: /[A-Z]/.test(val),
-                                                                            hasLowercase: /[a-z]/.test(val),
-                                                                            hasNumber: /[0-9]/.test(val),
-                                                                            hasSymbol: /[@$!%*?&#]/.test(val)
-                                                                        });
-                                                                    }}
-                                                                    onFocus={() => setPasswordFocused(true)}
-                                                                    onBlur={() => { if (!passwords.newPassword) setPasswordFocused(false); }}
-                                                                    placeholder="Min. 8 characters"
-                                                                    style={{ ...inputStyle, paddingRight: '40px' }}
-                                                                    maxLength={128}
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setShowNewPassword(!showNewPassword)}
-                                                                    style={{
-                                                                        position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                                                                        background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'
-                                                                    }}
-                                                                >
+                                                                <input type={showNewPassword ? 'text' : 'password'} className="form-input artist-profile-input" value={passwords.newPassword}
+                                                                    onChange={e => { const val = e.target.value.slice(0, 50); setPasswords({ ...passwords, newPassword: val }); setPasswordFeedback({ hasMinLength: val.length >= 8, hasUppercase: /[A-Z]/.test(val), hasLowercase: /[a-z]/.test(val), hasNumber: /[0-9]/.test(val), hasSymbol: /[@$!%*?&#]/.test(val) }); }}
+                                                                    onFocus={() => setPasswordFocused(true)} onBlur={() => { if (!passwords.newPassword) setPasswordFocused(false); }}
+                                                                    placeholder="Min. 8 characters" style={{ paddingRight: '40px' }} maxLength={128} />
+                                                                <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
                                                                     {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                        <div className="form-group" style={{ flex: 1 }}>
-                                                            <label style={formLabel}><Lock size={16} /> Confirm New Password</label>
+                                                        <div className="form-group">
+                                                            <label className="artist-profile-form-label"><Lock size={16} /> Confirm New Password</label>
                                                             <div style={{ position: 'relative' }}>
-                                                                <input
-                                                                    type={showConfirmPassword ? "text" : "password"}
-                                                                    className="form-input"
-                                                                    value={passwords.confirmPassword}
+                                                                <input type={showConfirmPassword ? 'text' : 'password'} className="form-input artist-profile-input" value={passwords.confirmPassword}
                                                                     onChange={e => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                                                                    placeholder="Re-enter new password"
-                                                                    style={{ ...inputStyle, paddingRight: '40px' }}
-                                                                    maxLength={128}
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                                    style={{
-                                                                        position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                                                                        background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'
-                                                                    }}
-                                                                >
+                                                                    placeholder="Re-enter new password" style={{ paddingRight: '40px' }} maxLength={128} />
+                                                                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
                                                                     {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                                 </button>
                                                             </div>
@@ -565,12 +421,11 @@ function CustomerProfile() {
                                             )}
                                         </div>
 
-                                        <div className="customer-st-9ef284c9" >
-                                            <button className="btn btn-secondary customer-st-282aded5" type="button" onClick={() => { if (originalProfile) setProfile(originalProfile); setIsEditing(false); }} >
-                                                Cancel
-                                            </button>
-                                            <button className="btn btn-primary customer-st-68632107" type="submit" disabled={saving} >
-                                                {saving ? 'Saving...' : <><Save className="customer-st-b4fa5b5e" size={18} /> Save All Changes</>}
+                                        {/* Save Bar */}
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '16px', borderTop: '2px solid #f1f5f9' }}>
+                                            <button type="button" className="btn btn-secondary" onClick={() => { if (originalProfile) setProfile(originalProfile); setIsEditing(false); }}>Cancel</button>
+                                            <button type="submit" className="btn btn-primary" disabled={saving} style={{ backgroundColor: '#be9055', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                {saving ? 'Saving...' : <><Save size={18} /> Save All Changes</>}
                                             </button>
                                         </div>
                                     </form>
