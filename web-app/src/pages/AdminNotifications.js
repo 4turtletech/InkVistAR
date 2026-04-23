@@ -341,14 +341,14 @@ function AdminNotifications() {
 
                 <p className="header-subtitle">System alerts and direct updates</p>
 
-                <div className="portal-stats-row">
-                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '20px', textAlign: 'center' }}>
-                        <span style={{ display: 'block', color: '#64748b', fontSize: '0.9rem', marginBottom: '8px' }}>Total Updates</span>
-                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b' }}>{notifications.length}</span>
+                <div className="portal-stats-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '12px', textAlign: 'center' }}>
+                        <span style={{ display: 'block', color: '#64748b', fontSize: '0.85rem', marginBottom: '4px' }}>Total Updates</span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b' }}>{notifications.length}</span>
                     </div>
-                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '20px', textAlign: 'center' }}>
-                        <span style={{ display: 'block', color: '#64748b', fontSize: '0.9rem', marginBottom: '8px' }}>Unread Alerts</span>
-                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#b7954e' : 'inherit' }}>{unreadCount}</span>
+                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '12px', textAlign: 'center' }}>
+                        <span style={{ display: 'block', color: '#64748b', fontSize: '0.85rem', marginBottom: '4px' }}>Unread Alerts</span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: unreadCount > 0 ? '#b7954e' : 'inherit' }}>{unreadCount}</span>
                     </div>
                 </div>
 
@@ -420,8 +420,9 @@ function AdminNotifications() {
                                         const style = getNotificationStyle(n.type);
                                         const isPaymentResolution = n.type === 'payment_resolution';
                                         return (
-                                            <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{
-                                                padding: '12px 20px', cursor: 'pointer', position: 'relative',
+                                            <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'} ${isPaymentResolution ? 'payment-alert' : ''}`} style={{
+                                                padding: '8px 16px', cursor: 'pointer', position: 'relative',
+                                                marginBottom: '8px',
                                                 ...(isPaymentResolution ? {
                                                     background: 'rgba(254, 226, 226, 0.5)',
                                                     borderLeft: '4px solid #dc2626',
@@ -439,9 +440,9 @@ function AdminNotifications() {
                                                 }
                                             }}>
                                                 <div className="notif-id-marker"></div>
-                                                <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '20px', overflow: 'hidden' }}>
-                                                    <div className="icon-badge" style={{ background: style.bg, padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
-                                                        {Icon}
+                                                <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '16px', overflow: 'hidden' }}>
+                                                    <div className="icon-badge" style={{ background: style.bg, padding: '4px', borderRadius: '6px', flexShrink: 0 }}>
+                                                        {React.cloneElement(Icon, { size: 16 })}
                                                     </div>
 
                                                     <div className="notif-content-area" style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
@@ -489,6 +490,7 @@ function AdminNotifications() {
                                                                 )
                                                             )}
                                                         </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
