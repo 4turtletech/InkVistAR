@@ -519,7 +519,10 @@ function ArtistAppointments() {
                                                                 <User size={18} color="#94a3b8" />
                                                             )}
                                                         </div>
-                                                        <div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#be9055', fontFamily: 'monospace', letterSpacing: '0.02em', marginBottom: '2px' }}>
+                                                                #{getDisplayCode(apt.booking_code, apt.id)}
+                                                            </span>
                                                             <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '0.95rem' }}>{apt.client_name}</div>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                                                                 <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{apt.design_title || 'Tattoo Session'}</span>

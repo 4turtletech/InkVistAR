@@ -1152,7 +1152,10 @@ function AdminAppointments() {
                                                 </span>
                                             )}
                                         </div>
-                                        <div>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#be9055', fontFamily: 'monospace', letterSpacing: '0.02em', marginBottom: '2px' }}>
+                                                #{getDisplayCode(apt.bookingCode, apt.id)}
+                                            </span>
                                             <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '0.95rem' }}>{apt.clientName}</div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{apt.serviceType || 'Tattoo Session'}</span>
