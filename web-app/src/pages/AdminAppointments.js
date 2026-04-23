@@ -57,7 +57,9 @@ function AdminAppointments() {
         manualPaidAmount: 0,
         manualPaymentMethod: 'Cash',
         rejectionReason: '',
-        rescheduleReason: ''
+        rescheduleReason: '',
+        consultationNotes: '',
+        quotedPrice: ''
     });
     const [rescheduleModal, setRescheduleModal] = useState({ isOpen: false, date: '', time: '', reason: '' });
     const [showCalendarLegend, setShowCalendarLegend] = useState(false);
@@ -116,7 +118,7 @@ function AdminAppointments() {
         if (!initialFormDataRef.current) return false;
         const tracked = ['clientId', 'artistId', 'secondaryArtistId', 'commissionSplit',
             'serviceType', 'designTitle', 'date', 'time', 'status', 'paymentStatus',
-            'notes', 'price', 'rejectionReason', 'isReferral'];
+            'notes', 'price', 'rejectionReason', 'isReferral', 'consultationNotes', 'quotedPrice'];
         return tracked.some(key => {
             const a = formData[key] ?? '';
             const b = initialFormDataRef.current[key] ?? '';
@@ -210,6 +212,8 @@ function AdminAppointments() {
                         manualPaymentMethod: apt.manual_payment_method || 'Cash',
                         clientAvatar: apt.client_avatar,
                         consultationMethod: apt.consultation_method || null,
+                        consultationNotes: apt.consultation_notes || '',
+                        quotedPrice: apt.quoted_price || '',
                         secondary_artist_id: apt.secondary_artist_id || null,
                         commission_split: apt.commission_split || 50,
                         isReferral: !!apt.is_referral
@@ -464,7 +468,9 @@ function AdminAppointments() {
             manualPaymentMethod: appointment.manualPaymentMethod || 'Cash',
             rejectionReason: appointment.rejectionReason || '',
             rescheduleReason: '',
-            isReferral: !!appointment.isReferral
+            isReferral: !!appointment.isReferral,
+            consultationNotes: appointment.consultationNotes || '',
+            quotedPrice: appointment.quotedPrice || ''
         });
         setClientSearch(appointment.clientName);
         initialFormDataRef.current = {
@@ -486,7 +492,9 @@ function AdminAppointments() {
             manualPaymentMethod: appointment.manualPaymentMethod || 'Cash',
             rejectionReason: appointment.rejectionReason || '',
             rescheduleReason: '',
-            isReferral: !!appointment.isReferral
+            isReferral: !!appointment.isReferral,
+            consultationNotes: appointment.consultationNotes || '',
+            quotedPrice: appointment.quotedPrice || ''
         };
         openModal();
     };
@@ -524,7 +532,9 @@ function AdminAppointments() {
             manualPaymentMethod: 'Cash',
             rejectionReason: '',
             rescheduleReason: '',
-            isReferral: false
+            isReferral: false,
+            consultationNotes: '',
+            quotedPrice: ''
         });
         setClientSearch('');
         initialFormDataRef.current = { ...formData, clientId: '', artistId: '', secondaryArtistId: '', commissionSplit: 50, serviceType: '', date: prefilledDate || new Date().toISOString().split('T')[0], time: '13:00', status: 'pending', paymentStatus: 'unpaid', notes: '', price: 0, beforePhoto: null, referenceImage: null, manualPaidAmount: 0, manualPaymentMethod: 'Cash', rejectionReason: '', rescheduleReason: '', isReferral: false };
@@ -649,7 +659,9 @@ function AdminAppointments() {
                     manualPaymentMethod: formData.manualPaymentMethod,
                     rejectionReason: formData.status === 'rejected' ? formData.rejectionReason : null,
                     rescheduleReason: formData.rescheduleReason,
-                    isReferral: formData.isReferral || false
+                    isReferral: formData.isReferral || false,
+                    consultationNotes: formData.consultationNotes || null,
+                    quotedPrice: formData.quotedPrice || null
                 };
 
                 if (selectedAppointment) {
@@ -1840,6 +1852,67 @@ function AdminAppointments() {
                                                     }
                                                 />
                                             </div>
+
+                                            {/* Consultation Summary Fields — Only visible for Consultation appointments */}
+                                            {formData.serviceType === 'Consultation' && (
+                                                <div style={{ marginTop: '20px' }}>
+                                                    <label className="admin-st-739a1b05" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span style={{ fontSize: '1rem' }}>📋</span>
+                                                        Consultation Summary
+                                                        <span style={{
+                                                            fontSize: '0.7rem',
+                                                            background: 'linear-gradient(135deg, #dcfce7, #d1fae5)',
+                                                            color: '#166534',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '6px',
+                                                            fontWeight: 600,
+                                                            border: '1px solid #bbf7d0',
+                                                            marginLeft: '4px'
+                                                        }}>Sent to Customer</span>
+                                                    </label>
+                                                    <p style={{ margin: '0 0 12px', fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                                                        These fields are included in the <strong style={{ color: '#64748b' }}>Consultation Summary Email</strong> sent to the customer when this appointment is marked as <strong style={{ color: '#10b981' }}>Completed</strong>.
+                                                    </p>
+
+                                                    <div className="premium-input-group" style={{ marginBottom: '14px' }}>
+                                                        <label className="admin-st-b8618eb2">Artist's Notes</label>
+                                                        <textarea
+                                                            value={formData.consultationNotes || ''}
+                                                            onChange={(e) => setFormData({ ...formData, consultationNotes: e.target.value })}
+                                                            className="premium-input-v2"
+                                                            style={{ minHeight: '110px', resize: 'vertical', borderColor: 'rgba(190,144,85,0.25)' }}
+                                                            maxLength={2000}
+                                                            placeholder="Summarize the consultation outcome — design ideas discussed, placement preferences, tattoo size, style preferences, any special considerations, aftercare advice given, etc."
+                                                        />
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Visible to the customer in their summary email</span>
+                                                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{(formData.consultationNotes || '').length}/2000</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="premium-input-group">
+                                                        <label className="admin-st-b8618eb2">Quoted Price (₱)</label>
+                                                        <div style={{ position: 'relative' }}>
+                                                            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontWeight: 600, fontSize: '0.95rem', pointerEvents: 'none' }}>₱</span>
+                                                            <input
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                value={formData.quotedPrice === 0 || formData.quotedPrice === '0' ? '' : formData.quotedPrice}
+                                                                onChange={(e) => {
+                                                                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                                    setFormData({ ...formData, quotedPrice: raw === '' ? '' : Number(raw) });
+                                                                }}
+                                                                className="premium-input-v2"
+                                                                style={{ paddingLeft: '30px', borderColor: 'rgba(190,144,85,0.25)' }}
+                                                                placeholder="e.g. 5000 (optional)"
+                                                            />
+                                                        </div>
+                                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
+                                                            Optional estimated price quote — shown in the customer's summary email if provided
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Middle Column: Project Session History */}
