@@ -341,14 +341,14 @@ function AdminNotifications() {
 
                 <p className="header-subtitle">System alerts and direct updates</p>
 
-                <div className="portal-stats-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '12px', textAlign: 'center' }}>
-                        <span style={{ display: 'block', color: '#64748b', fontSize: '0.8rem', marginBottom: '4px' }}>Total Updates</span>
-                        <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#1e293b' }}>{notifications.length}</span>
+                <div className="portal-stats-row">
+                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '20px', textAlign: 'center' }}>
+                        <span style={{ display: 'block', color: '#64748b', fontSize: '0.9rem', marginBottom: '8px' }}>Total Updates</span>
+                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#1e293b' }}>{notifications.length}</span>
                     </div>
-                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '12px', textAlign: 'center' }}>
-                        <span style={{ display: 'block', color: '#64748b', fontSize: '0.8rem', marginBottom: '4px' }}>Unread Alerts</span>
-                        <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: unreadCount > 0 ? '#b7954e' : 'inherit' }}>{unreadCount}</span>
+                    <div className="glass-card" style={{ flex: '1 1 200px', padding: '20px', textAlign: 'center' }}>
+                        <span style={{ display: 'block', color: '#64748b', fontSize: '0.9rem', marginBottom: '8px' }}>Unread Alerts</span>
+                        <span style={{ fontSize: '1.8rem', fontWeight: 'bold', color: unreadCount > 0 ? '#b7954e' : 'inherit' }}>{unreadCount}</span>
                     </div>
                 </div>
 
@@ -414,17 +414,14 @@ function AdminNotifications() {
                     ) : (
                         <div className="notifications-wrapper">
                             {currentItems.length > 0 ? (
-                                <div className="notifications-stream" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+                                <div className="notifications-stream">
                                     {currentItems.map((n) => {
                                         const Icon = getIcon(n.type);
                                         const style = getNotificationStyle(n.type);
                                         const isPaymentResolution = n.type === 'payment_resolution';
                                         return (
                                             <div key={n.id} className={`glass-card notification-record ${n.is_read ? 'read' : 'unread'}`} style={{
-                                                padding: '16px', cursor: 'pointer', position: 'relative',
-                                                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                                background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px',
-                                                borderLeft: !n.is_read ? '4px solid #be9055' : '1px solid #e2e8f0',
+                                                padding: '12px 20px', cursor: 'pointer', position: 'relative',
                                                 ...(isPaymentResolution ? {
                                                     background: 'rgba(254, 226, 226, 0.5)',
                                                     borderLeft: '4px solid #dc2626',
@@ -441,55 +438,57 @@ function AdminNotifications() {
                                                     }
                                                 }
                                             }}>
-                                                <div style={{ background: style.bg, padding: '8px', borderRadius: '10px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    {Icon}
-                                                </div>
-
-                                                <div style={{ width: '100%', textAlign: 'left', marginBottom: '16px' }}>
-                                                    <span className="subject-text" style={{ fontSize: '0.9rem', color: isPaymentResolution ? '#dc2626' : (n.is_read ? '#64748b' : '#1e293b'), display: 'block', fontWeight: 700, marginBottom: '4px' }}>{n.title}</span>
-                                                    <p className="notif-body" style={{ margin: 0, fontSize: '0.85rem', color: isPaymentResolution ? '#991b1b' : '#475569', lineHeight: '1.4' }}>{n.message}</p>
-                                                </div>
-
-                                                <div style={{ width: '100%', textAlign: 'center', marginTop: 'auto' }}>
-                                                    <span className="notif-time" style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>
-                                                        {formatNotificationTime(n.created_at)}
-                                                    </span>
-
-                                                    <div className="notif-actions" style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                                                        {isPaymentResolution ? (
-                                                            <button
-                                                                className="notif-btn primary"
-                                                                style={{ padding: '6px 12px', background: '#dc2626', color: 'white', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center' }}
-                                                                onClick={() => {
-                                                                    if (n._paymentAlerts) {
-                                                                        window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts: n._paymentAlerts } }));
-                                                                        sessionStorage.removeItem('paymentAlertShown');
-                                                                    }
-                                                                }}
-                                                            >
-                                                                Take Action <ArrowRight size={14} />
-                                                            </button>
-                                                        ) : n.path ? (
-                                                            <button
-                                                                className="notif-btn primary"
-                                                                style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center' }}
-                                                                onClick={() => navigate(n.path)}
-                                                            >
-                                                                Take Action <ArrowRight size={14} />
-                                                            </button>
-                                                        ) : null}
-                                                        {!isPaymentResolution && (
-                                                            !n.is_read ? (
-                                                                <button className="notif-btn ghost" onClick={() => markAsRead(n.id)} title="Mark as Read" style={{ padding: '4px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
-                                                                    <Check size={16} />
-                                                                </button>
-                                                            ) : (
-                                                                <button className="notif-btn ghost" onClick={() => markAsUnread(n.id)} title="Mark as Unread" style={{ padding: '4px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
-                                                                    <RotateCcw size={16} />
-                                                                </button>
-                                                            )
-                                                        )}
+                                                <div className="notif-id-marker"></div>
+                                                <div className="notif-main" style={{ display: 'flex', alignItems: 'center', gap: '20px', overflow: 'hidden' }}>
+                                                    <div className="icon-badge" style={{ background: style.bg, padding: '6px', borderRadius: '6px', flexShrink: 0 }}>
+                                                        {Icon}
                                                     </div>
+
+                                                    <div className="notif-content-area" style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                                        <span className="subject-text" style={{ fontSize: '0.95rem', minWidth: '150px', color: isPaymentResolution ? '#dc2626' : (n.is_read ? '#64748b' : '#1e293b'), display: 'block', fontWeight: isPaymentResolution ? 700 : undefined }}>{n.title}</span>
+                                                        <p className="notif-body" style={{ margin: 0, fontSize: '0.9rem', color: isPaymentResolution ? '#991b1b' : '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</p>
+                                                    </div>
+
+                                                    <div className="notif-actions-area" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                                                        <span className="notif-time" style={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: '80px', textAlign: 'right' }}>
+                                                            {formatNotificationTime(n.created_at)}
+                                                        </span>
+
+                                                        <div className="notif-actions" style={{ display: 'flex', gap: '8px' }}>
+                                                            {isPaymentResolution ? (
+                                                                <button
+                                                                    className="notif-btn primary"
+                                                                    style={{ padding: '6px 12px', background: '#dc2626', color: 'white', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center' }}
+                                                                    onClick={() => {
+                                                                        if (n._paymentAlerts) {
+                                                                            window.dispatchEvent(new CustomEvent('payment-alert', { detail: { alerts: n._paymentAlerts } }));
+                                                                            sessionStorage.removeItem('paymentAlertShown');
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    Take Action <ArrowRight size={14} />
+                                                                </button>
+                                                            ) : n.path ? (
+                                                                <button
+                                                                    className="notif-btn primary"
+                                                                    style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center' }}
+                                                                    onClick={() => navigate(n.path)}
+                                                                >
+                                                                    Take Action <ArrowRight size={14} />
+                                                                </button>
+                                                            ) : null}
+                                                            {!isPaymentResolution && (
+                                                                !n.is_read ? (
+                                                                    <button className="notif-btn ghost" onClick={() => markAsRead(n.id)} title="Mark as Read" style={{ padding: '6px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                                                                        <Check size={14} />
+                                                                    </button>
+                                                                ) : (
+                                                                    <button className="notif-btn ghost" onClick={() => markAsUnread(n.id)} title="Mark as Unread" style={{ padding: '6px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+                                                                        <RotateCcw size={14} />
+                                                                    </button>
+                                                                )
+                                                            )}
+                                                        </div>
                                                 </div>
                                             </div>
                                         );

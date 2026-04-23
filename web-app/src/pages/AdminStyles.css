@@ -3249,4 +3249,84 @@
         width: 14px;
         min-width: 14px;
     }
+
+    /* Mobile Notifications Layout Match Reference Image */
+    .portal-stats-row {
+        gap: 8px !important;
+        margin-bottom: 12px !important;
+    }
+    .portal-stats-row .glass-card {
+        padding: 12px !important;
+    }
+    .portal-stats-row .glass-card span:last-child {
+        font-size: 1.4rem !important;
+    }
+    .notifications-stream {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .notification-record {
+        flex-direction: column !important;
+        align-items: center !important;
+        padding: 16px !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        border-left: 1px solid #e2e8f0 !important;
+    }
+    .notification-record.unread {
+        border-left: 4px solid #be9055 !important;
+    }
+    .notification-record.payment-alert {
+        background: rgba(254, 226, 226, 0.5) !important;
+        border-left: 4px solid #dc2626 !important;
+        border: 1px solid rgba(220, 38, 38, 0.25) !important;
+    }
+    .notification-record .notif-main {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 12px !important;
+        width: 100% !important;
+    }
+    .notification-record .icon-badge {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        margin-bottom: 8px !important;
+        border-radius: 10px !important;
+        padding: 8px !important;
+    }
+    .notification-record .notif-content-area {
+        text-align: left !important;
+        width: 100% !important;
+        margin-bottom: 12px !important;
+    }
+    .notification-record .subject-text {
+        font-size: 0.9rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 4px !important;
+    }
+    .notification-record .notif-body {
+        white-space: normal !important;
+        line-height: 1.4 !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+    .notification-record .notif-actions-area {
+        align-items: center !important;
+        width: 100% !important;
+    }
+    .notification-record .notif-time {
+        text-align: center !important;
+        display: block !important;
+        margin-bottom: 8px !important;
+    }
+    .notification-record .notif-actions {
+        justify-content: center !important;
+        width: 100% !important;
+    }
+    .notification-record .notif-id-marker {
+        display: none !important;
+    }
 }
