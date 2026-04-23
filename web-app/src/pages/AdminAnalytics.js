@@ -376,21 +376,36 @@ function AdminAnalytics() {
                                             <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Trend ({timeframeLabel})</h2>
                                             <div style={{ width: '100%', height: 280 }}>
                                                 <ResponsiveContainer>
-                                                    <BarChart data={analytics.revenue.chart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                                        <XAxis dataKey="month" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
-                                                        <YAxis tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
-                                                        <Tooltip
-                                                            cursor={{ fill: 'rgba(99, 102, 241, 0.06)' }}
-                                                            contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '10px 14px', fontSize: '0.85rem' }}
-                                                            formatter={(value, name) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Revenue']}
-                                                            labelFormatter={(label, payload) => {
-                                                                const appts = payload && payload[0] ? payload[0].payload.appointments : 0;
-                                                                return `${label} — ${appts} appointment${appts !== 1 ? 's' : ''}`;
-                                                            }}
-                                                        />
-                                                        <Bar dataKey="value" name="Revenue" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={48} />
-                                                    </BarChart>
+                                                    {(() => {
+                                                        const chartLen = (analytics.revenue.chart || []).length;
+                                                        const isDailyChart = chartLen > 6;
+                                                        const dynamicBarSize = isDailyChart ? Math.max(8, Math.floor(600 / chartLen) - 4) : 48;
+                                                        return (
+                                                            <BarChart data={analytics.revenue.chart} margin={{ top: 5, right: 20, left: 0, bottom: isDailyChart ? 40 : 5 }}>
+                                                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                                                <XAxis
+                                                                    dataKey="month"
+                                                                    tick={{ fill: '#171516', fontSize: isDailyChart ? 9 : 12, fontWeight: 600 }}
+                                                                    axisLine={{ stroke: '#cbd5e1' }}
+                                                                    tickLine={false}
+                                                                    interval={0}
+                                                                    angle={isDailyChart ? -45 : 0}
+                                                                    textAnchor={isDailyChart ? 'end' : 'middle'}
+                                                                />
+                                                                <YAxis tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+                                                                <Tooltip
+                                                                    cursor={{ fill: 'rgba(99, 102, 241, 0.06)' }}
+                                                                    contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '10px 14px', fontSize: '0.85rem' }}
+                                                                    formatter={(value, name) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Revenue']}
+                                                                    labelFormatter={(label, payload) => {
+                                                                        const appts = payload && payload[0] ? payload[0].payload.appointments : 0;
+                                                                        return `${label} — ${appts} appointment${appts !== 1 ? 's' : ''}`;
+                                                                    }}
+                                                                />
+                                                                <Bar dataKey="value" name="Revenue" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={dynamicBarSize} />
+                                                            </BarChart>
+                                                        );
+                                                    })()}
                                                 </ResponsiveContainer>
                                             </div>
                                             <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#6366f1' }}>View revenue source breakdown →</div>
@@ -425,27 +440,35 @@ function AdminAnalytics() {
                                 {
                                     id: 'popular_styles',
                                     widthInfo: 'narrow',
-                                    element: (
-                                        <div key="popular_styles" className="card glass-card" onClick={() => openAuditModal('styles')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
-                                            <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Popular Styles</h2>
-                                            <div style={{ width: '100%', height: 280 }}>
-                                                {analytics.styles.length > 0 ? (
-                                                    <ResponsiveContainer>
-                                                        <PieChart>
-                                                            <Pie data={analytics.styles.map(s => ({ name: s.name, value: Number(s.count) || 0 }))} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={true}>
-                                                                {analytics.styles.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[(i * 2) % RAINBOW_PALETTE.length]} />)}
-                                                            </Pie>
-                                                            <Tooltip formatter={(v, name) => [`${v} works`, name]} />
-                                                            <Legend wrapperStyle={{ color: '#171516' }} />
-                                                        </PieChart>
-                                                    </ResponsiveContainer>
-                                                ) : (
-                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No style data yet</div>
+                                    element: (() => {
+                                        const isFiltered = revenueTimeframe !== 'all';
+                                        return (
+                                            <div key="popular_styles" className={`card glass-card ${isFiltered ? 'disabled-widget' : ''}`} onClick={() => !isFiltered && openAuditModal('styles')} style={{ cursor: isFiltered ? 'default' : 'pointer', width: '100%', boxSizing: 'border-box', backgroundColor: isFiltered ? '#f8fafc' : '', opacity: isFiltered ? 0.7 : 1, border: isFiltered ? '1px dashed #cbd5e1' : '' }}>
+                                                <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Popular Styles</h2>
+                                                {isFiltered && (
+                                                    <div style={{ margin: '-5px 0 15px', padding: '6px 10px', background: '#e2e8f0', borderRadius: '6px', fontSize: '0.75rem', color: '#475569', textAlign: 'center' }}>
+                                                        This metric tracks all portfolio uploads and is not affected by date filters. Switch to "All Time" to view.
+                                                    </div>
                                                 )}
+                                                <div style={{ width: '100%', height: 280, filter: isFiltered ? 'grayscale(1)' : 'none', pointerEvents: isFiltered ? 'none' : 'auto' }}>
+                                                    {analytics.styles.length > 0 ? (
+                                                        <ResponsiveContainer>
+                                                            <PieChart>
+                                                                <Pie data={analytics.styles.map(s => ({ name: s.name, value: Number(s.count) || 0 }))} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={true}>
+                                                                    {analytics.styles.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[(i * 2) % RAINBOW_PALETTE.length]} />)}
+                                                                </Pie>
+                                                                <Tooltip formatter={(v, name) => [`${v} works`, name]} />
+                                                                <Legend wrapperStyle={{ color: '#171516' }} />
+                                                            </PieChart>
+                                                        </ResponsiveContainer>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>No style data yet</div>
+                                                    )}
+                                                </div>
+                                                {!isFiltered && <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#a855f7' }}>View portfolio style breakdown →</div>}
                                             </div>
-                                            <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#a855f7' }}>View portfolio style breakdown →</div>
-                                        </div>
-                                    )
+                                        );
+                                    })()
                                 },
                                 {
                                     id: 'top_artists',
