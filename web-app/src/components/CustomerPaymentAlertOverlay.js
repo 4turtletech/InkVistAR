@@ -139,7 +139,7 @@ function CustomerPaymentAlertOverlay() {
                             </div>
 
                             <div style={{
-                                background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+                                background: '#f8fafc',
                                 borderRadius: '16px', padding: '20px', border: '1px solid #e2e8f0'
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -178,7 +178,7 @@ function CustomerPaymentAlertOverlay() {
                                 Dismiss
                             </button>
                             <button onClick={() => handleGoToAppointment(selectedAlert)} style={{
-                                padding: '10px 20px', background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                padding: '10px 20px', background: '#f59e0b',
                                 border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer',
                                 color: '#fff', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px'
                             }}>
