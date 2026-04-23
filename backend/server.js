@@ -868,6 +868,24 @@ db.getConnection((err, connection) => {
             console.log('✅ Added is_referral column to appointments');
           }
         });
+
+        // MIGRATION: Add 'consultation_notes' column for structured consultation summary data
+        db.query("SHOW COLUMNS FROM appointments LIKE 'consultation_notes'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding consultation_notes column...');
+            db.query("ALTER TABLE appointments ADD COLUMN consultation_notes TEXT NULL");
+            console.log('✅ Added consultation_notes column to appointments');
+          }
+        });
+
+        // MIGRATION: Add 'quoted_price' column for consultation price quotes
+        db.query("SHOW COLUMNS FROM appointments LIKE 'quoted_price'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('🔄 Migrating appointments: Adding quoted_price column...');
+            db.query("ALTER TABLE appointments ADD COLUMN quoted_price DECIMAL(10, 2) NULL DEFAULT NULL");
+            console.log('✅ Added quoted_price column to appointments');
+          }
+        });
       }
     });
 
@@ -1388,6 +1406,119 @@ function sendReceiptEmail(customerEmail, invoiceData) {
   const emailHtml = buildEmailHtml(contentHtml);
   sendEmail(customerEmail, `Your InkVictus Receipt — ${invoiceData.id}`, emailHtml);
   console.log(`📬 Receipt email queued for ${customerEmail} — ${invoiceData.id}`);
+}
+
+/**
+ * Consultation Summary Email — Sent when a consultation appointment is marked as completed.
+ * Replaces the generic "Session Complete" email for consultations (which are always free).
+ * Includes: details card, artist notes, quoted price, and CTAs for booking a session / creating account.
+ *
+ * @param {string} recipientEmail - Customer's email address
+ * @param {string} recipientName - Customer's display name
+ * @param {object} consultationData - Consultation appointment data
+ * @param {string} consultationData.bookingCode - Booking reference code
+ * @param {string} consultationData.designTitle - Design/concept discussed
+ * @param {string} consultationData.date - Consultation date (formatted)
+ * @param {string} consultationData.artistName - Assigned artist name
+ * @param {string} consultationData.consultationMethod - Face-to-Face / Online
+ * @param {string} consultationData.consultationNotes - Artist's notes from the consultation
+ * @param {number} consultationData.quotedPrice - Agreed price quote (nullable)
+ * @param {boolean} isGuest - Whether the customer is a guest (no account)
+ */
+function sendConsultationSummaryEmail(recipientEmail, recipientName, consultationData, isGuest = false) {
+  if (!recipientEmail) return;
+
+  try {
+    const { bookingCode, designTitle, date, artistName, consultationMethod, consultationNotes, quotedPrice } = consultationData;
+
+    // ── Details Card ──
+    const detailRows = [
+      { label: 'Ref Code', value: bookingCode || `#N/A`, mono: true },
+      { label: 'Design / Idea', value: designTitle || 'General Consultation' },
+      { label: 'Date', value: date || 'N/A' },
+      { label: 'Artist', value: artistName || 'Studio Staff' },
+      { label: 'Method', value: consultationMethod || 'Face-to-Face' }
+    ];
+
+    const detailHtml = detailRows.map(r =>
+      `<p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:110px;">${r.label}:</strong> <span style="color:#C19A6B;${r.mono ? 'font-family:monospace;font-weight:700;' : ''}">${r.value}</span></p>`
+    ).join('');
+
+    // ── Artist's Notes Block ──
+    const notesBlock = consultationNotes ? `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 16px;">
+        <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:20px 24px;background:linear-gradient(135deg,#1a1816 0%,#14120f 100%);border:1px solid rgba(190,144,85,0.25);border-radius:14px;">
+          <p style="margin:0 0 10px;font-size:14px;font-weight:700;color:#be9055;">📝 Artist's Notes</p>
+          <p style="margin:0;font-size:14px;color:#e2e8f0;line-height:1.7;white-space:pre-wrap;">${consultationNotes}</p>
+        </div>
+      </td></tr></table>
+    ` : '';
+
+    // ── Price Quote Block ──
+    const priceBlock = (quotedPrice && quotedPrice > 0) ? `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0 16px;">
+        <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:18px 24px;background:#1a1a1a;border:1px solid rgba(16,185,129,0.25);border-radius:12px;text-align:center;">
+          <p style="margin:0 0 4px;font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Estimated Price Quote</p>
+          <p style="margin:0;font-size:28px;font-weight:800;color:#10b981;">₱${parseFloat(quotedPrice).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p style="margin:8px 0 0;font-size:11px;color:#64748b;">Final pricing may vary based on design complexity and session duration.</p>
+        </div>
+      </td></tr></table>
+    ` : '';
+
+    // ── Book Your Session CTA ──
+    const bookSessionBlock = `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 16px;">
+        <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:22px 24px;background:linear-gradient(135deg,#111827 0%,#1a1816 100%);border:1px solid rgba(190,144,85,0.3);border-radius:14px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:16px;font-weight:700;color:#be9055;">🎨 Ready to Bring Your Design to Life?</p>
+          <p style="margin:0 0 16px;font-size:13px;color:#94a3b8;line-height:1.6;">Your consultation is complete! Take the next step and book your tattoo session to make it happen.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;">
+            <a href="${FRONTEND_URL}${isGuest ? '/book' : '/customer/bookings'}" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#be9055,#a07840);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Book a Session →</a>
+          </td></tr></table>
+          ${isGuest ? `
+            <p style="margin:14px 0 0;font-size:12px;color:#64748b;">Don't have an account yet?</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 0;">
+              <a href="${FRONTEND_URL}/register" style="display:inline-block;padding:10px 24px;background:rgba(190,144,85,0.15);border:1px solid rgba(190,144,85,0.3);color:#be9055;font-size:13px;font-weight:700;text-decoration:none;border-radius:10px;">Create Free Account →</a>
+            </td></tr></table>
+          ` : ''}
+        </div>
+      </td></tr></table>
+    `;
+
+    // ── Book Another Consultation CTA (bottom) ──
+    const rebookBlock = `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0 8px;">
+        <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:14px 20px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;">Need another consultation? You can book one anytime.</p>
+          <a href="${FRONTEND_URL}/book" style="display:inline-block;padding:8px 20px;color:#6366f1;font-size:13px;font-weight:700;text-decoration:none;border:1px solid rgba(99,102,241,0.3);border-radius:8px;background:rgba(99,102,241,0.08);">Book Another Consultation →</a>
+        </div>
+      </td></tr></table>
+    `;
+
+    const contentHtml = `
+      <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#10b981;text-align:center;">Consultation Summary ✅</h2>
+      ${bookingCode ? `<p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Ref: ${bookingCode}</p>` : ''}
+      <p style="margin:0 0 16px;">Hello ${recipientName},</p>
+      <p style="margin:0 0 16px;line-height:1.6;">Thank you for visiting InkVictus Tattoo Studio! Your consultation has been completed. Here's a summary of what was discussed during your visit:</p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+        <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+          ${detailHtml}
+        </div>
+      </td></tr></table>
+
+      ${notesBlock}
+      ${priceBlock}
+      ${bookSessionBlock}
+      ${rebookBlock}
+      <p style="margin:16px 0 0;font-size:14px;color:#94a3b8;text-align:center;">— The InkVistAR Studio Team</p>
+    `;
+
+    const emailHtml = buildEmailHtml(contentHtml);
+    sendResendEmail(recipientEmail, `InkVistAR: Your Consultation Summary${bookingCode ? ` [${bookingCode}]` : ''}`, emailHtml);
+    console.log(`📋 Consultation summary email sent to ${recipientEmail}`);
+  } catch (err) {
+    console.error(`⚠️ Error sending consultation summary email to ${recipientEmail}:`, err.message);
+  }
 }
 
 function createNotification(userId, title, message, type, relatedId = null) {
@@ -3980,6 +4111,8 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const manualPaymentMethod = body.manualPaymentMethod;
   const beforePhoto = body.beforePhoto;
   const consultationMethod = body.consultationMethod;
+  const consultationNotes = body.consultationNotes;
+  const quotedPrice = body.quotedPrice !== undefined ? (body.quotedPrice === '' || body.quotedPrice === null ? null : parseFloat(body.quotedPrice)) : undefined;
 
   // Date/Time Sanitization: convert empty strings to null for MySQL
   const date = body.date === '' ? null : body.date;
@@ -4012,6 +4145,8 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (manualPaymentMethod !== undefined) { updates.push('manual_payment_method = ?'); params.push(manualPaymentMethod); }
   if (beforePhoto !== undefined) { updates.push('before_photo = ?'); params.push(beforePhoto); }
   if (consultationMethod !== undefined) { updates.push('consultation_method = ?'); params.push(consultationMethod); }
+  if (consultationNotes !== undefined) { updates.push('consultation_notes = ?'); params.push(consultationNotes); }
+  if (quotedPrice !== undefined) { updates.push('quoted_price = ?'); params.push(quotedPrice); }
 
   // Referral flag: admin-only toggle (only applies to solo sessions)
   if (body.isReferral !== undefined) {
@@ -4499,38 +4634,89 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
             notificationsSent = true;
           } else if (status === 'completed') {
-            createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
-            notifyArtist('Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed');
-            sendPushNotification(currentData.customer_id, '✨ Session Complete!', `Your InkVistAR session #${id} is done! We hope you love your new ink.`, { screen: 'customer-notifications' });
+            const isConsultation = (oldAppt.service_type || '').toLowerCase().includes('consultation');
 
-            // ── Guest Email + SMS: Completed ──
-            if (guestEmail) {
-              sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
-                `Session Complete [${guestBookingCode}]`,
-                'Session Complete!', '#10b981',
-                `Your session has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio — we'd love to see you again.`,
-                [
-                  { label: 'Ref Code', value: guestBookingCode, mono: true },
-                  { label: 'Design', value: guestDesign },
-                  { label: 'Status', value: 'Completed' }
-                ], accountTip
-              );
-            }
-            if (guestPhone) {
-              sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your session is complete! Thank you for choosing InkVistAR Studio. We hope you love the result!`);
-            }
+            if (isConsultation) {
+              // ── CONSULTATION COMPLETION → Send Consultation Summary ──
+              createNotification(currentData.customer_id, 'Consultation Complete! ✅', `Your consultation #${id} has been completed. Check your email for a detailed summary.`, 'appointment_completed', id);
+              notifyArtist('Consultation Completed', `Consultation #${id} marked as completed.`, 'appointment_completed');
+              sendPushNotification(currentData.customer_id, '✅ Consultation Complete!', `Your InkVistAR consultation #${id} is done! Check your email for the summary and next steps.`, { screen: 'customer-notifications' });
 
-            // ── Registered User Email: Completed ──
-            if (isRegisteredUser) {
-              sendRegisteredUserStatusEmail(db, currentData.customer_id,
-                'Session Complete!',
-                'Session Complete! ✨', '#10b981',
-                `Your session for "${guestDesign}" has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio.`,
-                [
-                  { label: 'Design', value: guestDesign },
-                  { label: 'Status', value: 'Completed' }
-                ]
-              );
+              // Fetch fresh appointment data including the new consultation fields + artist name
+              db.query(`
+                SELECT a.*, u.name as artist_name 
+                FROM appointments a 
+                LEFT JOIN users u ON a.artist_id = u.id 
+                WHERE a.id = ?
+              `, [id], (fetchErr, fetchRes) => {
+                if (fetchErr || !fetchRes.length) {
+                  console.error(`⚠️ Failed to fetch consultation data for summary email (appointment #${id}):`, fetchErr?.message);
+                  return;
+                }
+                const appt = fetchRes[0];
+                const summaryData = {
+                  bookingCode: appt.booking_code || `#${id}`,
+                  designTitle: appt.design_title || 'General Consultation',
+                  date: formatGuestDate(appt.appointment_date),
+                  artistName: appt.artist_name || 'Studio Staff',
+                  consultationMethod: appt.consultation_method || 'Face-to-Face',
+                  consultationNotes: appt.consultation_notes || null,
+                  quotedPrice: appt.quoted_price || null
+                };
+
+                // Guest flow
+                if (guestEmail) {
+                  sendConsultationSummaryEmail(guestEmail, guestName, summaryData, true);
+                }
+                if (guestPhone) {
+                  sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your consultation is complete! Check your email for a detailed summary and next steps.`);
+                }
+
+                // Registered user flow
+                if (isRegisteredUser) {
+                  db.query('SELECT name, email FROM users WHERE id = ?', [currentData.customer_id], (uErr, uRes) => {
+                    if (!uErr && uRes.length && uRes[0].email) {
+                      sendConsultationSummaryEmail(uRes[0].email, uRes[0].name || 'Valued Customer', summaryData, false);
+                    }
+                  });
+                }
+              });
+
+            } else {
+              // ── NON-CONSULTATION (Tattoo/Piercing) COMPLETION → Original flow ──
+              createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
+              notifyArtist('Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed');
+              sendPushNotification(currentData.customer_id, '✨ Session Complete!', `Your InkVistAR session #${id} is done! We hope you love your new ink.`, { screen: 'customer-notifications' });
+
+              // ── Guest Email + SMS: Completed ──
+              if (guestEmail) {
+                sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
+                  `Session Complete [${guestBookingCode}]`,
+                  'Session Complete!', '#10b981',
+                  `Your session has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio — we'd love to see you again.`,
+                  [
+                    { label: 'Ref Code', value: guestBookingCode, mono: true },
+                    { label: 'Design', value: guestDesign },
+                    { label: 'Status', value: 'Completed' }
+                  ], accountTip
+                );
+              }
+              if (guestPhone) {
+                sendGuestStatusSMS(guestPhone, guestName, guestBookingCode, `Your session is complete! Thank you for choosing InkVistAR Studio. We hope you love the result!`);
+              }
+
+              // ── Registered User Email: Completed ──
+              if (isRegisteredUser) {
+                sendRegisteredUserStatusEmail(db, currentData.customer_id,
+                  'Session Complete!',
+                  'Session Complete! ✨', '#10b981',
+                  `Your session for "${guestDesign}" has been successfully completed! We hope you love the result. Thank you for choosing InkVistAR Studio.`,
+                  [
+                    { label: 'Design', value: guestDesign },
+                    { label: 'Status', value: 'Completed' }
+                  ]
+                );
+              }
             }
 
             notificationsSent = true;
