@@ -19,6 +19,15 @@
     .filters-section {
         grid-template-columns: 1fr;
     }
+    
+    .calendar-day-cell {
+        min-height: 60px !important;
+        padding: 4px !important;
+    }
+}
+
+.calendar-day-cell {
+    min-height: 100px;
 }
 
 .calendar-day-cell:hover {

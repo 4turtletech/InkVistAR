@@ -986,7 +986,6 @@ function AdminAppointments() {
                                         border: selectedDay === day
                                             ? '2px solid #7c3aed'
                                             : isToday ? '2px solid #6366f1' : '1px solid #e2e8f0',
-                                        minHeight: '100px',
                                         padding: '8px',
                                         borderRadius: '8px',
                                         backgroundColor: selectedDay === day ? '#f5f3ff' : 'white',
