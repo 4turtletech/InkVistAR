@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import Axios from 'axios';
-import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift, Check, Paintbrush, Gem, Star, CreditCard, Eye, Shield, Bell, Sparkles, Award, Video, Users } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Calendar, User, MessageSquare, Info, Image as ImageIcon, Upload, MapPin, UserPlus, Clock, CalendarCheck, UserCog, Gift, Check, Paintbrush, Gem, Star, CreditCard, Eye, Shield, Bell, Sparkles, Award, Video, Users, FileWarning } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import WaiverFormModal from './WaiverFormModal';
 const BodyModelViewer = lazy(() => import('./BodyModelViewer'));
 
 export default function CustomerBookingWizard({ customerId, onBack, isPublic = false }) {
@@ -15,6 +16,10 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [activeFeature, setActiveFeature] = useState(0);
     const [showExitModal, setShowExitModal] = useState(false);
     const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
+    const [waiverAccepted, setWaiverAccepted] = useState(false);
+    const [showWaiverModal, setShowWaiverModal] = useState(false);
+    const [waiverAcceptedAt, setWaiverAcceptedAt] = useState(null);
+    const [photoMarketingConsent, setPhotoMarketingConsent] = useState(true);
     const { executeRecaptcha } = useGoogleReCaptcha();
     
     const user = JSON.parse(localStorage.getItem('user'));
@@ -244,7 +249,9 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 deviceId: deviceId,
                 consultationMethod: consultMethodStr,
                 guestEmail: !currentUser ? formData.email : undefined,
-                guestPhone: !currentUser ? `${formData.phoneCode || '+63'}${formData.phone}` : undefined
+                guestPhone: !currentUser ? `${formData.phoneCode || '+63'}${formData.phone}` : undefined,
+                waiverAcceptedAt: waiverAcceptedAt || new Date().toISOString(),
+                photoMarketingConsent: photoMarketingConsent
             });
 
             if (response.data.success) {
@@ -852,6 +859,53 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 <CheckCircle size={12} style={{ marginRight: '4px' }} />
                 Your data is secure and will only be used to contact you about this booking.
             </p>
+
+            {/* Waiver Consent Toggle */}
+            <div style={{ margin: '20px 0 8px', padding: '16px 20px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', fontSize: '0.88rem', color: '#1e293b', lineHeight: 1.6, textAlign: 'left' }}>
+                    <input
+                        type="checkbox"
+                        checked={waiverAccepted}
+                        onChange={(e) => {
+                            const checked = e.target.checked;
+                            setWaiverAccepted(checked);
+                            if (checked) {
+                                setShowWaiverModal(true);
+                            } else {
+                                setWaiverAcceptedAt(null);
+                            }
+                        }}
+                        style={{ width: '20px', height: '20px', marginTop: '2px', accentColor: '#be9055', flexShrink: 0 }}
+                    />
+                    <span>
+                        I have read and agree to the{' '}
+                        <button
+                            type="button"
+                            onClick={() => setShowWaiverModal(true)}
+                            style={{ background: 'none', border: 'none', color: '#be9055', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: 'inherit' }}
+                        >
+                            Service Waiver & Release of Liability
+                        </button>
+                        <span style={{ color: '#ef4444' }}> *</span>
+                    </span>
+                </label>
+                {errors.waiver && <small style={{ color: '#ef4444', display: 'block', marginTop: '8px', fontSize: '0.8rem', paddingLeft: '32px' }}>{errors.waiver}</small>}
+            </div>
+
+            {/* Waiver Modal */}
+            <WaiverFormModal
+                isOpen={showWaiverModal}
+                onClose={() => setShowWaiverModal(false)}
+                onAccept={() => {
+                    setWaiverAccepted(true);
+                    setWaiverAcceptedAt(new Date().toISOString());
+                    setShowWaiverModal(false);
+                    if (errors.waiver) setErrors(prev => ({ ...prev, waiver: '' }));
+                }}
+                clientName={`${formData.firstName} ${formData.lastName}`.trim() || undefined}
+                photoConsent={photoMarketingConsent}
+                onPhotoConsentChange={setPhotoMarketingConsent}
+            />
         </div>
     );
 
@@ -1238,6 +1292,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             
                             if (!formData.phone) newErrors.phone = 'Phone Number is required';
                             else if (!/^\+?\d{10,15}$/.test((formData.phoneCode || '+63') + formData.phone)) newErrors.phone = 'Please enter a valid phone number';
+                            
+                            if (!waiverAccepted) newErrors.waiver = 'You must accept the Service Waiver to proceed';
                             
                             if (Object.keys(newErrors).length > 0) {
                                 setErrors(newErrors);

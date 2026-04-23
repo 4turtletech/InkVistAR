@@ -27,6 +27,7 @@ import AdminBilling from './pages/AdminBilling';
 import AdminChat from './pages/AdminChat';
 import AdminNotifications from './pages/AdminNotifications';
 import AppointmentPrintView from './pages/AppointmentPrintView';
+import WaiverPrintView from './pages/WaiverPrintView';
 
 import CustomerNotifications from './pages/CustomerNotifications';
 
@@ -114,6 +115,7 @@ function App() {
             <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={['admin']}><AdminChat /></ProtectedRoute>} />
             <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['admin']}><AdminNotifications /></ProtectedRoute>} />
             <Route path="/admin/appointments/:id/print" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AppointmentPrintView /></ProtectedRoute>} />
+            <Route path="/admin/appointments/:id/waiver" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><WaiverPrintView /></ProtectedRoute>} />
             <Route path="/artist" element={<ProtectedRoute allowedRoles={['artist']}><ArtistPortal /></ProtectedRoute>} />
             <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']}><CustomerPortal /></ProtectedRoute>} />
             <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><ManagerPortal /></ProtectedRoute>} />
@@ -137,6 +139,7 @@ function App() {
             <Route path="/customer/transactions" element={<ProtectedRoute allowedRoles={['customer']}><CustomerTransactions /></ProtectedRoute>} />
             <Route path="/customer/invoice/:invoiceNumber" element={<ProtectedRoute allowedRoles={['customer']}><CustomerInvoice /></ProtectedRoute>} />
             <Route path="/customer/aftercare" element={<ProtectedRoute allowedRoles={['customer']}><CustomerAftercare /></ProtectedRoute>} />
+            <Route path="/customer/waiver/:id" element={<ProtectedRoute allowedRoles={['customer']}><WaiverPrintView /></ProtectedRoute>} />
             <Route path="/payment" element={<ProtectedRoute allowedRoles={['customer']}><PaymentSimulation /></ProtectedRoute>} />
             <Route path="/pay-mongo" element={<PayMongoPayment />} />
             <Route path="/booking-confirmation" element={<ProtectedRoute allowedRoles={['customer']}><BookingConfirmation /></ProtectedRoute>} />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle, Printer } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle, Printer, ShieldCheck, RefreshCw, AlertTriangle, ClipboardList, Syringe, Wrench } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -298,7 +298,8 @@ function AdminAppointments() {
                         sessionDuration: apt.session_duration || null,
                         auditLog: apt.audit_log || null,
                         totalCost: apt.total_material_cost || 0,
-                        hasPendingRescheduleRequest: apt.has_pending_reschedule_request > 0
+                        hasPendingRescheduleRequest: apt.has_pending_reschedule_request > 0,
+                        waiverAcceptedAt: apt.waiver_accepted_at || null
                     };
                 });
                 setAppointments(mappedAppointments);
@@ -1279,7 +1280,7 @@ function AdminAppointments() {
                                                     fontWeight: 700, background: '#fffbeb', color: '#d97706',
                                                     border: '1px solid #fde68a'
                                                 }}>
-                                                    🔄
+                                                    <RefreshCw size={10} />
                                                 </span>
                                             )}
                                         </div>
@@ -1509,7 +1510,7 @@ function AdminAppointments() {
                                                                     border: '1px solid #fde68a', whiteSpace: 'nowrap',
                                                                     animation: 'pulse 2s ease-in-out infinite'
                                                                 }}>
-                                                                    🔄 Resched.
+                                                                    <RefreshCw size={10} style={{ display: 'inline', verticalAlign: '-1px' }} /> Resched.
                                                                 </span>
                                                             )}
                                                         </div>
@@ -1787,6 +1788,15 @@ function AdminAppointments() {
                                     >
                                         <Printer size={16} /> Print Record
                                     </button>
+                                    {selectedAppointment.waiverAcceptedAt && (
+                                        <button
+                                            className="btn"
+                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(190,144,85,0.12), rgba(190,144,85,0.06))', color: '#92400e', borderColor: 'rgba(190,144,85,0.3)' }}
+                                            onClick={() => window.open(`/admin/appointments/${selectedAppointment.id}/waiver`, '_blank')}
+                                        >
+                                            <ShieldCheck size={16} /> View Waiver
+                                        </button>
+                                    )}
                                 </div>
                                 <button className="btn btn-primary admin-st-6948e5f9" onClick={() => closeModal(true)}>Done Reviewing</button>
                             </div>
@@ -1859,7 +1869,7 @@ function AdminAppointments() {
                                             </div>
                                             <div>
                                                 <div style={{ fontWeight: 700, fontSize: '1rem', color: '#92400e' }}>
-                                                    🔄 Reschedule Request Pending
+                                                    <RefreshCw size={16} style={{ display: 'inline', verticalAlign: '-2px' }} /> Reschedule Request Pending
                                                 </div>
                                                 <div style={{ fontSize: '0.8rem', color: '#b45309' }}>
                                                     From: <strong>{pendingRescheduleRequest.customer_name}</strong> — submitted {new Date(pendingRescheduleRequest.created_at).toLocaleString()}
@@ -1871,7 +1881,7 @@ function AdminAppointments() {
                                                     background: '#fef3c7', border: '1px solid #fcd34d',
                                                     fontSize: '0.8rem', fontWeight: 700, color: '#d97706', whiteSpace: 'nowrap'
                                                 }}>
-                                                    ⏱ {Math.floor(pendingRescheduleRequest.seconds_remaining / 3600)}h {Math.floor((pendingRescheduleRequest.seconds_remaining % 3600) / 60)}m left
+                                                    <Clock size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> {Math.floor(pendingRescheduleRequest.seconds_remaining / 3600)}h {Math.floor((pendingRescheduleRequest.seconds_remaining % 3600) / 60)}m left
                                                 </div>
                                             )}
                                         </div>
@@ -2050,10 +2060,10 @@ function AdminAppointments() {
                                                     const isDualConsultation = formData.serviceType === 'Consultation' && (formData.notes || '').toLowerCase().includes('piercing');
                                                     const requiresDualStaff = isDualService || isDualConsultation;
                                                     const primaryLabel = isDualService
-                                                        ? <span>💉 Tattoo Artist <span style={{ color: '#ef4444' }}>*</span></span>
+                                                        ? <span><Syringe size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Tattoo Artist <span style={{ color: '#ef4444' }}>*</span></span>
                                                         : <span>Primary Staff <span style={{ color: '#ef4444' }}>*</span></span>;
                                                     const secondaryLabel = isDualService
-                                                        ? <span>🪛 Piercer <span style={{ color: '#ef4444' }}>*</span></span>
+                                                        ? <span><Wrench size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Piercer <span style={{ color: '#ef4444' }}>*</span></span>
                                                         : requiresDualStaff
                                                             ? <span>Secondary Staff <span style={{ color: '#ef4444' }}>*</span></span>
                                                             : 'Tattoo Artist 2';
@@ -2080,7 +2090,7 @@ function AdminAppointments() {
                                                             </select>
                                                             {requiresDualStaff && (
                                                                 <span style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 600, marginTop: '4px', display: 'block' }}>
-                                                                    ⚠ Dual topic selected
+                                                                    <AlertTriangle size={12} style={{ display: 'inline', verticalAlign: '-2px' }} /> Dual topic selected
                                                                 </span>
                                                             )}
                                                         </div>
@@ -2096,7 +2106,7 @@ function AdminAppointments() {
                                                     {/* Dual-service note: commission is per-service-line */}
                                                     {formData.secondaryArtistId && formData.serviceType === 'Tattoo + Piercing' && (
                                                         <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: '0.75rem', color: '#166534', fontWeight: 500 }}>
-                                                            ✔ Commission calculated per service line — Tattoo Artist earns from tattoo quote, Piercer earns from piercing quote.
+                                                            <CheckCircle size={12} style={{ display: 'inline', verticalAlign: '-2px' }} /> Commission calculated per service line — Tattoo Artist earns from tattoo quote, Piercer earns from piercing quote.
                                                         </div>
                                                     )}
                                                 </div>
@@ -2253,7 +2263,7 @@ function AdminAppointments() {
                                                 {formData.serviceType === 'Tattoo + Piercing' ? (
                                                     <>
                                                         <div className="form-group">
-                                                            <label className={`admin-st-6ad161f7 ${errors.tattooPrice ? 'text-red-500' : ''}`}>💉 Tattoo Quote (₱) *</label>
+                                                            <label className={`admin-st-6ad161f7 ${errors.tattooPrice ? 'text-red-500' : ''}`}><Syringe size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Tattoo Quote (₱) *</label>
                                                             <input 
                                                                 type="text" 
                                                                 inputMode="numeric"
@@ -2269,7 +2279,7 @@ function AdminAppointments() {
                                                             {errors.tattooPrice && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.tattooPrice}</span>}
                                                         </div>
                                                         <div className="form-group">
-                                                            <label className={`admin-st-6ad161f7 ${errors.piercingPrice ? 'text-red-500' : ''}`}>🪛 Piercing Quote (₱) *</label>
+                                                            <label className={`admin-st-6ad161f7 ${errors.piercingPrice ? 'text-red-500' : ''}`}><Wrench size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Piercing Quote (₱) *</label>
                                                             <input 
                                                                 type="text" 
                                                                 inputMode="numeric"
@@ -2293,11 +2303,11 @@ function AdminAppointments() {
                                                             {formData.secondaryArtistId && (Number(formData.tattooPrice) > 0 || Number(formData.piercingPrice) > 0) && (
                                                                 <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
-                                                                        <span>💉 {artists.find(a => String(a.id) === String(formData.artistId))?.name || 'Tattoo Artist'} earns (30%):</span>
+                                                                        <span><Syringe size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> {artists.find(a => String(a.id) === String(formData.artistId))?.name || 'Tattoo Artist'} earns (30%):</span>
                                                                         <span style={{ fontWeight: 600, color: '#059669' }}>₱{(Number(formData.tattooPrice) * 0.30).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                                     </div>
                                                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
-                                                                        <span>🪛 {artists.find(a => String(a.id) === String(formData.secondaryArtistId))?.name || 'Piercer'} earns (30%):</span>
+                                                                        <span><Wrench size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> {artists.find(a => String(a.id) === String(formData.secondaryArtistId))?.name || 'Piercer'} earns (30%):</span>
                                                                         <span style={{ fontWeight: 600, color: '#059669' }}>₱{(Number(formData.piercingPrice) * 0.30).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                                     </div>
                                                                 </div>
@@ -2444,7 +2454,7 @@ function AdminAppointments() {
                                             {formData.serviceType === 'Consultation' && (
                                                 <div style={{ marginTop: '20px' }}>
                                                     <label className="admin-st-739a1b05" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        <span style={{ fontSize: '1rem' }}>📋</span>
+                                                        <ClipboardList size={16} />
                                                         Consultation Summary
                                                         <span style={{
                                                             fontSize: '0.7rem',
@@ -2628,6 +2638,16 @@ function AdminAppointments() {
                                                 >
                                                     <Printer size={16} /> Print Record
                                                 </button>
+                                                {selectedAppointment.waiverAcceptedAt && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn"
+                                                        onClick={() => window.open(`/admin/appointments/${selectedAppointment.id}/waiver`, '_blank')}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(190,144,85,0.12), rgba(190,144,85,0.06))', color: '#92400e', borderColor: 'rgba(190,144,85,0.3)' }}
+                                                    >
+                                                        <ShieldCheck size={16} /> View Waiver
+                                                    </button>
+                                                )}
                                             </>
                                         )}
                                     </div>

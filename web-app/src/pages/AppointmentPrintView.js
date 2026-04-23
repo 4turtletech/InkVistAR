@@ -205,11 +205,11 @@ function AppointmentPrintView() {
                             <div style={styles.splitBreakdown}>
                                 <div style={styles.splitHeader}>Service Breakdown</div>
                                 <div style={styles.splitRow}>
-                                    <span>💉 Tattoo Session</span>
+                                    <span>Tattoo Session</span>
                                     <span style={{ fontWeight: 600 }}>₱{fmt(a.tattoo_price)}</span>
                                 </div>
                                 <div style={styles.splitRow}>
-                                    <span>🪛 Piercing Service</span>
+                                    <span>Piercing Service</span>
                                     <span style={{ fontWeight: 600 }}>₱{fmt(a.piercing_price)}</span>
                                 </div>
                                 <div style={{ ...styles.splitRow, borderTop: '1px dashed #cbd5e1', paddingTop: '8px', marginTop: '4px' }}>

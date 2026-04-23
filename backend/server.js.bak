@@ -196,12 +196,12 @@ function generateBookingCode(origin, serviceType, insertId) {
 // Connect to MySQL via Pool
 db.getConnection((err, connection) => {
   if (err) {
-    console.error('[ERROR] MySQL Connection Error:', err.message);
-    console.error('[ERROR] Error code:', err.code);
-    console.error('[ERROR] Error SQL State:', err.sqlState);
+    console.error('❌ MySQL Connection Error:', err.message);
+    console.error('❌ Error code:', err.code);
+    console.error('❌ Error SQL State:', err.sqlState);
   } else {
-    console.log('[OK] MySQL Connected Successfully via Pool!');
-    console.log('[INFO] Database:', process.env.DB_NAME || 'inkvistar');
+    console.log('✅ MySQL Connected Successfully via Pool!');
+    console.log('📊 Database:', process.env.DB_NAME || 'inkvistar');
     connection.release();
 
     // Create Users Table if not exists (REQUIRED for all other tables)
@@ -230,12 +230,12 @@ db.getConnection((err, connection) => {
     `;
     db.query(usersTableQuery, (err) => {
       if (err) {
-        console.error('[WARN] Error checking users table:', err.message);
+        console.error('⚠️ Error checking users table:', err.message);
       } else {
         // MIGRATION: Add 'phone' column if it doesn't exist
         db.query("SHOW COLUMNS FROM users LIKE 'phone'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating users: Adding phone column...');
+            console.log('🔄 Migrating users: Adding phone column...');
             db.query("ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL AFTER email");
           }
         });
@@ -243,7 +243,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Add lockout tracking columns if they don't exist
         db.query("SHOW COLUMNS FROM users LIKE 'failed_login_attempts'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating users: Adding lockout tracking columns...');
+            console.log('🔄 Migrating users: Adding lockout tracking columns...');
             db.query("ALTER TABLE users ADD COLUMN failed_login_attempts INT DEFAULT 0, ADD COLUMN lockout_until DATETIME DEFAULT NULL");
           }
         });
@@ -251,7 +251,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Add account status tracking for deactivations and bans
         db.query("SHOW COLUMNS FROM users LIKE 'account_status'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating users: Adding account status and ban tracking columns...');
+            console.log('🔄 Migrating users: Adding account status and ban tracking columns...');
             const alterQuery = `
               ALTER TABLE users 
               ADD COLUMN account_status ENUM('active', 'deactivated', 'banned') DEFAULT 'active',
@@ -261,10 +261,10 @@ db.getConnection((err, connection) => {
             `;
             db.query(alterQuery, (err2) => {
               if (!err2) {
-                console.log('[MIGRATE] Migrating users: Mapping existing deleted users to deactivated...');
+                console.log('🔄 Migrating users: Mapping existing deleted users to deactivated...');
                 db.query("UPDATE users SET account_status = 'deactivated' WHERE is_deleted = 1 AND account_status = 'active'");
               } else {
-                console.error('[WARN] Failed to add account status columns:', err2.message);
+                console.error('⚠️ Failed to add account status columns:', err2.message);
               }
             });
           }
@@ -289,22 +289,22 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(artistsTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking artists table:', err.message);
-      else console.log('[OK] Artists table ready');
+      if (err) console.error('⚠️ Error checking artists table:', err.message);
+      else console.log('🎨 Artists table ready');
 
       // MIGRATION: Check if 'commission_rate' column exists, if not add it
       db.query("SHOW COLUMNS FROM artists LIKE 'commission_rate'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating artists table: Adding commission_rate column...');
+          console.log('🔄 Migrating artists table: Adding commission_rate column...');
           db.query("ALTER TABLE artists ADD COLUMN commission_rate DECIMAL(5, 2) DEFAULT 0.30");
-          console.log('[OK] Added commission_rate column');
+          console.log('✅ Added commission_rate column');
         }
       });
 
       // MIGRATION: Check if 'phone' column exists, if not add it
       db.query("SHOW COLUMNS FROM artists LIKE 'phone'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating artists table: Adding phone column...');
+          console.log('🔄 Migrating artists table: Adding phone column...');
           db.query("ALTER TABLE artists ADD COLUMN phone VARCHAR(20)");
         }
       });
@@ -312,7 +312,7 @@ db.getConnection((err, connection) => {
       // MIGRATION: Check if 'studio_name' column exists
       db.query("SHOW COLUMNS FROM artists LIKE 'studio_name'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating artists table: Adding studio_name column...');
+          console.log('🔄 Migrating artists table: Adding studio_name column...');
           db.query("ALTER TABLE artists ADD COLUMN studio_name VARCHAR(255) NULL");
         }
       });
@@ -320,7 +320,7 @@ db.getConnection((err, connection) => {
       // MIGRATION: Check if 'profile_image' column exists
       db.query("SHOW COLUMNS FROM artists LIKE 'profile_image'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating artists table: Adding profile_image column...');
+          console.log('🔄 Migrating artists table: Adding profile_image column...');
           db.query("ALTER TABLE artists ADD COLUMN profile_image LONGTEXT NULL");
         }
       });
@@ -341,8 +341,8 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(notifTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking notifications table:', err.message);
-      else console.log('[OK] Notifications system ready');
+      if (err) console.error('⚠️ Error checking notifications table:', err.message);
+      else console.log('🔔 Notifications system ready');
     });
 
     // Create Customers Table if not exists (for extra profile info)
@@ -357,7 +357,7 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(customerTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking customers table:', err.message);
+      if (err) console.error('⚠️ Error checking customers table:', err.message);
       else console.log('👤 Customers table ready');
       createDefaultUsers();
 
@@ -365,14 +365,14 @@ db.getConnection((err, connection) => {
       db.query("SHOW COLUMNS FROM users LIKE 'is_deleted'", (err, results) => {
         if (!err && results.length === 0) {
           db.query("ALTER TABLE users ADD COLUMN is_deleted BOOLEAN DEFAULT 0");
-          console.log('[OK] Added is_deleted column for soft delete support');
+          console.log('✅ Added is_deleted column for soft delete support');
         }
       });
 
       // MIGRATION: Add photo_marketing_consent column if not exists
       db.query("SHOW COLUMNS FROM users LIKE 'photo_marketing_consent'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating users table: Adding photo_marketing_consent column...');
+          console.log('🔄 Migrating users table: Adding photo_marketing_consent column...');
           db.query("ALTER TABLE users ADD COLUMN photo_marketing_consent TINYINT DEFAULT 1");
         }
       });
@@ -380,7 +380,7 @@ db.getConnection((err, connection) => {
       // MIGRATION: Add email_promo_consent column if not exists
       db.query("SHOW COLUMNS FROM users LIKE 'email_promo_consent'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating users table: Adding email_promo_consent column...');
+          console.log('🔄 Migrating users table: Adding email_promo_consent column...');
           db.query("ALTER TABLE users ADD COLUMN email_promo_consent TINYINT DEFAULT 0");
         }
       });
@@ -388,12 +388,12 @@ db.getConnection((err, connection) => {
       // MIGRATION: Add is_superadmin column if not exists
       db.query("SHOW COLUMNS FROM users LIKE 'is_superadmin'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating users table: Adding is_superadmin column...');
+          console.log('🔄 Migrating users table: Adding is_superadmin column...');
           db.query("ALTER TABLE users ADD COLUMN is_superadmin TINYINT(1) DEFAULT 0", (alterErr) => {
             if (!alterErr) {
               // Flag the default admin account as super admin
               db.query("UPDATE users SET is_superadmin = 1 WHERE email = 'admin@inkvistar.com'", (updateErr) => {
-                if (!updateErr) console.log('[OK] Super admin flag set for admin@inkvistar.com');
+                if (!updateErr) console.log('🛡️  Super admin flag set for admin@inkvistar.com');
               });
             }
           });
@@ -423,7 +423,7 @@ db.getConnection((err, connection) => {
       // MIGRATION: Check if 'phone' column exists in customers
       db.query("SHOW COLUMNS FROM customers LIKE 'phone'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating customers table: Adding phone, location, notes columns...');
+          console.log('🔄 Migrating customers table: Adding phone, location, notes columns...');
           db.query("ALTER TABLE customers ADD COLUMN phone VARCHAR(20) NULL, ADD COLUMN location VARCHAR(255) NULL, ADD COLUMN notes TEXT NULL");
         }
       });
@@ -431,7 +431,7 @@ db.getConnection((err, connection) => {
       // MIGRATION: Check if 'profile_image' column exists in customers
       db.query("SHOW COLUMNS FROM customers LIKE 'profile_image'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating customers table: Adding profile_image column...');
+          console.log('🔄 Migrating customers table: Adding profile_image column...');
           db.query("ALTER TABLE customers ADD COLUMN profile_image LONGTEXT NULL");
         }
       });
@@ -439,7 +439,7 @@ db.getConnection((err, connection) => {
       // MIGRATION: Check if 'gender' column exists in customers
       db.query("SHOW COLUMNS FROM customers LIKE 'gender'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating customers table: Adding gender column...');
+          console.log('🔄 Migrating customers table: Adding gender column...');
           db.query("ALTER TABLE customers ADD COLUMN gender VARCHAR(20) NULL");
         }
       });
@@ -447,7 +447,7 @@ db.getConnection((err, connection) => {
       // MIGRATION: Check if 'age' column exists in customers
       db.query("SHOW COLUMNS FROM customers LIKE 'age'", (err, results) => {
         if (!err && results.length === 0) {
-          console.log('[MIGRATE] Migrating customers table: Adding age column...');
+          console.log('🔄 Migrating customers table: Adding age column...');
           db.query("ALTER TABLE customers ADD COLUMN age INT NULL");
         }
       });
@@ -468,14 +468,14 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(portfolioTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking portfolio table:', err.message);
+      if (err) console.error('⚠️ Error checking portfolio table:', err.message);
       else {
-        console.log('[OK] Portfolio table ready');
+        console.log('🎨 Portfolio table ready');
 
         // MIGRATION: Check if 'category' column exists, if not add it
         db.query("SHOW COLUMNS FROM portfolio_works LIKE 'category'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating portfolio table: Adding category column...');
+            console.log('🔄 Migrating portfolio table: Adding category column...');
             db.query("ALTER TABLE portfolio_works ADD COLUMN category VARCHAR(50)");
           }
         });
@@ -483,7 +483,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Check if 'is_public' column exists, if not add it
         db.query("SHOW COLUMNS FROM portfolio_works LIKE 'is_public'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating portfolio table: Adding is_public column...');
+            console.log('🔄 Migrating portfolio table: Adding is_public column...');
             db.query("ALTER TABLE portfolio_works ADD COLUMN is_public BOOLEAN DEFAULT 1");
           }
         });
@@ -491,9 +491,9 @@ db.getConnection((err, connection) => {
         // MIGRATION: Check if 'price_estimate' column exists, if not add it
         db.query("SHOW COLUMNS FROM portfolio_works LIKE 'price_estimate'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating portfolio table: Adding price_estimate column...');
+            console.log('🔄 Migrating portfolio table: Adding price_estimate column...');
             db.query("ALTER TABLE portfolio_works ADD COLUMN price_estimate DECIMAL(10, 2) DEFAULT NULL");
-            console.log('[OK] Added price_estimate column to portfolio_works');
+            console.log('✅ Added price_estimate column to portfolio_works');
           }
         });
 
@@ -503,7 +503,7 @@ db.getConnection((err, connection) => {
             console.log('🔧 Fixed: Dropped broken foreign key constraint fk_portfolio_artists');
             // Re-add correct constraint referencing users(id)
             db.query("ALTER TABLE portfolio_works ADD CONSTRAINT fk_portfolio_users FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE", (err) => {
-              if (!err) console.log('[OK] Added correct foreign key constraint for portfolio_works');
+              if (!err) console.log('✅ Added correct foreign key constraint for portfolio_works');
             });
           }
         });
@@ -525,14 +525,14 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(branchesTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking branches table:', err.message);
+      if (err) console.error('⚠️ Error checking branches table:', err.message);
       else console.log('🏢 Branches table ready');
 
       // Add is_deleted column if it doesn't exist
       db.query("SHOW COLUMNS FROM branches LIKE 'is_deleted'", (err, results) => {
         if (!err && results.length === 0) {
           db.query("ALTER TABLE branches ADD COLUMN is_deleted BOOLEAN DEFAULT 0");
-          console.log('[OK] Added is_deleted column to branches');
+          console.log('✅ Added is_deleted column to branches');
         }
       });
     });
@@ -556,14 +556,14 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(inventoryTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking inventory table:', err.message);
+      if (err) console.error('⚠️ Error checking inventory table:', err.message);
       else {
-        console.log('[OK] Inventory table ready');
+        console.log('📦 Inventory table ready');
 
         // MIGRATION: Check for current_stock column
         db.query("SHOW COLUMNS FROM inventory LIKE 'current_stock'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating inventory: Adding current_stock column...');
+            console.log('🔄 Migrating inventory: Adding current_stock column...');
             db.query("ALTER TABLE inventory ADD COLUMN current_stock INT DEFAULT 0");
           }
         });
@@ -571,7 +571,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Check for image column
         db.query("SHOW COLUMNS FROM inventory LIKE 'image'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating inventory: Adding image column...');
+            console.log('🔄 Migrating inventory: Adding image column...');
             db.query("ALTER TABLE inventory ADD COLUMN image LONGTEXT");
           }
         });
@@ -579,7 +579,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Check for min_stock column
         db.query("SHOW COLUMNS FROM inventory LIKE 'min_stock'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating inventory: Adding min_stock column...');
+            console.log('🔄 Migrating inventory: Adding min_stock column...');
             db.query("ALTER TABLE inventory ADD COLUMN min_stock INT DEFAULT 10");
           }
         });
@@ -587,7 +587,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Check for max_stock column
         db.query("SHOW COLUMNS FROM inventory LIKE 'max_stock'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating inventory: Adding max_stock column...');
+            console.log('🔄 Migrating inventory: Adding max_stock column...');
             db.query("ALTER TABLE inventory ADD COLUMN max_stock INT DEFAULT 100");
           }
         });
@@ -595,7 +595,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Check for unit column
         db.query("SHOW COLUMNS FROM inventory LIKE 'unit'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating inventory: Adding unit column...');
+            console.log('🔄 Migrating inventory: Adding unit column...');
             db.query("ALTER TABLE inventory ADD COLUMN unit VARCHAR(20) DEFAULT 'pcs'");
           }
         });
@@ -603,7 +603,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Check for supplier column
         db.query("SHOW COLUMNS FROM inventory LIKE 'supplier'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating inventory: Adding supplier column...');
+            console.log('🔄 Migrating inventory: Adding supplier column...');
             db.query("ALTER TABLE inventory ADD COLUMN supplier VARCHAR(255)");
           }
         });
@@ -611,7 +611,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Check for cost column
         db.query("SHOW COLUMNS FROM inventory LIKE 'cost'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating inventory: Adding cost column...');
+            console.log('🔄 Migrating inventory: Adding cost column...');
             db.query("ALTER TABLE inventory ADD COLUMN cost DECIMAL(10, 2) DEFAULT 0.00");
           }
         });
@@ -619,7 +619,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Check for last_restocked column
         db.query("SHOW COLUMNS FROM inventory LIKE 'last_restocked'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating inventory: Adding last_restocked column...');
+            console.log('🔄 Migrating inventory: Adding last_restocked column...');
             db.query("ALTER TABLE inventory ADD COLUMN last_restocked DATETIME");
           }
         });
@@ -627,7 +627,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Check for retail_price column
         db.query("SHOW COLUMNS FROM inventory LIKE 'retail_price'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating inventory: Adding retail_price column...');
+            console.log('🔄 Migrating inventory: Adding retail_price column...');
             db.query("ALTER TABLE inventory ADD COLUMN retail_price DECIMAL(10, 2) DEFAULT 0.00 AFTER cost");
           }
         });
@@ -636,7 +636,7 @@ db.getConnection((err, connection) => {
         db.query("SHOW COLUMNS FROM inventory LIKE 'is_deleted'", (err, results) => {
           if (!err && results.length === 0) {
             db.query("ALTER TABLE inventory ADD COLUMN is_deleted BOOLEAN DEFAULT 0");
-            console.log('[OK] Added is_deleted column to inventory');
+            console.log('✅ Added is_deleted column to inventory');
           }
         });
       }
@@ -655,14 +655,14 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(invTransTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking inventory transactions table:', err.message);
+      if (err) console.error('⚠️ Error checking inventory transactions table:', err.message);
       else {
         console.log('📜 Inventory transactions table ready');
         // Auto-migrate: add user_id column if missing
         db.query("SHOW COLUMNS FROM inventory_transactions LIKE 'user_id'", (colErr, colResults) => {
           if (!colErr && colResults.length === 0) {
             db.query('ALTER TABLE inventory_transactions ADD COLUMN user_id INT DEFAULT NULL', (alterErr) => {
-              if (!alterErr) console.log('[OK] Added user_id column to inventory_transactions');
+              if (!alterErr) console.log('✅ Added user_id column to inventory_transactions');
             });
           }
         });
@@ -671,7 +671,7 @@ db.getConnection((err, connection) => {
         db.query("SHOW COLUMNS FROM inventory_transactions LIKE 'item_price'", (colErr, colResults) => {
           if (!colErr && colResults.length === 0) {
             db.query('ALTER TABLE inventory_transactions ADD COLUMN item_price DECIMAL(10, 2) DEFAULT NULL', (alterErr) => {
-              if (!alterErr) console.log('[OK] Added item_price column to inventory_transactions');
+              if (!alterErr) console.log('✅ Added item_price column to inventory_transactions');
             });
           }
         });
@@ -700,32 +700,32 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(appointmentsTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking appointments table:', err.message);
+      if (err) console.error('⚠️ Error checking appointments table:', err.message);
       else {
-        console.log('[OK] Appointments table ready');
+        console.log('📅 Appointments table ready');
 
         // MIGRATION: Add 'after_photo' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'after_photo'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding after_photo column...');
+            console.log('🔄 Migrating appointments: Adding after_photo column...');
             db.query("ALTER TABLE appointments ADD COLUMN after_photo LONGTEXT NULL");
-            console.log('[OK] Added after_photo column to appointments');
+            console.log('✅ Added after_photo column to appointments');
           }
         });
 
         // MIGRATION: Add 'before_photo' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'before_photo'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding before_photo column...');
+            console.log('🔄 Migrating appointments: Adding before_photo column...');
             db.query("ALTER TABLE appointments ADD COLUMN before_photo LONGTEXT NULL");
-            console.log('[OK] Added before_photo column to appointments');
+            console.log('✅ Added before_photo column to appointments');
           }
         });
 
         // MIGRATION: Add 'price' column if it doesn't exist to prevent errors.
         db.query("SHOW COLUMNS FROM appointments LIKE 'price'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments table: Adding price column...');
+            console.log('🔄 Migrating appointments table: Adding price column...');
             db.query("ALTER TABLE appointments ADD COLUMN price DECIMAL(10, 2) DEFAULT 0.00");
           }
         });
@@ -733,7 +733,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Add 'payment_status' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'payment_status'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments table: Adding payment_status column...');
+            console.log('🔄 Migrating appointments table: Adding payment_status column...');
             db.query("ALTER TABLE appointments ADD COLUMN payment_status VARCHAR(20) DEFAULT 'unpaid'");
           }
         });
@@ -741,7 +741,7 @@ db.getConnection((err, connection) => {
         // MIGRATION: Add 'manual_paid_amount' column
         db.query("SHOW COLUMNS FROM appointments LIKE 'manual_paid_amount'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding manual_paid_amount column...');
+            console.log('🔄 Migrating appointments: Adding manual_paid_amount column...');
             db.query("ALTER TABLE appointments ADD COLUMN manual_paid_amount DECIMAL(10, 2) DEFAULT 0.00 AFTER price");
           }
         });
@@ -749,14 +749,14 @@ db.getConnection((err, connection) => {
         // MIGRATION: Add 'manual_payment_method' column
         db.query("SHOW COLUMNS FROM appointments LIKE 'manual_payment_method'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding manual_payment_method column...');
+            console.log('🔄 Migrating appointments: Adding manual_payment_method column...');
             db.query("ALTER TABLE appointments ADD COLUMN manual_payment_method VARCHAR(50) NULL AFTER manual_paid_amount");
           }
         });
 
         // MIGRATION: Ensure status is VARCHAR(50) to avoid truncation if it was ENUM
         db.query("ALTER TABLE appointments MODIFY COLUMN status VARCHAR(50) DEFAULT 'pending'", (err) => {
-          if (!err) console.log('[OK] Ensured appointments status is VARCHAR(50)');
+          if (!err) console.log('✅ Ensured appointments status is VARCHAR(50)');
         });
 
         // FIX: Try to drop the specific problematic constraint if it exists
@@ -765,7 +765,7 @@ db.getConnection((err, connection) => {
             console.log('🔧 Fixed: Dropped broken foreign key constraint fk_appointments_artist');
             // Re-add correct constraint referencing users(id)
             db.query("ALTER TABLE appointments ADD CONSTRAINT fk_appointments_artist_fixed FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE", (err) => {
-              if (!err) console.log('[OK] Added correct foreign key constraint for artist_id');
+              if (!err) console.log('✅ Added correct foreign key constraint for artist_id');
             });
           }
         });
@@ -773,161 +773,161 @@ db.getConnection((err, connection) => {
         // MIGRATION: Add 'service_type' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'service_type'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding service_type column...');
+            console.log('🔄 Migrating appointments: Adding service_type column...');
             db.query("ALTER TABLE appointments ADD COLUMN service_type VARCHAR(50) NULL AFTER end_time");
-            console.log('[OK] Added service_type column to appointments');
+            console.log('✅ Added service_type column to appointments');
           }
         });
 
         // MIGRATION: Add 'draft_image' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'draft_image'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding draft_image column...');
+            console.log('🔄 Migrating appointments: Adding draft_image column...');
             db.query("ALTER TABLE appointments ADD COLUMN draft_image LONGTEXT NULL AFTER reference_image");
-            console.log('[OK] Added draft_image column to appointments');
+            console.log('✅ Added draft_image column to appointments');
           }
         });
 
         // MIGRATION: Add 'reschedule_count' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'reschedule_count'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding reschedule_count column...');
+            console.log('🔄 Migrating appointments: Adding reschedule_count column...');
             db.query("ALTER TABLE appointments ADD COLUMN reschedule_count INT DEFAULT 0");
-            console.log('[OK] Added reschedule_count column to appointments');
+            console.log('✅ Added reschedule_count column to appointments');
           }
         });
 
         // MIGRATION: Add 'secondary_artist_id' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'secondary_artist_id'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding secondary_artist_id column...');
+            console.log('🔄 Migrating appointments: Adding secondary_artist_id column...');
             db.query("ALTER TABLE appointments ADD COLUMN secondary_artist_id INT NULL AFTER artist_id");
-            console.log('[OK] Added secondary_artist_id column to appointments');
+            console.log('✅ Added secondary_artist_id column to appointments');
           }
         });
 
         // MIGRATION: Add 'commission_split' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'commission_split'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding commission_split column...');
+            console.log('🔄 Migrating appointments: Adding commission_split column...');
             db.query("ALTER TABLE appointments ADD COLUMN commission_split INT DEFAULT 50");
-            console.log('[OK] Added commission_split column to appointments');
+            console.log('✅ Added commission_split column to appointments');
           }
         });
 
         // MIGRATION: Add 'before_photo' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'before_photo'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding before_photo column...');
+            console.log('🔄 Migrating appointments: Adding before_photo column...');
             db.query("ALTER TABLE appointments ADD COLUMN before_photo LONGTEXT NULL");
-            console.log('[OK] Added before_photo column to appointments');
+            console.log('✅ Added before_photo column to appointments');
           }
         });
 
         // MIGRATION: Add 'booking_code' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'booking_code'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding booking_code column...');
+            console.log('🔄 Migrating appointments: Adding booking_code column...');
             db.query("ALTER TABLE appointments ADD COLUMN booking_code VARCHAR(50) UNIQUE NULL AFTER id");
-            console.log('[OK] Added booking_code column to appointments');
+            console.log('✅ Added booking_code column to appointments');
           }
         });
 
         // MIGRATION: Add 'session_duration' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'session_duration'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding session_duration column...');
+            console.log('🔄 Migrating appointments: Adding session_duration column...');
             db.query("ALTER TABLE appointments ADD COLUMN session_duration INT NULL DEFAULT NULL");
-            console.log('[OK] Added session_duration column to appointments');
+            console.log('✅ Added session_duration column to appointments');
           }
         });
 
         // MIGRATION: Add 'audit_log' column if it doesn't exist
         db.query("SHOW COLUMNS FROM appointments LIKE 'audit_log'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding audit_log column...');
+            console.log('🔄 Migrating appointments: Adding audit_log column...');
             db.query("ALTER TABLE appointments ADD COLUMN audit_log LONGTEXT NULL DEFAULT NULL");
-            console.log('[OK] Added audit_log column to appointments');
+            console.log('✅ Added audit_log column to appointments');
           }
         });
 
         // MIGRATION: Add 'device_id' column for per-device booking spam prevention
         db.query("SHOW COLUMNS FROM appointments LIKE 'device_id'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding device_id column...');
+            console.log('🔄 Migrating appointments: Adding device_id column...');
             db.query("ALTER TABLE appointments ADD COLUMN device_id VARCHAR(255) NULL");
-            console.log('[OK] Added device_id column to appointments');
+            console.log('✅ Added device_id column to appointments');
           }
         });
 
         // MIGRATION: Add 'consultation_method' column for Face-to-Face vs Online consultations
         db.query("SHOW COLUMNS FROM appointments LIKE 'consultation_method'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding consultation_method column...');
+            console.log('🔄 Migrating appointments: Adding consultation_method column...');
             db.query("ALTER TABLE appointments ADD COLUMN consultation_method VARCHAR(50) NULL");
-            console.log('[OK] Added consultation_method column to appointments');
+            console.log('✅ Added consultation_method column to appointments');
           }
         });
 
         // MIGRATION: Add 'guest_email' column for guest booking contact info
         db.query("SHOW COLUMNS FROM appointments LIKE 'guest_email'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding guest_email column...');
+            console.log('🔄 Migrating appointments: Adding guest_email column...');
             db.query("ALTER TABLE appointments ADD COLUMN guest_email VARCHAR(255) NULL");
-            console.log('[OK] Added guest_email column to appointments');
+            console.log('✅ Added guest_email column to appointments');
           }
         });
 
         // MIGRATION: Add 'guest_phone' column for guest booking contact info
         db.query("SHOW COLUMNS FROM appointments LIKE 'guest_phone'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding guest_phone column...');
+            console.log('🔄 Migrating appointments: Adding guest_phone column...');
             db.query("ALTER TABLE appointments ADD COLUMN guest_phone VARCHAR(50) NULL");
-            console.log('[OK] Added guest_phone column to appointments');
+            console.log('✅ Added guest_phone column to appointments');
           }
         });
         // MIGRATION: Add 'is_referral' column for referral commission tracking
         db.query("SHOW COLUMNS FROM appointments LIKE 'is_referral'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding is_referral column...');
+            console.log('🔄 Migrating appointments: Adding is_referral column...');
             db.query("ALTER TABLE appointments ADD COLUMN is_referral BOOLEAN DEFAULT 0");
-            console.log('[OK] Added is_referral column to appointments');
+            console.log('✅ Added is_referral column to appointments');
           }
         });
 
         // MIGRATION: Add 'consultation_notes' column for structured consultation summary data
         db.query("SHOW COLUMNS FROM appointments LIKE 'consultation_notes'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding consultation_notes column...');
+            console.log('🔄 Migrating appointments: Adding consultation_notes column...');
             db.query("ALTER TABLE appointments ADD COLUMN consultation_notes TEXT NULL");
-            console.log('[OK] Added consultation_notes column to appointments');
+            console.log('✅ Added consultation_notes column to appointments');
           }
         });
 
         // MIGRATION: Add 'quoted_price' column for consultation price quotes
         db.query("SHOW COLUMNS FROM appointments LIKE 'quoted_price'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding quoted_price column...');
+            console.log('🔄 Migrating appointments: Adding quoted_price column...');
             db.query("ALTER TABLE appointments ADD COLUMN quoted_price DECIMAL(10, 2) NULL DEFAULT NULL");
-            console.log('[OK] Added quoted_price column to appointments');
+            console.log('✅ Added quoted_price column to appointments');
           }
         });
 
         // MIGRATION: Add 'tattoo_price' column for dual-service split quotes
         db.query("SHOW COLUMNS FROM appointments LIKE 'tattoo_price'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding tattoo_price column...');
+            console.log('🔄 Migrating appointments: Adding tattoo_price column...');
             db.query("ALTER TABLE appointments ADD COLUMN tattoo_price DECIMAL(10, 2) NULL DEFAULT NULL");
-            console.log('[OK] Added tattoo_price column to appointments');
+            console.log('✅ Added tattoo_price column to appointments');
           }
         });
 
         // MIGRATION: Add 'piercing_price' column for dual-service split quotes
         db.query("SHOW COLUMNS FROM appointments LIKE 'piercing_price'", (err, results) => {
           if (!err && results.length === 0) {
-            console.log('[MIGRATE] Migrating appointments: Adding piercing_price column...');
+            console.log('🔄 Migrating appointments: Adding piercing_price column...');
             db.query("ALTER TABLE appointments ADD COLUMN piercing_price DECIMAL(10, 2) NULL DEFAULT NULL");
-            console.log('[OK] Added piercing_price column to appointments');
+            console.log('✅ Added piercing_price column to appointments');
           }
         });
       }
@@ -953,8 +953,8 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(rescheduleRequestsTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking reschedule_requests table:', err.message);
-      else console.log('[OK] Reschedule requests table ready');
+      if (err) console.error('⚠️ Error checking reschedule_requests table:', err.message);
+      else console.log('📋 Reschedule requests table ready');
     });
 
     // Create Payments Table (records PayMongo webhook events)
@@ -976,7 +976,7 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(paymentsTableQuery, (err) => {
-      if (err) console.error('[WARN] Error checking payments table:', err.message);
+      if (err) console.error('⚠️ Error checking payments table:', err.message);
       else console.log('💳 Payments table ready');
     });
 
@@ -993,12 +993,12 @@ db.getConnection((err, connection) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(invoicesTableQuery, (err) => { if (err) console.error('[WARN] Error checking invoices table:', err.message); });
+    db.query(invoicesTableQuery, (err) => { if (err) console.error('⚠️ Error checking invoices table:', err.message); });
 
     // MIGRATION: Add customer_id to invoices table
     db.query("SHOW COLUMNS FROM invoices LIKE 'customer_id'", (err, results) => {
       if (!err && results.length === 0) {
-        console.log('[MIGRATE] Migrating invoices: Adding customer_id column...');
+        console.log('🔄 Migrating invoices: Adding customer_id column...');
         db.query("ALTER TABLE invoices ADD COLUMN customer_id INT NULL AFTER id");
       }
     });
@@ -1006,7 +1006,7 @@ db.getConnection((err, connection) => {
     // MIGRATION: Add discount columns to invoices table
     db.query("SHOW COLUMNS FROM invoices LIKE 'discount_amount'", (err, results) => {
       if (!err && results.length === 0) {
-        console.log('[MIGRATE] Migrating invoices: Adding discount columns...');
+        console.log('🔄 Migrating invoices: Adding discount columns...');
         db.query("ALTER TABLE invoices ADD COLUMN discount_amount DECIMAL(10, 2) DEFAULT 0.00 AFTER amount");
         db.query("ALTER TABLE invoices ADD COLUMN discount_type VARCHAR(255) DEFAULT NULL AFTER discount_amount");
       }
@@ -1015,7 +1015,7 @@ db.getConnection((err, connection) => {
     // MIGRATION: Add items JSON column to invoices table
     db.query("SHOW COLUMNS FROM invoices LIKE 'items'", (err, results) => {
       if (!err && results.length === 0) {
-        console.log('[MIGRATE] Migrating invoices: Adding items JSON column...');
+        console.log('🔄 Migrating invoices: Adding items JSON column...');
         db.query("ALTER TABLE invoices ADD COLUMN items JSON DEFAULT NULL AFTER status");
       }
     });
@@ -1023,7 +1023,7 @@ db.getConnection((err, connection) => {
     // MIGRATION: Add invoice_number to invoices table
     db.query("SHOW COLUMNS FROM invoices LIKE 'invoice_number'", (err, results) => {
       if (!err && results.length === 0) {
-        console.log('[MIGRATE] Migrating invoices: Adding invoice_number column...');
+        console.log('🔄 Migrating invoices: Adding invoice_number column...');
         db.query("ALTER TABLE invoices ADD COLUMN invoice_number VARCHAR(20) DEFAULT NULL AFTER id");
       }
     });
@@ -1031,7 +1031,7 @@ db.getConnection((err, connection) => {
     // MIGRATION: Add appointment_id to invoices table
     db.query("SHOW COLUMNS FROM invoices LIKE 'appointment_id'", (err, results) => {
       if (!err && results.length === 0) {
-        console.log('[MIGRATE] Migrating invoices: Adding appointment_id column...');
+        console.log('🔄 Migrating invoices: Adding appointment_id column...');
         db.query("ALTER TABLE invoices ADD COLUMN appointment_id INT NULL AFTER customer_id");
       }
     });
@@ -1039,7 +1039,7 @@ db.getConnection((err, connection) => {
     // MIGRATION: Add payment_method to invoices table
     db.query("SHOW COLUMNS FROM invoices LIKE 'payment_method'", (err, results) => {
       if (!err && results.length === 0) {
-        console.log('[MIGRATE] Migrating invoices: Adding payment_method column...');
+        console.log('🔄 Migrating invoices: Adding payment_method column...');
         db.query("ALTER TABLE invoices ADD COLUMN payment_method VARCHAR(100) DEFAULT NULL AFTER amount");
       }
     });
@@ -1047,7 +1047,7 @@ db.getConnection((err, connection) => {
     // MIGRATION: Add change_given to invoices table
     db.query("SHOW COLUMNS FROM invoices LIKE 'change_given'", (err, results) => {
       if (!err && results.length === 0) {
-        console.log('[MIGRATE] Migrating invoices: Adding change_given column...');
+        console.log('🔄 Migrating invoices: Adding change_given column...');
         db.query("ALTER TABLE invoices ADD COLUMN change_given DECIMAL(10, 2) DEFAULT 0.00 AFTER payment_method");
       }
     });
@@ -1065,7 +1065,7 @@ db.getConnection((err, connection) => {
         FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `;
-    db.query(payoutsTableQuery, (err) => { if (err) console.error('[WARN] Error checking payouts table:', err.message); else console.log('💵 Payouts table ready'); });
+    db.query(payoutsTableQuery, (err) => { if (err) console.error('⚠️ Error checking payouts table:', err.message); else console.log('💵 Payouts table ready'); });
 
     // Create Aftercare Templates Table (Admin-configurable daily notifications)
     const aftercareTableQuery = `
@@ -1082,7 +1082,7 @@ db.getConnection((err, connection) => {
       )
     `;
     db.query(aftercareTableQuery, (err) => {
-      if (err) { console.error('[WARN] Error creating aftercare_templates table:', err.message); return; }
+      if (err) { console.error('⚠️ Error creating aftercare_templates table:', err.message); return; }
       console.log('🧼 Aftercare templates table ready');
 
       // Seed default templates if table is empty
@@ -1099,13 +1099,13 @@ db.getConnection((err, connection) => {
           [4, 'peeling', 'Peeling Begins — Don\'t Pick! ⚠️', 'Your tattoo may start to peel and flake like a sunburn. This is completely normal and a sign of healthy healing. DO NOT pick, scratch, or peel the flaking skin!', 'Switch from heavy ointment to a fragrance-free, alcohol-free moisturizing lotion. Picking at flakes can pull out ink and cause scarring. If it itches, gently pat or apply lotion.'],
           [5, 'peeling', 'Moisturize & Resist the Itch 🤚', 'The peeling continues and itching may increase today. Apply fragrance-free lotion whenever the skin feels dry or tight. Continue gentle washing 1-2 times daily.', 'Avoid scratching at all costs. Cool compresses can help with itching. Stay hydrated — it helps skin heal from the inside.'],
           [6, 'peeling', 'Stay the Course 💪', 'Keep up your routine: gentle wash, pat dry, apply lotion. The tattoo may look dull or cloudy under the peeling skin — this is temporary and normal.', 'Avoid swimming, baths, hot tubs, and saunas. Brief lukewarm showers are fine. Do not soak the tattoo.'],
-          [7, 'peeling', 'One Week Milestone!', 'You have made it through the first week! The heaviest peeling should be happening now. Continue moisturizing and absolutely no picking or scratching.', 'The \"milky\" or cloudy appearance under peeling skin is the new layer of skin forming. Your tattoo will look vibrant again once this settles.'],
+          [7, 'peeling', 'One Week Milestone! 🎉', 'You have made it through the first week! The heaviest peeling should be happening now. Continue moisturizing and absolutely no picking or scratching.', 'The \"milky\" or cloudy appearance under peeling skin is the new layer of skin forming. Your tattoo will look vibrant again once this settles.'],
           [8, 'peeling', 'Flaking is Normal 🍂', 'Expect continued flaking today. Some areas may peel faster than others depending on ink density and skin location. Keep moisturizing consistently.', 'Lightly tap itchy areas instead of scratching. Wearing soft cotton clothing over the tattoo reduces friction irritation.'],
-          [9, 'peeling', 'Healing Progress Check', 'By now, the initial redness should be mostly gone. The peeling may be slowing down in some areas. Continue your lotion routine 2-3 times daily.', 'If you notice any signs of infection (excessive redness, pus, fever), contact your artist or a doctor immediately. These cases are rare with proper care.'],
-          [10, 'peeling', 'Day 10 — Almost Through Peeling', 'Most heavy peeling is ending. Continue applying lotion to keep the skin supple. Avoid direct sunlight on the healing tattoo.', 'Your tattoo is still healing beneath the surface even if it looks settled on top. Continue all precautions.'],
-          [11, 'peeling', 'Consistent Care Matters', 'Keep moisturizing and protecting from sun. Avoid heavy workouts that cause excessive sweating on the tattooed area.', 'If exercising, clean the tattooed area promptly after sweating. Pat dry and reapply lotion.'],
-          [12, 'peeling', 'Light at the End of the Tunnel', 'The surface peeling is wrapping up. Your tattoo should start looking clearer as the new skin settles. Continue lotion application.', 'Stay out of pools, oceans, and hot tubs for at least another 2 weeks. Chlorine and bacteria can damage healing skin.'],
-          [13, 'peeling', 'Almost Done Peeling', 'Only minor flaking may remain. The tattoo might still look slightly muted — this is normal and will brighten up over the next couple of weeks.', 'Continue wearing SPF 30+ if any sun exposure is unavoidable. UV rays are enemy #1 for tattoo vibrancy.'],
+          [9, 'peeling', 'Healing Progress Check ✅', 'By now, the initial redness should be mostly gone. The peeling may be slowing down in some areas. Continue your lotion routine 2-3 times daily.', 'If you notice any signs of infection (excessive redness, pus, fever), contact your artist or a doctor immediately. These cases are rare with proper care.'],
+          [10, 'peeling', 'Day 10 — Almost Through Peeling 🔄', 'Most heavy peeling is ending. Continue applying lotion to keep the skin supple. Avoid direct sunlight on the healing tattoo.', 'Your tattoo is still healing beneath the surface even if it looks settled on top. Continue all precautions.'],
+          [11, 'peeling', 'Consistent Care Matters 📋', 'Keep moisturizing and protecting from sun. Avoid heavy workouts that cause excessive sweating on the tattooed area.', 'If exercising, clean the tattooed area promptly after sweating. Pat dry and reapply lotion.'],
+          [12, 'peeling', 'Light at the End of the Tunnel 🌟', 'The surface peeling is wrapping up. Your tattoo should start looking clearer as the new skin settles. Continue lotion application.', 'Stay out of pools, oceans, and hot tubs for at least another 2 weeks. Chlorine and bacteria can damage healing skin.'],
+          [13, 'peeling', 'Almost Done Peeling ✨', 'Only minor flaking may remain. The tattoo might still look slightly muted — this is normal and will brighten up over the next couple of weeks.', 'Continue wearing SPF 30+ if any sun exposure is unavoidable. UV rays are enemy #1 for tattoo vibrancy.'],
           [14, 'peeling', 'Two Weeks Complete! 🏆', 'Congratulations! The peeling phase is essentially over. Your surface skin has regenerated. Continue daily moisturizing to support the deeper healing still happening.', 'The deeper layers of skin take 4-6 weeks to fully heal. Surface healing does not mean fully healed. Keep up the aftercare routine.'],
           // Phase 3: Final Surface Healing (Days 15-30)
           [15, 'healing', 'Final Healing Phase Begins 🔬', 'Your tattoo surface should feel smooth to the touch now. Continue applying fragrance-free lotion 1-2 times daily. The deeper skin layers are still recovering.', 'You can resume most normal activities, but still avoid prolonged submersion in water and excessive sun exposure.'],
@@ -1113,8 +1113,8 @@ db.getConnection((err, connection) => {
           [17, 'healing', 'Stay Moisturized 🧴', 'Continue daily lotion application. Well-moisturized skin showcases tattoo ink better and keeps lines sharp.', 'Drinking plenty of water also contributes to healthy, well-hydrated skin from the inside.'],
           [18, 'healing', 'Healing Nicely! 👀', 'Your tattoo should be looking increasingly close to its final appearance. Colors may still be slightly muted but will brighten.', 'If any area still feels raised or textured, continue gentle moisturizing. This is normal for areas with heavier ink saturation.'],
           [19, 'healing', 'Routine Maintenance 🔧', 'Continue your lotion and sun protection routine. The tattoo is doing great — just a bit more patience for full deep-skin healing.', 'Avoid abrasive exfoliants or scrubs directly on the tattoo for another few weeks.'],
-          [20, 'healing', 'Day 20 — Two-Thirds Healed!', 'You are well past the critical healing period. Keep protecting your tattoo from sun and keeping it moisturized. Almost there!', 'You can now safely swim in pools for short periods if the surface is fully closed. Rinse and moisturize after.'],
-          [21, 'healing', 'Three Weeks!', 'Your tattoo is in the home stretch of healing. Continue gentle daily care. The deep skin layers are firming up.', 'If you had areas of heavy shading or color packing, these may take slightly longer to fully settle.'],
+          [20, 'healing', 'Day 20 — Two-Thirds Healed! 📊', 'You are well past the critical healing period. Keep protecting your tattoo from sun and keeping it moisturized. Almost there!', 'You can now safely swim in pools for short periods if the surface is fully closed. Rinse and moisturize after.'],
+          [21, 'healing', 'Three Weeks! 🗓️', 'Your tattoo is in the home stretch of healing. Continue gentle daily care. The deep skin layers are firming up.', 'If you had areas of heavy shading or color packing, these may take slightly longer to fully settle.'],
           [22, 'healing', 'Looking Great! 💯', 'Your tattoo should be looking more and more vibrant each day. Continue moisturizing and SPF protection.', 'Take a photo of your healed tattoo to share with your artist! They love seeing healed results.'],
           [23, 'healing', 'Steady Progress 📈', 'Continue your simple daily routine: moisturize in the morning and evening, apply sunscreen before going outside.', 'Great aftercare now means a tattoo that stays vibrant for decades.'],
           [24, 'healing', 'Almost Fully Healed! 🙌', 'The deep skin layers are nearly done regenerating. Your tattoo should feel completely like normal skin to the touch now.', 'Remember: UV protection is a forever habit for tattooed skin!'],
@@ -1123,13 +1123,13 @@ db.getConnection((err, connection) => {
           [27, 'healing', 'Three Days to Go ⏳', 'Continue your routine. Your tattoo is essentially healed at the surface and nearly healed at the deeper level.', 'Interested in your next piece? Start browsing the InkVistAR gallery for inspiration!'],
           [28, 'healing', 'Penultimate Day 🌅', 'Your tattoo aftercare journey is nearly complete. The dedication you have shown will keep your tattoo looking amazing for years to come.', 'Remember to always use sunscreen on your tattoo when outdoors. This is the single best long-term care habit.'],
           [29, 'healing', 'Tomorrow is the Last Day! 🎊', 'One more day! Your tattoo is fully healed. Keep moisturizing as part of your regular skincare routine going forward.', 'Book your next session at InkVistAR to continue your tattoo journey!'],
-          [30, 'healing', 'Aftercare Complete!', 'Congratulations! Your 30-day aftercare program is complete. Your tattoo is fully healed. Continue lifelong habits: moisturize daily and always apply sunscreen when going outdoors.', 'Thank you for trusting InkVistAR with your tattoo journey! We would love to see you again for your next piece. Leave a review to help other clients!']
+          [30, 'healing', 'Aftercare Complete! 🎉✨', 'Congratulations! Your 30-day aftercare program is complete. Your tattoo is fully healed. Continue lifelong habits: moisturize daily and always apply sunscreen when going outdoors.', 'Thank you for trusting InkVistAR with your tattoo journey! We would love to see you again for your next piece. Leave a review to help other clients!']
         ];
 
         const insertQuery = 'INSERT INTO aftercare_templates (day_number, phase, title, message, tips) VALUES ?';
         db.query(insertQuery, [defaults.map(d => [d[0], d[1], d[2], d[3], d[4]])], (seedErr) => {
-          if (seedErr) console.error('[ERROR] Error seeding aftercare templates:', seedErr.message);
-          else console.log('[OK] Seeded 30 default aftercare templates');
+          if (seedErr) console.error('❌ Error seeding aftercare templates:', seedErr.message);
+          else console.log('✅ Seeded 30 default aftercare templates');
         });
       });
     });
@@ -1138,7 +1138,7 @@ db.getConnection((err, connection) => {
     db.query("SHOW COLUMNS FROM appointments LIKE 'is_deleted'", (err, results) => {
       if (!err && results.length === 0) {
         db.query("ALTER TABLE appointments ADD COLUMN is_deleted BOOLEAN DEFAULT 0");
-        console.log('[OK] Added is_deleted column to appointments');
+        console.log('✅ Added is_deleted column to appointments');
       }
     });
 
@@ -1146,7 +1146,7 @@ db.getConnection((err, connection) => {
     db.query("SHOW COLUMNS FROM appointments LIKE 'before_photo'", (err, results) => {
       if (!err && results.length === 0) {
         db.query("ALTER TABLE appointments ADD COLUMN before_photo LONGTEXT, ADD COLUMN after_photo LONGTEXT");
-        console.log('[OK] Added before_photo and after_photo columns to appointments');
+        console.log('✅ Added before_photo and after_photo columns to appointments');
       }
     });
 
@@ -1154,7 +1154,7 @@ db.getConnection((err, connection) => {
     db.query("SHOW COLUMNS FROM portfolio_works LIKE 'is_deleted'", (err, results) => {
       if (!err && results.length === 0) {
         db.query("ALTER TABLE portfolio_works ADD COLUMN is_deleted BOOLEAN DEFAULT 0");
-        console.log('[OK] Added is_deleted column to portfolio_works');
+        console.log('✅ Added is_deleted column to portfolio_works');
       }
     });
 
@@ -1165,7 +1165,7 @@ db.getConnection((err, connection) => {
         data JSON
       )
     `;
-    db.query(settingsTableQuery, (err) => { if (err) console.error('[WARN] Error checking settings table:', err.message); });
+    db.query(settingsTableQuery, (err) => { if (err) console.error('⚠️ Error checking settings table:', err.message); });
 
     // Create Audit Logs Table
     const auditLogsTableQuery = `
@@ -1178,7 +1178,7 @@ db.getConnection((err, connection) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(auditLogsTableQuery, (err) => { if (err) console.error('[WARN] Error checking audit_logs table:', err.message); else console.log('📜 Audit Logs table ready'); });
+    db.query(auditLogsTableQuery, (err) => { if (err) console.error('⚠️ Error checking audit_logs table:', err.message); else console.log('📜 Audit Logs table ready'); });
 
     // Create Studio Expenses Table (for manual expense logging: marketing, bills, equipment, etc.)
     const studioExpensesTableQuery = `
@@ -1192,7 +1192,7 @@ db.getConnection((err, connection) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(studioExpensesTableQuery, (err) => { if (err) console.error('[WARN] Error checking studio_expenses table:', err.message); else console.log('[OK] Studio Expenses table ready'); });
+    db.query(studioExpensesTableQuery, (err) => { if (err) console.error('⚠️ Error checking studio_expenses table:', err.message); else console.log('💰 Studio Expenses table ready'); });
 
     // Create Service Kits Table
     const serviceKitsTableQuery = `
@@ -1205,7 +1205,7 @@ db.getConnection((err, connection) => {
         FOREIGN KEY (inventory_id) REFERENCES inventory(id) ON DELETE CASCADE
       )
     `;
-    db.query(serviceKitsTableQuery, (err) => { if (err) console.error('[WARN] Error checking service_kits table:', err.message); else console.log('🎒 Service Kits table ready'); });
+    db.query(serviceKitsTableQuery, (err) => { if (err) console.error('⚠️ Error checking service_kits table:', err.message); else console.log('🎒 Service Kits table ready'); });
 
     // Create Reviews Table
     const reviewsTableQuery = `
@@ -1224,7 +1224,7 @@ db.getConnection((err, connection) => {
         FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
       )
     `;
-    db.query(reviewsTableQuery, (err) => { if (err) console.error('[WARN] Error checking reviews table:', err.message); else console.log('[OK] Reviews table ready'); });
+    db.query(reviewsTableQuery, (err) => { if (err) console.error('⚠️ Error checking reviews table:', err.message); else console.log('⭐ Reviews table ready'); });
 
     // Create Session Materials Table
     const sessionMaterialsTableQuery = `
@@ -1239,7 +1239,7 @@ db.getConnection((err, connection) => {
         FOREIGN KEY (inventory_id) REFERENCES inventory(id) ON DELETE CASCADE
       )
     `;
-    db.query(sessionMaterialsTableQuery, (err) => { if (err) console.error('[WARN] Error checking session_materials table:', err.message); else console.log('[OK] Session Materials table ready'); });
+    db.query(sessionMaterialsTableQuery, (err) => { if (err) console.error('⚠️ Error checking session_materials table:', err.message); else console.log('💉 Session Materials table ready'); });
 
     // Create Favorites table
     const favoritesTableQuery = `
@@ -1253,7 +1253,7 @@ db.getConnection((err, connection) => {
         FOREIGN KEY (work_id) REFERENCES portfolio_works(id) ON DELETE CASCADE
       )
     `;
-    db.query(favoritesTableQuery, (err) => { if (err) console.error('[WARN] Error checking favorites table:', err.message); else console.log('❤️ Favorites table ready'); });
+    db.query(favoritesTableQuery, (err) => { if (err) console.error('⚠️ Error checking favorites table:', err.message); else console.log('❤️ Favorites table ready'); });
 
     // Create Testimonials table
     const testimonialsTableQuery = `
@@ -1268,7 +1268,7 @@ db.getConnection((err, connection) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(testimonialsTableQuery, (err) => { if (err) console.error('[WARN] Error checking testimonials table:', err.message); else console.log('[OK] Testimonials table ready'); });
+    db.query(testimonialsTableQuery, (err) => { if (err) console.error('⚠️ Error checking testimonials table:', err.message); else console.log('💬 Testimonials table ready'); });
 
     // Create Services Table
     const servicesTableQuery = `
@@ -1283,7 +1283,7 @@ db.getConnection((err, connection) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(servicesTableQuery, (err) => { if (err) console.error('[WARN] Error checking services table:', err.message); else console.log('[OK] Services table ready'); });
+    db.query(servicesTableQuery, (err) => { if (err) console.error('⚠️ Error checking services table:', err.message); else console.log('✨ Services table ready'); });
 
     // Create Support Messages Table
     const supportMessagesTableQuery = `
@@ -1295,7 +1295,7 @@ db.getConnection((err, connection) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(supportMessagesTableQuery, (err) => { if (err) console.error('[WARN] Error checking support_messages table:', err.message); else console.log('[OK] Support Messages table ready'); });
+    db.query(supportMessagesTableQuery, (err) => { if (err) console.error('⚠️ Error checking support_messages table:', err.message); else console.log('💬 Support Messages table ready'); });
 
     // Push notification tokens table
     const pushTokensTableQuery = `
@@ -1310,7 +1310,7 @@ db.getConnection((err, connection) => {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `;
-    db.query(pushTokensTableQuery, (err) => { if (err) console.error('[WARN] Error checking user_push_tokens table:', err.message); else console.log('[OK] Push Tokens table ready'); });
+    db.query(pushTokensTableQuery, (err) => { if (err) console.error('⚠️ Error checking user_push_tokens table:', err.message); else console.log('🔔 Push Tokens table ready'); });
 
     // Contact Messages table
     const contactMessagesTableQuery = `
@@ -1325,7 +1325,7 @@ db.getConnection((err, connection) => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(contactMessagesTableQuery, (err) => { if (err) console.error('[WARN] Error checking contact_messages table:', err.message); else console.log('📬 Contact Messages table ready'); });
+    db.query(contactMessagesTableQuery, (err) => { if (err) console.error('⚠️ Error checking contact_messages table:', err.message); else console.log('📬 Contact Messages table ready'); });
 
     // Migration: Add reply and status columns to contact_messages (idempotent)
     const contactMigrations = [
@@ -1334,7 +1334,7 @@ db.getConnection((err, connection) => {
       "ALTER TABLE contact_messages ADD COLUMN status ENUM('new','replied','closed') DEFAULT 'new'"
     ];
     contactMigrations.forEach(q => {
-      db.query(q, (err) => { if (err && !err.message.includes('Duplicate column')) console.error('[WARN] contact_messages migration:', err.message); });
+      db.query(q, (err) => { if (err && !err.message.includes('Duplicate column')) console.error('⚠️ contact_messages migration:', err.message); });
     });
 
   }
@@ -1398,7 +1398,7 @@ function buildEmailHtml(contentHtml) {
 
 async function sendEmail(to, subject, html) {
   if (!EMAIL_API_KEY) {
-    console.log('[WARN] EMAIL_API_KEY missing. Email logged to console.');
+    console.log('⚠️ EMAIL_API_KEY missing. Email logged to console.');
     return;
   }
 
@@ -1419,13 +1419,13 @@ async function sendEmail(to, subject, html) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Non-JSON response' }));
-      console.error('[ERROR] Resend API Error:', response.status, errorData);
+      console.error('❌ Resend API Error:', response.status, errorData);
       throw new Error(`Resend API Error: ${response.status} - ${JSON.stringify(errorData)}`);
     } else {
-      console.log(`[OK] Email sent to ${to}`);
+      console.log(`✅ Email sent to ${to}`);
     }
   } catch (error) {
-    console.error('[ERROR] Email Network Error:', error.message);
+    console.error('❌ Email Network Error:', error.message);
     throw error;
   }
 }
@@ -1516,7 +1516,7 @@ function sendConsultationSummaryEmail(recipientEmail, recipientName, consultatio
     const notesBlock = consultationNotes ? `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 16px;">
         <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:20px 24px;background:linear-gradient(135deg,#1a1816 0%,#14120f 100%);border:1px solid rgba(190,144,85,0.25);border-radius:14px;">
-          <p style="margin:0 0 10px;font-size:14px;font-weight:700;color:#be9055;">Artist's Notes</p>
+          <p style="margin:0 0 10px;font-size:14px;font-weight:700;color:#be9055;">📝 Artist's Notes</p>
           <p style="margin:0;font-size:14px;color:#e2e8f0;line-height:1.7;white-space:pre-wrap;">${consultationNotes}</p>
         </div>
       </td></tr></table>
@@ -1537,7 +1537,7 @@ function sendConsultationSummaryEmail(recipientEmail, recipientName, consultatio
     const bookSessionBlock = `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 16px;">
         <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:22px 24px;background:linear-gradient(135deg,#111827 0%,#1a1816 100%);border:1px solid rgba(190,144,85,0.3);border-radius:14px;text-align:center;">
-          <p style="margin:0 0 8px;font-size:16px;font-weight:700;color:#be9055;">Ready to Bring Your Design to Life?</p>
+          <p style="margin:0 0 8px;font-size:16px;font-weight:700;color:#be9055;">🎨 Ready to Bring Your Design to Life?</p>
           <p style="margin:0 0 16px;font-size:13px;color:#94a3b8;line-height:1.6;">Your consultation is complete! Take the next step and book your tattoo session to make it happen.</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;">
             <a href="${FRONTEND_URL}${isGuest ? '/book' : '/customer/bookings'}" style="display:inline-block;padding:13px 32px;background:linear-gradient(135deg,#be9055,#a07840);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Book a Session →</a>
@@ -1563,7 +1563,7 @@ function sendConsultationSummaryEmail(recipientEmail, recipientName, consultatio
     `;
 
     const contentHtml = `
-      <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#10b981;text-align:center;">Consultation Summary</h2>
+      <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#10b981;text-align:center;">Consultation Summary ✅</h2>
       ${bookingCode ? `<p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Ref: ${bookingCode}</p>` : ''}
       <p style="margin:0 0 16px;">Hello ${recipientName},</p>
       <p style="margin:0 0 16px;line-height:1.6;">Thank you for visiting InkVictus Tattoo Studio! Your consultation has been completed. Here's a summary of what was discussed during your visit:</p>
@@ -1583,9 +1583,9 @@ function sendConsultationSummaryEmail(recipientEmail, recipientName, consultatio
 
     const emailHtml = buildEmailHtml(contentHtml);
     sendResendEmail(recipientEmail, `InkVistAR: Your Consultation Summary${bookingCode ? ` [${bookingCode}]` : ''}`, emailHtml);
-    console.log(`[OK] Consultation summary email sent to ${recipientEmail}`);
+    console.log(`📋 Consultation summary email sent to ${recipientEmail}`);
   } catch (err) {
-    console.error(`[WARN] Error sending consultation summary email to ${recipientEmail}:`, err.message);
+    console.error(`⚠️ Error sending consultation summary email to ${recipientEmail}:`, err.message);
   }
 }
 
@@ -1594,10 +1594,10 @@ function createNotification(userId, title, message, type, relatedId = null) {
   const insertQuery = 'INSERT INTO notifications (user_id, title, message, type, related_id, created_at, is_read) VALUES (?, ?, ?, ?, ?, ?, 0)';
   db.query(insertQuery, [userId, title, message, type, relatedId, utcNow], (err, result) => {
     if (err) {
-      console.error('[ERROR] Error creating DB notification:', err.message);
+      console.error('❌ Error creating DB notification:', err.message);
       return;
     } else {
-      console.log(`[OK] DB Notification created for user ${userId}: ${title}`);
+      console.log(`🔔 DB Notification created for user ${userId}: ${title}`);
       // Now, send the push notification
       sendPushNotification(userId, title, message, { type, relatedId });
     }
@@ -1633,7 +1633,7 @@ async function sendPushNotification(userId, title, body, data) {
 function logAction(userId, action, details, ip = '::1') {
   const query = 'INSERT INTO audit_logs (user_id, action, details, ip_address, created_at) VALUES (?, ?, ?, ?, NOW())';
   db.query(query, [userId, action, details, ip], (err) => {
-    if (err) console.error('[ERROR] Error logging action:', err.message);
+    if (err) console.error('❌ Error logging action:', err.message);
   });
 }
 
@@ -1643,16 +1643,16 @@ function createDefaultUsers() {
   const checkAdmin = "SELECT * FROM users WHERE user_type = 'admin' LIMIT 1";
   db.query(checkAdmin, async (err, results) => {
     if (!err && results.length === 0) {
-      console.log('[WARN] No admin found. Creating default admin...');
+      console.log('⚠️ No admin found. Creating default admin...');
       try {
         const adminPass = await bcrypt.hash('admin123', 10);
         const createAdmin = "INSERT INTO users (name, email, password_hash, user_type, is_verified) VALUES ('System Admin', 'admin@inkvistar.com', ?, 'admin', 1)";
         db.query(createAdmin, [adminPass], (err) => {
-          if (!err) console.log('[OK] Default Admin Created: admin@inkvistar.com / admin123');
-          else console.error('[ERROR] Failed to create admin:', err.message);
+          if (!err) console.log('✅ Default Admin Created: admin@inkvistar.com / admin123');
+          else console.error('❌ Failed to create admin:', err.message);
         });
       } catch (e) {
-        console.error('[ERROR] Error creating admin hash:', e);
+        console.error('❌ Error creating admin hash:', e);
       }
     }
   });
@@ -1661,7 +1661,7 @@ function createDefaultUsers() {
   const checkArtist = "SELECT * FROM users WHERE email = 'artist@inkvistar.com' LIMIT 1";
   db.query(checkArtist, async (err, results) => {
     if (!err && results.length === 0) {
-      console.log('[WARN] No default artist found. Creating default artist...');
+      console.log('⚠️ No default artist found. Creating default artist...');
       try {
         const artistPass = await bcrypt.hash('artist123', 10);
         const createArtist = "INSERT INTO users (name, email, password_hash, user_type, is_verified) VALUES ('Default Artist', 'artist@inkvistar.com', ?, 'artist', 1)";
@@ -1670,7 +1670,7 @@ function createDefaultUsers() {
             const artistId = result.insertId;
             const createProfile = "INSERT INTO artists (user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate) VALUES (?, 'InkVistAR Studio', 5, 'Realism', 150.00, 0.30)";
             db.query(createProfile, [artistId], (err) => {
-              if (!err) console.log('[OK] Default Artist Created: artist@inkvistar.com / artist123');
+              if (!err) console.log('✅ Default Artist Created: artist@inkvistar.com / artist123');
             });
           }
         });
@@ -1682,7 +1682,7 @@ function createDefaultUsers() {
   const checkCustomer = "SELECT * FROM users WHERE email = 'customer@inkvistar.com' LIMIT 1";
   db.query(checkCustomer, async (err, results) => {
     if (!err && results.length === 0) {
-      console.log('[WARN] No default customer found. Creating default customer...');
+      console.log('⚠️ No default customer found. Creating default customer...');
       try {
         const customerPass = await bcrypt.hash('customer123', 10);
         const createCustomer = "INSERT INTO users (name, email, password_hash, user_type, is_verified) VALUES ('Default Customer', 'customer@inkvistar.com', ?, 'customer', 1)";
@@ -1691,7 +1691,7 @@ function createDefaultUsers() {
             const customerId = result.insertId;
             const createProfile = "INSERT INTO customers (user_id, phone, location) VALUES (?, '555-0123', 'New York, NY')";
             db.query(createProfile, [customerId], (err) => {
-              if (!err) console.log('[OK] Default Customer Created: customer@inkvistar.com / customer123');
+              if (!err) console.log('✅ Default Customer Created: customer@inkvistar.com / customer123');
             });
           }
         });
@@ -1707,14 +1707,14 @@ if (GROQ_API_KEY) {
   try {
     groq = new Groq({ apiKey: GROQ_API_KEY });
   } catch (e) {
-    console.error('[ERROR] Failed to initialize Groq:', e.message);
+    console.error('❌ Failed to initialize Groq:', e.message);
   }
 }
 
 // Verify API Key on startup
 async function verifyGroq() {
   if (!groq) {
-    console.log('[WARN] Chatbot will run in OFFLINE MODE (No API Key).');
+    console.log('⚠️ Chatbot will run in OFFLINE MODE (No API Key).');
     return;
   }
   try {
@@ -1723,10 +1723,10 @@ async function verifyGroq() {
       messages: [{ role: 'user', content: 'Hello' }],
       model: 'llama-3.3-70b-versatile',
     });
-    console.log('[OK] Groq API is WORKING! Response:', chatCompletion.choices[0].message.content);
+    console.log('✅ Groq API is WORKING! Response:', chatCompletion.choices[0].message.content);
   } catch (error) {
-    console.error('[ERROR] Groq API Check Failed:', error.message);
-    console.log('[WARN] Chatbot will run in OFFLINE MODE (Fallback responses).');
+    console.error('❌ Groq API Check Failed:', error.message);
+    console.log('⚠️ Chatbot will run in OFFLINE MODE (Fallback responses).');
   }
 }
 verifyGroq();
@@ -1734,7 +1734,7 @@ verifyGroq();
 // ========== MIDDLEWARE ==========
 app.use((req, res, next) => {
   console.log(`\n🌐 ${new Date().toISOString()} ${req.method} ${req.url}`);
-  console.log('[DEBUG] Headers:', req.headers);
+  console.log('📦 Headers:', req.headers);
   console.log('📤 Body:', req.body);
   next();
 });
@@ -1743,7 +1743,7 @@ app.use((req, res, next) => {
 
 // Test endpoint
 app.get('/api/test', (req, res) => {
-  console.log('[OK] Test endpoint called');
+  console.log('✅ Test endpoint called');
   res.json({
     success: true,
     message: 'Backend is working!',
@@ -1784,7 +1784,7 @@ app.get('/api/debug/db', (req, res) => {
 
   db.query('SELECT 1 + 1 AS result', (err, results) => {
     if (err) {
-      console.error('[ERROR] Database test failed:', err);
+      console.error('❌ Database test failed:', err);
       return res.status(500).json({
         success: false,
         message: 'Database error',
@@ -1806,14 +1806,14 @@ app.get('/api/debug/users', (req, res) => {
 
   db.query('SELECT id, name, email, user_type, is_deleted FROM users', (err, results) => {
     if (err) {
-      console.error('[ERROR] Error:', err);
+      console.error('❌ Error:', err);
       return res.status(500).json({
         success: false,
         message: 'Database error'
       });
     }
 
-    console.log(`[INFO] Found ${results.length} users`);
+    console.log(`📊 Found ${results.length} users`);
     res.json({
       success: true,
       users: results,
@@ -1829,7 +1829,7 @@ app.get('/api/debug/user/:id', (req, res) => {
 
   db.query('SELECT id, name, email, user_type FROM users WHERE id = ?', [id], (err, results) => {
     if (err) {
-      console.error('[ERROR] Error:', err);
+      console.error('❌ Error:', err);
       return res.status(500).json({
         success: false,
         message: 'Database error'
@@ -1859,7 +1859,7 @@ app.post('/api/login', async (req, res) => {
     const { email, password, type } = req.body;
 
     if (!email || !password) {
-      console.log('[ERROR] Missing fields');
+      console.log('❌ Missing fields');
       return res.status(400).json({
         success: false,
         message: 'Email and password are required'
@@ -1881,17 +1881,17 @@ app.post('/api/login', async (req, res) => {
 
     db.query(query, params, async (err, results) => {
       if (err) {
-        console.error('[ERROR] Database error:', err.message);
+        console.error('❌ Database error:', err.message);
         return res.status(500).json({
           success: false,
           message: 'Database error'
         });
       }
 
-      console.log(`[INFO] Found ${results.length} users`);
+      console.log(`📊 Found ${results.length} users`);
 
       if (results.length === 0) {
-        console.log('[ERROR] No user found');
+        console.log('❌ No user found');
         return res.status(401).json({
           success: false,
           message: 'Invalid email or password'
@@ -1926,7 +1926,7 @@ app.post('/api/login', async (req, res) => {
         });
       }
 
-      console.log('[OK] User found:', user.name);
+      console.log('✅ User found:', user.name);
 
       // Check if locked out
       if (user.lockout_until && new Date(user.lockout_until) > new Date()) {
@@ -2003,7 +2003,7 @@ app.post('/api/login', async (req, res) => {
         });
       }
 
-      console.log('[OK] LOGIN SUCCESSFUL!');
+      console.log('🎉 LOGIN SUCCESSFUL!');
 
       const ua = req.headers['user-agent'] || 'Unknown';
       const device = ua.length > 40 ? ua.substring(0, 40) + '...' : ua;
@@ -2028,7 +2028,7 @@ app.post('/api/login', async (req, res) => {
         (migErr, migResult) => {
           const emailMigratedCount = migResult ? migResult.affectedRows : 0;
           if (emailMigratedCount > 0) {
-            console.log(`[INFO] Login migration: Claimed ${emailMigratedCount} orphan appointment(s) for ${user.name} (${user.email})`);
+            console.log(`📦 Login migration: Claimed ${emailMigratedCount} orphan appointment(s) for ${user.name} (${user.email})`);
             createNotification(user.id, 'Prior Bookings Found!', `We found ${emailMigratedCount} consultation request(s) linked to your email from before. They have been automatically added to your account.`, 'appointment_request');
           }
 
@@ -2059,7 +2059,7 @@ app.post('/api/login', async (req, res) => {
     }); // close outer db.query callback
 
   } catch (error) {
-    console.error('[ERROR] Unhandled error in login:', error);
+    console.error('🔥 Unhandled error in login:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -2086,7 +2086,7 @@ app.post('/api/reset-password', async (req, res) => {
   // Find user
   db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
     if (err) {
-      console.error('[ERROR] DB error on password reset:', err.message);
+      console.error('❌ DB error on password reset:', err.message);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
     if (results.length === 0) {
@@ -2130,7 +2130,7 @@ app.post('/api/customer/change-password', async (req, res) => {
   // Find user
   db.query('SELECT * FROM users WHERE id = ?', [customerId], async (err, results) => {
     if (err) {
-      console.error('[ERROR] DB error:', err.message);
+      console.error('❌ DB error:', err.message);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
     if (results.length === 0) {
@@ -2157,7 +2157,7 @@ app.post('/api/customer/change-password', async (req, res) => {
 
     db.query('UPDATE users SET password_hash = ?, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, customerId], (updateErr) => {
       if (updateErr) {
-        console.error('[ERROR] Error updating password:', updateErr);
+        console.error('❌ Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
       }
       logAction(customerId, 'PASSWORD_CHANGED', 'Customer changed their password — re-verification required', req.ip || '::1');
@@ -2203,7 +2203,7 @@ app.post('/api/artist/change-password', async (req, res) => {
   // Find user
   db.query('SELECT * FROM users WHERE id = ?', [artistId], async (err, results) => {
     if (err) {
-      console.error('[ERROR] DB error:', err.message);
+      console.error('❌ DB error:', err.message);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
     if (results.length === 0) {
@@ -2230,7 +2230,7 @@ app.post('/api/artist/change-password', async (req, res) => {
 
     db.query('UPDATE users SET password_hash = ?, is_verified = 0, verification_token = ? WHERE id = ?', [password_hash, verification_token, artistId], (updateErr) => {
       if (updateErr) {
-        console.error('[ERROR] Error updating password:', updateErr);
+        console.error('❌ Error updating password:', updateErr);
         return res.status(500).json({ success: false, message: 'Failed to update password' });
       }
       logAction(artistId, 'PASSWORD_CHANGED', 'Artist changed their password — re-verification required', req.ip || '::1');
@@ -2356,7 +2356,7 @@ app.post('/api/confirm-email-change', (req, res) => {
         [newEmail, verification_token, userId],
         (updateErr) => {
           if (updateErr) {
-            console.error('[ERROR] Error updating email:', updateErr);
+            console.error('❌ Error updating email:', updateErr);
             return res.status(500).json({ success: false, message: 'Failed to update email' });
           }
 
@@ -2482,7 +2482,7 @@ app.post('/api/push/register', (req, res) => {
         console.error('[PUSH] Token registration error:', err.message);
         return res.json({ success: false, message: err.message });
       }
-      console.log(`[PUSH] [OK] Token registered for user ${user_id} (${platform})`);
+      console.log(`[PUSH] ✅ Token registered for user ${user_id} (${platform})`);
       res.json({ success: true });
     }
   );
@@ -2491,12 +2491,12 @@ app.post('/api/push/register', (req, res) => {
 // ── Send Expo Push Notification (internal helper) ────────────────
 async function sendPushNotification(userId, title, body, data = {}) {
   db.query('SELECT token FROM user_push_tokens WHERE user_id = ?', [userId], async (err, rows) => {
-    if (err) { console.error('[PUSH] [ERROR] DB error fetching token:', err.message); return; }
-    if (!rows.length) { console.warn(`[PUSH] [WARN] No token found for user ${userId} — skipping push`); return; }
+    if (err) { console.error('[PUSH] ❌ DB error fetching token:', err.message); return; }
+    if (!rows.length) { console.warn(`[PUSH] ⚠️ No token found for user ${userId} — skipping push`); return; }
     const token = rows[0].token;
     console.log(`[PUSH] 📲 Token for user ${userId}: ${token.substring(0, 40)}...`);
     if (!token.startsWith('ExponentPushToken')) {
-      console.warn('[PUSH] [WARN] Token is not an Expo push token — skipping');
+      console.warn('[PUSH] ⚠️ Token is not an Expo push token — skipping');
       return;
     }
     try {
@@ -2506,9 +2506,9 @@ async function sendPushNotification(userId, title, body, data = {}) {
         body: JSON.stringify({ to: token, title, body, data, sound: 'default' }),
       });
       const result = await response.json();
-      console.log(`[PUSH] [OK] Expo API response for user ${userId}:`, JSON.stringify(result));
+      console.log(`[PUSH] ✅ Expo API response for user ${userId}:`, JSON.stringify(result));
     } catch (e) {
-      console.error('[PUSH] [ERROR] Send error:', e.message);
+      console.error('[PUSH] ❌ Send error:', e.message);
     }
   });
 }
@@ -2525,7 +2525,7 @@ app.get('/api/push/debug/:userId', (req, res) => {
 
 app.post('/api/push/test-send/:userId', async (req, res) => {
   const { userId } = req.params;
-  await sendPushNotification(userId, 'Test Notification', 'Push notifications are working!', {});
+  await sendPushNotification(userId, '🔔 Test Notification', 'Push notifications are working!', {});
   res.json({ success: true, message: `Push attempted for user ${userId}. Check Railway logs.` });
 });
 
@@ -2556,10 +2556,10 @@ app.post('/api/verify-otp', (req, res) => {
     // If purpose is account verification, mark user as verified
     if (req.body.purpose === 'account-verification') {
       db.query('UPDATE users SET is_verified = 1 WHERE email = ?', [email]);
-      console.log('[OK] Account verified via OTP:', email);
+      console.log('✅ Account verified via OTP:', email);
     }
 
-    console.log('[OK] OTP VERIFIED:', email);
+    console.log('✅ OTP VERIFIED:', email);
     res.json({
       success: true,
       user: {
@@ -2652,7 +2652,7 @@ app.get('/api/verify', (req, res) => {
 // ========== REGISTER ENDPOINT ==========
 app.post('/api/register', async (req, res) => {
   try {
-    console.log('\n[INFO] ========== REGISTER REQUEST ==========');
+    console.log('\n📝 ========== REGISTER REQUEST ==========');
     console.log('📤 Request body:', req.body);
 
     const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken } = req.body;
@@ -2670,7 +2670,7 @@ app.post('/api/register', async (req, res) => {
 
     // Validation
     if (!fullName || !email || !password || !type) {
-      console.log('[ERROR] Missing fields');
+      console.log('❌ Missing fields');
       return res.status(400).json({
         success: false,
         message: 'All fields are required'
@@ -2680,7 +2680,7 @@ app.post('/api/register', async (req, res) => {
     // Check if user already exists
     db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
       if (err) {
-        console.error('[ERROR] Database error checking user:', err.message);
+        console.error('❌ Database error checking user:', err.message);
         return res.status(500).json({
           success: false,
           message: 'Database error'
@@ -2688,7 +2688,7 @@ app.post('/api/register', async (req, res) => {
       }
 
       if (results.length > 0) {
-        console.log('[ERROR] User already exists:', email);
+        console.log('❌ User already exists:', email);
         return res.status(400).json({
           success: false,
           message: 'Email already registered'
@@ -2712,15 +2712,15 @@ app.post('/api/register', async (req, res) => {
 
       db.query(insertQuery, [fullName, email, password_hash, type, verification_token, photoConsent, emailConsent], (insertErr, result) => {
         if (insertErr) {
-          console.error('[ERROR] Error inserting user:', insertErr.message);
+          console.error('❌ Error inserting user:', insertErr.message);
           return res.status(500).json({
             success: false,
             message: `Database error: ${insertErr.message}`
           });
         }
 
-        console.log('[OK] User inserted successfully!');
-        console.log('[OK] Insert ID:', result.insertId);
+        console.log('✅ User inserted successfully!');
+        console.log('✅ Insert ID:', result.insertId);
 
         logAction(result.insertId, 'REGISTER', `New ${type} account registered: ${email}`, req.ip || '::1');
 
@@ -2751,7 +2751,7 @@ app.post('/api/register', async (req, res) => {
           // Using some default values
           db.query(artistQuery, [newUserId, `${fullName}'s Studio`, 0, 'New Artist', 50.00], (artistErr, artistResult) => {
             if (artistErr) {
-              console.error('[ERROR] Error creating artist profile:', artistErr.message);
+              console.error('❌ Error creating artist profile:', artistErr.message);
               // Rollback: Delete the user if artist profile creation fails
               db.query('DELETE FROM users WHERE id = ?', [newUserId]);
               return res.status(500).json({ success: false, message: 'Failed to create artist profile. Please try again.' });
@@ -2764,7 +2764,7 @@ app.post('/api/register', async (req, res) => {
           const customerQuery = 'INSERT INTO customers (user_id, phone, notes) VALUES (?, ?, ?)';
           db.query(customerQuery, [newUserId, phone || '', preferences || ''], (custErr) => {
             if (custErr) {
-              console.error('[ERROR] Error creating customer profile:', custErr.message);
+              console.error('❌ Error creating customer profile:', custErr.message);
             } else {
               console.log('✅ Customer profile created for user ID:', newUserId);
             }
@@ -2931,7 +2931,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
     clearTimeout(timeout);
 
     if (err) {
-      console.error('[ERROR] Database error:', err.message);
+      console.error('❌ Database error:', err.message);
       console.error('❌ Full error:', err);
 
       // Return a proper error instead of mock data
@@ -3074,7 +3074,7 @@ app.get('/api/artist/:artistId/appointments', (req, res) => {
 
   db.query(query, params, (err, results) => {
     if (err) {
-      console.error('[ERROR] Error fetching appointments:', err);
+      console.error('❌ Error fetching appointments:', err);
       return res.status(500).json({ success: false, message: 'DB Error (Get Appts): ' + err.message });
     }
 
@@ -3102,7 +3102,7 @@ app.get('/api/artist/:artistId/clients', (req, res) => {
 
   db.query(query, [artistId], (err, results) => {
     if (err) {
-      console.error('[ERROR] Error fetching clients:', err);
+      console.error('❌ Error fetching clients:', err);
       return res.status(500).json({ success: false, message: 'DB Error (Get Clients): ' + err.message });
     }
 
@@ -3167,7 +3167,7 @@ app.get('/api/artist/:artistId/portfolio', (req, res) => {
     [artistId],
     (err, results) => {
       if (err) {
-        console.error('[ERROR] Error fetching portfolio:', err);
+        console.error('❌ Error fetching portfolio:', err);
         return res.status(500).json({ success: false, message: 'DB Error (Get Portfolio): ' + err.message });
       }
 
@@ -3260,7 +3260,7 @@ app.put('/api/artist/portfolio/:id/visibility', (req, res) => {
 
   db.query('UPDATE portfolio_works SET is_public = ? WHERE id = ?', [isPublic ? 1 : 0, id], (err, result) => {
     if (err) {
-      console.error('[ERROR] Error updating portfolio visibility:', err);
+      console.error('❌ Error updating portfolio visibility:', err);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
     res.json({ success: true, message: 'Visibility updated successfully' });
@@ -3285,7 +3285,7 @@ app.post('/api/artist/clients', async (req, res) => {
 
     db.query(query, [name, email, password_hash], (err, result) => {
       if (err) {
-        console.error('[ERROR] Error adding client:', err);
+        console.error('❌ Error adding client:', err);
         if (err.code === 'ER_DUP_ENTRY') {
           return res.status(400).json({ success: false, message: 'Email already exists' });
         }
@@ -3584,7 +3584,7 @@ app.post('/api/customer/appointments', async (req, res) => {
 
       db.query(checkQuery, queryParams, (checkErr, checkResults) => {
         if (checkErr) {
-          console.error('[ERROR] Error checking double booking:', checkErr);
+          console.error('❌ Error checking double booking:', checkErr);
           return res.status(500).json({ success: false, message: 'Database error' });
         }
 
@@ -3607,7 +3607,7 @@ app.post('/api/customer/appointments', async (req, res) => {
 
       db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation', consultationMethod || null], (err, result) => {
         if (err) {
-          console.error('[ERROR] Error booking appointment:', err);
+          console.error('❌ Error booking appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
         }
 
@@ -3767,7 +3767,7 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
               if (appt.artist_id) {
                 db.query('SELECT user_type FROM users WHERE id = ?', [appt.artist_id], (aErr, aRes) => {
                   if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
-                    createNotification(appt.artist_id, 'Appointment Rescheduled', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.${reasonText}`, 'appointment_rescheduled', id);
+                    createNotification(appt.artist_id, 'Appointment Rescheduled 📅', `A client has rescheduled appointment #${id} to ${newDate}${newTime ? ' at ' + newTime : ''}.${reasonText}`, 'appointment_rescheduled', id);
                   }
                 });
               }
@@ -3888,7 +3888,7 @@ app.post('/api/customer/appointments/:id/reschedule-request', (req, res) => {
               db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager") AND is_deleted = 0', (adminErr, admins) => {
                 if (!adminErr && admins.length > 0) {
                   admins.forEach(admin => {
-                    createNotification(admin.id, 'Reschedule Request', `${appt.customer_name} requests to reschedule [${bookingCode}] from ${currentDateStr} to ${newDateStr}. Reason: ${reason}. This request expires in 24 hours — please review.`, 'reschedule_request', parseInt(id));
+                    createNotification(admin.id, 'Reschedule Request 📋', `${appt.customer_name} requests to reschedule [${bookingCode}] from ${currentDateStr} to ${newDateStr}. Reason: ${reason}. This request expires in 24 hours — please review.`, 'reschedule_request', parseInt(id));
                   });
                 }
               });
@@ -4045,13 +4045,13 @@ app.put('/api/admin/reschedule-requests/:requestId/decide', (req, res) => {
             const notesStr = adminNotes ? ` Notes: ${adminNotes}` : '';
 
             // Notify customer
-            createNotification(request.customer_id, 'Reschedule Approved', `Great news! Your reschedule request for [${bookingCode}] has been approved. Your new appointment date is ${newDateStr}.${notesStr}`, 'reschedule_approved', request.appointment_id);
+            createNotification(request.customer_id, 'Reschedule Approved ✅', `Great news! Your reschedule request for [${bookingCode}] has been approved. Your new appointment date is ${newDateStr}.${notesStr}`, 'reschedule_approved', request.appointment_id);
 
             // Notify artist
             if (request.artist_id) {
               db.query('SELECT user_type FROM users WHERE id = ?', [request.artist_id], (aErr, aRes) => {
                 if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
-                  createNotification(request.artist_id, 'Appointment Rescheduled', `Appointment [${bookingCode}] has been rescheduled to ${newDateStr} (approved reschedule request).`, 'appointment_rescheduled', request.appointment_id);
+                  createNotification(request.artist_id, 'Appointment Rescheduled 📅', `Appointment [${bookingCode}] has been rescheduled to ${newDateStr} (approved reschedule request).`, 'appointment_rescheduled', request.appointment_id);
                 }
               });
             }
@@ -4059,7 +4059,7 @@ app.put('/api/admin/reschedule-requests/:requestId/decide', (req, res) => {
             // Email customer
             if (request.customer_email) {
               const emailHtml = buildEmailHtml(`
-                <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#10b981;text-align:center;">Reschedule Request Approved</h2>
+                <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#10b981;text-align:center;">Reschedule Request Approved ✅</h2>
                 <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your appointment has been moved</p>
                 <p style="margin:0 0 16px;">Hello ${request.customer_name},</p>
                 <p style="margin:0 0 16px;">Your request to reschedule appointment <strong>[${bookingCode}]</strong> has been <strong style="color:#10b981;">approved</strong>!</p>
@@ -4095,7 +4095,7 @@ app.put('/api/admin/reschedule-requests/:requestId/decide', (req, res) => {
             const originalDateStr = new Date(request.appointment_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
             // Notify customer
-            createNotification(request.customer_id, 'Reschedule Request Declined', `Your reschedule request for [${bookingCode}] has been declined. Studio notes: ${adminNotes}. Your original appointment on ${originalDateStr} remains unchanged.`, 'reschedule_rejected', request.appointment_id);
+            createNotification(request.customer_id, 'Reschedule Request Declined ❌', `Your reschedule request for [${bookingCode}] has been declined. Studio notes: ${adminNotes}. Your original appointment on ${originalDateStr} remains unchanged.`, 'reschedule_rejected', request.appointment_id);
 
             // Email customer
             if (request.customer_email) {
@@ -4170,7 +4170,7 @@ app.get('/api/gallery/works', (req, res) => {
 
   db.query(query, params, (err, results) => {
     if (err) {
-      console.error('[ERROR] Error fetching gallery works:', err);
+      console.error('❌ Error fetching gallery works:', err);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
     res.json({ success: true, works: results });
@@ -4192,7 +4192,7 @@ app.get('/api/gallery/art-of-the-day', (req, res) => {
 
   db.query(todayQuery, (err, todayResults) => {
     if (err) {
-      console.error('[ERROR] Error fetching Art of the Day (today):', err);
+      console.error('❌ Error fetching Art of the Day (today):', err);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
 
@@ -4213,7 +4213,7 @@ app.get('/api/gallery/art-of-the-day', (req, res) => {
 
     db.query(latestQuery, (latestErr, latestResults) => {
       if (latestErr) {
-        console.error('[ERROR] Error fetching Art of the Day (latest):', latestErr);
+        console.error('❌ Error fetching Art of the Day (latest):', latestErr);
         return res.status(500).json({ success: false, message: 'Database error' });
       }
 
@@ -4332,7 +4332,7 @@ app.get('/api/admin/appointments', (req, res) => {
 
   db.query(query, (err, results) => {
     if (err) {
-      console.error('[ERROR] Error fetching all appointments:', err);
+      console.error('❌ Error fetching all appointments:', err);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
     res.json({ success: true, data: results });
@@ -4364,7 +4364,7 @@ app.get('/api/admin/appointments/:id', (req, res) => {
 
   db.query(query, [id], (err, results) => {
     if (err) {
-      console.error('[ERROR] Error fetching appointment:', err);
+      console.error('❌ Error fetching appointment:', err);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
     if (results.length === 0) {
@@ -4451,7 +4451,7 @@ app.post('/api/admin/appointments', async (req, res) => {
 
     db.query(checkQuery, [date, startTime, artistId, customerId], (checkErr, results) => {
       if (checkErr) {
-        console.error('[ERROR] Error checking double booking:', checkErr);
+        console.error('❌ Error checking double booking:', checkErr);
         return res.status(500).json({ success: false, message: 'Database error' });
       }
 
@@ -4495,7 +4495,7 @@ app.post('/api/admin/appointments', async (req, res) => {
               return res.json({ success: true, message: 'Appointment created successfully', id: fbResult.insertId, bookingCode: fbBookingCode });
             });
           }
-          console.error('[ERROR] Error creating admin appointment:', err);
+          console.error('❌ Error creating admin appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
         }
 
@@ -4562,7 +4562,7 @@ app.post('/api/admin/appointments', async (req, res) => {
               
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 16px;">
                 <div style="display:inline-block;padding:12px 20px;background:rgba(193,154,107,0.1);border:1px solid rgba(193,154,107,0.2);border-radius:10px;">
-                  <p style="margin:0;font-size:13px;color:#94a3b8;">Tip: <strong style="color:#e2e8f0;">Tip:</strong> Create an InkVistAR account with this email to track your booking, receive updates, and manage future appointments.</p>
+                  <p style="margin:0;font-size:13px;color:#94a3b8;">💡 <strong style="color:#e2e8f0;">Tip:</strong> Create an InkVistAR account with this email to track your booking, receive updates, and manage future appointments.</p>
                 </div>
               </td></tr></table>
 
@@ -4720,7 +4720,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
             processAdminPostUpdate(res, db, id, oldAppt, { customerId, artistId, status, paymentStatus, date, startTime, price, combinedTitle, rejectionReason, isReferral: body.isReferral });
           });
         }
-        console.error('[ERROR] Error updating admin appointment:', err);
+        console.error('❌ Error updating admin appointment:', err);
         return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
       }
       if (result.affectedRows === 0) {
@@ -4767,14 +4767,14 @@ function sendGuestStatusEmail(guestEmail, guestName, bookingCode, subject, headi
     const accountMarketingBlock = `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:16px 0 8px;">
         <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:20px 24px;background:linear-gradient(135deg,#1a1816 0%,#1e1a15 100%);border:1px solid rgba(190,144,85,0.3);border-radius:14px;">
-          <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#be9055;text-align:center;">Create Your InkVistAR Account</p>
+          <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#be9055;text-align:center;">✨ Create Your InkVistAR Account</p>
           <p style="margin:0 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;text-align:center;">Unlock the full InkVistAR experience — it's free and takes under a minute.</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#e2e8f0;">Track & manage</span> your bookings in real-time</td></tr>
-            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#e2e8f0;">Receive instant</span> notifications & status updates</td></tr>
-            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#e2e8f0;">Browse & save</span> designs from our gallery</td></tr>
-            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#e2e8f0;">Chat directly</span> with your artist</td></tr>
-            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#e2e8f0;">Try on tattoos</span> with Augmented Reality</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">📅 <span style="color:#e2e8f0;">Track & manage</span> your bookings in real-time</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">🔔 <span style="color:#e2e8f0;">Receive instant</span> notifications & status updates</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">🎨 <span style="color:#e2e8f0;">Browse & save</span> designs from our gallery</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">💬 <span style="color:#e2e8f0;">Chat directly</span> with your artist</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">📱 <span style="color:#e2e8f0;">Try on tattoos</span> with Augmented Reality</td></tr>
           </table>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:16px 0 4px;">
             <a href="${FRONTEND_URL}/register" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#be9055,#a07840);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Create Free Account →</a>
@@ -4802,7 +4802,7 @@ function sendGuestStatusEmail(guestEmail, guestName, bookingCode, subject, headi
     `);
     sendResendEmail(guestEmail, `InkVistAR: ${subject}`, html);
   } catch (err) {
-    console.error(`[WARN] Error sending guest status email to ${guestEmail}:`, err.message);
+    console.error(`⚠️ Error sending guest status email to ${guestEmail}:`, err.message);
   }
 }
 
@@ -4858,7 +4858,7 @@ function sendRegisteredUserStatusEmail(db, customerId, subject, headingText, hea
       `);
       sendResendEmail(userEmail, `InkVistAR: ${subject}`, html);
     } catch (emailErr) {
-      console.error(`[WARN] Error sending status email to user #${customerId}:`, emailErr.message);
+      console.error(`⚠️ Error sending status email to user #${customerId}:`, emailErr.message);
     }
   });
 }
@@ -4875,7 +4875,7 @@ function sendGuestStatusSMS(guestPhone, guestName, bookingCode, message) {
   try {
     sendSMS(guestPhone, `InkVistAR: Hi ${guestName}! ${message} Ref: [${bookingCode}].`);
   } catch (err) {
-    console.error(`[WARN] Error sending guest status SMS to ${guestPhone}:`, err.message);
+    console.error(`⚠️ Error sending guest status SMS to ${guestPhone}:`, err.message);
   }
 }
 
@@ -4893,7 +4893,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
     WHERE id = ? AND payment_status != 'paid'
   `;
   db.query(recalculateStatusQuery, [id, id], (err) => {
-    if (err) console.error(`[WARN] Error auto-recalculating status for appointment #${id}:`, err.message);
+    if (err) console.error(`⚠️ Error auto-recalculating status for appointment #${id}:`, err.message);
   });
 
   // Smart Notifications Logic
@@ -4945,7 +4945,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         const preCareEmailBlock = `
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:12px 0 16px;">
             <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:20px 24px;background:linear-gradient(135deg,#1a1816 0%,#14120f 100%);border:1px solid rgba(190,144,85,0.25);border-radius:14px;">
-              <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#be9055;text-align:center;">Pre-Session Conditioning Plan</p>
+              <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#be9055;text-align:center;">🛡️ Pre-Session Conditioning Plan</p>
               <p style="margin:0 0 14px;font-size:12px;color:#94a3b8;text-align:center;line-height:1.5;">Follow these steps before your tattoo session for the best results:</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">💧 <strong>Hydrate</strong> — Drink plenty of water 24–48 hours before for optimal skin elasticity.</td></tr>
@@ -4962,7 +4962,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         // 1. Check for Rescheduling
         if ((newDate && oldDate && newDate !== oldDate) || (startTime !== undefined && startTime !== oldAppt.start_time)) {
           const reasonText = rescheduleReason ? `\n\nReason: ${rescheduleReason}` : '';
-          createNotification(currentData.customer_id, 'Appointment Rescheduled', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.${reasonText}`, 'appointment_rescheduled', id);
+          createNotification(currentData.customer_id, 'Appointment Rescheduled 📅', `Your appointment #${id} has been rescheduled to ${date} at ${startTime}.${reasonText}`, 'appointment_rescheduled', id);
           notifyArtist('Session Rescheduled', `Your session #${id} has been rescheduled to ${date}${startTime ? ' at ' + startTime : ''}. Please update your schedule accordingly.`, 'appointment_rescheduled');
 
           // ── Guest Email + SMS: Rescheduled ──
@@ -4994,7 +4994,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
             const reasonLine2 = rescheduleReason ? ` Reason: ${rescheduleReason}.` : '';
             sendRegisteredUserStatusEmail(db, currentData.customer_id,
               'Appointment Rescheduled',
-              'Appointment Rescheduled', '#f59e0b',
+              'Appointment Rescheduled 📅', '#f59e0b',
               `Your appointment has been rescheduled to a new date and time. Please see the updated details below.${reasonLine2}`,
               [
                 { label: 'Design', value: guestDesign },
@@ -5011,7 +5011,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         if (status !== undefined && status !== oldAppt.status) {
           if (status === 'confirmed' && oldAppt.status === 'pending') {
             const priceMsg = price > 0 ? ` The quoted price is ₱${parseFloat(price).toLocaleString()}.` : '';
-            createNotification(currentData.customer_id, 'Booking Request Approved', `Great news! Your booking request #${id} has been approved.${priceMsg} We look forward to seeing you.`, 'appointment_confirmed', id);
+            createNotification(currentData.customer_id, 'Booking Request Approved ✅', `Great news! Your booking request #${id} has been approved.${priceMsg} We look forward to seeing you.`, 'appointment_confirmed', id);
             notifyArtist('Appointment Confirmed', `Appointment #${id} has been accepted and confirmed.`, 'appointment_confirmed');
             // SMS + Push
             db.query('SELECT u.phone, a.name as artist_name, ap.appointment_date FROM users u JOIN appointments ap ON ap.customer_id = u.id LEFT JOIN users a ON a.id = ap.artist_id WHERE ap.id = ?', [id], (e2, r2) => {
@@ -5020,7 +5020,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
                 if (phone) sendSMS(phone, appointmentConfirmedSMS(artist_name || 'your artist', appointment_date));
               }
             });
-            sendPushNotification(currentData.customer_id, 'Booking Approved!', `Your appointment #${id} has been confirmed.${priceMsg}`, { screen: 'customer-notifications' });
+            sendPushNotification(currentData.customer_id, '✅ Booking Approved!', `Your appointment #${id} has been confirmed.${priceMsg}`, { screen: 'customer-notifications' });
 
             // ── Guest Email + SMS: Confirmed ──
             if (guestEmail) {
@@ -5047,7 +5047,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               const priceLine2 = price > 0 ? ` The quoted price is <strong style="color:#C19A6B;">₱${parseFloat(price).toLocaleString()}</strong>.` : '';
               sendRegisteredUserStatusEmail(db, currentData.customer_id,
                 'Booking Confirmed!',
-                'Booking Confirmed!', '#10b981',
+                'Booking Confirmed! ✅', '#10b981',
                 `Great news! Your booking request has been reviewed and <strong>approved</strong> by our team.${priceLine2} We look forward to seeing you!`,
                 [
                   { label: 'Design', value: guestDesign },
@@ -5059,16 +5059,16 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
               // ── Pre-care notification (tattoo sessions only) ──
               if (isTattooSession) {
-                createNotification(currentData.customer_id, 'Pre-Session Conditioning Plan', `Your tattoo session for "${guestDesign}" is confirmed! To get the best results: Hydrate well, eat a balanced meal beforehand, avoid alcohol/blood thinners for 24hrs, moisturize (but not on session day), get good rest, and wear loose clothing. Check your email for the full guide!`, 'precare_plan', id);
+                createNotification(currentData.customer_id, '🛡️ Pre-Session Conditioning Plan', `Your tattoo session for "${guestDesign}" is confirmed! To get the best results: Hydrate well, eat a balanced meal beforehand, avoid alcohol/blood thinners for 24hrs, moisturize (but not on session day), get good rest, and wear loose clothing. Check your email for the full guide!`, 'precare_plan', id);
               }
             }
 
             notificationsSent = true;
           } else if (status === 'rejected' && oldAppt.status === 'pending') {
             const reasonMsg = rejectionReason ? `\n\nReason: ${rejectionReason}` : ' Please contact the studio for alternatives.';
-            createNotification(currentData.customer_id, 'Booking Request Rejected', `Notice: Your booking request #${id} was unfortunately rejected.${reasonMsg}`, 'appointment_rejected', id);
+            createNotification(currentData.customer_id, 'Booking Request Rejected ❌', `Notice: Your booking request #${id} was unfortunately rejected.${reasonMsg}`, 'appointment_rejected', id);
             notifyArtist('Request Rejected', `Booking request #${id} has been rejected.`, 'appointment_rejected');
-            sendPushNotification(currentData.customer_id, 'Booking Rejected', `Your appointment #${id} could not be approved. ${rejectionReason || ''}`.trim(), { screen: 'customer-notifications' });
+            sendPushNotification(currentData.customer_id, '❌ Booking Rejected', `Your appointment #${id} could not be approved. ${rejectionReason || ''}`.trim(), { screen: 'customer-notifications' });
 
             // ── Guest Email + SMS: Rejected ──
             if (guestEmail) {
@@ -5094,7 +5094,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               const reasonLine3 = rejectionReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${rejectionReason}` : '';
               sendRegisteredUserStatusEmail(db, currentData.customer_id,
                 'Booking Request Update',
-                'Booking Request Update', '#ef4444',
+                'Booking Request Update ❌', '#ef4444',
                 `We regret to inform you that your booking request could not be approved at this time. Please don't hesitate to reach out to the studio directly for alternatives or to rebook.${reasonLine3}`,
                 [
                   { label: 'Design', value: guestDesign },
@@ -5105,7 +5105,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
             notificationsSent = true;
           } else if (status === 'cancelled') {
-            createNotification(currentData.customer_id, 'Appointment Cancelled', `Notice: Your appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
+            createNotification(currentData.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
             notifyArtist('Session Cancelled', `Session #${id} was cancelled.`, 'appointment_cancelled');
             // SMS + Push
             db.query('SELECT u.phone, ap.appointment_date FROM users u JOIN appointments ap ON ap.customer_id = u.id WHERE ap.id = ?', [id], (e2, r2) => {
@@ -5113,7 +5113,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
                 sendSMS(r2[0].phone, appointmentCancelledSMS(r2[0].appointment_date, rejectionReason));
               }
             });
-            sendPushNotification(currentData.customer_id, 'Appointment Cancelled', `Your appointment #${id} has been cancelled.`, { screen: 'customer-notifications' });
+            sendPushNotification(currentData.customer_id, '❌ Appointment Cancelled', `Your appointment #${id} has been cancelled.`, { screen: 'customer-notifications' });
 
             // ── Guest Email + SMS: Cancelled ──
             if (guestEmail) {
@@ -5139,7 +5139,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               const cancelReason = rejectionReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${rejectionReason}` : '';
               sendRegisteredUserStatusEmail(db, currentData.customer_id,
                 'Appointment Cancelled',
-                'Appointment Cancelled', '#ef4444',
+                'Appointment Cancelled ❌', '#ef4444',
                 `Your appointment has been cancelled. If this was unexpected, please contact the studio directly for clarification.${cancelReason}`,
                 [
                   { label: 'Design', value: guestDesign },
@@ -5155,9 +5155,9 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
             if (isConsultation) {
               // ── CONSULTATION COMPLETION → Send Consultation Summary ──
-              createNotification(currentData.customer_id, 'Consultation Complete!', `Your consultation #${id} has been completed. Check your email for a detailed summary.`, 'appointment_completed', id);
+              createNotification(currentData.customer_id, 'Consultation Complete! ✅', `Your consultation #${id} has been completed. Check your email for a detailed summary.`, 'appointment_completed', id);
               notifyArtist('Consultation Completed', `Consultation #${id} marked as completed.`, 'appointment_completed');
-              sendPushNotification(currentData.customer_id, 'Consultation Complete!', `Your InkVistAR consultation #${id} is done! Check your email for the summary and next steps.`, { screen: 'customer-notifications' });
+              sendPushNotification(currentData.customer_id, '✅ Consultation Complete!', `Your InkVistAR consultation #${id} is done! Check your email for the summary and next steps.`, { screen: 'customer-notifications' });
 
               // Fetch fresh appointment data including the new consultation fields + artist name
               db.query(`
@@ -5201,9 +5201,9 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
             } else {
               // ── NON-CONSULTATION (Tattoo/Piercing) COMPLETION → Original flow ──
-              createNotification(currentData.customer_id, 'Tattoo Journey Complete!', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
+              createNotification(currentData.customer_id, 'Tattoo Journey Complete! ✨', `Your session #${id} is finished! We hope you love your new ink.`, 'appointment_completed', id);
               notifyArtist('Session Completed', `Appointment #${id} marked as completed.`, 'appointment_completed');
-              sendPushNotification(currentData.customer_id, 'Session Complete!', `Your InkVistAR session #${id} is done! We hope you love your new ink.`, { screen: 'customer-notifications' });
+              sendPushNotification(currentData.customer_id, '✨ Session Complete!', `Your InkVistAR session #${id} is done! We hope you love your new ink.`, { screen: 'customer-notifications' });
 
               const completedServiceLabel = (oldAppt.service_type || 'Tattoo Session');
 
@@ -5327,7 +5327,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
           if (isRegisteredUser) {
             sendRegisteredUserStatusEmail(db, currentData.customer_id,
               'Session Fee Update',
-              'Your Quote is Ready', '#be9055',
+              'Your Quote is Ready 💰', '#be9055',
               `The pricing for your session has been set. Please review the details below. To secure your booking, a reservation fee or down payment may be required.`,
               [
                 { label: 'Design', value: guestDesign },
@@ -5557,7 +5557,7 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
                         const sessionPrice = fpRes[0].price || 0;
                         if (sessionPrice > 0 && totalPaid >= sessionPrice) {
                           const designTitle = apptData.design_title || 'Session';
-                          createNotification(apptData.artist_id, 'Session Fully Paid', `Great news! Session #${id} for "${designTitle}" is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', id);
+                          createNotification(apptData.artist_id, 'Session Fully Paid 🎉', `Great news! Session #${id} for "${designTitle}" is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', id);
                         }
                       }
                     });
@@ -5718,7 +5718,7 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
                         const totalPaid = (fpRes[0].digital_paid / 100) + (fpRes[0].manual_paid_amount || 0);
                         const sessionPrice = fpRes[0].price || 0;
                         if (sessionPrice > 0 && totalPaid >= sessionPrice) {
-                          createNotification(apptData.artist_id, 'Session Fully Paid', `Great news! Session #${appointmentId} is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', appointmentId);
+                          createNotification(apptData.artist_id, 'Session Fully Paid 🎉', `Great news! Session #${appointmentId} is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', appointmentId);
                         }
                       }
                     });
@@ -5795,7 +5795,7 @@ app.delete('/api/admin/appointments/:id', (req, res) => {
   const { id } = req.params;
   db.query('UPDATE appointments SET is_deleted = 1 WHERE id = ?', [id], (err, result) => {
     if (err) {
-      console.error('[ERROR] Error deleting appointment:', err);
+      console.error('❌ Error deleting appointment:', err);
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
     }
     if (result.affectedRows === 0) {
@@ -5836,7 +5836,7 @@ app.post('/api/appointments/:id/materials', (req, res) => {
     [quantity, inventory_id, quantity], (err, result) => {
 
       if (err) {
-        console.error('[ERROR] Error deducting inventory:', err);
+        console.error('❌ Error deducting inventory:', err);
         return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
       }
       if (result.affectedRows === 0) {
@@ -5849,12 +5849,12 @@ app.post('/api/appointments/:id/materials', (req, res) => {
       db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
         [id, inventory_id, quantity, 'hold'], (insErr) => {
           if (insErr) {
-            console.error('[ERROR] Error inserting session material:', insErr);
+            console.error('❌ Error inserting session material:', insErr);
             // Rollback stock
             db.query('UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [quantity, inventory_id]);
             return res.status(500).json({ success: false, message: 'Failed to record material usage: ' + insErr.message });
           }
-          console.log(`[OK] Added session material as HOLD status`);
+          console.log(`✅ Added session material as HOLD status`);
           res.json({ success: true, message: 'Material added to session' });
         });
     });
@@ -5999,27 +5999,27 @@ app.put('/api/appointments/:id/status', (req, res) => {
 
       // ── CONFIRMED ──
       } else if (status === 'confirmed') {
-        createNotification(appointment.customer_id, 'Session Confirmed!', `Great news! Your appointment on ${dateStr} for "${designTitle}" is now officially confirmed. We look forward to seeing you!`, 'appointment_confirmed', id);
+        createNotification(appointment.customer_id, 'Session Confirmed! ✅', `Great news! Your appointment on ${dateStr} for "${designTitle}" is now officially confirmed. We look forward to seeing you!`, 'appointment_confirmed', id);
         createNotification(appointment.artist_id, 'Appointment Confirmed', `Appointment #${id} for ${designTitle} is now confirmed.`, 'appointment_confirmed', id);
       } else if (status === 'cancelled') {
         if (appointment.status === 'pending') {
-          createNotification(appointment.customer_id, 'Booking Request Declined', `Notice: Your booking request for ${dateStr} could not be accepted at this time. Please try another date or artist.`, 'appointment_rejected', id);
+          createNotification(appointment.customer_id, 'Booking Request Declined ❌', `Notice: Your booking request for ${dateStr} could not be accepted at this time. Please try another date or artist.`, 'appointment_rejected', id);
           createNotification(appointment.artist_id, 'Request Declined', `Booking request #${id} has been declined.`, 'appointment_rejected', id);
         } else {
-          createNotification(appointment.customer_id, 'Appointment Cancelled', `Notice: Your appointment scheduled for ${dateStr} has been cancelled. Please contact the studio if you have any questions.`, 'appointment_cancelled', id);
+          createNotification(appointment.customer_id, 'Appointment Cancelled ❌', `Notice: Your appointment scheduled for ${dateStr} has been cancelled. Please contact the studio if you have any questions.`, 'appointment_cancelled', id);
           createNotification(appointment.artist_id, 'Appointment Cancelled', `Appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
         }
 
       // ── SESSION COMPLETED ──
       } else if (status === 'completed') {
         if (isFullyComplete || isFullyComplete === undefined) {
-          createNotification(appointment.customer_id, 'Tattoo Journey Complete!', `Your session for "${designTitle}" is finished! We hope you love your new ink.`, 'appointment_completed', id);
+          createNotification(appointment.customer_id, 'Tattoo Journey Complete! ✨', `Your session for "${designTitle}" is finished! We hope you love your new ink.`, 'appointment_completed', id);
 
           // Trigger Aftercare Reminder
           createNotification(appointment.customer_id, 'Don\'t forget your Aftercare! 🧼', `Proper healing is key! Review the aftercare instructions for your new "${designTitle}" tattoo to keep it looking fresh.`, 'aftercare_reminder', id);
 
           // Trigger Review Prompt
-          createNotification(appointment.customer_id, 'How did we do?', `Please take a moment to leave a review for your artist! We value your feedback on your latest session.`, 'review_prompt', id);
+          createNotification(appointment.customer_id, 'How did we do? ⭐', `Please take a moment to leave a review for your artist! We value your feedback on your latest session.`, 'review_prompt', id);
 
           // Notify the artist
           if (appointment.artist_id) {
@@ -6030,7 +6030,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
           db.query('SELECT id FROM users WHERE user_type = \'admin\'', (adminErr, admins) => {
             if (!adminErr && admins.length > 0) {
               admins.forEach(admin => {
-                createNotification(admin.id, 'Session Completed', `Appointment #${id} for "${designTitle}" on ${dateStr} has been completed.`, 'appointment_completed', id);
+                createNotification(admin.id, 'Session Completed ✅', `Appointment #${id} for "${designTitle}" on ${dateStr} has been completed.`, 'appointment_completed', id);
               });
             }
           });
@@ -6106,7 +6106,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
                 db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (aErr, aRes) => {
                   if (!aErr && aRes.length) {
                     aRes.forEach(admin => {
-                      createNotification(admin.id, 'Payment Resolution Required', alertMsg, 'payment_action_required', id);
+                      createNotification(admin.id, '⚠️ Payment Resolution Required', alertMsg, 'payment_action_required', id);
                     });
                   }
                 });
@@ -6118,7 +6118,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
           createNotification(appointment.customer_id, 'Session Complete! ⏳', `Your session for "${designTitle}" today is finished. We will coordinate with you soon for your next session to continue your piece!`, 'appointment_partial_complete', id);
         }
 
-        // SYNC: Automatically create a manual invoice for Admin Billing
+        // 🚀 SYNC: Automatically create a manual invoice for Admin Billing
         db.query('SELECT name FROM users WHERE id = ?', [appointment.customer_id], (uErr, uRes) => {
           const clientName = (!uErr && uRes.length) ? uRes[0].name : `Client #${appointment.customer_id}`;
           const currentPrice = price !== undefined ? Number(price) : Number(appointment.price) || 0;
@@ -6145,7 +6145,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
       // ── SESSION ABORTED / INCOMPLETE ──
       } else if (status === 'incomplete') {
         const abortReason = req.body.abortReason || '';
-        createNotification(appointment.customer_id, 'Session Stopped Early', `Your session for "${designTitle}" on ${dateStr} was marked as incomplete by your artist.${abortReason ? ' Reason: ' + abortReason : ''} The studio will follow up with you to reschedule.`, 'session_incomplete', id);
+        createNotification(appointment.customer_id, 'Session Stopped Early ⚠️', `Your session for "${designTitle}" on ${dateStr} was marked as incomplete by your artist.${abortReason ? ' Reason: ' + abortReason : ''} The studio will follow up with you to reschedule.`, 'session_incomplete', id);
 
         // Notify the artist
         if (appointment.artist_id) {
@@ -6156,7 +6156,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
         db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (adminErr, admins) => {
           if (!adminErr && admins.length > 0) {
             admins.forEach(admin => {
-              createNotification(admin.id, 'Session Aborted', `Appointment #${id} for "${designTitle}" was marked incomplete by the artist.${abortReason ? ' Reason: ' + abortReason : ''}`, 'session_incomplete', id);
+              createNotification(admin.id, 'Session Aborted ⚠️', `Appointment #${id} for "${designTitle}" was marked incomplete by the artist.${abortReason ? ' Reason: ' + abortReason : ''}`, 'session_incomplete', id);
             });
           }
         });
@@ -6257,7 +6257,7 @@ app.get('/api/admin/pending-payment-alerts', (req, res) => {
   `;
   db.query(query, (err, results) => {
     if (err) {
-      console.error('[ERROR] Error fetching pending payment alerts:', err.message);
+      console.error('❌ Error fetching pending payment alerts:', err.message);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
     res.json({ success: true, alerts: results || [] });
@@ -6504,7 +6504,7 @@ app.put('/api/appointments/:id/details', (req, res) => {
 
   db.query(query, params, (err, result) => {
     if (err) {
-      console.error('[ERROR] Error updating appointment details:', err);
+      console.error('❌ Error updating appointment details:', err);
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
     }
 
@@ -6539,7 +6539,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
 
     db.query(checkoutQuery, [appointmentId], async (err, results) => {
       if (err) {
-        console.error('[ERROR] DB error loading appointment for checkout:', err.message);
+        console.error('❌ DB error loading appointment for checkout:', err.message);
         return res.status(500).json({ success: false, message: 'Database error' });
       }
 
@@ -6601,7 +6601,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
           await proceedWithSession(Math.round(priceNumber * 100), itemName, description, displayCode);
         }
       } catch (innerError) {
-        console.error('[ERROR] Error in proceedWithSession flow:', innerError.message);
+        console.error('❌ Error in proceedWithSession flow:', innerError.message);
         if (!res.headersSent) {
           res.status(500).json({ success: false, message: 'Process error: ' + innerError.message });
         }
@@ -6803,7 +6803,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                             const totalPaid = (fpRes[0].digital_paid / 100) + (fpRes[0].manual_paid_amount || 0);
                             const sessionPrice = fpRes[0].price || 0;
                             if (sessionPrice > 0 && totalPaid >= sessionPrice) {
-                              createNotification(appt.artist_id, 'Session Fully Paid', `Great news! Appointment #${appointmentId} is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', appointmentId);
+                              createNotification(appt.artist_id, 'Session Fully Paid 🎉', `Great news! Appointment #${appointmentId} is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', appointmentId);
                             }
                           }
                         });
@@ -6927,7 +6927,7 @@ app.post('/api/payments/webhook', (req, res) => {
      ON DUPLICATE KEY UPDATE status = VALUES(status), amount = VALUES(amount), currency = VALUES(currency), raw_event = VALUES(raw_event), updated_at = CURRENT_TIMESTAMP`,
     [appointmentId || null, sessionId, paymongoPaymentId, amount, currency, status, JSON.stringify(event)],
     (err) => {
-      if (err) console.error('[ERROR] Error saving payment record:', err.message);
+      if (err) console.error('❌ Error saving payment record:', err.message);
     }
   );
 
@@ -6949,7 +6949,7 @@ app.post('/api/payments/webhook', (req, res) => {
 
         db.query("UPDATE appointments SET payment_status = ?, status = ? WHERE id = ?", [newPaymentStatus, newAptStatus, appointmentId], (updateErr) => {
           if (updateErr) {
-            console.error('[ERROR] Error marking appointment paid:', updateErr.message);
+            console.error('❌ Error marking appointment paid:', updateErr.message);
           } else {
             console.log('✅ Appointment', appointmentId, 'marked as', newPaymentStatus);
 
@@ -7012,7 +7012,7 @@ app.get('/api/payments/status', (req, res) => {
 
   db.query(query, [sessionId || appointmentId], (err, rows) => {
     if (err) {
-      console.error('[ERROR] Error fetching payment status:', err.message);
+      console.error('❌ Error fetching payment status:', err.message);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
 
@@ -7037,7 +7037,7 @@ app.get('/api/appointments/:id/transactions', (req, res) => {
 
   db.query(query, [appointmentId], (err, results) => {
     if (err) {
-      console.error('[ERROR] Error fetching appointment transactions:', err.message);
+      console.error('❌ Error fetching appointment transactions:', err.message);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
     res.json({ success: true, transactions: results });
@@ -7059,7 +7059,7 @@ app.get('/api/customer/:customerId/transactions', (req, res) => {
 
   db.query(query, [customerId], (err, results) => {
     if (err) {
-      console.error('[ERROR] Error fetching transactions:', err.message);
+      console.error('❌ Error fetching transactions:', err.message);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
     res.json({ success: true, transactions: results });
@@ -7081,7 +7081,7 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
 
   db.query(userQuery, [customerId], (err, userResults) => {
     if (err) {
-      console.error('[ERROR] Database error (User):', err);
+      console.error('❌ Database error (User):', err);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
 
@@ -7109,7 +7109,7 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
 
     db.query(appointmentsQuery, [customerId], (err, appointmentResults) => {
       if (err) {
-        console.error('[ERROR] Database error (Appointments):', err);
+        console.error('❌ Database error (Appointments):', err);
         return res.json({ success: true, customer, appointments: [], stats: {} });
       }
 
@@ -7363,21 +7363,21 @@ app.post('/api/admin/aftercare-templates/reset', (req, res) => {
       [4, 'peeling', 'Peeling Begins — Don\'t Pick! ⚠️', 'Your tattoo may start to peel and flake like a sunburn. DO NOT pick, scratch, or peel the flaking skin!', 'Switch from heavy ointment to a fragrance-free moisturizing lotion.'],
       [5, 'peeling', 'Moisturize & Resist the Itch 🤚', 'The peeling continues and itching may increase. Apply fragrance-free lotion whenever the skin feels dry.', 'Cool compresses can help with itching. Stay hydrated.'],
       [6, 'peeling', 'Stay the Course 💪', 'Keep up your routine: gentle wash, pat dry, apply lotion.', 'Avoid swimming, baths, and saunas.'],
-      [7, 'peeling', 'One Week Milestone!', 'You made it through the first week! Continue moisturizing.', 'The cloudy appearance under peeling skin is normal — new skin is forming.'],
+      [7, 'peeling', 'One Week Milestone! 🎉', 'You made it through the first week! Continue moisturizing.', 'The cloudy appearance under peeling skin is normal — new skin is forming.'],
       [8, 'peeling', 'Flaking is Normal 🍂', 'Expect continued flaking. Keep moisturizing consistently.', 'Wear soft cotton clothing to reduce friction.'],
-      [9, 'peeling', 'Healing Progress Check', 'Initial redness should be mostly gone. Continue lotion routine.', 'Watch for signs of infection. These are rare with proper care.'],
-      [10, 'peeling', 'Day 10 — Almost Through Peeling', 'Most heavy peeling is ending. Avoid direct sunlight.', 'Your tattoo is still healing beneath the surface.'],
-      [11, 'peeling', 'Consistent Care Matters', 'Keep moisturizing and protecting from sun.', 'Clean the area promptly after exercise.'],
-      [12, 'peeling', 'Light at the End of the Tunnel', 'Surface peeling wrapping up. Continue lotion application.', 'Stay out of pools for at least another 2 weeks.'],
-      [13, 'peeling', 'Almost Done Peeling', 'Only minor flaking may remain. Colors will brighten up.', 'SPF 30+ is essential if any sun exposure.'],
+      [9, 'peeling', 'Healing Progress Check ✅', 'Initial redness should be mostly gone. Continue lotion routine.', 'Watch for signs of infection. These are rare with proper care.'],
+      [10, 'peeling', 'Day 10 — Almost Through Peeling 🔄', 'Most heavy peeling is ending. Avoid direct sunlight.', 'Your tattoo is still healing beneath the surface.'],
+      [11, 'peeling', 'Consistent Care Matters 📋', 'Keep moisturizing and protecting from sun.', 'Clean the area promptly after exercise.'],
+      [12, 'peeling', 'Light at the End of the Tunnel 🌟', 'Surface peeling wrapping up. Continue lotion application.', 'Stay out of pools for at least another 2 weeks.'],
+      [13, 'peeling', 'Almost Done Peeling ✨', 'Only minor flaking may remain. Colors will brighten up.', 'SPF 30+ is essential if any sun exposure.'],
       [14, 'peeling', 'Two Weeks Complete! 🏆', 'The peeling phase is over. Continue daily moisturizing.', 'Deeper layers take 4-6 weeks to fully heal.'],
       [15, 'healing', 'Final Healing Phase Begins 🔬', 'Surface should feel smooth. Continue lotion 1-2 times daily.', 'Resume most normal activities but avoid prolonged water submersion.'],
       [16, 'healing', 'Protect Your Investment ☀️', 'Apply SPF 30+ whenever going outside.', 'UV protection keeps colors vibrant for years.'],
       [17, 'healing', 'Stay Moisturized 🧴', 'Continue daily lotion. Well-moisturized skin showcases ink better.', 'Stay hydrated from the inside too.'],
       [18, 'healing', 'Healing Nicely! 👀', 'Your tattoo is close to its final appearance.', 'Raised areas with heavy ink may need more time.'],
       [19, 'healing', 'Routine Maintenance 🔧', 'Continue lotion and sun protection routine.', 'Avoid abrasive scrubs on the tattoo.'],
-      [20, 'healing', 'Day 20 — Two-Thirds Healed!', 'Well past the critical period. Keep protecting from sun.', 'Short pool swims are OK if surface is fully closed.'],
-      [21, 'healing', 'Three Weeks!', 'Home stretch of healing. Continue gentle daily care.', 'Heavy shading areas may take slightly longer.'],
+      [20, 'healing', 'Day 20 — Two-Thirds Healed! 📊', 'Well past the critical period. Keep protecting from sun.', 'Short pool swims are OK if surface is fully closed.'],
+      [21, 'healing', 'Three Weeks! 🗓️', 'Home stretch of healing. Continue gentle daily care.', 'Heavy shading areas may take slightly longer.'],
       [22, 'healing', 'Looking Great! 💯', 'Tattoo looking more vibrant each day.', 'Share a photo with your artist!'],
       [23, 'healing', 'Steady Progress 📈', 'Simple daily routine: moisturize and apply sunscreen.', 'Great aftercare = vibrant tattoo for decades.'],
       [24, 'healing', 'Almost Fully Healed! 🙌', 'Deep skin layers nearly done regenerating.', 'UV protection is a forever habit!'],
@@ -7386,7 +7386,7 @@ app.post('/api/admin/aftercare-templates/reset', (req, res) => {
       [27, 'healing', 'Three Days to Go ⏳', 'Tattoo essentially healed at the surface.', 'Browse InkVistAR gallery for your next piece!'],
       [28, 'healing', 'Penultimate Day 🌅', 'Your aftercare journey is nearly complete.', 'Sunscreen is the best long-term care habit.'],
       [29, 'healing', 'Tomorrow is the Last Day! 🎊', 'Your tattoo is fully healed. Keep moisturizing.', 'Book your next session!'],
-      [30, 'healing', 'Aftercare Complete!', '30-day aftercare program is complete. Continue lifelong habits.', 'Thank you for trusting InkVistAR!']
+      [30, 'healing', 'Aftercare Complete! 🎉✨', '30-day aftercare program is complete. Continue lifelong habits.', 'Thank you for trusting InkVistAR!']
     ];
 
     const insertQuery = 'INSERT INTO aftercare_templates (day_number, phase, title, message, tips) VALUES ?';
@@ -7626,13 +7626,13 @@ app.get('/api/notifications/:userId', (req, res) => {
 
   db.query(countQuery, countParams, (countErr, countResults) => {
     if (countErr) {
-      console.error('[ERROR] Error fetching notification count:', countErr);
+      console.error('❌ Error fetching notification count:', countErr);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
 
     db.query(query, queryParams, (err, results) => {
       if (err) {
-        console.error('[ERROR] Error fetching notifications:', err);
+        console.error('❌ Error fetching notifications:', err);
         return res.status(500).json({ success: false, message: 'Database error' });
       }
 
@@ -7669,7 +7669,7 @@ app.put('/api/notifications/:id/read', (req, res) => {
 
   db.query('UPDATE notifications SET is_read = ? WHERE id = ?', [is_read, id], (err, result) => {
     if (err) {
-      console.error('[ERROR] Error updating notification:', err);
+      console.error('❌ Error updating notification:', err);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
 
@@ -9126,10 +9126,10 @@ app.post('/api/chat/report-abuse', (req, res) => {
       return res.status(500).json({ success: false, message: 'Server error' });
     }
 
-    const abuseMessage = `Chat Abuse Alert: Customer "${userName || 'Unknown'}" (ID: ${customerId}) has triggered the profanity filter ${strikes} time(s). Review this account in User Management and consider deactivation if behavior persists.`;
+    const abuseMessage = `⚠️ Chat Abuse Alert: Customer "${userName || 'Unknown'}" (ID: ${customerId}) has triggered the profanity filter ${strikes} time(s). Review this account in User Management and consider deactivation if behavior persists.`;
 
     admins.forEach(admin => {
-      createNotification(admin.id, 'Chat Abuse Report', abuseMessage, 'system_alert', null);
+      createNotification(admin.id, '⚠️ Chat Abuse Report', abuseMessage, 'system_alert', null);
     });
 
     // Log the abuse event
@@ -9498,7 +9498,7 @@ function startAppointmentReminders() {
       AND DATE(a.appointment_date) = ?
     `;
     db.query(todayQuery, [todayStr], (err, todayAppts) => {
-      if (err) return console.error('[ERROR] Error finding today reminders:', err);
+      if (err) return console.error('❌ Error finding today reminders:', err);
       console.log(`📅 Found ${todayAppts.length} appointment(s) today`);
 
       todayAppts.forEach(appt => {
@@ -9545,7 +9545,7 @@ function startAppointmentReminders() {
       ORDER BY a.artist_id, a.appointment_date, a.start_time
     `;
     db.query(artistQuery, [todayStr, tomorrowStr], (err, allAppts) => {
-      if (err) return console.error('[ERROR] Error finding artist reminders:', err);
+      if (err) return console.error('❌ Error finding artist reminders:', err);
 
       // Group by artist
       const artistSessions = {};
@@ -9585,7 +9585,7 @@ function startAppointmentReminders() {
 
               // Tomorrow's sessions
               if (sessions.tomorrow.length > 0) {
-                msgParts.push(`TOMORROW (${sessions.tomorrow.length} session${sessions.tomorrow.length > 1 ? 's' : ''}):`);
+                msgParts.push(`📅 TOMORROW (${sessions.tomorrow.length} session${sessions.tomorrow.length > 1 ? 's' : ''}):`);
                 sessions.tomorrow.forEach(s => {
                   const time = formatTime12h(s.start_time);
                   msgParts.push(`  • ${time} — "${s.design_title}" with ${s.customer_name || 'Client'}`);
@@ -9695,7 +9695,7 @@ function startPayoutReminders() {
     `;
 
     db.query(query, (err, artists) => {
-      if (err) return console.error('[ERROR] Error calculating payout balances:', err);
+      if (err) return console.error('❌ Error calculating payout balances:', err);
 
       console.log(`💰 Found ${artists.length} artist(s) with unclaimed commissions ≥ ₱500`);
 
@@ -9705,7 +9705,7 @@ function startPayoutReminders() {
         db.query("SELECT id FROM notifications WHERE user_id = ? AND type = 'payout_processed' AND message LIKE '%available for claiming%' AND DATE(created_at) = CURDATE() LIMIT 1",
           [artist.artist_id], (dupErr, dupRes) => {
             if (dupErr || (dupRes && dupRes.length > 0)) return;
-            createNotification(artist.artist_id, 'Payout Available', `You have ₱${balance} in commissions available for claiming. Please coordinate with the studio to process your payout.`, 'payout_processed');
+            createNotification(artist.artist_id, 'Payout Available 💰', `You have ₱${balance} in commissions available for claiming. Please coordinate with the studio to process your payout.`, 'payout_processed');
           }
         );
       });
@@ -9921,7 +9921,7 @@ app.post('/api/reviews', (req, res) => {
           }
 
           // Send thank-you notification to the customer
-          createNotification(customer_id, 'Thank You for Your Review', `We truly appreciate you taking the time to share your experience with Inkvictus. Your feedback helps us continue delivering the premium artistry and service our clients deserve. Your review is now pending approval and will be showcased soon.`, 'system', result.insertId);
+          createNotification(customer_id, 'Thank You for Your Review ⭐', `We truly appreciate you taking the time to share your experience with Inkvictus. Your feedback helps us continue delivering the premium artistry and service our clients deserve. Your review is now pending approval and will be showcased soon.`, 'system', result.insertId);
 
           res.json({ success: true, message: 'Review submitted and is pending admin approval.' });
         });

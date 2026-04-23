@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
-import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle, RotateCcw, PlusCircle, History, MessageSquare, Paintbrush, Gem, Video, Users } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Filter, CreditCard, Eye, CheckCircle, Info, X, Calendar, Inbox, Plus, Upload, Camera, Image as ImageIcon, User, Scissors, Heart, Sparkles, Check, ArrowRight, ArrowLeft, MapPin, Receipt, CalendarDays, Clock, AlertTriangle, RotateCcw, PlusCircle, History, MessageSquare, Paintbrush, Gem, Video, Users, ShieldCheck, RefreshCw, Syringe, Wrench } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
@@ -1201,10 +1201,10 @@ function CustomerBookings(){
                                             </div>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '4px', color: '#1e293b' }}>
-                                                    {pendingRescheduleRequest.status === 'pending' && '🔄 Reschedule Request Pending'}
-                                                    {pendingRescheduleRequest.status === 'approved' && '✅ Reschedule Request Approved'}
-                                                    {pendingRescheduleRequest.status === 'rejected' && '❌ Reschedule Request Declined'}
-                                                    {pendingRescheduleRequest.status === 'expired' && '⏰ Reschedule Request Expired'}
+                                                    {pendingRescheduleRequest.status === 'pending' && 'Reschedule Request Pending'}
+                                                    {pendingRescheduleRequest.status === 'approved' && 'Reschedule Request Approved'}
+                                                    {pendingRescheduleRequest.status === 'rejected' && 'Reschedule Request Declined'}
+                                                    {pendingRescheduleRequest.status === 'expired' && 'Reschedule Request Expired'}
                                                 </div>
                                                 <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: '1.5' }}>
                                                     {pendingRescheduleRequest.status === 'pending' && (
@@ -1233,11 +1233,11 @@ function CustomerBookings(){
                                             <div style={{ marginBottom: '12px', padding: '10px 14px', borderRadius: '10px', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid #e2e8f0' }}>
                                                 <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Service Breakdown</div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                                    <span style={{ fontSize: '0.88rem', color: '#475569' }}>💉 Tattoo Session</span>
+                                                    <span style={{ fontSize: '0.88rem', color: '#475569' }}><Syringe size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Tattoo Session</span>
                                                     <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1e293b' }}>₱{Number(selectedApt.tattoo_price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span style={{ fontSize: '0.88rem', color: '#475569' }}>🪛 Piercing Service</span>
+                                                    <span style={{ fontSize: '0.88rem', color: '#475569' }}><Wrench size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Piercing Service</span>
                                                     <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1e293b' }}>₱{Number(selectedApt.piercing_price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                 </div>
                                             </div>
@@ -1317,6 +1317,15 @@ function CustomerBookings(){
                         </div>
                         <div className="modal-footer customer-st-14ad7875" >
                             <button className="btn btn-secondary customer-st-282aded5" onClick={() => setIsModalOpen(false)}>Close</button>
+                            {selectedApt.waiver_accepted_at && (
+                                <button
+                                    className="btn btn-secondary"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(190,144,85,0.12), rgba(190,144,85,0.06))', color: '#92400e', borderColor: 'rgba(190,144,85,0.3)' }}
+                                    onClick={() => window.open(`/customer/waiver/${selectedApt.id}`, '_blank')}
+                                >
+                                    <ShieldCheck size={16} /> View Waiver
+                                </button>
+                            )}
                             
                             {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && (
                                 <button 

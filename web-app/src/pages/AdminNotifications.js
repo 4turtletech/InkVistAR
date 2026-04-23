@@ -21,6 +21,7 @@ import {
     Star,
     RefreshCw,
     ShieldAlert,
+    ShieldCheck,
     MessageSquare,
     Send
 } from 'lucide-react';
@@ -478,6 +479,15 @@ function AdminNotifications() {
                                                                     Take Action <ArrowRight size={14} />
                                                                 </button>
                                                             ) : null}
+                                                            {n.type === 'appointment_request' && n.message && n.message.includes('[WAIVER_SIGNED]') && n.related_id && (
+                                                                <button
+                                                                    className="notif-btn primary"
+                                                                    style={{ padding: '6px 12px', background: 'linear-gradient(135deg, #be9055, #a07840)', color: 'white', borderRadius: '6px', fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', gap: '4px', alignItems: 'center' }}
+                                                                    onClick={() => navigate(`/admin/appointments/${n.related_id}/waiver`)}
+                                                                >
+                                                                    <ShieldCheck size={14} /> Waiver
+                                                                </button>
+                                                            )}
                                                             {!isPaymentResolution && (
                                                                 !n.is_read ? (
                                                                     <button className="notif-btn ghost" onClick={() => markAsRead(n.id)} title="Mark as Read" style={{ padding: '6px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}>
@@ -569,6 +579,12 @@ function AdminNotifications() {
                                         navigate(link);
                                         setSelectedNotification(null);
                                     }}>Take Action <ArrowRight size={14} /></button>
+                                )}
+                                {selectedNotification.type === 'appointment_request' && selectedNotification.message && selectedNotification.message.includes('[WAIVER_SIGNED]') && selectedNotification.related_id && (
+                                    <button className="btn btn-primary" style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #be9055, #a07840)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', gap: '6px', alignItems: 'center' }} onClick={() => {
+                                        navigate(`/admin/appointments/${selectedNotification.related_id}/waiver`);
+                                        setSelectedNotification(null);
+                                    }}><ShieldCheck size={14} /> View Waiver</button>
                                 )}
                                 <button className="btn btn-secondary" style={{ padding: '8px 16px', background: 'white', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }} onClick={() => { setSelectedNotification(null); setInquiryData(null); setReplyText(''); setReplySuccess(false); }}>Close</button>
                             </div>

@@ -22,5 +22,5 @@ export const getDisplayCode = (bookingCode, id) => {
   // Fallback for legacy appointments without a booking_code
   const numericId = parseInt(id, 10);
   const seqNum = String((isNaN(numericId) ? 0 : numericId) % 10000).padStart(4, '0');
-  return `⚠ UNLINKED-${seqNum}`;
+  return `[!] UNLINKED-${seqNum}`;
 };

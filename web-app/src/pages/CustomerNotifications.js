@@ -340,6 +340,9 @@ function CustomerNotifications() {
                                                                 {n.type === 'appointment_reminder' && (
                                                                     <a href="/customer/bookings" style={glassChipBrand}>View Upcoming</a>
                                                                 )}
+                                                                {n.type === 'appointment_request' && n.message && n.message.includes('[WAIVER_SIGNED]') && n.related_id && (
+                                                                    <a href={`/customer/waiver/${n.related_id}`} style={glassChipBrand}>View Waiver</a>
+                                                                )}
                                                                 {n.type === 'pos_invoice' && (
                                                                     <a href={`${API_URL}/api/invoices/${n.related_id}`} target="_blank" rel="noopener noreferrer" style={glassChipBrand}>Invoice</a>
                                                                 )}
@@ -422,6 +425,9 @@ function CustomerNotifications() {
                                 {selectedNotification.type === 'pos_invoice' && <a href={`${API_URL}/api/invoices/${selectedNotification.related_id}`} target="_blank" rel="noopener noreferrer" style={glassModalBtnPrimary}>View Invoice</a>}
                                 {(selectedNotification.type === 'email_change' || selectedNotification.type === 'password_change') && <button onClick={() => navigate('/customer/profile')} style={glassModalBtnPrimary}>Manage Profile</button>}
                                 {(selectedNotification.type === 'aftercare_reminder' || selectedNotification.type === 'aftercare_daily') && <button onClick={() => { setSelectedNotification(null); navigate('/customer/aftercare'); }} style={glassModalBtnPrimary}>View Guide</button>}
+                                {selectedNotification.type === 'appointment_request' && selectedNotification.message && selectedNotification.message.includes('[WAIVER_SIGNED]') && selectedNotification.related_id && (
+                                    <a href={`/customer/waiver/${selectedNotification.related_id}`} style={glassModalBtnPrimary}>View Waiver</a>
+                                )}
                                 {selectedNotification.type === 'review_prompt' && (
                                     reviewedAppointments.has(Number(selectedNotification.related_id)) ? (
                                         <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'rgba(16,185,129,0.08)', borderRadius: '10px', border: '1px solid rgba(16,185,129,0.15)' }}>
