@@ -79,6 +79,7 @@ function AdminChat() {
                                     room={selectedAppointment.id}
                                     currentUser={`Admin`}
                                     isAdminMode={true}
+                                    customerName={selectedAppointment.client_name}
                                     initialMessages={liveSessions.find(s => s.id === selectedAppointment.id)?.messages || []}
                                 />
                             </div>

@@ -184,7 +184,7 @@ function CustomerSideNav() {
             <NotificationAlertOverlay />
             <CustomerPaymentAlertOverlay />
         </aside>
-        <ChatWidget currentUser={`customer_${customerId}`} />
+        <ChatWidget room={`customer_${customerId}`} currentUser={`customer_${customerId}`} userName={customerUser?.name} />
         </>
     );
 }

@@ -8798,6 +8798,35 @@ app.post('/api/resend-verification', (req, res) => {
   });
 });
 
+// ========== CHAT ABUSE REPORT ENDPOINT ==========
+app.post('/api/chat/report-abuse', (req, res) => {
+  const { customerId, userName, strikes } = req.body;
+  console.log(`🚨 Chat abuse report: Customer ${customerId} (${userName}) - ${strikes} profanity strikes`);
+
+  if (!customerId) {
+    return res.status(400).json({ success: false, message: 'Customer ID required' });
+  }
+
+  // Notify all admins and managers about the abuse
+  db.query('SELECT id FROM users WHERE user_type IN (?, ?) AND is_deleted = 0', ['admin', 'manager'], (err, admins) => {
+    if (err) {
+      console.error('Error fetching admins for abuse report:', err);
+      return res.status(500).json({ success: false, message: 'Server error' });
+    }
+
+    const abuseMessage = `⚠️ Chat Abuse Alert: Customer "${userName || 'Unknown'}" (ID: ${customerId}) has triggered the profanity filter ${strikes} time(s). Review this account in User Management and consider deactivation if behavior persists.`;
+
+    admins.forEach(admin => {
+      createNotification(admin.id, '⚠️ Chat Abuse Report', abuseMessage, 'system_alert', null);
+    });
+
+    // Log the abuse event
+    logAction(customerId, 'CHAT_ABUSE', `Profanity filter triggered ${strikes} times by customer ${customerId} (${userName})`, null);
+
+    res.json({ success: true, message: 'Abuse report submitted' });
+  });
+});
+
 // ========== CHATBOT ENDPOINT ==========
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;

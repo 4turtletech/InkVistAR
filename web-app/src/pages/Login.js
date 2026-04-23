@@ -124,6 +124,12 @@ function Login() {
                 localStorage.setItem('user', JSON.stringify(response.data.user));
                 const user = response.data.user;
 
+                // Clear any guest chat session data so logged-in users start fresh
+                sessionStorage.removeItem('chat_sessionId');
+                sessionStorage.removeItem('chat_botMessages');
+                sessionStorage.removeItem('chat_humanMessages');
+                sessionStorage.removeItem('chat_isHumanMode');
+
                 // Store migration count for the customer portal to pick up
                 if (response.data.migratedAppointments > 0) {
                     localStorage.setItem('migratedAppointments', response.data.migratedAppointments);

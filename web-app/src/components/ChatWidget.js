@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
+import Axios from 'axios';
 import { MessageSquare, X, Send, User, Bot, UserSquare, Check, CheckCheck, LogOut } from 'lucide-react';
 import { API_URL } from '../config';
 import './ChatWidget.css';
@@ -7,7 +8,7 @@ import './ChatWidget.css';
 // Establish socket connection outside the component
 const socket = io(API_URL);
 
-export default function ChatWidget({ room = null, currentUser = 'Guest', isAdminMode = false, initialMessages = null }) {
+export default function ChatWidget({ room = null, currentUser = 'Guest', userName = 'Guest User', customerName = '', isAdminMode = false, initialMessages = null }) {
   // Initialize state from sessionStorage or defaults
   const [isOpen, setIsOpen] = useState(isAdminMode ? true : false);
 
@@ -26,8 +27,8 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
     return newId;
   });
 
-  // Ensure AdminMode uses the passed room prop, Guests use their unique session
-  const activeRoom = isAdminMode ? room : sessionId;
+  // Ensure AdminMode uses the passed room prop, Guests use their unique session or passed room
+  const activeRoom = isAdminMode ? room : (room || sessionId);
 
   const [isHumanMode, setIsHumanMode] = useState(() => {
     if (isAdminMode) return true;
@@ -62,6 +63,20 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const [lastMessageTime, setLastMessageTime] = useState(0);
+  const [recentMessages, setRecentMessages] = useState([]);
+  const [profanityStrikes, setProfanityStrikes] = useState(0);
+
+  const profanityList = [
+    'fuck', 'shit', 'bitch', 'cunt', 'asshole', 'dick', 'pussy', 'whore', 'slut', 'bastard',
+    'putangina', 'gago', 'tarantado', 'tangina', 'bobo', 'puta', 'ulol', 'pakyu', 'pokpok', 'kupal'
+  ];
+
+  const containsProfanity = (text) => {
+    const lowerText = text.toLowerCase();
+    // Use word boundaries for English to avoid false positives
+    return profanityList.some(word => new RegExp(`\\b${word}\\b`, 'i').test(lowerText));
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -84,9 +99,9 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
   useEffect(() => {
     socket.emit('join_room', activeRoom);
 
-    // If switching to human mode for the first time as a guest, tell the admin dashboard
-    if (isHumanMode && !isAdminMode && humanMessages.length <= 1) {
-      socket.emit('start_support_session', { room: activeRoom, name: 'Guest User' });
+    // If switching to human mode or already in human mode, ensure backend knows about this session
+    if (isHumanMode && !isAdminMode) {
+      socket.emit('start_support_session', { room: activeRoom, name: userName });
     }
 
     const receiveMessageHandler = (data) => {
@@ -138,6 +153,48 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
     if (!inputValue.trim() || isLoading) return;
 
     const messageText = inputValue.trim();
+
+    // Spam / Rate Limiting (1.5 seconds)
+    const now = Date.now();
+    if (now - lastMessageTime < 1500) {
+      alert("You are sending messages too fast. Please wait a moment.");
+      return;
+    }
+
+    // Duplicate message prevention (same message 3 times in a row)
+    const updatedRecent = [...recentMessages, messageText].slice(-3);
+    if (updatedRecent.length === 3 && updatedRecent.every(m => m === messageText)) {
+      alert("You've sent the same message multiple times. Please vary your messages.");
+      return;
+    }
+    setRecentMessages(updatedRecent);
+
+    // Profanity Filter with escalation
+    if (containsProfanity(messageText)) {
+      const newStrikes = profanityStrikes + 1;
+      setProfanityStrikes(newStrikes);
+
+      if (newStrikes >= 3) {
+        // Report to admin for possible ban
+        const customerRoomMatch = activeRoom.match(/^customer_(\d+)$/);
+        if (customerRoomMatch) {
+          const customerId = customerRoomMatch[1];
+          try {
+            Axios.post(`${API_URL}/api/chat/report-abuse`, {
+              customerId,
+              userName,
+              strikes: newStrikes
+            }).catch(() => {});
+          } catch (e) { /* silent */ }
+        }
+        alert(`You have been flagged for repeated use of inappropriate language (${newStrikes} violations). An admin has been notified and may take action on your account.`);
+      } else {
+        alert(`Your message contains inappropriate language and cannot be sent. Warning ${newStrikes}/3 — repeated violations will be reported to studio management.`);
+      }
+      return;
+    }
+
+    setLastMessageTime(now);
     setInputValue('');
 
     if (isHumanMode) {
@@ -225,7 +282,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
       >
         <div className="chat-header">
           <div className="chat-header-info">
-            <span className="chat-title">{isHumanMode ? 'Live Chat Support' : 'Tattoo AI Assistant'}</span>
+            <span className="chat-title">{isAdminMode ? (customerName || 'Customer') : (isHumanMode ? 'Live Chat Support' : 'Tattoo AI Assistant')}</span>
             <span className="chat-subtitle">{isHumanMode ? 'Talking to an artist' : 'Always here to help'}</span>
           </div>
           <div className="chat-header-actions">
