@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, X, ArrowRight, FileText, Clock } from 'lucide-react';
 import PhilippinePeso from './PhilippinePeso';
@@ -74,7 +75,7 @@ function CustomerPaymentAlertOverlay() {
 
     const remaining = selectedAlert ? Math.max(0, Number(selectedAlert.price || 0) - Number(selectedAlert.total_paid || 0)) : 0;
 
-    return (
+    return ReactDOM.createPortal(
         <>
             {/* ===== POPUP MODAL ===== */}
             {showPopup && selectedAlert && (
@@ -233,7 +234,8 @@ function CustomerPaymentAlertOverlay() {
                 @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
                 @keyframes slideInFromRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
             `}</style>
-        </>
+        </>,
+        document.body
     );
 }
 
