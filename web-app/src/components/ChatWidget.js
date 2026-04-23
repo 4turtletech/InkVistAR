@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
-import { MessageSquare, X, Send, User, Bot, UserSquare, Check, CheckCheck } from 'lucide-react';
+import { MessageSquare, X, Send, User, Bot, UserSquare, Check, CheckCheck, LogOut } from 'lucide-react';
 import { API_URL } from '../config';
 import './ChatWidget.css';
 
@@ -233,9 +233,9 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
               <button
                 className="end-session-btn"
                 onClick={() => socket.emit('end_support_session', activeRoom)}
-                title="End Conversation"
+                title="End Live Chat"
               >
-                <X size={18} />
+                <LogOut size={16} />
               </button>
             )}
             {!isAdminMode && (
@@ -246,7 +246,7 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', isAdmin
                     if (!isHumanMode && !isShopOpen) return;
                     setIsHumanMode(!isHumanMode);
                   }}
-                  title={!isShopOpen ? "Live agents are currently offline (Hours: 1 PM - 8 PM)" : isHumanMode ? "Switch to AI" : "Talk to a person"}
+                  title={!isShopOpen ? "Live agents are currently offline (Hours: 1 PM - 8 PM)" : isHumanMode ? "Switch back to AI Assistant" : "Talk to a Live Agent"}
                 >
                   {isHumanMode ? <UserSquare size={18} /> : <Bot size={18} />}
                 </button>
