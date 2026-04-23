@@ -327,14 +327,17 @@ const Contact = () => {
 
             {/* Social Links */}
             <div className="contact-socials">
-              <a href="https://instagram.com/inkvictus" target="_blank" rel="noopener noreferrer" className="contact-social-link" title="Instagram">
-                <Instagram size={18} />
+              <a href="https://www.instagram.com/inkvictustattoo.ph" target="_blank" rel="noopener noreferrer" className="contact-social-link" title="Instagram" aria-label="Instagram">
+                <Instagram size={22} />
               </a>
-              <a href="https://facebook.com/inkvictus" target="_blank" rel="noopener noreferrer" className="contact-social-link" title="Facebook">
-                <Facebook size={18} />
+              <a href="https://www.facebook.com/inkvictus" target="_blank" rel="noopener noreferrer" className="contact-social-link" title="Facebook" aria-label="Facebook">
+                <Facebook size={22} />
               </a>
-              <a href="mailto:info@inkvictus.com" className="contact-social-link" title="Email">
-                <Mail size={18} />
+              <a href="https://wa.me/639157585949" target="_blank" rel="noopener noreferrer" className="contact-social-link" title="WhatsApp" aria-label="Chat on WhatsApp">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12.031 6.172c-3.235 0-5.86 2.625-5.86 5.86 0 1.109.32 2.148.86 3.047l-.547 2.008 2.07-.547c.86.469 1.844.75 2.89.75 3.235 0 5.86-2.625 5.86-5.86s-2.625-5.86-5.86-5.86zm0 10.547c-.898 0-1.734-.234-2.469-.656l-.172-.109-1.781.469.484-1.734-.109-.187c-.516-.844-.82-1.828-.82-2.875 0-2.859 2.328-5.188 5.188-5.188s5.188 2.328 5.188 5.188-2.328 5.188-5.188 5.188zm2.844-3.797c-.156-.078-.922-.453-1.062-.5-.141-.063-.25-.094-.359.078-.109.172-.422.5-.516.609-.094.109-.188.125-.344.047-.156-.078-.656-.242-1.25-.773-.469-.422-.781-.938-.875-1.094-.094-.156-.009-.234.07-.312.078-.078.172-.203.25-.312.078-.109.109-.188.156-.312.047-.125.023-.234-.016-.328-.039-.094-.359-.859-.492-1.172-.125-.312-.25-.266-.359-.266h-.305c-.109 0-.281.039-.422.188-.141.156-.547.531-.547 1.297s.563 1.516.641 1.625c.078.109 1.109 1.703 2.688 2.391.375.156.672.25.906.328.375.125.719.109.984.063.312-.047.922-.375 1.047-.75.125-.375.125-.688.094-.75-.039-.063-.156-.094-.359-.188z"/></svg>
+              </a>
+              <a href="mailto:info@inkvictus.com" className="contact-social-link" title="Email" aria-label="Email">
+                <Mail size={22} />
               </a>
             </div>
           </div>
