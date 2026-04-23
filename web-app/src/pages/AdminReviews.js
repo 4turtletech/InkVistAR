@@ -78,7 +78,7 @@ function AdminReviews() {
             </div>
 
                 {/* Tab Navigation */}
-                <div style={{ display: 'flex', gap: '4px', padding: '0 24px', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', padding: '0 24px', marginBottom: '24px' }}>
                     {[
                         { key: 'pending', label: 'Pending Review', count: pendingCount, color: '#be9055' },
                         { key: 'approved', label: 'Approved', count: approvedCount, color: '#10b981' },

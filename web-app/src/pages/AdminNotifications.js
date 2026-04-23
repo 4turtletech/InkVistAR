@@ -300,9 +300,9 @@ function AdminNotifications() {
     const currentItems = filteredNotifs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
-        <div className="portal-layout">
+        <div className="admin-page-with-sidenav">
             <AdminSideNav />
-            <div className="portal-container admin-portal">
+            <div className="admin-page page-container-enter">
                 <header className="portal-header">
                     <div className="header-title">
                         <h1>Notification Center</h1>
