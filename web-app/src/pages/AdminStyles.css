@@ -3250,15 +3250,39 @@
         min-width: 14px;
     }
 
-    /* Make Admin Notifications Stats Row shorter on mobile */
+    /* Admin Notifications — Mobile Fixes */
+
+    /* Force stats cards to stay side-by-side in a compact row */
+    .portal-stats-row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 10px !important;
+        margin-bottom: 14px !important;
+    }
     .portal-stats-row .glass-card {
-        padding: 8px 12px !important;
+        flex: 1 1 0 !important;
+        padding: 8px 10px !important;
+        min-width: 0 !important;
     }
     .portal-stats-row .glass-card span:first-child {
+        font-size: 0.72rem !important;
         margin-bottom: 2px !important;
-        font-size: 0.75rem !important;
     }
     .portal-stats-row .glass-card span:last-child {
         font-size: 1.2rem !important;
+    }
+
+    /* Allow notification body text to wrap instead of cutting off */
+    .notif-body {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        line-height: 1.4 !important;
+    }
+
+    /* Keep notification card compact vertically on mobile */
+    .notification-record .notif-main {
+        gap: 12px !important;
     }
 }
