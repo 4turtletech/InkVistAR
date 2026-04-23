@@ -809,7 +809,7 @@ function ArtistSessions() {
                                                 {sessionData.beforePhoto ? (
                                                     <img src={sessionData.beforePhoto} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
-                                                    <button className="btn-glass" onClick={() => document.getElementById('before-photo-input').click()}>
+                                                    <button className="btn btn-secondary" onClick={() => document.getElementById('before-photo-input').click()}>
                                                         <Upload size={16} /> Upload
                                                     </button>
                                                 )}
@@ -822,7 +822,7 @@ function ArtistSessions() {
                                                 {sessionData.afterPhoto ? (
                                                     <img src={sessionData.afterPhoto} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
-                                                    <button className="btn-glass" onClick={() => document.getElementById('after-photo-input').click()}>
+                                                    <button className="btn btn-secondary" onClick={() => document.getElementById('after-photo-input').click()}>
                                                         <Upload size={16} /> Upload
                                                     </button>
                                                 )}
@@ -892,7 +892,7 @@ function ArtistSessions() {
                                                 </div>
                                                 {activeSession.status !== 'completed' && (
                                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button className="btn-glass" style={{ flex: 1, fontSize: '0.75rem', justifyContent: 'center', padding: '8px' }} onClick={openInventoryModal} disabled={addingMaterial}>
+                                                    <button className="btn btn-secondary" style={{ flex: 1, fontSize: '0.75rem', justifyContent: 'center', padding: '8px' }} onClick={openInventoryModal} disabled={addingMaterial}>
                                                         <Plus size={14}/> Add Item
                                                     </button>
                                                     {Object.keys(serviceKits).length > 0 && (
@@ -1105,7 +1105,7 @@ function ArtistSessions() {
                                                         {item.category} • {item.current_stock} {item.unit} available
                                                     </div>
                                                 </div>
-                                                <button className="btn-glass" style={{ padding: '6px 12px', fontSize: '0.75rem', color: '#1e293b', background: '#e2e8f0', border: '1px solid #cbd5e1', fontWeight: 600 }}>Add</button>
+                                                <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem', color: '#1e293b', background: '#e2e8f0', border: '1px solid #cbd5e1', fontWeight: 600 }}>Add</button>
                                             </div>
                                         )) : <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>No matching items found.</div>;
                                     })()

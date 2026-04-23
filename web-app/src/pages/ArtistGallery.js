@@ -419,7 +419,7 @@ function ArtistGallery() {
                                         {formData.imageUrl && (
                                             <button 
                                                 type="button" 
-                                                className="btn-glass" 
+                                                className="btn btn-secondary" 
                                                 style={{ width: '100%', justifyContent: 'center', fontSize: '0.85rem' }}
                                                 onClick={() => document.getElementById('work-file-upload').click()}
                                             >
