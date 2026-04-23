@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package, RefreshCw, Sparkles, AlertTriangle, Droplets, Palette, PenTool, Gem, ArrowRight, Shield } from 'lucide-react';
 import './PortalStyles.css';
 import CustomerSideNav from '../components/CustomerSideNav';
-import ChatWidget from '../components/ChatWidget';
 import { API_URL } from '../config';
 
 function CustomerPortal() {
@@ -609,11 +608,6 @@ function CustomerPortal() {
                     )}
                 </div>
             </div>
-            {/* ChatWidget is always available, use activeAppointment.id if available as room, else null */}
-            <ChatWidget
-                room={activeAppointment ? activeAppointment.id : null}
-                currentUser={`customer_${customerId}`}
-            />
 
             {/* Appointment Details Modal */}
             {isModalOpen && selectedApt && (

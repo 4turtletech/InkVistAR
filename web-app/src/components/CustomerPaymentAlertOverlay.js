@@ -6,7 +6,7 @@ import PhilippinePeso from './PhilippinePeso';
 /**
  * Global Customer Payment Alert Overlay
  * Shows a popup modal when a customer has an unpaid balance.
- * If dismissed, it minimizes to a persistent toast on the bottom right.
+ * If dismissed, it minimizes to a persistent toast on the top right.
  */
 function CustomerPaymentAlertOverlay() {
     const navigate = useNavigate();
@@ -15,6 +15,18 @@ function CustomerPaymentAlertOverlay() {
     const [popupDismissed, setPopupDismissed] = useState(false);
     const [selectedAlert, setSelectedAlert] = useState(null);
     const hasShownOnLoginRef = useRef(false);
+    const [notificationVisible, setNotificationVisible] = useState(false);
+
+    // Listen for notification alerts to shift payment toast down
+    useEffect(() => {
+        const handleNotifAppear = () => {
+            setNotificationVisible(true);
+            // NotificationAlertOverlay auto-hides after 10s + 0.4s exit animation
+            setTimeout(() => setNotificationVisible(false), 10500);
+        };
+        window.addEventListener('latest-notification', handleNotifAppear);
+        return () => window.removeEventListener('latest-notification', handleNotifAppear);
+    }, []);
 
     useEffect(() => {
         const handleCustomerPaymentAlert = (e) => {
@@ -192,11 +204,13 @@ function CustomerPaymentAlertOverlay() {
             {/* ===== PERSISTENT TOAST ===== */}
             {!showPopup && popupDismissed && alerts.length > 0 && (
                 <div style={{
-                    position: 'fixed', bottom: '20px', right: '20px', zIndex: 9998,
+                    position: 'fixed', top: notificationVisible ? '100px' : '20px', right: '20px', zIndex: 9998,
                     background: '#f59e0b', color: '#fff',
                     borderRadius: '14px', padding: '14px 20px', boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
                     display: 'flex', alignItems: 'center', gap: '12px', maxWidth: '420px',
-                    animation: 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1)', cursor: 'pointer'
+                    animation: 'slideInFromRight 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                    transition: 'top 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                    cursor: 'pointer'
                 }} onClick={() => { setShowPopup(true); }}>
                     <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '10px', padding: '8px', display: 'flex', flexShrink: 0 }}>
                         <AlertTriangle size={18} />
@@ -217,7 +231,7 @@ function CustomerPaymentAlertOverlay() {
             <style>{`
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
-                @keyframes slideInRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+                @keyframes slideInFromRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
             `}</style>
         </>
     );

@@ -20,6 +20,7 @@ import { API_URL } from '../config';
 import '../styles/CustomerSideNav.css';
 import NotificationAlertOverlay from './NotificationAlertOverlay';
 import CustomerPaymentAlertOverlay from './CustomerPaymentAlertOverlay';
+import ChatWidget from './ChatWidget';
 
 function CustomerSideNav() {
     const navigate = useNavigate();
@@ -183,6 +184,7 @@ function CustomerSideNav() {
             <NotificationAlertOverlay />
             <CustomerPaymentAlertOverlay />
         </aside>
+        <ChatWidget currentUser={`customer_${customerId}`} />
         </>
     );
 }
