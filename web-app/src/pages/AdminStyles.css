@@ -3249,4 +3249,16 @@
         width: 14px;
         min-width: 14px;
     }
+
+    /* Make Admin Notifications Stats Row shorter on mobile */
+    .portal-stats-row .glass-card {
+        padding: 8px 12px !important;
+    }
+    .portal-stats-row .glass-card span:first-child {
+        margin-bottom: 2px !important;
+        font-size: 0.75rem !important;
+    }
+    .portal-stats-row .glass-card span:last-child {
+        font-size: 1.2rem !important;
+    }
 }
