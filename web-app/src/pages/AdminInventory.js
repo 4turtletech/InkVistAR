@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Package, History, ArrowUpCircle, ArrowDownCircle, X, RotateCcw, Printer, Download, Search, Filter, SlidersHorizontal, AlertTriangle, Layers, Clock, User, Inbox } from 'lucide-react';
@@ -30,6 +30,18 @@ function AdminInventory() {
     const [loading, setLoading] = useState(true);
     const [filteredInventory, setFilteredInventory] = useState(inventory);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = useRef(null);
+    
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [itemStatusFilter, setItemStatusFilter] = useState('active');
     const [stockStatusFilter, setStockStatusFilter] = useState('all');
@@ -658,21 +670,39 @@ function AdminInventory() {
                 <p className="header-subtitle">Track, manage, and audit studio supplies</p>
 
             <div className="premium-filter-bar premium-filter-bar--stacked">
-                    <div className="premium-search-box premium-search-box--full">
+                    <div className="premium-search-box premium-search-box--full" ref={searchRef}>
                         <Search size={16} className="text-muted" />
                         <input
                             type="text"
-                            list="search-suggestions-inventory"
                             placeholder="Search items by name, category, or ID..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setShowSuggestions(true);
+                            }}
+                            onFocus={() => setShowSuggestions(true)}
                             maxLength={100}
                         />
-                        <datalist id="search-suggestions-inventory">
-                            {searchSuggestions.map(suggestion => (
-                                <option key={suggestion} value={suggestion} />
-                            ))}
-                        </datalist>
+                        {showSuggestions && searchTerm && searchSuggestions.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 && (
+                            <div className="autocomplete-dropdown waterfall-dropdown">
+                                {searchSuggestions
+                                    .filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+                                    .slice(0, 8)
+                                    .map((suggestion, index) => (
+                                        <div 
+                                            key={suggestion} 
+                                            className="autocomplete-item waterfall-item"
+                                            style={{ animationDelay: `${index * 0.05}s` }}
+                                            onClick={() => {
+                                                setSearchTerm(suggestion);
+                                                setShowSuggestions(false);
+                                            }}
+                                        >
+                                            {suggestion}
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="premium-filters-row">
