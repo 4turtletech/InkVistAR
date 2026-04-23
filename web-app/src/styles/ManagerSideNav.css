@@ -183,11 +183,11 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-/* Overlay (mobile backdrop) */
+/* Overlay (mobile backdrop) — starts after sidebar so sidebar buttons are always tappable */
 .sidenav-overlay {
     position: fixed;
     top: 0;
-    left: 0;
+    left: 260px;
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);

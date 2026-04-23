@@ -223,12 +223,12 @@
     }
 }
 
-/* Overlay (mobile) */
+/* Overlay (mobile) — starts after the sidebar so sidebar buttons remain tappable */
 .sidenav-overlay {
     display: none;
     position: fixed;
     top: 0;
-    left: 0;
+    left: 260px;
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
