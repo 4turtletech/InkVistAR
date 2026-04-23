@@ -695,15 +695,17 @@ function AdminAppointments() {
             return;
         }
 
-        // Tattoo Session specific validations - always enforced
-        if (isTattooSession && hasNoArtist) {
+        const isCancellingOrRejecting = formData.status === 'cancelled' || formData.status === 'rejected';
+
+        // Tattoo Session specific validations - always enforced (except when cancelling/rejecting)
+        if (isTattooSession && hasNoArtist && !isCancellingOrRejecting) {
             setModalTab('details');
             showAlert('Staff Required', 'This session requires a Staff member to be assigned. Please select a staff member in the Details tab.', 'warning');
             return;
         }
 
         // Dual-service validations - require both staff members
-        if (requiresDualStaff && hasNoSecondaryArtist) {
+        if (requiresDualStaff && hasNoSecondaryArtist && !isCancellingOrRejecting) {
             setModalTab('details');
             const label = isDualService ? 'Tattoo + Piercing' : 'dual-topic Consultation';
             showAlert('Piercing Staff Required', `A ${label} session requires both a Primary Staff and a Piercing Staff to be assigned. You may select the same person for both roles if they handle both services.`, 'warning');
@@ -733,13 +735,13 @@ function AdminAppointments() {
             }
         }
 
-        if (isTattooSession && finalPrice <= 0) {
+        if (isTattooSession && finalPrice <= 0 && !isCancellingOrRejecting) {
             setModalTab('pricing');
             showAlert('Pricing Required', 'A Tattoo Session requires a price to be set. Please enter the service price in the Pricing tab before saving.', 'warning');
             return;
         }
 
-        if (isTattooSession && finalPrice > 0 && finalPrice < 5000) {
+        if (isTattooSession && finalPrice > 0 && finalPrice < 5000 && !isCancellingOrRejecting) {
             setModalTab('pricing');
             showAlert('Minimum Price', 'The minimum quote for a Tattoo Session is ₱5,000. Please adjust the price accordingly.', 'warning');
             return;
