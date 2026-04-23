@@ -117,6 +117,13 @@ function CustomerBookings(){
     const [rescheduleReasonText, setRescheduleReasonText] = useState('');
     const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
 
+    // Reschedule REQUEST states (for <7 day window)
+    const [isRescheduleRequestModalOpen, setIsRescheduleRequestModalOpen] = useState(false);
+    const [rescheduleRequestData, setRescheduleRequestData] = useState({ date: '', time: '', reason: '', reasonText: '' });
+    const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+    const [showRequestConfirm, setShowRequestConfirm] = useState(false);
+    const [pendingRescheduleRequest, setPendingRescheduleRequest] = useState(null);
+
     // Cancellation states
     const [cancelModal, setCancelModal] = useState({ isOpen: false, appointmentId: null, reason: '' });
     const [isCancelling, setIsCancelling] = useState(false);
@@ -282,6 +289,7 @@ function CustomerBookings(){
         setModalTab('details');
         setIsModalOpen(true);
         setModalLoading(true);
+        setPendingRescheduleRequest(null);
         try {
             const res = await Axios.get(`${API_URL}/api/appointments/${appt.id}/transactions`);
             if (res.data.success) {
@@ -292,6 +300,8 @@ function CustomerBookings(){
         } finally {
             setModalLoading(false);
         }
+        // Fetch reschedule request status in background
+        fetchRescheduleRequestStatus(appt.id);
     };
 
     const handleImageUpload = (e) => {
@@ -596,15 +606,38 @@ function CustomerBookings(){
     const handleOpenReschedule = (appt) => {
         const now = new Date();
         const apptDate = new Date(appt.appointment_date);
+        if (appt.start_time) {
+            const [h, m] = appt.start_time.split(':');
+            apptDate.setHours(parseInt(h), parseInt(m), 0, 0);
+        } else {
+            apptDate.setHours(23, 59, 59, 999);
+        }
         const msInAWeek = 7 * 24 * 60 * 60 * 1000;
+        const msIn12Hours = 12 * 60 * 60 * 1000;
+        const timeUntilAppt = apptDate - now;
 
         if ((appt.reschedule_count || 0) >= 1) {
             showAlert("Reschedule Limit Reached", "You have already used your 1 allowed reschedule for this appointment. If this is an emergency, please contact the studio directly.", "warning");
             return;
         }
 
-        if ((apptDate - now) < msInAWeek) {
-            showAlert("Reschedule Not Allowed", "Rescheduling is not allowed for appointments that are less than 1 week away. If this is an emergency, please contact the studio directly.", "warning");
+        // Check for existing pending request
+        if (pendingRescheduleRequest && pendingRescheduleRequest.status === 'pending') {
+            showAlert("Request Pending", "You already have a pending reschedule request for this appointment. Please wait for the studio to review it.", "info");
+            return;
+        }
+
+        if (timeUntilAppt < msInAWeek) {
+            // Within 1 week — check 12-hour minimum
+            if (timeUntilAppt < msIn12Hours) {
+                showAlert("Too Close to Appointment", "Reschedule requests cannot be made for appointments less than 12 hours away. Please contact the studio directly.", "warning");
+                return;
+            }
+            // Open the RESCHEDULE REQUEST modal instead
+            setRescheduleRequestData({ date: '', time: '', reason: '', reasonText: '' });
+            setShowRequestConfirm(false);
+            setRescheduleMonth(new Date());
+            setIsRescheduleRequestModalOpen(true);
             return;
         }
 
@@ -657,6 +690,48 @@ function CustomerBookings(){
         } finally {
             setIsRescheduling(false);
             setShowRescheduleConfirm(false);
+        }
+    };
+
+    // ────── Reschedule Request Submission ──────
+    const handleSubmitRescheduleRequest = async () => {
+        const finalReason = rescheduleRequestData.reason === 'Other' ? rescheduleRequestData.reasonText.trim() : rescheduleRequestData.reason;
+        setIsSubmittingRequest(true);
+        try {
+            const res = await Axios.post(`${API_URL}/api/customer/appointments/${selectedApt.id}/reschedule-request`, {
+                customerId,
+                requestedDate: rescheduleRequestData.date,
+                requestedTime: rescheduleRequestData.time || null,
+                reason: finalReason
+            });
+            if (res.data.success) {
+                showAlert("Request Submitted ✓", res.data.message, "success");
+                setIsRescheduleRequestModalOpen(false);
+                setShowRequestConfirm(false);
+                setIsModalOpen(false);
+                // Refresh appointments
+                const fetchRes = await Axios.get(`${API_URL}/api/customer/${customerId}/appointments`);
+                if (fetchRes.data.success) setAppointments(fetchRes.data.appointments.map(a => ({ ...a, price: parseFloat(a.price) || 0 })));
+            }
+        } catch (err) {
+            showAlert("Request Failed", err.response?.data?.message || "An error occurred while submitting your request.", "danger");
+        } finally {
+            setIsSubmittingRequest(false);
+            setShowRequestConfirm(false);
+        }
+    };
+
+    // Fetch reschedule request status for a selected appointment
+    const fetchRescheduleRequestStatus = async (appointmentId) => {
+        try {
+            const res = await Axios.get(`${API_URL}/api/customer/appointments/${appointmentId}/reschedule-request?customerId=${customerId}`);
+            if (res.data.success) {
+                setPendingRescheduleRequest(res.data.request);
+            } else {
+                setPendingRescheduleRequest(null);
+            }
+        } catch (e) {
+            setPendingRescheduleRequest(null);
         }
     };
 
@@ -981,6 +1056,65 @@ function CustomerBookings(){
                                         </div>
                                     </div>
 
+                                    {/* Reschedule Request Badge */}
+                                    {pendingRescheduleRequest && (
+                                        <div style={{
+                                            margin: '16px 0',
+                                            padding: '14px 16px',
+                                            borderRadius: '12px',
+                                            border: `1px solid ${
+                                                pendingRescheduleRequest.status === 'pending' ? 'rgba(245,158,11,0.3)' :
+                                                pendingRescheduleRequest.status === 'approved' ? 'rgba(16,185,129,0.3)' :
+                                                pendingRescheduleRequest.status === 'rejected' ? 'rgba(239,68,68,0.3)' :
+                                                'rgba(148,163,184,0.3)'
+                                            }`,
+                                            background: pendingRescheduleRequest.status === 'pending' ? '#fffbeb' :
+                                                pendingRescheduleRequest.status === 'approved' ? '#f0fdf4' :
+                                                pendingRescheduleRequest.status === 'rejected' ? '#fef2f2' :
+                                                '#f8fafc',
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            gap: '12px'
+                                        }}>
+                                            <div style={{
+                                                width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                background: pendingRescheduleRequest.status === 'pending' ? '#fef3c7' :
+                                                    pendingRescheduleRequest.status === 'approved' ? '#dcfce7' :
+                                                    pendingRescheduleRequest.status === 'rejected' ? '#fee2e2' : '#f1f5f9'
+                                            }}>
+                                                {pendingRescheduleRequest.status === 'pending' && <Clock size={18} color="#d97706" />}
+                                                {pendingRescheduleRequest.status === 'approved' && <CheckCircle size={18} color="#16a34a" />}
+                                                {pendingRescheduleRequest.status === 'rejected' && <X size={18} color="#dc2626" />}
+                                                {pendingRescheduleRequest.status === 'expired' && <AlertTriangle size={18} color="#94a3b8" />}
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '4px', color: '#1e293b' }}>
+                                                    {pendingRescheduleRequest.status === 'pending' && '🔄 Reschedule Request Pending'}
+                                                    {pendingRescheduleRequest.status === 'approved' && '✅ Reschedule Request Approved'}
+                                                    {pendingRescheduleRequest.status === 'rejected' && '❌ Reschedule Request Declined'}
+                                                    {pendingRescheduleRequest.status === 'expired' && '⏰ Reschedule Request Expired'}
+                                                </div>
+                                                <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: '1.5' }}>
+                                                    {pendingRescheduleRequest.status === 'pending' && (
+                                                        <>Awaiting studio review. Requested date: <strong>{new Date(pendingRescheduleRequest.requested_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+                                                        {pendingRescheduleRequest.seconds_remaining > 0 && (
+                                                            <span style={{ display: 'block', marginTop: '4px', color: '#d97706', fontWeight: 600 }}>
+                                                                Expires in {Math.floor(pendingRescheduleRequest.seconds_remaining / 3600)}h {Math.floor((pendingRescheduleRequest.seconds_remaining % 3600) / 60)}m
+                                                            </span>
+                                                        )}
+                                                        </>
+                                                    )}
+                                                    {pendingRescheduleRequest.status === 'approved' && 'Your appointment has been rescheduled as requested.'}
+                                                    {pendingRescheduleRequest.status === 'rejected' && (
+                                                        <>Your request was declined. {pendingRescheduleRequest.admin_notes && <><br/><strong>Studio notes:</strong> {pendingRescheduleRequest.admin_notes}</>}</>
+                                                    )}
+                                                    {pendingRescheduleRequest.status === 'expired' && 'This request expired because no action was taken within 24 hours.'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <h4 className="customer-st-6f90639a" >Financial Summary</h4>
                                     <div className="billing-summary customer-st-aa822c5e" >
                                         <div className="customer-st-56da6dbd" >
@@ -1263,6 +1397,152 @@ function CustomerBookings(){
                                     style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: (!rescheduleDate || !rescheduleReason) ? 0.5 : 1 }}
                                 >
                                     <CalendarDays size={16}/> Reschedule Session
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Reschedule REQUEST Modal (for appointments within 1 week) */}
+            {isRescheduleRequestModalOpen && selectedApt && (
+                <div className="modal-overlay" onClick={() => { setIsRescheduleRequestModalOpen(false); setShowRequestConfirm(false); }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+                        <div className="modal-header">
+                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><Clock size={20} color="#d97706" /> Request Reschedule</h3>
+                            <button className="close-btn" onClick={() => { setIsRescheduleRequestModalOpen(false); setShowRequestConfirm(false); }}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '20px' }}>
+                            {showRequestConfirm ? (
+                                <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+                                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                        <Clock size={28} color="#d97706" />
+                                    </div>
+                                    <h3 style={{ margin: '0 0 8px', color: '#1e293b', fontSize: '1.15rem' }}>Submit Reschedule Request?</h3>
+                                    <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.6', margin: '0 0 8px' }}>
+                                        This request will be sent to the studio for review. It is <strong style={{ color: '#d97706' }}>not an instant reschedule</strong>.
+                                    </p>
+                                    <p style={{ color: '#ef4444', fontSize: '0.85rem', fontWeight: '600', margin: '0 0 20px' }}>
+                                        The studio must respond within 24 hours or the request will expire.
+                                    </p>
+                                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '20px', textAlign: 'left' }}>
+                                        <p style={{ margin: '0 0 6px', fontSize: '0.85rem', color: '#64748b' }}><strong style={{ color: '#1e293b' }}>Requested Date:</strong> {new Date(rescheduleRequestData.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}><strong style={{ color: '#1e293b' }}>Reason:</strong> {rescheduleRequestData.reason === 'Other' ? rescheduleRequestData.reasonText : rescheduleRequestData.reason}</p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                                        <button className="btn btn-secondary" onClick={() => setShowRequestConfirm(false)} style={{ minWidth: '100px' }}>Go Back</button>
+                                        <button 
+                                            className="btn btn-primary"
+                                            disabled={isSubmittingRequest}
+                                            onClick={handleSubmitRescheduleRequest}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minWidth: '160px', background: '#d97706' }}
+                                        >
+                                            {isSubmittingRequest ? 'Submitting...' : <><Clock size={16}/> Submit Request</>}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '10px', padding: '12px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                        <AlertTriangle size={18} color="#ea580c" style={{ marginTop: '2px', flexShrink: 0 }} />
+                                        <div style={{ fontSize: '0.85rem', color: '#9a3412', lineHeight: '1.5' }}>
+                                            <strong>Request-Based Reschedule:</strong> Since your appointment is within 1 week, this will be submitted as a <strong>request</strong> for the studio to review. You will be notified of their decision within <strong>24 hours</strong>. If approved, this will count as your 1 allowed reschedule.
+                                        </div>
+                                    </div>
+
+                                    <p style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '12px', fontWeight: '600' }}>Select your preferred new date:</p>
+                                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <button type="button" onClick={() => setRescheduleMonth(new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() - 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronLeft size={20}/></button>
+                                            <span style={{ fontWeight: '700', color: '#1e293b' }}>{monthNames[rescheduleMonth.getMonth()]} {rescheduleMonth.getFullYear()}</span>
+                                            <button type="button" onClick={() => setRescheduleMonth(new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronRight size={20}/></button>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem' }}>
+                                            {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} style={{ fontWeight: '700', color: '#94a3b8', padding: '6px 0' }}>{d}</div>)}
+                                            {(() => {
+                                                const year = rescheduleMonth.getFullYear();
+                                                const month = rescheduleMonth.getMonth();
+                                                const firstDay = new Date(year, month, 1).getDay();
+                                                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                                                const today = new Date(); today.setHours(0,0,0,0);
+                                                const cells = [];
+                                                for (let i = 0; i < firstDay; i++) cells.push(<div key={`empty-${i}`} />);
+                                                for (let day = 1; day <= daysInMonth; day++) {
+                                                    const dateObj = new Date(year, month, day);
+                                                    dateObj.setHours(0,0,0,0);
+                                                    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                                                    const isPast = dateObj <= today;
+                                                    const isSelected = rescheduleRequestData.date === dateStr;
+                                                    cells.push(
+                                                        <div
+                                                            key={day}
+                                                            onClick={() => !isPast && setRescheduleRequestData(prev => ({...prev, date: dateStr}))}
+                                                            style={{
+                                                                padding: '8px 4px', borderRadius: '8px', cursor: isPast ? 'not-allowed' : 'pointer',
+                                                                background: isSelected ? '#d97706' : 'transparent',
+                                                                color: isSelected ? 'white' : isPast ? '#cbd5e1' : '#1e293b',
+                                                                fontWeight: isSelected ? '700' : '500',
+                                                                opacity: isPast ? 0.4 : 1,
+                                                                transition: 'all 0.15s',
+                                                            }}
+                                                        >{day}</div>
+                                                    );
+                                                }
+                                                return cells;
+                                            })()}
+                                        </div>
+                                    </div>
+
+                                    {rescheduleRequestData.date && (
+                                        <div style={{ marginTop: '16px', padding: '12px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <CalendarDays size={18} color="#ea580c" />
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#9a3412' }}>Requested date: {new Date(rescheduleRequestData.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Reason */}
+                                    <div style={{ marginTop: '20px' }}>
+                                        <label style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Reason for reschedule request <span style={{ color: '#ef4444' }}>*</span></label>
+                                        <select 
+                                            value={rescheduleRequestData.reason} 
+                                            onChange={(e) => setRescheduleRequestData(prev => ({...prev, reason: e.target.value, reasonText: e.target.value !== 'Other' ? '' : prev.reasonText}))}
+                                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', color: rescheduleRequestData.reason ? '#1e293b' : '#94a3b8', background: 'white', outline: 'none', cursor: 'pointer' }}
+                                        >
+                                            <option value="" disabled>Select a reason...</option>
+                                            {rescheduleReasonOptions.map(opt => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                            ))}
+                                        </select>
+
+                                        {rescheduleRequestData.reason === 'Other' && (
+                                            <div style={{ marginTop: '10px' }}>
+                                                <textarea
+                                                    value={rescheduleRequestData.reasonText}
+                                                    onChange={(e) => { if (e.target.value.length <= 300) setRescheduleRequestData(prev => ({...prev, reasonText: e.target.value})); }}
+                                                    placeholder="Please describe your reason..."
+                                                    maxLength={300}
+                                                    rows={3}
+                                                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', color: '#1e293b', resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                                                />
+                                                <span style={{ fontSize: '0.75rem', color: rescheduleRequestData.reasonText.length >= 280 ? '#ef4444' : '#94a3b8', float: 'right', marginTop: '4px' }}>
+                                                    {rescheduleRequestData.reasonText.length}/300
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                        {!showRequestConfirm && (
+                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid #e2e8f0' }}>
+                                <button className="btn btn-secondary" onClick={() => setIsRescheduleRequestModalOpen(false)}>Cancel</button>
+                                <button 
+                                    className="btn btn-primary"
+                                    disabled={!rescheduleRequestData.date || !rescheduleRequestData.reason || (rescheduleRequestData.reason === 'Other' && !rescheduleRequestData.reasonText.trim())}
+                                    onClick={() => setShowRequestConfirm(true)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: (!rescheduleRequestData.date || !rescheduleRequestData.reason) ? 0.5 : 1, background: '#d97706' }}
+                                >
+                                    <Clock size={16}/> Submit Request
                                 </button>
                             </div>
                         )}

@@ -889,6 +889,30 @@ db.getConnection((err, connection) => {
       }
     });
 
+    // Create Reschedule Requests Table (for admin-approval reschedule flow)
+    const rescheduleRequestsTableQuery = `
+      CREATE TABLE IF NOT EXISTS reschedule_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        appointment_id INT NOT NULL,
+        customer_id INT NOT NULL,
+        requested_date DATE NOT NULL,
+        requested_time TIME NULL,
+        reason TEXT NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        admin_notes TEXT NULL,
+        decided_by INT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        decided_at DATETIME NULL,
+        expires_at DATETIME NOT NULL,
+        FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
+        FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `;
+    db.query(rescheduleRequestsTableQuery, (err) => {
+      if (err) console.error('⚠️ Error checking reschedule_requests table:', err.message);
+      else console.log('📋 Reschedule requests table ready');
+    });
+
     // Create Payments Table (records PayMongo webhook events)
     const paymentsTableQuery = `
       CREATE TABLE IF NOT EXISTS payments (
@@ -3706,6 +3730,344 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
   );
 });
 
+// ========== RESCHEDULE REQUEST SYSTEM ==========
+// Customer submits a reschedule REQUEST (for appointments within 1 week but ≥12 hours away)
+app.post('/api/customer/appointments/:id/reschedule-request', (req, res) => {
+  const { id } = req.params;
+  const { customerId, requestedDate, requestedTime, reason } = req.body;
+
+  if (!customerId || !requestedDate || !reason) {
+    return res.status(400).json({ success: false, message: 'Missing required fields (customerId, requestedDate, reason).' });
+  }
+
+  // 1. Fetch the appointment and verify ownership
+  db.query(
+    `SELECT ap.*, u.name as customer_name, u.email as customer_email, ap.booking_code FROM appointments ap JOIN users u ON ap.customer_id = u.id WHERE ap.id = ? AND ap.customer_id = ? AND ap.is_deleted = 0`,
+    [id, customerId],
+    (err, results) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error.' });
+      if (!results.length) return res.status(404).json({ success: false, message: 'Appointment not found or you do not have permission.' });
+
+      const appt = results[0];
+
+      // 2. Only allow for upcoming appointments
+      if (['completed', 'cancelled', 'rejected'].includes(appt.status)) {
+        return res.status(400).json({ success: false, message: 'Cannot request reschedule for a completed or cancelled appointment.' });
+      }
+
+      // 3. Check reschedule limit (max 1)
+      const currentCount = appt.reschedule_count || 0;
+      if (currentCount >= 1) {
+        return res.status(400).json({ success: false, message: 'You have already used your 1 allowed reschedule for this appointment.' });
+      }
+
+      // 4. Check that appointment is < 7 days away (otherwise use instant reschedule)
+      const now = new Date();
+      const appointmentDate = new Date(appt.appointment_date);
+      // Set appointment time if available
+      if (appt.start_time) {
+        const [h, m] = appt.start_time.split(':');
+        appointmentDate.setHours(parseInt(h), parseInt(m), 0, 0);
+      } else {
+        appointmentDate.setHours(23, 59, 59, 999);
+      }
+      const msInAWeek = 7 * 24 * 60 * 60 * 1000;
+      const msIn12Hours = 12 * 60 * 60 * 1000;
+      const timeUntilAppt = appointmentDate - now;
+
+      if (timeUntilAppt >= msInAWeek) {
+        return res.status(400).json({ success: false, message: 'Your appointment is more than 7 days away. Please use the standard reschedule option instead.' });
+      }
+
+      // 5. Must be at least 12 hours before appointment
+      if (timeUntilAppt < msIn12Hours) {
+        return res.status(400).json({ success: false, message: 'Reschedule requests cannot be made for appointments less than 12 hours away.' });
+      }
+
+      // 6. Check no existing pending request for this appointment
+      db.query(
+        `SELECT id FROM reschedule_requests WHERE appointment_id = ? AND status = 'pending'`,
+        [id],
+        (pendingErr, pendingRes) => {
+          if (pendingErr) return res.status(500).json({ success: false, message: 'Database error checking existing requests.' });
+          if (pendingRes.length > 0) {
+            return res.status(400).json({ success: false, message: 'You already have a pending reschedule request for this appointment. Please wait for it to be reviewed.' });
+          }
+
+          // 7. Validate requested date
+          const reqDateObj = new Date(requestedDate);
+          reqDateObj.setHours(0, 0, 0, 0);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (reqDateObj <= today) {
+            return res.status(400).json({ success: false, message: 'Requested date must be in the future.' });
+          }
+          const maxDate = new Date();
+          maxDate.setMonth(today.getMonth() + 3);
+          if (reqDateObj > maxDate) {
+            return res.status(400).json({ success: false, message: 'Requested date cannot be more than 3 months in the future.' });
+          }
+
+          // 8. Insert the reschedule request with 24-hour expiry
+          const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+
+          db.query(
+            `INSERT INTO reschedule_requests (appointment_id, customer_id, requested_date, requested_time, reason, status, expires_at) VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
+            [id, customerId, requestedDate, requestedTime || null, reason, expiresAt],
+            (insertErr, insertResult) => {
+              if (insertErr) return res.status(500).json({ success: false, message: 'Failed to submit reschedule request: ' + insertErr.message });
+
+              console.log(`📋 Customer ${customerId} submitted reschedule request for Appt #${id} → ${requestedDate} (Reason: ${reason})`);
+
+              const bookingCode = appt.booking_code || `#${id}`;
+              const currentDateStr = new Date(appt.appointment_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+              const newDateStr = new Date(requestedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+              // Notify all admins/managers
+              db.query('SELECT id FROM users WHERE user_type IN ("admin", "manager") AND is_deleted = 0', (adminErr, admins) => {
+                if (!adminErr && admins.length > 0) {
+                  admins.forEach(admin => {
+                    createNotification(admin.id, 'Reschedule Request 📋', `${appt.customer_name} requests to reschedule [${bookingCode}] from ${currentDateStr} to ${newDateStr}. Reason: ${reason}. This request expires in 24 hours — please review.`, 'reschedule_request', parseInt(id));
+                  });
+                }
+              });
+
+              // Notify customer
+              createNotification(customerId, 'Reschedule Request Submitted', `Your request to reschedule appointment [${bookingCode}] to ${newDateStr} has been submitted. The studio will review it within 24 hours.`, 'reschedule_request', parseInt(id));
+
+              // Email customer
+              if (appt.customer_email) {
+                const emailHtml = buildEmailHtml(`
+                  <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Reschedule Request Submitted</h2>
+                  <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your request is being reviewed by the studio</p>
+                  <p style="margin:0 0 16px;">Hello ${appt.customer_name},</p>
+                  <p style="margin:0 0 16px;">We have received your request to reschedule appointment <strong>[${bookingCode}]</strong>.</p>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                    <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:110px;">Current Date:</strong> <span style="color:#ef4444;text-decoration:line-through;">${currentDateStr}</span></p>
+                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:110px;">Requested:</strong> <span style="color:#10b981;font-weight:700;">${newDateStr}</span></p>
+                      <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:110px;">Reason:</strong> <span style="color:#C19A6B;">${reason}</span></p>
+                    </div>
+                  </td></tr></table>
+                  <p style="margin:0 0 16px;line-height:1.6;">Our team will review your request and respond within <strong>24 hours</strong>. If no action is taken, the request will expire and your original appointment will remain unchanged.</p>
+                  <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
+                `);
+                sendResendEmail(appt.customer_email, `InkVistAR: Reschedule Request [${bookingCode}]`, emailHtml);
+              }
+
+              res.json({ success: true, message: 'Reschedule request submitted successfully. The studio will review it within 24 hours.', requestId: insertResult.insertId });
+            }
+          );
+        }
+      );
+    }
+  );
+});
+
+// Customer checks status of reschedule request for an appointment
+app.get('/api/customer/appointments/:id/reschedule-request', (req, res) => {
+  const { id } = req.params;
+  const customerId = req.query.customerId;
+
+  if (!customerId) return res.status(400).json({ success: false, message: 'customerId is required.' });
+
+  db.query(
+    `SELECT rr.*, TIMESTAMPDIFF(SECOND, NOW(), rr.expires_at) as seconds_remaining
+     FROM reschedule_requests rr
+     WHERE rr.appointment_id = ? AND rr.customer_id = ?
+     ORDER BY rr.created_at DESC LIMIT 1`,
+    [id, customerId],
+    (err, results) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error.' });
+      if (!results.length) return res.json({ success: true, request: null });
+      res.json({ success: true, request: results[0] });
+    }
+  );
+});
+
+// Admin: Get reschedule request for a specific appointment
+app.get('/api/admin/appointments/:id/reschedule-request', (req, res) => {
+  const { id } = req.params;
+  db.query(
+    `SELECT rr.*, u.name as customer_name, TIMESTAMPDIFF(SECOND, NOW(), rr.expires_at) as seconds_remaining
+     FROM reschedule_requests rr
+     JOIN users u ON rr.customer_id = u.id
+     WHERE rr.appointment_id = ? AND rr.status = 'pending'
+     ORDER BY rr.created_at DESC LIMIT 1`,
+    [id],
+    (err, results) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error.' });
+      if (!results.length) return res.json({ success: true, request: null });
+      res.json({ success: true, request: results[0] });
+    }
+  );
+});
+
+// Admin: List all reschedule requests (pending + recent)
+app.get('/api/admin/reschedule-requests', (req, res) => {
+  db.query(
+    `SELECT rr.*, u.name as customer_name, a.booking_code, a.appointment_date as current_date, a.start_time as current_time, a.service_type, a.design_title,
+            TIMESTAMPDIFF(SECOND, NOW(), rr.expires_at) as seconds_remaining,
+            u_admin.name as decided_by_name
+     FROM reschedule_requests rr
+     JOIN users u ON rr.customer_id = u.id
+     JOIN appointments a ON rr.appointment_id = a.id
+     LEFT JOIN users u_admin ON rr.decided_by = u_admin.id
+     ORDER BY FIELD(rr.status, 'pending', 'approved', 'rejected', 'expired'), rr.created_at DESC
+     LIMIT 50`,
+    (err, results) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+      res.json({ success: true, requests: results });
+    }
+  );
+});
+
+// Admin: Approve or Reject a reschedule request
+app.put('/api/admin/reschedule-requests/:requestId/decide', (req, res) => {
+  const { requestId } = req.params;
+  const { decision, adminNotes, adminId } = req.body;
+
+  if (!decision || !adminId) {
+    return res.status(400).json({ success: false, message: 'decision and adminId are required.' });
+  }
+  if (!['approved', 'rejected'].includes(decision)) {
+    return res.status(400).json({ success: false, message: 'Decision must be "approved" or "rejected".' });
+  }
+  if (decision === 'rejected' && (!adminNotes || adminNotes.trim().length < 5)) {
+    return res.status(400).json({ success: false, message: 'Please provide a reason for rejection (at least 5 characters).' });
+  }
+
+  // 1. Fetch the request
+  db.query(
+    `SELECT rr.*, a.customer_id, a.artist_id, a.appointment_date, a.start_time, a.notes as appt_notes, a.booking_code, a.reschedule_count,
+            u.name as customer_name, u.email as customer_email,
+            c.phone as customer_phone
+     FROM reschedule_requests rr
+     JOIN appointments a ON rr.appointment_id = a.id
+     JOIN users u ON rr.customer_id = u.id
+     LEFT JOIN customers c ON rr.customer_id = c.user_id
+     WHERE rr.id = ?`,
+    [requestId],
+    (err, results) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error.' });
+      if (!results.length) return res.status(404).json({ success: false, message: 'Reschedule request not found.' });
+
+      const request = results[0];
+
+      if (request.status !== 'pending') {
+        return res.status(400).json({ success: false, message: `This request has already been ${request.status}.` });
+      }
+
+      const bookingCode = request.booking_code || `#${request.appointment_id}`;
+      const newDateStr = new Date(request.requested_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      const decidedAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+      if (decision === 'approved') {
+        // === APPROVE: Perform the actual reschedule ===
+        const reasonSuffix = `\n\n--- Reschedule Request (approved by admin) ---\nReason: ${request.reason}${adminNotes ? '\nAdmin notes: ' + adminNotes : ''}`;
+        const updatedNotes = (request.appt_notes || '') + reasonSuffix;
+
+        db.query(
+          `UPDATE appointments SET appointment_date = ?, start_time = COALESCE(?, start_time), reschedule_count = reschedule_count + 1, notes = ? WHERE id = ?`,
+          [request.requested_date, request.requested_time || null, updatedNotes, request.appointment_id],
+          (updateErr) => {
+            if (updateErr) return res.status(500).json({ success: false, message: 'Failed to update appointment: ' + updateErr.message });
+
+            // Update the request record
+            db.query(
+              `UPDATE reschedule_requests SET status = 'approved', admin_notes = ?, decided_by = ?, decided_at = ? WHERE id = ?`,
+              [adminNotes || null, adminId, decidedAt, requestId]
+            );
+
+            console.log(`✅ Admin ${adminId} approved reschedule request #${requestId} for Appt #${request.appointment_id} → ${request.requested_date}`);
+
+            const notesStr = adminNotes ? ` Notes: ${adminNotes}` : '';
+
+            // Notify customer
+            createNotification(request.customer_id, 'Reschedule Approved ✅', `Great news! Your reschedule request for [${bookingCode}] has been approved. Your new appointment date is ${newDateStr}.${notesStr}`, 'reschedule_approved', request.appointment_id);
+
+            // Notify artist
+            if (request.artist_id) {
+              db.query('SELECT user_type FROM users WHERE id = ?', [request.artist_id], (aErr, aRes) => {
+                if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+                  createNotification(request.artist_id, 'Appointment Rescheduled 📅', `Appointment [${bookingCode}] has been rescheduled to ${newDateStr} (approved reschedule request).`, 'appointment_rescheduled', request.appointment_id);
+                }
+              });
+            }
+
+            // Email customer
+            if (request.customer_email) {
+              const emailHtml = buildEmailHtml(`
+                <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#10b981;text-align:center;">Reschedule Request Approved ✅</h2>
+                <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your appointment has been moved</p>
+                <p style="margin:0 0 16px;">Hello ${request.customer_name},</p>
+                <p style="margin:0 0 16px;">Your request to reschedule appointment <strong>[${bookingCode}]</strong> has been <strong style="color:#10b981;">approved</strong>!</p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                  <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">New Date:</strong> <span style="color:#10b981;font-weight:700;">${newDateStr}</span></p>
+                    ${adminNotes ? `<p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Studio Notes:</strong> <span style="color:#C19A6B;">${adminNotes}</span></p>` : ''}
+                  </div>
+                </td></tr></table>
+                <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
+              `);
+              sendResendEmail(request.customer_email, `InkVistAR: Reschedule Approved [${bookingCode}]`, emailHtml);
+            }
+
+            // SMS customer
+            if (request.customer_phone) {
+              sendSMS(request.customer_phone, `InkVistAR: Your reschedule request for [${bookingCode}] has been APPROVED! New date: ${newDateStr}.${notesStr}`);
+            }
+
+            res.json({ success: true, message: 'Reschedule request approved. Appointment has been updated.' });
+          }
+        );
+      } else {
+        // === REJECT ===
+        db.query(
+          `UPDATE reschedule_requests SET status = 'rejected', admin_notes = ?, decided_by = ?, decided_at = ? WHERE id = ?`,
+          [adminNotes, adminId, decidedAt, requestId],
+          (rejectErr) => {
+            if (rejectErr) return res.status(500).json({ success: false, message: 'Failed to update request.' });
+
+            console.log(`❌ Admin ${adminId} rejected reschedule request #${requestId} for Appt #${request.appointment_id}`);
+
+            const originalDateStr = new Date(request.appointment_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+            // Notify customer
+            createNotification(request.customer_id, 'Reschedule Request Declined ❌', `Your reschedule request for [${bookingCode}] has been declined. Studio notes: ${adminNotes}. Your original appointment on ${originalDateStr} remains unchanged.`, 'reschedule_rejected', request.appointment_id);
+
+            // Email customer
+            if (request.customer_email) {
+              const emailHtml = buildEmailHtml(`
+                <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ef4444;text-align:center;">Reschedule Request Declined</h2>
+                <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your original appointment remains unchanged</p>
+                <p style="margin:0 0 16px;">Hello ${request.customer_name},</p>
+                <p style="margin:0 0 16px;">Unfortunately, your request to reschedule appointment <strong>[${bookingCode}]</strong> has been <strong style="color:#ef4444;">declined</strong>.</p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                  <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:130px;">Original Date:</strong> <span style="color:#C19A6B;">${originalDateStr}</span></p>
+                    <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:130px;">Studio Notes:</strong> <span style="color:#ef4444;">${adminNotes}</span></p>
+                  </div>
+                </td></tr></table>
+                <p style="margin:0 0 16px;line-height:1.6;">Your appointment remains as originally scheduled. If you have any questions, please contact the studio directly.</p>
+                <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
+              `);
+              sendResendEmail(request.customer_email, `InkVistAR: Reschedule Request Declined [${bookingCode}]`, emailHtml);
+            }
+
+            // SMS customer
+            if (request.customer_phone) {
+              sendSMS(request.customer_phone, `InkVistAR: Your reschedule request for [${bookingCode}] has been declined. Reason: ${adminNotes}. Your original appointment remains unchanged.`);
+            }
+
+            res.json({ success: true, message: 'Reschedule request rejected. Customer has been notified.' });
+          }
+        );
+      }
+    }
+  );
+});
+
 // ========== GALLERY ENDPOINT ==========
 // Get public gallery works (for customer gallery screen)
 app.get('/api/gallery/works', (req, res) => {
@@ -3895,7 +4257,8 @@ app.get('/api/admin/appointments', (req, res) => {
       ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
       ap.manual_payment_method,
       cust.profile_image as client_avatar,
-      (SELECT COALESCE(SUM(sm.quantity * i.cost), 0) FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ap.id AND sm.status != 'released') as total_material_cost
+      (SELECT COALESCE(SUM(sm.quantity * i.cost), 0) FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ap.id AND sm.status != 'released') as total_material_cost,
+      (SELECT COUNT(*) FROM reschedule_requests rr WHERE rr.appointment_id = ap.id AND rr.status = 'pending') as has_pending_reschedule_request
     FROM appointments ap
     JOIN users u_cust ON ap.customer_id = u_cust.id
     JOIN users u_art ON ap.artist_id = u_art.id
@@ -8878,6 +9241,38 @@ function startAftercareCron() {
   }, 1000 * 60);
 }
 
+// ========== RESCHEDULE REQUEST AUTO-EXPIRY ==========
+// Runs every minute: auto-rejects any pending reschedule request whose 24-hour window has elapsed
+function startRescheduleRequestExpiry() {
+  setInterval(() => {
+    db.query(
+      `SELECT rr.*, u.name as customer_name, a.booking_code, a.appointment_date
+       FROM reschedule_requests rr
+       JOIN users u ON rr.customer_id = u.id
+       JOIN appointments a ON rr.appointment_id = a.id
+       WHERE rr.status = 'pending' AND rr.expires_at <= NOW()`,
+      (err, expired) => {
+        if (err || !expired || !expired.length) return;
+
+        console.log(`⏰ Auto-expiring ${expired.length} reschedule request(s)...`);
+
+        expired.forEach(req => {
+          // Mark as expired
+          db.query(`UPDATE reschedule_requests SET status = 'expired', decided_at = NOW() WHERE id = ?`, [req.id]);
+
+          const bookingCode = req.booking_code || `#${req.appointment_id}`;
+          const originalDateStr = new Date(req.appointment_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+          // Notify customer
+          createNotification(req.customer_id, 'Reschedule Request Expired ⏰', `Your reschedule request for [${bookingCode}] has expired because no action was taken within 24 hours. Your original appointment on ${originalDateStr} remains unchanged.`, 'reschedule_expired', req.appointment_id);
+
+          console.log(`⏰ Expired reschedule request #${req.id} for Appt #${req.appointment_id} (Customer: ${req.customer_name})`);
+        });
+      }
+    );
+  }, 60000); // every 1 minute
+}
+
 
 // ========== REVIEWS ENDPOINTS ==========
 
@@ -9414,4 +9809,5 @@ server.listen(PORT, '0.0.0.0', () => {
   startAppointmentReminders();
   startAftercareCron();
   startPayoutReminders();
+  startRescheduleRequestExpiry();
 });

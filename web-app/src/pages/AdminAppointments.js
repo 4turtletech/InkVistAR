@@ -91,8 +91,57 @@ function AdminAppointments() {
     const [archiveMode, setArchiveMode] = useState(false);
     const [archiveMaterials, setArchiveMaterials] = useState({ materials: [], totalCost: 0 });
 
+    // Reschedule Request state (admin decision panel)
+    const [pendingRescheduleRequest, setPendingRescheduleRequest] = useState(null);
+    const [rescheduleRequestDeciding, setRescheduleRequestDeciding] = useState(false);
+    const [rescheduleRequestNotes, setRescheduleRequestNotes] = useState('');
+
+    const fetchRescheduleRequest = async (appointmentId) => {
+        try {
+            const res = await Axios.get(`${API_URL}/api/admin/appointments/${appointmentId}/reschedule-request`);
+            if (res.data.success && res.data.request) {
+                setPendingRescheduleRequest(res.data.request);
+            } else {
+                setPendingRescheduleRequest(null);
+            }
+        } catch (e) {
+            setPendingRescheduleRequest(null);
+        }
+    };
+
+    const handleRescheduleRequestDecision = async (decision) => {
+        if (!pendingRescheduleRequest) return;
+        setRescheduleRequestDeciding(true);
+        try {
+            const user = JSON.parse(localStorage.getItem('user'));
+            const adminId = user ? user.id : 1;
+            // Backend expects 'approved' or 'rejected'
+            const backendDecision = decision === 'approve' ? 'approved' : 'rejected';
+            const res = await Axios.put(`${API_URL}/api/admin/reschedule-requests/${pendingRescheduleRequest.id}/decide`, {
+                decision: backendDecision,
+                adminNotes: rescheduleRequestNotes.trim() || null,
+                adminId
+            });
+            if (res.data.success) {
+                showAlert(
+                    decision === 'approve' ? 'Request Approved ✓' : 'Request Rejected',
+                    res.data.message,
+                    decision === 'approve' ? 'info' : 'warning'
+                );
+                setPendingRescheduleRequest(null);
+                setRescheduleRequestNotes('');
+                fetchAppointments();
+            }
+        } catch (err) {
+            showAlert('Error', err.response?.data?.message || 'Failed to process request.', 'danger');
+        } finally {
+            setRescheduleRequestDeciding(false);
+        }
+    };
+
     // Validation state
     const [errors, setErrors] = useState({});
+
 
     const validateField = (field, value, currentState = formData) => {
         let errorMsg = "";
@@ -243,7 +292,8 @@ function AdminAppointments() {
                         isReferral: !!apt.is_referral,
                         sessionDuration: apt.session_duration || null,
                         auditLog: apt.audit_log || null,
-                        totalCost: apt.total_material_cost || 0
+                        totalCost: apt.total_material_cost || 0,
+                        hasPendingRescheduleRequest: apt.has_pending_reschedule_request > 0
                     };
                 });
                 setAppointments(mappedAppointments);
@@ -549,6 +599,10 @@ function AdminAppointments() {
             quotedPrice: appointment.quotedPrice || ''
         };
         openModal();
+        // Fetch any pending reschedule request for this appointment
+        setPendingRescheduleRequest(null);
+        setRescheduleRequestNotes('');
+        fetchRescheduleRequest(appointment.id);
     };
 
     // handleDelete deprecated — replaced by Reschedule flow
@@ -1163,9 +1217,20 @@ function AdminAppointments() {
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-                                        <span className={`badge status-${getStatusColor(apt.status)}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
-                                            {apt.status}
-                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span className={`badge status-${getStatusColor(apt.status)}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
+                                                {apt.status}
+                                            </span>
+                                            {apt.hasPendingRescheduleRequest && (
+                                                <span style={{
+                                                    padding: '2px 6px', borderRadius: '6px', fontSize: '0.6rem',
+                                                    fontWeight: 700, background: '#fffbeb', color: '#d97706',
+                                                    border: '1px solid #fde68a'
+                                                }}>
+                                                    🔄
+                                                </span>
+                                            )}
+                                        </div>
                                         <span style={{ color: '#6366f1', fontWeight: '600', fontSize: '0.85rem' }}>{apt.start_time || apt.time}</span>
                                     </div>
                                 </div>
@@ -1369,9 +1434,22 @@ function AdminAppointments() {
                                                     <td>{appointment.date}</td>
                                                     <td>{appointment.time}</td>
                                                     <td>
-                                                        <span className={`badge status-${getStatusColor(appointment.status || 'pending')}`}>
-                                                            {appointment.status}
-                                                        </span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                            <span className={`badge status-${getStatusColor(appointment.status || 'pending')}`}>
+                                                                {appointment.status}
+                                                            </span>
+                                                            {appointment.hasPendingRescheduleRequest && (
+                                                                <span style={{
+                                                                    display: 'inline-flex', alignItems: 'center', gap: '3px',
+                                                                    padding: '2px 8px', borderRadius: '6px', fontSize: '0.65rem',
+                                                                    fontWeight: 700, background: '#fffbeb', color: '#d97706',
+                                                                    border: '1px solid #fde68a', whiteSpace: 'nowrap',
+                                                                    animation: 'pulse 2s ease-in-out infinite'
+                                                                }}>
+                                                                    🔄 Resched.
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td>
                                                         {appointment.paymentStatus === 'paid' ? (
@@ -1688,6 +1766,96 @@ function AdminAppointments() {
                                 <button className="close-btn" onClick={() => closeModal()}><X size={24} /></button>
                             </div>
                             <div className="modal-body">
+                                {/* Reschedule Request Decision Panel */}
+                                {pendingRescheduleRequest && pendingRescheduleRequest.status === 'pending' && (
+                                    <div style={{
+                                        margin: '0 0 20px',
+                                        padding: '16px 20px',
+                                        borderRadius: '12px',
+                                        background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                                        border: '1px solid #fde68a',
+                                        boxShadow: '0 2px 8px rgba(245, 158, 11, 0.15)',
+                                        animation: 'fadeIn 0.3s ease'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                                            <div style={{
+                                                width: '40px', height: '40px', borderRadius: '50%',
+                                                background: '#fef3c7', border: '2px solid #f59e0b',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                            }}>
+                                                <Clock size={20} color="#d97706" />
+                                            </div>
+                                            <div>
+                                                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#92400e' }}>
+                                                    🔄 Reschedule Request Pending
+                                                </div>
+                                                <div style={{ fontSize: '0.8rem', color: '#b45309' }}>
+                                                    From: <strong>{pendingRescheduleRequest.customer_name}</strong> — submitted {new Date(pendingRescheduleRequest.created_at).toLocaleString()}
+                                                </div>
+                                            </div>
+                                            {pendingRescheduleRequest.seconds_remaining > 0 && (
+                                                <div style={{
+                                                    marginLeft: 'auto', padding: '4px 12px', borderRadius: '8px',
+                                                    background: '#fef3c7', border: '1px solid #fcd34d',
+                                                    fontSize: '0.8rem', fontWeight: 700, color: '#d97706', whiteSpace: 'nowrap'
+                                                }}>
+                                                    ⏱ {Math.floor(pendingRescheduleRequest.seconds_remaining / 3600)}h {Math.floor((pendingRescheduleRequest.seconds_remaining % 3600) / 60)}m left
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.8)', border: '1px solid #fde68a' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Requested Date</div>
+                                                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                                                    {new Date(pendingRescheduleRequest.requested_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                                                    {pendingRescheduleRequest.requested_time && ` at ${pendingRescheduleRequest.requested_time}`}
+                                                </div>
+                                            </div>
+                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.8)', border: '1px solid #fde68a' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reason</div>
+                                                <div style={{ fontSize: '0.9rem', color: '#1e293b' }}>{pendingRescheduleRequest.reason}</div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ marginBottom: '12px' }}>
+                                            <label style={{ fontSize: '0.8rem', color: '#92400e', fontWeight: 600, display: 'block', marginBottom: '6px' }}>Admin Notes (optional)</label>
+                                            <textarea
+                                                value={rescheduleRequestNotes}
+                                                onChange={(e) => setRescheduleRequestNotes(e.target.value)}
+                                                placeholder="Add a note for the customer (visible if rejected)..."
+                                                rows={2}
+                                                maxLength={500}
+                                                style={{
+                                                    width: '100%', padding: '8px 12px', borderRadius: '8px',
+                                                    border: '1px solid #fde68a', fontSize: '0.85rem', color: '#1e293b',
+                                                    background: 'rgba(255,255,255,0.9)', resize: 'vertical',
+                                                    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box'
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                            <button
+                                                className="btn btn-secondary"
+                                                disabled={rescheduleRequestDeciding}
+                                                onClick={() => handleRescheduleRequestDecision('reject')}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#dc2626', borderColor: '#fca5a5', background: '#fef2f2' }}
+                                            >
+                                                <X size={16} /> Reject Request
+                                            </button>
+                                            <button
+                                                className="btn btn-primary"
+                                                disabled={rescheduleRequestDeciding}
+                                                onClick={() => handleRescheduleRequestDecision('approve')}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#16a34a', border: 'none' }}
+                                            >
+                                                <Check size={16} /> {rescheduleRequestDeciding ? 'Processing...' : 'Approve & Reschedule'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {modalTab === 'details' && (
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', alignItems: 'stretch' }}>
                                         {/* Left Column: People & Service */}
