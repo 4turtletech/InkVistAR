@@ -1383,10 +1383,6 @@ function sendReceiptEmail(customerEmail, invoiceData) {
     </div>
 
     <p style="margin:0 0 20px;color:#94a3b8;font-size:13px;text-align:center;">Thank you for choosing InkVictus Tattoo Studio. Your invoice is available in your account notifications.</p>
-
-    <p style="margin:16px 0 0;padding:12px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:8px;font-size:12px;color:#f59e0b;text-align:center;">
-      📧 Please also check your Spam/Junk folder for invoices and booking status emails.
-    </p>
   `;
 
   const emailHtml = buildEmailHtml(contentHtml);
