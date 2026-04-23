@@ -327,7 +327,7 @@ function AnalyticsAuditModal({
                                                 <Cell key={i} fill={RAINBOW_PALETTE[i % RAINBOW_PALETTE.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v) => ['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? v : `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} />
+                                        <Tooltip formatter={(v, name) => ['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? [v, name] : [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>

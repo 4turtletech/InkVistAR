@@ -395,7 +395,7 @@ function AdminAnalytics() {
                                                             <Pie data={analytics.revenue.breakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value" label={renderPieLabel} labelLine={true}>
                                                                 {analytics.revenue.breakdown.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[i % RAINBOW_PALETTE.length]} />)}
                                                             </Pie>
-                                                            <Tooltip formatter={(value) => `₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} />
+                                                            <Tooltip formatter={(value, name) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} />
                                                             <Legend />
                                                         </PieChart>
                                                     </ResponsiveContainer>
@@ -420,7 +420,7 @@ function AdminAnalytics() {
                                                             <Pie data={analytics.styles.map(s => ({ name: s.name, value: Number(s.count) || 0 }))} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={true}>
                                                                 {analytics.styles.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[(i * 2) % RAINBOW_PALETTE.length]} />)}
                                                             </Pie>
-                                                            <Tooltip formatter={(v) => `${v} works`} />
+                                                            <Tooltip formatter={(v, name) => [`${v} works`, name]} />
                                                             <Legend wrapperStyle={{ color: '#171516' }} />
                                                         </PieChart>
                                                     </ResponsiveContainer>
@@ -445,7 +445,7 @@ function AdminAnalytics() {
                                                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                                             <XAxis type="number" tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
                                                             <YAxis dataKey="name" type="category" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
-                                                            <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+                                                            <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} />
                                                             <Bar dataKey="revenue" name="Revenue" fill={RAINBOW_PALETTE[4]} radius={[0, 6, 6, 0]} barSize={24}>
                                                                {analytics.artists.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[index % RAINBOW_PALETTE.length]} />)}
                                                             </Bar>
@@ -530,7 +530,7 @@ function AdminAnalytics() {
                                                             <Cell fill={RAINBOW_PALETTE[0]} />
                                                             <Cell fill={RAINBOW_PALETTE[1]} />
                                                         </Pie>
-                                                        <Tooltip />
+                                                        <Tooltip formatter={(v, name) => [v, name]} />
                                                         <Legend />
                                                     </PieChart>
                                                 </ResponsiveContainer>

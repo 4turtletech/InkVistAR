@@ -28,7 +28,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                             <Pie data={analytics.revenue.breakdown} cx="50%" cy="50%" innerRadius={25} outerRadius={50} paddingAngle={2} dataKey="value">
                                 {analytics.revenue.breakdown.map((_, i) => <Cell key={i} fill={['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4]} />)}
                             </Pie>
-                            <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
+                            <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
@@ -80,7 +80,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                             <Pie data={analytics.overhead.breakdown} cx="50%" cy="50%" innerRadius={25} outerRadius={50} paddingAngle={2} dataKey="value">
                                 {analytics.overhead.breakdown.map((_, i) => <Cell key={i} fill={['#8b5cf6', '#a855f7', '#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'][i % 8]} />)}
                             </Pie>
-                            <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
+                            <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
@@ -114,7 +114,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                                 <Cell fill="#3b82f6" />
                                 <Cell fill="#ef4444" />
                             </Pie>
-                            <Tooltip contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
+                            <Tooltip formatter={(v, name) => [v, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                     <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
@@ -142,12 +142,12 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                             { name: 'Admins', count: Number(analytics.users?.admins) || 0 }
                         ]} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                             <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
-                            <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={36}>
+                            <Bar dataKey="count" name="Users" radius={[4, 4, 0, 0]} barSize={36}>
                                 <Cell fill="#3b82f6" />
                                 <Cell fill="#a855f7" />
                                 <Cell fill="#f59e0b" />
                             </Bar>
-                            <Tooltip contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
+                            <Tooltip formatter={(v, name) => [v, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </BarChart>
                     </ResponsiveContainer>
                     <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
@@ -170,10 +170,10 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                 <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px' }}>
                     <ResponsiveContainer>
                         <BarChart data={analytics.artists.slice(0, 5)} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                            <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
+                            <Bar dataKey="revenue" name="Revenue" radius={[4, 4, 0, 0]}>
                                 {analytics.artists.slice(0, 5).map((_, i) => <Cell key={i} fill={['#f97316', '#a855f7', '#3b82f6', '#10b981', '#ec4899'][i % 5]} />)}
                             </Bar>
-                            <Tooltip formatter={(v) => `₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
+                            <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

@@ -307,7 +307,7 @@ function ArtistEarnings() {
                                                         <Cell key={i} fill={entry.name === 'Paid' ? PAYMENT_COLORS.paid : PAYMENT_COLORS.unpaid} />
                                                     ))}
                                                 </Pie>
-                                                <Tooltip formatter={(value) => formatCurrency(value)} />
+                                                <Tooltip formatter={(value, name) => [formatCurrency(value), name]} />
                                                 <Legend />
                                             </PieChart>
                                         </ResponsiveContainer>
