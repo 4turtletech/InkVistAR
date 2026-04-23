@@ -53,65 +53,82 @@
 
 .pos-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
 }
 
 .pos-card {
     background: white;
-    padding: 1.5rem;
-    border-radius: 16px;
+    padding: 0.85rem;
+    border-radius: 14px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    cursor: cell;
-    transition: all 0.2s;
+    cursor: pointer;
+    transition: all 0.15s ease-out;
     border: 1px solid #f1f5f9;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
 }
 
 .pos-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-2px);
     border-color: #be9055;
-    box-shadow: 0 12px 20px -8px rgba(190, 144, 85, 0.15);
+    box-shadow: 0 8px 15px -5px rgba(190, 144, 85, 0.15);
 }
 
 .pos-card-icon {
-    width: 48px;
-    height: 48px;
+    width: 36px;
+    height: 36px;
     background: #f1f5f9;
-    border-radius: 12px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     color: #475569;
 }
 
+.pos-card-info {
+    width: 100%;
+}
+
 .pos-card-info h3 {
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.15rem;
     color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
 }
 
 .pos-category {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: #64748b;
+    display: block;
+    margin-bottom: 0.5rem;
 }
 
 .pos-card-footer {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    margin-top: 1rem;
+    gap: 4px;
+    margin-top: 0;
 }
 
 .pos-price {
-    font-weight: 700;
+    font-weight: 800;
     color: #1e293b;
+    font-size: 0.95rem;
 }
 
 .pos-stock {
-    font-size: 0.75rem;
-    padding: 4px 10px;
+    font-size: 0.65rem;
+    padding: 2px 6px;
     background: #f8fafc;
     border-radius: 20px;
     color: #64748b;
@@ -125,21 +142,20 @@
 
 .low-stock-indicator {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: #ef4444;
-    background: #fef2f2;
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 3px;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0;
+    color: transparent;
+    background: #ef4444;
+    padding: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: block;
 }
 
 .pos-sidebar {
-    width: 400px;
+    width: 340px;
     background: #ffffff;
     border-left: 1px solid #e2e8f0;
     display: flex;
