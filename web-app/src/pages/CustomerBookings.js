@@ -1452,7 +1452,7 @@ function CustomerBookings(){
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', flex: 1, minHeight: 0 }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
                                                 <div className="form-group" style={{ marginBottom: 0 }}>
-                                                    <label className="customer-st-67198c20" >Idea Name <span style={{ color: '#ef4444', fontWeight: '400' }}>*</span></label>
+                                                    <label className="customer-st-67198c20" >Concept Name <span style={{ color: '#ef4444', fontWeight: '400' }}>*</span></label>
                                                     <input 
                                                         type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
                                                         name="designTitle"
