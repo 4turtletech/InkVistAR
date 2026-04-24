@@ -2,10 +2,9 @@ import './CustomerStyles.css';
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package, RefreshCw, Sparkles, AlertTriangle, Droplets, Palette, PenTool, Gem, ArrowRight, Shield } from 'lucide-react';
+import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package, RefreshCw, Sparkles, AlertTriangle, Droplets, Palette, PenTool, Gem, ArrowRight, Shield, MessageSquare } from 'lucide-react';
 import './PortalStyles.css';
 import CustomerSideNav from '../components/CustomerSideNav';
-import CustomerReportsWidget from '../components/CustomerReportsWidget';
 import { API_URL } from '../config';
 
 function CustomerPortal() {
@@ -492,8 +491,21 @@ function CustomerPortal() {
                                 </div>
                             </div>
 
-                            {/* Reports & Feedback Widget */}
-                            <CustomerReportsWidget customerId={customerId} />
+                            {/* Reports & Feedback — Quick Access Card */}
+                            <div
+                                className="action-card-v2 glass-card"
+                                onClick={() => navigate('/customer/reports')}
+                                style={{ marginTop: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px', padding: '20px 24px' }}
+                            >
+                                <div className="action-icon-wrapper" style={{ background: 'rgba(190,144,85,0.12)' }}>
+                                    <MessageSquare size={22} color="#be9055" />
+                                </div>
+                                <div className="action-content-v2" style={{ flex: 1 }}>
+                                    <span className="action-title-v2">Reports & Feedback</span>
+                                    <span className="action-subtitle-v2">Submit bug reports or share your feedback</span>
+                                </div>
+                                <ArrowRight size={18} color="#94a3b8" />
+                            </div>
                         </>
                     )}
                 </div>

@@ -104,7 +104,7 @@ function CustomerSideNav() {
         { label: 'Dashboard', icon: LayoutDashboard, path: '/customer' },
         { label: 'My Bookings', icon: Calendar, path: '/customer/bookings' },
         { label: 'Gallery', icon: Image, path: '/customer/gallery' },
-        { label: 'Try-On Tattoo', icon: Sparkles, path: '/customer/try-on' },
+        { label: 'Try-On Tattoo', icon: Sparkles, path: '/customer/try-on', disabled: true },
         { label: 'Notifications', icon: Bell, path: '/customer/notifications' },
         { label: 'Profile', icon: User, path: '/customer/profile' },
     ];
@@ -149,11 +149,14 @@ function CustomerSideNav() {
                             return (
                                 <li key={index}>
                                     <button
-                                        className={`menu-item ${isActive ? 'active' : ''}`}
-                                        onClick={() => handleNavigate(item.path)}
+                                        className={`menu-item ${isActive ? 'active' : ''}${item.disabled ? ' disabled' : ''}`}
+                                        onClick={() => !item.disabled && handleNavigate(item.path)}
+                                        style={item.disabled ? { opacity: 0.45, cursor: 'not-allowed' } : {}}
+                                        title={item.disabled ? 'Coming Soon' : ''}
                                     >
                                         <Icon size={20} />
                                         <span className="menu-text">{item.label}</span>
+                                        {item.disabled && <span style={{ fontSize: '0.6rem', background: 'rgba(190,144,85,0.15)', color: '#be9055', padding: '1px 6px', borderRadius: '8px', marginLeft: 'auto', fontWeight: 600, letterSpacing: '0.3px' }}>SOON</span>}
                                         {item.label === 'Notifications' && unreadNotifCount > 0 && (
                                             <span className="notification-badge">{unreadNotifCount > 99 ? '99+' : unreadNotifCount}</span>
                                         )}
