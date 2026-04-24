@@ -18,7 +18,7 @@ import { getDisplayCode } from '../utils/formatters';
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
     User, Calendar, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
-    Eye, EyeOff, Camera
+    Eye, EyeOff, Camera, ChevronUp, ChevronDown
 } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
@@ -1134,7 +1134,7 @@ function AdminUsers() {
                                                                         <td>{isSession ? record.design_title : (record.service_type || record.design_title || '—')}</td>
                                                                         <td><span className={`status-badge ${record.status}`}>{(record.status || '').toUpperCase()}</span></td>
                                                                         <td style={{ textAlign: 'center', color: '#be9055', fontSize: '0.8rem', userSelect: 'none' }}>
-                                                                            {isExpanded ? '▲' : '▼'}
+                                                                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                                                         </td>
                                                                     </tr>
                                                                     {isExpanded && (

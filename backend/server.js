@@ -6440,9 +6440,9 @@ app.post('/api/appointments/:id/release-material', (req, res) => {
       // Deep diagnostic: why wasn't it found?
       db.query('SELECT status FROM session_materials WHERE id = ?', [materialId], (checkErr, checkRes) => {
         if (!checkErr && checkRes.length > 0) {
-          console.warn(`核心 DEBUG: Material #${materialId} found but status is '${checkRes[0].status}', not 'hold'. This is why the release failed.`);
+          console.warn(`[Core] DEBUG: Material #${materialId} found but status is '${checkRes[0].status}', not 'hold'. This is why the release failed.`);
         } else {
-          console.warn(`核心 DEBUG: Material ID #${materialId} does not exist in session_materials at all.`);
+          console.warn(`[Core] DEBUG: Material ID #${materialId} does not exist in session_materials at all.`);
         }
       });
 

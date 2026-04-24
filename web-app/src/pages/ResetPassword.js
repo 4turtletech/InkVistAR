@@ -62,7 +62,7 @@ function ResetPassword() {
             <div className="reset-card" style={{ width: '90%', maxWidth: '450px' }}>
                 <div className="reset-header">
                     <h1 className="reset-logo">INKVICTUS TATTOO</h1>
-                    <p className="reset-tagline">BGC’s Premier Luxury Tattoo Studio</p>
+                    <p className="reset-tagline">BGC's Premier Luxury Tattoo Studio</p>
                 </div>
 
                 <h2 className="reset-title">Reset Password</h2>

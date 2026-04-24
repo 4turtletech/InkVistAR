@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { COUNTRY_CODES } from '../constants/countryCodes';
 
 /**
@@ -89,10 +90,11 @@ function CountryCodeSelect({ value, onChange, style, className }) {
                     top: '50%',
                     transform: `translateY(-50%) rotate(${open ? '180deg' : '0deg'})`,
                     transition: 'transform 0.2s',
-                    fontSize: '0.65rem',
                     color: '#94a3b8',
-                    pointerEvents: 'none'
-                }}>▼</span>
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center'
+                }}><ChevronDown size={14} /></span>
             </button>
 
             {/* Dropdown panel */}

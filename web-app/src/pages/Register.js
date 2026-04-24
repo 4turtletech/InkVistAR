@@ -238,7 +238,7 @@ function Register() {
         <div className="login-card" style={{ width: '90%', maxWidth: '520px', margin: '0 auto' }}>
           <div className="login-header">
             <h1 className="login-logo" style={{ fontSize: '1.2rem' }}>INKVICTUS TATTOO</h1>
-            <p className="login-tagline">BGC’s Premier Luxury Tattoo Studio</p>
+            <p className="login-tagline">BGC's Premier Luxury Tattoo Studio</p>
           </div>
 
           <h2 className="login-title" style={{ fontSize: '1.1rem', marginTop: '1.5rem' }}>Create Account</h2>
