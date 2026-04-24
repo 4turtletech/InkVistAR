@@ -278,7 +278,7 @@ function CustomerProfile() {
                                             </div>
                                         )}
                                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                            <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#be9055', border: 'none' }} onClick={() => { setOriginalProfile({ ...profile }); setIsEditing(true); }}>
+                                            <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#be9055', border: 'none', color: 'white' }} onClick={() => { setOriginalProfile({ ...profile }); setIsEditing(true); }}>
                                                 <Edit2 size={16} /> Edit Profile
                                             </button>
                                         </div>
@@ -424,7 +424,7 @@ function CustomerProfile() {
                                         {/* Save Bar */}
                                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '16px', borderTop: '2px solid #f1f5f9' }}>
                                             <button type="button" className="btn btn-secondary" onClick={() => { if (originalProfile) setProfile(originalProfile); setIsEditing(false); }}>Cancel</button>
-                                            <button type="submit" className="btn btn-primary" disabled={saving} style={{ backgroundColor: '#be9055', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <button type="submit" className="btn btn-primary" disabled={saving} style={{ backgroundColor: '#be9055', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', color: 'white' }}>
                                                 {saving ? 'Saving...' : <><Save size={18} /> Save All Changes</>}
                                             </button>
                                         </div>

@@ -774,7 +774,7 @@ function AdminPOS() {
                                     <button 
                                         className="checkout-btn"
                                         onClick={handleNewSale}
-                                        style={{ width: 'auto', padding: '0 28px', height: '48px', fontSize: '1rem', background: '#10b981', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
+                                        style={{ width: 'auto', padding: '0 28px', height: '48px', fontSize: '1rem', background: '#10b981', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
                                     >
                                         <RotateCcw size={18} /> New Sale
                                     </button>

@@ -1575,7 +1575,7 @@ function CustomerBookings(){
                                             className="btn btn-primary"
                                             disabled={isSubmittingRequest}
                                             onClick={handleSubmitRescheduleRequest}
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minWidth: '160px', background: '#d97706' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minWidth: '160px', background: '#d97706', color: 'white' }}
                                         >
                                             {isSubmittingRequest ? 'Submitting...' : <><Clock size={16}/> Submit Request</>}
                                         </button>
@@ -1680,7 +1680,7 @@ function CustomerBookings(){
                                     className="btn btn-primary"
                                     disabled={!rescheduleRequestData.date || !rescheduleRequestData.reason || (rescheduleRequestData.reason === 'Other' && !rescheduleRequestData.reasonText.trim())}
                                     onClick={() => setShowRequestConfirm(true)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: (!rescheduleRequestData.date || !rescheduleRequestData.reason) ? 0.5 : 1, background: '#d97706' }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: (!rescheduleRequestData.date || !rescheduleRequestData.reason) ? 0.5 : 1, background: '#d97706', color: 'white' }}
                                 >
                                     <Clock size={16}/> Submit Request
                                 </button>

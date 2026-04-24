@@ -1637,7 +1637,7 @@ function AdminUsers() {
                                 <button 
                                     className="btn btn-primary" 
                                     onClick={submitStatusChange}
-                                    style={{ backgroundColor: statusFormData.status === 'banned' ? '#ef4444' : '#10b981' }}
+                                    style={{ backgroundColor: statusFormData.status === 'banned' ? '#ef4444' : '#10b981', color: 'white' }}
                                 >
                                     Confirm Status Change
                                 </button>
