@@ -2,11 +2,11 @@
 :root {
     --sidenav-bg: #1a1416;
     --sidenav-hover: rgba(255, 255, 255, 0.08);
-    --sidenav-active-bg: rgba(212, 175, 55, 0.15);
-    --sidenav-active-text: #d4af37;
+    --sidenav-active-bg: rgba(190, 144, 85, 0.15);
+    --sidenav-active-text: #be9055;
     --sidenav-text: rgba(255, 255, 255, 0.85);
-    --sidenav-header-text: #d4af37;
-    --accent-color: #d4af37;
+    --sidenav-header-text: #be9055;
+    --accent-color: #be9055;
 }
 
 .artist-sidenav {
@@ -186,7 +186,7 @@
     height: 18px;
     background-color: var(--accent-color);
     border-radius: 0 4px 4px 0;
-    box-shadow: 2px 0 8px rgba(212, 175, 55, 0.5);
+    box-shadow: 2px 0 8px rgba(190, 144, 85, 0.5);
 }
 
 .menu-section-bottom {

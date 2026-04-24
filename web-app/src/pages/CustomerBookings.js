@@ -1315,12 +1315,11 @@ function CustomerBookings(){
                                 </div>
                             )}
                         </div>
-                        <div className="modal-footer customer-st-14ad7875" >
-                            <button className="btn btn-secondary customer-st-282aded5" onClick={() => setIsModalOpen(false)}>Close</button>
+                        <div className="modal-footer modal-footer-spaced" >
+                            <button className="btn btn-secondary btn-close-modal" onClick={() => setIsModalOpen(false)}>Close</button>
                             {selectedApt.waiver_accepted_at && (
                                 <button
-                                    className="btn btn-secondary"
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(190,144,85,0.12), rgba(190,144,85,0.06))', color: '#92400e', borderColor: 'rgba(190,144,85,0.3)' }}
+                                    className="btn btn-secondary btn-action-waiver"
                                     onClick={() => window.open(`/customer/waiver/${selectedApt.id}`, '_blank')}
                                 >
                                     <ShieldCheck size={16} /> View Waiver
@@ -1329,15 +1328,7 @@ function CustomerBookings(){
                             
                             {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && (
                                 <button 
-                                    className="btn btn-secondary" 
-                                    style={{ 
-                                        display: 'flex', alignItems: 'center', gap: '6px', 
-                                        border: `1px solid ${(selectedApt.reschedule_count || 0) >= 1 ? '#cbd5e1' : '#6366f1'}`, 
-                                        color: (selectedApt.reschedule_count || 0) >= 1 ? '#94a3b8' : '#6366f1', 
-                                        background: (selectedApt.reschedule_count || 0) >= 1 ? '#f1f5f9' : '#eef2ff',
-                                        cursor: (selectedApt.reschedule_count || 0) >= 1 ? 'not-allowed' : 'pointer',
-                                        opacity: (selectedApt.reschedule_count || 0) >= 1 ? 0.6 : 1
-                                    }}
+                                    className={`btn btn-secondary btn-action-reschedule ${(selectedApt.reschedule_count || 0) >= 1 ? 'disabled-state' : ''}`}
                                     onClick={() => handleOpenReschedule(selectedApt)}
                                 >
                                     <CalendarDays size={16}/> Reschedule{(selectedApt.reschedule_count || 0) >= 1 ? ' (Used)' : ''}
@@ -1352,8 +1343,7 @@ function CustomerBookings(){
                             {/* Standard Cancel (only for pending, unpaid, after deadline) */}
                             {selectedApt.status.toLowerCase() === 'pending' && !isWithinGracePeriod(selectedApt) && (
                                 <button 
-                                    className="btn btn-secondary" 
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #ef4444', color: '#ef4444', background: '#fef2f2' }}
+                                    className="btn btn-secondary btn-action-cancel" 
                                     onClick={() => handleCancelBooking(selectedApt)}
                                 >
                                     <X size={16}/> Cancel Booking
@@ -1361,15 +1351,14 @@ function CustomerBookings(){
                             )}
                             
                             {(['pending', 'confirmed', 'scheduled'].includes(selectedApt.status.toLowerCase())) && selectedApt.price > 0 && selectedApt.payment_status === 'unpaid' && (
-                                <button className="btn btn-primary customer-st-9fb0229b" style={{ color: 'white' }} onClick={() => handlePay(selectedApt)} >
+                                <button className="btn btn-primary btn-action-pay-deposit" onClick={() => handlePay(selectedApt)} >
                                     <CreditCard size={18}/> Pay Deposit
                                 </button>
                             )}
                             
                             {selectedApt.payment_status === 'downpayment_paid' && (
                                 <button 
-                                    className="btn btn-primary" 
-                                    style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#be9055', color: 'white', border: 'none' }}
+                                    className="btn btn-primary btn-action-pay-balance" 
                                     onClick={() => handlePay(selectedApt, 'balance')}
                                 >
                                     <CreditCard size={18}/> Pay Remaining Balance
@@ -1377,7 +1366,7 @@ function CustomerBookings(){
                             )}
                             
                             {selectedApt.payment_status === 'paid' && selectedApt.price > 0 && (
-                                <div className="status-badge-v2 confirmed customer-st-472abd65" >
+                                <div className="status-badge-v2 confirmed badge-fully-paid" >
                                     <CheckCircle size={18}/> Fully Paid
                                 </div>
                             )}

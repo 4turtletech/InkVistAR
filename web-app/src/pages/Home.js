@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './Home.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
@@ -22,7 +22,7 @@ const FEATURED_ARTISTS = [
 
 function Home() {
     const navigate = useNavigate();
-    const location = useLocation();
+
 
     // Intersection Observer for scroll animations
     const useScrollFade = () => {
@@ -36,9 +36,10 @@ function Home() {
                 },
                 { threshold: 0.1 }
             );
-            if (ref.current) observer.observe(ref.current);
+            const currentRef = ref.current;
+            if (currentRef) observer.observe(currentRef);
             return () => {
-                if (ref.current) observer.unobserve(ref.current);
+                if (currentRef) observer.unobserve(currentRef);
             };
         }, []);
         return ref;

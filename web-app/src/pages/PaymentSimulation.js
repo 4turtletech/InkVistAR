@@ -94,14 +94,7 @@ const PaymentSimulation = () => {
         marginBottom: '24px',
     };
     
-    const inputStyles = {
-        width: '100%',
-        padding: '12px',
-        border: '1px solid #d1d5db',
-        borderRadius: '6px',
-        fontSize: '16px',
-        boxSizing: 'border-box', // Important for padding and width to work together
-    };
+
 
     const buttonStyles = {
         width: '100%',

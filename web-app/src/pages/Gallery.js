@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../config';
 import './Gallery.css';
 import Navbar from '../components/Navbar';
@@ -18,7 +18,7 @@ const Gallery = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [priceRange, setPriceRange] = useState({ min: 0, max: 500000 });
   const [showPriceFilter, setShowPriceFilter] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+
   const [debouncedPriceRange, setDebouncedPriceRange] = useState({ min: 0, max: 500000 });
 
   // Parse query params for artist filter
@@ -36,20 +36,9 @@ const Gallery = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const itemsPerPage = 12;
 
-  useEffect(() => {
-      const handleScroll = () => {
-          if (window.scrollY > 50) {
-              setIsScrolled(true);
-          } else {
-              setIsScrolled(false);
-          }
-      };
 
-      window.addEventListener('scroll', handleScroll);
-      return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Fetch categories from backend
   useEffect(() => {

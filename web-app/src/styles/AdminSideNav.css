@@ -2,7 +2,7 @@
 :root {
     --sidenav-bg: #1a1416;
     --sidenav-hover: rgba(255, 255, 255, 0.08);
-    --sidenav-active-bg: rgba(212, 175, 55, 0.15); /* Note: rgba can stay or be updated, but replacing exact hexes first */
+    --sidenav-active-bg: rgba(190, 144, 85, 0.15);
     --sidenav-active-text: #be9055;
     --sidenav-text: rgba(255, 255, 255, 0.85);
     --sidenav-header-text: #be9055;
@@ -165,7 +165,7 @@
     height: 18px;
     background-color: var(--accent-color);
     border-radius: 4px 0 0 4px;
-    box-shadow: -2px 0 8px rgba(212, 175, 55, 0.5);
+    box-shadow: -2px 0 8px rgba(190, 144, 85, 0.5);
 }
 
 .menu-item svg {

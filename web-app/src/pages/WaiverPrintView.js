@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Axios from 'axios';
-import { Printer, ArrowLeft, Download, FileWarning } from 'lucide-react';
+import { Printer, ArrowLeft } from 'lucide-react';
 import { API_URL } from '../config';
 import { getDisplayCode } from '../utils/formatters';
 

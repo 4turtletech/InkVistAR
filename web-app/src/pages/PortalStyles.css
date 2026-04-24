@@ -1230,6 +1230,86 @@ body.sidenav-collapsed .portal-layout .portal-container {
     border: 1px solid #e2e8f0;
 }
 
+/* Modal Footer Action Utilities */
+.modal-footer-spaced {
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
+}
+
+.btn-close-modal {
+    flex: 1;
+}
+
+.btn-action-waiver {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(190,144,85,0.12), rgba(190,144,85,0.06));
+    color: #92400e;
+    border: 1px solid rgba(190,144,85,0.3);
+}
+
+.btn-action-reschedule {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
+    cursor: pointer;
+}
+
+.btn-action-reschedule:disabled,
+.btn-action-reschedule.disabled-state {
+    border: 1px solid #cbd5e1 !important;
+    color: #94a3b8 !important;
+    background: #f1f5f9 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+}
+
+.btn-action-cancel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    background: #fef2f2;
+}
+
+.btn-action-pay-deposit {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+    flex: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-action-pay-balance {
+    background: #be9055;
+    color: white;
+    border: none;
+    flex: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.badge-fully-paid {
+    flex: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+}
+
 .glass-panel.danger {
     background: #fef2f2;
     border: 1px solid #fee2e2;

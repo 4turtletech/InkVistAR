@@ -5,10 +5,7 @@ import { API_URL } from '../config';
 import { 
     Receipt, 
     Calendar, 
-    CreditCard, 
-    ArrowRight,
     Search,
-    Download,
     ExternalLink,
     CheckCircle,
     Clock,
@@ -27,6 +24,7 @@ function CustomerTransactions() {
 
     useEffect(() => {
         fetchTransactions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchTransactions = async () => {

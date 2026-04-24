@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import Axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { API_URL } from '../config';
