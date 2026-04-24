@@ -333,9 +333,9 @@
 
 .artist-profile-picture-section {
     text-align: center;
-    margin-bottom: 30px;
-    padding: 20px;
-    background-color: #f8fafc;
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: transparent;
     border-radius: 12px;
 }
 

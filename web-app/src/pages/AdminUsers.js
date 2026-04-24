@@ -1037,8 +1037,12 @@ function AdminUsers() {
                         <div className="modal-content large" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
                                 <div className="admin-flex-center admin-gap-15">
-                                    <div className="admin-st-c911153f">
-                                        <User size={20} className="text-bronze" />
+                                    <div className="admin-st-c911153f" style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', border: '1px solid #e2e8f0' }}>
+                                        {clientDetails.profile?.profile_image ? (
+                                            <img src={clientDetails.profile.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <img src="/images/logo.png" alt="Inkvictus Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
+                                        )}
                                     </div>
                                     <div>
                                         <h2 className="admin-m-0">Client Profile: {selectedClient.name}</h2>
@@ -1263,8 +1267,12 @@ function AdminUsers() {
                         <div className="modal-content xl admin-st-980ed307" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <div className="admin-flex-center admin-gap-20">
-                                    <div className="admin-st-d84f98fc">
-                                        <User size={28} />
+                                    <div className="admin-st-d84f98fc" style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', border: '1px solid #e2e8f0' }}>
+                                        {artistDetails.profile?.profile_image ? (
+                                            <img src={artistDetails.profile.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <img src="/images/logo.png" alt="Inkvictus Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
+                                        )}
                                     </div>
                                     <div>
                                         <h2 className="admin-m-0">{selectedArtist.name}</h2>

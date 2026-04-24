@@ -295,8 +295,8 @@ function ArtistProfile() {
                                 <div className="artist-profile-picture-section">
                                     <div style={{ position: 'relative', display: 'inline-block' }}>
                                         <div style={{
-                                            width: '140px',
-                                            height: '140px',
+                                            width: '100px',
+                                            height: '100px',
                                             borderRadius: '50%',
                                             backgroundColor: '#e2e8f0',
                                             overflow: 'hidden',
@@ -380,7 +380,7 @@ function ArtistProfile() {
                                 <div style={{
                                     borderBottom: '2px solid #f1f5f9',
                                     paddingBottom: '16px',
-                                    marginBottom: '24px'
+                                    marginBottom: '16px'
                                 }}>
                                     <h3 style={{
                                         color: '#1e293b',
@@ -485,7 +485,7 @@ function ArtistProfile() {
                                 <div style={{
                                     borderBottom: '2px solid #f1f5f9',
                                     paddingBottom: '16px',
-                                    marginBottom: '24px'
+                                    marginBottom: '16px'
                                 }}>
                                     <h3 style={{
                                         color: '#1e293b',
@@ -544,7 +544,7 @@ function ArtistProfile() {
                                 </div>
 
                                 {/* Section 3: Password & Security */}
-                                <div style={{ marginBottom: '24px' }}>
+                                <div style={{ marginBottom: '16px' }}>
                                     <div style={{
                                         display: 'flex',
                                         justifyContent: 'space-between',

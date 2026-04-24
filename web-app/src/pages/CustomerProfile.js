@@ -241,7 +241,7 @@ function CustomerProfile() {
                                     <div>
                                         <div className="artist-profile-picture-section">
                                             <div style={{ position: 'relative', display: 'inline-block' }}>
-                                                <div style={{ width: '140px', height: '140px', borderRadius: '50%', backgroundColor: '#e2e8f0', overflow: 'hidden', border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <div style={{ width: '100px', height: '100px', borderRadius: '50%', backgroundColor: '#e2e8f0', overflow: 'hidden', border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     {profile.profile_image
                                                         ? <img src={profile.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                         : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', backgroundColor: '#cbd5e1', width: '100%' }}><User size={56} strokeWidth={1.5} /></div>
@@ -251,7 +251,7 @@ function CustomerProfile() {
                                             <h2 style={{ margin: '12px 0 4px', fontSize: '1.5rem', fontWeight: '700', color: '#1e293b' }}>{profile.name}</h2>
                                             <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}><Mail size={14} /> {profile.email}</p>
                                         </div>
-                                        <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '20px', marginBottom: '24px' }}>
+                                        <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '16px', marginBottom: '16px' }}>
                                             <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <User size={20} color="#be9055" /> Personal Information
                                             </h3>
@@ -289,7 +289,7 @@ function CustomerProfile() {
                                         <div className="artist-profile-picture-section">
                                             <div style={{ position: 'relative', display: 'inline-block' }}>
                                                 <div style={{
-                                                    width: '120px', height: '120px', borderRadius: '50%',
+                                                    width: '100px', height: '100px', borderRadius: '50%',
                                                     backgroundColor: '#e2e8f0', overflow: 'hidden',
                                                     border: '4px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -310,7 +310,7 @@ function CustomerProfile() {
                                         </div>
 
                                         {/* Section 1: Personal Information */}
-                                        <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '16px', marginBottom: '24px' }}>
+                                        <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '16px', marginBottom: '16px' }}>
                                             <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <User size={20} color="#be9055" /> Personal Information
                                             </h3>
