@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
-import { MessageSquare, Plus, X, Send, ChevronDown, ChevronUp, Clock, Paperclip, Bug, Lightbulb, Layout, HelpCircle, Image as ImageIcon } from 'lucide-react';
+import { MessageSquare, Plus, X, Send, ChevronDown, ChevronUp, Clock, Paperclip, Bug, Lightbulb, Layout, HelpCircle, Image as ImageIcon, Shield, UserCircle } from 'lucide-react';
 import './PortalStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -239,8 +239,8 @@ function CustomerReports() {
                             border: reply.sender_role === 'admin' ? '1px solid rgba(190,144,85,0.15)' : '1px solid #e2e8f0'
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: reply.sender_role === 'admin' ? '#be9055' : '#3b82f6' }}>
-                                {reply.sender_role === 'admin' ? '🛡️ InkVistAR Team' : '👤 You'}
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: reply.sender_role === 'admin' ? '#be9055' : '#3b82f6', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {reply.sender_role === 'admin' ? <><Shield size={13} /> InkVistAR Team</> : <><UserCircle size={13} /> You</>}
                               </span>
                               <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{timeAgo(reply.created_at)}</span>
                             </div>
@@ -291,10 +291,10 @@ function CustomerReports() {
                     <div className="form-group">
                       <label className="premium-label">Report Type</label>
                       <select className="premium-select-v2" value={form.report_type} onChange={e => setForm(p => ({ ...p, report_type: e.target.value }))} style={{ width: '100%' }}>
-                        <option value="bug">🐛 Bug Report</option>
-                        <option value="feature">💡 Feature Request</option>
-                        <option value="ui_ux">🎨 UI/UX Issue</option>
-                        <option value="general">💬 General Feedback</option>
+                        <option value="bug">Bug Report</option>
+                        <option value="feature">Feature Request</option>
+                        <option value="ui_ux">UI/UX Issue</option>
+                        <option value="general">General Feedback</option>
                       </select>
                     </div>
                     <div className="form-group">
