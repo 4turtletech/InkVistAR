@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, Mail } from 'lucide-react';
 import { API_URL } from '../config';
 import Navbar from '../components/Navbar';
 import './Login.css';
@@ -456,8 +456,8 @@ function Login() {
                                 ))}
                             </div>
                         </div>
-                        <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#94a3b8', margin: '12px 0 4px', lineHeight: 1.5 }}>
-                            📧 Please also check your <strong>Spam</strong> or <strong>Junk</strong> folder.
+                        <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#94a3b8', margin: '12px 0 4px', lineHeight: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                            <Mail size={14} /> Please also check your <strong>Spam</strong> or <strong>Junk</strong> folder.
                         </p>
                         <button type="submit" className="login-btn" disabled={loading || otp.join('').length < 6}>{loading ? 'Verifying...' : 'Verify OTP'}</button>
                         <div className="login-footer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -620,8 +620,8 @@ function Login() {
                                 ))}
                             </div>
                         </div>
-                        <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#94a3b8', margin: '12px 0 4px', lineHeight: 1.5 }}>
-                            📧 Please also check your <strong>Spam</strong> or <strong>Junk</strong> folder.
+                        <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#94a3b8', margin: '12px 0 4px', lineHeight: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                            <Mail size={14} /> Please also check your <strong>Spam</strong> or <strong>Junk</strong> folder.
                         </p>
                         <button type="submit" className="login-btn" disabled={loading || otp.join('').length < 6}>
                             {loading ? 'Verifying...' : 'Verify Account'}

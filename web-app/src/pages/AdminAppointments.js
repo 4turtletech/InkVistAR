@@ -127,7 +127,7 @@ function AdminAppointments() {
             });
             if (res.data.success) {
                 showAlert(
-                    decision === 'approve' ? 'Request Approved ✓' : 'Request Rejected',
+                    decision === 'approve' ? 'Request Approved' : 'Request Rejected',
                     res.data.message,
                     decision === 'approve' ? 'info' : 'warning'
                 );

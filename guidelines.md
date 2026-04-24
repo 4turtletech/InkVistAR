@@ -133,7 +133,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 | **users** | id, name, email, password_hash, user_type (admin/manager/artist/customer), phone, is_verified, is_deleted |
 | **artists** | user_id, studio_name, experience_years, specialization, hourly_rate, commission_rate, rating, total_reviews, profile_image, phone |
 | **customers** | user_id, phone, location, notes |
-| **appointments** | id, booking_code, customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, end_time, design_title, price, status, payment_status, before_photo, after_photo, session_duration, audit_log, is_deleted, guest_email, guest_phone |
+| **appointments** | id, booking_code, customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, end_time, service_type, design_title, price, manual_paid_amount, manual_payment_method, notes, reference_image, draft_image, before_photo, after_photo, status, payment_status, session_duration, audit_log, reschedule_count, device_id, consultation_method, guest_email, guest_phone, is_referral, consultation_notes, quoted_price, tattoo_price, piercing_price, is_deleted |
 | **portfolio_works** | id, artist_id, image_url, title, description, category, price_estimate, is_public |
 
 ### Commission & Revenue Split Rules
@@ -150,17 +150,26 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - **Applies to All Roles:** The first-login OTP verification applies to all user types (Customer, Artist, Admin) equally.
 - **Password Requirements:** All user creation (admin or self-register) enforces: minimum 8 characters, at least one uppercase letter, one lowercase letter, one number, and one special character (`@$!%*?&#`).
 | **notifications** | id, user_id, title, message, type, related_id, is_read |
-| **inventory** | id, name, category, current_stock, min_stock, max_stock, unit, cost, supplier |
-| **inventory_transactions** | id, inventory_id, type (in/out), quantity, reason |
+| **inventory** | id, name, category, current_stock, min_stock, max_stock, unit, cost, retail_price, supplier, image (LONGTEXT), last_restocked, is_deleted |
+| **inventory_transactions** | id, inventory_id, type (in/out), quantity, reason, user_id, item_price |
 | **service_kits** | id, service_type, inventory_id, default_quantity |
 | **session_materials** | id, appointment_id, inventory_id, quantity, status (hold/consumed/released) |
-| **payments** | id, appointment_id, paymongo_payment_id, amount, status |
+| **payments** | id, appointment_id, session_id, paymongo_payment_id, amount, currency, status, raw_event (JSON) |
 | **invoices** | id, invoice_number (INV-XXXXXX), customer_id, appointment_id, client_name, service_type, amount, payment_method, change_given, discount_amount, discount_type, status, items (JSON), created_at |
 | **payouts** | id, artist_id, amount, payout_method, reference_no, status |
 | **studio_expenses** | id, category (Inventory/Marketing/Bills/Payouts/Equipment/Licensing/Maintenance/Extras), description, amount, reference_id, created_by, created_at |
 | **branches** | id, name, address, operating_hours, current_occupancy, capacity |
 | **app_settings** | section (PK), data (JSON) |
-| **contact_messages** | id, name, email, phone, subject, message, is_read, created_at |
+| **contact_messages** | id, name, email, phone, subject, message, is_read, admin_reply, replied_at, status (new/replied/closed), created_at |
+| **reschedule_requests** | id, appointment_id, customer_id, requested_date, requested_time, reason, status (pending/approved/rejected/expired), admin_notes, decided_by, created_at, decided_at, expires_at |
+| **reviews** | id, customer_id, artist_id, appointment_id, rating (1–5), comment, status (pending/approved/rejected), is_showcased, created_at |
+| **aftercare_templates** | id, day_number (UNIQUE), title, message, phase (initial/peeling/healing), tips, created_at, updated_at |
+| **testimonials** | id, customer_name, content, rating, media_url (LONGTEXT), media_type (none/image/video), is_active, created_at |
+| **services** | id, name, description, duration_minutes, base_price, category, is_active, created_at |
+| **favorites** | id, user_id, work_id, created_at (UNIQUE: user_id + work_id) |
+| **support_messages** | id, room_id, sender, message, created_at |
+| **user_push_tokens** | id, user_id, token, platform (android), created_at, updated_at (UNIQUE: user_id + platform) |
+| **audit_logs** | id, user_id, action, details, ip_address, created_at |
 
 ---
 
@@ -175,7 +184,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `POST /api/artist/change-password` - Artist password change (requires currentPassword)
 - `POST /api/request-email-change` - Request email change OTP (sends code to current email)
 - `POST /api/confirm-email-change` - Confirm email change with OTP (updates email, revokes session, triggers re-verification)
-- `GET /api/verify` - Verify auth token
+- `GET /api/verify` - Verify auth token / Email verification landing page (token + email query params)
 
 ### Artist
 - `GET /api/artist/dashboard/:artistId` - Dashboard data (includes profile_image, phone, studio_name)
@@ -189,6 +198,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `PUT /api/artist/portfolio/:id` - Update work
 - `DELETE /api/artist/portfolio/:id` - Soft-delete work
 - `POST /api/artist/appointments` - Create appointment
+- `GET /api/artists/:id/reviews` - Get artist reviews (public)
 
 ### Customer
 - `GET /api/customer/profile/:id` - Get profile
@@ -199,8 +209,13 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `GET /api/customer/:customerId/transactions` - Payment history
 - `GET /api/customer/artists` - Browse artists
 - `POST /api/customer/appointments` - Create appointment
+- `PUT /api/customer/appointments/:id/cancel` - Customer-initiated cancellation (grace period or with reason)
+- `PUT /api/customer/appointments/:id/reschedule` - Direct reschedule (within grace period)
+- `POST /api/customer/appointments/:id/reschedule-request` - Submit reschedule request for admin approval
+- `GET /api/customer/appointments/:id/reschedule-request` - Check pending reschedule request status
 - `POST /api/customer/favorites` - Add favorite
 - `GET /api/customer/:userId/favorites` - Get favorites
+- `GET /api/customer/aftercare/:customerId` - Get aftercare progress for customer's completed tattoos
 - `POST /api/payments/create-checkout-session` - PayMongo checkout
 
 ### Admin
@@ -219,6 +234,32 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `GET /api/admin/pending-payment-alerts` - Completed sessions with outstanding balance (powers PaymentAlertOverlay polling)
 - `POST /api/admin/appointments/:id/manual-payment` - Record manual payment (Cash, GCash, Bank Transfer, etc.)
 - `POST /api/admin/billing/record-payment` - Record payment from Billing portal (mirrors manual-payment: creates invoice, updates payment_status, sends notification + receipt email)
+- `GET /api/admin/reschedule-requests` - List all pending reschedule requests
+- `GET /api/admin/appointments/:id/reschedule-request` - Get reschedule request for specific appointment
+- `PUT /api/admin/reschedule-requests/:requestId/decide` - Approve or reject a reschedule request
+- `GET /api/admin/aftercare-templates` - List all 30 aftercare templates
+- `PUT /api/admin/aftercare-templates/:id` - Update a specific aftercare template
+- `POST /api/admin/aftercare-templates/reset` - Reset all templates to defaults
+- `GET/POST/PUT/DELETE /api/admin/testimonials` - Testimonial management
+- `GET /api/admin/reviews` - List all reviews (with moderation status)
+- `PUT /api/admin/reviews/:id` - Update review status (approve/reject/showcase)
+- `POST /api/admin/broadcast-marketing-email` - Send marketing email blast
+- `GET/POST/DELETE /api/admin/expenses` - Studio expenses (overhead) CRUD
+- `PUT /api/admin/expenses/:id` - Update a studio expense entry
+
+### Manager
+- `GET /api/manager/dashboard` - Manager dashboard stats (subset of admin)
+
+### Reviews
+- `POST /api/reviews` - Submit a new review (customer → artist)
+- `GET /api/reviews/check/:appointmentId` - Check if review already exists for appointment
+- `GET /api/reviews` - List approved reviews (public)
+
+### Push Notifications
+- `PUT /api/users/:id/push-token` - Update user push token
+- `POST /api/push/register` - Register push token
+- `GET /api/push/debug/:userId` - Debug push token info
+- `POST /api/push/test-send/:userId` - Test push notification
 
 ### Shared
 - `GET /api/gallery/categories` - Gallery categories
@@ -234,11 +275,10 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - `POST /api/appointments/:id/release-material` - Release held materials
 - `POST /api/chat` - AI chatbot
 - `GET /api/ar/config` - AR configuration
-- `GET /api/verify` - Email verification landing page (token + email query params)
 - `GET /api/invoices/by-number/:invoiceNumber` - Get invoice by invoice number (for customer invoice view)
-- `GET /api/admin/expenses` - List all studio expenses (audit ledger)
-- `POST /api/admin/expenses` - Create a studio expense entry (category, description, amount)
-- `DELETE /api/admin/expenses/:id` - Delete a studio expense entry
+- `GET /api/public/calendar-availability` - Public calendar slot availability (for booking wizards)
+- `GET/POST /api/services` - Service catalog (name, description, duration, price, category)
+- `GET /api/testimonials` - Public testimonials (active only)
 - `POST /api/contact` - Public contact form submission (stores message + sends email to studio)
 
 ---
@@ -256,6 +296,7 @@ DB_NAME=defaultdb
 EMAIL_USER=eloaltalt@gmail.com
 EMAIL_PASS=<app-password>
 EMAIL_API_KEY=<resend-key>
+EMAIL_FROM=onboarding@resend.dev
 
 GROQ_API_KEY=<key>
 
@@ -263,6 +304,12 @@ PAYMONGO_SECRET_KEY=<key>
 PAYMONGO_PUBLIC_KEY=<key>
 PAYMONGO_WEBHOOK_SECRET=<secret>
 PAYMONGO_MODE=test
+
+SEMAPHORE_API_KEY=<key>
+
+RECAPTCHA_SECRET_KEY=<key>
+
+STUDIO_CONTACT_EMAIL=admin@inkvistar.com
 
 FRONTEND_URL=https://inkvistar-web.vercel.app/login
 BACKEND_URL=https://inkvistar-api.onrender.com
@@ -348,7 +395,7 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - **CSS Scoping Rule:** Dark-themed metric card styles (`.metric-card`, `.glass-card`, `.metric-label`, `.metric-value`) default to light mode colors. Dark overrides are scoped under `.analytics-dark-page` parent.
 23. **Dual-Layer Expense System:** The analytics page tracks two independent expense categories:
     - **Ops Expenses (Automated):** Sum of inventory procurements (`inventory_transactions WHERE type='in'`) + artist payouts (`payouts` table). These are system-generated and cannot be manually edited.
-    - **Overhead / Manual Expenses:** Logged by admins via the `studio_expenses` table using the overhead audit modal. Categories: Inventory, Marketing, Bills, Payouts, Equipment, Licensing, Maintenance, Extras. Full CRUD via `GET/POST/DELETE /api/admin/expenses`.
+    - **Overhead / Manual Expenses:** Logged by admins via the `studio_expenses` table using the overhead audit modal. Categories: Inventory, Marketing, Bills, Payouts, Equipment, Licensing, Maintenance, Extras. Full CRUD via `GET/POST/PUT/DELETE /api/admin/expenses`.
     - These two categories MUST remain strictly separated in the analytics response (`response.expenses` vs `response.overhead`) to prevent double-counting.
 24. **Chart Color Standards (Analytics):** All Recharts charts MUST use the `RAINBOW_PALETTE` array of high-contrast, opposing colors: `['#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#84cc16', '#6366f1', '#14b8a6']`. Adjacent chart segments must be visually distinct (no two adjacent warm/cool colors). The old brand-gold-dominant palette is deprecated.
 25. **Guest Booking Notifications (SMS + Email):** When a guest (non-logged-in user) books a consultation via the public `CustomerBookingWizard`, the backend sends external confirmations:
@@ -372,11 +419,13 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - **Covered statuses:** Confirmed (green), Rejected (red), Cancelled (red), Rescheduled (amber), Completed (green), Price Quote (gold), and generic status updates (gold).
     - **Guest name extraction:** Parsed from the appointment `notes` field via regex `Client:\s*(.+?)(?:\n|$)`, falling back to `'Valued Guest'`.
 
-29. **No-Emoji Policy (Codebase-Wide):**
-    - **No colored emojis** (Unicode Emoji Presentation sequences like 🎨, 📋, 💾, ✅, ⚠️) are allowed anywhere in the frontend source code — not in UI labels, placeholders, console logs, data strings, or notification titles.
-    - **Standard Unicode text symbols** are permitted and encouraged as professional alternatives: `★` (U+2605, star rating), `☆` (U+2606, empty star), `✓` (U+2713, checkmark), `⚠` (U+26A0, warning sign without variation selector).
-    - **Icons MUST be from `lucide-react`** — never emojis. Example: use `<AlertTriangle />` instead of ⚠️, use `<Clipboard />` instead of 📋.
-    - **Database legacy handling:** Some older records may still contain emojis (e.g., aftercare templates in `server.js`). Frontend matchers should use `.includes()` substring checks that work regardless of whether the emoji prefix is present (backward-compatible). A future database migration script should sanitize these at the source.
+29. **No-Emoji Policy (Codebase-Wide) — COMPLETED:**
+    - **Zero tolerance for ALL Unicode decorative characters** in the entire codebase — frontend AND backend. This includes colored emojis (🎨, 📋, ✅, ⚠️), AND previously-permitted text symbols (`✓` U+2713, `★` U+2605, `☆` U+2606, `✦` U+2726).
+    - **Frontend:** All visual indicators MUST use `lucide-react` icons exclusively. Example: `<Check size={14} />` instead of `✓`, `<AlertTriangle />` instead of ⚠️, `<Star />` instead of `★`.
+    - **Backend logs:** All `console.log`/`console.error`/`console.warn` statements use text-based prefixes: `[OK]`, `[WARN]`, `[ERROR]`, `[INFO]`, `[MIGRATE]`, `[SMS]`, `[DB]`. No emoji status indicators in terminal output.
+    - **SMS templates (`smsService.js`):** Use plain text only — no emojis in customer-facing SMS messages.
+    - **Sanitized files (reference):** `emailService.js`, `smsService.js`, `reset-db.js`, `add_mock.js`, `AdminAppointments.js`, `AnalyticsAuditModal.js`, `CustomerBookings.js`, and all other frontend components.
+    - **Database legacy:** Some older DB records may still contain emojis. Frontend matchers use `.includes()` substring checks for backward compatibility.
 
 30. **Numerical Input HTML Constraints:**
     - Every `<input type="number">` in the codebase MUST have an explicit `min` HTML attribute:
@@ -385,6 +434,64 @@ BACKEND_URL=https://inkvistar-api.onrender.com
       - **Rate/percentage fields** (experience years, commission split): `min="0"` (or `min="1"` for non-zero fields) with corresponding `max`
     - This is in addition to the JavaScript-layer `clampNumber()` / `filterMoney()` enforcement, providing defense-in-depth.
     - **Chart/axis `type="number"` props** (e.g., Recharts `<XAxis type="number">`) are NOT user inputs and are exempt from this rule.
+
+31. **Customer Reschedule Flow (Two-Tier):**
+    - **Grace Period Reschedule:** Within the first few minutes after booking, the customer can directly reschedule via `PUT /api/customer/appointments/:id/reschedule`. The `GracePeriodTimer` component shows a countdown timer. Direct reschedule updates the appointment in-place.
+    - **Post-Grace Reschedule Request:** After the grace period expires, customers submit a reschedule *request* via `POST /api/customer/appointments/:id/reschedule-request`. This creates a `reschedule_requests` row with `status='pending'` and an `expires_at` timestamp. A cron job (`setInterval` in `server.js`) auto-expires requests past their `expires_at`.
+    - **Admin Approval:** Admins see pending requests via `GET /api/admin/reschedule-requests` and approve/reject via `PUT /api/admin/reschedule-requests/:requestId/decide`. Approval updates the appointment date/time and sends SMS + in-app notification to the customer. Rejection sends a notification with the admin's reason.
+    - **Reschedule Count:** Each approved reschedule increments `appointments.reschedule_count`.
+
+32. **Customer Cancellation Flow (Grace Period):**
+    - Within the grace period, customers can cancel via `PUT /api/customer/appointments/:id/cancel` without penalty.
+    - The `graceCancelModal` in `CustomerBookings.js` presents predefined cancellation reasons ("Changed my mind", "Found another artist", "Schedule conflict", "Financial reasons", "Other") as selectable pill buttons.
+    - "Other" requires a custom reason with minimum 10 characters (validated with character counter).
+    - Selected reason is highlighted with red border and a `<Check>` Lucide icon.
+
+33. **Reviews & Ratings System:**
+    - Customers can review an artist after a `completed` appointment via `POST /api/reviews` (one review per appointment, checked via `GET /api/reviews/check/:appointmentId`).
+    - Reviews require a 1-5 star rating and optional comment text.
+    - **Admin Moderation:** All reviews start as `status='pending'`. Admins approve/reject via `PUT /api/admin/reviews/:id` in `AdminReviews.js`. Approved reviews can be `is_showcased` (featured).
+    - **Artist Notification:** On review submission, both admin and the reviewed artist receive a `'new_review'` notification with star rating and comment preview.
+    - **Public Display:** Only `status='approved'` reviews appear in `GET /api/reviews` and `GET /api/artists/:id/reviews`.
+
+34. **Aftercare System (30-Day Program):**
+    - `aftercare_templates` table holds 30 day-by-day aftercare instructions organized in 3 phases: `initial` (Days 1-3), `peeling` (Days 4-14), `healing` (Days 15-30).
+    - **Customer View:** `CustomerAftercare.js` fetches via `GET /api/customer/aftercare/:customerId`, showing a timeline of care instructions relative to the tattoo completion date.
+    - **Admin Management:** Admins can edit individual templates via `PUT /api/admin/aftercare-templates/:id` or reset all to defaults via `POST /api/admin/aftercare-templates/reset`.
+    - Templates are seeded automatically on first server startup if the table is empty.
+
+35. **Consultation Method & Pricing:**
+    - Appointments with `service_type='Consultation'` store a `consultation_method` value: `'Face-to-Face'` or `'Online'`.
+    - The `CustomerBookingWizard.js` (public wizard) captures this choice during booking.
+    - **Dual-Service Pricing:** `Tattoo + Piercing` appointments support split pricing via `tattoo_price` and `piercing_price` columns. The `quoted_price` column stores the initial admin quote before finalization to `price`.
+    - `consultation_notes` stores structured consultation summary data.
+
+36. **Button UI Standardization (Enforced):**
+    - All interactive buttons across all portals MUST use the centralized `.btn` CSS classes: `.btn.btn-primary`, `.btn.btn-secondary`, `.btn.btn-brand-gold`, `.btn.btn-danger`.
+    - **Banned:** Inline `style={{ background: '#6366f1' }}` overrides, legacy `.btn-indigo` class, any hardcoded purple/indigo button backgrounds.
+    - **Focus rings:** Interactive elements use brand gold (`#be9055`) focus rings, NOT indigo (`#667eea`).
+    - **Exception:** Semantic data-viz colors in charts and status badges are NOT button overrides and are preserved.
+
+37. **Manager Portal (Read-Only Subset):**
+    - Manager users (`user_type='manager'`) access a limited portal via `ManagerPortal.js` with `ManagerSideNav.js`.
+    - **Pages:** `ManagerAnalytics.js`, `ManagerAppointments.js`, `ManagerUsers.js` — read-only views of admin data.
+    - **Dashboard:** `GET /api/manager/dashboard` returns the same stats as admin dashboard.
+    - Managers receive the same notifications as admins (including `payment_action_required`).
+
+38. **Component Registry (New Components):**
+    - `WaiverFormModal.js` / `WaiverFormModal.css` — Digital waiver/consent form modal for appointments.
+    - `TermsOfServiceModal.js` / `TermsOfServiceModal.css` — Terms of service acceptance modal.
+    - `ConfirmModal.js` — Reusable confirmation dialog for destructive actions.
+    - `MultiSelectDropdown.js` — Multi-option dropdown component with checkboxes.
+    - `NotificationAlertOverlay.js` — Generic notification overlay (extends PaymentAlertOverlay pattern).
+    - `CustomerPaymentAlertOverlay.js` — Customer-facing payment notification overlay.
+    - `AdminTestimonials.js` — Testimonial management panel (CRUD for client testimonials).
+    - `BodyModelViewer.js` — 3D body model viewer for AR tattoo placement.
+    - `Pagination.js` / `Pagination.css` — Reusable table pagination component.
+
+39. **Select Element Readability:**
+    - All `<select>` elements must have sufficient contrast between text and background. On dark backgrounds, use light text color with dark option backgrounds to ensure readability across browsers.
+    - Select dropdown options must be visually distinct and scannable.
 
 ---
 

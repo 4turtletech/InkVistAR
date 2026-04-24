@@ -270,7 +270,7 @@ db.getConnection((err, connection) => {
           }
         });
 
-        console.log('👤 Users table ready');
+        console.log('[OK] Users table ready');
       }
     });
 
@@ -358,7 +358,7 @@ db.getConnection((err, connection) => {
     `;
     db.query(customerTableQuery, (err) => {
       if (err) console.error('[WARN] Error checking customers table:', err.message);
-      else console.log('👤 Customers table ready');
+      else console.log('[OK] Customers table ready');
       createDefaultUsers();
 
       // Add is_deleted column if it doesn't exist (Soft Delete support)
@@ -412,7 +412,7 @@ db.getConnection((err, connection) => {
               "INSERT INTO users (name, email, password_hash, user_type, is_verified, is_deleted, is_superadmin) VALUES (?, ?, ?, 'admin', 1, 0, 0)",
               ['Manager Admin', 'manager@inkvistar.com', hash],
               (insertErr) => {
-                if (!insertErr) console.log('🌱 Seeded admin account: manager@inkvistar.com');
+                if (!insertErr) console.log('[OK] Seeded admin account: manager@inkvistar.com');
                 else console.error('Seed error:', insertErr.message);
               }
             );
@@ -500,7 +500,7 @@ db.getConnection((err, connection) => {
         // FIX: Drop broken foreign key constraint if it exists
         db.query("ALTER TABLE portfolio_works DROP FOREIGN KEY fk_portfolio_artists", (err) => {
           if (!err) {
-            console.log('🔧 Fixed: Dropped broken foreign key constraint fk_portfolio_artists');
+            console.log('[OK] Fixed: Dropped broken foreign key constraint fk_portfolio_artists');
             // Re-add correct constraint referencing users(id)
             db.query("ALTER TABLE portfolio_works ADD CONSTRAINT fk_portfolio_users FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE", (err) => {
               if (!err) console.log('[OK] Added correct foreign key constraint for portfolio_works');
@@ -526,7 +526,7 @@ db.getConnection((err, connection) => {
     `;
     db.query(branchesTableQuery, (err) => {
       if (err) console.error('[WARN] Error checking branches table:', err.message);
-      else console.log('🏢 Branches table ready');
+      else console.log('[OK] Branches table ready');
 
       // Add is_deleted column if it doesn't exist
       db.query("SHOW COLUMNS FROM branches LIKE 'is_deleted'", (err, results) => {
@@ -657,7 +657,7 @@ db.getConnection((err, connection) => {
     db.query(invTransTableQuery, (err) => {
       if (err) console.error('[WARN] Error checking inventory transactions table:', err.message);
       else {
-        console.log('📜 Inventory transactions table ready');
+        console.log('[OK] Inventory transactions table ready');
         // Auto-migrate: add user_id column if missing
         db.query("SHOW COLUMNS FROM inventory_transactions LIKE 'user_id'", (colErr, colResults) => {
           if (!colErr && colResults.length === 0) {
@@ -762,7 +762,7 @@ db.getConnection((err, connection) => {
         // FIX: Try to drop the specific problematic constraint if it exists
         db.query("ALTER TABLE appointments DROP FOREIGN KEY fk_appointments_artist", (err) => {
           if (!err) {
-            console.log('🔧 Fixed: Dropped broken foreign key constraint fk_appointments_artist');
+            console.log('[OK] Fixed: Dropped broken foreign key constraint fk_appointments_artist');
             // Re-add correct constraint referencing users(id)
             db.query("ALTER TABLE appointments ADD CONSTRAINT fk_appointments_artist_fixed FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE", (err) => {
               if (!err) console.log('[OK] Added correct foreign key constraint for artist_id');
@@ -977,7 +977,7 @@ db.getConnection((err, connection) => {
     `;
     db.query(paymentsTableQuery, (err) => {
       if (err) console.error('[WARN] Error checking payments table:', err.message);
-      else console.log('💳 Payments table ready');
+      else console.log('[OK] Payments table ready');
     });
 
     // Create Invoices Table
@@ -1065,7 +1065,7 @@ db.getConnection((err, connection) => {
         FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `;
-    db.query(payoutsTableQuery, (err) => { if (err) console.error('[WARN] Error checking payouts table:', err.message); else console.log('💵 Payouts table ready'); });
+    db.query(payoutsTableQuery, (err) => { if (err) console.error('[WARN] Error checking payouts table:', err.message); else console.log('[OK] Payouts table ready'); });
 
     // Create Aftercare Templates Table (Admin-configurable daily notifications)
     const aftercareTableQuery = `
@@ -1083,46 +1083,46 @@ db.getConnection((err, connection) => {
     `;
     db.query(aftercareTableQuery, (err) => {
       if (err) { console.error('[WARN] Error creating aftercare_templates table:', err.message); return; }
-      console.log('🧼 Aftercare templates table ready');
+      console.log('[OK] Aftercare templates table ready');
 
       // Seed default templates if table is empty
       db.query('SELECT COUNT(*) as cnt FROM aftercare_templates', (countErr, countRes) => {
         if (countErr || (countRes[0]?.cnt || 0) > 0) return;
-        console.log('🌱 Seeding default aftercare templates (30 days)...');
+        console.log('[INFO] Seeding default aftercare templates (30 days)...');
 
         const defaults = [
           // Phase 1: Initial Healing (Days 1-3)
-          [1, 'initial', 'Unwrap & First Wash 🧼', 'Remove the bandage/wrap after 2-4 hours. Gently wash with lukewarm water and fragrance-free antibacterial soap. Pat dry with a clean paper towel — never use a cloth towel.', 'Use Dove Sensitive or Cetaphil soap. Wash your hands thoroughly before touching the tattoo. Apply a very thin layer of your artist-recommended ointment (e.g., Aquaphor).'],
-          [2, 'initial', 'Keep It Clean & Moisturized 💧', 'Wash your tattoo 2-3 times today with lukewarm water and mild soap. Apply a very thin layer of ointment after each wash. The area may still be red, swollen, and tender — this is normal.', 'The skin should NOT look shiny or greasy after applying ointment. Less is more. Wear loose, breathable clothing over the tattoo. Avoid tight fabrics that can rub.'],
-          [3, 'initial', 'Day 3: Swelling Should Subside 🩹', 'Continue your wash-and-moisturize routine 2-3 times daily. Redness and swelling should begin decreasing. Some plasma or excess ink may still weep slightly — this is normal.', 'Sleep on clean sheets and avoid laying directly on the tattoo. If the area feels warm but not painful, that is part of the healing response.'],
+          [1, 'initial', 'Unwrap & First Wash', 'Remove the bandage/wrap after 2-4 hours. Gently wash with lukewarm water and fragrance-free antibacterial soap. Pat dry with a clean paper towel — never use a cloth towel.', 'Use Dove Sensitive or Cetaphil soap. Wash your hands thoroughly before touching the tattoo. Apply a very thin layer of your artist-recommended ointment (e.g., Aquaphor).'],
+          [2, 'initial', 'Keep It Clean & Moisturized', 'Wash your tattoo 2-3 times today with lukewarm water and mild soap. Apply a very thin layer of ointment after each wash. The area may still be red, swollen, and tender — this is normal.', 'The skin should NOT look shiny or greasy after applying ointment. Less is more. Wear loose, breathable clothing over the tattoo. Avoid tight fabrics that can rub.'],
+          [3, 'initial', 'Day 3: Swelling Should Subside', 'Continue your wash-and-moisturize routine 2-3 times daily. Redness and swelling should begin decreasing. Some plasma or excess ink may still weep slightly — this is normal.', 'Sleep on clean sheets and avoid laying directly on the tattoo. If the area feels warm but not painful, that is part of the healing response.'],
           // Phase 2: Peeling & Itching (Days 4-14)
-          [4, 'peeling', 'Peeling Begins — Don\'t Pick! ⚠️', 'Your tattoo may start to peel and flake like a sunburn. This is completely normal and a sign of healthy healing. DO NOT pick, scratch, or peel the flaking skin!', 'Switch from heavy ointment to a fragrance-free, alcohol-free moisturizing lotion. Picking at flakes can pull out ink and cause scarring. If it itches, gently pat or apply lotion.'],
-          [5, 'peeling', 'Moisturize & Resist the Itch 🤚', 'The peeling continues and itching may increase today. Apply fragrance-free lotion whenever the skin feels dry or tight. Continue gentle washing 1-2 times daily.', 'Avoid scratching at all costs. Cool compresses can help with itching. Stay hydrated — it helps skin heal from the inside.'],
-          [6, 'peeling', 'Stay the Course 💪', 'Keep up your routine: gentle wash, pat dry, apply lotion. The tattoo may look dull or cloudy under the peeling skin — this is temporary and normal.', 'Avoid swimming, baths, hot tubs, and saunas. Brief lukewarm showers are fine. Do not soak the tattoo.'],
+          [4, 'peeling', 'Peeling Begins — Don\\'t Pick! IMPORTANT:', 'Your tattoo may start to peel and flake like a sunburn. This is completely normal and a sign of healthy healing. DO NOT pick, scratch, or peel the flaking skin!', 'Switch from heavy ointment to a fragrance-free, alcohol-free moisturizing lotion. Picking at flakes can pull out ink and cause scarring. If it itches, gently pat or apply lotion.'],
+          [5, 'peeling', 'Moisturize & Resist the Itch', 'The peeling continues and itching may increase today. Apply fragrance-free lotion whenever the skin feels dry or tight. Continue gentle washing 1-2 times daily.', 'Avoid scratching at all costs. Cool compresses can help with itching. Stay hydrated — it helps skin heal from the inside.'],
+          [6, 'peeling', 'Stay the Course', 'Keep up your routine: gentle wash, pat dry, apply lotion. The tattoo may look dull or cloudy under the peeling skin — this is temporary and normal.', 'Avoid swimming, baths, hot tubs, and saunas. Brief lukewarm showers are fine. Do not soak the tattoo.'],
           [7, 'peeling', 'One Week Milestone!', 'You have made it through the first week! The heaviest peeling should be happening now. Continue moisturizing and absolutely no picking or scratching.', 'The \"milky\" or cloudy appearance under peeling skin is the new layer of skin forming. Your tattoo will look vibrant again once this settles.'],
-          [8, 'peeling', 'Flaking is Normal 🍂', 'Expect continued flaking today. Some areas may peel faster than others depending on ink density and skin location. Keep moisturizing consistently.', 'Lightly tap itchy areas instead of scratching. Wearing soft cotton clothing over the tattoo reduces friction irritation.'],
+          [8, 'peeling', 'Flaking is Normal', 'Expect continued flaking today. Some areas may peel faster than others depending on ink density and skin location. Keep moisturizing consistently.', 'Lightly tap itchy areas instead of scratching. Wearing soft cotton clothing over the tattoo reduces friction irritation.'],
           [9, 'peeling', 'Healing Progress Check', 'By now, the initial redness should be mostly gone. The peeling may be slowing down in some areas. Continue your lotion routine 2-3 times daily.', 'If you notice any signs of infection (excessive redness, pus, fever), contact your artist or a doctor immediately. These cases are rare with proper care.'],
           [10, 'peeling', 'Day 10 — Almost Through Peeling', 'Most heavy peeling is ending. Continue applying lotion to keep the skin supple. Avoid direct sunlight on the healing tattoo.', 'Your tattoo is still healing beneath the surface even if it looks settled on top. Continue all precautions.'],
           [11, 'peeling', 'Consistent Care Matters', 'Keep moisturizing and protecting from sun. Avoid heavy workouts that cause excessive sweating on the tattooed area.', 'If exercising, clean the tattooed area promptly after sweating. Pat dry and reapply lotion.'],
           [12, 'peeling', 'Light at the End of the Tunnel', 'The surface peeling is wrapping up. Your tattoo should start looking clearer as the new skin settles. Continue lotion application.', 'Stay out of pools, oceans, and hot tubs for at least another 2 weeks. Chlorine and bacteria can damage healing skin.'],
           [13, 'peeling', 'Almost Done Peeling', 'Only minor flaking may remain. The tattoo might still look slightly muted — this is normal and will brighten up over the next couple of weeks.', 'Continue wearing SPF 30+ if any sun exposure is unavoidable. UV rays are enemy #1 for tattoo vibrancy.'],
-          [14, 'peeling', 'Two Weeks Complete! 🏆', 'Congratulations! The peeling phase is essentially over. Your surface skin has regenerated. Continue daily moisturizing to support the deeper healing still happening.', 'The deeper layers of skin take 4-6 weeks to fully heal. Surface healing does not mean fully healed. Keep up the aftercare routine.'],
+          [14, 'peeling', 'Two Weeks Complete!', 'Congratulations! The peeling phase is essentially over. Your surface skin has regenerated. Continue daily moisturizing to support the deeper healing still happening.', 'The deeper layers of skin take 4-6 weeks to fully heal. Surface healing does not mean fully healed. Keep up the aftercare routine.'],
           // Phase 3: Final Surface Healing (Days 15-30)
-          [15, 'healing', 'Final Healing Phase Begins 🔬', 'Your tattoo surface should feel smooth to the touch now. Continue applying fragrance-free lotion 1-2 times daily. The deeper skin layers are still recovering.', 'You can resume most normal activities, but still avoid prolonged submersion in water and excessive sun exposure.'],
-          [16, 'healing', 'Protect Your Investment ☀️', 'Apply SPF 30+ sunscreen to your tattoo whenever going outside. Sun damage is the #1 cause of tattoo fading over time.', 'Make sunscreen on your tattoo a lifelong habit. UV protection keeps colors vibrant for years.'],
-          [17, 'healing', 'Stay Moisturized 🧴', 'Continue daily lotion application. Well-moisturized skin showcases tattoo ink better and keeps lines sharp.', 'Drinking plenty of water also contributes to healthy, well-hydrated skin from the inside.'],
-          [18, 'healing', 'Healing Nicely! 👀', 'Your tattoo should be looking increasingly close to its final appearance. Colors may still be slightly muted but will brighten.', 'If any area still feels raised or textured, continue gentle moisturizing. This is normal for areas with heavier ink saturation.'],
-          [19, 'healing', 'Routine Maintenance 🔧', 'Continue your lotion and sun protection routine. The tattoo is doing great — just a bit more patience for full deep-skin healing.', 'Avoid abrasive exfoliants or scrubs directly on the tattoo for another few weeks.'],
+          [15, 'healing', 'Final Healing Phase Begins', 'Your tattoo surface should feel smooth to the touch now. Continue applying fragrance-free lotion 1-2 times daily. The deeper skin layers are still recovering.', 'You can resume most normal activities, but still avoid prolonged submersion in water and excessive sun exposure.'],
+          [16, 'healing', 'Protect Your Investment', 'Apply SPF 30+ sunscreen to your tattoo whenever going outside. Sun damage is the #1 cause of tattoo fading over time.', 'Make sunscreen on your tattoo a lifelong habit. UV protection keeps colors vibrant for years.'],
+          [17, 'healing', 'Stay Moisturized', 'Continue daily lotion application. Well-moisturized skin showcases tattoo ink better and keeps lines sharp.', 'Drinking plenty of water also contributes to healthy, well-hydrated skin from the inside.'],
+          [18, 'healing', 'Healing Nicely!', 'Your tattoo should be looking increasingly close to its final appearance. Colors may still be slightly muted but will brighten.', 'If any area still feels raised or textured, continue gentle moisturizing. This is normal for areas with heavier ink saturation.'],
+          [19, 'healing', 'Routine Maintenance', 'Continue your lotion and sun protection routine. The tattoo is doing great — just a bit more patience for full deep-skin healing.', 'Avoid abrasive exfoliants or scrubs directly on the tattoo for another few weeks.'],
           [20, 'healing', 'Day 20 — Two-Thirds Healed!', 'You are well past the critical healing period. Keep protecting your tattoo from sun and keeping it moisturized. Almost there!', 'You can now safely swim in pools for short periods if the surface is fully closed. Rinse and moisturize after.'],
           [21, 'healing', 'Three Weeks!', 'Your tattoo is in the home stretch of healing. Continue gentle daily care. The deep skin layers are firming up.', 'If you had areas of heavy shading or color packing, these may take slightly longer to fully settle.'],
-          [22, 'healing', 'Looking Great! 💯', 'Your tattoo should be looking more and more vibrant each day. Continue moisturizing and SPF protection.', 'Take a photo of your healed tattoo to share with your artist! They love seeing healed results.'],
-          [23, 'healing', 'Steady Progress 📈', 'Continue your simple daily routine: moisturize in the morning and evening, apply sunscreen before going outside.', 'Great aftercare now means a tattoo that stays vibrant for decades.'],
-          [24, 'healing', 'Almost Fully Healed! 🙌', 'The deep skin layers are nearly done regenerating. Your tattoo should feel completely like normal skin to the touch now.', 'Remember: UV protection is a forever habit for tattooed skin!'],
-          [25, 'healing', 'Day 25 — Final Stretch 🏁', 'Just a few more days of dedicated aftercare. Continue moisturizing and sun protection as part of your daily routine.', 'Consider scheduling a touch-up consultation if you notice any areas where ink did not take evenly. This is completely normal.'],
-          [26, 'healing', 'Healing Champion! 🥇', 'Your discipline with aftercare is paying off. The tattoo is looking sharp and the skin is healthy.', 'Set a reminder to schedule a follow-up with your artist in 4-6 weeks for a touch-up check.'],
-          [27, 'healing', 'Three Days to Go ⏳', 'Continue your routine. Your tattoo is essentially healed at the surface and nearly healed at the deeper level.', 'Interested in your next piece? Start browsing the InkVistAR gallery for inspiration!'],
-          [28, 'healing', 'Penultimate Day 🌅', 'Your tattoo aftercare journey is nearly complete. The dedication you have shown will keep your tattoo looking amazing for years to come.', 'Remember to always use sunscreen on your tattoo when outdoors. This is the single best long-term care habit.'],
-          [29, 'healing', 'Tomorrow is the Last Day! 🎊', 'One more day! Your tattoo is fully healed. Keep moisturizing as part of your regular skincare routine going forward.', 'Book your next session at InkVistAR to continue your tattoo journey!'],
+          [22, 'healing', 'Looking Great!', 'Your tattoo should be looking more and more vibrant each day. Continue moisturizing and SPF protection.', 'Take a photo of your healed tattoo to share with your artist! They love seeing healed results.'],
+          [23, 'healing', 'Steady Progress', 'Continue your simple daily routine: moisturize in the morning and evening, apply sunscreen before going outside.', 'Great aftercare now means a tattoo that stays vibrant for decades.'],
+          [24, 'healing', 'Almost Fully Healed!', 'The deep skin layers are nearly done regenerating. Your tattoo should feel completely like normal skin to the touch now.', 'Remember: UV protection is a forever habit for tattooed skin!'],
+          [25, 'healing', 'Day 25 — Final Stretch', 'Just a few more days of dedicated aftercare. Continue moisturizing and sun protection as part of your daily routine.', 'Consider scheduling a touch-up consultation if you notice any areas where ink did not take evenly. This is completely normal.'],
+          [26, 'healing', 'Healing Champion!', 'Your discipline with aftercare is paying off. The tattoo is looking sharp and the skin is healthy.', 'Set a reminder to schedule a follow-up with your artist in 4-6 weeks for a touch-up check.'],
+          [27, 'healing', 'Three Days to Go', 'Continue your routine. Your tattoo is essentially healed at the surface and nearly healed at the deeper level.', 'Interested in your next piece? Start browsing the InkVistAR gallery for inspiration!'],
+          [28, 'healing', 'Penultimate Day', 'Your tattoo aftercare journey is nearly complete. The dedication you have shown will keep your tattoo looking amazing for years to come.', 'Remember to always use sunscreen on your tattoo when outdoors. This is the single best long-term care habit.'],
+          [29, 'healing', 'Tomorrow is the Last Day!', 'One more day! Your tattoo is fully healed. Keep moisturizing as part of your regular skincare routine going forward.', 'Book your next session at InkVistAR to continue your tattoo journey!'],
           [30, 'healing', 'Aftercare Complete!', 'Congratulations! Your 30-day aftercare program is complete. Your tattoo is fully healed. Continue lifelong habits: moisturize daily and always apply sunscreen when going outdoors.', 'Thank you for trusting InkVistAR with your tattoo journey! We would love to see you again for your next piece. Leave a review to help other clients!']
         ];
 
@@ -1178,7 +1178,7 @@ db.getConnection((err, connection) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(auditLogsTableQuery, (err) => { if (err) console.error('[WARN] Error checking audit_logs table:', err.message); else console.log('📜 Audit Logs table ready'); });
+    db.query(auditLogsTableQuery, (err) => { if (err) console.error('[WARN] Error checking audit_logs table:', err.message); else console.log('[OK] Audit Logs table ready'); });
 
     // Create Studio Expenses Table (for manual expense logging: marketing, bills, equipment, etc.)
     const studioExpensesTableQuery = `
@@ -1205,7 +1205,7 @@ db.getConnection((err, connection) => {
         FOREIGN KEY (inventory_id) REFERENCES inventory(id) ON DELETE CASCADE
       )
     `;
-    db.query(serviceKitsTableQuery, (err) => { if (err) console.error('[WARN] Error checking service_kits table:', err.message); else console.log('🎒 Service Kits table ready'); });
+    db.query(serviceKitsTableQuery, (err) => { if (err) console.error('[WARN] Error checking service_kits table:', err.message); else console.log('[OK] Service Kits table ready'); });
 
     // Create Reviews Table
     const reviewsTableQuery = `
@@ -1253,7 +1253,7 @@ db.getConnection((err, connection) => {
         FOREIGN KEY (work_id) REFERENCES portfolio_works(id) ON DELETE CASCADE
       )
     `;
-    db.query(favoritesTableQuery, (err) => { if (err) console.error('[WARN] Error checking favorites table:', err.message); else console.log('❤️ Favorites table ready'); });
+    db.query(favoritesTableQuery, (err) => { if (err) console.error('[WARN] Error checking favorites table:', err.message); else console.log('[OK] Favorites table ready'); });
 
     // Create Testimonials table
     const testimonialsTableQuery = `
@@ -1325,7 +1325,7 @@ db.getConnection((err, connection) => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
-    db.query(contactMessagesTableQuery, (err) => { if (err) console.error('[WARN] Error checking contact_messages table:', err.message); else console.log('📬 Contact Messages table ready'); });
+    db.query(contactMessagesTableQuery, (err) => { if (err) console.error('[WARN] Error checking contact_messages table:', err.message); else console.log('[OK] Contact Messages table ready'); });
 
     // Migration: Add reply and status columns to contact_messages (idempotent)
     const contactMigrations = [
@@ -1473,7 +1473,7 @@ function sendReceiptEmail(customerEmail, invoiceData) {
 
   const emailHtml = buildEmailHtml(contentHtml);
   sendEmail(customerEmail, `Your InkVictus Receipt — ${invoiceData.id}`, emailHtml);
-  console.log(`📬 Receipt email queued for ${customerEmail} — ${invoiceData.id}`);
+  console.log(`[OK] Receipt email queued for ${customerEmail} — ${invoiceData.id}`);
 }
 
 /**
@@ -1609,12 +1609,12 @@ async function sendPushNotification(userId, title, body, data) {
   // 1. Get the user's push token
   db.query('SELECT push_token FROM users WHERE id = ?', [userId], async (err, results) => {
     if (err || results.length === 0 || !results[0].push_token) {
-      console.log(`📲 Skipping push notification for user ${userId}: No token found.`);
+      console.log(`[INFO] Skipping push notification for user ${userId}: No token found.`);
       return;
     }
 
     const pushToken = results[0].push_token;
-    console.log(`📲 Sending push notification to token: ${pushToken}`);
+    console.log(`[INFO] Sending push notification to token: ${pushToken}`);
 
     // 2. Send to Expo's push API
     await fetch('https://exp.host/--/api/v2/push/send', {
@@ -1718,7 +1718,7 @@ async function verifyGroq() {
     return;
   }
   try {
-    console.log('🤖 Verifying Groq API Key...');
+    console.log('[INFO] Verifying Groq API Key...');
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: 'Hello' }],
       model: 'llama-3.3-70b-versatile',
@@ -1733,9 +1733,9 @@ verifyGroq();
 
 // ========== MIDDLEWARE ==========
 app.use((req, res, next) => {
-  console.log(`\n🌐 ${new Date().toISOString()} ${req.method} ${req.url}`);
+  console.log(`\n[REQ] ${new Date().toISOString()} ${req.method} ${req.url}`);
   console.log('[DEBUG] Headers:', req.headers);
-  console.log('📤 Body:', req.body);
+  console.log('[DEBUG] Body:', req.body);
   next();
 });
 
@@ -1780,7 +1780,7 @@ app.get('/api/debug/routes', (req, res) => {
 
 // Test database connection
 app.get('/api/debug/db', (req, res) => {
-  console.log('🔍 Testing database...');
+  console.log('[INFO] Testing database...');
 
   db.query('SELECT 1 + 1 AS result', (err, results) => {
     if (err) {
@@ -1802,7 +1802,7 @@ app.get('/api/debug/db', (req, res) => {
 
 // List all users
 app.get('/api/debug/users', (req, res) => {
-  console.log('🔍 Listing all users...');
+  console.log('[INFO] Listing all users...');
 
   db.query('SELECT id, name, email, user_type, is_deleted FROM users', (err, results) => {
     if (err) {
@@ -1825,7 +1825,7 @@ app.get('/api/debug/users', (req, res) => {
 // Check specific user
 app.get('/api/debug/user/:id', (req, res) => {
   const { id } = req.params;
-  console.log(`🔍 Checking user ${id}...`);
+  console.log(`[INFO] Checking user ${id}...`);
 
   db.query('SELECT id, name, email, user_type FROM users WHERE id = ?', [id], (err, results) => {
     if (err) {
@@ -1853,7 +1853,7 @@ app.get('/api/debug/user/:id', (req, res) => {
 // ========== LOGIN ENDPOINT (SIMPLIFIED) ==========
 app.post('/api/login', async (req, res) => {
   console.log('\n========== LOGIN REQUEST ==========');
-  console.log('📤 Body:', req.body);
+  console.log('[DEBUG] Body:', req.body);
 
   try {
     const { email, password, type } = req.body;
@@ -1866,7 +1866,7 @@ app.post('/api/login', async (req, res) => {
       });
     }
 
-    console.log(`🔍 Searching for user: ${email}`);
+    console.log(`[INFO] Searching for user: ${email}`);
 
     // Query database
     let query = 'SELECT * FROM users WHERE email = ?';
@@ -1877,7 +1877,7 @@ app.post('/api/login', async (req, res) => {
       params.push(type);
     }
 
-    console.log('💾 Executing query:', query);
+    console.log('[DEBUG] Executing query:', query);
 
     db.query(query, params, async (err, results) => {
       if (err) {
@@ -2071,7 +2071,7 @@ app.post('/api/login', async (req, res) => {
 // ========== RESET PASSWORD ENDPOINT ==========
 app.post('/api/reset-password', async (req, res) => {
   const { email, newPassword } = req.body;
-  console.log('🔐 Resetting password for:', email);
+  console.log('[INFO] Resetting password for:', email);
 
   // 1. Validation and Sanitization
   if (!email || !newPassword) {
@@ -2116,7 +2116,7 @@ app.post('/api/reset-password', async (req, res) => {
 // ========== CUSTOMER CHANGE PASSWORD ENDPOINT ==========
 app.post('/api/customer/change-password', async (req, res) => {
   const { customerId, currentPassword, newPassword } = req.body;
-  console.log('🔐 Customer change password requested for ID:', customerId);
+  console.log('[INFO] Customer change password requested for ID:', customerId);
 
   // Validation
   if (!customerId || !currentPassword || !newPassword) {
@@ -2167,7 +2167,7 @@ app.post('/api/customer/change-password', async (req, res) => {
       const protocol = getProtocol(req);
       const host = req.get('host');
       const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${user.email}`;
-      console.log('🔑 [DEBUG] Re-verification Link:', verifyUrl);
+      console.log('[DEBUG] Re-verification Link:', verifyUrl);
 
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
@@ -2189,7 +2189,7 @@ app.post('/api/customer/change-password', async (req, res) => {
 // ========== ARTIST CHANGE PASSWORD ENDPOINT ==========
 app.post('/api/artist/change-password', async (req, res) => {
   const { artistId, currentPassword, newPassword } = req.body;
-  console.log('🔐 Artist change password requested for ID:', artistId);
+  console.log('[INFO] Artist change password requested for ID:', artistId);
 
   // Validation
   if (!artistId || !currentPassword || !newPassword) {
@@ -2240,7 +2240,7 @@ app.post('/api/artist/change-password', async (req, res) => {
       const protocol = getProtocol(req);
       const host = req.get('host');
       const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${user.email}`;
-      console.log('🔑 [DEBUG] Re-verification Link:', verifyUrl);
+      console.log('[DEBUG] Re-verification Link:', verifyUrl);
 
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
@@ -2262,7 +2262,7 @@ app.post('/api/artist/change-password', async (req, res) => {
 // ========== REQUEST EMAIL CHANGE (sends OTP to current email) ==========
 app.post('/api/request-email-change', (req, res) => {
   const { userId, newEmail } = req.body;
-  console.log('📧 Email change requested for user ID:', userId, '→', newEmail);
+  console.log('[INFO] Email change requested for user ID:', userId, '→', newEmail);
 
   if (!userId || !newEmail) {
     return res.status(400).json({ success: false, message: 'User ID and new email are required' });
@@ -2292,7 +2292,7 @@ app.post('/api/request-email-change', (req, res) => {
         (updateErr) => {
           if (updateErr) return res.status(500).json({ success: false, message: 'Failed to generate OTP' });
 
-          console.log('🔑 [DEBUG] Email Change OTP for', user.email, ':', otp_code);
+          console.log('[DEBUG] Email Change OTP for', user.email, ':', otp_code);
 
           // Send OTP to the CURRENT email
           const html = buildEmailHtml(`
@@ -2319,7 +2319,7 @@ app.post('/api/request-email-change', (req, res) => {
 // ========== CONFIRM EMAIL CHANGE (verify OTP, update email, force re-verification) ==========
 app.post('/api/confirm-email-change', (req, res) => {
   const { userId, otp, newEmail } = req.body;
-  console.log('📧 Confirming email change for user ID:', userId, '→', newEmail);
+  console.log('[INFO] Confirming email change for user ID:', userId, '→', newEmail);
 
   if (!userId || !otp || !newEmail) {
     return res.status(400).json({ success: false, message: 'User ID, OTP, and new email are required' });
@@ -2367,7 +2367,7 @@ app.post('/api/confirm-email-change', (req, res) => {
           const protocol = getProtocol(req);
           const host = req.get('host');
           const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${newEmail}`;
-          console.log('🔑 [DEBUG] New Email Verification Link:', verifyUrl);
+          console.log('[DEBUG] New Email Verification Link:', verifyUrl);
 
           const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verify Your New Email</h2>
@@ -2414,7 +2414,7 @@ app.get('/api/debug/users', (req, res) => {
 app.post('/api/send-otp', (req, res) => {
   // otp_method: 'email' (default) or 'sms'
   const { email, user_type, otp_method = 'email' } = req.body;
-  console.log(`📧 SEND OTP: ${email} via ${otp_method}`);
+  console.log(`[INFO] SEND OTP: ${email} via ${otp_method}`);
 
   db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
     if (err || !results.length) {
@@ -2441,7 +2441,7 @@ app.post('/api/send-otp', (req, res) => {
       (updateErr) => {
         if (updateErr) return res.json({ success: false, message: 'DB error' });
 
-        console.log('🔑 [DEBUG] OTP for', email, ':', otp_code);
+        console.log('[DEBUG] OTP for', email, ':', otp_code);
 
         if (otp_method === 'sms') {
           res.json({ success: true, message: 'OTP sent to your phone!' });
@@ -2494,7 +2494,7 @@ async function sendPushNotification(userId, title, body, data = {}) {
     if (err) { console.error('[PUSH] [ERROR] DB error fetching token:', err.message); return; }
     if (!rows.length) { console.warn(`[PUSH] [WARN] No token found for user ${userId} — skipping push`); return; }
     const token = rows[0].token;
-    console.log(`[PUSH] 📲 Token for user ${userId}: ${token.substring(0, 40)}...`);
+    console.log(`[PUSH] [INFO] Token for user ${userId}: ${token.substring(0, 40)}...`);
     if (!token.startsWith('ExponentPushToken')) {
       console.warn('[PUSH] [WARN] Token is not an Expo push token — skipping');
       return;
@@ -2534,7 +2534,7 @@ app.post('/api/verify-otp', (req, res) => {
   // Handle both 'otp' and 'otp_code' from frontend
   const code = otp || req.body.otp_code;
 
-  console.log('🔢 VERIFY OTP:', email, code);
+  console.log('[INFO] VERIFY OTP:', email, code);
 
   let query = 'SELECT * FROM users WHERE email = ? AND otp_code = ? AND otp_expires > NOW()';
   let params = [email, code];
@@ -2653,7 +2653,7 @@ app.get('/api/verify', (req, res) => {
 app.post('/api/register', async (req, res) => {
   try {
     console.log('\n[INFO] ========== REGISTER REQUEST ==========');
-    console.log('📤 Request body:', req.body);
+    console.log('[DEBUG] Request body:', req.body);
 
     const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken } = req.body;
 
@@ -2696,9 +2696,9 @@ app.post('/api/register', async (req, res) => {
       }
 
       // Hash password
-      console.log('🔑 Hashing password...');
+      console.log('[DEBUG] Hashing password...');
       const password_hash = await bcrypt.hash(password, 10);
-      console.log('🔑 Password hashed successfully');
+      console.log('[OK] Password hashed successfully');
 
       // Insert user
       const verification_token = crypto.randomBytes(32).toString('hex');
@@ -2708,7 +2708,7 @@ app.post('/api/register', async (req, res) => {
       const emailConsent = email_promo_consent !== undefined ? (email_promo_consent ? 1 : 0) : 0;
 
       const insertQuery = 'INSERT INTO users (name, email, password_hash, user_type, is_verified, verification_token, photo_marketing_consent, email_promo_consent) VALUES (?, ?, ?, ?, 0, ?, ?, ?)';
-      console.log('💾 Executing query:', insertQuery);
+      console.log('[DEBUG] Executing query:', insertQuery);
 
       db.query(insertQuery, [fullName, email, password_hash, type, verification_token, photoConsent, emailConsent], (insertErr, result) => {
         if (insertErr) {
@@ -2731,7 +2731,7 @@ app.post('/api/register', async (req, res) => {
         const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${email}`;
 
         // LOG VERIFICATION LINK (Fix for development/Gmail issues)
-        console.log('🔑 [DEBUG] Verification Link:', verifyUrl);
+        console.log('[DEBUG] Verification Link:', verifyUrl);
 
         const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Welcome, ${fullName}!</h2>
@@ -2756,7 +2756,7 @@ app.post('/api/register', async (req, res) => {
               db.query('DELETE FROM users WHERE id = ?', [newUserId]);
               return res.status(500).json({ success: false, message: 'Failed to create artist profile. Please try again.' });
             }
-            console.log('✅ Artist profile created for user ID:', newUserId);
+            console.log('[OK] Artist profile created for user ID:', newUserId);
             sendSuccessResponse(newUserId);
           });
         } else if (type === 'customer') {
@@ -2766,7 +2766,7 @@ app.post('/api/register', async (req, res) => {
             if (custErr) {
               console.error('[ERROR] Error creating customer profile:', custErr.message);
             } else {
-              console.log('✅ Customer profile created for user ID:', newUserId);
+              console.log('[OK] Customer profile created for user ID:', newUserId);
             }
             sendSuccessResponse(newUserId);
           });
@@ -2795,7 +2795,7 @@ app.post('/api/register', async (req, res) => {
             (migErr, migResult) => {
               const migratedCount = migResult ? migResult.affectedRows : 0;
               if (migratedCount > 0) {
-                console.log(`📦 Migrated ${migratedCount} orphan appointment(s) to new user ${fullName} (${email})`);
+                console.log(`[INFO] Migrated ${migratedCount} orphan appointment(s) to new user ${fullName} (${email})`);
                 createNotification(userId, 'Prior Bookings Found!', `We found ${migratedCount} consultation request(s) linked to your email from before you created your account. They have been automatically added to your account.`, 'appointment_request');
               }
 
@@ -2817,7 +2817,7 @@ app.post('/api/register', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Unexpected error in register:', error);
+    console.error('[ERROR] Unexpected error in register:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -2893,11 +2893,11 @@ app.get('/api/customer/:customerId/consent', (req, res) => {
 // ========== ARTIST DASHBOARD (SIMPLIFIED) ==========
 app.get('/api/artist/dashboard/:artistId', (req, res) => {
   const { artistId } = req.params;
-  console.log(`📊 Artist dashboard requested: ${artistId}`);
+  console.log(`[INFO] Artist dashboard requested: ${artistId}`);
 
   // Add timeout
   const timeout = setTimeout(() => {
-    console.log('❌ Dashboard query timeout');
+    console.log('[ERROR] Dashboard query timeout');
     return res.status(500).json({
       success: false,
       message: 'Request timeout'
@@ -2925,14 +2925,14 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
     WHERE u.id = ? AND u.user_type = 'artist'
   `;
 
-  console.log('🔍 Executing query:', query, [artistId]);
+  console.log('[DEBUG] Executing query:', query, [artistId]);
 
   db.query(query, [artistId], (err, results) => {
     clearTimeout(timeout);
 
     if (err) {
       console.error('[ERROR] Database error:', err.message);
-      console.error('❌ Full error:', err);
+      console.error('[ERROR] Full error:', err);
 
       // Return a proper error instead of mock data
       return res.status(500).json({
@@ -2941,10 +2941,10 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
       });
     }
 
-    console.log(`📊 Query results: ${results.length} rows`);
+    console.log(`[INFO] Query results: ${results.length} rows`);
 
     if (results.length === 0) {
-      console.log('❌ No artist found');
+      console.log('[ERROR] No artist found');
       return res.status(404).json({
         success: false,
         message: 'Artist not found'
@@ -2952,7 +2952,7 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
     }
 
     const artist = results[0];
-    console.log('✅ Artist found:', artist.name);
+    console.log('[OK] Artist found:', artist.name);
 
     // Fetch appointments
     const appointmentsQuery = `
@@ -3191,7 +3191,7 @@ app.post('/api/artist/portfolio', (req, res) => {
   }
 
   if (imageUrl) {
-    console.log(`📸 Uploading work: "${title}", Category: ${category}, Public: ${isPublic}, Price: ${priceEstimate || 'N/A'}`);
+    console.log(`[INFO] Uploading work: "${title}", Category: ${category}, Public: ${isPublic}, Price: ${priceEstimate || 'N/A'}`);
   }
 
   const parsedPrice = priceEstimate ? parseFloat(priceEstimate) : null;
@@ -3275,7 +3275,7 @@ app.post('/api/artist/appointments', (req, res) => {
 // Artist: Add New Client
 app.post('/api/artist/clients', async (req, res) => {
   const { name, email, password } = req.body;
-  console.log('👤 Request to add client:', { name, email });
+  console.log('[INFO] Request to add client:', { name, email });
 
   try {
     // Create user with provided password or default '123123123A!'
@@ -3294,7 +3294,7 @@ app.post('/api/artist/clients', async (req, res) => {
       res.json({ success: true, message: 'Client profile created successfully' });
     });
   } catch (e) {
-    console.error('❌ Server error:', e);
+    console.error('[ERROR] Server error:', e);
     res.status(500).json({ success: false, message: 'Server error: ' + e.message });
   }
 });
@@ -3488,7 +3488,7 @@ app.get('/api/public/calendar-availability', (req, res) => {
 
 // Customer book appointment
 app.post('/api/customer/appointments', async (req, res) => {
-  console.log('📅 Customer booking request:', req.body);
+  console.log('[INFO] Customer booking request:', req.body);
   let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price, serviceType, consultationMethod } = req.body;
 
   // ═══ Rolling Booking Limit: max 2 pending appointments per customer ═══
@@ -3759,7 +3759,7 @@ app.put('/api/customer/appointments/:id/reschedule', (req, res) => {
             (updateErr, result) => {
               if (updateErr) return res.status(500).json({ success: false, message: 'Failed to reschedule: ' + updateErr.message });
 
-              console.log(`📅 Customer ${customerId} rescheduled Appt #${id} to ${newDate} ${newTime || ''} (Reason: ${reason || 'Not provided'})`);
+              console.log(`[INFO] Customer ${customerId} rescheduled Appt #${id} to ${newDate} ${newTime || ''} (Reason: ${reason || 'Not provided'})`);
 
               const reasonText = reason ? `\nReason: ${reason}` : '';
 
@@ -3878,7 +3878,7 @@ app.post('/api/customer/appointments/:id/reschedule-request', (req, res) => {
             (insertErr, insertResult) => {
               if (insertErr) return res.status(500).json({ success: false, message: 'Failed to submit reschedule request: ' + insertErr.message });
 
-              console.log(`📋 Customer ${customerId} submitted reschedule request for Appt #${id} → ${requestedDate} (Reason: ${reason})`);
+              console.log(`[INFO] Customer ${customerId} submitted reschedule request for Appt #${id} → ${requestedDate} (Reason: ${reason})`);
 
               const bookingCode = appt.booking_code || `#${id}`;
               const currentDateStr = new Date(appt.appointment_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -4040,7 +4040,7 @@ app.put('/api/admin/reschedule-requests/:requestId/decide', (req, res) => {
               [adminNotes || null, adminId, decidedAt, requestId]
             );
 
-            console.log(`✅ Admin ${adminId} approved reschedule request #${requestId} for Appt #${request.appointment_id} → ${request.requested_date}`);
+            console.log(`[OK] Admin ${adminId} approved reschedule request #${requestId} for Appt #${request.appointment_id} → ${request.requested_date}`);
 
             const notesStr = adminNotes ? ` Notes: ${adminNotes}` : '';
 
@@ -4090,7 +4090,7 @@ app.put('/api/admin/reschedule-requests/:requestId/decide', (req, res) => {
           (rejectErr) => {
             if (rejectErr) return res.status(500).json({ success: false, message: 'Failed to update request.' });
 
-            console.log(`❌ Admin ${adminId} rejected reschedule request #${requestId} for Appt #${request.appointment_id}`);
+            console.log(`[ERROR] Admin ${adminId} rejected reschedule request #${requestId} for Appt #${request.appointment_id}`);
 
             const originalDateStr = new Date(request.appointment_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -4476,7 +4476,7 @@ app.post('/api/admin/appointments', async (req, res) => {
         if (err) {
           // Graceful fallback if waiver_accepted_at column doesn't exist yet
           if (err.code === 'ER_BAD_FIELD_ERROR' && err.message.includes('waiver_accepted_at')) {
-            console.warn('⚠️ waiver_accepted_at column not found, retrying INSERT without it...');
+            console.warn('[WARN] waiver_accepted_at column not found, retrying INSERT without it...');
             const fallbackQuery = `
               INSERT INTO appointments 
                 (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone)
@@ -4484,7 +4484,7 @@ app.post('/api/admin/appointments', async (req, res) => {
             `;
             return db.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null], (fbErr, fbResult) => {
               if (fbErr) {
-                console.error('❌ Fallback INSERT also failed:', fbErr);
+                console.error('[ERROR] Fallback INSERT also failed:', fbErr);
                 return res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message });
               }
               const fbBookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType, fbResult.insertId);
@@ -4689,7 +4689,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
       if (err) {
         // If the error is about unknown columns (migrations not yet applied), retry without optional new columns
         if (err.code === 'ER_BAD_FIELD_ERROR') {
-          console.warn('⚠️ Unknown column detected, retrying without optional columns:', err.message);
+          console.warn('[WARN] Unknown column detected, retrying without optional columns:', err.message);
           const optionalCols = ['secondary_artist_id', 'commission_split', 'before_photo'];
           const safeUpdates = [];
           const safeParams = [];
@@ -4713,7 +4713,7 @@ app.put('/api/admin/appointments/:id', (req, res) => {
 
           return db.query(safeQuery, safeParams, (retryErr, retryResult) => {
             if (retryErr) {
-              console.error('❌ Migration-safe retry also failed:', retryErr);
+              console.error('[ERROR] Migration-safe retry also failed:', retryErr);
               return res.status(500).json({ success: false, message: 'Database error (retry failed): ' + retryErr.message });
             }
             // Continue using result from retry
@@ -4948,12 +4948,12 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#be9055;text-align:center;">Pre-Session Conditioning Plan</p>
               <p style="margin:0 0 14px;font-size:12px;color:#94a3b8;text-align:center;line-height:1.5;">Follow these steps before your tattoo session for the best results:</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">💧 <strong>Hydrate</strong> — Drink plenty of water 24–48 hours before for optimal skin elasticity.</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">🍽️ <strong>Eat Well</strong> — Have a full, balanced meal 1–2 hours before to keep blood sugar stable.</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">🚫 <strong>No Alcohol</strong> — Avoid alcohol and blood thinners (ibuprofen/aspirin) for 24+ hours prior.</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">🧴 <strong>Skin Care</strong> — Moisturize daily leading up, but skip lotion on session day. Avoid sunburns!</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">😴 <strong>Rest Up</strong> — Get a good night's sleep to boost energy and pain tolerance.</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">👕 <strong>Dress Smart</strong> — Wear comfortable, loose clothing for easy access to the tattoo area.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>Hydrate</strong> — Drink plenty of water 24–48 hours before for optimal skin elasticity.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>Eat Well</strong> — Have a full, balanced meal 1–2 hours before to keep blood sugar stable.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>No Alcohol</strong> — Avoid alcohol and blood thinners (ibuprofen/aspirin) for 24+ hours prior.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>Skin Care</strong> — Moisturize daily leading up, but skip lotion on session day. Avoid sunburns!</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>Rest Up</strong> — Get a good night's sleep to boost energy and pain tolerance.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>Dress Smart</strong> — Wear comfortable, loose clothing for easy access to the tattoo area.</td></tr>
               </table>
             </div>
           </td></tr></table>
@@ -5167,7 +5167,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
                 WHERE a.id = ?
               `, [id], (fetchErr, fetchRes) => {
                 if (fetchErr || !fetchRes.length) {
-                  console.error(`⚠️ Failed to fetch consultation data for summary email (appointment #${id}):`, fetchErr?.message);
+                  console.error(`[WARN] Failed to fetch consultation data for summary email (appointment #${id}):`, fetchErr?.message);
                   return;
                 }
                 const appt = fetchRes[0];
@@ -5355,7 +5355,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
         }
       }
     } catch (err) {
-      console.error(`❌ Non-critical error in notification logic for appointment #${id}:`, err);
+      console.error(`[ERROR] Non-critical error in notification logic for appointment #${id}:`, err);
     }
   });
 
@@ -5395,15 +5395,15 @@ app.put('/api/artist/appointments/:id/draft', (req, res) => {
     return res.status(400).json({ success: false, message: 'Missing draft image data' });
   }
 
-  console.log(`📎 Draft upload for Appt #${id}, payload size: ${(draft_image.length / 1024).toFixed(1)}KB`);
+  console.log(`[INFO] Draft upload for Appt #${id}, payload size: ${(draft_image.length / 1024).toFixed(1)}KB`);
 
   db.query("UPDATE appointments SET draft_image = ? WHERE id = ?", [draft_image, id], (err, result) => {
     if (err) {
-      console.error(`❌ Draft upload DB error for Appt #${id}:`, err.message);
+      console.error(`[ERROR] Draft upload DB error for Appt #${id}:`, err.message);
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
     }
     if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Appointment not found' });
-    console.log(`✅ Draft image saved for Appt #${id}`);
+    console.log(`[OK] Draft image saved for Appt #${id}`);
     res.json({ success: true, message: 'Draft image updated successfully' });
   });
 });
@@ -5537,7 +5537,7 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
             // Create invoice record
             const invoiceQuery = `INSERT INTO invoices (invoice_number, customer_id, appointment_id, client_name, service_type, amount, payment_method, change_given, discount_amount, discount_type, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, 'Paid', NOW())`;
             db.query(invoiceQuery, [invoiceNumber, apptData.customer_id, id, apptData.client_name, apptData.design_title || 'Session Payment', actualPayment, method || 'Cash', changeGiven], (invInsertErr, invInsertRes) => {
-              if (invInsertErr) console.error('⚠️ Invoice creation failed:', invInsertErr.message);
+              if (invInsertErr) console.error('[WARN] Invoice creation failed:', invInsertErr.message);
 
               // Send notification and email
               const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
@@ -5829,7 +5829,7 @@ app.post('/api/appointments/:id/materials', (req, res) => {
   const { id } = req.params;
   const { inventory_id, quantity } = req.body;
 
-  console.log(`📦 Adding material to appointment ${id}: inventory_id=${inventory_id}, quantity=${quantity}`);
+  console.log(`[INFO] Adding material to appointment ${id}: inventory_id=${inventory_id}, quantity=${quantity}`);
 
   // Deduct from inventory immediately and add to session_materials as hold
   db.query('UPDATE inventory SET current_stock = current_stock - ? WHERE id = ? AND current_stock >= ?',
@@ -5840,11 +5840,11 @@ app.post('/api/appointments/:id/materials', (req, res) => {
         return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
       }
       if (result.affectedRows === 0) {
-        console.warn(`⚠️ Inventory update failed: Item ${inventory_id} may not exist or insufficient stock`);
+        console.warn(`[WARN] Inventory update failed: Item ${inventory_id} may not exist or insufficient stock`);
         return res.status(400).json({ success: false, message: 'Insufficient stock or invalid item' });
       }
 
-      console.log(`✅ Deducted ${quantity} from inventory ${inventory_id}`);
+      console.log(`[OK] Deducted ${quantity} from inventory ${inventory_id}`);
 
       db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
         [id, inventory_id, quantity, 'hold'], (insErr) => {
@@ -6016,7 +6016,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
           createNotification(appointment.customer_id, 'Tattoo Journey Complete!', `Your session for "${designTitle}" is finished! We hope you love your new ink.`, 'appointment_completed', id);
 
           // Trigger Aftercare Reminder
-          createNotification(appointment.customer_id, 'Don\'t forget your Aftercare! 🧼', `Proper healing is key! Review the aftercare instructions for your new "${designTitle}" tattoo to keep it looking fresh.`, 'aftercare_reminder', id);
+          createNotification(appointment.customer_id, 'Don\'t forget your Aftercare!', `Proper healing is key! Review the aftercare instructions for your new "${designTitle}" tattoo to keep it looking fresh.`, 'aftercare_reminder', id);
 
           // Trigger Review Prompt
           createNotification(appointment.customer_id, 'How did we do?', `Please take a moment to leave a review for your artist! We value your feedback on your latest session.`, 'review_prompt', id);
@@ -6083,7 +6083,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
             );
           }
 
-          // 🚨 PAYMENT RESOLUTION CHECK: Fire urgent admin alert if outstanding balance exists
+          // PAYMENT RESOLUTION CHECK: Fire urgent admin alert if outstanding balance exists
           const paymentCheckQuery = `
             SELECT ap.price,
               ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ap.id AND status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid
@@ -6115,7 +6115,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
           });
 
         } else {
-          createNotification(appointment.customer_id, 'Session Complete! ⏳', `Your session for "${designTitle}" today is finished. We will coordinate with you soon for your next session to continue your piece!`, 'appointment_partial_complete', id);
+          createNotification(appointment.customer_id, 'Session Complete!', `Your session for "${designTitle}" today is finished. We will coordinate with you soon for your next session to continue your piece!`, 'appointment_partial_complete', id);
         }
 
         // SYNC: Automatically create a manual invoice for Admin Billing
@@ -6130,8 +6130,8 @@ app.put('/api/appointments/:id/status', (req, res) => {
 
             const invoiceQuery = 'INSERT INTO invoices (invoice_number, customer_id, appointment_id, client_name, service_type, amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, "Paid", NOW())';
             db.query(invoiceQuery, [invoiceNumber, appointment.customer_id, id, clientName, appointment.service_type || 'Tattoo Session', currentPrice], (invErr) => {
-              if (invErr) console.error('❌ Failed to auto-generate invoice:', invErr.message);
-              else console.log(`✅ Auto-generated invoice ${invoiceNumber} for Client: ${clientName}`);
+              if (invErr) console.error('[ERROR] Failed to auto-generate invoice:', invErr.message);
+              else console.log(`[OK] Auto-generated invoice ${invoiceNumber} for Client: ${clientName}`);
             });
           });
 
@@ -6422,7 +6422,7 @@ app.post('/api/appointments/:id/release-material', (req, res) => {
   const appointmentId = parseInt(req.params.id, 10);
   const materialId = parseInt(req.body.materialId, 10);
 
-  console.log(`♻️ Releasing material ${materialId} for appt ${appointmentId}`);
+  console.log(`[INFO] Releasing material ${materialId} for appt ${appointmentId}`);
   console.log(`DEBUG: Received materialId: ${req.body.materialId} (parsed: ${materialId}), appointmentId: ${req.params.id} (parsed: ${appointmentId})`);
 
   if (isNaN(materialId)) return res.status(400).json({ success: false, message: 'Material record ID required' });
@@ -6479,7 +6479,7 @@ app.put('/api/appointments/:id/details', (req, res) => {
   const { id } = req.params;
   const { notes, beforePhoto, afterPhoto } = req.body;
 
-  console.log(`📝 Saving details for appointment ${id}`);
+  console.log(`[INFO] Saving details for appointment ${id}`);
   console.log(`   - Notes: ${notes ? notes.substring(0, 50) + '...' : 'empty'}`);
   console.log(`   - Before Photo: ${beforePhoto ? beforePhoto.substring(0, 50) + '...' : 'none'}`);
   console.log(`   - After Photo: ${afterPhoto ? afterPhoto.substring(0, 50) + '...' : 'none'}`);
@@ -6500,7 +6500,7 @@ app.put('/api/appointments/:id/details', (req, res) => {
   query += ' WHERE id = ?';
   params.push(id);
 
-  console.log(`🔍 Query: ${query.substring(0, 100)}...`);
+  console.log(`[DEBUG] Query: ${query.substring(0, 100)}...`);
 
   db.query(query, params, (err, result) => {
     if (err) {
@@ -6508,7 +6508,7 @@ app.put('/api/appointments/:id/details', (req, res) => {
       return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
     }
 
-    console.log(`✅ Updated appointment ${id}: ${result.affectedRows} rows affected`);
+    console.log(`[OK] Updated appointment ${id}: ${result.affectedRows} rows affected`);
     res.json({ success: true, message: 'Details updated successfully' });
   });
 });
@@ -6661,7 +6661,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
           const data = await response.json();
 
           if (!response.ok) {
-            console.error('❌ PayMongo API Error:', JSON.stringify(data, null, 2));
+            console.error('[ERROR] PayMongo API Error:', JSON.stringify(data, null, 2));
             return res.status(502).json({
               success: false,
               message: `PayMongo Error: ${data.errors?.[0]?.detail || 'Unknown error'}`,
@@ -6679,7 +6679,7 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
                ON DUPLICATE KEY UPDATE session_id = VALUES(session_id), amount = VALUES(amount), currency = VALUES(currency), status = 'pending', raw_event = VALUES(raw_event)`,
             [appointmentId, sessionId, sessionAmount, 'PHP', JSON.stringify(data?.data || {})],
             (payErr) => {
-              if (payErr) console.error('⚠️ Could not log pending payment:', payErr.message);
+              if (payErr) console.error('[WARN] Could not log pending payment:', payErr.message);
             }
           );
 
@@ -6687,13 +6687,13 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
 
           res.json({ success: true, checkoutUrl, sessionId });
         } catch (err) {
-          console.error('❌ PayMongo API Error:', err.message);
+          console.error('[ERROR] PayMongo API Error:', err.message);
           res.status(500).json({ success: false, message: 'Payment gateway error' });
         }
       }
     });
   } catch (error) {
-    console.error('🔥 Unexpected error creating checkout session:', error);
+    console.error('[ERROR] Unexpected error creating checkout session:', error);
     res.status(500).json({
       success: false,
       message: error?.message || 'Internal server error',
@@ -6755,7 +6755,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
 
         try {
           // Poll PayMongo directly
-          console.log(`🔍 Polling PayMongo for session ${sessionId} (Appointment ${appointmentId})...`);
+          console.log(`[INFO] Polling PayMongo for session ${sessionId} (Appointment ${appointmentId})...`);
           const pmRes = await fetch(`${PAYMONGO_API_BASE}/checkout_sessions/${sessionId}`, {
             headers: { 'Authorization': paymongoAuthHeader() }
           });
@@ -6767,10 +6767,10 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
           // PayMongo status 'completed' or having any items in the payments array means it's paid
           const hasPaid = pmStatus === 'completed' || (Array.isArray(paymentList) && paymentList.length > 0);
 
-          console.log(`ℹ️ Polling details for Appt ${appointmentId}: PM_Status=${pmStatus}, Payments_Found=${paymentList.length}, HasPaid=${hasPaid}`);
+          console.log(`[INFO] Polling details for Appt ${appointmentId}: PM_Status=${pmStatus}, Payments_Found=${paymentList.length}, HasPaid=${hasPaid}`);
 
           if (hasPaid) {
-            console.log(`✅ Polling confirmed PAID for Appointment ${appointmentId}. Synchronizing database...`);
+            console.log(`[OK] Polling confirmed PAID for Appointment ${appointmentId}. Synchronizing database...`);
 
             // Update DB so future polls are faster
             const paymentType = pmData?.data?.attributes?.metadata?.paymentType || 'full';
@@ -6779,9 +6779,9 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
 
             db.query("UPDATE appointments SET payment_status = ?, status = ? WHERE id = ?", [newPaymentStatus, newAptStatus, appointmentId], (updErr) => {
               if (updErr) {
-                console.error(`❌ Failed to update appointments status to paid for ${appointmentId}:`, updErr.message);
+                console.error(`[ERROR] Failed to update appointments status to paid for ${appointmentId}:`, updErr.message);
               } else {
-                console.log(`💾 Appointment ${appointmentId} updated to '${newPaymentStatus}' in DB.`);
+                console.log(`[INFO] Appointment ${appointmentId} updated to '${newPaymentStatus}' in DB.`);
 
                 // If state changed to paid, manually trigger what the webhook would normally do
                 if (currentPaymentStatus !== newPaymentStatus) {
@@ -6846,29 +6846,29 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
             });
 
             db.query("UPDATE payments SET status = 'paid' WHERE session_id = ?", [sessionId], (updErr) => {
-              if (updErr) console.error(`❌ Failed to update payments record to paid for ${sessionId}:`, updErr.message);
+              if (updErr) console.error(`[ERROR] Failed to update payments record to paid for ${sessionId}:`, updErr.message);
             });
 
             return res.json({ success: true, payment_status: newPaymentStatus, booking_code: appt.booking_code || null });
           } else {
-            console.log(`ℹ️ Polling result: Payment is still NOT detected as paid for Appt ${appointmentId}`);
+            console.log(`[INFO] Polling result: Payment is still NOT detected as paid for Appt ${appointmentId}`);
           }
         } catch (pollErr) {
-          console.error('❌ Polling PayMongo API error:', pollErr.message);
+          console.error('[ERROR] Polling PayMongo API error:', pollErr.message);
         }
 
         res.json({ success: true, payment_status: currentPaymentStatus, booking_code: appt.booking_code || null });
       });
     });
   } catch (error) {
-    console.error('🔥 Unexpected error in payment-status endpoint:', error);
+    console.error('[ERROR] Unexpected error in payment-status endpoint:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 
 app.post('/api/payments/webhook', (req, res) => {
   if (!PAYMONGO_WEBHOOK_SECRET) {
-    console.warn('⚠️ PAYMONGO_WEBHOOK_SECRET is not set. Webhook signature will not be verified.');
+    console.warn('[WARN] PAYMONGO_WEBHOOK_SECRET is not set. Webhook signature will not be verified.');
   }
 
   const signatureHeader = req.headers['paymongo-signature'];
@@ -6897,7 +6897,7 @@ app.post('/api/payments/webhook', (req, res) => {
       .digest('hex');
 
     if (expected !== signature) {
-      console.error('❌ Webhook signature mismatch');
+      console.error('[ERROR] Webhook signature mismatch');
       return res.status(400).json({ success: false, message: 'Signature mismatch' });
     }
   }
@@ -6914,10 +6914,10 @@ app.post('/api/payments/webhook', (req, res) => {
   const currency = resource?.attributes?.currency || 'PHP';
   const status = eventType && eventType.includes('paid') ? 'paid' : (resource?.attributes?.status || 'pending');
 
-  console.log('📥 PayMongo webhook received:', eventType, 'appointment', appointmentId);
+  console.log('[INFO] PayMongo webhook received:', eventType, 'appointment', appointmentId);
 
   if (!appointmentId) {
-    console.warn('⚠️ Webhook missing appointmentId in metadata');
+    console.warn('[WARN] Webhook missing appointmentId in metadata');
   }
 
   // Upsert payment record (idempotent on paymongo_payment_id unique key)
@@ -6951,7 +6951,7 @@ app.post('/api/payments/webhook', (req, res) => {
           if (updateErr) {
             console.error('[ERROR] Error marking appointment paid:', updateErr.message);
           } else {
-            console.log('✅ Appointment', appointmentId, 'marked as', newPaymentStatus);
+            console.log('[OK] Appointment', appointmentId, 'marked as', newPaymentStatus);
 
             const wasPending = appt.status?.toLowerCase() === 'pending';
             const customerAmtStr = (amount / 100).toLocaleString();
@@ -7069,7 +7069,7 @@ app.get('/api/customer/:customerId/transactions', (req, res) => {
 // ========== CUSTOMER DASHBOARD (SIMPLIFIED) ==========
 app.get('/api/customer/dashboard/:customerId', (req, res) => {
   const { customerId } = req.params;
-  console.log(`📱 Customer dashboard requested: ${customerId}`);
+  console.log(`[INFO] Customer dashboard requested: ${customerId}`);
 
   // 1. Get Customer Info
   const userQuery = `
@@ -7357,35 +7357,35 @@ app.post('/api/admin/aftercare-templates/reset', (req, res) => {
 
     // Re-seed defaults
     const defaults = [
-      [1, 'initial', 'Unwrap & First Wash 🧼', 'Remove the bandage/wrap after 2-4 hours. Gently wash with lukewarm water and fragrance-free antibacterial soap. Pat dry with a clean paper towel — never use a cloth towel.', 'Use Dove Sensitive or Cetaphil soap. Wash your hands thoroughly before touching the tattoo. Apply a very thin layer of your artist-recommended ointment (e.g., Aquaphor).'],
-      [2, 'initial', 'Keep It Clean & Moisturized 💧', 'Wash your tattoo 2-3 times today with lukewarm water and mild soap. Apply a very thin layer of ointment after each wash. The area may still be red, swollen, and tender — this is normal.', 'The skin should NOT look shiny or greasy after applying ointment. Less is more. Wear loose, breathable clothing over the tattoo.'],
-      [3, 'initial', 'Day 3: Swelling Should Subside 🩹', 'Continue your wash-and-moisturize routine 2-3 times daily. Redness and swelling should begin decreasing.', 'Sleep on clean sheets and avoid laying directly on the tattoo.'],
-      [4, 'peeling', 'Peeling Begins — Don\'t Pick! ⚠️', 'Your tattoo may start to peel and flake like a sunburn. DO NOT pick, scratch, or peel the flaking skin!', 'Switch from heavy ointment to a fragrance-free moisturizing lotion.'],
-      [5, 'peeling', 'Moisturize & Resist the Itch 🤚', 'The peeling continues and itching may increase. Apply fragrance-free lotion whenever the skin feels dry.', 'Cool compresses can help with itching. Stay hydrated.'],
-      [6, 'peeling', 'Stay the Course 💪', 'Keep up your routine: gentle wash, pat dry, apply lotion.', 'Avoid swimming, baths, and saunas.'],
+      [1, 'initial', 'Unwrap & First Wash', 'Remove the bandage/wrap after 2-4 hours. Gently wash with lukewarm water and fragrance-free antibacterial soap. Pat dry with a clean paper towel — never use a cloth towel.', 'Use Dove Sensitive or Cetaphil soap. Wash your hands thoroughly before touching the tattoo. Apply a very thin layer of your artist-recommended ointment (e.g., Aquaphor).'],
+      [2, 'initial', 'Keep It Clean & Moisturized', 'Wash your tattoo 2-3 times today with lukewarm water and mild soap. Apply a very thin layer of ointment after each wash. The area may still be red, swollen, and tender — this is normal.', 'The skin should NOT look shiny or greasy after applying ointment. Less is more. Wear loose, breathable clothing over the tattoo.'],
+      [3, 'initial', 'Day 3: Swelling Should Subside', 'Continue your wash-and-moisturize routine 2-3 times daily. Redness and swelling should begin decreasing.', 'Sleep on clean sheets and avoid laying directly on the tattoo.'],
+      [4, 'peeling', 'Peeling Begins — Don\\'t Pick! IMPORTANT:', 'Your tattoo may start to peel and flake like a sunburn. DO NOT pick, scratch, or peel the flaking skin!', 'Switch from heavy ointment to a fragrance-free moisturizing lotion.'],
+      [5, 'peeling', 'Moisturize & Resist the Itch', 'The peeling continues and itching may increase. Apply fragrance-free lotion whenever the skin feels dry.', 'Cool compresses can help with itching. Stay hydrated.'],
+      [6, 'peeling', 'Stay the Course', 'Keep up your routine: gentle wash, pat dry, apply lotion.', 'Avoid swimming, baths, and saunas.'],
       [7, 'peeling', 'One Week Milestone!', 'You made it through the first week! Continue moisturizing.', 'The cloudy appearance under peeling skin is normal — new skin is forming.'],
-      [8, 'peeling', 'Flaking is Normal 🍂', 'Expect continued flaking. Keep moisturizing consistently.', 'Wear soft cotton clothing to reduce friction.'],
+      [8, 'peeling', 'Flaking is Normal', 'Expect continued flaking. Keep moisturizing consistently.', 'Wear soft cotton clothing to reduce friction.'],
       [9, 'peeling', 'Healing Progress Check', 'Initial redness should be mostly gone. Continue lotion routine.', 'Watch for signs of infection. These are rare with proper care.'],
       [10, 'peeling', 'Day 10 — Almost Through Peeling', 'Most heavy peeling is ending. Avoid direct sunlight.', 'Your tattoo is still healing beneath the surface.'],
       [11, 'peeling', 'Consistent Care Matters', 'Keep moisturizing and protecting from sun.', 'Clean the area promptly after exercise.'],
       [12, 'peeling', 'Light at the End of the Tunnel', 'Surface peeling wrapping up. Continue lotion application.', 'Stay out of pools for at least another 2 weeks.'],
       [13, 'peeling', 'Almost Done Peeling', 'Only minor flaking may remain. Colors will brighten up.', 'SPF 30+ is essential if any sun exposure.'],
-      [14, 'peeling', 'Two Weeks Complete! 🏆', 'The peeling phase is over. Continue daily moisturizing.', 'Deeper layers take 4-6 weeks to fully heal.'],
-      [15, 'healing', 'Final Healing Phase Begins 🔬', 'Surface should feel smooth. Continue lotion 1-2 times daily.', 'Resume most normal activities but avoid prolonged water submersion.'],
-      [16, 'healing', 'Protect Your Investment ☀️', 'Apply SPF 30+ whenever going outside.', 'UV protection keeps colors vibrant for years.'],
-      [17, 'healing', 'Stay Moisturized 🧴', 'Continue daily lotion. Well-moisturized skin showcases ink better.', 'Stay hydrated from the inside too.'],
-      [18, 'healing', 'Healing Nicely! 👀', 'Your tattoo is close to its final appearance.', 'Raised areas with heavy ink may need more time.'],
-      [19, 'healing', 'Routine Maintenance 🔧', 'Continue lotion and sun protection routine.', 'Avoid abrasive scrubs on the tattoo.'],
+      [14, 'peeling', 'Two Weeks Complete!', 'The peeling phase is over. Continue daily moisturizing.', 'Deeper layers take 4-6 weeks to fully heal.'],
+      [15, 'healing', 'Final Healing Phase Begins', 'Surface should feel smooth. Continue lotion 1-2 times daily.', 'Resume most normal activities but avoid prolonged water submersion.'],
+      [16, 'healing', 'Protect Your Investment', 'Apply SPF 30+ whenever going outside.', 'UV protection keeps colors vibrant for years.'],
+      [17, 'healing', 'Stay Moisturized', 'Continue daily lotion. Well-moisturized skin showcases ink better.', 'Stay hydrated from the inside too.'],
+      [18, 'healing', 'Healing Nicely!', 'Your tattoo is close to its final appearance.', 'Raised areas with heavy ink may need more time.'],
+      [19, 'healing', 'Routine Maintenance', 'Continue lotion and sun protection routine.', 'Avoid abrasive scrubs on the tattoo.'],
       [20, 'healing', 'Day 20 — Two-Thirds Healed!', 'Well past the critical period. Keep protecting from sun.', 'Short pool swims are OK if surface is fully closed.'],
       [21, 'healing', 'Three Weeks!', 'Home stretch of healing. Continue gentle daily care.', 'Heavy shading areas may take slightly longer.'],
-      [22, 'healing', 'Looking Great! 💯', 'Tattoo looking more vibrant each day.', 'Share a photo with your artist!'],
-      [23, 'healing', 'Steady Progress 📈', 'Simple daily routine: moisturize and apply sunscreen.', 'Great aftercare = vibrant tattoo for decades.'],
-      [24, 'healing', 'Almost Fully Healed! 🙌', 'Deep skin layers nearly done regenerating.', 'UV protection is a forever habit!'],
-      [25, 'healing', 'Day 25 — Final Stretch 🏁', 'Just a few more days of dedicated aftercare.', 'Schedule a touch-up consultation if needed.'],
-      [26, 'healing', 'Healing Champion! 🥇', 'Your discipline is paying off.', 'Set a follow-up reminder with your artist.'],
-      [27, 'healing', 'Three Days to Go ⏳', 'Tattoo essentially healed at the surface.', 'Browse InkVistAR gallery for your next piece!'],
-      [28, 'healing', 'Penultimate Day 🌅', 'Your aftercare journey is nearly complete.', 'Sunscreen is the best long-term care habit.'],
-      [29, 'healing', 'Tomorrow is the Last Day! 🎊', 'Your tattoo is fully healed. Keep moisturizing.', 'Book your next session!'],
+      [22, 'healing', 'Looking Great!', 'Tattoo looking more vibrant each day.', 'Share a photo with your artist!'],
+      [23, 'healing', 'Steady Progress', 'Simple daily routine: moisturize and apply sunscreen.', 'Great aftercare = vibrant tattoo for decades.'],
+      [24, 'healing', 'Almost Fully Healed!', 'Deep skin layers nearly done regenerating.', 'UV protection is a forever habit!'],
+      [25, 'healing', 'Day 25 — Final Stretch', 'Just a few more days of dedicated aftercare.', 'Schedule a touch-up consultation if needed.'],
+      [26, 'healing', 'Healing Champion!', 'Your discipline is paying off.', 'Set a follow-up reminder with your artist.'],
+      [27, 'healing', 'Three Days to Go', 'Tattoo essentially healed at the surface.', 'Browse InkVistAR gallery for your next piece!'],
+      [28, 'healing', 'Penultimate Day', 'Your aftercare journey is nearly complete.', 'Sunscreen is the best long-term care habit.'],
+      [29, 'healing', 'Tomorrow is the Last Day!', 'Your tattoo is fully healed. Keep moisturizing.', 'Book your next session!'],
       [30, 'healing', 'Aftercare Complete!', '30-day aftercare program is complete. Continue lifelong habits.', 'Thank you for trusting InkVistAR!']
     ];
 
@@ -7894,7 +7894,7 @@ app.put('/api/admin/users/:id/status', (req, res) => {
 // Admin: Delete User (Soft Delete)
 app.delete('/api/admin/users/:id', (req, res) => {
   const { id } = req.params;
-  console.log(`🗑️ SOFT DELETE request for user ID: ${id}`);
+  console.log(`[INFO] SOFT DELETE request for user ID: ${id}`);
 
   // Safety: Don't delete any super admin account
   db.query('SELECT email, is_superadmin FROM users WHERE id = ?', [id], (err, results) => {
@@ -9010,7 +9010,7 @@ app.get('/api/invoices/:orderId', (req, res) => {
   const { orderId } = req.params;
 
   // Security check
-  console.log(`🧾 Invoice requested (UNSECURED): Order #${orderId}`);
+  console.log(`[INFO] Invoice requested (UNSECURED): Order #${orderId}`);
 
   // Mock Data (TODO: Pull real data from DB)
   const mockInvoice = `
@@ -9051,7 +9051,7 @@ function getFallbackResponse(message) {
 
 // ========== AR FEATURES ==========
 app.get('/api/ar/config', (req, res) => {
-  console.log('👓 AR Config requested');
+  console.log('[INFO] AR Config requested');
   res.json({
     success: true,
     config: {
@@ -9067,7 +9067,7 @@ app.get('/api/ar/config', (req, res) => {
 // ========== RESEND VERIFICATION ENDPOINT ==========
 app.post('/api/resend-verification', (req, res) => {
   const { email } = req.body;
-  console.log('📧 Resend verification requested for:', email);
+  console.log('[INFO] Resend verification requested for:', email);
 
   if (!email) return res.status(400).json({ success: false, message: 'Email required' });
 
@@ -9092,7 +9092,7 @@ app.post('/api/resend-verification', (req, res) => {
       const host = req.get('host');
       const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${email}`;
 
-      console.log('🔑 [DEBUG] NEW Verification Link:', verifyUrl);
+      console.log('[DEBUG] NEW Verification Link:', verifyUrl);
 
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verify Your Account</h2>
@@ -9113,7 +9113,7 @@ app.post('/api/resend-verification', (req, res) => {
 // ========== CHAT ABUSE REPORT ENDPOINT ==========
 app.post('/api/chat/report-abuse', (req, res) => {
   const { customerId, userName, strikes } = req.body;
-  console.log(`🚨 Chat abuse report: Customer ${customerId} (${userName}) - ${strikes} profanity strikes`);
+  console.log(`[WARN] Chat abuse report: Customer ${customerId} (${userName}) - ${strikes} profanity strikes`);
 
   if (!customerId) {
     return res.status(400).json({ success: false, message: 'Customer ID required' });
@@ -9142,7 +9142,7 @@ app.post('/api/chat/report-abuse', (req, res) => {
 // ========== CHATBOT ENDPOINT ==========
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
-  console.log('💬 Chat message received:', message);
+  console.log('[INFO] Chat message received:', message);
 
   if (!message) {
     return res.status(400).json({ success: false, message: 'Message required' });
@@ -9154,7 +9154,7 @@ app.post('/api/chat', async (req, res) => {
       // Fetch settings from DB to build a dynamic context
       db.query('SELECT * FROM app_settings', async (err, settingsResults) => {
         if (err) {
-          console.error('❌ Chatbot DB Error (falling back):', err.message);
+          console.error('[ERROR] Chatbot DB Error (falling back):', err.message);
           const fallback = getFallbackResponse(message);
           return res.json({ success: true, response: fallback });
         }
@@ -9208,7 +9208,7 @@ app.post('/api/chat', async (req, res) => {
         return res.json({ success: true, response: response });
       });
     } catch (error) {
-      console.error('❌ Groq API error (Falling back to local):', error);
+      console.error('[ERROR] Groq API error (Falling back to local):', error);
       const fallback = getFallbackResponse(message);
       res.json({ success: true, response: fallback });
     }
@@ -9219,11 +9219,11 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-console.log('⚡️ Chatbot endpoint (/api/chat) is registered.');
+console.log('[OK] Chatbot endpoint (/api/chat) is registered.');
 
 // ========== EMERGENCY LOGIN (ALWAYS WORKS) ==========
 app.post('/api/emergency-login', (req, res) => {
-  console.log('🚨 Emergency login called:', req.body);
+  console.log('[WARN] Emergency login called:', req.body);
 
   const { email, type } = req.body;
 
@@ -9245,7 +9245,7 @@ app.post('/api/emergency-login', (req, res) => {
 const activeSupportSessions = {};
 
 io.on('connection', (socket) => {
-  console.log('✅ A user connected to chat:', socket.id);
+  console.log('[OK] A user connected to chat:', socket.id);
 
   // Join a room based on a unique identifier
   socket.on('join_room', (room) => {
@@ -9377,7 +9377,7 @@ io.on('connection', (socket) => {
 
   // Handle disconnection
   socket.on('disconnect', () => {
-    console.log('❌ User disconnected:', socket.id);
+    console.log('[ERROR] User disconnected:', socket.id);
   });
 });
 
@@ -9474,7 +9474,7 @@ function startAppointmentReminders() {
 
     if (phtHour !== 9 || phtMinute !== 0) return;
 
-    console.log('🔔 Running daily appointment reminder job (9:00 AM PHT)...');
+    console.log('[INFO] Running daily appointment reminder job (9:00 AM PHT)...');
 
     // Date strings in PHT
     const todayStr = pht.toISOString().split('T')[0];
@@ -9499,7 +9499,7 @@ function startAppointmentReminders() {
     `;
     db.query(todayQuery, [todayStr], (err, todayAppts) => {
       if (err) return console.error('[ERROR] Error finding today reminders:', err);
-      console.log(`📅 Found ${todayAppts.length} appointment(s) today`);
+      console.log(`[INFO] Found ${todayAppts.length} appointment(s) today`);
 
       todayAppts.forEach(appt => {
         // Deduplicate: check if we already sent a same-day reminder for this appointment today
@@ -9509,7 +9509,7 @@ function startAppointmentReminders() {
 
             const timeStr = formatTime12h(appt.start_time);
             const customerMsg = `Reminder: You have a session today for "${appt.design_title}" at ${timeStr}! Get plenty of rest and stay hydrated. We can't wait to see you!`;
-            createNotification(appt.customer_id, 'Session Today! ⏰', customerMsg, 'appointment_reminder', appt.id);
+            createNotification(appt.customer_id, 'Session Today!', customerMsg, 'appointment_reminder', appt.id);
 
             // Email reminder
             if (appt.customer_email) {
@@ -9575,7 +9575,7 @@ function startAppointmentReminders() {
 
               // Today's sessions
               if (sessions.today.length > 0) {
-                msgParts.push(`📌 TODAY (${sessions.today.length} session${sessions.today.length > 1 ? 's' : ''}):`);
+                msgParts.push(`[TODAY] (${sessions.today.length} session${sessions.today.length > 1 ? 's' : ''}):`);
                 sessions.today.forEach(s => {
                   const time = formatTime12h(s.start_time);
                   msgParts.push(`  • ${time} — "${s.design_title}" with ${s.customer_name || 'Client'}`);
@@ -9593,7 +9593,7 @@ function startAppointmentReminders() {
               }
 
               const fullMsg = msgParts.join('\n');
-              createNotification(parseInt(artistId), 'Daily Schedule Overview ⏰', fullMsg, 'appointment_reminder');
+              createNotification(parseInt(artistId), 'Daily Schedule Overview', fullMsg, 'appointment_reminder');
             });
           }
         );
@@ -9617,7 +9617,7 @@ function startAppointmentReminders() {
           [appt.customer_id, appt.id], (dupErr, dupRes) => {
             if (dupErr || (dupRes && dupRes.length > 0)) return;
 
-            const title = "Upcoming Session Reminder ⏰";
+            const title = "Upcoming Session Reminder";
             const message = `Reminder: Your tattoo session for "${appt.design_title}" is coming up tomorrow at ${appt.start_time}! Get plenty of rest and stay hydrated.`;
             createNotification(appt.customer_id, title, message, 'appointment_reminder', appt.id);
 
@@ -9670,7 +9670,7 @@ function startPayoutReminders() {
     const weekNum = Math.ceil(((pht - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
     if (weekNum % 2 !== 0) return; // Only even weeks (every other Monday)
 
-    console.log('💰 Running bi-weekly payout reminder job...');
+    console.log('[INFO] Running bi-weekly payout reminder job...');
 
     // Find all artists and calculate their unclaimed commission balance
     const query = `
@@ -9697,7 +9697,7 @@ function startPayoutReminders() {
     db.query(query, (err, artists) => {
       if (err) return console.error('[ERROR] Error calculating payout balances:', err);
 
-      console.log(`💰 Found ${artists.length} artist(s) with unclaimed commissions ≥ ₱500`);
+      console.log(`[INFO] Found ${artists.length} artist(s) with unclaimed commissions ≥ ₱500`);
 
       artists.forEach(artist => {
         const balance = parseFloat(artist.unclaimed_balance).toLocaleString('en-PH', { minimumFractionDigits: 2 });
@@ -9719,7 +9719,7 @@ function startAftercareCron() {
   setInterval(() => {
     const now = new Date();
     if (now.getHours() === 8 && now.getMinutes() === 0) {
-      console.log('🧼 Running daily aftercare notification job...');
+      console.log('[INFO] Running daily aftercare notification job...');
 
       // Find all completed appointments within the last 30 days (tattoo sessions only)
       const query = `
@@ -9734,8 +9734,8 @@ function startAftercareCron() {
       `;
 
       db.query(query, (err, completedAppts) => {
-        if (err) return console.error('❌ Aftercare CRON error:', err.message);
-        if (!completedAppts.length) return console.log('🧼 No active aftercare sessions today');
+        if (err) return console.error('[ERROR] Aftercare CRON error:', err.message);
+        if (!completedAppts.length) return console.log('[INFO] No active aftercare sessions today');
 
         // Group by customer — only send for their most recent completed tattoo
         const customerLatest = {};
@@ -9746,7 +9746,7 @@ function startAftercareCron() {
         });
 
         const customers = Object.values(customerLatest);
-        console.log(`🧼 Found ${customers.length} customers needing aftercare notifications`);
+        console.log(`[INFO] Found ${customers.length} customers needing aftercare notifications`);
 
         // Get today's aftercare templates
         customers.forEach(appt => {
@@ -9772,7 +9772,7 @@ function startAftercareCron() {
               const message = `Day ${dayNum} of healing for "${designName}" — ${tpl.message}`;
 
               createNotification(appt.customer_id, title, message, 'aftercare_daily', appt.id);
-              console.log(`🧼 Sent Day ${dayNum} aftercare to customer ${appt.customer_id}`);
+              console.log(`[OK] Sent Day ${dayNum} aftercare to customer ${appt.customer_id}`);
             });
           });
         });
@@ -9794,7 +9794,7 @@ function startRescheduleRequestExpiry() {
       (err, expired) => {
         if (err || !expired || !expired.length) return;
 
-        console.log(`⏰ Auto-expiring ${expired.length} reschedule request(s)...`);
+        console.log(`[INFO] Auto-expiring ${expired.length} reschedule request(s)...`);
 
         expired.forEach(req => {
           // Mark as expired
@@ -9804,9 +9804,9 @@ function startRescheduleRequestExpiry() {
           const originalDateStr = new Date(req.appointment_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
           // Notify customer
-          createNotification(req.customer_id, 'Reschedule Request Expired ⏰', `Your reschedule request for [${bookingCode}] has expired because no action was taken within 24 hours. Your original appointment on ${originalDateStr} remains unchanged.`, 'reschedule_expired', req.appointment_id);
+          createNotification(req.customer_id, 'Reschedule Request Expired', `Your reschedule request for [${bookingCode}] has expired because no action was taken within 24 hours. Your original appointment on ${originalDateStr} remains unchanged.`, 'reschedule_expired', req.appointment_id);
 
-          console.log(`⏰ Expired reschedule request #${req.id} for Appt #${req.appointment_id} (Customer: ${req.customer_name})`);
+          console.log(`[INFO] Expired reschedule request #${req.id} for Appt #${req.appointment_id} (Customer: ${req.customer_name})`);
         });
       }
     );
@@ -10319,7 +10319,7 @@ app.use((req, res) => {
 
 // ========== ERROR HANDLER ==========
 app.use((err, req, res, next) => {
-  console.error('🔥 Unhandled error:', err);
+  console.error('[ERROR] Unhandled error:', err);
   res.status(500).json({
     success: false,
     message: 'Internal server error',
@@ -10331,10 +10331,10 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
   console.log('\n' + '='.repeat(50));
-  console.log(`🚀 BACKEND SERVER STARTED`);
-  console.log(`🌐 http://localhost:${PORT}`);
-  console.log('🔌 Socket.IO chat server is waiting for connections...');
-  console.log('\n📡 Available Endpoints:');
+  console.log(`[OK] BACKEND SERVER STARTED`);
+  console.log(`[OK] http://localhost:${PORT}`);
+  console.log('[OK] Socket.IO chat server is waiting for connections...');
+  console.log('\n[INFO] Available Endpoints:');
   console.log(`   GET  http://localhost:${PORT}/api/test`);
   console.log(`   GET  http://localhost:${PORT}/api/debug/db`);
   console.log(`   GET  http://localhost:${PORT}/api/debug/users`);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, FileWarning } from 'lucide-react';
+import { X, FileWarning, Asterisk } from 'lucide-react';
 import './WaiverFormModal.css';
 
 /**
@@ -120,7 +120,7 @@ export default function WaiverFormModal({ isOpen, onClose, onAccept, clientName,
                                 {index === photoConsentAfterIndex && (
                                     <div>
                                         <h4 className="waiver-section-title">
-                                            <span className="waiver-section-number" style={{ background: '#64748b' }}>✦</span>
+                                            <span className="waiver-section-number" style={{ background: '#64748b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Asterisk size={14} /></span>
                                             Photo & Media Consent
                                         </h4>
                                         <div className="waiver-consent-toggle">

@@ -4,7 +4,7 @@ import './Home.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
 import Footer from '../components/Footer';
-import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone, Star } from 'lucide-react';
 import { API_URL } from '../config';
 
 // Dynamic Artist List
@@ -285,7 +285,7 @@ function Home() {
                                                         <div className="perspective-quote-mark">"</div>
                                                         <div className="perspective-stars">
                                                             {[1,2,3,4,5].map(s => (
-                                                                <span key={s} className={`perspective-star ${s <= (testimony.rating || 5) ? 'filled' : ''}`}>★</span>
+                                                                <span key={s} className={`perspective-star ${s <= (testimony.rating || 5) ? 'filled' : ''}`}><Star size={14} fill={s <= (testimony.rating || 5) ? 'currentColor' : 'none'} /></span>
                                                             ))}
                                                         </div>
                                                         <p className="perspective-comment">{testimony.comment || testimony.content || 'Amazing experience!'}</p>

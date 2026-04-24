@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Trash2, Edit2, Plus, X, Globe, Lock, Video, Image, PlaySquare } from 'lucide-react';
+import { Trash2, Edit2, Plus, X, Globe, Lock, Video, Image, PlaySquare, Star } from 'lucide-react';
 import { API_URL } from '../config';
 import ConfirmModal from './ConfirmModal';
 import '../pages/AdminUsers.css'; // Reusing established admin styles
@@ -164,7 +164,7 @@ function AdminTestimonials() {
                             ) : testimonials.length > 0 ? (
                                 testimonials.map(item => (
                                     <tr key={item.id}>
-                                        <td><strong>{item.customer_name}</strong><br/><small style={{color:'#f59e0b'}}>{'★'.repeat(item.rating)}{'☆'.repeat(5 - item.rating)}</small></td>
+                                        <td><strong>{item.customer_name}</strong><br/><small style={{color:'#f59e0b', display: 'inline-flex', gap: '1px'}}>{Array.from({length: item.rating}, (_, i) => <Star key={`f${i}`} size={12} fill="#f59e0b" stroke="#f59e0b"/>)}{Array.from({length: 5 - item.rating}, (_, i) => <Star key={`e${i}`} size={12} stroke="#f59e0b"/>)}</small></td>
                                         <td>
                                             <div style={{ maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 {item.content || <span className="text-muted">No text content</span>}

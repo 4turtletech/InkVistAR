@@ -773,7 +773,7 @@ function ArtistAppointments() {
                                                                                 transition: 'all 0.3s'
                                                                             }}
                                                                         >
-                                                                            {publishStatus[selectedAppointment.id] === 'success' ? '✓ Published to Portfolio' : publishStatus[selectedAppointment.id] === 'publishing' ? 'Publishing...' : 'Publish to Portfolio'}
+                                                                            {publishStatus[selectedAppointment.id] === 'success' ? <><Check size={14} style={{display:'inline', verticalAlign:'middle', marginRight:'4px'}} /> Published to Portfolio</> : publishStatus[selectedAppointment.id] === 'publishing' ? 'Publishing...' : 'Publish to Portfolio'}
                                                                         </button>
                                                                         <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '8px' }}>This will push the image to your public Gallery.</p>
                                                                     </>

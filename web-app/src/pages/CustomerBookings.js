@@ -737,7 +737,7 @@ function CustomerBookings(){
                 reason: finalReason
             });
             if (res.data.success) {
-                showAlert("Request Submitted ✓", res.data.message, "success");
+                showAlert("Request Submitted", res.data.message, "success");
                 setIsRescheduleRequestModalOpen(false);
                 setShowRequestConfirm(false);
                 setIsModalOpen(false);
@@ -2388,7 +2388,7 @@ function CustomerBookings(){
                             />
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
                                 <span style={{ fontSize: '0.75rem', color: cancelModal.reason.length < 10 && cancelModal.reason.length > 0 ? '#f59e0b' : '#94a3b8' }}>
-                                    {cancelModal.reason.length < 10 ? `${10 - cancelModal.reason.length} more characters needed` : '✓ Reason is valid'}
+                                    {cancelModal.reason.length < 10 ? `${10 - cancelModal.reason.length} more characters needed` : <><Check size={12} style={{display:'inline', verticalAlign:'middle'}} /> Reason is valid</>}
                                 </span>
                                 <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                                     {cancelModal.reason.length}/500
@@ -2504,7 +2504,7 @@ function CustomerBookings(){
                                         }}
                                         disabled={isGraceCancelling}
                                     >
-                                        {graceCancelModal.reason === reason ? '✓ ' : ''}{reason}
+                                        {graceCancelModal.reason === reason ? <><Check size={12} style={{display:'inline', verticalAlign:'middle', marginRight:'2px'}} /></> : ''}{reason}
                                     </button>
                                 ))}
                             </div>
@@ -2535,7 +2535,7 @@ function CustomerBookings(){
                                     />
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                                         <span style={{ fontSize: '0.75rem', color: graceCancelModal.customReason.length < 10 && graceCancelModal.customReason.length > 0 ? '#f59e0b' : '#94a3b8' }}>
-                                            {graceCancelModal.customReason.length < 10 ? `${10 - graceCancelModal.customReason.length} more characters needed` : '✓ Reason is valid'}
+                                            {graceCancelModal.customReason.length < 10 ? `${10 - graceCancelModal.customReason.length} more characters needed` : <><Check size={12} style={{display:'inline', verticalAlign:'middle'}} /> Reason is valid</>}
                                         </span>
                                         <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                                             {graceCancelModal.customReason.length}/500

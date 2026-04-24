@@ -259,7 +259,7 @@ function AnalyticsAuditModal({
                                         <td>{row.email}</td>
                                         <td><span className={`status-badge ${row.user_type === 'admin' ? 'danger' : row.user_type === 'artist' ? 'success' : 'pending'}`} style={{ fontSize: '0.7rem', textTransform: 'capitalize' }}>{row.user_type}</span></td>
                                         <td>{new Date(row.created_at).toLocaleDateString()}</td>
-                                        <td>{row.is_verified ? '✓' : '—'}</td>
+                                        <td>{row.is_verified ? <Check size={14} color="#10b981" /> : '—'}</td>
                                     </>}
                                     {auditModal.type === 'styles' && <>
                                         <td>{new Date(row.created_at).toLocaleDateString()}</td>
