@@ -630,13 +630,20 @@ body.sidenav-collapsed .portal-layout .portal-container {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    /* Keep header as a flex row — don't stack, prevents bell orphaning */
+    /* Keep header as a flex row — don't stack, prevents bell orphaning.
+       padding-left clears the fixed mobile-menu-toggle (≈42px + 1rem gap). */
     .portal-header {
         flex-direction: row;
         flex-wrap: wrap;
         gap: 0.5rem;
         align-items: center;
         margin-bottom: 1rem;
+        padding-left: 56px;
+    }
+
+    /* Subtitle often lives outside .portal-header — give it the same clearance */
+    .header-subtitle {
+        padding-left: 56px;
     }
 
     .portal-header h1,
