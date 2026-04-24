@@ -6,6 +6,9 @@ import { API_URL } from '../config';
 import './PortalStyles.css';
 import './AdminStyles.css';
 
+// Strip emoji/symbol unicode characters from DB strings
+const stripEmoji = (str) => (str || '').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu, '').trim();
+
 const PHASE_CONFIG = {
   initial: { label: 'Phase 1: Initial Healing', days: 'Days 1-3', desc: 'Red, swollen, tender skin. Focus on cleaning', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: AlertTriangle },
   peeling: { label: 'Phase 2: Peeling & Itching', days: 'Days 4-14', desc: 'Flaking and itching. Do NOT pick', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: Droplets },
@@ -155,21 +158,21 @@ function AdminAftercare() {
                                                         <div>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                                                                 <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e293b' }}>
-                                                                    {tpl.title}
+                                                                    {stripEmoji(tpl.title)}
                                                                 </span>
                                                             </div>
                                                             <p style={{ margin: '0 0 4px', fontSize: '0.8rem', color: '#64748b', lineHeight: '1.5' }}>
-                                                                {tpl.message}
+                                                                {stripEmoji(tpl.message)}
                                                             </p>
                                                             {tpl.tips && (
                                                                 <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: '1.4' }}>
-                                                                    Tip: {tpl.tips}
+                                                                    Tip: {stripEmoji(tpl.tips)}
                                                                 </p>
                                                             )}
                                                         </div>
                                                         <button 
                                                             style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.75rem', fontWeight: 600, flexShrink: 0, transition: 'all 0.2s' }}
-                                                            onClick={() => { setEditingTemplate(tpl.id); setEditForm({ title: tpl.title, message: tpl.message, tips: tpl.tips || '' }); }}
+                                                            onClick={() => { setEditingTemplate(tpl.id); setEditForm({ title: stripEmoji(tpl.title), message: stripEmoji(tpl.message), tips: stripEmoji(tpl.tips) }); }}
                                                             onMouseEnter={(e) => { e.currentTarget.style.color = '#be9055'; e.currentTarget.style.borderColor = '#be9055'; }}
                                                             onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
                                                         >
