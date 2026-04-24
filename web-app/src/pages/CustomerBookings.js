@@ -1470,7 +1470,7 @@ function CustomerBookings(){
                                             <span style={{ fontWeight: '700', color: '#1e293b' }}>{monthNames[rescheduleMonth.getMonth()]} {rescheduleMonth.getFullYear()}</span>
                                             <button type="button" onClick={() => setRescheduleMonth(new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronRight size={20}/></button>
                                         </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem' }}>
+                                        <div className="grid-calendar-days" style={{ textAlign: 'center', fontSize: '0.8rem' }}>
                                             {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} style={{ fontWeight: '700', color: '#94a3b8', padding: '6px 0' }}>{d}</div>)}
                                             {renderRescheduleCalendar()}
                                         </div>
@@ -1586,7 +1586,7 @@ function CustomerBookings(){
                                             <span style={{ fontWeight: '700', color: '#1e293b' }}>{monthNames[rescheduleMonth.getMonth()]} {rescheduleMonth.getFullYear()}</span>
                                             <button type="button" onClick={() => setRescheduleMonth(new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth() + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}><ChevronRight size={20}/></button>
                                         </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem' }}>
+                                        <div className="grid-calendar-days" style={{ textAlign: 'center', fontSize: '0.8rem' }}>
                                             {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} style={{ fontWeight: '700', color: '#94a3b8', padding: '6px 0' }}>{d}</div>)}
                                             {(() => {
                                                 const year = rescheduleMonth.getFullYear();
@@ -1711,7 +1711,7 @@ function CustomerBookings(){
                                         {/* Phase A: Booking Type Toggle */}
                                         <div className="form-group">
                                             <label className="customer-st-36716a21" >Is this a new booking or a follow-up?</label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                                            <div className="grid-2col" style={{ marginBottom: '20px' }}>
                                                 {[
                                                     { key: 'new', label: 'New Booking', icon: <PlusCircle size={22} />, desc: 'Book a brand new session' },
                                                     { key: 'followup', label: 'Follow-Up', icon: <History size={22} />, desc: 'Continue from a past booking' }
@@ -1784,7 +1784,7 @@ function CustomerBookings(){
                                         {bookingData.bookingType && (bookingData.bookingType === 'new' || bookingData.followupAppointmentId) && (
                                             <div className="form-group">
                                                 <label className="customer-st-36716a21" >Select your services</label>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                                                <div className="grid-3col">
                                                     {[
                                                         { key: 'Tattoo Session', icon: <Sparkles size={20} />, color: '#be9055' },
                                                         { key: 'Consultation', icon: <MessageSquare size={20} />, color: '#3b82f6' },
@@ -1858,7 +1858,7 @@ function CustomerBookings(){
                                     return (
                                     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                                         <h3 className="customer-st-69ffca42" >2. Design Details</h3>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', flex: 1, minHeight: 0 }}>
+                                        <div className="grid-2col" style={{ flex: 1, minHeight: 0 }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
                                                 <div className="form-group" style={{ marginBottom: 0 }}>
                                                     <label className="customer-st-67198c20" >Concept Name <span style={{ color: '#ef4444', fontWeight: '400' }}>*</span></label>
@@ -2033,7 +2033,7 @@ function CustomerBookings(){
 
                                         {/* Main layout: 3D Model on left, button grids on right */}
                                         {(showTattooPlacement || showPiercingPlacement) && (
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '12px' }}>
+                                            <div className="grid-2col" style={{ marginBottom: '12px' }}>
                                                 {/* 3D Body Model (shared for both tattoo + piercing) */}
                                                 <Suspense fallback={<div style={{ height: '340px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRadius: '16px' }}>Loading 3D Model...</div>}>
                                                     <BodyModelViewer
@@ -2053,7 +2053,7 @@ function CustomerBookings(){
                                                             <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                 <Paintbrush size={15} color="#be9055" /> Tattoo Placement
                                                             </p>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '7px' }}>
+                                                            <div className="grid-placement-parts">
                                                                 {tattooBodyParts.map(part => {
                                                                     const isSelected = bookingData.placement.includes(part);
                                                                     return (
@@ -2084,7 +2084,7 @@ function CustomerBookings(){
                                                             <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                 <Gem size={15} color="#4FC3F7" /> Piercing Placement
                                                             </p>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '7px' }}>
+                                                            <div className="grid-placement-parts">
                                                                 {piercingBodyParts.map(part => {
                                                                     const isSelected = bookingData[piercingField].includes(part);
                                                                     return (
@@ -2163,7 +2163,7 @@ function CustomerBookings(){
                                                     <span className="customer-st-52ddb992" >{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
                                                     <button className="customer-st-67331937" type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} ><ChevronRight size={20}/></button>
                                                 </div>
-                                                <div className="calendar-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', fontSize: '0.8rem' }}>
+                                                <div className="calendar-grid grid-calendar-days" style={{ textAlign: 'center', fontSize: '0.8rem' }}>
                                                     {['S','M','T','W','T','F','S'].map(d => <div className="customer-st-1894d8a4" key={d} >{d}</div>)}
                                                     {renderCalendarDays()}
                                                 </div>

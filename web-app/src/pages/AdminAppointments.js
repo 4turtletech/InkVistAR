@@ -1886,7 +1886,7 @@ function AdminAppointments() {
                                             )}
                                         </div>
 
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                                        <div className="grid-2col" style={{ gap: '12px', marginBottom: '14px' }}>
                                             <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.8)', border: '1px solid #fde68a' }}>
                                                 <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Requested Date</div>
                                                 <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
@@ -1939,7 +1939,7 @@ function AdminAppointments() {
                                 )}
 
                                 {modalTab === 'details' && (
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', alignItems: 'stretch' }}>
+                                    <div className="grid-3col" style={{ gap: '24px', alignItems: 'stretch' }}>
                                         {/* Left Column: People & Service */}
                                         <div className="admin-st-d295c8d6" style={{ justifyContent: 'flex-start' }}>
                                             <div>
@@ -2172,7 +2172,7 @@ function AdminAppointments() {
                                                     {selectedAppointment ? (
                                                         /* ── Read-only info cards for existing appointments ── */
                                                         <div>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: formData.time ? '1fr 1fr' : '1fr', gap: '12px', alignItems: 'stretch' }}>
+                                                            <div className="grid-2col" style={{ gap: '12px', alignItems: 'stretch' }}>
                                                                 <div style={{
                                                                     background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0',
                                                                     padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '4px'
@@ -2381,7 +2381,7 @@ function AdminAppointments() {
 
                                 {modalTab === 'notes' && (
                                     /* Session Log Tab View */
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+                                    <div className="grid-3col" style={{ gap: '24px' }}>
                                         {/* Left Column: Session Summary & Notes */}
                                         <div className="admin-st-d295c8d6">
                                             <div>

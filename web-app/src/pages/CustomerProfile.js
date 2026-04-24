@@ -255,7 +255,7 @@ function CustomerProfile() {
                                             <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <User size={20} color="#be9055" /> Personal Information
                                             </h3>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                            <div className="grid-2col" style={{ gap: '12px' }}>
                                                 {[
                                                     { icon: <Phone size={16} />, label: 'Phone Number', value: profile.phone || 'Not provided' },
                                                     { icon: <MapPin size={16} />, label: 'Location', value: profile.location || 'Not provided' },
@@ -314,7 +314,7 @@ function CustomerProfile() {
                                             <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <User size={20} color="#be9055" /> Personal Information
                                             </h3>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                            <div className="grid-2col">
                                                 <div className="form-group">
                                                     <label className="artist-profile-form-label"><User size={16} /> Name <span style={{ color: '#ef4444' }}>*</span></label>
                                                     <input type="text" className="form-input artist-profile-input" value={profile.name}
@@ -389,7 +389,7 @@ function CustomerProfile() {
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                                    <div className="grid-2col">
                                                         <div className="form-group">
                                                             <label className="artist-profile-form-label"><Lock size={16} /> New Password</label>
                                                             <div style={{ position: 'relative' }}>

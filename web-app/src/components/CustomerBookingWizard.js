@@ -381,22 +381,22 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         }
 
         return (
-            <div style={{backgroundColor: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0'}}>
+            <div className="wizard-calendar-container" style={{backgroundColor: 'white', borderRadius: '16px', padding: '24px', border: '1px solid #e2e8f0'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
                     <button onClick={() => changeMonth(-1)} style={{background:'none', border:'none', cursor:'pointer', color:'#64748b'}}><ChevronLeft size={24}/></button>
                     <span style={{fontSize: '1.2rem', fontWeight: '700', color: '#1e293b'}}>{monthNames[month]} {year}</span>
                     <button onClick={() => changeMonth(1)} style={{background:'none', border:'none', cursor:'pointer', color:'#64748b'}}><ChevronRight size={24}/></button>
                 </div>
-                <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', marginBottom: '12px', color: '#94a3b8', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
+                <div className="grid-calendar-header" style={{marginBottom: '12px', color: '#94a3b8', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em'}}>
                     <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
                 </div>
-                <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px'}}>
+                <div className="grid-calendar-days">
                     {days}
                 </div>
-                <div style={{display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '24px', fontSize: '0.8rem', color: '#64748b', fontWeight: '500', fontFamily: "'Inter', sans-serif"}}>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#dcfce7', border: '1px solid #bbf7d0'}}/> Available</div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#fef9c3', border: '1px solid #fde68a'}}/> Limited</div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '16px', height: '16px', borderRadius: '4px', backgroundColor: '#fee2e2', border: '1px solid #fecaca'}}/> Full</div>
+                <div className="calendar-legend">
+                    <div className="calendar-legend-item"><div className="calendar-legend-swatch" style={{backgroundColor: '#dcfce7', border: '1px solid #bbf7d0'}}/> Available</div>
+                    <div className="calendar-legend-item"><div className="calendar-legend-swatch" style={{backgroundColor: '#fef9c3', border: '1px solid #fde68a'}}/> Limited</div>
+                    <div className="calendar-legend-item"><div className="calendar-legend-swatch" style={{backgroundColor: '#fee2e2', border: '1px solid #fecaca'}}/> Full</div>
                 </div>
             </div>
         );
@@ -410,7 +410,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             </h3>
             <p style={{color: '#64748b', marginBottom: '32px'}}>Tell us roughly what you're looking for so we can match you with the right artist. All fields are required.</p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <div className="grid-wizard-step">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div className="form-group" style={{ marginBottom: 0, position: 'relative' }}>
                         <label style={{fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'block'}}>Idea Name <span style={{ color: '#ef4444', fontWeight: '400' }}>*</span></label>
@@ -581,7 +581,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
             {/* Main layout: 3D Model on left, stacked button grids on right */}
             {(showTattoo || showPiercing) && (
-                <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '12px' }}>
+                <div className="grid-2col" style={{ marginBottom: '12px' }}>
                     <Suspense fallback={<div style={{ height: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRadius: '16px', color: '#94a3b8' }}>Loading 3D Model...</div>}>
                         <BodyModelViewer
                             selectedTattoo={formData.placement.filter(p => tattooBodyParts.includes(p))}
@@ -599,7 +599,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                 <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <Paintbrush size={15} color="#be9055" /> Tattoo Placement
                                 </p>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '7px' }}>
+                                <div className="grid-placement-parts">
                                     {tattooBodyParts.map(part => {
                                         const isSelected = formData.placement.includes(part);
                                         return (
@@ -627,7 +627,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                 <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <Gem size={15} color="#be9055" /> Piercing Placement
                                 </p>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '7px' }}>
+                                <div className="grid-placement-parts">
                                     {piercingBodyParts.map(part => {
                                         const isSelected = formData.placement.includes(part);
                                         return (
@@ -689,11 +689,11 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             </h3>
             <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.95rem'}}>Select a date for your free in-studio consultation.</p>
             
-            <div style={{display: 'grid', gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1.2fr 1fr', gap: window.innerWidth <= 768 ? '16px' : '24px', alignItems: 'start'}}>
+            <div className="grid-calendar-layout">
                 <div>{renderCalendar()}</div>
                 <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                      <label style={{fontWeight: '700', color: '#1e293b', marginBottom: '12px', display: 'block', fontSize: '0.9rem', textTransform: 'uppercase'}}>Available Times</label>
-                     <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+                     <div className="grid-time-slots">
                         {['13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'].map(t => {
                             let isDisabled = false;
                             if (formData.date) {
@@ -749,7 +749,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             <p style={{color: '#64748b', marginBottom: '20px', fontSize: '0.95rem'}}>How should we reach out regarding your request?</p>
 
             <div style={{ padding: '24px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : '1fr 1fr 100px', gap: window.innerWidth <= 768 ? '12px' : '16px', marginBottom: '16px' }}>
+                <div className="grid-form-row" style={{ marginBottom: '16px' }}>
                     <div className="form-group" style={{ position: 'relative' }}>
                         <label style={{ fontWeight: '700', color: '#1e293b', marginBottom: '6px', display: 'block', fontSize: '0.85rem' }}>First Name *</label>
                         <input
@@ -1204,29 +1204,27 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     if (step === 5) return renderConsultationCompletedPage();
 
     return (
-        <div className="data-card" style={{border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', borderRadius: '24px', position: 'relative', height: window.innerWidth <= 768 ? 'auto' : '90vh', maxHeight: window.innerWidth <= 768 ? 'none' : '850px', display: 'flex', flexDirection: 'column', overflow: window.innerWidth <= 768 ? 'visible' : 'hidden'}}>
+        <div className="data-card wizard-card">
             
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: window.innerWidth <= 480 ? 'flex-start' : 'center', flexDirection: window.innerWidth <= 480 ? 'column' : 'row', gap: window.innerWidth <= 480 ? '12px' : '16px', marginBottom: window.innerWidth <= 768 ? '24px' : '40px', borderBottom: '1px solid #f1f5f9', paddingBottom: window.innerWidth <= 768 ? '20px' : '32px'}}>
-                <h2 style={{margin: 0, fontSize: window.innerWidth <= 480 ? '1.15rem' : '1.4rem', fontWeight: '800', color: '#1e293b'}}>Request Consultation</h2>
+            <div className="wizard-header">
+                <h2>Request Consultation</h2>
                 <div style={{display: 'flex', gap: '8px', flexShrink: 0}}>
                     {[1, 2, 3, 4].map(s => (
-                        <div key={s} style={{
-                            width: window.innerWidth <= 480 ? '24px' : '30px', height: '4px', borderRadius: '2px', 
-                            backgroundColor: step >= s ? '#be9055' : '#e2e8f0',
-                            transition: 'all 0.4s ease'
+                        <div key={s} className="wizard-step-indicator" style={{
+                            backgroundColor: step >= s ? '#be9055' : '#e2e8f0'
                         }} />
                     ))}
                 </div>
             </div>
 
-            <div style={{ flex: 1, minHeight: 0, paddingRight: '10px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <div className="wizard-body">
                 {step === 1 && renderStep1()}
                 {step === 2 && renderStepPlacement()} {/* Step 2: Placement */}
                 {step === 3 && renderStepScheduling()} {/* Step 3: Scheduling */}
                 {step === 4 && renderStepContact()} {/* Step 4: Contact Info */}
             </div>
             
-            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #f1f5f9'}}>
+            <div className="wizard-footer">
                 <button 
                     onClick={() => setStep(Math.max(1, step - 1))} 
                     disabled={step === 1} 
