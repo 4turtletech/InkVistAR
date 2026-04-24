@@ -11,6 +11,7 @@ import ConfirmModal from '../components/ConfirmModal';
 
 import AdminSettings from './AdminSettings';
 import AdminReviews from './AdminReviews';
+import AdminAftercare from './AdminAftercare';
 import './AdminUsers.css'; // Reusing styles
 
 function AdminStudio() {
@@ -296,6 +297,7 @@ function AdminStudio() {
                         { key: 'branches', label: 'Branches Directory' },
                         { key: 'settings', label: 'System Preferences' },
                         { key: 'reviews', label: 'Customer Reviews' },
+                        { key: 'aftercare', label: 'Aftercare Schedule' },
                         { key: 'marketing', label: 'Marketing Emails' }
                     ].map(tab => (
                         <button
@@ -503,6 +505,8 @@ function AdminStudio() {
                     <AdminSettings />
                 ) : activeTab === 'reviews' ? (
                     <AdminReviews />
+                ) : activeTab === 'aftercare' ? (
+                    <AdminAftercare />
                 ) : activeTab === 'marketing' ? (
                     <MarketingEmailTab />
                 ) : null}
