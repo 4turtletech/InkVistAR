@@ -61,19 +61,21 @@ function AdminAftercare() {
 
     return (
         <div className="portal-content" style={{ paddingTop: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <div>
+            <div style={{ position: 'relative', textAlign: 'center', marginBottom: '24px' }}>
+                <div style={{ display: 'inline-block', textAlign: 'center' }}>
                     <h2 style={{ margin: '0 0 6px', fontSize: '1.4rem', fontWeight: 700, color: '#1e293b' }}>Aftercare Notification Schedule</h2>
                     <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Configure the global healing notifications sent to customers after a completed tattoo session.</p>
                 </div>
-                <button 
-                    className="btn btn-secondary" 
-                    onClick={() => setConfirmDialog({ isOpen: true, title: 'Reset to Defaults?', message: 'This will replace all aftercare templates with the original defaults. Any customizations will be lost.', type: 'warning', onConfirm: () => { setConfirmDialog(prev => ({...prev, isOpen: false})); resetAftercareTemplates(); } })}
-                    disabled={aftercareResetting}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
-                >
-                    <RotateCcw size={14} style={aftercareResetting ? { animation: 'spin 1s linear infinite' } : {}} /> Reset Defaults
-                </button>
+                <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
+                    <button 
+                        className="btn btn-secondary" 
+                        onClick={() => setConfirmDialog({ isOpen: true, title: 'Reset to Defaults?', message: 'This will replace all aftercare templates with the original defaults. Any customizations will be lost.', type: 'warning', onConfirm: () => { setConfirmDialog(prev => ({...prev, isOpen: false})); resetAftercareTemplates(); } })}
+                        disabled={aftercareResetting}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+                    >
+                        <RotateCcw size={14} style={aftercareResetting ? { animation: 'spin 1s linear infinite' } : {}} /> Reset Defaults
+                    </button>
+                </div>
             </div>
 
             {/* 30-Day Timeline */}

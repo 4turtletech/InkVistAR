@@ -65,13 +65,15 @@ function AdminReviews() {
         <div className="page-container-enter">
             <div style={{ padding: '24px 24px 0' }}>
                 <div style={{ marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
+                    <div style={{ position: 'relative', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-block', textAlign: 'center' }}>
                             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b', margin: '0 0 8px 0' }}>Review Moderation</h2>
                             <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>Approve or reject customer reviews before they appear on artist pages.</p>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'rgba(193, 154, 107, 0.1)', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, color: '#97754b' }}>
-                            <Star size={14} fill="#be9055" color="#be9055" /> {pendingCount} Pending
+                        <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', background: 'rgba(193, 154, 107, 0.1)', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, color: '#97754b' }}>
+                                <Star size={14} fill="#be9055" color="#be9055" /> {pendingCount} Pending
+                            </div>
                         </div>
                     </div>
                 </div>
