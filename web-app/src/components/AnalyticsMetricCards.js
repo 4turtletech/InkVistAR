@@ -28,12 +28,12 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                             <Pie data={analytics.revenue.breakdown} cx="50%" cy="50%" innerRadius={25} outerRadius={50} paddingAngle={2} dataKey="value">
                                 {analytics.revenue.breakdown.map((_, i) => <Cell key={i} fill={['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4]} />)}
                             </Pie>
-                            <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
+                            <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
                         {analytics.revenue.breakdown.map((b, i) => (
-                            <div key={i}><span style={{ color: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 0 })}</span> {b.name}</div>
+                            <div key={i}><span style={{ color: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> {b.name}</div>
                         ))}
                     </div>
                 </div>
@@ -56,7 +56,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                             <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
                             <Area type="monotone" dataKey="v" stroke="#f59e0b" fill="#fef3c7" strokeWidth={2} activeDot={{ r: 4 }} />
                             <Tooltip
-                                formatter={(value) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, 'Running Total']}
+                                formatter={(value) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Running Total']}
                                 labelFormatter={(label) => label}
                                 contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }}
                             />
@@ -80,12 +80,12 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                             <Pie data={analytics.overhead.breakdown} cx="50%" cy="50%" innerRadius={25} outerRadius={50} paddingAngle={2} dataKey="value">
                                 {analytics.overhead.breakdown.map((_, i) => <Cell key={i} fill={['#8b5cf6', '#a855f7', '#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'][i % 8]} />)}
                             </Pie>
-                            <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
+                            <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
                         {analytics.overhead.breakdown.slice(0, 4).map((b, i) => (
-                            <div key={i}><span style={{ color: ['#8b5cf6', '#a855f7', '#6366f1', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 0 })}</span> {b.name}</div>
+                            <div key={i}><span style={{ color: ['#8b5cf6', '#a855f7', '#6366f1', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> {b.name}</div>
                         ))}
                     </div>
                 </div>
@@ -173,7 +173,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                             <Bar dataKey="revenue" name="Revenue" radius={[4, 4, 0, 0]}>
                                 {analytics.artists.slice(0, 5).map((_, i) => <Cell key={i} fill={['#f97316', '#a855f7', '#3b82f6', '#10b981', '#ec4899'][i % 5]} />)}
                             </Bar>
-                            <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
+                            <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

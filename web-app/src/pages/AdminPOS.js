@@ -710,18 +710,18 @@ function AdminPOS() {
                                                 <div class="row"><span class="label">Client</span><span class="value">${lastOrder.customerName}</span></div>
                                             </div>
                                             <div class="section">
-                                                ${lastOrder.items.map(i => `<div class="row"><span>${i.quantity}x ${i.name}</span><span class="value">₱${((i.retail_price || i.cost) * i.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>`).join('')}
+                                                ${lastOrder.items.map(i => `<div class="row"><span>${i.quantity}x ${i.name}</span><span class="value">₱${((i.retail_price || i.cost) * i.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`).join('')}
                                             </div>
                                             <div class="section">
-                                                <div class="row"><span>Subtotal</span><span>₱${lastOrder.subtotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
-                                                ${lastOrder.discount_amount > 0 ? `<div class="row" style="color:#ef4444"><span>Discount</span><span>-₱${lastOrder.discount_amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>` : ''}
-                                                <div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+                                                <div class="row"><span>Subtotal</span><span>₱${lastOrder.subtotal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                                                ${lastOrder.discount_amount > 0 ? `<div class="row" style="color:#ef4444"><span>Discount</span><span>-₱${lastOrder.discount_amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>` : ''}
+                                                <div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                                             </div>
                                             <div class="section">
                                                 <div class="row"><span class="label">Payment</span><span class="value">${lastOrder.paymentMethod}</span></div>
                                                 ${lastOrder.paymentMethod === 'Cash' ? `
-                                                    <div class="row"><span class="label">Tendered</span><span class="value">₱${lastOrder.amountTendered.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
-                                                    <div class="row"><span class="label">Change</span><span class="value success">₱${lastOrder.changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+                                                    <div class="row"><span class="label">Tendered</span><span class="value">₱${lastOrder.amountTendered.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                                                    <div class="row"><span class="label">Change</span><span class="value success">₱${lastOrder.changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                                                 ` : ''}
                                             </div>
                                             <div class="footer"><p>Thank you for shopping at InkVistAR Studio</p></div>
@@ -749,8 +749,8 @@ function AdminPOS() {
                                             .success { color: #10b981; } .footer { text-align: center; margin-top: 24px; color: #94a3b8; }
                                             </style></head><body>
                                             <div class="header"><h2>InkVistAR Studio</h2><p>Sales Invoice #${lastOrder.orderId}</p></div>
-                                            <div class="section">${lastOrder.items.map(i => `<div class="row"><span>${i.quantity}x ${i.name}</span><span>₱${((i.retail_price || i.cost) * i.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>`).join('')}</div>
-                                            <div class="section"><div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div></div>
+                                            <div class="section">${lastOrder.items.map(i => `<div class="row"><span>${i.quantity}x ${i.name}</span><span>₱${((i.retail_price || i.cost) * i.quantity).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`).join('')}</div>
+                                            <div class="section"><div class="row total"><span>Total</span><span class="success">₱${lastOrder.total.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div></div>
                                             <div class="footer"><p>Thank you for shopping at InkVistAR Studio</p></div>
                                             </body></html>`);
                                             pw.document.close();

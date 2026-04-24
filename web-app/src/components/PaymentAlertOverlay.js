@@ -160,17 +160,17 @@ function PaymentAlertOverlay() {
                 <div class="receipt-row"><span class="label">Service</span><span class="value">${receiptData?.designTitle}</span></div>
             </div>
             <div class="receipt-section">
-                <div class="receipt-row"><span class="label">Total Quoted</span><span class="value">₱${Number(receiptData?.totalQuoted || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
-                <div class="receipt-row"><span class="label">Previously Paid</span><span class="value">₱${Number((receiptData?.totalPaid || 0) - (receiptData?.amountPaid || 0)).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
-                <div class="receipt-row total"><span>Amount Paid</span><span class="success">₱${Number(receiptData?.amountPaid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+                <div class="receipt-row"><span class="label">Total Quoted</span><span class="value">₱${Number(receiptData?.totalQuoted || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                <div class="receipt-row"><span class="label">Previously Paid</span><span class="value">₱${Number((receiptData?.totalPaid || 0) - (receiptData?.amountPaid || 0)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                <div class="receipt-row total"><span>Amount Paid</span><span class="success">₱${Number(receiptData?.amountPaid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
             </div>
             <div class="receipt-section">
                 <div class="receipt-row"><span class="label">Payment Method</span><span class="value">${receiptData?.paymentMethod}</span></div>
                 ${receiptData?.paymentMethod === 'Cash' ? `
-                    <div class="receipt-row"><span class="label">Cash Tendered</span><span class="value">₱${Number(receiptData?.cashTendered || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
-                    <div class="receipt-row"><span class="label">Change Given</span><span class="value success">₱${Number(receiptData?.changeGiven || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+                    <div class="receipt-row"><span class="label">Cash Tendered</span><span class="value">₱${Number(receiptData?.cashTendered || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                    <div class="receipt-row"><span class="label">Change Given</span><span class="value success">₱${Number(receiptData?.changeGiven || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                 ` : ''}
-                <div class="receipt-row"><span class="label">Remaining Balance</span><span class="value" style="color:${receiptData?.remainingBalance > 0 ? '#ef4444' : '#10b981'}">₱${Number(receiptData?.remainingBalance || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+                <div class="receipt-row"><span class="label">Remaining Balance</span><span class="value" style="color:${receiptData?.remainingBalance > 0 ? '#ef4444' : '#10b981'}">₱${Number(receiptData?.remainingBalance || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
             </div>
             <div class="footer"><p>Thank you for choosing InkVictus Tattoo Studio</p><p>BGC, Taguig City</p></div>
             </body></html>
@@ -454,7 +454,7 @@ function PaymentAlertOverlay() {
                                     disabled={isProcessing}
                                 />
                                 <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
-                                    Remaining balance: ₱{remaining.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                                    Remaining balance: ₱{remaining.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
 
@@ -623,7 +623,7 @@ function PaymentAlertOverlay() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid #f1f5f9', fontSize: '0.9rem' }}>
                                         <span style={{ fontWeight: 500, color: '#1e293b' }}>{receiptData.designTitle}</span>
                                         <span style={{ minWidth: '80px', textAlign: 'right', fontWeight: 600, color: '#1e293b' }}>
-                                            ₱{Number(receiptData.amountPaid).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                                            ₱{Number(receiptData.amountPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                 </div>
@@ -632,15 +632,15 @@ function PaymentAlertOverlay() {
                                 <div style={{ padding: '14px 20px', borderTop: '1px dashed #e2e8f0', background: '#fafbfc' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#64748b', marginBottom: '4px' }}>
                                         <span>Total Quoted</span>
-                                        <span>₱{Number(receiptData.totalQuoted).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                                        <span>₱{Number(receiptData.totalQuoted).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#64748b', marginBottom: '4px' }}>
                                         <span>Previously Paid</span>
-                                        <span>₱{Number((receiptData.totalPaid || 0) - (receiptData.amountPaid || 0)).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                                        <span>₱{Number((receiptData.totalPaid || 0) - (receiptData.amountPaid || 0)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.15rem', fontWeight: 800, color: '#1e293b', paddingTop: '8px', borderTop: '1px solid #e2e8f0', marginTop: '4px' }}>
                                         <span>This Payment</span>
-                                        <span style={{ color: '#10b981' }}>₱{Number(receiptData.amountPaid).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                                        <span style={{ color: '#10b981' }}>₱{Number(receiptData.amountPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
 
@@ -657,18 +657,18 @@ function PaymentAlertOverlay() {
                                         <>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#475569', marginBottom: '4px' }}>
                                                 <span>Amount Tendered</span>
-                                                <span style={{ fontWeight: 600 }}>₱{Number(receiptData.cashTendered).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                                                <span style={{ fontWeight: 600 }}>₱{Number(receiptData.cashTendered).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 800, color: '#16a34a', paddingTop: '6px', borderTop: '1px solid #bbf7d0', marginTop: '4px' }}>
                                                 <span>Change Given</span>
-                                                <span>₱{Number(receiptData.changeGiven).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                                                <span>₱{Number(receiptData.changeGiven).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                         </>
                                     )}
                                     {receiptData.remainingBalance > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#ef4444', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #fecaca' }}>
                                             <span style={{ fontWeight: 600 }}>Remaining Balance</span>
-                                            <span style={{ fontWeight: 700 }}>₱{Number(receiptData.remainingBalance).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ fontWeight: 700 }}>₱{Number(receiptData.remainingBalance).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                     )}
                                 </div>

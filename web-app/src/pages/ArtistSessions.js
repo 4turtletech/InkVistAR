@@ -958,7 +958,7 @@ function ArtistSessions() {
                                     <p style={{ margin: 0, fontSize: '0.8rem', color: paymentInfo.isUnquoted ? '#a16207' : '#1d4ed8', lineHeight: 1.5 }}>
                                         {paymentInfo.isUnquoted
                                             ? 'This session has no price set. The studio admin has been notified and will handle pricing and payment collection.'
-                                            : `This session has a remaining balance of ₱${paymentInfo.remaining.toLocaleString("en-PH", { minimumFractionDigits: 2 })}. The studio admin has been notified and will handle payment collection.`
+                                            : `This session has a remaining balance of ₱${paymentInfo.remaining.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. The studio admin has been notified and will handle payment collection.`
                                         }
                                     </p>
                                 </div>

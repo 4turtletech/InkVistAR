@@ -829,7 +829,7 @@ function AdminBilling() {
                                                                 ...prev,
                                                                 appointmentId: apptId,
                                                                 type: appt.design_title || appt.service_type || 'Session Payment',
-                                                                amount: remaining.toFixed(2)
+                                                                amount: Number(remaining).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })
                                                             }));
                                                         } else {
                                                             setNewInvoice(prev => ({ ...prev, appointmentId: apptId, type: '', amount: '' }));

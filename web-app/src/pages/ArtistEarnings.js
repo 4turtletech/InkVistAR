@@ -171,10 +171,10 @@ function ArtistEarnings() {
 
         const dataRows = [
             ['Section', 'Metric', 'Value'],
-            ['Summary', 'Total Earned (Paid)', `₱${metrics.totalEarned.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`],
-            ['Summary', 'Pending (Unpaid)', `₱${metrics.pendingUnpaid.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`],
-            ['Summary', 'Total Paid Out', `₱${metrics.totalPaidOut.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`],
-            ['Summary', 'Balance Due', `₱${metrics.balanceDue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`],
+            ['Summary', 'Total Earned (Paid)', `₱${metrics.totalEarned.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+            ['Summary', 'Pending (Unpaid)', `₱${metrics.pendingUnpaid.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+            ['Summary', 'Total Paid Out', `₱${metrics.totalPaidOut.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+            ['Summary', 'Balance Due', `₱${metrics.balanceDue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
             [],
             ['Date', 'Client', 'Service', 'Type', 'Session Total', 'Your Cut', 'Status'],
             ...filteredSessions.map(s => [
@@ -182,15 +182,15 @@ function ArtistEarnings() {
                 s.client_name || '—',
                 s.design_title || '',
                 s.isCollab ? `Collab ${s.splitPercent}%` : (s.isReferral ? 'Referral (70%)' : 'Solo'),
-                `₱${(s.basePrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`,
-                `₱${(s.artistShare || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`,
+                `₱${(s.basePrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                `₱${(s.artistShare || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 s.payment_status === 'paid' ? 'Paid' : 'Unpaid'
             ]),
             [],
             ['Payout Date', 'Amount', 'Method', 'Reference', 'Status'],
             ...filteredPayouts.map(p => [
                 new Date(p.created_at).toLocaleDateString(),
-                `₱${Number(p.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`,
+                `₱${Number(p.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 p.payout_method || 'N/A',
                 p.reference_no || 'N/A',
                 p.status || 'N/A'

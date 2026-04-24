@@ -231,9 +231,9 @@ function AdminAnalytics() {
 
         const dataRows = [
             ['Section', 'Metric', 'Value'],
-            ['Revenue', 'Total Revenue', `₱${Number(analytics.revenue.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
-            ['Expenses', 'Ops Expenses', `₱${Number(analytics.expenses.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
-            ['Expenses', 'Overhead / Manual', `₱${Number(analytics.overhead?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`],
+            ['Revenue', 'Total Revenue', `₱${Number(analytics.revenue.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+            ['Expenses', 'Ops Expenses', `₱${Number(analytics.expenses.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+            ['Expenses', 'Overhead / Manual', `₱${Number(analytics.overhead?.total || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
             ['Appointments', 'Total', analytics.appointments.total],
             ['Appointments', 'Completed', analytics.appointments.completed],
             ['Appointments', 'Cancelled', analytics.appointments.cancelled],
@@ -242,10 +242,10 @@ function AdminAnalytics() {
             ['Users', 'Artists', analytics.users?.artists || 0],
             [],
             ['Artist Performance', 'Name', 'Revenue', 'Appointments'],
-            ...analytics.artists.map(a => ['Artist', a.name, `₱${Number(a.revenue).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, a.appointments]),
+            ...analytics.artists.map(a => ['Artist', a.name, `₱${Number(a.revenue).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, a.appointments]),
             [],
             ['Revenue Sources'],
-            ...analytics.revenue.breakdown.map(b => ['Source', b.name, `₱${Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`]),
+            ...analytics.revenue.breakdown.map(b => ['Source', b.name, `₱${Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`]),
             [],
             ['Inventory Consumption', 'Item', 'Used Qty'],
             ...analytics.inventory.map(i => ['Inventory', i.name, `${i.used} ${i.unit}`])
@@ -257,7 +257,7 @@ function AdminAnalytics() {
     const handlePrint = () => {
         if (!analytics) return;
         const pw = window.open('', '_blank');
-        const artistRows = analytics.artists.map(a => `<tr><td>${a.name}</td><td>₱${(Number(a.revenue) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td><td>${a.appointments || 0}</td></tr>`).join('');
+        const artistRows = analytics.artists.map(a => `<tr><td>${a.name}</td><td>₱${(Number(a.revenue) || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>${a.appointments || 0}</td></tr>`).join('');
         const invRows = analytics.inventory.map(i => `<tr><td>${i.name}</td><td>${i.used || 0} ${i.unit || ''}</td></tr>`).join('');
         pw.document.write(`<html><head><title>Analytics Report - InkVistAR</title>
             <style>body{font-family:'Segoe UI',sans-serif;padding:30px;color:#1e293b}h1,h2{text-align:center}
@@ -270,8 +270,8 @@ function AdminAnalytics() {
             <h1>Analytics & Performance Report — InkVistAR</h1>
             <p style="text-align:center">Range: ${dateRange.toUpperCase()} | Generated: ${new Date().toLocaleString()}</p>
             <div class="grid">
-                <div class="card"><small>Total Revenue</small><p>₱${Number(analytics.revenue.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</p></div>
-                <div class="card"><small>Total Expenses</small><p>₱${Number(analytics.expenses.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</p></div>
+                <div class="card"><small>Total Revenue</small><p>₱${Number(analytics.revenue.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
+                <div class="card"><small>Total Expenses</small><p>₱${Number(analytics.expenses.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
                 <div class="card"><small>Appointments</small><p>${analytics.appointments.total}</p></div>
                 <div class="card"><small>Completion Rate</small><p>${analytics.appointments.completionRate}%</p></div>
             </div>
@@ -425,7 +425,7 @@ function AdminAnalytics() {
                                                             <Pie data={analytics.revenue.breakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value" label={renderPieLabel} labelLine={true}>
                                                                 {analytics.revenue.breakdown.map((_, i) => <Cell key={i} fill={RAINBOW_PALETTE[i % RAINBOW_PALETTE.length]} />)}
                                                             </Pie>
-                                                            <Tooltip formatter={(value, name) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} />
+                                                            <Tooltip formatter={(value, name) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} />
                                                             <Legend />
                                                         </PieChart>
                                                     </ResponsiveContainer>

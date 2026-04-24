@@ -71,11 +71,11 @@ function CustomerInvoice() {
                 <div class="receipt-row"><span class="label">Service</span><span class="value">${invoice.service_type || 'Session Payment'}</span></div>
             </div>
             <div class="receipt-section">
-                <div class="receipt-row total"><span>Amount Paid</span><span class="success">₱${Number(invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>
+                <div class="receipt-row total"><span>Amount Paid</span><span class="success">₱${Number(invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
             </div>
             <div class="receipt-section">
                 <div class="receipt-row"><span class="label">Payment Method</span><span class="value">${invoice.payment_method || 'N/A'}</span></div>
-                ${changeGiven > 0 ? `<div class="receipt-row"><span class="label">Change Given</span><span class="value success">₱${changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span></div>` : ''}
+                ${changeGiven > 0 ? `<div class="receipt-row"><span class="label">Change Given</span><span class="value success">₱${changeGiven.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>` : ''}
             </div>
             <div class="footer"><p>Thank you for choosing InkVictus Tattoo Studio</p><p>BGC, Taguig City</p></div>
             </body></html>
@@ -142,7 +142,7 @@ function CustomerInvoice() {
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid #f1f5f9' }}>
                                     <span style={{ fontWeight: 500, color: '#1e293b', fontSize: '0.9rem' }}>{invoice.service_type || 'Session Payment'}</span>
-                                    <span style={{ fontWeight: 700, color: '#10b981', fontSize: '1rem' }}>₱{Number(invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                                    <span style={{ fontWeight: 700, color: '#10b981', fontSize: '1rem' }}>₱{Number(invoice.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
 
@@ -158,7 +158,7 @@ function CustomerInvoice() {
                                 {parseFloat(invoice.change_given || 0) > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#16a34a', marginTop: '4px' }}>
                                         <span>Change Given</span>
-                                        <span style={{ fontWeight: 700 }}>₱{parseFloat(invoice.change_given).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+                                        <span style={{ fontWeight: 700 }}>₱{parseFloat(invoice.change_given).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 )}
                             </div>

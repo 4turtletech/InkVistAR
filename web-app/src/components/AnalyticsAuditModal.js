@@ -204,7 +204,7 @@ function AnalyticsAuditModal({
                                         <td>{new Date(row.date).toLocaleDateString()}</td>
                                         <td style={{ fontWeight: 600 }}>{row.description}</td>
                                         <td><span className="status-badge success" style={{ fontSize: '0.7rem' }}>{row.source}</span></td>
-                                        <td style={{ textAlign: 'right', color: '#10b981', fontWeight: 600 }}>₱{Number(row.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
+                                        <td style={{ textAlign: 'right', color: '#10b981', fontWeight: 600 }}>₱{Number(row.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </>}
                                     {auditModal.type === 'appointments' && <>
                                         <td>{new Date(row.appointment_date).toLocaleDateString()}</td>
@@ -212,14 +212,14 @@ function AnalyticsAuditModal({
                                         <td>{row.artist_name}</td>
                                         <td><span className="status-badge" style={{ fontSize: '0.7rem' }}>{row.service_type || 'Tattoo'}</span></td>
                                         <td><span className={`status-badge ${row.status === 'completed' ? 'success' : row.status === 'cancelled' ? 'danger' : 'pending'}`} style={{ fontSize: '0.7rem' }}>{row.status}</span></td>
-                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(row.total_paid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(row.total_paid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </>}
                                     {auditModal.type === 'completion' && <>
                                         <td>{new Date(row.appointment_date).toLocaleDateString()}</td>
                                         <td style={{ fontWeight: 600 }}>{row.client_name || 'Walk-in'}</td>
                                         <td>{row.artist_name}</td>
                                         <td><span className={`status-badge ${row.status === 'completed' ? 'success' : 'danger'}`} style={{ fontSize: '0.7rem' }}>{row.status}</span></td>
-                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(row.total_paid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(row.total_paid || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </>}
                                     {auditModal.type === 'duration' && <>
                                         <td>{new Date(row.appointment_date).toLocaleDateString()}</td>
@@ -245,14 +245,14 @@ function AnalyticsAuditModal({
                                         <td style={{ color: '#ef4444', fontWeight: 600 }}>-{row.quantity}</td>
                                         <td>{row.reason || '—'}</td>
                                         <td>{row.action_by || 'System'}</td>
-                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(row.total_cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₱{Number(row.total_cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </>}
                                     {auditModal.type === 'overhead' && <>
                                         <td>{new Date(row.created_at).toLocaleDateString()}</td>
                                         <td style={{ fontWeight: 600 }}>{row.category}</td>
                                         <td>{row.description || '—'}</td>
                                         <td>{row.created_by_name || 'System Admin'}</td>
-                                        <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(row.amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
+                                        <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(row.amount || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     </>}
                                     {auditModal.type === 'users' && <>
                                         <td style={{ fontWeight: 600 }}>{row.name}</td>
@@ -327,7 +327,7 @@ function AnalyticsAuditModal({
                                                 <Cell key={i} fill={RAINBOW_PALETTE[i % RAINBOW_PALETTE.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(v, name) => ['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? [v, name] : [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} />
+                                        <Tooltip formatter={(v, name) => ['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? [v, name] : [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -342,7 +342,7 @@ function AnalyticsAuditModal({
                                                 {b.name}
                                             </td>
                                             <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                                                {['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? `${b.value} bookings` : `₱${Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
+                                                {['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? `${b.value} bookings` : `₱${Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                             </td>
                                         </tr>
                                     ))}
@@ -352,7 +352,7 @@ function AnalyticsAuditModal({
                                         <tr>
                                             <td style={{ fontWeight: 700 }}>Total</td>
                                             <td style={{ textAlign: 'right', fontWeight: 700, color: brandColor }}>
-                                                {['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? auditModal.data.total : `₱${Number(auditModal.data.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`}
+                                                {['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? auditModal.data.total : `₱${Number(auditModal.data.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                             </td>
                                         </tr>
                                     </tfoot>
@@ -374,7 +374,7 @@ function AnalyticsAuditModal({
                                                 <td>{new Date(p.created_at).toLocaleDateString()}</td>
                                                 <td style={{ fontWeight: 600 }}>{p.artist_name || 'System Artist'}</td>
                                                 <td><span className={`status-badge ${p.status === 'paid' ? 'success' : 'pending'}`}>{p.payout_method}</span></td>
-                                                <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(p.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
+                                                <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(p.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             </tr>
                                         )) : <tr><td colSpan="4" style={{ textAlign: 'center', color: textMuted }}>No payouts history</td></tr>}
                                     </tbody>
@@ -392,7 +392,7 @@ function AnalyticsAuditModal({
                                                 <td style={{ fontWeight: 600 }}>{t.name}</td>
                                                 <td><span className="status-badge success">Restock</span></td>
                                                 <td>{t.quantity}</td>
-                                                <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(t.total_cost).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td>
+                                                <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(t.total_cost).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             </tr>
                                         )) : <tr><td colSpan="5" style={{ textAlign: 'center', color: textMuted }}>No restock history</td></tr>}
                                     </tbody>
@@ -468,7 +468,7 @@ function AnalyticsAuditModal({
                                                                     {errors.editAmount && <span style={{ color: '#ef4444', fontSize: '0.65rem' }}>{errors.editAmount}</span>}
                                                                 </div>
                                                             ) : (
-                                                                `₱${Number(exp.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
+                                                                `₱${Number(exp.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                                             )}
                                                         </td>
                                                         <td style={{ textAlign: 'center' }}>
@@ -514,7 +514,7 @@ function AnalyticsAuditModal({
                                     <tr key={i}>
                                         <td>{i + 1}</td>
                                         <td style={{ fontWeight: 600 }}>{item.name}</td>
-                                        {auditModal.type === 'artists' && <><td style={{ textAlign: 'right', color: '#10b981' }}>₱{Number(item.revenue || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</td><td style={{ textAlign: 'right' }}>{item.appointments}</td></>}
+                                        {auditModal.type === 'artists' && <><td style={{ textAlign: 'right', color: '#10b981' }}>₱{Number(item.revenue || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td style={{ textAlign: 'right' }}>{item.appointments}</td></>}
                                         {auditModal.type === 'inventory' && <td style={{ textAlign: 'right', color: '#f59e0b', fontWeight: 600 }}>{item.used} {item.unit}</td>}
                                     </tr>
                                 ))}

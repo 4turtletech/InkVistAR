@@ -496,12 +496,12 @@ function AdminDashboard() {
                                                     <Pie data={analyticsData.revenue.breakdown} cx="50%" cy="50%" innerRadius={14} outerRadius={30} paddingAngle={2} dataKey="value">
                                                         {analyticsData.revenue.breakdown.map((_, i) => <Cell key={i} fill={['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4]} />)}
                                                     </Pie>
-                                                    <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.7rem', borderRadius: '8px' }} />
+                                                    <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.7rem', borderRadius: '8px' }} />
                                                 </PieChart>
                                             </ResponsiveContainer>
                                             <div style={{ fontSize: '0.65rem', color: '#64748b', lineHeight: 1.6, flex: 1 }}>
                                                 {analyticsData.revenue.breakdown.map((b, i) => (
-                                                    <div key={i}><span style={{ color: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 0 })}</span> {b.name}</div>
+                                                    <div key={i}><span style={{ color: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> {b.name}</div>
                                                 ))}
                                             </div>
                                         </div>
@@ -510,7 +510,7 @@ function AdminDashboard() {
                                             <ResponsiveContainer>
                                                 <BarChart data={analyticsData.revenue.chart || []} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                                                     <Bar dataKey="value" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
-                                                    <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
+                                                    <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                                                 </BarChart>
                                             </ResponsiveContainer>
                                         </div>
@@ -608,7 +608,7 @@ function AdminDashboard() {
                                                     <Bar dataKey="revenue" name="Revenue" radius={[0, 4, 4, 0]} barSize={10}>
                                                         {analyticsData.artists.slice(0, 5).map((_, i) => <Cell key={i} fill={['#f97316', '#a855f7', '#3b82f6', '#10b981', '#ec4899'][i % 5]} />)}
                                                     </Bar>
-                                                    <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.7rem', borderRadius: '8px' }} />
+                                                    <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.7rem', borderRadius: '8px' }} />
                                                 </BarChart>
                                             </ResponsiveContainer>
                                         </div>
