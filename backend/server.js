@@ -7820,7 +7820,7 @@ app.put('/api/admin/users/:id', (req, res) => {
 // Admin: Update User Account Status (Active / Deactivated / Banned)
 app.put('/api/admin/users/:id/status', (req, res) => {
   const { id } = req.params;
-  const { status, reason, adminNote } = req.body; // status: 'active' | 'deactivated' | 'banned'
+  const { status, reason, adminNote, duration } = req.body; // status: 'active' | 'deactivated' | 'banned'
   const requestorEmail = req.headers['x-user-email'] || 'System Admin';
 
   if (!['active', 'deactivated', 'banned'].includes(status)) {
@@ -7829,6 +7829,10 @@ app.put('/api/admin/users/:id/status', (req, res) => {
 
   if (status === 'banned' && !reason) {
     return res.status(400).json({ success: false, message: 'A reason is required when banning a user.' });
+  }
+
+  if (status === 'deactivated' && !reason) {
+    return res.status(400).json({ success: false, message: 'A reason is required when deactivating a user.' });
   }
 
   // Safety: Don't change status of super admin
@@ -7842,7 +7846,10 @@ app.put('/api/admin/users/:id/status', (req, res) => {
     }
 
     const query = 'UPDATE users SET account_status = ?, status_reason = ? WHERE id = ?';
-    const finalReason = reason || adminNote || null;
+    let finalReason = reason || adminNote || null;
+    if (status === 'deactivated' && duration) {
+      finalReason = `[Duration: ${duration}] ${finalReason}`;
+    }
     
     db.query(query, [status, finalReason, id], async (updateErr) => {
       if (updateErr) return res.status(500).json({ success: false, message: updateErr.message });
@@ -7853,7 +7860,7 @@ app.put('/api/admin/users/:id/status', (req, res) => {
       if (status === 'deactivated' || status === 'banned') {
         const actionTitle = status === 'banned' ? 'Account Banned' : 'Account Deactivated';
         const actionColor = status === 'banned' ? '#ef4444' : '#f59e0b';
-        const adminMessage = adminNote || finalReason || 'No specific reason provided.';
+        const adminMessage = adminNote || reason || 'No specific reason provided.';
         
         let appealInstruction = '';
         if (status === 'banned') {
@@ -7866,7 +7873,7 @@ app.put('/api/admin/users/:id/status', (req, res) => {
               <h1 style="color:${actionColor}; font-size:24px; margin:0;">${actionTitle}</h1>
             </div>
             <p style="color:#334155; font-size:16px; line-height:1.6;">Hello ${targetUser.name},</p>
-            <p style="color:#334155; font-size:16px; line-height:1.6;">This email is to notify you that your InkVistAR Studio account has been <strong>${status}</strong> by an administrator.</p>
+            <p style="color:#334155; font-size:16px; line-height:1.6;">This email is to notify you that your InkVistAR Studio account has been <strong>${status}</strong> by an administrator.${status === 'deactivated' && duration ? ` This suspension is set for a duration of <strong>${duration}</strong>.` : ''}</p>
             
             <div style="background-color:#f8fafc; border-left:4px solid ${actionColor}; padding:15px; margin:20px 0;">
               <p style="margin:0; font-size:14px; color:#475569; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Administrator's Note</p>

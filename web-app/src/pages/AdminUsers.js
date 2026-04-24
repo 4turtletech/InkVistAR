@@ -107,11 +107,11 @@ function AdminUsers() {
 
     // ─── Status Management Modal ───
     const [statusModal, setStatusModal] = useState({ mounted: false, visible: false, user: null });
-    const [statusFormData, setStatusFormData] = useState({ status: 'active', reason: '', adminNote: '' });
+    const [statusFormData, setStatusFormData] = useState({ status: 'active', reason: '', adminNote: '', duration: '7 days' });
 
     const openStatusModalAnim = (user) => {
         setStatusModal({ mounted: true, visible: false, user });
-        setStatusFormData({ status: user.account_status || 'active', reason: '', adminNote: '' });
+        setStatusFormData({ status: user.account_status || 'active', reason: '', adminNote: '', duration: '7 days' });
         setTimeout(() => setStatusModal(prev => ({ ...prev, visible: true })), 10);
     };
     const closeStatusModal = () => {
@@ -300,6 +300,10 @@ function AdminUsers() {
     const submitStatusChange = async () => {
         if (statusFormData.status === 'banned' && !statusFormData.reason.trim()) {
             showAlert("Error", "A reason is required when banning a user.", "danger");
+            return;
+        }
+        if (statusFormData.status === 'deactivated' && !statusFormData.reason.trim()) {
+            showAlert("Error", "A reason is required when deactivating a user.", "danger");
             return;
         }
 
@@ -1600,6 +1604,40 @@ function AdminUsers() {
                                         <option value="banned">Banned (Permanent Hold)</option>
                                     </select>
                                 </div>
+                                {statusFormData.status === 'deactivated' && (
+                                    <>
+                                        <div className="form-group" style={{ marginTop: '15px' }}>
+                                            <label className="premium-label">Suspension Duration *</label>
+                                            <select
+                                                value={statusFormData.duration}
+                                                onChange={(e) => setStatusFormData({ ...statusFormData, duration: e.target.value })}
+                                                className="form-input"
+                                                required
+                                            >
+                                                <option value="24 hours">24 hours</option>
+                                                <option value="3 days">3 days</option>
+                                                <option value="7 days">7 days</option>
+                                                <option value="14 days">14 days</option>
+                                                <option value="30 days">30 days</option>
+                                                <option value="Indefinite">Indefinite</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group" style={{ marginTop: '15px' }}>
+                                            <label className="premium-label" style={{ color: '#f59e0b' }}>Reason for Suspension (Required) *</label>
+                                            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>
+                                                This will be sent to the user via email.
+                                            </p>
+                                            <textarea
+                                                value={statusFormData.reason}
+                                                onChange={(e) => setStatusFormData({ ...statusFormData, reason: e.target.value })}
+                                                className="form-input"
+                                                placeholder="E.g., Temporary hold pending review."
+                                                rows={3}
+                                                required
+                                            ></textarea>
+                                        </div>
+                                    </>
+                                )}
                                 {statusFormData.status === 'banned' && (
                                     <div className="form-group" style={{ marginTop: '15px' }}>
                                         <label className="premium-label" style={{ color: '#ef4444' }}>Reason for Ban (Required) *</label>
@@ -1616,11 +1654,11 @@ function AdminUsers() {
                                         ></textarea>
                                     </div>
                                 )}
-                                {(statusFormData.status === 'deactivated' || statusFormData.status === 'active') && (
+                                {statusFormData.status === 'active' && (
                                     <div className="form-group" style={{ marginTop: '15px' }}>
                                         <label className="premium-label">Administrative Note (Optional)</label>
                                         <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>
-                                            Internal note explaining the status change. Will be included in the email if deactivating.
+                                            Internal note explaining the status change.
                                         </p>
                                         <textarea
                                             value={statusFormData.adminNote}

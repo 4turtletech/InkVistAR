@@ -49,25 +49,35 @@ function AdminChat() {
                     <div className="appointment-list-container">
                         {/* Pinned: Live Sessions */}
                         <div className="live-sessions-pinned">
-                            {liveSessions.length > 0 && (
-                                <div className="chat-section-divider">
-                                    <Activity size={14} /> Active Web Chats ({liveSessions.length})
+                            {liveSessions.length > 0 ? (
+                                <>
+                                    <div className="chat-section-divider">
+                                        <Activity size={14} /> Active Web Chats ({liveSessions.length})
+                                    </div>
+                                    {liveSessions.map(session => (
+                                        <div
+                                            key={session.id}
+                                            className={`appointment-item live-chat-item ${selectedAppointment?.id === session.id ? 'selected' : ''}`}
+                                            onClick={() => setSelectedAppointment({ id: session.id, client_name: session.name, service_type: 'Live Web Chat', isLiveChat: true })}
+                                        >
+                                            <div className="appointment-item-name">
+                                                <span>{session.name}</span>
+                                                <span className="live-status-pill">Active</span>
+                                            </div>
+                                            <div className="appointment-item-service">{session.lastMessage}</div>
+                                            <div className="appointment-item-date">{new Date(session.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        </div>
+                                    ))}
+                                </>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '30px 20px', textAlign: 'center', color: '#94a3b8' }}>
+                                    <MessageSquare size={36} style={{ marginBottom: '12px', opacity: 0.4 }} />
+                                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>No active chats</p>
+                                    <p style={{ margin: '6px 0 0', fontSize: '0.78rem', lineHeight: 1.5, color: '#94a3b8' }}>
+                                        When a customer starts a live chat session, it will appear here.
+                                    </p>
                                 </div>
                             )}
-                            {liveSessions.map(session => (
-                                <div
-                                    key={session.id}
-                                    className={`appointment-item live-chat-item ${selectedAppointment?.id === session.id ? 'selected' : ''}`}
-                                    onClick={() => setSelectedAppointment({ id: session.id, client_name: session.name, service_type: 'Live Web Chat', isLiveChat: true })}
-                                >
-                                    <div className="appointment-item-name">
-                                        <span>{session.name}</span>
-                                        <span className="live-status-pill">Active</span>
-                                    </div>
-                                    <div className="appointment-item-service">{session.lastMessage}</div>
-                                    <div className="appointment-item-date">{new Date(session.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                </div>
-                            ))}
                         </div>
 
                     </div>
