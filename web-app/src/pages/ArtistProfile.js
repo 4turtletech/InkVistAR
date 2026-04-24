@@ -289,7 +289,7 @@ function ArtistProfile() {
                     {loading ? (
                         <div className="no-data">Loading profile...</div>
                     ) : (
-                        <div className="data-card" style={{ maxWidth: '700px', margin: '0 auto' }}>
+                        <div className="data-card" style={{ maxWidth: '960px', margin: '0 auto', width: '100%' }}>
                             <form onSubmit={handleSave}>
                                 {/* Profile Picture Section */}
                                 <div className="artist-profile-picture-section">

@@ -235,7 +235,7 @@ function CustomerProfile() {
                     <header className="portal-header"><h1>My Profile</h1></header>
                     <div className="portal-content">
                         {loading ? <div className="no-data">Loading...</div> : (
-                            <div className="data-card" style={{ maxWidth: '700px', margin: '0 auto' }}>
+                            <div className="data-card" style={{ maxWidth: '960px', margin: '0 auto', width: '100%' }}>
                                 {!isEditing ? (
                                     /* VIEW MODE */
                                     <div>

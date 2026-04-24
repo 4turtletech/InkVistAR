@@ -267,7 +267,7 @@ function ArtistEarnings() {
                                     <div className="metric-icon" style={{ color: m.color, opacity: 0.85 }}>{m.icon}</div>
                                     <div className="metric-content">
                                         <p className="metric-label">{m.label}</p>
-                                        <p className="metric-value" style={{ color: '#1e293b' }}>{m.value}</p>
+                                        <p className="metric-value" style={{ color: '#1e293b', fontSize: 'clamp(1rem, 1.8vw, 1.35rem)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.value}</p>
                                         <p className="metric-info">{m.sub}</p>
                                     </div>
                                 </div>
