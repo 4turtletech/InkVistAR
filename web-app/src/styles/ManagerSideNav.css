@@ -109,10 +109,9 @@
     font-size: 1rem;
 }
 
-.menu-item:hover, .menu-item.active {
+.manager-sidenav .menu-item:hover, .manager-sidenav .menu-item.active {
     background-color: rgba(255, 255, 255, 0.05);
     color: white;
-    border-left: 4px solid #4f46e5;
     transform: none;
     box-shadow: none;
 }
