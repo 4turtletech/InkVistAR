@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package, RefreshCw, Sparkles, AlertTriangle, Droplets, Palette, PenTool, Gem, ArrowRight, Shield } from 'lucide-react';
 import './PortalStyles.css';
 import CustomerSideNav from '../components/CustomerSideNav';
+import CustomerReportsWidget from '../components/CustomerReportsWidget';
 import { API_URL } from '../config';
 
 function CustomerPortal() {
@@ -490,6 +491,9 @@ function CustomerPortal() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Reports & Feedback Widget */}
+                            <CustomerReportsWidget customerId={customerId} />
                         </>
                     )}
                 </div>
