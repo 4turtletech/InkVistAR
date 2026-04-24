@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Axios from 'axios';
 import { useLocation } from 'react-router-dom';
-import { MapPin, Clock, Users, Power, Trash2, Edit2, Plus, X, Search, Filter, SlidersHorizontal, Mail } from 'lucide-react';
+import { MapPin, Clock, Users, Power, Trash2, Edit2, Plus, X, Search, Filter, SlidersHorizontal, Mail, MessageSquare } from 'lucide-react';
 import MarketingEmailModal from '../components/MarketingEmailModal';
 import AdminSideNav from '../components/AdminSideNav';
 import './PortalStyles.css';
@@ -12,6 +12,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import AdminSettings from './AdminSettings';
 import AdminReviews from './AdminReviews';
 import AdminAftercare from './AdminAftercare';
+import AdminReports from './AdminReports';
 import './AdminUsers.css'; // Reusing styles
 
 function AdminStudio() {
@@ -32,6 +33,20 @@ function AdminStudio() {
     const [branchModal, setBranchModal] = useState({ mounted: false, visible: false });
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
     const [errors, setErrors] = useState({});
+    const [unreadReportCount, setUnreadReportCount] = useState(0);
+
+    // Poll unread report count for notification dot
+    const fetchUnreadReportCount = useCallback(async () => {
+        try {
+            const res = await Axios.get(`${API_URL}/api/admin/reports/unread-count`);
+            if (res.data.success) setUnreadReportCount(res.data.count || 0);
+        } catch { /* silent */ }
+    }, []);
+    useEffect(() => {
+        fetchUnreadReportCount();
+        const interval = setInterval(fetchUnreadReportCount, 30000);
+        return () => clearInterval(interval);
+    }, [fetchUnreadReportCount]);
 
     const validateField = (name, value) => {
         let errorMsg = "";
@@ -298,7 +313,8 @@ function AdminStudio() {
                         { key: 'settings', label: 'System Preferences' },
                         { key: 'reviews', label: 'Customer Reviews' },
                         { key: 'aftercare', label: 'Aftercare Schedule' },
-                        { key: 'marketing', label: 'Marketing Emails' }
+                        { key: 'marketing', label: 'Marketing Emails' },
+                        { key: 'reports', label: 'Customer Reports' }
                     ].map(tab => (
                         <button
                             key={tab.key}
@@ -320,7 +336,16 @@ function AdminStudio() {
                             onClick={() => setActiveTab(tab.key)}
                         >
                             {tab.key === 'marketing' && <Mail size={16} />}
+                            {tab.key === 'reports' && <MessageSquare size={16} />}
                             {tab.label}
+                            {tab.key === 'reports' && unreadReportCount > 0 && (
+                                <span style={{
+                                    background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700,
+                                    minWidth: '18px', height: '18px', borderRadius: '9px', display: 'inline-flex',
+                                    alignItems: 'center', justifyContent: 'center', padding: '0 5px',
+                                    marginLeft: '4px', lineHeight: 1
+                                }}>{unreadReportCount > 99 ? '99+' : unreadReportCount}</span>
+                            )}
                         </button>
                     ))}
                 </div>
@@ -509,6 +534,8 @@ function AdminStudio() {
                     <AdminAftercare />
                 ) : activeTab === 'marketing' ? (
                     <MarketingEmailTab />
+                ) : activeTab === 'reports' ? (
+                    <AdminReports />
                 ) : null}
 
                 <ConfirmModal 

@@ -12,7 +12,8 @@ import {
     Bell,
     Building2,
     Home,
-    Menu
+    Menu,
+    MessageSquare
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import Axios from 'axios';
@@ -106,6 +107,7 @@ function CustomerSideNav() {
         { label: 'Gallery', icon: Image, path: '/customer/gallery' },
         { label: 'Try-On Tattoo', icon: Sparkles, path: '/customer/try-on' },
         { label: 'Notifications', icon: Bell, path: '/customer/notifications' },
+        { label: 'Reports', icon: MessageSquare, path: '/customer/reports' },
         { label: 'Profile', icon: User, path: '/customer/profile' },
     ];
 

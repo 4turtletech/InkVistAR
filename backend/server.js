@@ -1337,6 +1337,46 @@ db.getConnection((err, connection) => {
       db.query(q, (err) => { if (err && !err.message.includes('Duplicate column')) console.error('[WARN] contact_messages migration:', err.message); });
     });
 
+    // Create Customer Reports Table (Feedback System)
+    const customerReportsTableQuery = `
+      CREATE TABLE IF NOT EXISTS customer_reports (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        report_code VARCHAR(20) NOT NULL UNIQUE,
+        customer_id INT NOT NULL,
+        report_type ENUM('bug', 'feature', 'ui_ux', 'general') NOT NULL DEFAULT 'general',
+        category ENUM('booking', 'payment', 'artist', 'app_website', 'ar_tryon', 'other') NOT NULL DEFAULT 'other',
+        title VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        steps_to_reproduce TEXT DEFAULT NULL,
+        attachment LONGTEXT DEFAULT NULL,
+        system_info JSON DEFAULT NULL,
+        status ENUM('open', 'investigating', 'resolved', 'closed', 'junk') DEFAULT 'open',
+        priority ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+        admin_notes TEXT DEFAULT NULL,
+        is_read_by_admin BOOLEAN DEFAULT FALSE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        resolved_at DATETIME DEFAULT NULL,
+        FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `;
+    db.query(customerReportsTableQuery, (err) => { if (err) console.error('[WARN] Error checking customer_reports table:', err.message); else console.log('[OK] Customer Reports table ready'); });
+
+    // Create Report Replies Table (Threaded Conversation)
+    const reportRepliesTableQuery = `
+      CREATE TABLE IF NOT EXISTS report_replies (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        report_id INT NOT NULL,
+        sender_id INT NOT NULL,
+        sender_role ENUM('admin', 'customer') NOT NULL,
+        message TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (report_id) REFERENCES customer_reports(id) ON DELETE CASCADE,
+        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `;
+    db.query(reportRepliesTableQuery, (err) => { if (err) console.error('[WARN] Error checking report_replies table:', err.message); else console.log('[OK] Report Replies table ready'); });
+
   }
 });
 
@@ -10312,6 +10352,206 @@ app.post('/api/admin/inquiries/:id/reply', async (req, res) => {
     console.error('\u274c Error replying to inquiry:', error);
     res.status(500).json({ success: false, message: 'Failed to send reply.' });
   }
+});
+
+// ========== CUSTOMER REPORTS (Feedback System) ==========
+
+// Helper: Generate unique report code RPT-XXXXXX
+function generateReportCode() {
+  const chars = '0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+  return `RPT-${code}`;
+}
+
+// POST submit a new customer report
+app.post('/api/reports', (req, res) => {
+  const { customer_id, report_type, category, title, description, steps_to_reproduce, attachment, system_info } = req.body;
+
+  if (!customer_id || !title || !description) {
+    return res.status(400).json({ success: false, message: 'Missing required fields (customer_id, title, description).' });
+  }
+
+  // Validate attachment size (~3MB base64 ≈ ~4MB string)
+  if (attachment && attachment.length > 4 * 1024 * 1024) {
+    return res.status(400).json({ success: false, message: 'Attachment exceeds the 3MB limit.' });
+  }
+
+  const reportCode = generateReportCode();
+  const sysInfoJson = system_info ? JSON.stringify(system_info) : null;
+
+  const q = `INSERT INTO customer_reports 
+    (report_code, customer_id, report_type, category, title, description, steps_to_reproduce, attachment, system_info) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+  db.query(q, [
+    reportCode, customer_id,
+    report_type || 'general', category || 'other',
+    title.substring(0, 255), description,
+    steps_to_reproduce || null,
+    attachment || null,
+    sysInfoJson
+  ], (err, result) => {
+    if (err) {
+      console.error('[REPORT] Insert error:', err.message);
+      return res.status(500).json({ success: false, message: 'Failed to submit report.' });
+    }
+
+    console.log(`[REPORT] New report ${reportCode} from customer ${customer_id}`);
+
+    // Notify admin (user_id=1)
+    createNotification(1, `New Customer Report: ${reportCode}`, `A customer submitted a ${report_type || 'general'} report: "${title.substring(0, 80)}". Review it in Studio Settings > Reports.`, 'customer_report', result.insertId);
+
+    // Thank-you notification to the customer
+    createNotification(customer_id, `Thank You for Your Report ${reportCode}`, `We've received your report "${title.substring(0, 80)}" and our team will review it shortly. You can track updates in your Reports page.`, 'report_submitted', result.insertId);
+
+    res.json({ success: true, report_code: reportCode, message: 'Report submitted successfully.' });
+  });
+});
+
+// GET reports for a specific customer (private — own reports only)
+app.get('/api/reports/customer/:customerId', (req, res) => {
+  const { customerId } = req.params;
+  const q = `SELECT id, report_code, report_type, category, title, description, status, priority, created_at, updated_at, resolved_at
+    FROM customer_reports WHERE customer_id = ? ORDER BY created_at DESC`;
+  db.query(q, [customerId], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    res.json({ success: true, reports: results || [] });
+  });
+});
+
+// GET single report with replies (for both customer & admin detail views)
+app.get('/api/reports/:reportCode', (req, res) => {
+  const { reportCode } = req.params;
+  const q = `SELECT cr.*, u.name as customer_name, u.email as customer_email
+    FROM customer_reports cr 
+    JOIN users u ON cr.customer_id = u.id
+    WHERE cr.report_code = ?`;
+  db.query(q, [reportCode], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    if (!results || results.length === 0) return res.status(404).json({ success: false, message: 'Report not found' });
+
+    const report = results[0];
+
+    // Get replies
+    const rq = `SELECT rr.*, u.name as sender_name FROM report_replies rr JOIN users u ON rr.sender_id = u.id WHERE rr.report_id = ? ORDER BY rr.created_at ASC`;
+    db.query(rq, [report.id], (err2, replies) => {
+      if (err2) return res.status(500).json({ success: false, message: 'Database error' });
+      res.json({ success: true, report, replies: replies || [] });
+    });
+  });
+});
+
+// GET all reports for admin (with filters)
+app.get('/api/admin/reports', (req, res) => {
+  const { status, report_type, category, search } = req.query;
+  let q = `SELECT cr.*, u.name as customer_name FROM customer_reports cr JOIN users u ON cr.customer_id = u.id WHERE 1=1`;
+  const params = [];
+
+  if (status && status !== 'all') { q += ' AND cr.status = ?'; params.push(status); }
+  if (report_type && report_type !== 'all') { q += ' AND cr.report_type = ?'; params.push(report_type); }
+  if (category && category !== 'all') { q += ' AND cr.category = ?'; params.push(category); }
+  if (search) { q += ' AND (cr.title LIKE ? OR cr.report_code LIKE ? OR u.name LIKE ?)'; const s = `%${search}%`; params.push(s, s, s); }
+
+  q += ' ORDER BY cr.created_at DESC';
+
+  db.query(q, params, (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    res.json({ success: true, reports: results || [] });
+  });
+});
+
+// GET unread report count for admin notification dot
+app.get('/api/admin/reports/unread-count', (req, res) => {
+  db.query('SELECT COUNT(*) as count FROM customer_reports WHERE is_read_by_admin = 0 AND status != "junk"', (err, results) => {
+    if (err) return res.status(500).json({ success: false, count: 0 });
+    res.json({ success: true, count: results[0]?.count || 0 });
+  });
+});
+
+// PUT update report (admin actions: status, priority, admin_notes, junk)
+app.put('/api/admin/reports/:id', (req, res) => {
+  const { id } = req.params;
+  const { status, priority, admin_notes } = req.body;
+
+  let updates = [];
+  let params = [];
+
+  if (status) { updates.push('status = ?'); params.push(status); }
+  if (priority) { updates.push('priority = ?'); params.push(priority); }
+  if (admin_notes !== undefined) { updates.push('admin_notes = ?'); params.push(admin_notes); }
+
+  // Mark as read when admin interacts
+  updates.push('is_read_by_admin = 1');
+
+  // If resolved, set resolved_at
+  if (status === 'resolved') { updates.push('resolved_at = NOW()'); }
+
+  if (updates.length === 0) return res.status(400).json({ success: false, message: 'No fields to update.' });
+
+  const q = `UPDATE customer_reports SET ${updates.join(', ')} WHERE id = ?`;
+  params.push(id);
+
+  db.query(q, params, (err) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+
+    // Notify customer on status changes (except junk — silent)
+    if (status && status !== 'junk') {
+      db.query('SELECT customer_id, report_code, title FROM customer_reports WHERE id = ?', [id], (e, r) => {
+        if (!e && r && r.length) {
+          const rpt = r[0];
+          const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+          if (status === 'resolved') {
+            createNotification(rpt.customer_id, `Your Report ${rpt.report_code} Has Been Resolved`, `Your report "${rpt.title.substring(0, 60)}" has been resolved. Thank you for helping us improve InkVistAR!`, 'report_resolved', parseInt(id));
+          } else if (status === 'investigating') {
+            createNotification(rpt.customer_id, `Update on Your Report ${rpt.report_code}`, `Your report "${rpt.title.substring(0, 60)}" is now being investigated by our team.`, 'report_update', parseInt(id));
+          }
+        }
+      });
+    }
+
+    res.json({ success: true, message: 'Report updated.' });
+  });
+});
+
+// POST add a reply to a report (admin or customer)
+app.post('/api/reports/:id/reply', (req, res) => {
+  const { id } = req.params;
+  const { sender_id, sender_role, message } = req.body;
+
+  if (!sender_id || !sender_role || !message) {
+    return res.status(400).json({ success: false, message: 'Missing required fields.' });
+  }
+
+  const q = 'INSERT INTO report_replies (report_id, sender_id, sender_role, message) VALUES (?, ?, ?, ?)';
+  db.query(q, [id, sender_id, sender_role, message], (err) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+
+    // Update the report's updated_at
+    db.query('UPDATE customer_reports SET updated_at = NOW() WHERE id = ?', [id]);
+
+    // If admin replies → mark as read + notify customer
+    if (sender_role === 'admin') {
+      db.query('UPDATE customer_reports SET is_read_by_admin = 1 WHERE id = ?', [id]);
+      db.query('SELECT customer_id, report_code, title FROM customer_reports WHERE id = ?', [id], (e, r) => {
+        if (!e && r && r.length) {
+          createNotification(r[0].customer_id, `Update on Your Report ${r[0].report_code}`, `InkVistAR team responded to your report "${r[0].title.substring(0, 60)}". Check your Reports page for details.`, 'report_reply', parseInt(id));
+        }
+      });
+    }
+
+    // If customer replies → notify admin + mark unread
+    if (sender_role === 'customer') {
+      db.query('UPDATE customer_reports SET is_read_by_admin = 0 WHERE id = ?', [id]);
+      db.query('SELECT report_code, title FROM customer_reports WHERE id = ?', [id], (e, r) => {
+        if (!e && r && r.length) {
+          createNotification(1, `Customer Replied on ${r[0].report_code}`, `New reply on report "${r[0].title.substring(0, 60)}". Check Studio Settings > Reports.`, 'report_reply', parseInt(id));
+        }
+      });
+    }
+
+    res.json({ success: true, message: 'Reply added.' });
+  });
 });
 
 // ========== 404 HANDLER ==========

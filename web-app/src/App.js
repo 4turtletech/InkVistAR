@@ -55,6 +55,7 @@ import BookingConfirmation from './pages/BookingConfirmation';
 import PayMongoPayment from './pages/PayMongoPayment';
 import CustomerInvoice from './pages/CustomerInvoice';
 import CustomerAftercare from './pages/CustomerAftercare';
+import CustomerReports from './pages/CustomerReports';
 
 
 
@@ -139,6 +140,7 @@ function App() {
             <Route path="/customer/transactions" element={<ProtectedRoute allowedRoles={['customer']}><CustomerTransactions /></ProtectedRoute>} />
             <Route path="/customer/invoice/:invoiceNumber" element={<ProtectedRoute allowedRoles={['customer']}><CustomerInvoice /></ProtectedRoute>} />
             <Route path="/customer/aftercare" element={<ProtectedRoute allowedRoles={['customer']}><CustomerAftercare /></ProtectedRoute>} />
+            <Route path="/customer/reports" element={<ProtectedRoute allowedRoles={['customer']}><CustomerReports /></ProtectedRoute>} />
             <Route path="/customer/waiver/:id" element={<ProtectedRoute allowedRoles={['customer']}><WaiverPrintView /></ProtectedRoute>} />
             <Route path="/payment" element={<ProtectedRoute allowedRoles={['customer']}><PaymentSimulation /></ProtectedRoute>} />
             <Route path="/pay-mongo" element={<PayMongoPayment />} />
