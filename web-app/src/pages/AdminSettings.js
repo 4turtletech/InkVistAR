@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Save, Download, Upload, FileText, Bell, Database, Info, Shield, Image } from 'lucide-react';
+import { Save, Download, Upload, Bell, Database, Info, Shield, Image } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { filterName, filterDigits } from '../utils/validation';
 import './AdminSettings.css';
@@ -166,12 +166,7 @@ function AdminSettings() {
                     >
                         <Shield size={16} className="admin-st-7f4ee4f3"/> Terms & Policies
                     </button>
-                    <button 
-                        className={`tab-button ${activeTab === 'care' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('care')}
-                    >
-                        <FileText size={16} className="admin-st-7f4ee4f3"/> Care Instructions
-                    </button>
+
                     <button 
                         className={`tab-button ${activeTab === 'templates' ? 'active' : ''}`}
                         onClick={() => setActiveTab('templates')}
@@ -350,26 +345,7 @@ function AdminSettings() {
                         </div>
                     )}
 
-                    {/* Tattoo Care Instructions */}
-                    {activeTab === 'care' && (
-                        <div className="settings-panel">
-                            <h2>Tattoo Care Instructions</h2>
-                            <p className="admin-st-eee235c1">These instructions will be available to clients in their portal.</p>
-                            <div className="settings-section">
-                                <div className="form-group">
-                                    <label>Aftercare Guide</label>
-                                    <textarea
-                                        value={settings.care.instructions}
-                                        onChange={(e) => handleChangeWithValidation('care', 'instructions', e.target.value)}
-                                        className={`form-input ${errors.care_instructions ? 'error' : ''}`}
-                                        rows="10"
-                                        maxLength={3000}
-                                    />
-                                    {errors.care_instructions && <small style={{ color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.8rem' }}>{errors.care_instructions}</small>}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+
 
                     {/* Notification Templates */}
                     {activeTab === 'templates' && (

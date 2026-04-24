@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { Sun, Droplets, Shield, AlertTriangle, Clock, Heart, Edit3, Check, RotateCcw } from 'lucide-react';
+import { Clock, Heart, AlertTriangle, Droplets, Edit3, Check, RotateCcw } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { API_URL } from '../config';
 import './PortalStyles.css';
@@ -71,35 +71,6 @@ function AdminAftercare() {
                 >
                     <RotateCcw size={14} style={aftercareResetting ? { animation: 'spin 1s linear infinite' } : {}} /> Reset Defaults
                 </button>
-            </div>
-
-            {/* General Rules Card */}
-            <div style={{ background: '#fff', borderRadius: '16px', padding: '24px', marginBottom: '28px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Shield size={20} color="#be9055" /> General Aftercare Rules
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-                    {[
-                        { icon: <Droplets size={24} />, text: 'Wash hands before touching your tattoo' },
-                        { icon: <Sun size={24} />, text: 'Avoid direct sunlight — use SPF 30+ once healed' },
-                        { icon: <AlertTriangle size={24} />, text: 'No swimming, baths, or hot tubs for 3-4 weeks' },
-                        { icon: <Heart size={24} />, text: 'Wear loose, breathable clothing' },
-                        { icon: <Shield size={24} />, text: 'Never scratch, pick, or peel flaking skin' },
-                        { icon: <Clock size={24} />, text: 'Use fragrance-free soap and lotion only' }
-                    ].map((rule, i) => (
-                        <div key={i} style={{ 
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', 
-                            gap: '12px', padding: '24px 16px', background: '#f8fafc', 
-                            borderRadius: '12px', border: '1px solid #f1f5f9',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-                        }}>
-                            <div style={{ color: '#be9055', background: 'rgba(190, 144, 85, 0.1)', padding: '14px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {rule.icon}
-                            </div>
-                            <span style={{ fontSize: '0.92rem', color: '#475569', lineHeight: '1.5', fontWeight: 600 }}>{rule.text}</span>
-                        </div>
-                    ))}
-                </div>
             </div>
 
             {/* 30-Day Timeline */}
