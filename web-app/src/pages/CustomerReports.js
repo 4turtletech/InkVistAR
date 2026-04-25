@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
-import { MessageSquare, Plus, X, Send, ChevronDown, ChevronUp, Clock, Paperclip, Bug, Lightbulb, Layout, HelpCircle, Image as ImageIcon, Shield, UserCircle } from 'lucide-react';
+import { MessageSquare, Plus, X, Send, ChevronDown, ChevronUp, Paperclip, Shield, UserCircle } from 'lucide-react';
 import './PortalStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -145,21 +145,22 @@ function CustomerReports() {
           </button>
         </header>
 
-        <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '-8px 0 20px', lineHeight: 1.5 }}>
+        <p className="header-subtitle" style={{ color: '#64748b', fontSize: '0.88rem', margin: '-8px 0 20px', lineHeight: 1.5 }}>
           Track your feedback and bug reports with InkVistAR Studio.
         </p>
 
-        {/* Status Filter Tabs */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        {/* Status Filter Tabs — horizontal scroll on mobile */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', scrollbarWidth: 'none' }}>
           {[{ key: 'all', label: 'All' }, ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: v.label }))].map(f => {
             const count = f.key === 'all' ? reports.filter(r => r.status !== 'junk').length : (statusCounts[f.key] || 0);
             const cfg = f.key === 'all' ? { color: '#64748b', bg: '#f1f5f9' } : STATUS_CONFIG[f.key];
             return (
               <button key={f.key} onClick={() => setActiveFilter(f.key)} style={{
-                padding: '6px 16px', borderRadius: '20px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                padding: '6px 14px', borderRadius: '20px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
                 border: activeFilter === f.key ? `1.5px solid ${cfg.color}` : '1px solid #e2e8f0',
                 background: activeFilter === f.key ? cfg.bg : 'transparent',
-                color: activeFilter === f.key ? cfg.color : '#94a3b8', transition: 'all 0.15s'
+                color: activeFilter === f.key ? cfg.color : '#94a3b8', transition: 'all 0.15s',
+                whiteSpace: 'nowrap', flexShrink: 0
               }}>
                 {f.label} ({count})
               </button>
@@ -186,21 +187,21 @@ function CustomerReports() {
               }}>
                 {/* Report Card Header */}
                 <div onClick={() => handleExpand(r)} style={{
-                  padding: '16px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  background: isExpanded ? 'rgba(190,144,85,0.03)' : '#fff'
+                  padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                  background: isExpanded ? 'rgba(190,144,85,0.03)' : '#fff', gap: '10px'
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#94a3b8' }}>{r.report_code}</span>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>·</span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{TYPE_LABELS[r.report_type]}</span>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>·</span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{CAT_LABELS[r.category]}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', color: '#94a3b8' }}>{r.report_code}</span>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>·</span>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{TYPE_LABELS[r.report_type]}</span>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>·</span>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{CAT_LABELS[r.category]}</span>
                     </div>
-                    <p style={{ margin: '0 0 4px', fontSize: '0.92rem', fontWeight: 600, color: '#1e293b' }}>{r.title}</p>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      Submitted {new Date(r.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      {r.updated_at && r.updated_at !== r.created_at && ` · Last activity: ${timeAgo(r.updated_at)}`}
+                    <p style={{ margin: '0 0 4px', fontSize: '0.9rem', fontWeight: 600, color: '#1e293b', wordBreak: 'break-word' }}>{r.title}</p>
+                    <span style={{ fontSize: '0.73rem', color: '#94a3b8', display: 'block' }}>
+                      {new Date(r.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {r.updated_at && r.updated_at !== r.created_at && ` · ${timeAgo(r.updated_at)}`}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
@@ -214,12 +215,12 @@ function CustomerReports() {
 
                 {/* Expanded Detail */}
                 {isExpanded && expandedDetail && (
-                  <div style={{ borderTop: '1px solid #f1f5f9', padding: '20px' }}>
+                  <div style={{ borderTop: '1px solid #f1f5f9', padding: '16px' }}>
                     <p style={{ fontSize: '0.88rem', color: '#334155', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: '0 0 16px' }}>{expandedDetail.description}</p>
                     {expandedDetail.steps_to_reproduce && (
                       <div style={{ marginBottom: '16px' }}>
                         <h5 style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '6px' }}>Steps to Reproduce</h5>
-                        <pre style={{ fontSize: '0.82rem', color: '#334155', whiteSpace: 'pre-wrap', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', margin: 0 }}>{expandedDetail.steps_to_reproduce}</pre>
+                        <pre style={{ fontSize: '0.82rem', color: '#334155', whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', margin: 0, overflowX: 'auto' }}>{expandedDetail.steps_to_reproduce}</pre>
                       </div>
                     )}
                     {expandedDetail.attachment && (
@@ -234,7 +235,7 @@ function CustomerReports() {
                         <h5 style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '12px' }}>Conversation</h5>
                         {expandedReplies.map(reply => (
                           <div key={reply.id} style={{
-                            marginBottom: '10px', padding: '10px 14px', borderRadius: '10px',
+                            marginBottom: '10px', padding: '10px 12px', borderRadius: '10px',
                             background: reply.sender_role === 'admin' ? 'rgba(190,144,85,0.06)' : '#f8fafc',
                             border: reply.sender_role === 'admin' ? '1px solid rgba(190,144,85,0.15)' : '1px solid #e2e8f0'
                           }}>
@@ -244,7 +245,7 @@ function CustomerReports() {
                               </span>
                               <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{timeAgo(reply.created_at)}</span>
                             </div>
-                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{reply.message}</p>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{reply.message}</p>
                           </div>
                         ))}
                       </div>
@@ -252,14 +253,15 @@ function CustomerReports() {
 
                     {/* Reply Box */}
                     {(expandedDetail.status === 'open' || expandedDetail.status === 'investigating') && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
                         <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Write a reply..."
                           onKeyDown={e => e.key === 'Enter' && handleReply()}
-                          style={{ flex: 1, padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.85rem', outline: 'none' }} />
+                          style={{ flex: 1, padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '16px', outline: 'none', minWidth: 0 }} />
                         <button onClick={handleReply} disabled={sending || !replyText.trim()} style={{
-                          padding: '10px 16px', background: 'linear-gradient(135deg, #be9055, #a07840)', color: '#fff',
-                          border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '0.82rem'
-                        }}><Send size={14} /></button>
+                          padding: '10px 14px', background: 'linear-gradient(135deg, #be9055, #a07840)', color: '#fff',
+                          border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0, minWidth: '44px', minHeight: '44px'
+                        }}><Send size={16} /></button>
                       </div>
                     )}
                   </div>
@@ -287,7 +289,7 @@ function CustomerReports() {
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                  <div className="grid-form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                     <div className="form-group">
                       <label className="premium-label">Report Type</label>
                       <select className="premium-select-v2" value={form.report_type} onChange={e => setForm(p => ({ ...p, report_type: e.target.value }))} style={{ width: '100%' }}>

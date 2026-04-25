@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
 import { API_URL } from '../config';
-import { MessageSquare, Plus, X, Send, ChevronDown, ChevronUp, Paperclip } from 'lucide-react';
+import { MessageSquare, Plus, X, Send, ChevronDown, ChevronUp, Paperclip, Shield, UserCircle } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 
 const STATUS_CONFIG = {
@@ -245,7 +245,7 @@ function CustomerReportsWidget({ customerId }) {
                             }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                 <span style={{ fontSize: '0.72rem', fontWeight: 600, color: reply.sender_role === 'admin' ? '#be9055' : '#3b82f6' }}>
-                                  {reply.sender_role === 'admin' ? '🛡️ InkVistAR Team' : '👤 You'}
+                                  {reply.sender_role === 'admin' ? <><Shield size={13} /> InkVistAR Team</> : <><UserCircle size={13} /> You</>}
                                 </span>
                                 <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{timeAgo(reply.created_at)}</span>
                               </div>
@@ -315,10 +315,10 @@ function CustomerReportsWidget({ customerId }) {
                   <div className="form-group">
                     <label className="premium-label">Report Type</label>
                     <select className="premium-select-v2" value={form.report_type} onChange={e => setForm(p => ({ ...p, report_type: e.target.value }))} style={{ width: '100%' }}>
-                      <option value="bug">🐛 Bug Report</option>
-                      <option value="feature">💡 Feature Request</option>
-                      <option value="ui_ux">🎨 UI/UX Issue</option>
-                      <option value="general">💬 General Feedback</option>
+                      <option value="bug">Bug Report</option>
+                      <option value="feature">Feature Request</option>
+                      <option value="ui_ux">UI/UX Issue</option>
+                      <option value="general">General Feedback</option>
                     </select>
                   </div>
                   <div className="form-group">
