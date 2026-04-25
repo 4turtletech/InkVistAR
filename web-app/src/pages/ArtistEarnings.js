@@ -389,7 +389,7 @@ function ArtistEarnings() {
                                     {[
                                         { label: 'Your Commission Rate', value: `${commissionRate}%`, color: '#be9055', desc: 'Applied to total session price' },
                                         { label: 'Total Sessions', value: filteredSessions.length, color: '#3b82f6', desc: `${periodLabel} completed sessions` },
-                                        { label: 'Gross Session Revenue', value: formatCurrency(filteredSessions.reduce((s, a) => s + (a.basePrice || 0), 0)), color: '#6366f1', desc: 'Total session prices before split' },
+                                        { label: 'Gross Session Revenue', value: formatCurrency(filteredSessions.reduce((s, a) => s + (Number(a.basePrice) || 0), 0)), color: '#6366f1', desc: 'Total session prices before split' },
                                         { label: 'Your Total Share', value: formatCurrency(filteredSessions.reduce((s, a) => s + (a.artistShare || 0), 0)), color: '#10b981', desc: `${commissionRate}% of gross revenue` },
                                     ].map((item, i) => (
                                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(248, 250, 252, 0.6)', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
@@ -414,7 +414,7 @@ function ArtistEarnings() {
                                     <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, marginLeft: 'auto' }}>{filteredSessions.length} session{filteredSessions.length !== 1 ? 's' : ''}</span>
                                 </h2>
                                 {filteredSessions.length > 0 ? (
-                                    <div className="table-responsive">
+                                    <div className="table-responsive" style={{ minHeight: '480px' }}>
                                         <table className="portal-table">
                                             <thead>
                                                 <tr>

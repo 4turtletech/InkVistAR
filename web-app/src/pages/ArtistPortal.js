@@ -467,7 +467,7 @@ function ArtistPortal() {
                                                     </tbody>
                                                 </table>
                                             ) : (
-                                                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                                                <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: '#94a3b8' }}>
                                                     <Calendar size={40} style={{ marginBottom: '10px', opacity: 0.3 }} />
                                                     <p style={{ margin: 0, fontSize: '0.95rem' }}>No upcoming sessions scheduled</p>
                                                 </div>

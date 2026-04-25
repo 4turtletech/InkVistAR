@@ -479,7 +479,7 @@ function AdminDashboard() {
                 {loading ? (
                     <div className="dashboard-loader-container">
                         <div className="premium-loader"></div>
-                        <p>Loading premium dashboard...</p>
+                        <p>Loading Dashboard...</p>
                     </div>
                 ) : (
                     <div className="dashboard-content">
