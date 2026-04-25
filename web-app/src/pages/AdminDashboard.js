@@ -685,7 +685,7 @@ function AdminDashboard() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="modern-table-wrapper table-responsive">
+                                    <div className="modern-table-wrapper table-responsive" style={{ minHeight: '520px' }}>
                                         <table className="premium-table">
                                             <thead>
                                                 <tr>
@@ -745,21 +745,19 @@ function AdminDashboard() {
                                         </table>
                                     </div>
 
-                                    {appointmentTotalPages > 1 && (
-                                        <div className="card-footer-v2 admin-st-700e3e2e">
-                                            <button
-                                                className="icon-btn-v2"
-                                                disabled={appointmentPage === 1}
-                                                onClick={() => setAppointmentPage(p => p - 1)}
-                                            ><ChevronLeft size={16} /></button>
-                                            <span className="admin-st-c949b242">{appointmentPage} / {appointmentTotalPages}</span>
-                                            <button
-                                                className="icon-btn-v2"
-                                                disabled={appointmentPage === appointmentTotalPages}
-                                                onClick={() => setAppointmentPage(p => p + 1)}
-                                            ><ChevronRight size={16} /></button>
-                                        </div>
-                                    )}
+                                    <div className="card-footer-v2 admin-st-700e3e2e">
+                                        <button
+                                            className="icon-btn-v2"
+                                            disabled={appointmentPage === 1}
+                                            onClick={() => setAppointmentPage(p => p - 1)}
+                                        ><ChevronLeft size={16} /></button>
+                                        <span className="admin-st-c949b242">{appointmentPage} / {Math.max(1, appointmentTotalPages)}</span>
+                                        <button
+                                            className="icon-btn-v2"
+                                            disabled={appointmentPage >= appointmentTotalPages}
+                                            onClick={() => setAppointmentPage(p => p + 1)}
+                                        ><ChevronRight size={16} /></button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -814,7 +812,7 @@ function AdminDashboard() {
                                 </div>
 
                                 {/* Today's Appointments */}
-                                <div className="glass-card">
+                                <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                     <div className="card-header-v2">
                                         <div className="header-title">
                                             <Clock size={20} />
@@ -822,7 +820,7 @@ function AdminDashboard() {
                                         </div>
                                         <button className="view-all-btn admin-st-d3ffc78c" onClick={() => navigate('/admin/appointments')}>View All</button>
                                     </div>
-                                    <div className="audit-stream">
+                                    <div className="audit-stream" style={{ flex: 1 }}>
                                         {todaysAppointments.length > 0 ? todaysAppointments.map(apt => (
                                             <div key={apt.id} className="audit-entry">
                                                 <div className="entry-marker"></div>
