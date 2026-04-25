@@ -358,7 +358,7 @@ function ArtistPortal() {
                             {/* ═══════════════ DASHBOARD MASONRY LAYOUT ═══════════════ */}
                             <div className="analytics-dashboard-layout artist-chart-row">
                                 {/* LEFT COLUMN */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', minWidth: 0 }}>
                                     
                                     {/* Week Ahead */}
                                     <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
@@ -433,7 +433,7 @@ function ArtistPortal() {
                                 </div>
 
                                 {/* RIGHT COLUMN */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', minWidth: 0 }}>
                                     
                                     {/* Recent Activity Feed */}
                                     <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
