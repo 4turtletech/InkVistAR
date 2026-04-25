@@ -6,6 +6,7 @@ import { X, Calendar, Heart, Award, Search, Filter, Loader } from 'lucide-react'
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
+import ImageLightbox from '../components/ImageLightbox';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
 
 function CustomerGallery(){
@@ -22,6 +23,7 @@ function CustomerGallery(){
     const [toggling, setToggling] = useState(false);
     const [activeCategory, setActiveCategory] = useState('All');
     const [categories, setCategories] = useState(['All', ...TATTOO_STYLES]);
+    const [lightboxSrc, setLightboxSrc] = useState(null);
 
     useEffect(() => {
         // Clear navigation state after consumed
@@ -304,7 +306,7 @@ function CustomerGallery(){
                         <div className="modal-inner">
                             {/* Image side */}
                             <div className="modal-image-side">
-                                <img src={selectedWork.image_url} alt={selectedWork.title} />
+                                <img src={selectedWork.image_url} alt={selectedWork.title} className="lightbox-trigger" onClick={(e) => { e.stopPropagation(); setLightboxSrc(selectedWork.image_url); }} />
                             </div>
                             
                             {/* Content side */}
@@ -375,6 +377,8 @@ function CustomerGallery(){
                     </div>
                 </div>
             )}
+
+            <ImageLightbox src={lightboxSrc} alt="Gallery artwork" onClose={() => setLightboxSrc(null)} />
 
             <style>
                 {`

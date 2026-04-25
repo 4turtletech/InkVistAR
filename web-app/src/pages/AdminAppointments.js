@@ -7,6 +7,7 @@ import PhilippinePeso from '../components/PhilippinePeso';
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
+import ImageLightbox from '../components/ImageLightbox';
 import './AdminAppointments.css';
 import './PortalStyles.css';
 import './AdminStyles.css';
@@ -62,6 +63,7 @@ function AdminAppointments() {
     const [appointmentModal, setAppointmentModal] = useState({ mounted: false, visible: false });
     const [manualPaymentModal, setManualPaymentModal] = useState({ isOpen: false, amount: '', method: 'Cash' });
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger', isAlert: false });
+    const [lightboxSrc, setLightboxSrc] = useState(null);
     const [formData, setFormData] = useState({
         clientId: '',
         artistId: '',
@@ -1635,7 +1637,7 @@ function AdminAppointments() {
                                                 <label className="admin-st-c3be2f4d">Before State</label>
                                                 <div className="admin-st-e36c5fa1">
                                                     {selectedAppointment.beforePhoto ? (
-                                                        <img src={selectedAppointment.beforePhoto} alt="Before" className="admin-st-9e218869" />
+                                                        <img src={selectedAppointment.beforePhoto} alt="Before" className="admin-st-9e218869 lightbox-trigger" onClick={() => setLightboxSrc(selectedAppointment.beforePhoto)} />
                                                     ) : (
                                                         <div className="admin-st-d8e4e0a4">
                                                             <Image size={32} className="admin-st-c4c91f37" />
@@ -1648,7 +1650,7 @@ function AdminAppointments() {
                                                 <label className="admin-st-c3be2f4d">After State</label>
                                                 <div className="admin-st-e36c5fa1">
                                                     {selectedAppointment.afterPhoto ? (
-                                                        <img src={selectedAppointment.afterPhoto} alt="After" className="admin-st-9e218869" />
+                                                        <img src={selectedAppointment.afterPhoto} alt="After" className="admin-st-9e218869 lightbox-trigger" onClick={() => setLightboxSrc(selectedAppointment.afterPhoto)} />
                                                     ) : (
                                                         <div className="admin-st-d8e4e0a4">
                                                             <Image size={32} className="admin-st-c4c91f37" />
@@ -2561,7 +2563,8 @@ function AdminAppointments() {
                                                             <img
                                                                 src={formData.referenceImage || selectedAppointment?.referenceImage}
                                                                 alt="Reference"
-                                                                className="admin-st-ab1ba3de"
+                                                                className="admin-st-ab1ba3de lightbox-trigger"
+                                                                onClick={() => setLightboxSrc(formData.referenceImage || selectedAppointment?.referenceImage)}
                                                             />
                                                         </div>
                                                     ) : null}
@@ -2573,7 +2576,8 @@ function AdminAppointments() {
                                                             <img
                                                                 src={formData.beforePhoto || selectedAppointment?.beforePhoto}
                                                                 alt="Before"
-                                                                className="admin-st-ab1ba3de"
+                                                                className="admin-st-ab1ba3de lightbox-trigger"
+                                                                onClick={() => setLightboxSrc(formData.beforePhoto || selectedAppointment?.beforePhoto)}
                                                             />
                                                         </div>
                                                     ) : null}
@@ -2585,7 +2589,8 @@ function AdminAppointments() {
                                                             <img
                                                                 src={selectedAppointment.afterPhoto}
                                                                 alt="After"
-                                                                className="admin-st-ab1ba3de"
+                                                                className="admin-st-ab1ba3de lightbox-trigger"
+                                                                onClick={() => setLightboxSrc(selectedAppointment.afterPhoto)}
                                                             />
                                                         </div>
                                                     ) : null}
@@ -2754,6 +2759,7 @@ function AdminAppointments() {
                 {...confirmDialog}
                 onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
             />
+            <ImageLightbox src={lightboxSrc} alt="Appointment photo" onClose={() => setLightboxSrc(null)} />
         </div>
     );
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { API_URL } from '../config';
 import { Search, Filter, MessageSquare, Clock, AlertCircle, CheckCircle, XCircle, Trash2, Send, ChevronDown, Eye, Bug, Lightbulb, Layout, HelpCircle, Tag } from 'lucide-react';
+import ImageLightbox from '../components/ImageLightbox';
 
 const STATUS_CONFIG = {
   open: { label: 'Open', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)' },
@@ -31,6 +32,7 @@ function AdminReports() {
   const [filterType, setFilterType] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [lightboxSrc, setLightboxSrc] = useState(null);
   const threadEndRef = useRef(null);
   const adminUser = JSON.parse(localStorage.getItem('user') || 'null');
 
@@ -258,8 +260,8 @@ function AdminReports() {
               {reportDetail.attachment && (
                 <div style={{ marginBottom: '20px' }}>
                   <h4 style={{ fontSize: '0.82rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Attachment</h4>
-                  <img src={reportDetail.attachment} alt="Report attachment" style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '8px', border: '1px solid #e2e8f0', cursor: 'pointer' }}
-                    onClick={() => window.open(reportDetail.attachment, '_blank')} />
+                  <img src={reportDetail.attachment} alt="Report attachment" className="lightbox-trigger" style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                    onClick={() => setLightboxSrc(reportDetail.attachment)} />
                 </div>
               )}
 
@@ -349,6 +351,7 @@ function AdminReports() {
           </>
         )}
       </div>
+      <ImageLightbox src={lightboxSrc} alt="Report attachment" onClose={() => setLightboxSrc(null)} />
     </div>
   );
 }

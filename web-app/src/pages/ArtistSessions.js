@@ -4,6 +4,7 @@ import { Play, Pause, CheckCircle, Upload, Save, X, Package, FileText, Image as 
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
+import ImageLightbox from '../components/ImageLightbox';
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
@@ -46,6 +47,7 @@ function ArtistSessions() {
     const [viewingApt, setViewingApt] = useState(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [lightboxSrc, setLightboxSrc] = useState(null);
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
         title: '',
@@ -575,7 +577,7 @@ function ArtistSessions() {
         }
     };
 
-    return (
+    return (<>
         <div className="portal-layout">
             <ArtistSideNav />
             <div className="portal-container artist-portal">
@@ -700,7 +702,7 @@ function ArtistSessions() {
                                             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
                                                 <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase' }}>Reference Image</p>
                                                 <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
-                                                    <img src={viewingApt.reference_image.startsWith('data:') ? viewingApt.reference_image : viewingApt.reference_image.startsWith('http') ? viewingApt.reference_image : `${API_URL}${viewingApt.reference_image}`} alt="Reference" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', background: '#f8fafc' }} />
+                                                    <img src={viewingApt.reference_image.startsWith('data:') ? viewingApt.reference_image : viewingApt.reference_image.startsWith('http') ? viewingApt.reference_image : `${API_URL}${viewingApt.reference_image}`} alt="Reference" className="lightbox-trigger" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', background: '#f8fafc' }} onClick={() => setLightboxSrc(viewingApt.reference_image.startsWith('data:') ? viewingApt.reference_image : viewingApt.reference_image.startsWith('http') ? viewingApt.reference_image : `${API_URL}${viewingApt.reference_image}`)} />
                                                 </div>
                                             </div>
                                         )}
@@ -785,7 +787,7 @@ function ArtistSessions() {
                                     {activeSession.reference_image && (
                                         <div style={{ gridColumn: '1 / -1', background: '#f8fafc', borderRadius: '12px', padding: '14px', border: '1px solid #e2e8f0' }}>
                                             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '10px' }}>Reference Image</span>
-                                            <img src={activeSession.reference_image.startsWith('data:') ? activeSession.reference_image : activeSession.reference_image.startsWith('http') ? activeSession.reference_image : `${API_URL}${activeSession.reference_image}`} alt="Reference" style={{ width: '100%', maxHeight: '280px', objectFit: 'contain', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }} />
+                                            <img src={activeSession.reference_image.startsWith('data:') ? activeSession.reference_image : activeSession.reference_image.startsWith('http') ? activeSession.reference_image : `${API_URL}${activeSession.reference_image}`} alt="Reference" className="lightbox-trigger" style={{ width: '100%', maxHeight: '280px', objectFit: 'contain', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }} onClick={() => setLightboxSrc(activeSession.reference_image.startsWith('data:') ? activeSession.reference_image : activeSession.reference_image.startsWith('http') ? activeSession.reference_image : `${API_URL}${activeSession.reference_image}`)} />
                                         </div>
                                     )}
                                 </div>
@@ -799,7 +801,7 @@ function ArtistSessions() {
                                             <div className="artist-session-card" style={{ padding: '15px' }}>
                                                 <label className="artist-session-label">Draft Design</label>
                                                 <div className="artist-session-photo-container">
-                                                    <img src={activeSession.draft_image} alt="Draft" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <img src={activeSession.draft_image} alt="Draft" className="lightbox-trigger" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => setLightboxSrc(activeSession.draft_image)} />
                                                 </div>
                                             </div>
                                         )}
@@ -807,7 +809,7 @@ function ArtistSessions() {
                                             <label className="artist-session-label">{isPiercingRole ? 'Pre-Piercing' : 'Before State'} <span style={{ color: '#ef4444' }}>*</span></label>
                                             <div className="artist-session-photo-container">
                                                 {sessionData.beforePhoto ? (
-                                                    <img src={sessionData.beforePhoto} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <img src={sessionData.beforePhoto} alt="Before" className="lightbox-trigger" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => setLightboxSrc(sessionData.beforePhoto)} />
                                                 ) : (
                                                     <button className="btn btn-secondary" onClick={() => document.getElementById('before-photo-input').click()}>
                                                         <Upload size={16} /> Upload
@@ -820,7 +822,7 @@ function ArtistSessions() {
                                             <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'block' }}>{isPiercingRole ? 'Post-Piercing' : 'Post Procedure'} <span style={{ color: '#ef4444' }}>*</span></label>
                                             <div style={{ height: '180px', borderRadius: '12px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 {sessionData.afterPhoto ? (
-                                                    <img src={sessionData.afterPhoto} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <img src={sessionData.afterPhoto} alt="After" className="lightbox-trigger" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => setLightboxSrc(sessionData.afterPhoto)} />
                                                 ) : (
                                                     <button className="btn btn-secondary" onClick={() => document.getElementById('after-photo-input').click()}>
                                                         <Upload size={16} /> Upload
@@ -1209,7 +1211,8 @@ function ArtistSessions() {
                 </div>
             )}
         </div>
-    );
+        <ImageLightbox src={lightboxSrc} alt="Session photo" onClose={() => setLightboxSrc(null)} />
+    </>);
 }
 
 export default ArtistSessions;

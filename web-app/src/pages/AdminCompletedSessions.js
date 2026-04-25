@@ -6,6 +6,7 @@ import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
+import ImageLightbox from '../components/ImageLightbox';
 import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
@@ -45,6 +46,7 @@ function AdminCompletedSessions() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [sessionModal, setSessionModal] = useState({ mounted: false, visible: false });
+    const [lightboxSrc, setLightboxSrc] = useState(null);
 
     const openModal = () => {
         setSessionModal({ mounted: true, visible: false });
@@ -394,7 +396,7 @@ function AdminCompletedSessions() {
                                                 <label className="admin-st-c3be2f4d">Before State</label>
                                                 <div className="admin-st-e36c5fa1">
                                                     {selectedSession.beforePhoto ? (
-                                                        <img src={selectedSession.beforePhoto} alt="Before" className="admin-st-9e218869" />
+                                                        <img src={selectedSession.beforePhoto} alt="Before" className="admin-st-9e218869 lightbox-trigger" onClick={() => setLightboxSrc(selectedSession.beforePhoto)} />
                                                     ) : (
                                                         <div className="admin-st-d8e4e0a4">
                                                             <ImageIcon size={32} className="admin-st-c4c91f37" />
@@ -407,7 +409,7 @@ function AdminCompletedSessions() {
                                                 <label className="admin-st-c3be2f4d">After State</label>
                                                 <div className="admin-st-e36c5fa1">
                                                     {selectedSession.afterPhoto ? (
-                                                        <img src={selectedSession.afterPhoto} alt="After" className="admin-st-9e218869" />
+                                                        <img src={selectedSession.afterPhoto} alt="After" className="admin-st-9e218869 lightbox-trigger" onClick={() => setLightboxSrc(selectedSession.afterPhoto)} />
                                                     ) : (
                                                         <div className="admin-st-d8e4e0a4">
                                                             <ImageIcon size={32} className="admin-st-c4c91f37" />
@@ -507,6 +509,7 @@ function AdminCompletedSessions() {
                     </div>
                 )}
             </div>
+            <ImageLightbox src={lightboxSrc} alt="Session photo" onClose={() => setLightboxSrc(null)} />
         </div>
     );
 }

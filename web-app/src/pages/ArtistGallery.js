@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { Trash2, Plus, X, Eye, Lock, Globe, Edit } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
+import ImageLightbox from '../components/ImageLightbox';
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
@@ -18,6 +19,7 @@ function ArtistGallery() {
     const [addWorkModal, setAddWorkModal] = useState({ mounted: false, visible: false });
     const [viewWorkModal, setViewWorkModal] = useState({ mounted: false, visible: false });
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+    const [lightboxSrc, setLightboxSrc] = useState(null);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -247,7 +249,9 @@ function ArtistGallery() {
                                     <img 
                                         src={selectedWork.image_url} 
                                         alt={selectedWork.title} 
+                                        className="lightbox-trigger"
                                         style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain' }} 
+                                        onClick={(e) => { e.stopPropagation(); setLightboxSrc(selectedWork.image_url); }}
                                     />
                                 </div>
 
@@ -442,6 +446,7 @@ function ArtistGallery() {
                 {...confirmDialog} 
                 onCancel={() => setConfirmDialog({ isOpen: false })} 
             />
+            <ImageLightbox src={lightboxSrc} alt="Portfolio artwork" onClose={() => setLightboxSrc(null)} />
         </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
+import ImageLightbox from '../components/ImageLightbox';
 import { getDisplayCode } from '../utils/formatters';
 const BodyModelViewer = lazy(() => import('../components/BodyModelViewer'));
 
@@ -109,6 +110,7 @@ function CustomerBookings(){
         type: 'danger',
         isAlert: false 
     });
+    const [lightboxSrc, setLightboxSrc] = useState(null);
 
     // Reschedule states
     const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
@@ -967,7 +969,7 @@ function CustomerBookings(){
         return days;
     };
 
-    return (
+    return (<>
         <div className="portal-layout">
             <CustomerSideNav />
             <div className="portal-container customer-portal">
@@ -1160,7 +1162,7 @@ function CustomerBookings(){
                                                 <div className="customer-st-2dc9a8a0" >
                                                     <p className="customer-st-af520488" >Reference Image</p>
                                                     <div className="customer-st-e6f3b223" >
-                                                        <img className="customer-st-454ebe6d" src={selectedApt.reference_image} alt="Reference" />
+                                                        <img className="customer-st-454ebe6d lightbox-trigger" src={selectedApt.reference_image} alt="Reference" onClick={(e) => { e.stopPropagation(); setLightboxSrc(selectedApt.reference_image); }} />
                                                     </div>
                                                 </div>
                                             )}
@@ -2652,7 +2654,8 @@ function CustomerBookings(){
                 </div>
             )}
         </div>
-    );
+        <ImageLightbox src={lightboxSrc} alt="Reference image" onClose={() => setLightboxSrc(null)} />
+    </>);
 }
 
 export default CustomerBookings;

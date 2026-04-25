@@ -5,6 +5,7 @@ import CustomerSideNav from '../components/CustomerSideNav';
 import { MessageSquare, Plus, X, Send, ChevronDown, ChevronUp, Paperclip, Shield, UserCircle } from 'lucide-react';
 import './PortalStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
+import ImageLightbox from '../components/ImageLightbox';
 
 const STATUS_CONFIG = {
   open: { label: 'Open', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
@@ -32,6 +33,7 @@ function CustomerReports() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
   const [form, setForm] = useState({ report_type: 'general', category: 'other', title: '', description: '', steps_to_reproduce: '', attachment: null });
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   useEffect(() => { if (customerId) fetchReports(); }, [customerId]);
 
@@ -225,7 +227,7 @@ function CustomerReports() {
                     )}
                     {expandedDetail.attachment && (
                       <div style={{ marginBottom: '16px' }}>
-                        <img src={expandedDetail.attachment} alt="Attachment" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                        <img src={expandedDetail.attachment} alt="Attachment" className="lightbox-trigger" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', border: '1px solid #e2e8f0' }} onClick={() => setLightboxSrc(expandedDetail.attachment)} />
                       </div>
                     )}
 
@@ -355,6 +357,7 @@ function CustomerReports() {
         )}
 
         <ConfirmModal {...confirmDialog} onClose={() => setConfirmDialog({ isOpen: false })} />
+        <ImageLightbox src={lightboxSrc} alt="Report attachment" onClose={() => setLightboxSrc(null)} />
       </div>
     </div>
   );
