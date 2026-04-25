@@ -1610,7 +1610,7 @@
     .modern-table-wrapper table.premium-table { min-width: 600px; }
 
     /* Notifications Dropdown */
-    .notif-dropdown-v2 { width: 300px; right: -50px; }
+    .notif-dropdown-v2 { width: 300px; right: 0px; max-width: 90vw; }
 
     /* Large font sizes -> smaller */
     .customer-st-f1b3ed19 { font-size: 1.75rem !important; }
@@ -1619,10 +1619,17 @@
     /* Inspiration banner -> stack */
     .inspiration-banner__grid { grid-template-columns: 1fr !important; gap: 12px; }
     .inspiration-banner__text { min-width: 100%; }
+
+    /* Fix header subtitle negative margins causing horizontal scroll */
+    .customer-st-5c2e40e1 {
+        margin-right: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: 1.5rem !important;
+    }
 }
 
 @media (max-width: 480px) {
     .customer-st-f1b3ed19 { font-size: 1.5rem !important; }
     .customer-st-f26d6ce7, .customer-st-05fe7b62 { font-size: 1.1rem !important; }
-    .notif-dropdown-v2 { width: 260px; right: -20px; }
+    .notif-dropdown-v2 { width: 280px; right: -10px; }
 }

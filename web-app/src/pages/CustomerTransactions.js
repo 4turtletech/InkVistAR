@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import './PortalStyles.css'; // Reusing some table styles
+import CustomerSideNav from '../components/CustomerSideNav';
 
 function CustomerTransactions() {
     const [transactions, setTransactions] = useState([]);
@@ -82,122 +83,136 @@ function CustomerTransactions() {
     }
 
     return (
-        <div className="bookings-container">
-            <header className="bookings-header">
-                <div>
-                    <h1>Transaction History</h1>
-                    <p>View all your payments and billing details</p>
-                </div>
-                <div className="header-actions">
-                    <div className="search-bar">
-                        <Search size={18} />
-                        <input 
-                            type="text" 
-                            placeholder="Search by title, ID..." 
-                            value={searchTerm}
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                        />
+        <div className="portal-layout">
+            <CustomerSideNav />
+            <div className="portal-container customer-portal">
+                <header className="portal-header">
+                    <div className="header-title">
+                        <h1>Transaction History</h1>
                     </div>
-                </div>
-            </header>
+                    <div className="header-actions">
+                        <div className="search-bar">
+                            <Search size={18} />
+                            <input 
+                                type="text" 
+                                placeholder="Search by title, ID..." 
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                            />
+                        </div>
+                    </div>
+                </header>
 
-            <div className="bookings-card">
-                <div className="table-wrapper">
-                    <table className="bookings-table">
-                        <thead>
-                            <tr>
-                                <th>Date & Time</th>
-                                <th>Reference</th>
-                                <th>Service</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {paginatedTransactions.length > 0 ? (
-                                paginatedTransactions.map((t) => {
-                                    const statusStyle = getStatusStyle(t.status);
-                                    const StatusIcon = statusStyle.icon;
-                                    
-                                    return (
-                                        <tr key={t.id}>
-                                            <td className="date-cell">
-                                                <div className="date-info">
-                                                    <Calendar size={14} />
-                                                    <span>{formatDate(t.created_at)}</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="customer-st-120fac5f" >
-                                                    <span className="customer-st-af086db4" >Appt #{t.appointment_id}</span>
-                                                    <span className="customer-st-daff4552" >{t.paymongo_payment_id || t.session_id?.substring(0, 15) + '...'}</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className="design-title">{t.design_title || 'Tattoo Service'}</span>
-                                            </td>
-                                            <td>
-                                                <div className="customer-st-d6dc26a1" >
-                                                    ₱{(t.amount / 100).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span 
-                                                    className="status-badge" 
-                                                    style={{ 
-                                                        backgroundColor: statusStyle.backgroundColor, 
-                                                        color: statusStyle.color,
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px',
-                                                        width: 'fit-content'
-                                                    }}
-                                                >
-                                                    <StatusIcon size={12} />
-                                                    {t.status?.toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button className="btn-view customer-st-ff1cca66" title="View Receipt" onClick={() => alert(`Payment Reference: ${t.paymongo_payment_id || t.session_id}\nAmount: ₱${(t.amount/100).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\nStatus: ${t.status}`)} >
-                                                    <ExternalLink size={18} />
-                                                </button>
+                <p className="header-subtitle">View all your payments and billing details</p>
+
+                <div className="portal-content">
+                    <div className="data-card">
+                        <div className="table-responsive">
+                            <table className="portal-table premium-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Reference</th>
+                                        <th>Service</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paginatedTransactions.length > 0 ? (
+                                        paginatedTransactions.map((t) => {
+                                            const statusStyle = getStatusStyle(t.status);
+                                            const StatusIcon = statusStyle.icon;
+                                            
+                                            return (
+                                                <tr key={t.id}>
+                                                    <td className="date-cell">
+                                                        <div className="date-info" style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                                                            <Calendar size={14} color="#64748b"/>
+                                                            <span>{formatDate(t.created_at)}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="customer-st-120fac5f" style={{display: 'flex', flexDirection: 'column'}}>
+                                                            <span className="customer-st-af086db4" style={{fontWeight: 600}}>Appt #{t.appointment_id}</span>
+                                                            <span className="customer-st-daff4552" style={{fontSize: '0.8rem', color: '#64748b'}}>{t.paymongo_payment_id || t.session_id?.substring(0, 15) + '...'}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className="design-title">{t.design_title || 'Tattoo Service'}</span>
+                                                    </td>
+                                                    <td>
+                                                        <div className="customer-st-d6dc26a1" style={{fontWeight: 'bold'}}>
+                                                            ₱{(t.amount / 100).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span 
+                                                            className="status-badge" 
+                                                            style={{ 
+                                                                backgroundColor: statusStyle.backgroundColor, 
+                                                                color: statusStyle.color,
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px',
+                                                                padding: '4px 10px',
+                                                                borderRadius: '20px',
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: 'bold'
+                                                            }}
+                                                        >
+                                                            <StatusIcon size={12} />
+                                                            {t.status?.toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <button 
+                                                            className="btn-view" 
+                                                            style={{background: 'none', border: 'none', color: '#be9055', cursor: 'pointer'}} 
+                                                            title="View Receipt" 
+                                                            onClick={() => alert(`Payment Reference: ${t.paymongo_payment_id || t.session_id}\nAmount: ₱${(t.amount/100).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\nStatus: ${t.status}`)} 
+                                                        >
+                                                            <ExternalLink size={18} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="6" className="empty-state" style={{textAlign: 'center', padding: '40px'}}>
+                                                <Receipt size={48} color="#cbd5e1" style={{marginBottom: '10px'}}/>
+                                                <p style={{color: '#64748b'}}>No transactions found</p>
                                             </td>
                                         </tr>
-                                    );
-                                })
-                            ) : (
-                                <tr>
-                                    <td colSpan="6" className="empty-state">
-                                        <Receipt size={48} />
-                                        <p>No transactions found</p>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
-                <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    itemsPerPage={itemsPerPage}
-                    onItemsPerPageChange={(newVal) => {
-                        setItemsPerPage(newVal);
-                        setCurrentPage(1);
-                    }}
-                    totalItems={filteredTransactions.length}
-                    unit="transactions"
-                />
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            itemsPerPage={itemsPerPage}
+                            onItemsPerPageChange={(newVal) => {
+                                setItemsPerPage(newVal);
+                                setCurrentPage(1);
+                            }}
+                            totalItems={filteredTransactions.length}
+                            unit="transactions"
+                        />
+                    </div>
+                    
+                    <footer className="customer-st-9262b8cd" style={{textAlign: 'center', marginTop: '20px', fontSize: '0.85rem', color: '#94a3b8'}}>
+                        <p>Transactions are processed securely via PayMongo. For billing inquiries, contact studio support.</p>
+                    </footer>
+                </div>
             </div>
-            
-            <footer className="customer-st-9262b8cd" >
-                <p>Transactions are processed securely via PayMongo. For billing inquiries, contact studio support.</p>
-            </footer>
         </div>
     );
 }
