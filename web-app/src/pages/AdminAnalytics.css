@@ -200,11 +200,7 @@
 .metric-card:nth-child(2) { grid-column: span 1; } /* Ops Expenses */
 .metric-card:nth-child(3) { grid-column: span 1; } /* Overhead */
 .metric-card:nth-child(4) { grid-column: span 1; } /* Appointments */
-/* Row 2: 1fr 1.5fr 1fr 1.5fr */
-.metric-card:nth-child(5) { } /* Artists */
-.metric-card:nth-child(6) { } /* Inventory */
-.metric-card:nth-child(7) { } /* Completion */
-.metric-card:nth-child(8) { } /* Duration */
+/* Row 2: 1fr 1.5fr 1fr 1.5fr - empty rules removed to pass IDE linting */
 
 @media (max-width: 1200px) {
     .metrics-section {
