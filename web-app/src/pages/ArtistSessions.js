@@ -12,6 +12,7 @@ import { getSessionPaymentStatus, shouldShowInQueue } from '../utils/sessionPaym
 
 function ArtistSessions() {
     const [sessions, setSessions] = useState([]);
+    const [upcomingSessions, setUpcomingSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -90,6 +91,21 @@ function ArtistSessions() {
                     return appointmentDate === today && a.status !== 'cancelled' && shouldShowInQueue(a);
                 });
                 setSessions(todaySessions);
+
+                // Compute next 3 upcoming sessions (future dates, active statuses)
+                const upcoming = res.data.appointments
+                    .filter(a => {
+                        const d = new Date(a.appointment_date);
+                        const appointmentDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                        return appointmentDate > today && ['confirmed', 'pending'].includes(a.status);
+                    })
+                    .sort((a, b) => {
+                        const dateA = new Date(a.appointment_date + 'T' + (a.start_time || '00:00'));
+                        const dateB = new Date(b.appointment_date + 'T' + (b.start_time || '00:00'));
+                        return dateA - dateB;
+                    })
+                    .slice(0, 3);
+                setUpcomingSessions(upcoming);
             }
             setLoading(false);
         } catch (e) {
@@ -644,6 +660,81 @@ function ArtistSessions() {
                                 <div className="no-data-container" style={{ flex: 1 }}>
                                     <Calendar size={48} className="no-data-icon" />
                                     <p className="no-data-text">No sessions scheduled for today.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ═══════════════ UPCOMING SESSIONS BANNER ═══════════════ */}
+                    {!loading && (
+                        <div className="table-card-container" style={{ marginTop: '24px' }}>
+                            <div className="card-header-v2">
+                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Calendar size={18} style={{ color: '#be9055' }} />
+                                    Upcoming Sessions
+                                </h2>
+                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>Next 3 scheduled</span>
+                            </div>
+                            {upcomingSessions.length > 0 ? (
+                                <div className="table-responsive">
+                                    <table className="portal-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Client</th>
+                                                <th>Service / Design</th>
+                                                <th>Date</th>
+                                                <th>Time</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {upcomingSessions.map(session => {
+                                                const apptDate = new Date(session.appointment_date);
+                                                const formattedDate = apptDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                                                const formattedTime = session.start_time
+                                                    ? new Date(`2000-01-01T${session.start_time}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+                                                    : 'TBD';
+                                                // Days from now
+                                                const now = new Date();
+                                                now.setHours(0,0,0,0);
+                                                const diff = Math.ceil((apptDate.setHours(0,0,0,0) - now) / (1000 * 60 * 60 * 24));
+                                                const daysLabel = diff === 1 ? 'Tomorrow' : `${diff} days`;
+                                                return (
+                                                    <tr key={session.id}>
+                                                        <td>
+                                                            <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#be9055', fontSize: '0.85rem' }}>#{session.id}</span>
+                                                        </td>
+                                                        <td style={{ fontWeight: 600 }}>{session.client_name}</td>
+                                                        <td>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                <span style={{ fontWeight: 600, color: '#1e293b' }}>{session.design_title || '—'}</span>
+                                                                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{session.service_type || 'Tattoo Session'}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                <span style={{ fontWeight: 600, color: '#1e293b' }}>{formattedDate}</span>
+                                                                <span style={{ fontSize: '0.72rem', color: '#be9055', fontWeight: 600 }}>{daysLabel}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                                                                <Clock size={14} style={{ color: '#64748b' }} />
+                                                                {formattedTime}
+                                                            </div>
+                                                        </td>
+                                                        <td><span className={`status-badge ${session.status}`}>{session.status}</span></td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="no-data-container" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Calendar size={36} style={{ color: '#cbd5e1', marginBottom: '10px' }} />
+                                    <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: 0 }}>No upcoming sessions scheduled.</p>
                                 </div>
                             )}
                         </div>
