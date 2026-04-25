@@ -6,6 +6,7 @@ import {
     Phone, Building, Percent, Eye, EyeOff, CheckCircle, AlertCircle, Edit2, X
 } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
+import ImageCropper from '../components/ImageCropper';
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
@@ -80,6 +81,7 @@ function ArtistProfile() {
     const [message, setMessage] = useState({ type: '', text: '' });
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();
+    const [cropperImage, setCropperImage] = useState(null);
 
     const validateArtistField = (name, value) => {
         let errorMsg = '';
@@ -162,11 +164,21 @@ function ArtistProfile() {
             }
             const reader = new FileReader();
             reader.onloadend = () => {
-                setProfile({ ...profile, profile_image: reader.result });
-                setMessage({ type: '', text: '' });
+                setCropperImage(reader.result);
             };
             reader.readAsDataURL(file);
+            e.target.value = '';
         }
+    };
+
+    const handleCropDone = (croppedBase64) => {
+        setProfile(prev => ({ ...prev, profile_image: croppedBase64 }));
+        setCropperImage(null);
+        setMessage({ type: '', text: '' });
+    };
+
+    const handleCropCancel = () => {
+        setCropperImage(null);
     };
 
     const handleSave = async (e) => {
@@ -1036,6 +1048,15 @@ function ArtistProfile() {
                     </button>
                 </div>
             </div>
+        )}
+
+        {/* 1:1 Image Cropper Modal */}
+        {cropperImage && (
+            <ImageCropper
+                imageSrc={cropperImage}
+                onCropDone={handleCropDone}
+                onCancel={handleCropCancel}
+            />
         )}
         </>
     );

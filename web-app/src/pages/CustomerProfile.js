@@ -6,6 +6,7 @@ import { User, Mail, Phone, MapPin, Save, Edit2, X, FileText, Lock, Eye, EyeOff,
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
+import ImageCropper from '../components/ImageCropper';
 import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
 import { filterName } from '../utils/validation';
@@ -76,6 +77,7 @@ function CustomerProfile() {
     const [message, setMessage] = useState({ type: '', text: '' });
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();
+    const [cropperImage, setCropperImage] = useState(null);
 
     const validateProfileField = (name, value) => {
         let errorMsg = '';
@@ -144,11 +146,21 @@ function CustomerProfile() {
             }
             const reader = new FileReader();
             reader.onloadend = () => {
-                setProfile({ ...profile, profile_image: reader.result });
-                setMessage({ type: '', text: '' });
+                setCropperImage(reader.result);
             };
             reader.readAsDataURL(file);
+            e.target.value = '';
         }
+    };
+
+    const handleCropDone = (croppedBase64) => {
+        setProfile(prev => ({ ...prev, profile_image: croppedBase64 }));
+        setCropperImage(null);
+        setMessage({ type: '', text: '' });
+    };
+
+    const handleCropCancel = () => {
+        setCropperImage(null);
     };
 
     const handleSave = async (e) => {
@@ -758,6 +770,15 @@ function CustomerProfile() {
                     </div>
                 </div>
             )}
+
+        {/* 1:1 Image Cropper Modal */}
+        {cropperImage && (
+            <ImageCropper
+                imageSrc={cropperImage}
+                onCropDone={handleCropDone}
+                onCancel={handleCropCancel}
+            />
+        )}
         </>
     );
 }

@@ -1,0 +1,199 @@
+/* ─── Image Cropper Modal ─── */
+.image-cropper-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    animation: cropperFadeIn 0.25s ease forwards;
+}
+
+@keyframes cropperFadeIn {
+    to { opacity: 1; }
+}
+
+.image-cropper-modal {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+    max-width: 520px;
+    width: 92%;
+    overflow: hidden;
+    transform: scale(0.94) translateY(12px);
+    animation: cropperSlideUp 0.3s ease forwards;
+    font-family: 'Inter', sans-serif;
+}
+
+@keyframes cropperSlideUp {
+    to {
+        transform: scale(1) translateY(0);
+    }
+}
+
+.image-cropper-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.image-cropper-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.image-cropper-header h3 .crop-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(190, 144, 85, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #be9055;
+}
+
+.image-cropper-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 6px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.image-cropper-close:hover {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.image-cropper-body {
+    padding: 20px 24px;
+}
+
+.image-cropper-container {
+    position: relative;
+    width: 100%;
+    height: 340px;
+    background: #0f172a;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.image-cropper-hint {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.image-cropper-zoom {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 16px;
+    padding: 0 4px;
+}
+
+.image-cropper-zoom label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    min-width: 42px;
+}
+
+.image-cropper-zoom input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #be9055, #d4a574);
+    outline: none;
+    cursor: pointer;
+}
+
+.image-cropper-zoom input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #be9055;
+    box-shadow: 0 2px 8px rgba(190, 144, 85, 0.35);
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+
+.image-cropper-zoom input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+
+.image-cropper-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px 20px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.image-cropper-btn-cancel {
+    padding: 10px 22px;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+
+.image-cropper-btn-cancel:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.image-cropper-btn-apply {
+    padding: 10px 28px;
+    border-radius: 10px;
+    border: none;
+    background: #be9055;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+}
+
+.image-cropper-btn-apply:hover {
+    background: #a87d48;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(190, 144, 85, 0.35);
+}
