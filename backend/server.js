@@ -8680,13 +8680,15 @@ app.get('/api/admin/analytics', (req, res) => {
   db.query(apptStatsQuery, (err, apptRes) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     const apptData = apptRes[0];
+    const compCount = Number(apptData.completed) || 0;
+    const cancCount = Number(apptData.cancelled) || 0;
     response.appointments = {
-      total: apptData.total || 0,
-      completed: apptData.completed || 0,
-      scheduled: apptData.scheduled || 0,
-      cancelled: apptData.cancelled || 0,
-      completionRate: ((apptData.completed || 0) + (apptData.cancelled || 0)) > 0 ? Math.round(((apptData.completed || 0) / ((apptData.completed || 0) + (apptData.cancelled || 0))) * 100) : 0,
-      avgDuration: apptData.avgDuration ? Math.round(apptData.avgDuration) : null
+      total: Number(apptData.total) || 0,
+      completed: compCount,
+      scheduled: Number(apptData.scheduled) || 0,
+      cancelled: cancCount,
+      completionRate: (compCount + cancCount) > 0 ? Math.round((compCount / (compCount + cancCount)) * 100) : 0,
+      avgDuration: apptData.avgDuration ? Math.round(Number(apptData.avgDuration)) : null
     };
 
     db.query(revenueBreakdownQuery, (err, revRes) => {
