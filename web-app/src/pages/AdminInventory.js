@@ -1133,7 +1133,7 @@ function AdminInventory() {
                                     value={historySearch}
                                     onChange={(e) => setHistorySearch(e.target.value)}
                                     className="form-input"
-                                    style={{ paddingLeft: '32px', fontSize: '0.85rem', height: '36px', borderRadius: '8px' }}
+                                    style={{ paddingLeft: '32px', fontSize: '0.9rem', height: '42px', borderRadius: '8px' }}
                                     maxLength={100}
                                 />
                             </div>
@@ -1141,7 +1141,7 @@ function AdminInventory() {
                                 value={historyDateFilter}
                                 onChange={(e) => setHistoryDateFilter(e.target.value)}
                                 className="form-input"
-                                style={{ width: 'auto', height: '36px', fontSize: '0.85rem', borderRadius: '8px', cursor: 'pointer' }}
+                                style={{ width: 'auto', height: '42px', fontSize: '0.9rem', borderRadius: '8px', cursor: 'pointer' }}
                             >
                                 <option value="all">All Time</option>
                                 <option value="today">Today</option>
@@ -1153,7 +1153,7 @@ function AdminInventory() {
                                 value={historyTypeFilter}
                                 onChange={(e) => setHistoryTypeFilter(e.target.value)}
                                 className="form-input"
-                                style={{ width: 'auto', height: '36px', fontSize: '0.85rem', borderRadius: '8px', cursor: 'pointer' }}
+                                style={{ width: 'auto', height: '42px', fontSize: '0.9rem', borderRadius: '8px', cursor: 'pointer' }}
                             >
                                 <option value="all">All Types</option>
                                 <option value="in">Stock In</option>
