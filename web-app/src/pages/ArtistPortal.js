@@ -430,6 +430,61 @@ function ArtistPortal() {
                                         )}
                                     </div>
 
+                                    {/* Upcoming Sessions Table */}
+                                    <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Calendar size={18} style={{ color: '#94a3b8' }} />
+                                                Upcoming Sessions
+                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>({upcomingAppointments.length} total)</span>
+                                            </h2>
+                                            <button className="btn btn-secondary" onClick={() => navigate('/artist/appointments')} style={{ fontSize: '0.8rem', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                View Full Schedule <ArrowRight size={14} />
+                                            </button>
+                                        </div>
+                                        <div className="table-responsive">
+                                            {upcomingAppointments.length > 0 ? (
+                                                <table className="portal-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Client</th>
+                                                            <th>Date</th>
+                                                            <th>Time</th>
+                                                            <th>Service</th>
+                                                            <th>Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {currentUpcoming.map((apt) => (
+                                                            <tr key={apt.id} style={{ cursor: 'pointer' }} onClick={() => navigate('/artist/appointments')}>
+                                                                <td style={{ fontWeight: 600 }}>{apt.client_name || apt.client || 'N/A'}</td>
+                                                                <td>{apt.appointment_date ? new Date(apt.appointment_date).toLocaleDateString() : 'N/A'}</td>
+                                                                <td>{apt.start_time || apt.appointment_time || apt.time || 'N/A'}</td>
+                                                                <td>{apt.design_title || apt.service_type || 'Tattoo Session'}</td>
+                                                                <td><span className={`status-badge ${(apt.status || 'pending').toLowerCase()}`}>{apt.status || 'Pending'}</span></td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            ) : (
+                                                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                                                    <Calendar size={40} style={{ marginBottom: '10px', opacity: 0.3 }} />
+                                                    <p style={{ margin: 0, fontSize: '0.95rem' }}>No upcoming sessions scheduled</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {upcomingAppointments.length > 0 && (
+                                            <Pagination
+                                                currentPage={upcomingPage}
+                                                totalPages={upcomingTotalPages}
+                                                onPageChange={setUpcomingPage}
+                                                itemsPerPage={upcomingPerPage}
+                                                onItemsPerPageChange={(newVal) => { setUpcomingPerPage(newVal); setUpcomingPage(1); }}
+                                                totalItems={upcomingAppointments.length}
+                                                unit="sessions"
+                                            />
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* RIGHT COLUMN */}
@@ -518,64 +573,6 @@ function ArtistPortal() {
                                 </div>
                             </div>
                         </div>
-
-                        {/* ═══════════════ UPCOMING SESSIONS TABLE (with pagination) ═══════════════ */}
-                            <div className="artist-upcoming-section">
-                                <div className="card glass-card">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                        <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Calendar size={18} style={{ color: '#94a3b8' }} />
-                                            Upcoming Sessions
-                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>({upcomingAppointments.length} total)</span>
-                                        </h2>
-                                        <button className="btn btn-secondary" onClick={() => navigate('/artist/appointments')} style={{ fontSize: '0.8rem', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            View Full Schedule <ArrowRight size={14} />
-                                        </button>
-                                    </div>
-                                    <div className="table-responsive">
-                                        {upcomingAppointments.length > 0 ? (
-                                            <table className="portal-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Client</th>
-                                                        <th>Date</th>
-                                                        <th>Time</th>
-                                                        <th>Service</th>
-                                                        <th>Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {currentUpcoming.map((apt) => (
-                                                        <tr key={apt.id} style={{ cursor: 'pointer' }} onClick={() => navigate('/artist/appointments')}>
-                                                            <td style={{ fontWeight: 600 }}>{apt.client_name || apt.client || 'N/A'}</td>
-                                                            <td>{apt.appointment_date ? new Date(apt.appointment_date).toLocaleDateString() : 'N/A'}</td>
-                                                            <td>{apt.start_time || apt.appointment_time || apt.time || 'N/A'}</td>
-                                                            <td>{apt.design_title || apt.service_type || 'Tattoo Session'}</td>
-                                                            <td><span className={`status-badge ${(apt.status || 'pending').toLowerCase()}`}>{apt.status || 'Pending'}</span></td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        ) : (
-                                            <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                                                <Calendar size={40} style={{ marginBottom: '10px', opacity: 0.3 }} />
-                                                <p style={{ margin: 0, fontSize: '0.95rem' }}>No upcoming sessions scheduled</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {upcomingAppointments.length > 0 && (
-                                        <Pagination
-                                            currentPage={upcomingPage}
-                                            totalPages={upcomingTotalPages}
-                                            onPageChange={setUpcomingPage}
-                                            itemsPerPage={upcomingPerPage}
-                                            onItemsPerPageChange={(newVal) => { setUpcomingPerPage(newVal); setUpcomingPage(1); }}
-                                            totalItems={upcomingAppointments.length}
-                                            unit="sessions"
-                                        />
-                                    )}
-                                </div>
-                            </div>
                         </>
                     )}
 
