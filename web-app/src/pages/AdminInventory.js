@@ -846,10 +846,10 @@ function AdminInventory() {
                                         <td className="actions-cell">
                                             {itemStatusFilter === 'active' ? (
                                                 <div className="admin-st-8487929b">
-                                                    <button className="action-btn admin-st-b3452762" onClick={() => openTransactionModal(item, 'in')} title="Stock In">
+                                                    <button className="action-btn admin-st-b3452762" onClick={() => openTransactionModal(item, 'in')} title="Stock In" style={{ backgroundColor: '#10b981', color: 'white', borderColor: '#10b981' }}>
                                                         <ArrowUpCircle size={16}/>
                                                     </button>
-                                                    <button className="action-btn admin-st-e2101411" onClick={() => openTransactionModal(item, 'out')} title="Stock Out">
+                                                    <button className="action-btn admin-st-e2101411" onClick={() => openTransactionModal(item, 'out')} title="Stock Out" style={{ backgroundColor: '#ef4444', color: 'white', borderColor: '#ef4444' }}>
                                                         <ArrowDownCircle size={16}/>
                                                     </button>
                                                     <button className="action-btn edit-btn admin-st-c4858c02" onClick={() => handleEdit(item)} title="Edit">
@@ -1215,15 +1215,15 @@ function AdminInventory() {
                                                         <span style={{
                                                             display: 'inline-flex', alignItems: 'center', gap: '4px',
                                                             padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
-                                                            background: t.type === 'price_change' ? '#fffbeb' : (t.type === 'in' ? '#ecfdf5' : '#fef2f2'),
-                                                            color: t.type === 'price_change' ? '#b45309' : (t.type === 'in' ? '#059669' : '#dc2626'),
-                                                            border: `1px solid ${t.type === 'price_change' ? '#fde68a' : (t.type === 'in' ? '#a7f3d0' : '#fecaca')}`
+                                                            background: t.type === 'price_change' ? '#fffbeb' : (t.type === 'in' ? '#10b981' : '#ef4444'),
+                                                            color: t.type === 'price_change' ? '#b45309' : '#ffffff',
+                                                            border: t.type === 'price_change' ? '1px solid #fde68a' : 'none'
                                                         }}>
                                                             {t.type === 'price_change' ? <PhilippinePeso size={13} /> : (t.type === 'in' ? <ArrowUpCircle size={13} /> : <ArrowDownCircle size={13} />)}
                                                             {t.type === 'price_change' ? 'PRICE' : (t.type === 'in' ? 'IN' : 'OUT')}
                                                         </span>
                                                     </td>
-                                                    <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', color: t.type === 'price_change' ? '#b45309' : (t.type === 'in' ? '#059669' : '#dc2626') }}>
+                                                    <td style={{ textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', color: t.type === 'price_change' ? '#b45309' : (t.type === 'in' ? '#10b981' : '#ef4444') }}>
                                                         {t.type === 'price_change' ? '—' : `${t.type === 'in' ? '+' : '-'}${t.quantity} ${t.unit || ''}`}
                                                     </td>
                                                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>
