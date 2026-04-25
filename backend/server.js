@@ -7875,23 +7875,70 @@ app.put('/api/admin/users/:id/status', (req, res) => {
     return res.status(400).json({ success: false, message: 'A reason is required when deactivating a user.' });
   }
 
-  // Safety: Don't change status of super admin
+  // Safety: Don't change status of super admin — migration-safe SELECT
+  // Try with is_superadmin first, fall back to basic SELECT if column missing
   db.query('SELECT email, is_superadmin, name FROM users WHERE id = ?', [id], (err, results) => {
-    if (err) return res.status(500).json({ success: false, message: 'Database error checking user' });
+    if (err && err.code === 'ER_BAD_FIELD_ERROR') {
+      // is_superadmin column doesn't exist — treat as non-superadmin
+      console.warn('[MIGRATE] is_superadmin column missing, falling back to name+email SELECT');
+      db.query('SELECT email, name FROM users WHERE id = ?', [id], (err2, results2) => {
+        if (err2) return res.status(500).json({ success: false, message: 'Database error checking user: ' + err2.message });
+        if (results2.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
+        performStatusUpdate(results2[0], false);
+      });
+      return;
+    }
+    if (err) return res.status(500).json({ success: false, message: 'Database error checking user: ' + err.message });
     if (results.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
     
     const targetUser = results[0];
     if (targetUser.is_superadmin) {
       return res.status(403).json({ success: false, message: 'Cannot change the status of the system super admin.' });
     }
+    performStatusUpdate(targetUser, false);
+  });
 
-    const query = 'UPDATE users SET account_status = ?, status_reason = ? WHERE id = ?';
+  function performStatusUpdate(targetUser, isRetry) {
+    const updateQuery = 'UPDATE users SET account_status = ?, status_reason = ? WHERE id = ?';
     let finalReason = reason || adminNote || null;
     if (status === 'deactivated' && duration) {
       finalReason = `[Duration: ${duration}] ${finalReason}`;
     }
     
-    db.query(query, [status, finalReason, id], async (updateErr) => {
+    db.query(updateQuery, [status, finalReason, id], async (updateErr) => {
+      if (updateErr && updateErr.code === 'ER_BAD_FIELD_ERROR' && !isRetry) {
+        // Columns don't exist yet — run migration inline then retry
+        console.log('[MIGRATE] account_status/status_reason columns missing. Running inline migration...');
+        const alterQuery = `
+          ALTER TABLE users 
+          ADD COLUMN IF NOT EXISTS account_status ENUM('active', 'deactivated', 'banned') DEFAULT 'active',
+          ADD COLUMN IF NOT EXISTS status_reason TEXT NULL,
+          ADD COLUMN IF NOT EXISTS appeal_status ENUM('none', 'pending', 'accepted', 'denied') DEFAULT 'none',
+          ADD COLUMN IF NOT EXISTS appeal_message TEXT NULL
+        `;
+        db.query(alterQuery, (alterErr) => {
+          if (alterErr) {
+            console.error('[MIGRATE] Inline migration failed:', alterErr.message);
+            // Try a MySQL 5.7 compatible approach (no IF NOT EXISTS for ADD COLUMN)
+            db.query("SHOW COLUMNS FROM users LIKE 'account_status'", (showErr, showResults) => {
+              if (!showErr && showResults.length === 0) {
+                db.query(`ALTER TABLE users ADD COLUMN account_status ENUM('active', 'deactivated', 'banned') DEFAULT 'active', ADD COLUMN status_reason TEXT NULL, ADD COLUMN appeal_status ENUM('none', 'pending', 'accepted', 'denied') DEFAULT 'none', ADD COLUMN appeal_message TEXT NULL`, (altErr2) => {
+                  if (altErr2) return res.status(500).json({ success: false, message: 'Migration failed: ' + altErr2.message });
+                  console.log('[MIGRATE] Columns added successfully (compat mode). Retrying update...');
+                  performStatusUpdate(targetUser, true);
+                });
+              } else {
+                // Column exists but something else is wrong
+                return res.status(500).json({ success: false, message: 'Migration error: ' + (alterErr.message || 'Unknown') });
+              }
+            });
+            return;
+          }
+          console.log('[MIGRATE] Columns added successfully. Retrying update...');
+          performStatusUpdate(targetUser, true);
+        });
+        return;
+      }
       if (updateErr) return res.status(500).json({ success: false, message: updateErr.message });
       
       logAction(null, 'UPDATE_USER_STATUS', `Changed user ${id} status to ${status} (Reason: ${finalReason || 'N/A'})`, req.ip);
@@ -7935,8 +7982,9 @@ app.put('/api/admin/users/:id/status', (req, res) => {
 
       res.json({ success: true, message: `User account successfully ${status}` });
     });
-  });
+  }
 });
+
 
 // Admin: Delete User (Soft Delete)
 app.delete('/api/admin/users/:id', (req, res) => {
