@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { X } from 'lucide-react';
 import './ImageLightbox.css';
 
 /**
  * ImageLightbox — A global, reusable fullscreen image viewer.
+ *
+ * Renders via React Portal into document.body to guarantee the overlay
+ * always sits above every other element, regardless of parent stacking
+ * contexts created by backdrop-filter, transform, or will-change.
  *
  * Usage:
  *   import ImageLightbox from '../components/ImageLightbox';
@@ -80,7 +85,7 @@ function ImageLightbox({ src, alt, onClose }) {
 
   if (!mounted) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div
       className={`lightbox-overlay ${visible ? 'lightbox-visible' : ''}`}
       onClick={onClose}
@@ -117,7 +122,8 @@ function ImageLightbox({ src, alt, onClose }) {
       {alt && imageLoaded && (
         <div className="lightbox-caption">{alt}</div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
 
