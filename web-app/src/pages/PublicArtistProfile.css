@@ -16,9 +16,15 @@
 .pap-back-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 50px; background: linear-gradient(135deg, #b7954e, #8a6c3a); color: #0f0d0e; font-weight: 700; text-decoration: none; transition: all 0.3s; }
 .pap-back-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(183,149,78,0.3); }
 
-/* ========== BACK NAVIGATION ========== */
-.pap-back-nav { background: #171516; padding: 20px 20px 0; }
-.pap-back-nav-inner { max-width: 1100px; margin: 0 auto; }
+/* ========== BACK NAVIGATION (inside hero) ========== */
+.pap-back-nav {
+    position: relative;
+    z-index: 2;
+    max-width: 1100px;
+    margin: 0 auto 24px;
+    padding: 0 20px;
+    text-align: left;
+}
 
 .pap-breadcrumb {
     display: inline-flex;
@@ -167,7 +173,7 @@
 
 /* ========== RESPONSIVE — TABLET ========== */
 @media (max-width: 768px) {
-    .pap-back-nav { padding: 16px 16px 0; }
+    .pap-back-nav { padding: 0 16px; margin-bottom: 20px; }
     .pap-hero { padding: 40px 16px 40px; }
     .pap-avatar-wrapper { width: 110px; height: 110px; }
     .pap-artist-name { font-size: 1.8rem; }
@@ -191,7 +197,7 @@
 
 /* ========== RESPONSIVE — SMALL MOBILE ========== */
 @media (max-width: 480px) {
-    .pap-back-nav { padding: 12px 12px 0; }
+    .pap-back-nav { padding: 0 12px; margin-bottom: 16px; }
     .pap-breadcrumb { padding: 8px 16px; font-size: 0.8rem; }
     .pap-hero { padding: 32px 12px 32px; }
     .pap-avatar-wrapper { width: 90px; height: 90px; }

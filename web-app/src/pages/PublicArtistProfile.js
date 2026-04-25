@@ -104,19 +104,18 @@ const PublicArtistProfile = () => {
         <div className="pap-page">
             <Navbar />
 
-            {/* ═══════════ BACK NAVIGATION ═══════════ */}
-            <div className="pap-back-nav">
-                <div className="pap-back-nav-inner">
-                    <Link to="/artists" className="pap-breadcrumb">
-                        <ArrowLeft size={16} /> All Artists
-                    </Link>
-                </div>
-            </div>
-
             {/* ═══════════ HERO BANNER ═══════════ */}
             <section className="pap-hero">
                 <div className="pap-hero-bg"></div>
                 <div className="pap-hero-overlay"></div>
+
+                {/* Back button — left-aligned, above centered content */}
+                <div className="pap-back-nav">
+                    <Link to="/artists" className="pap-breadcrumb">
+                        <ArrowLeft size={16} /> All Artists
+                    </Link>
+                </div>
+
                 <div className="pap-hero-content">
 
                     <div className="pap-hero-profile">
