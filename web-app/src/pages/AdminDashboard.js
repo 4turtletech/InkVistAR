@@ -679,7 +679,7 @@ function AdminDashboard() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="modern-table-wrapper">
+                                    <div className="modern-table-wrapper table-responsive">
                                         <table className="premium-table">
                                             <thead>
                                                 <tr>

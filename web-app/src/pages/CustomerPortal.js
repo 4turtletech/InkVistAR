@@ -365,7 +365,7 @@ function CustomerPortal() {
                                     <h2>Upcoming Sessions</h2>
                                     <button className="action-btn" onClick={() => navigate('/customer/bookings')}>Book New Session</button>
                                 </div>
-                                <div className="modern-table-wrapper">
+                                <div className="modern-table-wrapper table-responsive">
                                     {appointments.length > 0 ? (
                                         <table className="premium-table">
                                             <thead>

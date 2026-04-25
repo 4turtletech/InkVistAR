@@ -331,7 +331,7 @@ function AdminAnalytics() {
                                             <h4 style={{ margin: 0, fontSize: '1rem', color: '#1e293b' }}>Dashboard Layout</h4>
                                             <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }} onClick={() => setIsWidgetModalOpen(false)}><X size={18} /></button>
                                         </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '350px', overflowY: 'auto' }}>
+                                        <div className="grid-2col" style={{ gap: '8px', maxHeight: '350px', overflowY: 'auto' }}>
                                             {WIDGET_OPTIONS.map(widget => {
                                                 const isVisible = visibleWidgets.includes(widget.id);
                                                 return (
@@ -606,7 +606,7 @@ function AdminAnalytics() {
                                         i += 2;
                                     } else if (current.widthInfo === 'wide' && next.widthInfo === 'wide') {
                                         rows.push(
-                                            <div key={`row-${i}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1.5rem', padding: '0 2rem', marginBottom: '1.5rem' }}>
+                                            <div key={`row-${i}`} className="grid-2col" style={{ gap: '1.5rem', padding: '0 2rem', marginBottom: '1.5rem' }}>
                                                 {current.element}
                                                 {next.element}
                                             </div>
@@ -614,7 +614,7 @@ function AdminAnalytics() {
                                         i += 2;
                                     } else {
                                         rows.push(
-                                            <div key={`row-${i}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem', padding: '0 2rem', marginBottom: '1.5rem' }}>
+                                            <div key={`row-${i}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: '1.5rem', padding: '0 2rem', marginBottom: '1.5rem' }}>
                                                 {current.element}
                                                 {next.element}
                                             </div>

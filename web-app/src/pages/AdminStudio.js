@@ -243,7 +243,7 @@ function AdminStudio() {
             </div>
 
             {/* Info Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '16px', marginBottom: '28px' }}>
                 {[
                     {
                         title: 'Subscriber Targeting',
