@@ -1133,7 +1133,7 @@ function AdminAppointments() {
                                             { color: '#0284c7', label: 'In Session' },
                                             { color: '#22c55e', label: 'Completed' },
                                             { color: '#ef4444', label: 'Incomplete' },
-                                            { color: '#94a3b8', label: 'Cancelled / Rejected' },
+                                            { color: '#ef4444', label: 'Cancelled / Rejected' },
                                         ].map(({ color, label }) => (
                                             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                                                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0, boxShadow: `0 0 0 2px ${color}33` }} />
@@ -1201,7 +1201,7 @@ function AdminAppointments() {
                                                         else if (apt.status === 'in_progress') dotColor = '#0284c7';
                                                         else if (apt.status === 'completed') dotColor = '#22c55e';
                                                         else if (apt.status === 'incomplete') dotColor = '#ef4444';
-                                                        else if (apt.status === 'cancelled' || apt.status === 'rejected') dotColor = '#94a3b8';
+                                                        else if (apt.status === 'cancelled' || apt.status === 'rejected') dotColor = '#ef4444';
                                                         return (
                                                             <div key={apt.id} style={{
                                                                 width: '8px',

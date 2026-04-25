@@ -834,21 +834,7 @@ function AdminDashboard() {
                             </div>
                         </div>
 
-                        {/* Standalone POS Launcher Wrapper */}
-                        <div className="admin-st-pos-banner">
-                            <div className="pos-banner-card clickable" onClick={() => navigate('/admin/pos')}>
-                                <div className="pos-banner-icon-wrap">
-                                    <ShoppingCart size={32} color="#3b82f6" />
-                                </div>
-                                <div className="pos-banner-text">
-                                    <h2>Launch POS System</h2>
-                                    <p>Process walk-ins, merchandise, and retail inventory sales independently</p>
-                                </div>
-                                <button className="pos-banner-btn" onClick={(e) => { e.stopPropagation(); navigate('/admin/pos'); }}>
-                                    Launch Terminal
-                                </button>
-                            </div>
-                        </div>
+
                     </div>
                 )}
             </div>

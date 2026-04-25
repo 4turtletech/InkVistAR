@@ -150,7 +150,8 @@ function Register() {
 
     if (name === 'phone') {
       if (!value) errorMsg = "Phone number is required";
-      else if (value.length < 11) errorMsg = "Phone number must be exactly 11 digits";
+      else if (value.length < 10) errorMsg = "Phone number must be 10-11 digits";
+      else if (value.length > 11) errorMsg = "Phone number must be 10-11 digits";
     }
 
     setErrors(prev => ({ ...prev, [name]: errorMsg }));
@@ -202,11 +203,13 @@ function Register() {
       }
       
       const orphanAppointmentId = sessionStorage.getItem('orphanAppointmentId');
+      let rawPhone = formData.phone.trim();
+      if (rawPhone.length === 10 && !rawPhone.startsWith('0')) rawPhone = '0' + rawPhone;
       const response = await Axios.post(`${API_URL}/api/register`, {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
-        phone: formData.countryCode + formData.phone.trim(),
+        phone: formData.countryCode + rawPhone,
         password: formData.password,
         type: 'customer',
         orphanAppointmentId: orphanAppointmentId,
@@ -420,7 +423,7 @@ function Register() {
               <button
                 onClick={() => navigate('/login', { replace: true })}
                 className="btn btn-primary"
-                style={{ width: '100%' }}
+                style={{ width: '100%', justifyContent: 'center', textAlign: 'center' }}
               >
                 Continue to Login
               </button>
