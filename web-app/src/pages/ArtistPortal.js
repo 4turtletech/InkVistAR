@@ -517,8 +517,9 @@ function ArtistPortal() {
                                     </button>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* ═══════════════ UPCOMING SESSIONS TABLE (with pagination) ═══════════════ */}
+                        {/* ═══════════════ UPCOMING SESSIONS TABLE (with pagination) ═══════════════ */}
                             <div className="artist-upcoming-section">
                                 <div className="card glass-card">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
