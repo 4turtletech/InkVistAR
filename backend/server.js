@@ -1395,16 +1395,18 @@ function buildEmailHtml(contentHtml) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <title>InkVistAR</title>
   <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
 </head>
-<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;background-color:#f4f1ec;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
   <!-- Outer wrapper for background color -->
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0a0a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f1ec;">
     <tr>
       <td align="center" style="padding:40px 16px;">
         <!-- Main card -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background-color:#111111;border:1px solid rgba(193,154,107,0.2);border-radius:16px;overflow:hidden;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background-color:#ffffff;border:1px solid #e2ddd5;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
           <!-- Gold accent bar -->
           <tr><td style="height:4px;background:linear-gradient(90deg,#C19A6B,#8a6c4a,#C19A6B);"></td></tr>
           <!-- Logo -->
@@ -1415,17 +1417,17 @@ function buildEmailHtml(contentHtml) {
           </tr>
           <!-- Content area -->
           <tr>
-            <td style="padding:24px 32px 32px;color:#e2e8f0;font-size:15px;line-height:1.7;">
+            <td style="padding:24px 32px 32px;color:#1e293b;font-size:15px;line-height:1.7;">
               ${contentHtml}
             </td>
           </tr>
           <!-- Divider -->
-          <tr><td style="padding:0 32px;"><div style="height:1px;background-color:rgba(193,154,107,0.15);"></div></td></tr>
+          <tr><td style="padding:0 32px;"><div style="height:1px;background-color:#e2ddd5;"></div></td></tr>
           <!-- Footer -->
           <tr>
             <td style="padding:20px 32px 28px;text-align:center;">
-              <p style="margin:0 0 6px;font-size:12px;color:#555;">InkVictus Tattoo Studio &bull; BGC, Taguig</p>
-              <p style="margin:0;font-size:11px;color:#444;">This is an automated message. Please do not reply to this email.</p>
+              <p style="margin:0 0 6px;font-size:12px;color:#64748b;">InkVictus Tattoo Studio &bull; BGC, Taguig</p>
+              <p style="margin:0;font-size:11px;color:#94a3b8;">This is an automated message. Please do not reply to this email.</p>
             </td>
           </tr>
         </table>
@@ -1604,12 +1606,12 @@ function sendConsultationSummaryEmail(recipientEmail, recipientName, consultatio
 
     const contentHtml = `
       <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#10b981;text-align:center;">Consultation Summary</h2>
-      ${bookingCode ? `<p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Ref: ${bookingCode}</p>` : ''}
+      ${bookingCode ? `<p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Ref: ${bookingCode}</p>` : ''}
       <p style="margin:0 0 16px;">Hello ${recipientName},</p>
       <p style="margin:0 0 16px;line-height:1.6;">Thank you for visiting InkVictus Tattoo Studio! Your consultation has been completed. Here's a summary of what was discussed during your visit:</p>
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
-        <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+        <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
           ${detailHtml}
         </div>
       </td></tr></table>
@@ -2211,7 +2213,7 @@ app.post('/api/customer/change-password', async (req, res) => {
 
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Re-verification required for your security</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Re-verification required for your security</p>
               <p style="margin:0 0 16px;">Your password was successfully updated. To protect your account, we need you to verify your email address before you can log in again.</p>
               <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;">If you did not make this change, please contact our support team immediately.</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
@@ -2284,7 +2286,7 @@ app.post('/api/artist/change-password', async (req, res) => {
 
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Password Changed</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Re-verification required for your security</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Re-verification required for your security</p>
               <p style="margin:0 0 16px;">Your password was successfully updated. To protect your account, we need you to verify your email address before you can log in again.</p>
               <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;">If you did not make this change, please contact our support team immediately.</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
@@ -2337,14 +2339,14 @@ app.post('/api/request-email-change', (req, res) => {
           // Send OTP to the CURRENT email
           const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Email Change Request</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Authorization code required</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Authorization code required</p>
               <p style="margin:0 0 16px;">We received a request to change the email address on your InkVistAR account. Enter the verification code below to authorize this change:</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:20px 0;">
                 <div style="display:inline-block;background-color:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;padding:16px 32px;">
                   <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${otp_code}</span>
                 </div>
               </td></tr></table>
-              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#e2e8f0;">5 minutes</strong>.</p>
+              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">5 minutes</strong>.</p>
               <p style="margin:0;font-size:12px;color:#555;text-align:center;">If you did not request this change, you can safely ignore this email. Your account remains secure.</p>
           `);
           sendEmail(user.email, 'InkVistAR: Email Change Authorization Code', html);
@@ -2411,7 +2413,7 @@ app.post('/api/confirm-email-change', (req, res) => {
 
           const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verify Your New Email</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your email address has been updated</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Your email address has been updated</p>
               <p style="margin:0 0 16px;">Your InkVistAR account email has been changed to this address. Please verify it below to re-activate your account.</p>
               <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;">If you did not make this change, please contact our support team immediately.</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
@@ -2490,14 +2492,14 @@ app.post('/api/send-otp', (req, res) => {
           res.json({ success: true, message: 'OTP sent to your email!' });
           const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verification Code</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Account security verification</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Account security verification</p>
               <p style="margin:0 0 16px;">A one-time verification code was requested for your InkVistAR account. Enter the code below to continue:</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:20px 0;">
                 <div style="display:inline-block;background-color:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;padding:16px 32px;">
                   <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${otp_code}</span>
                 </div>
               </td></tr></table>
-              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#e2e8f0;">5 minutes</strong>.</p>
+              <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">5 minutes</strong>.</p>
               <p style="margin:0;font-size:12px;color:#555;text-align:center;">Do not share this code with anyone. InkVistAR will never ask for your code via phone or message.</p>
           `);
           sendEmail(email, 'InkVistAR - Your OTP Code', html);
@@ -2775,7 +2777,7 @@ app.post('/api/register', async (req, res) => {
 
         const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Welcome, ${fullName}!</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Just one step to get started</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Just one step to get started</p>
               <p style="margin:0 0 16px;">Thank you for creating your InkVistAR account. Your creative journey is almost ready to begin — verify your email address below to activate your account.</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
                 <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify Email Address</a>
@@ -2899,7 +2901,7 @@ app.post('/api/admin/broadcast-marketing-email', (req, res) => {
     const promises = subscribers.map(sub => {
       const html = buildEmailHtml(`
         <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">${subject}</h2>
-        <p style="margin:0 0 12px;font-size:13px;color:#888;text-align:center;">Exclusive for you, ${sub.name.split(' ')[0]}!</p>
+        <p style="margin:0 0 12px;font-size:13px;color:#64748b;text-align:center;">Exclusive for you, ${sub.name.split(' ')[0]}!</p>
         ${imageHtml}
         <div style="margin:16px 0;font-size:14px;color:#333;line-height:1.7;">${body.replace(/\n/g, '<br/>')}</div>
         <p style="margin:20px 0 0;font-size:11px;color:#aaa;text-align:center;">You are receiving this email because you opted in to marketing communications from Inkvictus Tattoo & Piercing. To unsubscribe, update your preferences in your account settings.</p>
@@ -3153,7 +3155,7 @@ app.get('/api/artist/:artistId/clients', (req, res) => {
 // Update Artist Profile
 app.put('/api/artist/profile/:id', (req, res) => {
   const { id } = req.params;
-  const { name, specialization, hourly_rate, experience_years, commission_rate, phone, studio_name, profileImage } = req.body;
+  const { name, specialization, hourly_rate, experience_years, phone, studio_name, profileImage } = req.body;
 
   // Server-side hardening: Truncate and clamp inputs
   const safeName = name ? name.substring(0, 100) : null;
@@ -3681,15 +3683,15 @@ app.post('/api/customer/appointments', async (req, res) => {
           if (!err && users && users.length > 0 && users[0].email) {
             const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Booking Request Received!</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your request is being reviewed</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Your request is being reviewed</p>
               <p style="margin:0 0 16px;">Hello ${users[0].name},</p>
               <p style="margin:0 0 16px;">We have successfully received your request <strong>[${bookingCode}]</strong> and our team is currently reviewing your details.</p>
               
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
-                <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
-                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Service:</strong> <span style="color:#C19A6B;">${designTitle || serviceType}</span></p>
-                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Date:</strong> <span style="color:#C19A6B;">${appointmentDate}</span></p>
-                  <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Time:</strong> <span style="color:#C19A6B;">${appointmentTime}</span></p>
+                <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:70px;">Service:</strong> <span style="color:#C19A6B;">${designTitle || serviceType}</span></p>
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:70px;">Date:</strong> <span style="color:#C19A6B;">${appointmentDate}</span></p>
+                  <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:70px;">Time:</strong> <span style="color:#C19A6B;">${appointmentTime}</span></p>
                 </div>
               </td></tr></table>
 
@@ -3940,14 +3942,14 @@ app.post('/api/customer/appointments/:id/reschedule-request', (req, res) => {
               if (appt.customer_email) {
                 const emailHtml = buildEmailHtml(`
                   <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Reschedule Request Submitted</h2>
-                  <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your request is being reviewed by the studio</p>
+                  <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Your request is being reviewed by the studio</p>
                   <p style="margin:0 0 16px;">Hello ${appt.customer_name},</p>
                   <p style="margin:0 0 16px;">We have received your request to reschedule appointment <strong>[${bookingCode}]</strong>.</p>
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
-                    <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
-                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:110px;">Current Date:</strong> <span style="color:#ef4444;text-decoration:line-through;">${currentDateStr}</span></p>
-                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:110px;">Requested:</strong> <span style="color:#10b981;font-weight:700;">${newDateStr}</span></p>
-                      <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:110px;">Reason:</strong> <span style="color:#C19A6B;">${reason}</span></p>
+                    <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:110px;">Current Date:</strong> <span style="color:#ef4444;text-decoration:line-through;">${currentDateStr}</span></p>
+                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:110px;">Requested:</strong> <span style="color:#10b981;font-weight:700;">${newDateStr}</span></p>
+                      <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:110px;">Reason:</strong> <span style="color:#C19A6B;">${reason}</span></p>
                     </div>
                   </td></tr></table>
                   <p style="margin:0 0 16px;line-height:1.6;">Our team will review your request and respond within <strong>24 hours</strong>. If no action is taken, the request will expire and your original appointment will remain unchanged.</p>
@@ -4100,13 +4102,13 @@ app.put('/api/admin/reschedule-requests/:requestId/decide', (req, res) => {
             if (request.customer_email) {
               const emailHtml = buildEmailHtml(`
                 <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#10b981;text-align:center;">Reschedule Request Approved</h2>
-                <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your appointment has been moved</p>
+                <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Your appointment has been moved</p>
                 <p style="margin:0 0 16px;">Hello ${request.customer_name},</p>
                 <p style="margin:0 0 16px;">Your request to reschedule appointment <strong>[${bookingCode}]</strong> has been <strong style="color:#10b981;">approved</strong>!</p>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
                   <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
-                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">New Date:</strong> <span style="color:#10b981;font-weight:700;">${newDateStr}</span></p>
-                    ${adminNotes ? `<p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Studio Notes:</strong> <span style="color:#C19A6B;">${adminNotes}</span></p>` : ''}
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">New Date:</strong> <span style="color:#10b981;font-weight:700;">${newDateStr}</span></p>
+                    ${adminNotes ? `<p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Studio Notes:</strong> <span style="color:#C19A6B;">${adminNotes}</span></p>` : ''}
                   </div>
                 </td></tr></table>
                 <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
@@ -4141,13 +4143,13 @@ app.put('/api/admin/reschedule-requests/:requestId/decide', (req, res) => {
             if (request.customer_email) {
               const emailHtml = buildEmailHtml(`
                 <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ef4444;text-align:center;">Reschedule Request Declined</h2>
-                <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your original appointment remains unchanged</p>
+                <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Your original appointment remains unchanged</p>
                 <p style="margin:0 0 16px;">Hello ${request.customer_name},</p>
                 <p style="margin:0 0 16px;">Unfortunately, your request to reschedule appointment <strong>[${bookingCode}]</strong> has been <strong style="color:#ef4444;">declined</strong>.</p>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
                   <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
-                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:130px;">Original Date:</strong> <span style="color:#C19A6B;">${originalDateStr}</span></p>
-                    <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:130px;">Studio Notes:</strong> <span style="color:#ef4444;">${adminNotes}</span></p>
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:130px;">Original Date:</strong> <span style="color:#C19A6B;">${originalDateStr}</span></p>
+                    <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:130px;">Studio Notes:</strong> <span style="color:#ef4444;">${adminNotes}</span></p>
                   </div>
                 </td></tr></table>
                 <p style="margin:0 0 16px;line-height:1.6;">Your appointment remains as originally scheduled. If you have any questions, please contact the studio directly.</p>
@@ -4575,17 +4577,17 @@ app.post('/api/admin/appointments', async (req, res) => {
           if (guestEmail) {
             const guestHtml = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">We're excited to help you on your next piece</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">We're excited to help you on your next piece</p>
               <p style="margin:0 0 16px;">Hello ${clientNameStr},</p>
               <p style="margin:0 0 16px;">Thank you for reaching out to InkVistAR Studio! We have received your consultation request and our team is reviewing the details.</p>
               
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
-                <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
-                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Ref Code:</strong> <span style="color:#C19A6B;font-family:monospace;font-weight:700;">${bookingCode}</span></p>
-                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Design Idea:</strong> <span style="color:#C19A6B;">${displayDesign}</span></p>
-                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Date:</strong> <span style="color:#C19A6B;">${appointmentDate}</span></p>
-                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Time:</strong> <span style="color:#C19A6B;">${appointmentTime}</span></p>
-                  <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">Method:</strong> <span style="color:#C19A6B;">${displayMethod}</span></p>
+                <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Ref Code:</strong> <span style="color:#C19A6B;font-family:monospace;font-weight:700;">${bookingCode}</span></p>
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Design Idea:</strong> <span style="color:#C19A6B;">${displayDesign}</span></p>
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Date:</strong> <span style="color:#C19A6B;">${appointmentDate}</span></p>
+                  <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Time:</strong> <span style="color:#C19A6B;">${appointmentTime}</span></p>
+                  <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Method:</strong> <span style="color:#C19A6B;">${displayMethod}</span></p>
                 </div>
               </td></tr></table>
 
@@ -4593,7 +4595,7 @@ app.post('/api/admin/appointments', async (req, res) => {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0 16px;">
                 <div style="display:inline-block;padding:14px 20px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;width:100%;max-width:400px;box-sizing:border-box;text-align:left;">
                   <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#10b981;">Service Waiver Signed</p>
-                  <p style="margin:0;font-size:13px;color:#94a3b8;">You electronically accepted the Service Waiver & Release of Liability on <strong style="color:#e2e8f0;">${new Date(waiverAcceptedAt).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</strong>. A copy is attached to your booking record.</p>
+                  <p style="margin:0;font-size:13px;color:#94a3b8;">You electronically accepted the Service Waiver & Release of Liability on <strong style="color:#334155;">${new Date(waiverAcceptedAt).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</strong>. A copy is attached to your booking record.</p>
                 </div>
               </td></tr></table>
               ` : ''}
@@ -4602,7 +4604,7 @@ app.post('/api/admin/appointments', async (req, res) => {
               
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 16px;">
                 <div style="display:inline-block;padding:12px 20px;background:rgba(193,154,107,0.1);border:1px solid rgba(193,154,107,0.2);border-radius:10px;">
-                  <p style="margin:0;font-size:13px;color:#94a3b8;">Tip: <strong style="color:#e2e8f0;">Tip:</strong> Create an InkVistAR account with this email to track your booking, receive updates, and manage future appointments.</p>
+                  <p style="margin:0;font-size:13px;color:#94a3b8;">Tip: <strong style="color:#334155;">Tip:</strong> Create an InkVistAR account with this email to track your booking, receive updates, and manage future appointments.</p>
                 </div>
               </td></tr></table>
 
@@ -4792,13 +4794,13 @@ function sendGuestStatusEmail(guestEmail, guestName, bookingCode, subject, headi
   if (!guestEmail) return;
   try {
     const detailHtml = detailRows.map(r =>
-      `<p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">${r.label}:</strong> <span style="color:#C19A6B;${r.mono ? 'font-family:monospace;font-weight:700;' : ''}">${r.value}</span></p>`
+      `<p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">${r.label}:</strong> <span style="color:#C19A6B;${r.mono ? 'font-family:monospace;font-weight:700;' : ''}">${r.value}</span></p>`
     ).join('');
 
     const tipBlock = footerTip ? `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 16px;">
         <div style="display:inline-block;padding:12px 20px;background:rgba(193,154,107,0.1);border:1px solid rgba(193,154,107,0.2);border-radius:10px;">
-          <p style="margin:0;font-size:13px;color:#94a3b8;"><strong style="color:#e2e8f0;">Tip:</strong> ${footerTip}</p>
+          <p style="margin:0;font-size:13px;color:#94a3b8;"><strong style="color:#334155;">Tip:</strong> ${footerTip}</p>
         </div>
       </td></tr></table>
     ` : '';
@@ -4810,11 +4812,11 @@ function sendGuestStatusEmail(guestEmail, guestName, bookingCode, subject, headi
           <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#be9055;text-align:center;">Create Your InkVistAR Account</p>
           <p style="margin:0 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;text-align:center;">Unlock the full InkVistAR experience — it's free and takes under a minute.</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#e2e8f0;">Track & manage</span> your bookings in real-time</td></tr>
-            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#e2e8f0;">Receive instant</span> notifications & status updates</td></tr>
-            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#e2e8f0;">Browse & save</span> designs from our gallery</td></tr>
-            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#e2e8f0;">Chat directly</span> with your artist</td></tr>
-            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#e2e8f0;">Try on tattoos</span> with Augmented Reality</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#334155;">Track & manage</span> your bookings in real-time</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#334155;">Receive instant</span> notifications & status updates</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#334155;">Browse & save</span> designs from our gallery</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#334155;">Chat directly</span> with your artist</td></tr>
+            <tr><td style="padding:3px 0;font-size:12px;color:#a08a6e;">• <span style="color:#334155;">Try on tattoos</span> with Augmented Reality</td></tr>
           </table>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:16px 0 4px;">
             <a href="${FRONTEND_URL}/register" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#be9055,#a07840);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Create Free Account →</a>
@@ -4826,12 +4828,12 @@ function sendGuestStatusEmail(guestEmail, guestName, bookingCode, subject, headi
 
     const html = buildEmailHtml(`
       <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:${headingColor};text-align:center;">${headingText}</h2>
-      <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Ref: ${bookingCode}</p>
+      <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Ref: ${bookingCode}</p>
       <p style="margin:0 0 16px;">Hello ${guestName},</p>
       <p style="margin:0 0 16px;line-height:1.6;">${bodyMessage}</p>
       
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
-        <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+        <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
           ${detailHtml}
         </div>
       </td></tr></table>
@@ -4866,14 +4868,14 @@ function sendRegisteredUserStatusEmail(db, customerId, subject, headingText, hea
 
     try {
       const detailHtml = detailRows.map(r =>
-        `<p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:100px;">${r.label}:</strong> <span style="color:#C19A6B;${r.mono ? 'font-family:monospace;font-weight:700;' : ''}">${r.value}</span></p>`
+        `<p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">${r.label}:</strong> <span style="color:#C19A6B;${r.mono ? 'font-family:monospace;font-weight:700;' : ''}">${r.value}</span></p>`
       ).join('');
 
       // ── Quick Login block (always shown for registered users) ──
       const quickLoginBlock = `
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:16px 0 8px;">
           <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:18px 24px;background:linear-gradient(135deg,#111827 0%,#1a1816 100%);border:1px solid rgba(99,102,241,0.25);border-radius:14px;text-align:center;">
-            <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#e2e8f0;">View your booking details, chat with your artist, and manage your appointments.</p>
+            <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#334155;">View your booking details, chat with your artist, and manage your appointments.</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:12px 0 4px;">
               <a href="${FRONTEND_URL}/login" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Login to Your Portal →</a>
             </td></tr></table>
@@ -4887,7 +4889,7 @@ function sendRegisteredUserStatusEmail(db, customerId, subject, headingText, hea
         <p style="margin:0 0 16px;line-height:1.6;">${bodyMessage}</p>
         
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
-          <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+          <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
             ${detailHtml}
           </div>
         </td></tr></table>
@@ -4988,12 +4990,12 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
               <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#be9055;text-align:center;">Pre-Session Conditioning Plan</p>
               <p style="margin:0 0 14px;font-size:12px;color:#94a3b8;text-align:center;line-height:1.5;">Follow these steps before your tattoo session for the best results:</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>Hydrate</strong> — Drink plenty of water 24–48 hours before for optimal skin elasticity.</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>Eat Well</strong> — Have a full, balanced meal 1–2 hours before to keep blood sugar stable.</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>No Alcohol</strong> — Avoid alcohol and blood thinners (ibuprofen/aspirin) for 24+ hours prior.</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>Skin Care</strong> — Moisturize daily leading up, but skip lotion on session day. Avoid sunburns!</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>Rest Up</strong> — Get a good night's sleep to boost energy and pain tolerance.</td></tr>
-                <tr><td style="padding:6px 0;font-size:13px;color:#e2e8f0;">• <strong>Dress Smart</strong> — Wear comfortable, loose clothing for easy access to the tattoo area.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#334155;">• <strong>Hydrate</strong> — Drink plenty of water 24–48 hours before for optimal skin elasticity.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#334155;">• <strong>Eat Well</strong> — Have a full, balanced meal 1–2 hours before to keep blood sugar stable.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#334155;">• <strong>No Alcohol</strong> — Avoid alcohol and blood thinners (ibuprofen/aspirin) for 24+ hours prior.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#334155;">• <strong>Skin Care</strong> — Moisturize daily leading up, but skip lotion on session day. Avoid sunburns!</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#334155;">• <strong>Rest Up</strong> — Get a good night's sleep to boost energy and pain tolerance.</td></tr>
+                <tr><td style="padding:6px 0;font-size:13px;color:#334155;">• <strong>Dress Smart</strong> — Wear comfortable, loose clothing for easy access to the tattoo area.</td></tr>
               </table>
             </div>
           </td></tr></table>
@@ -5112,7 +5114,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
             // ── Guest Email + SMS: Rejected ──
             if (guestEmail) {
-              const reasonLine = rejectionReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${rejectionReason}` : '';
+              const reasonLine = rejectionReason ? `<br><br><strong style="color:#334155;">Reason:</strong> ${rejectionReason}` : '';
               sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
                 `Booking Update [${guestBookingCode}]`,
                 'Booking Request Update', '#ef4444',
@@ -5131,7 +5133,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
             // ── Registered User Email: Rejected ──
             if (isRegisteredUser) {
-              const reasonLine3 = rejectionReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${rejectionReason}` : '';
+              const reasonLine3 = rejectionReason ? `<br><br><strong style="color:#334155;">Reason:</strong> ${rejectionReason}` : '';
               sendRegisteredUserStatusEmail(db, currentData.customer_id,
                 'Booking Request Update',
                 'Booking Request Update', '#ef4444',
@@ -5157,7 +5159,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
             // ── Guest Email + SMS: Cancelled ──
             if (guestEmail) {
-              const reasonLine = rejectionReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${rejectionReason}` : '';
+              const reasonLine = rejectionReason ? `<br><br><strong style="color:#334155;">Reason:</strong> ${rejectionReason}` : '';
               sendGuestStatusEmail(guestEmail, guestName, guestBookingCode,
                 `Booking Cancelled [${guestBookingCode}]`,
                 'Booking Cancelled', '#ef4444',
@@ -5176,7 +5178,7 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
 
             // ── Registered User Email: Cancelled ──
             if (isRegisteredUser) {
-              const cancelReason = rejectionReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${rejectionReason}` : '';
+              const cancelReason = rejectionReason ? `<br><br><strong style="color:#334155;">Reason:</strong> ${rejectionReason}` : '';
               sendRegisteredUserStatusEmail(db, currentData.customer_id,
                 'Appointment Cancelled',
                 'Appointment Cancelled', '#ef4444',
@@ -5254,9 +5256,9 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
                     <p style="margin:0 0 10px;font-size:16px;font-weight:700;color:#be9055;">Exclusive: Aftercare Tracking</p>
                     <p style="margin:0 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;">Your tattoo journey doesn't end here. InkVistAR includes a built-in aftercare tracker — an exclusive feature designed to guide you through every stage of healing for the best possible results with your new ink.</p>
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                      <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Day-by-day healing milestones with personalized reminders</td></tr>
-                      <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Track your healing progress with photo updates</td></tr>
-                      <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Expert aftercare guidance tailored to your service type</td></tr>
+                      <tr><td style="padding:5px 0;font-size:13px;color:#334155;text-align:left;">&#x2022; Day-by-day healing milestones with personalized reminders</td></tr>
+                      <tr><td style="padding:5px 0;font-size:13px;color:#334155;text-align:left;">&#x2022; Track your healing progress with photo updates</td></tr>
+                      <tr><td style="padding:5px 0;font-size:13px;color:#334155;text-align:left;">&#x2022; Expert aftercare guidance tailored to your service type</td></tr>
                     </table>
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:14px 0 4px;">
                       <a href="${FRONTEND_URL}/customer/bookings" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#be9055,#a07840);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Start Aftercare Tracking &rarr;</a>
@@ -6082,9 +6084,9 @@ app.put('/api/appointments/:id/status', (req, res) => {
                 <p style="margin:0 0 10px;font-size:16px;font-weight:700;color:#be9055;">Exclusive: Aftercare Tracking</p>
                 <p style="margin:0 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;">Your tattoo journey doesn't end here. InkVistAR includes a built-in aftercare tracker — an exclusive feature designed to guide you through every stage of healing for the best possible results with your new ink.</p>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                  <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Day-by-day healing milestones with personalized reminders</td></tr>
-                  <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Track your healing progress with photo updates</td></tr>
-                  <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;text-align:left;">&#x2022; Expert aftercare guidance tailored to your service type</td></tr>
+                  <tr><td style="padding:5px 0;font-size:13px;color:#334155;text-align:left;">&#x2022; Day-by-day healing milestones with personalized reminders</td></tr>
+                  <tr><td style="padding:5px 0;font-size:13px;color:#334155;text-align:left;">&#x2022; Track your healing progress with photo updates</td></tr>
+                  <tr><td style="padding:5px 0;font-size:13px;color:#334155;text-align:left;">&#x2022; Expert aftercare guidance tailored to your service type</td></tr>
                 </table>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:14px 0 4px;">
                   <a href="${FRONTEND_URL}/customer/bookings" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#be9055,#a07840);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:0.3px;">Start Aftercare Tracking &rarr;</a>
@@ -6202,16 +6204,16 @@ app.put('/api/appointments/:id/status', (req, res) => {
         });
 
         // ── Aborted Session Email (partial aftercare + rebook CTA) ──
-        const abortReasonHtml = abortReason ? `<br><br><strong style="color:#e2e8f0;">Reason:</strong> ${abortReason}` : '';
+        const abortReasonHtml = abortReason ? `<br><br><strong style="color:#334155;">Reason:</strong> ${abortReason}` : '';
         const partialAftercareBlock = `
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:12px 0 16px;">
             <div style="display:inline-block;width:100%;max-width:400px;box-sizing:border-box;padding:22px 24px;background:linear-gradient(135deg,#1a1816 0%,#14120f 100%);border:1px solid rgba(234,179,8,0.3);border-radius:14px;">
               <p style="margin:0 0 10px;font-size:15px;font-weight:700;color:#eab308;text-align:center;">Partial Aftercare Notice</p>
               <p style="margin:0 0 14px;font-size:13px;color:#94a3b8;line-height:1.6;">Even though your session was stopped early, any work that was done still requires proper aftercare to heal correctly. Please follow the standard healing guidelines until your next visit.</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;">&#x2022; Keep the area clean and dry for the first 24 hours</td></tr>
-                <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;">&#x2022; Avoid sun exposure, pools, and soaking until healed</td></tr>
-                <tr><td style="padding:5px 0;font-size:13px;color:#e2e8f0;">&#x2022; Do not pick or scratch the treated area</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#334155;">&#x2022; Keep the area clean and dry for the first 24 hours</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#334155;">&#x2022; Avoid sun exposure, pools, and soaking until healed</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#334155;">&#x2022; Do not pick or scratch the treated area</td></tr>
               </table>
               <p style="margin:14px 0 0;font-size:13px;color:#94a3b8;line-height:1.6;">Continuing your tattoo in a follow-up session is highly recommended for the best final result. The studio will coordinate with you to schedule your next appointment.</p>
             </div>
@@ -6308,11 +6310,12 @@ app.get('/api/admin/pending-payment-alerts', (req, res) => {
 app.get('/api/artist/:id/earnings-ledger', (req, res) => {
   const { id } = req.params;
 
-  // Fetch the artist's actual commission rate from the DB
+  // Commission rate is hardcoded to 30% per business rules (gemini.md Section 1)
+  // The DB column is ignored to prevent drift — referral 70% is handled per-appointment via is_referral flag
   db.query('SELECT COALESCE(commission_rate, 0.30) as commission_rate FROM artists WHERE user_id = ?', [id], (rateErr, rateResults) => {
     if (rateErr) return res.status(500).json({ success: false, message: 'Database error fetching commission rate' });
 
-    const ARTIST_RATE = rateResults.length > 0 ? Number(rateResults[0].commission_rate) : 0.30;
+    const ARTIST_RATE = 0.30; // Enforced: 30% commission guarantee
     const REFERRAL_RATE = 0.70; // Referral: 70% artist / 30% studio
 
     // 2. Get Completed Appointments
@@ -8682,7 +8685,7 @@ app.get('/api/admin/analytics', (req, res) => {
       completed: apptData.completed || 0,
       scheduled: apptData.scheduled || 0,
       cancelled: apptData.cancelled || 0,
-      completionRate: apptData.total > 0 ? Math.round((apptData.completed / apptData.total) * 100) : 0,
+      completionRate: ((apptData.completed || 0) + (apptData.cancelled || 0)) > 0 ? Math.round(((apptData.completed || 0) / ((apptData.completed || 0) + (apptData.cancelled || 0))) * 100) : 0,
       avgDuration: apptData.avgDuration ? Math.round(apptData.avgDuration) : null
     };
 
@@ -9191,7 +9194,7 @@ app.post('/api/resend-verification', (req, res) => {
 
       const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Verify Your Account</h2>
-              <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Verification link resent</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Verification link resent</p>
               <p style="margin:0 0 16px;">A new verification link was requested for your InkVistAR account. Click the button below to verify your email and activate your account.</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
                 <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify Account</a>
@@ -9610,14 +9613,14 @@ function startAppointmentReminders() {
             if (appt.customer_email) {
               const html = buildEmailHtml(`
                 <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Your Session is Today!</h2>
-                <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Don't forget — your tattoo appointment is happening today!</p>
+                <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Don't forget — your tattoo appointment is happening today!</p>
                 <p style="margin:0 0 16px;">Hello ${appt.customer_name},</p>
                 <p style="margin:0 0 16px;">This is a friendly reminder that your session is scheduled for today. Here are the details:</p>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
-                  <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
-                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Design:</strong> <span style="color:#C19A6B;">${appt.design_title}</span></p>
-                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Time:</strong> <span style="color:#C19A6B;">${timeStr}</span></p>
-                    <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Artist:</strong> <span style="color:#C19A6B;">${appt.artist_name || 'Your Artist'}</span></p>
+                  <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:70px;">Design:</strong> <span style="color:#C19A6B;">${appt.design_title}</span></p>
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:70px;">Time:</strong> <span style="color:#C19A6B;">${timeStr}</span></p>
+                    <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:70px;">Artist:</strong> <span style="color:#C19A6B;">${appt.artist_name || 'Your Artist'}</span></p>
                   </div>
                 </td></tr></table>
                 <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">Please arrive 10 minutes early. See you soon!</p>
@@ -9719,12 +9722,12 @@ function startAppointmentReminders() {
             if (appt.customer_email) {
               const html = buildEmailHtml(`
                 <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Upcoming Session Reminder</h2>
-                <p style="margin:0 0 20px;font-size:13px;color:#888;text-align:center;">Your tattoo appointment is tomorrow!</p>
+                <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Your tattoo appointment is tomorrow!</p>
                 <p style="margin:0 0 16px;">Hello ${appt.customer_name},</p>
                 <p style="margin:0 0 16px;">This is a quick reminder that your tattoo session is happening tomorrow. Please review your session details below:</p>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
-                  <div style="text-align:left;display:inline-block;background-color:#1a1a1a;border:1px solid rgba(193,154,107,0.3);border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
-                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Design:</strong> <span style="color:#C19A6B;">${appt.design_title}</span></p>
+                  <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                    <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:70px;">Design:</strong> <span style="color:#C19A6B;">${appt.design_title}</span></p>
                     <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Date:</strong> <span style="color:#C19A6B;">Tomorrow</span></p>
                     <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#e2e8f0;display:inline-block;width:70px;">Time:</strong> <span style="color:#C19A6B;">${appt.start_time}</span></p>
                   </div>

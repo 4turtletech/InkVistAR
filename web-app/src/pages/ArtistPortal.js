@@ -360,7 +360,7 @@ function ArtistPortal() {
                                 {/* Upcoming Sessions by Day */}
                                 <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
                                     <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Week Ahead</h2>
-                                    <div style={{ width: '100%', height: 250 }}>
+                                    <div style={{ width: '100%', height: 180 }}>
                                         <ResponsiveContainer>
                                             <BarChart data={upcomingByDay} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />

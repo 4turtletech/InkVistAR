@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Axios from 'axios';
-import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox, Play, Plus, User } from 'lucide-react';
+import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox, Play, Plus, User, Download, Printer } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -331,31 +331,54 @@ function ArtistAppointments() {
         <div className="portal-layout">
             <ArtistSideNav />
             <div className="portal-container artist-portal">
-                <header className="portal-header">
-                    <h1>Schedule Management</h1>
-                    <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
-                        <button className="btn btn-secondary" onClick={handleExport}>
-                            Export CSV
-                        </button>
-                        <button className="btn btn-secondary" onClick={handlePrint}>
-                            Print
-                        </button>
+                <header className="portal-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h1 style={{ margin: 0 }}>Schedule Management</h1>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className="btn btn-secondary" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.45rem 0.9rem', fontSize: '0.82rem' }}>
+                                <Download size={14} /> Export
+                            </button>
+                            <button className="btn btn-secondary" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.45rem 0.9rem', fontSize: '0.82rem' }}>
+                                <Printer size={14} /> Print
+                            </button>
+                        </div>
                     </div>
-                    <div className="view-toggle" style={{ display: 'flex', gap: '10px' }}>
-                        <button
-                            className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
-                            onClick={() => setViewMode('list')}
-                            style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.5rem 1rem' }}
-                        >
-                            <List size={16} /> List
-                        </button>
-                        <button
-                            className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
-                            onClick={() => setViewMode('calendar')}
-                            style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.5rem 1rem' }}
-                        >
-                            <Calendar size={16} /> Calendar
-                        </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(248, 250, 252, 0.7)', backdropFilter: 'blur(10px)', padding: '5px 6px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                                className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => setViewMode('list')}
+                                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.45rem 1rem', borderRadius: '10px', fontSize: '0.82rem', border: viewMode === 'list' ? 'none' : '1px solid transparent' }}
+                            >
+                                <List size={14} /> List
+                            </button>
+                            <button
+                                className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => setViewMode('calendar')}
+                                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.45rem 1rem', borderRadius: '10px', fontSize: '0.82rem', border: viewMode === 'calendar' ? 'none' : '1px solid transparent' }}
+                            >
+                                <Calendar size={14} /> Calendar
+                            </button>
+                        </div>
+                        {viewMode === 'list' && (
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                {[{key: 'upcoming', label: 'Upcoming'}, {key: 'pending', label: 'Pending'}, {key: 'history', label: 'History'}].map(tab => (
+                                    <button
+                                        key={tab.key}
+                                        onClick={() => setActiveTab(tab.key)}
+                                        style={{
+                                            padding: '6px 16px', borderRadius: '10px', border: 'none',
+                                            background: activeTab === tab.key ? '#1e293b' : 'transparent',
+                                            color: activeTab === tab.key ? 'white' : '#64748b',
+                                            fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s',
+                                            fontSize: '0.82rem'
+                                        }}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </header>
 
@@ -545,11 +568,6 @@ function ArtistAppointments() {
                                 </div>
                             ) : (
                                 <>
-                                    <div style={{ marginBottom: '20px', display: 'flex', gap: '8px', background: 'rgba(255, 255, 255, 0.5)', padding: '6px', borderRadius: '30px', backdropFilter: 'blur(10px)', width: 'fit-content', border: '1px solid rgba(255, 255, 255, 0.8)' }}>
-                                        <button style={{ padding: '8px 20px', borderRadius: '24px', border: 'none', background: activeTab === 'upcoming' ? '#1e293b' : 'transparent', color: activeTab === 'upcoming' ? 'white' : '#64748b', fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveTab('upcoming')}>Upcoming</button>
-                                        <button style={{ padding: '8px 20px', borderRadius: '24px', border: 'none', background: activeTab === 'pending' ? '#1e293b' : 'transparent', color: activeTab === 'pending' ? 'white' : '#64748b', fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveTab('pending')}>Pending Requests</button>
-                                        <button style={{ padding: '8px 20px', borderRadius: '24px', border: 'none', background: activeTab === 'history' ? '#1e293b' : 'transparent', color: activeTab === 'history' ? 'white' : '#64748b', fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveTab('history')}>History</button>
-                                    </div>
 
                                     <div className="table-card-container" style={{ minHeight: '600px', background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.6)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.05)', borderRadius: '16px' }}>
                                         {currentItems.length ? (
