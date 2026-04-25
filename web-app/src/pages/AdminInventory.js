@@ -852,7 +852,7 @@ function AdminInventory() {
                                                     <button className="action-btn admin-st-e2101411" onClick={() => openTransactionModal(item, 'out')} title="Stock Out" style={{ backgroundColor: '#ef4444', color: 'white', borderColor: '#ef4444' }}>
                                                         <ArrowDownCircle size={16}/>
                                                     </button>
-                                                    <button className="action-btn edit-btn admin-st-c4858c02" onClick={() => handleEdit(item)} title="Edit">
+                                                    <button className="action-btn edit-btn admin-st-c4858c02" onClick={() => handleEdit(item)} title="Edit" style={{ backgroundColor: '#3b82f6', color: 'white', borderColor: '#3b82f6' }}>
                                                         <Edit2 size={16}/>
                                                     </button>
                                                 </div>
@@ -1462,6 +1462,7 @@ function AdminInventory() {
                                                                     unit: m.unit
                                                                 }))); 
                                                             }} 
+                                                            style={{ backgroundColor: '#3b82f6', color: 'white', borderColor: '#3b82f6' }}
                                                         >
                                                             <Edit2 size={16}/>
                                                         </button>
