@@ -391,7 +391,7 @@ function ArtistProfile() {
                                         <User size={20} color="#be9055" />
                                         Personal Information
                                     </h3>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div className="grid-2col" style={{ gap: '16px' }}>
                                         <div className="form-group">
                                             <label className="artist-profile-form-label"><User size={16} /> Artist Name <span style={{ color: '#ef4444' }}>*</span></label>
                                             <input
@@ -496,7 +496,7 @@ function ArtistProfile() {
                                         <Palette size={20} color="#be9055" />
                                         Professional Details
                                     </h3>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div className="grid-2col" style={{ gap: '16px' }}>
                                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                                             <label className="artist-profile-form-label"><Palette size={16} /> Specialization / Styles</label>
                                             <MultiSelectDropdown 
@@ -621,7 +621,7 @@ function ArtistProfile() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                            <div className="grid-2col" style={{ gap: '16px' }}>
                                                 <div className="form-group">
                                                     <label className="artist-profile-form-label">
                                                         <Lock size={16} /> New Password

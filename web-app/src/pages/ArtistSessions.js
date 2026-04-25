@@ -670,7 +670,7 @@ function ArtistSessions() {
                                 <button className="close-btn" onClick={() => setIsDetailsOpen(false)}><X size={20} /></button>
                             </div>
                             <div className="modal-body">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+                                <div className="grid-2col" style={{ gap: '15px', marginBottom: '20px' }}>
                                     <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                                         <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</label>
                                         <p style={{ margin: '4px 0 0', fontWeight: '600', color: '#1e293b' }}>{viewingApt.client_name}</p>
@@ -777,7 +777,7 @@ function ArtistSessions() {
 
                             {/* TAB: Overview */}
                             {sessionTab === 'overview' && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div className="grid-2col" style={{ gap: '16px' }}>
                                     {[{label:'Client', value: activeSession.client_name}, {label:'Email', value: activeSession.client_email || 'N/A'}, {label:'Design / Project', value: activeSession.design_title}, {label:'Scheduled Time', value: activeSession.start_time || 'N/A'}, {label:'Date', value: activeSession.appointment_date ? new Date(activeSession.appointment_date).toLocaleDateString() : 'Today'}, {label:'Service Type', value: activeSession.service_type || 'Tattoo Session'}].map(item => (
                                         <div key={item.label} style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px', border: '1px solid #e2e8f0' }}>
                                             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>{item.label}</span>
@@ -796,7 +796,7 @@ function ArtistSessions() {
                             {/* TAB: Documentation */}
                             {sessionTab === 'documentation' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: activeSession.draft_image ? '1fr 1fr 1fr' : '1fr 1fr', gap: '15px' }}>
+                                    <div className={activeSession.draft_image ? 'grid-3col' : 'grid-2col'} style={{ gap: '15px' }}>
                                         {activeSession.draft_image && (
                                             <div className="artist-session-card" style={{ padding: '15px' }}>
                                                 <label className="artist-session-label">Draft Design</label>
