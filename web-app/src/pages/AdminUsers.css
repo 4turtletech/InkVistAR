@@ -298,8 +298,8 @@
 }
 
 .badge.status-cancelled {
-    background-color: #fecaca;
-    color: #991b1b;
+    background-color: #f1f5f9;
+    color: #64748b;
 }
 
 .badge.category-ink {
