@@ -111,7 +111,15 @@ function AdminUsers() {
 
     const openStatusModalAnim = (user) => {
         setStatusModal({ mounted: true, visible: false, user });
-        setStatusFormData({ status: user.account_status || 'active', reason: '', adminNote: '', duration: '7 days' });
+        const currentStatus = user.account_status || 'active';
+        const defaultDuration = '7 days';
+        let defaultReason = '';
+        if (currentStatus === 'deactivated') {
+            defaultReason = `Your account has been temporarily suspended by an administrator for ${defaultDuration}.`;
+        } else if (currentStatus === 'banned') {
+            defaultReason = 'Your account has been permanently banned due to policy violations.';
+        }
+        setStatusFormData({ status: currentStatus, reason: defaultReason, adminNote: '', duration: defaultDuration });
         setTimeout(() => setStatusModal(prev => ({ ...prev, visible: true })), 10);
     };
     const closeStatusModal = () => {
@@ -1604,7 +1612,18 @@ function AdminUsers() {
                                     <label className="premium-label">Account Status</label>
                                     <select
                                         value={statusFormData.status}
-                                        onChange={(e) => setStatusFormData({ ...statusFormData, status: e.target.value })}
+                                        onChange={(e) => {
+                                            const newStatus = e.target.value;
+                                            let newReason = statusFormData.reason;
+                                            if (newStatus === 'deactivated' && (!statusFormData.reason || statusFormData.reason === 'Your account has been permanently banned due to policy violations.')) {
+                                                newReason = `Your account has been temporarily suspended by an administrator for ${statusFormData.duration}.`;
+                                            } else if (newStatus === 'banned' && (!statusFormData.reason || statusFormData.reason.startsWith('Your account has been temporarily suspended'))) {
+                                                newReason = `Your account has been permanently banned due to policy violations.`;
+                                            } else if (newStatus === 'active') {
+                                                newReason = '';
+                                            }
+                                            setStatusFormData({ ...statusFormData, status: newStatus, reason: newReason });
+                                        }}
                                         className="form-input"
                                     >
                                         <option value="active">Active</option>
@@ -1618,7 +1637,14 @@ function AdminUsers() {
                                             <label className="premium-label">Suspension Duration *</label>
                                             <select
                                                 value={statusFormData.duration}
-                                                onChange={(e) => setStatusFormData({ ...statusFormData, duration: e.target.value })}
+                                                onChange={(e) => {
+                                                    const newDuration = e.target.value;
+                                                    let newReason = statusFormData.reason;
+                                                    if (newReason.startsWith('Your account has been temporarily suspended by an administrator for')) {
+                                                        newReason = `Your account has been temporarily suspended by an administrator for ${newDuration}.`;
+                                                    }
+                                                    setStatusFormData({ ...statusFormData, duration: newDuration, reason: newReason });
+                                                }}
                                                 className="form-input"
                                                 required
                                             >
