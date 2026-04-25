@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import {
     User, Mail, Palette, Save, Lock, Clock, Camera,
-    Phone, Building, Percent, Eye, EyeOff, CheckCircle, AlertCircle, Edit2, X
+    Phone, Building, Eye, EyeOff, CheckCircle, AlertCircle, Edit2, X
 } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ImageCropper from '../components/ImageCropper';
@@ -536,19 +536,7 @@ function ArtistProfile() {
                                             />
                                             {errors.experience_years && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.experience_years}</span>}
                                         </div>
-                                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                                            <label className="artist-profile-form-label"><Percent size={16} /> Platform Commission Rate</label>
-                                            <input
-                                                type="text"
-                                                className="form-input artist-profile-input"
-                                                value="30%"
-                                                disabled
-                                                style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}
-                                            />
-                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                                Platform takes a fixed 30% commission. You keep 70%.
-                                            </span>
-                                        </div>
+                                        {/* Commission rate hidden from artist profile — visible in Earnings page */}
                                     </div>
                                 </div>
 

@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { useParams, Link } from 'react-router-dom';
-import { Star, ArrowLeft, ArrowRight, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Star, ArrowLeft, ArrowRight, CheckCircle, Image as ImageIcon, Clock, Award, Briefcase, MapPin, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import ChatWidget from '../components/ChatWidget';
 import { API_URL } from '../config';
+import './PublicArtistProfile.css';
 
 const PublicArtistProfile = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [artist, setArtist] = useState(null);
     const [reviews, setReviews] = useState([]);
     const [portfolio, setPortfolio] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('portfolio');
+    const [lightboxIndex, setLightboxIndex] = useState(null);
 
     useEffect(() => {
         const fetchArtistData = async () => {
@@ -20,12 +25,12 @@ const PublicArtistProfile = () => {
                 const [artistRes, reviewsRes, portfolioRes] = await Promise.all([
                     Axios.get(`${API_URL}/api/artists/${id}/public`),
                     Axios.get(`${API_URL}/api/artists/${id}/reviews`),
-                    Axios.get(`${API_URL}/api/portfolio/${id}`) // Assuming portfolio endpoint already exists
+                    Axios.get(`${API_URL}/api/artist/${id}/portfolio`)
                 ]);
                 
                 if (artistRes.data.success) setArtist(artistRes.data.artist);
-                if (reviewsRes.data.success) setReviews(reviewsRes.data.reviews);
-                if (portfolioRes.data.success) setPortfolio(portfolioRes.data.portfolio || []);
+                if (reviewsRes.data.success) setReviews(reviewsRes.data.reviews || []);
+                if (portfolioRes.data.success) setPortfolio((portfolioRes.data.works || []).filter(w => w.is_public));
                 
             } catch (error) {
                 console.error("Error fetching artist details:", error);
@@ -37,133 +42,316 @@ const PublicArtistProfile = () => {
         if (id) fetchArtistData();
     }, [id]);
 
+    // Resolve profile image
+    const getProfileImage = (img) => {
+        if (!img) return null;
+        if (img.startsWith('data:') || img.startsWith('http')) return img;
+        return img;
+    };
+
+    // Star renderer
+    const renderStars = (rating, size = 16) => {
+        return [...Array(5)].map((_, i) => (
+            <Star key={i} size={size} color={i < Math.round(rating) ? '#fcd34d' : '#374151'} fill={i < Math.round(rating) ? '#fcd34d' : 'transparent'} />
+        ));
+    };
+
+    // Lightbox navigation
+    const publicPortfolio = portfolio;
+    const openLightbox = (index) => setLightboxIndex(index);
+    const closeLightbox = () => setLightboxIndex(null);
+    const nextImage = () => setLightboxIndex(prev => (prev + 1) % publicPortfolio.length);
+    const prevImage = () => setLightboxIndex(prev => (prev - 1 + publicPortfolio.length) % publicPortfolio.length);
+
+    // Loading state
     if (loading) {
         return (
-            <div className="public-layout">
+            <div className="pap-page">
                 <Navbar />
-                <div style={{ minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div className="pap-loading-state">
                     <div className="premium-loader"></div>
+                    <p>Loading artist profile...</p>
                 </div>
                 <Footer />
             </div>
         );
     }
 
+    // Not found state
     if (!artist) {
         return (
-            <div className="public-layout">
+            <div className="pap-page">
                 <Navbar />
-                <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '50px' }}>
-                    <h2>Artist Not Found</h2>
-                    <p style={{ color: '#64748b', marginBottom: '20px' }}>The artist profile you're looking for doesn't exist.</p>
-                    <Link to="/artists" className="premium-btn primary" style={{ textDecoration: 'none' }}>Back to Artists</Link>
+                <div className="pap-not-found">
+                    <div className="pap-not-found-content">
+                        <div className="pap-not-found-icon">?</div>
+                        <h2>Artist Not Found</h2>
+                        <p>The artist profile you are looking for does not exist or may have been removed.</p>
+                        <Link to="/artists" className="pap-back-btn">
+                            <ArrowLeft size={18} /> Back to Artists
+                        </Link>
+                    </div>
                 </div>
                 <Footer />
             </div>
         );
     }
 
-    return (
-        <div className="public-layout">
-            <Navbar />
-            
-            <div className="artist-profile-header" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: 'white', padding: '80px 20px 40px', textAlign: 'center' }}>
-                <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-                    <div style={{ marginBottom: '20px' }}>
-                        <Link to="/artists" style={{ color: '#94a3b8', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.9rem' }}>
-                            <ArrowLeft size={16} /> Back to Artists
-                        </Link>
-                    </div>
-                    
-                    <div className="artist-avatar" style={{ width: '120px', height: '120px', borderRadius: '50%', background: '#334155', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold', color: '#cbd5e1', border: '4px solid rgba(255,255,255,0.1)' }}>
-                        {artist.name ? artist.name.charAt(0).toUpperCase() : 'A'}
-                    </div>
-                    
-                    <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>{artist.name}</h1>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                        <span style={{ background: 'rgba(255,255,255,0.1)', padding: '5px 15px', borderRadius: '20px', fontSize: '0.9rem' }}>{artist.specialization || 'Tattoo Artist'}</span>
-                        <span style={{ background: 'rgba(255,255,255,0.1)', padding: '5px 15px', borderRadius: '20px', fontSize: '0.9rem' }}>{artist.experience_years ? `${artist.experience_years} Years Exp.` : 'Professional'}</span>
-                        <span style={{ background: 'rgba(255,255,255,0.1)', padding: '5px 15px', borderRadius: '20px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <Star size={14} color="#fcd34d" fill="#fcd34d" /> {parseFloat(artist.rating).toFixed(1)} / 5.0 ({artist.total_reviews || 0} Reviews)
-                        </span>
-                    </div>
-                    
-                    <Link to={`/book`} className="premium-btn highlight" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', background: '#be9055', color: 'white', padding: '12px 30px', borderRadius: '30px', fontWeight: 'bold' }}>
-                        Book With Me <ArrowRight size={18} />
-                    </Link>
-                </div>
-            </div>
+    const profileImg = getProfileImage(artist.profile_image);
+    const avgRating = parseFloat(artist.rating) || 0;
 
-            <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '50px 20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '40px' }}>
-                    
-                    {/* Portfolio Section */}
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                            <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}><ImageIcon size={24} color="#6366f1" /> Portfolio</h2>
+    return (
+        <div className="pap-page">
+            <Navbar />
+
+            {/* ═══════════ HERO BANNER ═══════════ */}
+            <section className="pap-hero">
+                <div className="pap-hero-bg"></div>
+                <div className="pap-hero-overlay"></div>
+                <div className="pap-hero-content">
+                    <Link to="/artists" className="pap-breadcrumb">
+                        <ArrowLeft size={16} /> All Artists
+                    </Link>
+
+                    <div className="pap-hero-profile">
+                        <div className="pap-avatar-wrapper">
+                            {profileImg ? (
+                                <img src={profileImg} alt={artist.name} className="pap-avatar-img" />
+                            ) : (
+                                <div className="pap-avatar-fallback">
+                                    {artist.name ? artist.name.charAt(0).toUpperCase() : 'A'}
+                                </div>
+                            )}
+                            <div className="pap-avatar-ring"></div>
                         </div>
-                        
-                        {portfolio && portfolio.length > 0 ? (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
-                                {portfolio.map((item, index) => (
-                                    <div key={index} style={{ borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', background: 'white' }}>
-                                        <img src={item.image_url} alt="Tattoo Portfolio" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
-                                    </div>
-                                ))}
+
+                        <div className="pap-hero-info">
+                            <h1 className="pap-artist-name">{artist.name}</h1>
+                            <p className="pap-artist-title">
+                                {artist.specialization || 'Tattoo Artist'}
+                                {artist.studio_name && artist.studio_name !== 'Independent Artist' && (
+                                    <span className="pap-studio-tag">
+                                        <MapPin size={13} /> {artist.studio_name}
+                                    </span>
+                                )}
+                            </p>
+
+                            <div className="pap-hero-rating">
+                                <div className="pap-stars">{renderStars(avgRating)}</div>
+                                <span className="pap-rating-value">{avgRating.toFixed(1)}</span>
+                                <span className="pap-rating-count">({artist.total_reviews || 0} reviews)</span>
                             </div>
-                        ) : (
-                            <div style={{ background: '#f8fafc', padding: '40px', borderRadius: '12px', textAlign: 'center', border: '1px dashed #cbd5e1' }}>
-                                <ImageIcon size={40} color="#94a3b8" style={{ marginBottom: '10px' }} />
-                                <p style={{ color: '#64748b', margin: 0 }}>Portfolio images are coming soon.</p>
+                        </div>
+                    </div>
+
+                    {/* Stats Row */}
+                    <div className="pap-stats-row">
+                        {artist.experience_years > 0 && (
+                            <div className="pap-stat-chip">
+                                <Clock size={16} />
+                                <div>
+                                    <span className="pap-stat-value">{artist.experience_years}+</span>
+                                    <span className="pap-stat-label">Years</span>
+                                </div>
+                            </div>
+                        )}
+                        {artist.completed_sessions > 0 && (
+                            <div className="pap-stat-chip">
+                                <Award size={16} />
+                                <div>
+                                    <span className="pap-stat-value">{artist.completed_sessions}</span>
+                                    <span className="pap-stat-label">Sessions</span>
+                                </div>
+                            </div>
+                        )}
+                        <div className="pap-stat-chip">
+                            <ImageIcon size={16} />
+                            <div>
+                                <span className="pap-stat-value">{publicPortfolio.length}</span>
+                                <span className="pap-stat-label">Works</span>
+                            </div>
+                        </div>
+                        {avgRating > 0 && (
+                            <div className="pap-stat-chip gold">
+                                <Star size={16} fill="#fcd34d" color="#fcd34d" />
+                                <div>
+                                    <span className="pap-stat-value">{avgRating.toFixed(1)}</span>
+                                    <span className="pap-stat-label">Rating</span>
+                                </div>
                             </div>
                         )}
                     </div>
 
-                    {/* Reviews Section */}
-                    <div style={{ marginTop: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                            <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}><Star size={24} color="#f59e0b" fill="#f59e0b" /> Client Reviews</h2>
+                    <button className="pap-book-btn" onClick={() => navigate('/book')}>
+                        Book a Session <ArrowRight size={18} />
+                    </button>
+                </div>
+            </section>
+
+            {/* ═══════════ CONTENT BODY ═══════════ */}
+            <section className="pap-body">
+                <div className="pap-container">
+
+                    {/* Bio Section */}
+                    {artist.bio && (
+                        <div className="pap-bio-card">
+                            <h3 className="pap-section-label">About the Artist</h3>
+                            <p className="pap-bio-text">{artist.bio}</p>
                         </div>
-                        
-                        {reviews.length > 0 ? (
-                            <div style={{ display: 'grid', gap: '20px' }}>
-                                {reviews.map(review => (
-                                    <div key={review.id} style={{ background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#64748b' }}>
-                                                    {review.customer_name ? review.customer_name.charAt(0) : 'C'}
-                                                </div>
-                                                <div>
-                                                    <h4 style={{ margin: '0 0 4px 0' }}>{review.customer_name || 'Verified Client'}</h4>
-                                                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <CheckCircle size={12} color="#10b981" /> Verified Appointment • {new Date(review.created_at).toLocaleDateString()}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '2px' }}>
-                                                {[...Array(5)].map((_, i) => (
-                                                    <Star key={i} size={16} color={i < review.rating ? '#f59e0b' : '#e2e8f0'} fill={i < review.rating ? '#f59e0b' : 'transparent'} />
-                                                ))}
+                    )}
+
+                    {/* Tab Navigation */}
+                    <div className="pap-tabs">
+                        <button
+                            className={`pap-tab ${activeTab === 'portfolio' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('portfolio')}
+                        >
+                            <ImageIcon size={16} /> Portfolio
+                            <span className="pap-tab-count">{publicPortfolio.length}</span>
+                        </button>
+                        <button
+                            className={`pap-tab ${activeTab === 'reviews' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('reviews')}
+                        >
+                            <Star size={16} /> Reviews
+                            <span className="pap-tab-count">{reviews.length}</span>
+                        </button>
+                    </div>
+
+                    {/* Portfolio Tab */}
+                    {activeTab === 'portfolio' && (
+                        <div className="pap-tab-content">
+                            {publicPortfolio.length > 0 ? (
+                                <div className="pap-gallery-grid">
+                                    {publicPortfolio.map((work, index) => (
+                                        <div
+                                            key={work.id}
+                                            className="pap-gallery-item"
+                                            onClick={() => openLightbox(index)}
+                                        >
+                                            <img src={work.image_url} alt={work.title || 'Tattoo artwork'} loading="lazy" />
+                                            <div className="pap-gallery-hover">
+                                                <h4>{work.title}</h4>
+                                                {work.category && <span className="pap-gallery-cat">{work.category}</span>}
                                             </div>
                                         </div>
-                                        {review.comment && (
-                                            <p style={{ color: '#475569', lineHeight: '1.6', margin: 0, fontStyle: 'italic' }}>"{review.comment}"</p>
-                                        )}
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="pap-empty-state">
+                                    <ImageIcon size={48} />
+                                    <h3>Portfolio Coming Soon</h3>
+                                    <p>This artist has not published any portfolio works yet.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Reviews Tab */}
+                    {activeTab === 'reviews' && (
+                        <div className="pap-tab-content">
+                            {reviews.length > 0 ? (
+                                <>
+                                    {/* Review Summary Card */}
+                                    <div className="pap-review-summary">
+                                        <div className="pap-review-avg">
+                                            <span className="pap-review-avg-number">{avgRating.toFixed(1)}</span>
+                                            <div className="pap-review-avg-stars">{renderStars(avgRating, 20)}</div>
+                                            <span className="pap-review-avg-count">{reviews.length} verified review{reviews.length !== 1 ? 's' : ''}</span>
+                                        </div>
+                                        <div className="pap-review-bars">
+                                            {[5, 4, 3, 2, 1].map(star => {
+                                                const count = reviews.filter(r => Math.round(r.rating) === star).length;
+                                                const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                                                return (
+                                                    <div key={star} className="pap-review-bar-row">
+                                                        <span className="pap-bar-label">{star}</span>
+                                                        <Star size={12} fill="#fcd34d" color="#fcd34d" />
+                                                        <div className="pap-bar-track">
+                                                            <div className="pap-bar-fill" style={{ width: `${pct}%` }}></div>
+                                                        </div>
+                                                        <span className="pap-bar-count">{count}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div style={{ background: '#f8fafc', padding: '40px', borderRadius: '12px', textAlign: 'center', border: '1px dashed #cbd5e1' }}>
-                                <Star size={40} color="#cbd5e1" style={{ marginBottom: '10px' }} />
-                                <p style={{ color: '#64748b', margin: 0 }}>This artist doesn't have any reviews yet. Be the first!</p>
-                            </div>
-                        )}
+
+                                    {/* Review Cards */}
+                                    <div className="pap-reviews-list">
+                                        {reviews.map(review => (
+                                            <div key={review.id} className="pap-review-card">
+                                                <div className="pap-review-header">
+                                                    <div className="pap-reviewer-info">
+                                                        <div className="pap-reviewer-avatar">
+                                                            {review.customer_name ? review.customer_name.charAt(0).toUpperCase() : 'C'}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="pap-reviewer-name">{review.customer_name || 'Verified Client'}</h4>
+                                                            <span className="pap-review-meta">
+                                                                <CheckCircle size={12} /> Verified Session
+                                                                <span className="pap-review-date">{new Date(review.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="pap-review-stars">{renderStars(review.rating, 14)}</div>
+                                                </div>
+                                                {review.comment && (
+                                                    <p className="pap-review-text">"{review.comment}"</p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="pap-empty-state">
+                                    <Star size={48} />
+                                    <h3>No Reviews Yet</h3>
+                                    <p>This artist does not have any reviews yet. Be the first to book a session and leave a review!</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Bottom CTA */}
+                    <div className="pap-bottom-cta">
+                        <h3>Ready to get inked?</h3>
+                        <p>Book a session with {artist.name?.split(' ')[0] || 'this artist'} and bring your vision to life.</p>
+                        <button className="pap-book-btn" onClick={() => navigate('/book')}>
+                            Book Now <ArrowRight size={18} />
+                        </button>
                     </div>
                 </div>
-            </div>
-            
+            </section>
+
+            {/* ═══════════ LIGHTBOX ═══════════ */}
+            {lightboxIndex !== null && publicPortfolio[lightboxIndex] && (
+                <div className="pap-lightbox" onClick={closeLightbox}>
+                    <div className="pap-lightbox-inner" onClick={e => e.stopPropagation()}>
+                        <button className="pap-lb-close" onClick={closeLightbox}><X size={24} /></button>
+                        {publicPortfolio.length > 1 && (
+                            <>
+                                <button className="pap-lb-nav pap-lb-prev" onClick={prevImage}><ChevronLeft size={28} /></button>
+                                <button className="pap-lb-nav pap-lb-next" onClick={nextImage}><ChevronRight size={28} /></button>
+                            </>
+                        )}
+                        <img src={publicPortfolio[lightboxIndex].image_url} alt={publicPortfolio[lightboxIndex].title || 'Artwork'} />
+                        <div className="pap-lb-caption">
+                            <h4>{publicPortfolio[lightboxIndex].title}</h4>
+                            {publicPortfolio[lightboxIndex].description && (
+                                <p>{publicPortfolio[lightboxIndex].description}</p>
+                            )}
+                            {publicPortfolio[lightboxIndex].category && (
+                                <span className="pap-lb-category">{publicPortfolio[lightboxIndex].category}</span>
+                            )}
+                            <span className="pap-lb-counter">{lightboxIndex + 1} / {publicPortfolio.length}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Footer />
+            <ChatWidget />
         </div>
     );
 };
