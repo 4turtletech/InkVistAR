@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
 import Footer from '../components/Footer';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
+import ImageLightbox from '../components/ImageLightbox';
 
 const Gallery = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const Gallery = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [priceRange, setPriceRange] = useState({ min: 0, max: 500000 });
   const [showPriceFilter, setShowPriceFilter] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   const [debouncedPriceRange, setDebouncedPriceRange] = useState({ min: 0, max: 500000 });
 
@@ -300,7 +302,13 @@ const Gallery = () => {
           <div className="gallery-modal-content modal-animate-in" onClick={(e) => e.stopPropagation()}>
             <button className="gallery-modal-close" onClick={() => setSelectedImage(null)}>&times;</button>
             <div className="gallery-modal-image-container">
-              <img src={selectedImage.image_url} alt={selectedImage.title || 'Tattoo artwork'} />
+              <img 
+                src={selectedImage.image_url} 
+                alt={selectedImage.title || 'Tattoo artwork'} 
+                className="lightbox-trigger"
+                style={{ cursor: 'zoom-in' }}
+                onClick={() => setLightboxSrc(selectedImage.image_url)}
+              />
             </div>
             <div className="gallery-modal-info">
               {selectedImage.title && <h2>{selectedImage.title}</h2>}
@@ -323,6 +331,7 @@ const Gallery = () => {
         <Footer />
       </div>
       <ChatWidget />
+      <ImageLightbox src={lightboxSrc} alt="Gallery artwork" onClose={() => setLightboxSrc(null)} />
     </>
   );
 };

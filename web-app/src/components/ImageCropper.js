@@ -5,14 +5,14 @@ import './ImageCropper.css';
 
 /**
  * Generates a cropped image from a source image URL using canvas.
- * Returns a base64 data URL of the cropped 1:1 square.
+ * Returns a base64 data URL of the cropped region.
  */
 async function getCroppedImg(imageSrc, pixelCrop) {
     const image = await createImage(imageSrc);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    // Output a square image at the cropped pixel size
+    // Output image at the cropped pixel size
     canvas.width = pixelCrop.width;
     canvas.height = pixelCrop.height;
 
@@ -42,17 +42,34 @@ function createImage(url) {
 }
 
 /**
- * ImageCropper — Reusable 1:1 aspect ratio crop modal.
+ * ImageCropper — Reusable crop modal with configurable aspect ratio.
  *
  * Props:
  *   imageSrc   (string)   — base64 or URL of the image to crop
  *   onCropDone (function) — called with the cropped base64 data URL
  *   onCancel   (function) — called when user cancels the crop
+ *   aspect     (number|'auto')  — crop aspect ratio (width/height). Defaults to 4/5.
+ *                                  Pass 'auto' to use image's natural ratio.
+ *                                  Pass 1 for a square crop.
  */
-function ImageCropper({ imageSrc, onCropDone, onCancel }) {
+function ImageCropper({ imageSrc, onCropDone, onCancel, aspect: aspectProp = 4 / 5 }) {
+    const [resolvedAspect, setResolvedAspect] = useState(aspectProp === 'auto' ? 1 : aspectProp);
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+    // When aspect is 'auto', resolve it from the image's natural dimensions
+    React.useEffect(() => {
+        if (aspectProp === 'auto' && imageSrc) {
+            const img = new Image();
+            img.onload = () => {
+                setResolvedAspect(img.naturalWidth / img.naturalHeight);
+            };
+            img.src = imageSrc;
+        } else if (aspectProp !== 'auto') {
+            setResolvedAspect(aspectProp);
+        }
+    }, [aspectProp, imageSrc]);
 
     const onCropComplete = useCallback((_croppedArea, croppedPixels) => {
         setCroppedAreaPixels(croppedPixels);
@@ -75,7 +92,7 @@ function ImageCropper({ imageSrc, onCropDone, onCancel }) {
                 <div className="image-cropper-header">
                     <h3>
                         <span className="crop-icon"><Crop size={18} /></span>
-                        Crop Image (1:1)
+                        Crop Image
                     </h3>
                     <button className="image-cropper-close" onClick={onCancel}>
                         <X size={20} />
@@ -89,7 +106,7 @@ function ImageCropper({ imageSrc, onCropDone, onCancel }) {
                             image={imageSrc}
                             crop={crop}
                             zoom={zoom}
-                            aspect={1}
+                            aspect={resolvedAspect}
                             onCropChange={setCrop}
                             onZoomChange={setZoom}
                             onCropComplete={onCropComplete}

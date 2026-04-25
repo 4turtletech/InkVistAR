@@ -164,8 +164,7 @@ function Home() {
                                     <img 
                                         src={artist.image} 
                                         alt={artist.name} 
-                                        className="home-artist-img lightbox-trigger" 
-                                        onClick={(e) => { e.stopPropagation(); setLightboxSrc(artist.image); }}
+                                        className="home-artist-img" 
                                     />
                                     <div className="home-artist-overlay">
                                         <h4 className="home-artist-name">{artist.name}</h4>

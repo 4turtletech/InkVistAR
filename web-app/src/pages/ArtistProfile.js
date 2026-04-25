@@ -1042,6 +1042,7 @@ function ArtistProfile() {
         {cropperImage && (
             <ImageCropper
                 imageSrc={cropperImage}
+                aspect={1}
                 onCropDone={handleCropDone}
                 onCancel={handleCropCancel}
             />

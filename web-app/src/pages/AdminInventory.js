@@ -1538,6 +1538,7 @@ function AdminInventory() {
             {cropperImage && (
                 <ImageCropper
                     imageSrc={cropperImage}
+                    aspect={1}
                     onCropDone={handleCropDone}
                     onCancel={handleCropCancel}
                 />
