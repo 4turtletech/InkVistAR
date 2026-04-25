@@ -9936,11 +9936,16 @@ app.get('/api/artists/:id/public', (req, res) => {
   const { id } = req.params;
   const q = `
     SELECT u.name, u.email, u.phone, 
-           a.studio_name, a.experience_years, a.specialization, a.hourly_rate, 
-           a.rating, a.total_reviews, a.profile_image, a.bio,
+           COALESCE(a.studio_name, 'Independent Artist') as studio_name, 
+           COALESCE(a.experience_years, 0) as experience_years, 
+           COALESCE(a.specialization, 'General Artist') as specialization, 
+           COALESCE(a.hourly_rate, 50.00) as hourly_rate, 
+           COALESCE(a.rating, 0) as rating, 
+           COALESCE(a.total_reviews, 0) as total_reviews, 
+           a.profile_image, a.bio,
            (SELECT COUNT(*) FROM appointments WHERE artist_id = u.id AND status = 'completed' AND is_deleted = 0) as completed_sessions
     FROM users u 
-    JOIN artists a ON u.id = a.user_id 
+    LEFT JOIN artists a ON u.id = a.user_id 
     WHERE u.id = ? AND u.user_type = 'artist' AND u.is_deleted = 0
   `;
   db.query(q, [id], (err, results) => {
