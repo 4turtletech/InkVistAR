@@ -231,11 +231,11 @@
     box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55), 0 0 24px rgba(183, 149, 78, 0.06);
 }
 
-/* ========== CARD IMAGE — 9:16 Portrait ========== */
+/* ========== CARD IMAGE — 1:1 Square ========== */
 .artist-portrait-wrapper {
     position: relative;
     width: 100%;
-    aspect-ratio: 9 / 16;
+    aspect-ratio: 1 / 1;
     overflow: hidden;
     background: #1a1416;
 }
@@ -403,7 +403,7 @@
 }
 
 .artist-card-skeleton .artist-portrait-wrapper {
-    aspect-ratio: 9 / 16;
+    aspect-ratio: 1 / 1;
 }
 
 .skeleton-line {

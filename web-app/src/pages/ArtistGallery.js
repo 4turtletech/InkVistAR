@@ -4,6 +4,7 @@ import { Trash2, Plus, X, Eye, Lock, Globe, Edit } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import ImageLightbox from '../components/ImageLightbox';
+import ImageCropper from '../components/ImageCropper';
 import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
@@ -20,6 +21,7 @@ function ArtistGallery() {
     const [viewWorkModal, setViewWorkModal] = useState({ mounted: false, visible: false });
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
     const [lightboxSrc, setLightboxSrc] = useState(null);
+    const [cropperSrc, setCropperSrc] = useState(null);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -108,10 +110,13 @@ function ArtistGallery() {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData({ ...formData, imageUrl: reader.result });
+                // Open the cropper instead of setting the image directly
+                setCropperSrc(reader.result);
             };
             reader.readAsDataURL(file);
         }
+        // Reset input so the same file can be re-selected
+        e.target.value = '';
     };
 
     const handleSubmit = async (e) => {
@@ -447,6 +452,16 @@ function ArtistGallery() {
                 onCancel={() => setConfirmDialog({ isOpen: false })} 
             />
             <ImageLightbox src={lightboxSrc} alt="Portfolio artwork" onClose={() => setLightboxSrc(null)} />
+            {cropperSrc && (
+                <ImageCropper
+                    imageSrc={cropperSrc}
+                    onCropDone={(croppedImage) => {
+                        setFormData(prev => ({ ...prev, imageUrl: croppedImage }));
+                        setCropperSrc(null);
+                    }}
+                    onCancel={() => setCropperSrc(null)}
+                />
+            )}
         </div>
     </div>
   );

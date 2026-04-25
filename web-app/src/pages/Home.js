@@ -4,6 +4,7 @@ import './Home.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
 import Footer from '../components/Footer';
+import ImageLightbox from '../components/ImageLightbox';
 import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone, Star } from 'lucide-react';
 import { API_URL } from '../config';
 
@@ -22,6 +23,7 @@ const FEATURED_ARTISTS = [
 
 function Home() {
     const navigate = useNavigate();
+    const [lightboxSrc, setLightboxSrc] = useState(null);
 
 
     // Intersection Observer for scroll animations
@@ -162,7 +164,8 @@ function Home() {
                                     <img 
                                         src={artist.image} 
                                         alt={artist.name} 
-                                        className="home-artist-img" 
+                                        className="home-artist-img lightbox-trigger" 
+                                        onClick={(e) => { e.stopPropagation(); setLightboxSrc(artist.image); }}
                                     />
                                     <div className="home-artist-overlay">
                                         <h4 className="home-artist-name">{artist.name}</h4>
@@ -201,13 +204,13 @@ function Home() {
                         </div>
                         <div className="matrix-images">
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/studio_1.jpg" alt="Studio Dark Concept Wait Area" />
+                                <img src="/images/tattoos/studio_1.jpg" alt="Studio Dark Concept Wait Area" className="lightbox-trigger" onClick={() => setLightboxSrc('/images/tattoos/studio_1.jpg')} />
                             </div>
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/studio_3.jpg" alt="Inkvictus Aesthetic Setup" />
+                                <img src="/images/tattoos/studio_3.jpg" alt="Inkvictus Aesthetic Setup" className="lightbox-trigger" onClick={() => setLightboxSrc('/images/tattoos/studio_3.jpg')} />
                             </div>
                             <div className="matrix-img-box">
-                                <img src="/images/tattoos/studio_2.jpg" alt="Luxurious Studio Chairs" />
+                                <img src="/images/tattoos/studio_2.jpg" alt="Luxurious Studio Chairs" className="lightbox-trigger" onClick={() => setLightboxSrc('/images/tattoos/studio_2.jpg')} />
                             </div>
                         </div>
                     </div>
@@ -328,6 +331,7 @@ function Home() {
                 <Footer />
             </div>
             <ChatWidget />
+            <ImageLightbox src={lightboxSrc} alt="Inkvictus Studio" onClose={() => setLightboxSrc(null)} />
         </>
     );
 }

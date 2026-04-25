@@ -5,12 +5,14 @@ import './Artists.css';
 import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
 import Footer from '../components/Footer';
+import ImageLightbox from '../components/ImageLightbox';
 
 function Artists() {
     const navigate = useNavigate();
     const [artists, setArtists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('All');
+    const [lightboxSrc, setLightboxSrc] = useState(null);
 
     // Fetch artists dynamically from the backend
     useEffect(() => {
@@ -94,7 +96,8 @@ function Artists() {
                     <img
                         src="/images/tattoos/group_photo.jpg"
                         alt="Inkvictus Studio — Our Team"
-                        className="artists-team-photo"
+                        className="artists-team-photo lightbox-trigger"
+                        onClick={() => setLightboxSrc('/images/tattoos/group_photo.jpg')}
                     />
                     <div className="artists-team-photo-overlay">
                         <p className="artists-team-photo-caption">The Inkvictus Family</p>
@@ -149,6 +152,8 @@ function Artists() {
                                             src={getProfileImage(artist)}
                                             alt={`${artist.name} — ${artist.specialization}`}
                                             loading="lazy"
+                                            className="lightbox-trigger"
+                                            onClick={(e) => { e.stopPropagation(); setLightboxSrc(getProfileImage(artist)); }}
                                         />
                                         <div className="artist-portrait-brand">V</div>
                                     </div>
@@ -188,6 +193,7 @@ function Artists() {
                 <Footer />
             </div>
             <ChatWidget />
+            <ImageLightbox src={lightboxSrc} alt="Inkvictus Studio" onClose={() => setLightboxSrc(null)} />
         </>
     );
 }
