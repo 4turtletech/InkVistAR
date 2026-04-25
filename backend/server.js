@@ -8156,9 +8156,9 @@ app.get('/api/admin/inventory', (req, res) => {
 
 // Admin: Add Inventory Item
 app.post('/api/admin/inventory', (req, res) => {
-  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice } = req.body;
-  const query = 'INSERT INTO inventory (name, category, current_stock, min_stock, max_stock, unit, supplier, cost, retail_price, last_restocked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
-  db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice || 0], (err, result) => {
+  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice, image } = req.body;
+  const query = 'INSERT INTO inventory (name, category, current_stock, min_stock, max_stock, unit, supplier, cost, retail_price, image, last_restocked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
+  db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice || 0, image || null], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     logAction(null, 'CREATE_INVENTORY', `Added item: ${name}`, req.ip);
     res.json({ success: true, message: 'Item added', id: result.insertId });
@@ -8168,7 +8168,7 @@ app.post('/api/admin/inventory', (req, res) => {
 // Admin: Update Inventory Item
 app.put('/api/admin/inventory/:id', (req, res) => {
   const { id } = req.params;
-  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice, user_id } = req.body;
+  const { name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice, user_id, image } = req.body;
 
   // First, fetch the current item to detect price changes
   db.query('SELECT cost, retail_price, name FROM inventory WHERE id = ?', [id], (fetchErr, rows) => {
@@ -8182,8 +8182,8 @@ app.put('/api/admin/inventory/:id', (req, res) => {
     const newRetail = parseFloat(retailPrice) || 0;
 
     // Perform the update
-    const query = 'UPDATE inventory SET name=?, category=?, current_stock=?, min_stock=?, max_stock=?, unit=?, supplier=?, cost=?, retail_price=? WHERE id=?';
-    db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, newCost, newRetail, id], (err) => {
+    const query = 'UPDATE inventory SET name=?, category=?, current_stock=?, min_stock=?, max_stock=?, unit=?, supplier=?, cost=?, retail_price=?, image=? WHERE id=?';
+    db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, newCost, newRetail, image || null, id], (err) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
 
       // Log price changes as transactions

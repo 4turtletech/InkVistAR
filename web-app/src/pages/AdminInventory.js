@@ -11,6 +11,7 @@ import './PortalStyles.css';
 import './AdminStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
+import ImageCropper from '../components/ImageCropper';
 import { API_URL } from '../config';
 import { generateReportHeader, downloadCsv } from '../utils/csvExport';
 
@@ -165,15 +166,46 @@ function AdminInventory() {
         });
     };
 
+    // ── Image crop state ──
+    const [cropperImage, setCropperImage] = useState(null);
+
+    const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    const MAX_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
+
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData({ ...formData, image: reader.result });
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+
+        // Validate file type
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            showAlert('Invalid File Type', 'Only JPEG, PNG, and WEBP images are allowed.', 'error');
+            e.target.value = '';
+            return;
         }
+
+        // Validate file size (3MB)
+        if (file.size > MAX_IMAGE_SIZE) {
+            showAlert('File Too Large', 'Image must be under 3MB. Please compress or resize the image and try again.', 'error');
+            e.target.value = '';
+            return;
+        }
+
+        // Read file and open cropper
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setCropperImage(reader.result);
+        };
+        reader.readAsDataURL(file);
+        e.target.value = ''; // Reset so same file can be re-selected
+    };
+
+    const handleCropDone = (croppedBase64) => {
+        setFormData(prev => ({ ...prev, image: croppedBase64 }));
+        setCropperImage(null);
+    };
+
+    const handleCropCancel = () => {
+        setCropperImage(null);
     };
 
     const confirmDeleteKit = async (serviceType) => {
@@ -903,7 +935,8 @@ function AdminInventory() {
                                     <div className="admin-st-ff43421e">
                                         <div className="form-group">
                                             <label className="premium-label">Product Image</label>
-                                            <input type="file" accept="image/*" onChange={handleImageUpload} className="form-input" style={{padding: '8px'}} />
+                                            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} className="form-input" style={{padding: '8px'}} />
+                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '4px' }}>Max 3MB · JPEG, PNG, or WEBP · Will be cropped to 1:1</span>
                                             {formData.image && <img src={formData.image} alt="Preview" style={{marginTop: '10px', width: '100px', height: '100px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0'}} />}
                                         </div>
                                         <div className="form-group">
@@ -1133,7 +1166,7 @@ function AdminInventory() {
                                     value={historySearch}
                                     onChange={(e) => setHistorySearch(e.target.value)}
                                     className="form-input"
-                                    style={{ paddingLeft: '32px', fontSize: '0.9rem', height: '42px', borderRadius: '8px' }}
+                                    style={{ paddingLeft: '32px', fontSize: '0.95rem', height: '46px', borderRadius: '8px' }}
                                     maxLength={100}
                                 />
                             </div>
@@ -1141,7 +1174,7 @@ function AdminInventory() {
                                 value={historyDateFilter}
                                 onChange={(e) => setHistoryDateFilter(e.target.value)}
                                 className="form-input"
-                                style={{ width: 'auto', height: '42px', fontSize: '0.9rem', borderRadius: '8px', cursor: 'pointer' }}
+                                style={{ width: 'auto', height: '46px', fontSize: '0.95rem', borderRadius: '8px', cursor: 'pointer' }}
                             >
                                 <option value="all">All Time</option>
                                 <option value="today">Today</option>
@@ -1153,7 +1186,7 @@ function AdminInventory() {
                                 value={historyTypeFilter}
                                 onChange={(e) => setHistoryTypeFilter(e.target.value)}
                                 className="form-input"
-                                style={{ width: 'auto', height: '42px', fontSize: '0.9rem', borderRadius: '8px', cursor: 'pointer' }}
+                                style={{ width: 'auto', height: '46px', fontSize: '0.95rem', borderRadius: '8px', cursor: 'pointer' }}
                             >
                                 <option value="all">All Types</option>
                                 <option value="in">Stock In</option>
@@ -1500,6 +1533,15 @@ function AdminInventory() {
                 type={confirmDialog.type}
                 isAlert={confirmDialog.isAlert}
             />
+
+            {/* 1:1 Image Cropper Modal */}
+            {cropperImage && (
+                <ImageCropper
+                    imageSrc={cropperImage}
+                    onCropDone={handleCropDone}
+                    onCancel={handleCropCancel}
+                />
+            )}
             </div>
         </div>
     );
