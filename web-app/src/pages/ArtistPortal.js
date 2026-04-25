@@ -355,129 +355,134 @@ function ArtistPortal() {
                                 </div>
                             </div>
 
-                            {/* ═══════════════ CHARTS ROW: Week Ahead + Recent Activity ═══════════════ */}
+                            {/* ═══════════════ DASHBOARD MASONRY LAYOUT ═══════════════ */}
                             <div className="analytics-dashboard-layout artist-chart-row">
-                                {/* Upcoming Sessions by Day */}
-                                <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
-                                    <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Week Ahead</h2>
-                                    <div style={{ width: '100%', height: 180 }}>
-                                        <ResponsiveContainer>
-                                            <BarChart data={upcomingByDay} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                                <XAxis dataKey="day" tick={{ fill: '#1e293b', fontSize: 11, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
-                                                <YAxis allowDecimals={false} tick={{ fill: '#1e293b', fontSize: 11 }} axisLine={false} tickLine={false} />
-                                                <Tooltip
-                                                    cursor={{ fill: 'rgba(190, 144, 85, 0.06)' }}
-                                                    contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '10px 14px', fontSize: '0.85rem' }}
-                                                    formatter={(value) => [`${value} session${value !== 1 ? 's' : ''}`, 'Booked']}
-                                                />
-                                                <Bar dataKey="count" name="Sessions" fill="#be9055" radius={[8, 8, 0, 0]} barSize={36}>
-                                                    {upcomingByDay.map((entry, index) => (
-                                                        <Cell key={`bar-${index}`} fill={entry.count > 0 ? ARTIST_CHART_COLORS[index % ARTIST_CHART_COLORS.length] : '#e2e8f0'} />
-                                                    ))}
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
+                                {/* LEFT COLUMN */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                                    
+                                    {/* Week Ahead */}
+                                    <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
+                                        <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Week Ahead</h2>
+                                        <div style={{ width: '100%', height: 180 }}>
+                                            <ResponsiveContainer>
+                                                <BarChart data={upcomingByDay} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                                    <XAxis dataKey="day" tick={{ fill: '#1e293b', fontSize: 11, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
+                                                    <YAxis allowDecimals={false} tick={{ fill: '#1e293b', fontSize: 11 }} axisLine={false} tickLine={false} />
+                                                    <Tooltip
+                                                        cursor={{ fill: 'rgba(190, 144, 85, 0.06)' }}
+                                                        contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '10px 14px', fontSize: '0.85rem' }}
+                                                        formatter={(value) => [`${value} session${value !== 1 ? 's' : ''}`, 'Booked']}
+                                                    />
+                                                    <Bar dataKey="count" name="Sessions" fill="#be9055" radius={[8, 8, 0, 0]} barSize={36}>
+                                                        {upcomingByDay.map((entry, index) => (
+                                                            <Cell key={`bar-${index}`} fill={entry.count > 0 ? ARTIST_CHART_COLORS[index % ARTIST_CHART_COLORS.length] : '#e2e8f0'} />
+                                                        ))}
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                        <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#be9055' }}>
+                                            {upcomingAppointments.length} upcoming session{upcomingAppointments.length !== 1 ? 's' : ''} total
+                                        </div>
                                     </div>
-                                    <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#be9055' }}>
-                                        {upcomingAppointments.length} upcoming session{upcomingAppointments.length !== 1 ? 's' : ''} total
-                                    </div>
-                                </div>
 
-                                {/* Recent Activity Feed */}
-                                <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
-                                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Activity size={18} style={{ color: '#94a3b8' }} />
-                                        Recent Activity
-                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, marginLeft: 'auto' }}>{unreadCount} unread</span>
-                                    </h2>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                        {notifications.length > 0 ? notifications.map(notif => (
-                                            <div key={notif.id}
-                                                style={{
-                                                    display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px',
-                                                    borderRadius: '10px', cursor: 'pointer', transition: 'background 0.2s',
-                                                    background: !notif.is_read ? 'rgba(190, 144, 85, 0.05)' : 'transparent',
-                                                    borderLeft: !notif.is_read ? '3px solid #be9055' : '3px solid transparent'
-                                                }}
-                                                onClick={() => navigate('/artist/notifications')}
-                                                onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
-                                                onMouseLeave={e => { e.currentTarget.style.background = !notif.is_read ? 'rgba(190, 144, 85, 0.05)' : 'transparent'; }}
-                                            >
-                                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                    <Bell size={14} color="#6366f1" />
-                                                </div>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{notif.title}</p>
-                                                    <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{notif.message}</p>
-                                                </div>
-                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8', flexShrink: 0, whiteSpace: 'nowrap' }}>{relativeTime(notif.created_at)}</span>
+                                    {/* Today's Schedule */}
+                                    <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Clock size={18} style={{ color: '#94a3b8' }} />
+                                                Today's Schedule
+                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>({todaysAppointments.length} session{todaysAppointments.length !== 1 ? 's' : ''})</span>
+                                            </h2>
+                                            <button className="btn btn-secondary" onClick={() => navigate('/artist/sessions')} style={{ fontSize: '0.8rem', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                Launch Session View <ArrowRight size={14} />
+                                            </button>
+                                        </div>
+                                        {todaysAppointments.length > 0 ? (
+                                            <div className="table-responsive">
+                                                <table className="portal-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Time</th>
+                                                            <th>Client</th>
+                                                            <th>Service</th>
+                                                            <th>Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {todaysAppointments.map((apt) => (
+                                                            <tr key={apt.id}>
+                                                                <td style={{ fontWeight: 600 }}>{apt.start_time}</td>
+                                                                <td>{apt.client_name}</td>
+                                                                <td>{apt.design_title}</td>
+                                                                <td><span className={`status-badge ${apt.status.toLowerCase()}`}>{apt.status}</span></td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
                                             </div>
-                                        )) : (
-                                            <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
-                                                <CheckCircle size={32} color="#10b981" style={{ marginBottom: '8px', opacity: 0.5 }} />
-                                                <p style={{ margin: 0, fontSize: '0.9rem' }}>No recent activity</p>
+                                        ) : (
+                                            <div style={{ padding: '40px', textAlign: 'center' }}>
+                                                <CheckCircle size={40} color="#10b981" style={{ marginBottom: '10px', opacity: 0.6 }} />
+                                                <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>No appointments scheduled for today.</p>
                                             </div>
                                         )}
                                     </div>
-                                    <button
-                                        onClick={() => navigate('/artist/notifications')}
-                                        style={{ width: '100%', marginTop: '12px', padding: '10px', borderRadius: '8px', background: '#f1f5f9', color: '#475569', border: 'none', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; }}
-                                    >
-                                        View All Notifications <ArrowRight size={14} />
-                                    </button>
-                                </div>
-                            </div>
 
-                            {/* ═══════════════ ROW 2: Today's Schedule + Monthly Earnings ═══════════════ */}
-                            <div className="analytics-dashboard-layout artist-chart-row">
-                                {/* Today's Schedule */}
-                                <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                        <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Clock size={18} style={{ color: '#94a3b8' }} />
-                                            Today's Schedule
-                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>({todaysAppointments.length} session{todaysAppointments.length !== 1 ? 's' : ''})</span>
+                                </div>
+
+                                {/* RIGHT COLUMN */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                                    
+                                    {/* Recent Activity Feed */}
+                                    <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
+                                        <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Activity size={18} style={{ color: '#94a3b8' }} />
+                                            Recent Activity
+                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, marginLeft: 'auto' }}>{unreadCount} unread</span>
                                         </h2>
-                                        <button className="btn btn-secondary" onClick={() => navigate('/artist/sessions')} style={{ fontSize: '0.8rem', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            Launch Session View <ArrowRight size={14} />
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            {notifications.length > 0 ? notifications.map(notif => (
+                                                <div key={notif.id}
+                                                    style={{
+                                                        display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px',
+                                                        borderRadius: '10px', cursor: 'pointer', transition: 'background 0.2s',
+                                                        background: !notif.is_read ? 'rgba(190, 144, 85, 0.05)' : 'transparent',
+                                                        borderLeft: !notif.is_read ? '3px solid #be9055' : '3px solid transparent'
+                                                    }}
+                                                    onClick={() => navigate('/artist/notifications')}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = !notif.is_read ? 'rgba(190, 144, 85, 0.05)' : 'transparent'; }}
+                                                >
+                                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                        <Bell size={14} color="#6366f1" />
+                                                    </div>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{notif.title}</p>
+                                                        <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{notif.message}</p>
+                                                    </div>
+                                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', flexShrink: 0, whiteSpace: 'nowrap' }}>{relativeTime(notif.created_at)}</span>
+                                                </div>
+                                            )) : (
+                                                <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                                                    <CheckCircle size={32} color="#10b981" style={{ marginBottom: '8px', opacity: 0.5 }} />
+                                                    <p style={{ margin: 0, fontSize: '0.9rem' }}>No recent activity</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={() => navigate('/artist/notifications')}
+                                            style={{ width: '100%', marginTop: '12px', padding: '10px', borderRadius: '8px', background: '#f1f5f9', color: '#475569', border: 'none', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; }}
+                                        >
+                                            View All Notifications <ArrowRight size={14} />
                                         </button>
                                     </div>
-                                    {todaysAppointments.length > 0 ? (
-                                        <div className="table-responsive">
-                                            <table className="portal-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Time</th>
-                                                        <th>Client</th>
-                                                        <th>Service</th>
-                                                        <th>Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {todaysAppointments.map((apt) => (
-                                                        <tr key={apt.id}>
-                                                            <td style={{ fontWeight: 600 }}>{apt.start_time}</td>
-                                                            <td>{apt.client_name}</td>
-                                                            <td>{apt.design_title}</td>
-                                                            <td><span className={`status-badge ${apt.status.toLowerCase()}`}>{apt.status}</span></td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    ) : (
-                                        <div style={{ padding: '40px', textAlign: 'center' }}>
-                                            <CheckCircle size={40} color="#10b981" style={{ marginBottom: '10px', opacity: 0.6 }} />
-                                            <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>No appointments scheduled for today.</p>
-                                        </div>
-                                    )}
-                                </div>
 
-                                {/* Monthly Earnings Trend */}
-                                <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
+                                    {/* Monthly Earnings Trend */}
+                                    <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
                                     <h2><TrendingUp size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Earnings Trend (6 Months)</h2>
                                     <div style={{ width: '100%', height: 250 }}>
                                         <ResponsiveContainer>

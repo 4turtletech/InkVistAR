@@ -693,7 +693,6 @@ body.sidenav-collapsed .portal-layout .portal-container {
         padding: 0 1rem !important;
         flex-direction: column;
         gap: 1rem;
-        align-items: start;
     }
 
     /* Premium table horizontal scroll */
