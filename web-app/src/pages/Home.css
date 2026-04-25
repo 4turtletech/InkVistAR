@@ -198,34 +198,36 @@ h1, h2, h3, h4 {
     color: var(--accent-gold);
 }
 
-/* Featured Artists Horizontal Slider */
+/* Featured Artists Carousel (State-Driven) */
 .home-slider-wrapper {
     position: relative;
     width: 100%;
     overflow: visible;
 }
 
-.home-artists-track {
-    display: flex;
-    gap: 2rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-    padding: 1rem 0 3rem 0; /* allowance for shadows */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE */
+.home-artists-viewport {
+    overflow: hidden;
+    border-radius: 16px;
 }
 
-.home-artists-track::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
+.home-artists-track {
+    display: flex;
+    transition: transform 0.65s cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform;
+}
+
+.home-artists-page {
+    display: flex;
+    gap: 2rem;
+    min-width: 100%;
+    width: 100%;
+    flex-shrink: 0;
+    padding: 1rem 0 1.5rem 0;
 }
 
 .home-artist-card {
-    /* To show exactly 3 cards minus the 2 instances of 2rem gaps */
-    min-width: calc((100% - 4rem) / 3);
-    max-width: calc((100% - 4rem) / 3);
-    flex-shrink: 0;
-    scroll-snap-align: start;
+    flex: 1;
+    min-width: 0;
     position: relative;
     border-radius: 16px;
     overflow: hidden;
@@ -324,19 +326,72 @@ h1, h2, h3, h4 {
     right: -27px;
 }
 
+/* Slider Bar Indicators */
+.artist-slider-indicators {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 2rem;
+    padding: 0 1rem;
+}
+
+.artist-slider-bar {
+    height: 4px;
+    border-radius: 4px;
+    border: none;
+    background: rgba(193, 154, 107, 0.2);
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+    width: 32px;
+    position: relative;
+    overflow: hidden;
+}
+
+.artist-slider-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent-gold), #d4b58e);
+    border-radius: 4px;
+    transition: width 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.artist-slider-bar.active {
+    width: 56px;
+    background: rgba(193, 154, 107, 0.15);
+    box-shadow: 0 0 12px rgba(193, 154, 107, 0.25);
+}
+
+.artist-slider-bar.active::after {
+    width: 100%;
+}
+
+.artist-slider-bar:hover:not(.active) {
+    background: rgba(193, 154, 107, 0.35);
+    width: 40px;
+}
+
+/* Disabled chevron state */
+.home-slider-btn.disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 @media (max-width: 1024px) {
-    .home-slider-btn { display: none; } /* Hide arrows on touch devices */
-    .home-artist-card { 
-        min-width: calc((100% - 2rem) / 2); 
-        max-width: calc((100% - 2rem) / 2); 
-    }
+    .home-slider-btn { display: none; }
 }
 
 @media (max-width: 768px) {
-    .home-artist-card { 
-        min-width: 100%; 
-        max-width: 100%; 
-    }
+    .home-artists-page { gap: 0; }
+    .artist-slider-indicators { margin-top: 1.5rem; gap: 8px; }
+    .artist-slider-bar { width: 24px; height: 3px; }
+    .artist-slider-bar.active { width: 44px; }
 }
 
 /* Custom Work Matrix Grid (Replaces old About section) */

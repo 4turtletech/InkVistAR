@@ -56,30 +56,49 @@ function Home() {
     const [testimonials, setTestimonials] = useState([]);
     const [currentSlide, setCurrentSlide] = useState(0);
 
-    // Artists Slider
-    const sliderRef = useRef(null);
+    // Artists Carousel (state-driven)
+    const [artistPage, setArtistPage] = useState(0);
+    const [cardsPerPage, setCardsPerPage] = useState(3);
+    const totalArtistPages = Math.ceil(FEATURED_ARTISTS.length / cardsPerPage);
+    const artistAutoRef = useRef(null);
 
-    // Auto-scroll Artists Slider every 10 seconds
+    // Responsive cards-per-page
     useEffect(() => {
-        const interval = setInterval(() => {
-            if (sliderRef.current) {
-                const slider = sliderRef.current;
-                const scrollLeft = slider.scrollLeft;
-                const scrollWidth = slider.scrollWidth;
-                const clientWidth = slider.clientWidth;
-
-                // If we've reached the end, scroll back to the beginning smoothly
-                if (scrollLeft + clientWidth >= scrollWidth - 10) {
-                    slider.scrollTo({ left: 0, behavior: 'smooth' });
-                } else {
-                    // Otherwise scroll right by exactly the container width for a full next 'slide' of 3 cards
-                    slider.scrollBy({ left: clientWidth, behavior: 'smooth' });
-                }
-            }
-        }, 10000); // 10 seconds
-
-        return () => clearInterval(interval);
+        const updateCardsPerPage = () => {
+            const w = window.innerWidth;
+            if (w <= 768) setCardsPerPage(1);
+            else if (w <= 1024) setCardsPerPage(2);
+            else setCardsPerPage(3);
+        };
+        updateCardsPerPage();
+        window.addEventListener('resize', updateCardsPerPage);
+        return () => window.removeEventListener('resize', updateCardsPerPage);
     }, []);
+
+    // Reset page if it overflows after resize
+    useEffect(() => {
+        const maxPage = Math.ceil(FEATURED_ARTISTS.length / cardsPerPage) - 1;
+        if (artistPage > maxPage) setArtistPage(maxPage);
+    }, [cardsPerPage, artistPage]);
+
+    // Auto-advance artist carousel every 8 seconds
+    useEffect(() => {
+        const maxPage = Math.ceil(FEATURED_ARTISTS.length / cardsPerPage) - 1;
+        artistAutoRef.current = setInterval(() => {
+            setArtistPage(prev => prev >= maxPage ? 0 : prev + 1);
+        }, 8000);
+        return () => clearInterval(artistAutoRef.current);
+    }, [cardsPerPage]);
+
+    const goToArtistPage = useCallback((page) => {
+        setArtistPage(page);
+        // Reset auto-advance timer on manual interaction
+        clearInterval(artistAutoRef.current);
+        const maxPage = Math.ceil(FEATURED_ARTISTS.length / cardsPerPage) - 1;
+        artistAutoRef.current = setInterval(() => {
+            setArtistPage(prev => prev >= maxPage ? 0 : prev + 1);
+        }, 8000);
+    }, [cardsPerPage]);
 
     useEffect(() => {
         fetch(`${API_URL}/api/reviews`)
@@ -150,39 +169,78 @@ function Home() {
 
                     <div className="home-slider-wrapper">
                         {/* Left Control */}
-                        <button 
-                            className="home-slider-btn left" 
-                            onClick={() => sliderRef.current?.scrollBy({ left: -sliderRef.current.clientWidth, behavior: 'smooth' })}
-                            aria-label="Scroll left"
-                        >
-                            <ChevronLeft size={28} />
-                        </button>
+                        {totalArtistPages > 1 && (
+                            <button 
+                                className={`home-slider-btn left ${artistPage === 0 ? 'disabled' : ''}`} 
+                                onClick={() => artistPage > 0 && goToArtistPage(artistPage - 1)}
+                                aria-label="Previous artists"
+                                disabled={artistPage === 0}
+                            >
+                                <ChevronLeft size={28} />
+                            </button>
+                        )}
 
-                        <div className="home-artists-track" ref={sliderRef}>
-                            {FEATURED_ARTISTS.map((artist, idx) => (
-                                <div key={idx} className="home-artist-card" onClick={() => navigate(`/artist/${idx + 1}`)}>
-                                    <img 
-                                        src={artist.image} 
-                                        alt={artist.name} 
-                                        className="home-artist-img" 
-                                    />
-                                    <div className="home-artist-overlay">
-                                        <h4 className="home-artist-name">{artist.name}</h4>
-                                        <span className="home-artist-style">{artist.style}</span>
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="home-artists-viewport">
+                            <div 
+                                className="home-artists-track" 
+                                style={{ 
+                                    transform: `translateX(-${artistPage * 100}%)`,
+                                }}
+                            >
+                                {Array.from({ length: totalArtistPages }).map((_, pageIdx) => {
+                                    const start = pageIdx * cardsPerPage;
+                                    const pageArtists = FEATURED_ARTISTS.slice(start, start + cardsPerPage);
+                                    return (
+                                        <div key={pageIdx} className="home-artists-page">
+                                            {pageArtists.map((artist, cardIdx) => (
+                                                <div 
+                                                    key={start + cardIdx} 
+                                                    className="home-artist-card"
+                                                    onClick={() => navigate(`/artist/${start + cardIdx + 1}`)}
+                                                >
+                                                    <img 
+                                                        src={artist.image} 
+                                                        alt={artist.name} 
+                                                        className="home-artist-img" 
+                                                    />
+                                                    <div className="home-artist-overlay">
+                                                        <h4 className="home-artist-name">{artist.name}</h4>
+                                                        <span className="home-artist-style">{artist.style}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         {/* Right Control */}
-                        <button 
-                            className="home-slider-btn right" 
-                            onClick={() => sliderRef.current?.scrollBy({ left: sliderRef.current.clientWidth, behavior: 'smooth' })}
-                            aria-label="Scroll right"
-                        >
-                            <ChevronRight size={28} />
-                        </button>
+                        {totalArtistPages > 1 && (
+                            <button 
+                                className={`home-slider-btn right ${artistPage >= totalArtistPages - 1 ? 'disabled' : ''}`} 
+                                onClick={() => artistPage < totalArtistPages - 1 && goToArtistPage(artistPage + 1)}
+                                aria-label="Next artists"
+                                disabled={artistPage >= totalArtistPages - 1}
+                            >
+                                <ChevronRight size={28} />
+                            </button>
+                        )}
                     </div>
+
+                    {/* Slider Bar Indicators */}
+                    {totalArtistPages > 1 && (
+                        <div className="artist-slider-indicators">
+                            {Array.from({ length: totalArtistPages }).map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    className={`artist-slider-bar ${idx === artistPage ? 'active' : ''}`}
+                                    onClick={() => goToArtistPage(idx)}
+                                    aria-label={`Go to page ${idx + 1}`}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </section>
 
                 {/* 3. The Matrix / About Extravaganza */}
