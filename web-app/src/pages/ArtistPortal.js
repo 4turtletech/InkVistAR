@@ -38,7 +38,7 @@ function ArtistPortal() {
 
     // Pagination state for upcoming sessions
     const [upcomingPage, setUpcomingPage] = useState(1);
-    const [upcomingPerPage, setUpcomingPerPage] = useState(5);
+    const [upcomingPerPage, setUpcomingPerPage] = useState(10);
 
     const [user] = useState(() => {
         const saved = localStorage.getItem('user');
@@ -430,8 +430,8 @@ function ArtistPortal() {
                                         )}
                                     </div>
 
-                                    {/* Upcoming Sessions Table */}
-                                    <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box' }}>
+                                    {/* Upcoming Sessions Table — flex:1 stretches to align with Earnings Trend bottom */}
+                                    <div className="card glass-card" style={{ width: '100%', boxSizing: 'border-box', flex: 1, display: 'flex', flexDirection: 'column' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                             <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <Calendar size={18} style={{ color: '#94a3b8' }} />
@@ -442,7 +442,7 @@ function ArtistPortal() {
                                                 View Full Schedule <ArrowRight size={14} />
                                             </button>
                                         </div>
-                                        <div className="table-responsive">
+                                        <div className="table-responsive" style={{ flex: 1 }}>
                                             {upcomingAppointments.length > 0 ? (
                                                 <table className="portal-table">
                                                     <thead>
