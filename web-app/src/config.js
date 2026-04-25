@@ -1,3 +1,5 @@
+import Axios from 'axios';
+
 // Determine the API URL based on the environment
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -15,6 +17,24 @@ if (!explicitApi) {
     `API_URL not provided via env. Using ${API_URL || 'relative /api'}; set REACT_APP_API_URL for production.`
   );
 }
+
+// ── Global Axios Interceptor: Inject Admin Identity ──
+// Automatically attaches the logged-in user's ID as X-Admin-Id header
+// so every admin mutation is attributed in audit logs.
+Axios.interceptors.request.use((config) => {
+  try {
+    const raw = localStorage.getItem('user');
+    if (raw) {
+      const user = JSON.parse(raw);
+      if (user?.id) {
+        config.headers['X-Admin-Id'] = String(user.id);
+      }
+    }
+  } catch (_) {
+    // localStorage parse failure — skip silently
+  }
+  return config;
+});
 
 // Google reCAPTCHA v3 site key
 // In production, set REACT_APP_RECAPTCHA_SITE_KEY to override.

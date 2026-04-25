@@ -46,6 +46,7 @@ function AdminDashboard() {
     // Audit Logs State
     const [auditSearch, setAuditSearch] = useState('');
     const [auditPage, setAuditPage] = useState(1);
+    const [auditFilter, setAuditFilter] = useState('all'); // 'all' | 'admin'
     const itemsPerPage = 5;
 
     // Appointments Pagination State
@@ -100,7 +101,7 @@ function AdminDashboard() {
             const [usersResponse, appointmentsResponse, logsResponse, inventoryResponse, notificationsResponse] = await Promise.all([
                 Axios.get(`${API_URL}/api/debug/users`),
                 Axios.get(`${API_URL}/api/admin/appointments`),
-                Axios.get(`${API_URL}/api/admin/audit-logs?limit=5`), // Limit logs for dashboard
+                Axios.get(`${API_URL}/api/admin/audit-logs?limit=20`), // Fetch enough logs for dashboard activity feed
                 Axios.get(`${API_URL}/api/admin/inventory?status=active`),
                 user.id ? Axios.get(`${API_URL}/api/notifications/${user.id}`) : Promise.resolve({ data: { unreadCount: 0 } })
             ]);
@@ -379,11 +380,16 @@ function AdminDashboard() {
     };
 
     // Filter and paginate logs
-    const filteredLogs = auditLogs.filter(log => // Audit logs are already limited by the API call
-        (log.user_name || 'System').toLowerCase().includes(auditSearch.toLowerCase()) ||
-        (log.action || '').toLowerCase().includes(auditSearch.toLowerCase()) ||
-        (log.details || '').toLowerCase().includes(auditSearch.toLowerCase())
-    );
+    const filteredLogs = auditLogs.filter(log => {
+        // Apply admin-only filter
+        if (auditFilter === 'admin' && !['admin', 'manager'].includes(log.user_type)) return false;
+        // Apply search
+        return (
+            (log.user_name || 'System').toLowerCase().includes(auditSearch.toLowerCase()) ||
+            (log.action || '').toLowerCase().includes(auditSearch.toLowerCase()) ||
+            (log.details || '').toLowerCase().includes(auditSearch.toLowerCase())
+        );
+    });
     const auditTotalPages = Math.ceil(filteredLogs.length / itemsPerPage);
     const displayedLogs = filteredLogs.slice((auditPage - 1) * itemsPerPage, auditPage * itemsPerPage);
 
@@ -834,6 +840,93 @@ function AdminDashboard() {
                             </div>
                         </div>
 
+                        {/* ─── Admin Activity Feed ─── */}
+                        <div className="glass-card" style={{ marginTop: '24px' }}>
+                            <div className="card-header-v2" style={{ flexWrap: 'wrap', gap: '10px' }}>
+                                <div className="header-title">
+                                    <FileText size={20} />
+                                    <h2>Activity Log</h2>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(190,144,85,0.25)' }}>
+                                        <button
+                                            onClick={() => { setAuditFilter('all'); setAuditPage(1); }}
+                                            style={{
+                                                padding: '5px 14px', fontSize: '0.75rem', fontWeight: 600, border: 'none', cursor: 'pointer',
+                                                background: auditFilter === 'all' ? 'rgba(190,144,85,0.2)' : 'transparent',
+                                                color: auditFilter === 'all' ? '#be9055' : '#94a3b8',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >All Activity</button>
+                                        <button
+                                            onClick={() => { setAuditFilter('admin'); setAuditPage(1); }}
+                                            style={{
+                                                padding: '5px 14px', fontSize: '0.75rem', fontWeight: 600, border: 'none', cursor: 'pointer',
+                                                borderLeft: '1px solid rgba(190,144,85,0.25)',
+                                                background: auditFilter === 'admin' ? 'rgba(190,144,85,0.2)' : 'transparent',
+                                                color: auditFilter === 'admin' ? '#be9055' : '#94a3b8',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >Admin Only</button>
+                                    </div>
+                                    <div style={{ position: 'relative' }}>
+                                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                                        <input
+                                            type="text"
+                                            placeholder="Search logs..."
+                                            value={auditSearch}
+                                            onChange={(e) => { setAuditSearch(e.target.value); setAuditPage(1); }}
+                                            style={{
+                                                padding: '6px 10px 6px 30px', fontSize: '0.78rem', borderRadius: '8px',
+                                                border: '1px solid rgba(190,144,85,0.2)', background: 'rgba(15,23,42,0.4)',
+                                                color: '#e2e8f0', outline: 'none', width: '160px'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="audit-stream" style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                                {displayedLogs.length > 0 ? displayedLogs.map((log, idx) => (
+                                    <div key={log.id || idx} className="audit-entry">
+                                        <div className="entry-marker" style={{ background: log.user_type === 'admin' ? '#be9055' : log.user_type === 'manager' ? '#3b82f6' : '#64748b' }}></div>
+                                        <div className="entry-content">
+                                            <div className="entry-time" style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                                                {new Date(log.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                            <div className="entry-desc">
+                                                <strong style={{ color: '#be9055' }}>{log.user_name || 'System'}</strong>
+                                                <span style={{ margin: '0 6px', color: '#475569' }}>|</span>
+                                                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{(log.action || '').replace(/_/g, ' ')}</span>
+                                            </div>
+                                            {log.details && (
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                                                    {log.details.length > 80 ? log.details.substring(0, 80) + '...' : log.details}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <p className="no-data" style={{ border: 'none', padding: '20px 0', textAlign: 'center', color: '#64748b' }}>
+                                        {auditFilter === 'admin' ? 'No admin activity recorded yet.' : 'No activity logs found.'}
+                                    </p>
+                                )}
+                            </div>
+                            {auditTotalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', padding: '12px 0', borderTop: '1px solid rgba(190,144,85,0.1)' }}>
+                                    <button
+                                        onClick={() => setAuditPage(p => Math.max(1, p - 1))}
+                                        disabled={auditPage === 1}
+                                        style={{ background: 'none', border: 'none', color: auditPage === 1 ? '#334155' : '#be9055', cursor: auditPage === 1 ? 'default' : 'pointer' }}
+                                    ><ChevronLeft size={16} /></button>
+                                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{auditPage} / {auditTotalPages}</span>
+                                    <button
+                                        onClick={() => setAuditPage(p => Math.min(auditTotalPages, p + 1))}
+                                        disabled={auditPage === auditTotalPages}
+                                        style={{ background: 'none', border: 'none', color: auditPage === auditTotalPages ? '#334155' : '#be9055', cursor: auditPage === auditTotalPages ? 'default' : 'pointer' }}
+                                    ><ChevronRight size={16} /></button>
+                                </div>
+                            )}
+                        </div>
 
                     </div>
                 )}

@@ -1679,6 +1679,16 @@ function logAction(userId, action, details, ip = '::1') {
   });
 }
 
+/**
+ * Extract admin user ID from request context.
+ * Priority: req.body.adminId → req.body.userId → req.body.user_id → X-Admin-Id header → null
+ */
+function getAdminId(req) {
+  return req.body?.adminId || req.body?.userId || req.body?.user_id
+    || (req.headers?.['x-admin-id'] ? parseInt(req.headers['x-admin-id'], 10) : null)
+    || null;
+}
+
 // Helper: Create Default Users (Admin, Artist, Customer)
 function createDefaultUsers() {
   // 1. Admin
@@ -7808,7 +7818,7 @@ app.post('/api/admin/users', async (req, res) => {
         );
       }
 
-      logAction(null, 'CREATE_USER', `Created user ${email} (${type})`, req.ip);
+      logAction(getAdminId(req), 'CREATE_USER', `Created user ${email} (${type})`, req.ip);
       res.json({ success: true, message: 'User created successfully' });
     });
   } catch (e) {
@@ -7853,7 +7863,7 @@ app.put('/api/admin/users/:id', (req, res) => {
       const query = 'UPDATE users SET name = ?, email = ?, user_type = ?, phone = ?, is_deleted = ? WHERE id = ?';
       db.query(query, [name, email, type, phone, isDeleted, id], (err) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
-        logAction(null, 'UPDATE_USER', `Updated user ${id} (${email})`, req.ip);
+        logAction(getAdminId(req), 'UPDATE_USER', `Updated user ${id} (${email})`, req.ip);
         res.json({ success: true, message: 'User updated successfully' });
       });
     }
@@ -7944,7 +7954,7 @@ app.put('/api/admin/users/:id/status', (req, res) => {
       }
       if (updateErr) return res.status(500).json({ success: false, message: updateErr.message });
       
-      logAction(null, 'UPDATE_USER_STATUS', `Changed user ${id} status to ${status} (Reason: ${finalReason || 'N/A'})`, req.ip);
+      logAction(getAdminId(req), 'UPDATE_USER_STATUS', `Changed user ${id} status to ${status} (Reason: ${finalReason || 'N/A'})`, req.ip);
       
       // Send Email Notification to the user if they were deactivated or banned
       if (status === 'deactivated' || status === 'banned') {
@@ -8006,7 +8016,7 @@ app.delete('/api/admin/users/:id', (req, res) => {
     const query = 'UPDATE users SET is_deleted = 1 WHERE id = ?';
     db.query(query, [id], (err, result) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
-      logAction(null, 'DEACTIVATE_USER', `Deactivated user ID ${id}`, req.ip);
+      logAction(getAdminId(req), 'DEACTIVATE_USER', `Deactivated user ID ${id}`, req.ip);
       res.json({ success: true, message: 'User deactivated successfully' });
     });
   });
@@ -8017,7 +8027,7 @@ app.put('/api/admin/users/:id/restore', (req, res) => {
   const { id } = req.params;
   db.query('UPDATE users SET is_deleted = 0 WHERE id = ?', [id], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'RESTORE_USER', `Restored user ID ${id}`, req.ip);
+    logAction(getAdminId(req), 'RESTORE_USER', `Restored user ID ${id}`, req.ip);
     res.json({ success: true, message: 'User restored successfully' });
   });
 });
@@ -8035,7 +8045,7 @@ app.delete('/api/admin/users/:id/permanent', (req, res) => {
 
     db.query('DELETE FROM users WHERE id = ?', [id], (err, result) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
-      logAction(null, 'DELETE_USER', `Permanently deleted user ID ${id}`, req.ip);
+      logAction(getAdminId(req), 'DELETE_USER', `Permanently deleted user ID ${id}`, req.ip);
       res.json({ success: true, message: 'User permanently deleted' });
     });
   });
@@ -8043,14 +8053,18 @@ app.delete('/api/admin/users/:id/permanent', (req, res) => {
 
 // Admin: Get Audit Logs
 app.get('/api/admin/audit-logs', (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  const filterAdmin = req.query.adminOnly === 'true';
   const query = `
-    SELECT al.*, u.name as user_name, u.email as user_email 
+    SELECT al.*, u.name as user_name, u.email as user_email,
+           u.user_type as user_type
     FROM audit_logs al
     LEFT JOIN users u ON al.user_id = u.id
+    ${filterAdmin ? "WHERE u.user_type IN ('admin', 'manager')" : ''}
     ORDER BY al.created_at DESC
-    LIMIT 50
+    LIMIT ?
   `;
-  db.query(query, (err, results) => {
+  db.query(query, [limit], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     res.json({ success: true, data: results });
   });
@@ -8081,7 +8095,7 @@ app.post('/api/admin/branches', (req, res) => {
   const query = 'INSERT INTO branches (name, address, phone, operating_hours, capacity, status) VALUES (?, ?, ?, ?, ?, "Closed")';
   db.query(query, [name, address, phone, operating_hours, capacity], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'CREATE_BRANCH', `Created branch: ${name}`, req.ip);
+    logAction(getAdminId(req), 'CREATE_BRANCH', `Created branch: ${name}`, req.ip);
     res.json({ success: true, message: 'Branch added successfully', id: result.insertId });
   });
 });
@@ -8110,7 +8124,7 @@ app.put('/api/admin/branches/:id', (req, res) => {
 
   db.query(query, params, (err) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'UPDATE_BRANCH', `Updated branch ID ${id}`, req.ip);
+    logAction(getAdminId(req), 'UPDATE_BRANCH', `Updated branch ID ${id}`, req.ip);
     res.json({ success: true, message: 'Branch updated' });
   });
 });
@@ -8120,7 +8134,7 @@ app.delete('/api/admin/branches/:id', (req, res) => {
   const { id } = req.params;
   db.query('UPDATE branches SET is_deleted = 1 WHERE id = ?', [id], (err) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'DELETE_BRANCH', `Deleted branch ID ${id}`, req.ip);
+    logAction(getAdminId(req), 'DELETE_BRANCH', `Deleted branch ID ${id}`, req.ip);
     res.json({ success: true, message: 'Branch deleted' });
   });
 });
@@ -8130,7 +8144,7 @@ app.put('/api/admin/branches/:id/restore', (req, res) => {
   const { id } = req.params;
   db.query('UPDATE branches SET is_deleted = 0 WHERE id = ?', [id], (err) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'RESTORE_BRANCH', `Restored branch ID ${id}`, req.ip);
+    logAction(getAdminId(req), 'RESTORE_BRANCH', `Restored branch ID ${id}`, req.ip);
     res.json({ success: true, message: 'Branch restored' });
   });
 });
@@ -8160,7 +8174,7 @@ app.post('/api/admin/inventory', (req, res) => {
   const query = 'INSERT INTO inventory (name, category, current_stock, min_stock, max_stock, unit, supplier, cost, retail_price, image, last_restocked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())';
   db.query(query, [name, category, currentStock, minStock, maxStock, unit, supplier, cost, retailPrice || 0, image || null], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'CREATE_INVENTORY', `Added item: ${name}`, req.ip);
+    logAction(getAdminId(req), 'CREATE_INVENTORY', `Added item: ${name}`, req.ip);
     res.json({ success: true, message: 'Item added', id: result.insertId });
   });
 });
@@ -8221,7 +8235,7 @@ app.put('/api/admin/inventory/:id', (req, res) => {
         );
       }
 
-      logAction(null, 'UPDATE_INVENTORY', `Updated item ID ${id} (${name})`, req.ip);
+      logAction(getAdminId(req), 'UPDATE_INVENTORY', `Updated item ID ${id} (${name})`, req.ip);
       res.json({ success: true, message: 'Item updated' });
     });
   });
@@ -8232,7 +8246,7 @@ app.delete('/api/admin/inventory/:id', (req, res) => {
   const { id } = req.params;
   db.query('UPDATE inventory SET is_deleted = 1 WHERE id=?', [id], (err) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'DELETE_INVENTORY', `Deleted item ID ${id}`, req.ip);
+    logAction(getAdminId(req), 'DELETE_INVENTORY', `Deleted item ID ${id}`, req.ip);
     res.json({ success: true, message: 'Item deleted' });
   });
 });
@@ -8242,7 +8256,7 @@ app.put('/api/admin/inventory/:id/restore', (req, res) => {
   const { id } = req.params;
   db.query('UPDATE inventory SET is_deleted = 0 WHERE id=?', [id], (err) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'RESTORE_INVENTORY', `Restored item ID ${id}`, req.ip);
+    logAction(getAdminId(req), 'RESTORE_INVENTORY', `Restored item ID ${id}`, req.ip);
     res.json({ success: true, message: 'Item restored' });
   });
 });
@@ -8252,7 +8266,7 @@ app.delete('/api/admin/inventory/:id/permanent', (req, res) => {
   const { id } = req.params;
   db.query('DELETE FROM inventory WHERE id=?', [id], (err) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(null, 'PERMANENT_DELETE_INVENTORY', `Permanently deleted item ID ${id}`, req.ip);
+    logAction(getAdminId(req), 'PERMANENT_DELETE_INVENTORY', `Permanently deleted item ID ${id}`, req.ip);
     res.json({ success: true, message: 'Item permanently deleted' });
   });
 });
@@ -8287,7 +8301,7 @@ app.post('/api/admin/inventory/:id/transaction', (req, res) => {
         [id, type, quantity, reason, req.body.user_id || null, item_price],
         (logErr) => {
           if (logErr) console.error('Failed to log transaction:', logErr);
-          logAction(null, 'STOCK_TRANSACTION', `${type.toUpperCase()} ${quantity} for item ${id}: ${reason}`, req.ip);
+          logAction(getAdminId(req), 'STOCK_TRANSACTION', `${type.toUpperCase()} ${quantity} for item ${id}: ${reason}`, req.ip);
           res.json({ success: true, message: 'Stock updated' });
         }
       );
@@ -8303,7 +8317,8 @@ app.get('/api/admin/inventory/transactions', (req, res) => {
 
   const dataQuery = `
     SELECT t.*, i.name as item_name, i.category, i.unit,
-           COALESCE(u.name, 'System') as user_name
+           COALESCE(u.name, 'System') as user_name,
+           COALESCE(u.user_type, '') as user_type
     FROM inventory_transactions t 
     JOIN inventory i ON t.inventory_id = i.id 
     LEFT JOIN users u ON t.user_id = u.id
@@ -8897,7 +8912,7 @@ app.get('/api/admin/analytics', (req, res) => {
 
 // Admin: Get All Studio Expenses (for audit modal)
 app.get('/api/admin/expenses', (req, res) => {
-  db.query('SELECT se.*, COALESCE(u.name, "System Admin") as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC', (err, results) => {
+  db.query('SELECT se.*, COALESCE(u.name, "System Admin") as created_by_name, COALESCE(u.user_type, "") as created_by_type FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC', (err, results) => {
     if (err) return res.status(500).json({ success: false, message: err.message });
     res.json({ success: true, data: results });
   });
@@ -8929,7 +8944,7 @@ app.delete('/api/admin/expenses/:id', (req, res) => {
     }
     db.query('DELETE FROM studio_expenses WHERE id = ?', [req.params.id], (err) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
-      logAction(null, 'DELETE_MANUAL_EXPENSE', `Deleted manual expense ID ${req.params.id}`, req.ip);
+      logAction(getAdminId(req), 'DELETE_MANUAL_EXPENSE', `Deleted manual expense ID ${req.params.id}`, req.ip);
       res.json({ success: true, message: 'Expense deleted' });
     });
   });
@@ -8952,7 +8967,7 @@ app.put('/api/admin/expenses/:id', (req, res) => {
     db.query('UPDATE studio_expenses SET category = ?, description = ?, amount = ? WHERE id = ?',
       [category, description || '', parseFloat(amount), req.params.id], (err) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
-      logAction(null, 'EDIT_MANUAL_EXPENSE', `Edited manual expense ID ${req.params.id}: ${category} - ₱${amount}`, req.ip);
+      logAction(getAdminId(req), 'EDIT_MANUAL_EXPENSE', `Edited manual expense ID ${req.params.id}: ${category} - ₱${amount}`, req.ip);
       res.json({ success: true, message: 'Expense updated' });
     });
   });
