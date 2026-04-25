@@ -15,7 +15,7 @@ db.connect(async (err) => {
     console.error('Database connection failed:', err);
     process.exit(1);
   }
-  console.log('✅ Connected to the database...');
+  console.log('[OK] Connected to the database...');
 
   // 1. Setup Password
   const defaultPassword = 'password123';
@@ -39,7 +39,7 @@ db.connect(async (err) => {
       if (err) console.error(`Error inserting user ${name}:`, err);
       completedUsers++;
       if (completedUsers === totalUsers) {
-        console.log(`✅ ${totalUsers} Users successfully scanned/seeded.`);
+        console.log(`[OK] ${totalUsers} Users successfully scanned/seeded.`);
         seedInventory();
       }
     });
@@ -50,7 +50,7 @@ db.connect(async (err) => {
 
   // 3. Create & Seed Inventory System
   function seedInventory() {
-    console.log('🔄 Building Inventory Schema...');
+    console.log('[STEP] Building Inventory Schema...');
     db.query(`
       CREATE TABLE IF NOT EXISTS inventory_items (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -110,8 +110,8 @@ db.connect(async (err) => {
             if (err) console.error(`Error inserting item ${item[0]}:`, err);
             completedItems++;
             if (completedItems === mockItems.length) {
-              console.log('✅ Inventory Supplies successfully seeded!');
-              console.log('🎉 Setup Process Complete!');
+              console.log('[OK] Inventory Supplies successfully seeded!');
+              console.log('[DONE] Setup Process Complete!');
               process.exit(0);
             }
           }

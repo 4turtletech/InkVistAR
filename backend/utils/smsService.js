@@ -17,12 +17,12 @@ const SEMAPHORE_API_URL = 'https://api.semaphore.co/api/v4/messages';
  */
 async function sendSMS(phone, message) {
   if (!SEMAPHORE_ENABLED) {
-    console.log(`[SMS] ⏭️  Skipped (SEMAPHORE_ENABLED=false) → ${phone}: ${message.substring(0, 50)}...`);
+    console.log(`[SMS] Skipped (SEMAPHORE_ENABLED=false) > ${phone}: ${message.substring(0, 50)}...`);
     return { success: true, message: 'SMS skipped (disabled)' };
   }
 
   if (!SEMAPHORE_API_KEY) {
-    console.warn('[SMS] ⚠️  SEMAPHORE_API_KEY is not set. SMS not sent.');
+    console.warn('[SMS] SEMAPHORE_API_KEY is not set. SMS not sent.');
     return { success: false, message: 'SMS API key missing' };
   }
 
@@ -49,14 +49,14 @@ async function sendSMS(phone, message) {
     const data = await response.json();
 
     if (response.ok && data) {
-      console.log(`[SMS] ✅ Sent to ${normalized}`);
+      console.log(`[SMS] Sent to ${normalized}`);
       return { success: true, message: 'SMS sent' };
     } else {
-      console.error('[SMS] ❌ Semaphore error:', data);
+      console.error('[SMS] Semaphore error:', data);
       return { success: false, message: JSON.stringify(data) };
     }
   } catch (err) {
-    console.error('[SMS] ❌ Network error:', err.message);
+    console.error('[SMS] Network error:', err.message);
     return { success: false, message: err.message };
   }
 }
@@ -72,7 +72,7 @@ function appointmentRequestedAdminSMS(clientName, date) {
 }
 
 function appointmentConfirmedSMS(artistName, date) {
-  return `InkVistAR: Your appointment with ${artistName} on ${date} has been CONFIRMED. See you then! 🎨`;
+  return `InkVistAR: Your appointment with ${artistName} on ${date} has been CONFIRMED. See you then!`;
 }
 
 function appointmentCancelledSMS(date, reason) {

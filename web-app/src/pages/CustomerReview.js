@@ -117,10 +117,10 @@ function CustomerReview() {
                             ) : (
                                 <form onSubmit={handleSubmit}>
                                     <div className="premium-review-header" >
-                                        <h3 className="premium-review-title" >Rate Your Session</h3>
+                                        <h3 className="premium-review-title" >Rate Your Studio Experience</h3>
                                         <p className="premium-review-subtitle" >How was your experience getting the "{appointment.design_title}" tattoo?</p>
                                         <div className="premium-review-artist-badge">
-                                            Artist: {appointment.artist_name || 'InkVistAR Pro'}
+                                            Session: {appointment.design_title}
                                         </div>
                                     </div>
                                     
@@ -183,7 +183,7 @@ function CustomerReview() {
                                                     setErrors(prev => ({ ...prev, comment: '' }));
                                                 }
                                             }} 
-                                            placeholder="What did you love about your session? Was the artist professional?" 
+                                            placeholder="What did you love about your session? How was your overall studio experience?" 
                                             rows={4} 
                                             style={{ border: errors.comment ? '1px solid #ef4444' : undefined }}
                                         ></textarea>

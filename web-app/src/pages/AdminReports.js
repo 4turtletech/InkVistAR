@@ -288,7 +288,7 @@ function AdminReports() {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                         <span style={{ fontSize: '0.78rem', fontWeight: 600, color: reply.sender_role === 'admin' ? '#be9055' : '#3b82f6' }}>
-                          {reply.sender_role === 'admin' ? '🛡️ Admin' : '👤 Customer'} · {reply.sender_name}
+                          {reply.sender_role === 'admin' ? 'Admin' : 'Customer'} · {reply.sender_name}
                         </span>
                         <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{timeAgo(reply.created_at)}</span>
                       </div>

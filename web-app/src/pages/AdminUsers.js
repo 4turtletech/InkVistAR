@@ -590,7 +590,7 @@ function AdminUsers() {
             .filter(a => a.status === 'completed')
             .map(a => ({
                 ...a, amount: a.price || 0,
-                commission: (a.price || 0) * (artistDetails.profile.commission_rate || 0.6)
+                commission: (a.price || 0) * (artistDetails.profile.commission_rate || 0.30)
             }));
 
         return (
@@ -602,7 +602,7 @@ function AdminUsers() {
                     </div>
                 </div>
                 <table className="data-table">
-                    <thead><tr><th>Date</th><th>Client</th><th>Total Amount</th><th>Artist Commission ({((artistDetails.profile.commission_rate || 0.6) * 100)}%)</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Client</th><th>Total Amount</th><th>Artist Commission ({((artistDetails.profile.commission_rate || 0.30) * 100)}%)</th></tr></thead>
                     <tbody>
                         {earnings.map(e => (
                             <tr key={e.id}>

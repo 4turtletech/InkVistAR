@@ -136,11 +136,6 @@ const PublicArtistProfile = () => {
                                 )}
                             </p>
 
-                            <div className="pap-hero-rating">
-                                <div className="pap-stars">{renderStars(avgRating)}</div>
-                                <span className="pap-rating-value">{avgRating.toFixed(1)}</span>
-                                <span className="pap-rating-count">({artist.total_reviews || 0} reviews)</span>
-                            </div>
                         </div>
                     </div>
 
@@ -171,16 +166,7 @@ const PublicArtistProfile = () => {
                                 <span className="pap-stat-label">Works</span>
                             </div>
                         </div>
-                        {avgRating > 0 && (
-                            <div className="pap-stat-chip gold">
-                                <Star size={16} fill="#fcd34d" color="#fcd34d" />
-                                <div>
-                                    <span className="pap-stat-value">{avgRating.toFixed(1)}</span>
-                                    <span className="pap-stat-label">Rating</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                        </div>
 
                     <button className="pap-book-btn" onClick={() => navigate('/book')}>
                         Book a Session <ArrowRight size={18} />
@@ -208,13 +194,6 @@ const PublicArtistProfile = () => {
                         >
                             <ImageIcon size={16} /> Portfolio
                             <span className="pap-tab-count">{publicPortfolio.length}</span>
-                        </button>
-                        <button
-                            className={`pap-tab ${activeTab === 'reviews' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('reviews')}
-                        >
-                            <Star size={16} /> Reviews
-                            <span className="pap-tab-count">{reviews.length}</span>
                         </button>
                     </div>
 
@@ -247,71 +226,7 @@ const PublicArtistProfile = () => {
                         </div>
                     )}
 
-                    {/* Reviews Tab */}
-                    {activeTab === 'reviews' && (
-                        <div className="pap-tab-content">
-                            {reviews.length > 0 ? (
-                                <>
-                                    {/* Review Summary Card */}
-                                    <div className="pap-review-summary">
-                                        <div className="pap-review-avg">
-                                            <span className="pap-review-avg-number">{avgRating.toFixed(1)}</span>
-                                            <div className="pap-review-avg-stars">{renderStars(avgRating, 20)}</div>
-                                            <span className="pap-review-avg-count">{reviews.length} verified review{reviews.length !== 1 ? 's' : ''}</span>
-                                        </div>
-                                        <div className="pap-review-bars">
-                                            {[5, 4, 3, 2, 1].map(star => {
-                                                const count = reviews.filter(r => Math.round(r.rating) === star).length;
-                                                const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
-                                                return (
-                                                    <div key={star} className="pap-review-bar-row">
-                                                        <span className="pap-bar-label">{star}</span>
-                                                        <Star size={12} fill="#fcd34d" color="#fcd34d" />
-                                                        <div className="pap-bar-track">
-                                                            <div className="pap-bar-fill" style={{ width: `${pct}%` }}></div>
-                                                        </div>
-                                                        <span className="pap-bar-count">{count}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
 
-                                    {/* Review Cards */}
-                                    <div className="pap-reviews-list">
-                                        {reviews.map(review => (
-                                            <div key={review.id} className="pap-review-card">
-                                                <div className="pap-review-header">
-                                                    <div className="pap-reviewer-info">
-                                                        <div className="pap-reviewer-avatar">
-                                                            {review.customer_name ? review.customer_name.charAt(0).toUpperCase() : 'C'}
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="pap-reviewer-name">{review.customer_name || 'Verified Client'}</h4>
-                                                            <span className="pap-review-meta">
-                                                                <CheckCircle size={12} /> Verified Session
-                                                                <span className="pap-review-date">{new Date(review.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="pap-review-stars">{renderStars(review.rating, 14)}</div>
-                                                </div>
-                                                {review.comment && (
-                                                    <p className="pap-review-text">"{review.comment}"</p>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="pap-empty-state">
-                                    <Star size={48} />
-                                    <h3>No Reviews Yet</h3>
-                                    <p>This artist does not have any reviews yet. Be the first to book a session and leave a review!</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
 
                     {/* Bottom CTA */}
                     <div className="pap-bottom-cta">

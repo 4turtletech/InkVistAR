@@ -137,6 +137,7 @@ This document serves as the primary ground truth for the InkVistAR project. When
 | **portfolio_works** | id, artist_id, image_url, title, description, category, price_estimate, is_public |
 
 ### Commission & Revenue Split Rules
+- **Immutable Baseline:** The base artist commission rate is **30% (`commission_rate = 0.30`)**. This is the DB column default, the backend fallback (`COALESCE(commission_rate, 0.30)`), and the seed value for new artist profiles. Do NOT change this default without explicit user authorization.
 - **Studio Cut:** 70% of the customer's total payment goes to the studio.
 - **Artist Commission Pool:** 30% of the customer's total payment is the "Artist Commission Pool."
 - **Material Costs:** Covered entirely by the studio; they do NOT affect artist earnings.
@@ -321,7 +322,7 @@ BACKEND_URL=https://inkvistar-api.onrender.com
 
 1. **Auto-Migrations:** Server automatically checks for and adds missing columns on startup (e.g., `profile_image`, `session_duration`, `audit_log`, `commission_rate`).
 2. **Image Storage:** Base64/LONGTEXT in database.
-3. **Commission:** Artists have `commission_rate` (default 0.30 = 30%).
+3. **Commission:** Artists have `commission_rate` (immutable default 0.30 = 30%). See Commission & Revenue Split Rules above.
 4. **Material Tracking:** `session_materials` tracks hold→consumed→released lifecycle.
 5. **Service Kits:** Predefined material bundles for quick session setup.
 6. **Payment Flow:** PayMongo webhook → `/api/payments/webhook` → updates appointments.payment_status.
@@ -447,12 +448,13 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - "Other" requires a custom reason with minimum 10 characters (validated with character counter).
     - Selected reason is highlighted with red border and a `<Check>` Lucide icon.
 
-33. **Reviews & Ratings System:**
-    - Customers can review an artist after a `completed` appointment via `POST /api/reviews` (one review per appointment, checked via `GET /api/reviews/check/:appointmentId`).
+33. **Reviews & Ratings System (Studio-Level):**
+    - Customers can leave a review after a `completed` appointment via `POST /api/reviews` (one review per appointment, checked via `GET /api/reviews/check/:appointmentId`).
     - Reviews require a 1-5 star rating and optional comment text.
+    - **Rating Attribution:** Star ratings (1-5) reflect the **overall studio experience**, NOT individual artist performance. The review prompt, public display, and testimonial carousel all frame ratings as "Studio Experience" to maintain professional neutrality across the team. Do NOT label ratings as "Artist Rating" or display per-artist star averages on public pages.
     - **Admin Moderation:** All reviews start as `status='pending'`. Admins approve/reject via `PUT /api/admin/reviews/:id` in `AdminReviews.js`. Approved reviews can be `is_showcased` (featured).
     - **Artist Notification:** On review submission, both admin and the reviewed artist receive a `'new_review'` notification with star rating and comment preview.
-    - **Public Display:** Only `status='approved'` reviews appear in `GET /api/reviews` and `GET /api/artists/:id/reviews`.
+    - **Public Display:** Only `status='approved'` reviews appear in `GET /api/reviews` and `GET /api/artists/:id/reviews`. The Home page testimonial carousel displays ratings as studio-level endorsements.
 
 34. **Aftercare System (30-Day Program):**
     - `aftercare_templates` table holds 30 day-by-day aftercare instructions organized in 3 phases: `initial` (Days 1-3), `peeling` (Days 4-14), `healing` (Days 15-30).
@@ -478,7 +480,7 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - **Dashboard:** `GET /api/manager/dashboard` returns the same stats as admin dashboard.
     - Managers receive the same notifications as admins (including `payment_action_required`).
 
-38. **Component Registry (New Components):**
+38. **Component Registry (Reusable Components):**
     - `WaiverFormModal.js` / `WaiverFormModal.css` — Digital waiver/consent form modal for appointments.
     - `TermsOfServiceModal.js` / `TermsOfServiceModal.css` — Terms of service acceptance modal.
     - `ConfirmModal.js` — Reusable confirmation dialog for destructive actions.
@@ -488,10 +490,32 @@ BACKEND_URL=https://inkvistar-api.onrender.com
     - `AdminTestimonials.js` — Testimonial management panel (CRUD for client testimonials).
     - `BodyModelViewer.js` — 3D body model viewer for AR tattoo placement.
     - `Pagination.js` / `Pagination.css` — Reusable table pagination component.
+    - `ImageLightbox.js` / `ImageLightbox.css` — Fullscreen image viewer overlay with zoom, backdrop blur, and keyboard dismiss (Escape). Props: `src`, `alt`, `onClose`. See rule #40.
+    - `ImageCropper.js` / `ImageCropper.css` — 1:1 aspect ratio crop modal (powered by `react-easy-crop`). Props: `imageSrc`, `onCropDone(base64)`, `onCancel`. See rule #41.
 
 39. **Select Element Readability:**
     - All `<select>` elements must have sufficient contrast between text and background. On dark backgrounds, use light text color with dark option backgrounds to ensure readability across browsers.
     - Select dropdown options must be visually distinct and scannable.
+
+40. **ImageLightbox Standard (Click-to-Enlarge):**
+    - Any page displaying user-facing images (studio photos, artist portraits, portfolio artwork, session photos, report attachments) MUST integrate the `ImageLightbox` component for fullscreen viewing.
+    - **Usage pattern:** Add `const [lightboxSrc, setLightboxSrc] = useState(null);` state. Add `className="lightbox-trigger"` and `onClick={() => setLightboxSrc(imageUrl)}` to `<img>` elements. Render `<ImageLightbox src={lightboxSrc} alt="..." onClose={() => setLightboxSrc(null)} />` at the component root.
+    - **Adopted pages:** `Home.js` (studio + artist images), `Artists.js` (team photo + portraits), `ArtistGallery.js`, `ArtistSessions.js`, `AdminAppointments.js`, `AdminCompletedSessions.js`, `CustomerBookings.js`, `CustomerGallery.js`, `AdminReports.js`, `CustomerReports.js`. `PublicArtistProfile.js` uses its own built-in lightbox (index-based).
+    - **`.lightbox-trigger` CSS class:** Adds `cursor: zoom-in` globally via `ImageLightbox.css`. All clickable images MUST use this class.
+    - Use `e.stopPropagation()` on the onClick when the image is inside a clickable parent (e.g., a card that navigates on click).
+
+41. **ImageCropper Standard (Upload Workflow):**
+    - All image upload flows for portfolio/gallery content MUST route through the `ImageCropper` component before saving. This ensures uniform 1:1 square thumbnails across the gallery grid.
+    - **Dependency:** `react-easy-crop` (v5.5.7) — installed via npm; do NOT remove or replace.
+    - **Usage pattern:** In the file input `onChange`, read the file as `dataURL` and set it to a `cropperSrc` state (do NOT set the form image directly). Render `<ImageCropper imageSrc={cropperSrc} onCropDone={(croppedBase64) => { setFormData(prev => ({...prev, imageUrl: croppedBase64})); setCropperSrc(null); }} onCancel={() => setCropperSrc(null)} />` when `cropperSrc` is truthy.
+    - **Adopted pages:** `ArtistGallery.js` (portfolio uploads), `ArtistProfile.js` (profile image), `CustomerProfile.js` (profile image), `AdminInventory.js` (item image).
+    - **Reset input:** After reading the file, always reset the input via `e.target.value = ''` so the same file can be re-selected if the user cancels the crop.
+
+42. **Artist Portrait Card Standards (Public Pages):**
+    - Artist profile cards on `Artists.js` use a strict `1:1` (square) aspect ratio for the `.artist-portrait-wrapper`, enforced via `aspect-ratio: 1 / 1` in `Artists.css`. Do NOT revert to portrait (`9/16`) or landscape ratios.
+    - Images use `object-fit: cover` to fill the square without distortion.
+    - The skeleton loading state MUST mirror the same `1:1` aspect ratio.
+    - Featured artist images in `Home.js` (slider) use their own sizing but also support `ImageLightbox` click-to-enlarge.
 
 ---
 

@@ -12,7 +12,7 @@ const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
  */
 async function sendResendEmail(to, subject, html) {
   if (!RESEND_API_KEY) {
-    console.warn('⚠️ EMAIL_API_KEY not found in .env. Skipping email dispatch.');
+    console.warn('[WARN] EMAIL_API_KEY not found in .env. Skipping email dispatch.');
     return false;
   }
 
@@ -38,14 +38,14 @@ async function sendResendEmail(to, subject, html) {
     const data = await response.json();
 
     if (response.ok) {
-      console.log(`✉️ Email successfully dispatched to ${to}! ID: ${data.id}`);
+      console.log(`[EMAIL] Successfully dispatched to ${to}! ID: ${data.id}`);
       return true;
     } else {
-      console.error(`❌ Resend API Error:`, data);
+      console.error(`[EMAIL] Resend API Error:`, data);
       return false;
     }
   } catch (error) {
-    console.error(`❌ Network error while sending email to ${to}:`, error.message);
+    console.error(`[EMAIL] Network error while sending email to ${to}:`, error.message);
     return false;
   }
 }
