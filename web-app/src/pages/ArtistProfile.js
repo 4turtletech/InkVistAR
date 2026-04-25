@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
 import {
     User, Mail, Palette, Save, Lock, Clock, Camera,
-    Phone, Building, Eye, EyeOff, CheckCircle, AlertCircle, Edit2, X
+    Phone, Building, Eye, EyeOff, CheckCircle, AlertCircle, Edit2, X, FileText
 } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ImageCropper from '../components/ImageCropper';
@@ -58,7 +58,8 @@ function ArtistProfile() {
         hourly_rate: 0,
         experience_years: 0,
         commission_rate: 0,
-        profile_image: ''
+        profile_image: '',
+        bio: ''
     });
 
     const [passwords, setPasswords] = useState({
@@ -128,7 +129,8 @@ function ArtistProfile() {
                         hourly_rate: data.hourly_rate || 0,
                         experience_years: data.experience_years || 0,
                         commission_rate: (data.commission_rate || 0) * 100,
-                        profile_image: data.profile_image || ''
+                        profile_image: data.profile_image || '',
+                        bio: data.bio || ''
                     });
                 }
                 setLoading(false);
@@ -233,7 +235,8 @@ function ArtistProfile() {
                 specialization: profile.specialization,
                 experience_years: profile.experience_years,
                 commission_rate: 0.30,
-                profileImage: profile.profile_image
+                profileImage: profile.profile_image,
+                bio: profile.bio
             });
 
             // Change password if requested
@@ -271,7 +274,8 @@ function ArtistProfile() {
                     hourly_rate: data.hourly_rate || 0,
                     experience_years: data.experience_years || 0,
                     commission_rate: (data.commission_rate || 0) * 100,
-                    profile_image: data.profile_image || ''
+                    profile_image: data.profile_image || '',
+                    bio: data.bio || ''
                 });
             }
         } catch (error) {
@@ -537,6 +541,27 @@ function ArtistProfile() {
                                             {errors.experience_years && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.experience_years}</span>}
                                         </div>
                                         {/* Commission rate hidden from artist profile — visible in Earnings page */}
+                                        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                            <label className="artist-profile-form-label"><FileText size={16} /> About Me / Bio</label>
+                                            <textarea
+                                                className="form-input artist-profile-input"
+                                                value={profile.bio}
+                                                onChange={e => setProfile({ ...profile, bio: e.target.value.slice(0, 1000) })}
+                                                placeholder="Tell clients about your artistic journey, style philosophy, and what inspires your work..."
+                                                maxLength={1000}
+                                                rows={4}
+                                                style={{
+                                                    resize: 'vertical',
+                                                    minHeight: '80px',
+                                                    maxHeight: '200px',
+                                                    fontFamily: 'inherit',
+                                                    lineHeight: '1.6'
+                                                }}
+                                            />
+                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '8px' }}>
+                                                {profile.bio.length}/1000 characters — This will appear on your public profile
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 

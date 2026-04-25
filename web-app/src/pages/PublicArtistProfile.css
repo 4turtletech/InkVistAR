@@ -18,8 +18,8 @@
 
 /* ========== HERO ========== */
 .pap-hero { position: relative; padding: 100px 20px 60px; overflow: hidden; }
-.pap-hero-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #0f172a 0%, #1e1a1c 50%, #171516 100%); }
-.pap-hero-overlay { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 20%, rgba(183,149,78,0.08) 0%, transparent 60%); }
+.pap-hero-bg { position: absolute; inset: 0; background: #171516; }
+.pap-hero-overlay { position: absolute; inset: 0; background: rgba(183,149,78,0.03); }
 .pap-hero-content { position: relative; z-index: 2; max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; text-align: center; }
 
 .pap-breadcrumb { display: inline-flex; align-items: center; gap: 6px; color: #94a3b8; text-decoration: none; font-size: 0.85rem; font-weight: 500; margin-bottom: 36px; transition: color 0.2s; align-self: flex-start; }

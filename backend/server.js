@@ -324,6 +324,15 @@ db.getConnection((err, connection) => {
           db.query("ALTER TABLE artists ADD COLUMN profile_image LONGTEXT NULL");
         }
       });
+
+      // MIGRATION: Check if 'bio' column exists, if not add it
+      db.query("SHOW COLUMNS FROM artists LIKE 'bio'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('[MIGRATE] Migrating artists table: Adding bio column...');
+          db.query("ALTER TABLE artists ADD COLUMN bio TEXT NULL");
+          console.log('[OK] Added bio column');
+        }
+      });
     });
 
     // Create Notifications Table if not exists
@@ -2971,7 +2980,8 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
       COALESCE(a.commission_rate, 0.30) as commission_rate,
       COALESCE(a.rating, 0) as rating,
       COALESCE(a.total_reviews, 0) as total_reviews,
-      a.profile_image
+      a.profile_image,
+      a.bio
     FROM users u
     LEFT JOIN artists a ON u.id = a.user_id
     WHERE u.id = ? AND u.user_type = 'artist'
@@ -3165,7 +3175,7 @@ app.get('/api/artist/:artistId/clients', (req, res) => {
 // Update Artist Profile
 app.put('/api/artist/profile/:id', (req, res) => {
   const { id } = req.params;
-  const { name, specialization, hourly_rate, experience_years, phone, studio_name, profileImage } = req.body;
+  const { name, specialization, hourly_rate, experience_years, phone, studio_name, profileImage, bio } = req.body;
 
   // Server-side hardening: Truncate and clamp inputs
   const safeName = name ? name.substring(0, 100) : null;
@@ -3173,6 +3183,7 @@ app.put('/api/artist/profile/:id', (req, res) => {
   const safeStudioName = studio_name ? studio_name.substring(0, 100) : null;
   const safeSpecialization = specialization ? specialization.substring(0, 500) : null;
   const safeExperienceYears = experience_years !== undefined ? Math.max(0, Math.min(100, parseInt(experience_years) || 0)) : undefined;
+  const safeBio = bio !== undefined ? (bio || '').substring(0, 1000) : undefined;
 
   // Update users table (name and phone)
   db.query('UPDATE users SET name = ?, phone = ? WHERE id = ?', [safeName, safePhone, id], (err) => {
@@ -3198,6 +3209,10 @@ app.put('/api/artist/profile/:id', (req, res) => {
     if (profileImage !== undefined) {
       artistQuery += ', profile_image = ?';
       params.push(profileImage);
+    }
+    if (safeBio !== undefined) {
+      artistQuery += ', bio = ?';
+      params.push(safeBio);
     }
 
     artistQuery += ' WHERE user_id = ?';
