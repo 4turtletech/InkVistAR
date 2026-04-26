@@ -3051,54 +3051,51 @@
         gap: 12px;
     }
 
-    /* Mobile Calendar Header tweaks */
+    /* Calendar card: prevent internal scrollbars (override PortalStyles .data-card overflow) */
+    .calendar-main-pane.data-card {
+        overflow: visible !important;
+    }
+
+    /* Calendar header: compact single row */
     .calendar-header.admin-st-07952507 {
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: center;
-        padding-bottom: 10px;
+        gap: 6px;
+        margin-bottom: 10px;
     }
 
     .calendar-header .admin-st-f21b09cf {
-        gap: 4px;
-        order: 2; /* Put navigation controls below the month text */
-        width: 100%;
-        justify-content: center;
+        gap: 3px;
     }
 
     .calendar-header .admin-st-f21b09cf .action-btn {
-        padding: 0.3rem 0.6rem;
+        padding: 0.2rem 0.5rem;
+    }
+
+    .calendar-header .admin-st-505e88db {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.6rem;
     }
 
     .calendar-header .admin-st-dcacbd6e {
-        font-size: 1.1rem;
-        order: 1; /* Put month text on top */
-        width: 100%;
-        text-align: center;
-        margin-bottom: 4px;
+        font-size: 1rem;
     }
 
-    /* Info button */
-    .calendar-header > div:last-child {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-    }
-
-    /* Calendar grid -> compact horizontally scrollable */
+    /* Calendar grid: fit naturally, no scrolling */
     .calendar-grid.admin-st-3d636867 {
         display: grid;
-        grid-template-columns: repeat(7, minmax(40px, 1fr));
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        gap: 4px;
-        padding-bottom: 8px; /* For scrollbar */
+        grid-template-columns: repeat(7, 1fr);
+        gap: 3px;
+        overflow: hidden;
     }
-    
-    .calendar-grid .admin-st-24b38fb3,
-    .calendar-grid .admin-st-e2f83dcd {
-        display: flex !important;
+
+    /* Compact day headers */
+    .calendar-grid .admin-st-24b38fb3 {
+        padding: 4px 2px !important;
+        font-size: 0.7rem;
+    }
+
+    /* Hide the small + icon in each day cell to save space */
+    .calendar-day-cell .admin-st-0dbc0f09 {
+        display: none;
     }
 
     /* Auto-fit grids -> smaller minimums */
