@@ -302,10 +302,10 @@ function ArtistProfile() {
                     {loading ? (
                         <div className="no-data">Loading profile...</div>
                     ) : (
-                        <div className="data-card" style={{ maxWidth: '960px', margin: '0 auto', width: '100%' }}>
+                        <div className="data-card" style={{ maxWidth: '760px', margin: '0 auto', width: '100%', padding: '24px 32px' }}>
                             <form onSubmit={handleSave}>
                                 {/* Profile Picture Section */}
-                                <div className="artist-profile-picture-section">
+                                <div className="artist-profile-picture-section" style={{ marginBottom: '12px', padding: '0' }}>
                                     <div style={{ position: 'relative', display: 'inline-block' }}>
                                         <div style={{
                                             width: '100px',
@@ -363,10 +363,10 @@ function ArtistProfile() {
                                             />
                                         </label>
                                     </div>
-                                    <p style={{ marginTop: '12px', fontSize: '0.9rem', color: '#64748b' }}>
+                                    <p style={{ marginTop: '8px', fontSize: '0.85rem', color: '#64748b', marginBottom: '2px' }}>
                                         Click the camera icon to upload a new photo
                                     </p>
-                                    <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                                    <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: 0 }}>
                                         Max size: 5MB. Recommended: 400x400px
                                     </p>
                                 </div>
@@ -391,15 +391,15 @@ function ArtistProfile() {
 
                                 {/* Section 1: Personal Information */}
                                 <div style={{
-                                    borderBottom: '2px solid #f1f5f9',
-                                    paddingBottom: '16px',
-                                    marginBottom: '16px'
+                                    borderBottom: '1px solid #f1f5f9',
+                                    paddingBottom: '12px',
+                                    marginBottom: '12px'
                                 }}>
                                     <h3 style={{
                                         color: '#1e293b',
-                                        fontSize: '1.1rem',
+                                        fontSize: '1.05rem',
                                         fontWeight: '600',
-                                        marginBottom: '16px',
+                                        marginBottom: '12px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '8px'
@@ -407,7 +407,7 @@ function ArtistProfile() {
                                         <User size={20} color="#be9055" />
                                         Personal Information
                                     </h3>
-                                    <div className="grid-2col" style={{ gap: '16px' }}>
+                                    <div className="grid-2col" style={{ gap: '12px' }}>
                                         <div className="form-group">
                                             <label className="artist-profile-form-label"><User size={16} /> Artist Name <span style={{ color: '#ef4444' }}>*</span></label>
                                             <input
@@ -496,15 +496,15 @@ function ArtistProfile() {
 
                                 {/* Section 2: Professional Details */}
                                 <div style={{
-                                    borderBottom: '2px solid #f1f5f9',
-                                    paddingBottom: '16px',
-                                    marginBottom: '16px'
+                                    borderBottom: '1px solid #f1f5f9',
+                                    paddingBottom: '12px',
+                                    marginBottom: '12px'
                                 }}>
                                     <h3 style={{
                                         color: '#1e293b',
-                                        fontSize: '1.1rem',
+                                        fontSize: '1.05rem',
                                         fontWeight: '600',
-                                        marginBottom: '16px',
+                                        marginBottom: '12px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '8px'
@@ -512,7 +512,7 @@ function ArtistProfile() {
                                         <Palette size={20} color="#be9055" />
                                         Professional Details
                                     </h3>
-                                    <div className="grid-2col" style={{ gap: '16px' }}>
+                                    <div className="grid-2col" style={{ gap: '12px' }}>
                                         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                                             <label className="artist-profile-form-label"><Palette size={16} /> Specialization / Styles</label>
                                             <MultiSelectDropdown 
@@ -566,18 +566,18 @@ function ArtistProfile() {
                                 </div>
 
                                 {/* Section 3: Password & Security */}
-                                <div style={{ marginBottom: '16px' }}>
+                                <div style={{ marginBottom: '12px' }}>
                                     <div style={{
                                         display: 'flex',
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
-                                        marginBottom: '16px',
-                                        borderBottom: '2px solid #f1f5f9',
-                                        paddingBottom: '16px'
+                                        marginBottom: '12px',
+                                        borderBottom: '1px solid #f1f5f9',
+                                        paddingBottom: '12px'
                                     }}>
                                         <h3 style={{
                                             color: '#1e293b',
-                                            fontSize: '1.1rem',
+                                            fontSize: '1.05rem',
                                             fontWeight: '600',
                                             display: 'flex',
                                             alignItems: 'center',

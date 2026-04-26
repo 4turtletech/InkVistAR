@@ -798,6 +798,7 @@
 .badge-v2.confirmed { background: #dcfce7; color: #16a34a; }
 .badge-v2.cancelled { background: #f1f5f9; color: #64748b; }
 .badge-v2.completed { background: #dbeafe; color: #2563eb; }
+.badge-v2.in_progress { background: #e0f2fe; color: #0284c7; }
 
 /* Table Actions */
 .table-actions-v2 {

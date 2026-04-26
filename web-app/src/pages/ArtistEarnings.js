@@ -479,39 +479,29 @@ function ArtistEarnings() {
                                     <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, marginLeft: 'auto' }}>{filteredPayouts.length} payout{filteredPayouts.length !== 1 ? 's' : ''}</span>
                                 </h2>
                                 {filteredPayouts.length > 0 ? (
-                                    <div className="table-responsive">
-                                        <table className="portal-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>Amount</th>
-                                                    <th>Method</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {currentPayouts.map((payout, i) => (
-                                                    <tr key={payout.id || i}>
-                                                        <td>{new Date(payout.created_at).toLocaleDateString()}</td>
-                                                        <td style={{ fontWeight: 700, color: '#10b981' }}>{formatCurrency(payout.amount)}</td>
-                                                        <td style={{ fontSize: '0.85rem', color: '#475569' }}>{payout.payout_method || 'N/A'}</td>
-                                                        <td>
-                                                            <span style={{
-                                                                display: 'inline-block', padding: '3px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
-                                                                background: (payout.status || '').toLowerCase() === 'completed' || (payout.status || '').toLowerCase() === 'paid'
-                                                                    ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                                                                color: (payout.status || '').toLowerCase() === 'completed' || (payout.status || '').toLowerCase() === 'paid'
-                                                                    ? '#10b981' : '#f59e0b',
-                                                                border: `1px solid ${(payout.status || '').toLowerCase() === 'completed' || (payout.status || '').toLowerCase() === 'paid'
-                                                                    ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`
-                                                            }}>
-                                                                {payout.status || 'Pending'}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                                        {currentPayouts.map((payout, i) => (
+                                            <div key={payout.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'rgba(248, 250, 252, 0.5)' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontSize: '0.85rem', color: '#1e293b', fontWeight: 600 }}>{new Date(payout.created_at).toLocaleDateString()}</span>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{payout.payout_method || 'N/A'}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                                                    <span style={{ fontWeight: 700, color: '#10b981', fontSize: '0.95rem' }}>{formatCurrency(payout.amount)}</span>
+                                                    <span style={{
+                                                        display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
+                                                        background: (payout.status || '').toLowerCase() === 'completed' || (payout.status || '').toLowerCase() === 'paid'
+                                                            ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                                        color: (payout.status || '').toLowerCase() === 'completed' || (payout.status || '').toLowerCase() === 'paid'
+                                                            ? '#10b981' : '#f59e0b',
+                                                        border: `1px solid ${(payout.status || '').toLowerCase() === 'completed' || (payout.status || '').toLowerCase() === 'paid'
+                                                            ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`
+                                                    }}>
+                                                        {payout.status || 'Pending'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : <p className="no-data" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No payout history for this period.</p>}
                                 {filteredPayouts.length > payoutPerPage && (

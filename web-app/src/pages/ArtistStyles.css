@@ -607,19 +607,17 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
-    padding: 0 2rem;
     margin-bottom: 1.5rem;
 }
 
 /* Chart Rows (Week Ahead / Schedule) */
 .artist-chart-row {
-    padding: 0 2rem;
     margin-top: 1.5rem;
 }
 
 /* Upcoming Sessions Section */
 .artist-upcoming-section {
-    padding: 1.5rem 2rem 0;
+    padding-top: 1.5rem;
 }
 
 /* ========== ARTIST DASHBOARD — MOBILE OVERRIDES ========== */
