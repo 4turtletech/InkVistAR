@@ -6,6 +6,10 @@
     border-bottom: 1px solid #f1f5f9;
 }
 
+.artist-portal .portal-content {
+    padding: 0;
+}
+
 /* Action Buttons (Premium) */
 .artist-btn-accept {
     background-color: #10b981;

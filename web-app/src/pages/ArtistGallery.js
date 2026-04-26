@@ -238,8 +238,8 @@ function ArtistGallery() {
                             </div>
                             <button className="close-btn" onClick={() => closeModal(setViewWorkModal)}><X size={24}/></button>
                         </div>
-                        <div className="modal-body" style={{ maxHeight: '75vh' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 320px', gap: '30px' }}>
+                        <div className="modal-body">
+                            <div className="artist-gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 320px', gap: '30px' }}>
                                 {/* Left: Hero Image */}
                                 <div style={{ 
                                     backgroundColor: '#f8fafc', 
@@ -328,8 +328,8 @@ function ArtistGallery() {
                             <button className="close-btn" onClick={() => closeModal(setAddWorkModal)}><X size={24}/></button>
                         </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="modal-body" style={{ maxHeight: '75vh' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 350px', gap: '20px' }}>
+                            <div className="modal-body">
+                                <div className="artist-gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 350px', gap: '20px' }}>
                                     {/* Left: Metadata */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         <div className="form-group">

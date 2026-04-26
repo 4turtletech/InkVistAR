@@ -653,7 +653,7 @@ function ArtistAppointments() {
                                                     </div>
                                                     <button onClick={() => setSelectedAppointment(null)} className="close-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
                                                 </div>
-                                                <div className="artist-modal-body-scroll modal-body" style={{ padding: '24px', maxHeight: '75vh', overflowY: 'auto' }}>
+                                                <div className="artist-modal-body-scroll modal-body" style={{ padding: '24px' }}>
                                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                                                         {/* LEFT COLUMN: Info & Notes */}
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
