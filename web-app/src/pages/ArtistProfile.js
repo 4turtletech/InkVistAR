@@ -302,18 +302,18 @@ function ArtistProfile() {
                     {loading ? (
                         <div className="no-data">Loading profile...</div>
                     ) : (
-                        <div className="data-card" style={{ maxWidth: '760px', margin: '0 auto', width: '100%', padding: '24px 32px' }}>
+                        <div className="data-card" style={{ maxWidth: '720px', margin: '0 auto', width: '100%', padding: '16px 24px' }}>
                             <form onSubmit={handleSave}>
                                 {/* Profile Picture Section */}
                                 <div className="artist-profile-picture-section" style={{ marginBottom: '12px', padding: '0' }}>
                                     <div style={{ position: 'relative', display: 'inline-block' }}>
                                         <div style={{
-                                            width: '100px',
-                                            height: '100px',
+                                            width: '80px',
+                                            height: '80px',
                                             borderRadius: '50%',
                                             backgroundColor: '#e2e8f0',
                                             overflow: 'hidden',
-                                            border: '4px solid white',
+                                            border: '3px solid white',
                                             boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                                         }}>
                                             {profile.profile_image ? (
@@ -341,20 +341,20 @@ function ArtistProfile() {
                                             right: '4px',
                                             backgroundColor: '#be9055',
                                             color: 'white',
-                                            padding: '10px',
+                                            padding: '8px',
                                             borderRadius: '50%',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            border: '3px solid white',
+                                            border: '2px solid white',
                                             transition: 'transform 0.2s',
                                             boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                                         }}
                                         onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
                                         onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                                         >
-                                            <Camera size={20} />
+                                            <Camera size={16} />
                                             <input
                                                 type="file"
                                                 accept="image/*"
@@ -374,9 +374,9 @@ function ArtistProfile() {
                                 {/* Message Alert */}
                                 {message.text && (
                                     <div style={{
-                                        padding: '12px 16px',
+                                        padding: '10px 16px',
                                         borderRadius: '8px',
-                                        marginBottom: '20px',
+                                        marginBottom: '12px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '10px',
@@ -397,9 +397,9 @@ function ArtistProfile() {
                                 }}>
                                     <h3 style={{
                                         color: '#1e293b',
-                                        fontSize: '1.05rem',
+                                        fontSize: '1rem',
                                         fontWeight: '600',
-                                        marginBottom: '12px',
+                                        marginBottom: '10px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '8px'
@@ -502,9 +502,9 @@ function ArtistProfile() {
                                 }}>
                                     <h3 style={{
                                         color: '#1e293b',
-                                        fontSize: '1.05rem',
+                                        fontSize: '1rem',
                                         fontWeight: '600',
-                                        marginBottom: '12px',
+                                        marginBottom: '10px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '8px'
@@ -552,10 +552,10 @@ function ArtistProfile() {
                                                 rows={4}
                                                 style={{
                                                     resize: 'vertical',
-                                                    minHeight: '80px',
-                                                    maxHeight: '200px',
+                                                    minHeight: '60px',
+                                                    maxHeight: '120px',
                                                     fontFamily: 'inherit',
-                                                    lineHeight: '1.6'
+                                                    lineHeight: '1.5'
                                                 }}
                                             />
                                             <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '8px' }}>
@@ -577,7 +577,7 @@ function ArtistProfile() {
                                     }}>
                                         <h3 style={{
                                             color: '#1e293b',
-                                            fontSize: '1.05rem',
+                                            fontSize: '1rem',
                                             fontWeight: '600',
                                             display: 'flex',
                                             alignItems: 'center',

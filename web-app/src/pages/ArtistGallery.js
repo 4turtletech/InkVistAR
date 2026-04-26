@@ -249,19 +249,20 @@ function ArtistGallery() {
                                     justifyContent: 'center',
                                     alignItems: 'center',
                                     border: '1px solid #e2e8f0',
-                                    minHeight: '400px'
+                                    minHeight: '300px',
+                                    maxHeight: '400px'
                                 }}>
                                     <img 
                                         src={selectedWork.image_url} 
                                         alt={selectedWork.title} 
                                         className="lightbox-trigger"
-                                        style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain' }} 
+                                        style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain' }} 
                                         onClick={(e) => { e.stopPropagation(); setLightboxSrc(selectedWork.image_url); }}
                                     />
                                 </div>
 
                                 {/* Right: Info Panel */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                                         <span className="badge" style={{ backgroundColor: '#e0e7ff', color: '#4338ca', padding: '6px 12px', fontSize: '0.8rem', fontWeight: 700 }}>
                                             {selectedWork.category || 'Uncategorized'}
@@ -285,13 +286,13 @@ function ArtistGallery() {
                                     </div>
 
                                     <div className="work-details" style={{ flex: 1 }}>
-                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Project Story</label>
-                                        <p style={{ lineHeight: '1.7', color: '#334155', margin: 0 }}>{selectedWork.description || 'No description provided for this masterpiece.'}</p>
+                                        <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Project Story</label>
+                                        <p style={{ lineHeight: '1.5', color: '#334155', margin: 0 }}>{selectedWork.description || 'No description provided for this masterpiece.'}</p>
                                         
                                         {selectedWork.price_estimate && (
-                                            <div style={{ marginTop: '24px', padding: '20px', backgroundColor: '#fdf4ff', borderRadius: '16px', border: '1px solid #fae8ff' }}>
-                                                <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#a21caf', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Market Valuation</label>
-                                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#701a75' }}>₱{Number(selectedWork.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                            <div style={{ marginTop: '16px', padding: '12px 16px', backgroundColor: '#fdf4ff', borderRadius: '12px', border: '1px solid #fae8ff' }}>
+                                                <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#a21caf', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Market Valuation</label>
+                                                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#701a75' }}>₱{Number(selectedWork.price_estimate).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                             </div>
                                         )}
                                     </div>
@@ -328,9 +329,9 @@ function ArtistGallery() {
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body" style={{ maxHeight: '75vh' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 350px', gap: '30px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 350px', gap: '20px' }}>
                                     {/* Left: Metadata */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         <div className="form-group">
                                             <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Project Title</label>
                                             <input 
@@ -347,12 +348,12 @@ function ArtistGallery() {
                                             <textarea 
                                                 className="form-input"
                                                 placeholder="Describe the style, execution, or story behind this work..."
-                                                style={{ minHeight: '120px' }}
+                                                style={{ minHeight: '80px', maxHeight: '120px' }}
                                                 value={formData.description}
                                                 onChange={e => setFormData({...formData, description: e.target.value})}
                                             />
                                         </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                             <div className="form-group">
                                                 <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Style Category</label>
                                                 <select className="form-input" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} style={{ height: '44px' }}>
@@ -374,7 +375,7 @@ function ArtistGallery() {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="form-group" style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <div className="form-group" style={{ background: '#f8fafc', padding: '10px 15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                             <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 600, color: '#334155' }}>
                                                 <input 
                                                     type="checkbox" 
@@ -406,7 +407,7 @@ function ArtistGallery() {
                                             minHeight: '200px'
                                         }} onClick={() => document.getElementById('work-file-upload').click()}>
                                             {formData.imageUrl ? (
-                                                <img src={formData.imageUrl} alt="Upload Preview" style={{ width: '100%', borderRadius: '12px', maxHeight: '400px', objectFit: 'cover' }} />
+                                                <img src={formData.imageUrl} alt="Upload Preview" style={{ width: '100%', borderRadius: '12px', maxHeight: '250px', objectFit: 'cover' }} />
                                             ) : (
                                                 <>
                                                     <div style={{ background: '#fff', padding: '12px', borderRadius: '50%', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', marginBottom: '12px' }}>

@@ -611,6 +611,9 @@
 }
 
 /* Chart Rows (Week Ahead / Schedule) */
+.artist-portal .analytics-dashboard-layout {
+    padding: 0;
+}
 .artist-chart-row {
     margin-top: 1.5rem;
 }

@@ -498,7 +498,7 @@ function ArtistPortal() {
                                             <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500, marginLeft: 'auto' }}>{unreadCount} unread</span>
                                         </h2>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                            {notifications.length > 0 ? notifications.map(notif => (
+                                            {notifications.length > 0 ? notifications.slice(0, 10).map(notif => (
                                                 <div key={notif.id}
                                                     style={{
                                                         display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px',
@@ -526,6 +526,11 @@ function ArtistPortal() {
                                                 </div>
                                             )}
                                         </div>
+                                        {notifications.length > 10 && (
+                                            <div style={{ textAlign: 'center', padding: '8px 0', color: '#64748b', fontSize: '0.8rem', fontWeight: 500 }}>
+                                                + {notifications.length - 10} more {notifications.length - 10 === 1 ? 'activity' : 'activities'}
+                                            </div>
+                                        )}
                                         <button
                                             onClick={() => navigate('/artist/notifications')}
                                             style={{ width: '100%', marginTop: '12px', padding: '10px', borderRadius: '8px', background: '#f1f5f9', color: '#475569', border: 'none', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', transition: 'all 0.2s' }}
