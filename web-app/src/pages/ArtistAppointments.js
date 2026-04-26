@@ -7,8 +7,9 @@ import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import './PortalStyles.css';
 import './ArtistStyles.css';
+import './AdminUsers.css';
 import { API_URL } from '../config';
-import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
+import { getDisplayCode, formatTime12Hour, formatStatus, getStatusColor } from '../utils/formatters';
 import { generateReportHeader, downloadCsv } from '../utils/csvExport';
 
 function ArtistAppointments() {
@@ -550,7 +551,7 @@ function ArtistAppointments() {
                                                         </div>
                                                     </div>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-                                                        <span className={`status-badge ${apt.status}`} style={{ padding: '4px 8px', fontSize: '0.75rem', margin: 0 }}>
+                                                        <span className={`badge status-${getStatusColor(apt.status)}`} style={{ padding: '4px 8px', fontSize: '0.75rem', margin: 0 }}>
                                                             {formatStatus(apt.status)}
                                                         </span>
                                                         <span style={{ color: '#6366f1', fontWeight: '600', fontSize: '0.85rem' }}>{formatTime12Hour(apt.start_time || apt.time) || 'N/A'}</span>
@@ -586,7 +587,7 @@ function ArtistAppointments() {
                                                                 {activeTab === 'history' && (
                                                                     <td style={{ color: '#f59e0b', fontWeight: '500' }}>₱{parseFloat(a.total_material_cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                                 )}
-                                                                <td><span className={`status-badge ${a.status}`}>{formatStatus(a.status)}</span></td>
+                                                                <td><span className={`badge status-${getStatusColor(a.status)}`}>{formatStatus(a.status)}</span></td>
                                                                 <td>
                                                                     <span className={`status-badge ${a.payment_status === 'paid' ? 'completed' : a.payment_status === 'pending' ? 'pending' : 'cancelled'}`} style={{ backgroundColor: a.payment_status === 'paid' ? '#dcfce7' : a.payment_status === 'pending' ? '#fef3c7' : '#f3f4f6', color: a.payment_status === 'paid' ? '#16a34a' : a.payment_status === 'pending' ? '#b45309' : '#64748b' }}>
                                                                         {a.payment_status ? a.payment_status.charAt(0).toUpperCase() + a.payment_status.slice(1) : 'Unpaid'}
@@ -671,7 +672,7 @@ function ArtistAppointments() {
                                                         <div style={{ display: 'flex', gap: '30px', marginTop: '15px' }}>
                                                             <div>
                                                                 <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Status</span>
-                                                                <span className={`status-badge ${selectedAppointment.status}`}>{formatStatus(selectedAppointment.status)}</span>
+                                                                <span className={`badge status-${getStatusColor(selectedAppointment.status)}`}>{formatStatus(selectedAppointment.status)}</span>
                                                             </div>
                                                             <div>
                                                                 <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Price</span>

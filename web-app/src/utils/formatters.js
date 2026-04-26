@@ -58,3 +58,20 @@ export const formatStatus = (statusStr) => {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
 };
+
+/**
+ * Returns a CSS class modifier string for standard status colors.
+ */
+export const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+        case 'scheduled': return 'scheduled';
+        case 'confirmed': return 'confirmed';
+        case 'completed': return 'completed';
+        case 'pending': return 'pending';
+        case 'cancelled': return 'cancelled';
+        case 'rejected': return 'cancelled';
+        case 'in_progress': return 'in-progress';
+        case 'incomplete': return 'incomplete';
+        default: return 'scheduled';
+    }
+};
