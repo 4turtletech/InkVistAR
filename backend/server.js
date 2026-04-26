@@ -325,7 +325,7 @@ db.getConnection((err, connection) => {
         }
       });
 
-      // MIGRATION: Check if 'bio' column exists, if not add it
+      // MIGRATION: Check if 'bio' column exists
       db.query("SHOW COLUMNS FROM artists LIKE 'bio'", (err, results) => {
         if (!err && results.length === 0) {
           console.log('[MIGRATE] Migrating artists table: Adding bio column...');
