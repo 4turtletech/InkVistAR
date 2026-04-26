@@ -120,7 +120,12 @@ function AdminDashboard() {
 
                 // --- Process Data for Dashboard ---
                 const now = new Date();
-                const todayStr = now.toISOString().split('T')[0];
+                // Get local date string in YYYY-MM-DD format
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+                
                 const currentMonth = now.getMonth();
                 const currentYear = now.getFullYear();
 
@@ -133,14 +138,24 @@ function AdminDashboard() {
                 for (let i = 6; i >= 0; i--) {
                     const d = new Date();
                     d.setDate(d.getDate() - i);
-                    last7Days[d.toISOString().split('T')[0]] = 0;
+                    const dYear = d.getFullYear();
+                    const dMonth = String(d.getMonth() + 1).padStart(2, '0');
+                    const dDay = String(d.getDate()).padStart(2, '0');
+                    last7Days[`${dYear}-${dMonth}-${dDay}`] = 0;
                 }
 
                 appointments.forEach(apt => {
                     // Normalize date
-                    let aptDateStr = typeof apt.appointment_date === 'string'
-                        ? apt.appointment_date.split('T')[0]
-                        : new Date(apt.appointment_date).toISOString().split('T')[0];
+                    let aptDateStr = '';
+                    if (typeof apt.appointment_date === 'string') {
+                        aptDateStr = apt.appointment_date.split('T')[0];
+                    } else {
+                        const d = new Date(apt.appointment_date);
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const dd = String(d.getDate()).padStart(2, '0');
+                        aptDateStr = `${y}-${m}-${dd}`;
+                    }
 
                     // Chart Counting
                     if (last7Days.hasOwnProperty(aptDateStr)) {
@@ -176,8 +191,14 @@ function AdminDashboard() {
 
                 // Today's Appointments
                 const todayApptsList = appointments.filter(apt => {
-                    let d = typeof apt.appointment_date === 'string' ? apt.appointment_date : new Date(apt.appointment_date).toISOString();
-                    return d.startsWith(todayStr) && apt.status !== 'cancelled';
+                    let d = '';
+                    if (typeof apt.appointment_date === 'string') {
+                        d = apt.appointment_date.split('T')[0];
+                    } else {
+                        const dObj = new Date(apt.appointment_date);
+                        d = `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}-${String(dObj.getDate()).padStart(2, '0')}`;
+                    }
+                    return d === todayStr && apt.status !== 'cancelled';
                 });
                 setTodaysAppointments(todayApptsList);
 

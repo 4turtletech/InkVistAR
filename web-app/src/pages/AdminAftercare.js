@@ -61,12 +61,12 @@ function AdminAftercare() {
 
     return (
         <div className="portal-content" style={{ paddingTop: '24px' }}>
-            <div style={{ position: 'relative', textAlign: 'center', marginBottom: '24px' }}>
-                <div style={{ display: 'inline-block', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ textAlign: 'center', flex: '1 1 auto' }}>
                     <h2 style={{ margin: '0 0 6px', fontSize: '1.4rem', fontWeight: 700, color: '#1e293b' }}>Aftercare Notification Schedule</h2>
                     <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Configure the global healing notifications sent to customers after a completed tattoo session.</p>
                 </div>
-                <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
+                <div style={{ display: 'flex', flexShrink: 0 }}>
                     <button 
                         className="btn btn-secondary" 
                         onClick={() => setConfirmDialog({ isOpen: true, title: 'Reset to Defaults?', message: 'This will replace all aftercare templates with the original defaults. Any customizations will be lost.', type: 'warning', onConfirm: () => { setConfirmDialog(prev => ({...prev, isOpen: false})); resetAftercareTemplates(); } })}
