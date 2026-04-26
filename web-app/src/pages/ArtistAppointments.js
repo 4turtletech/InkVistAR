@@ -574,27 +574,27 @@ function ArtistAppointments() {
                                         {currentItems.length ? (
                                             <>
                                                 <div className="table-responsive">
-                                                    <table className="portal-table">
+                                                    <table className="portal-table mobile-card-table">
                                                         <thead><tr><th>Booking ID</th><th>Client</th><th>Service</th><th>Date</th><th>Time</th><th>Price</th>{activeTab === 'history' && <th>Materials Cost</th>}<th>Status</th><th>Payment</th>{activeTab === 'pending' && <th>Actions</th>}</tr></thead>
                                                         <tbody>{currentItems.map((a, index) => (
                                                             <tr key={a.id} onClick={() => setSelectedAppointment(a)} style={{ cursor: 'pointer', animation: 'slideInUpFade 0.3s ease-out forwards', animationDelay: `${index * 0.05}s`, opacity: 0 }} className="clickable-row hover-bg">
-                                                                <td><span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b', fontSize: '0.85rem' }}>{getDisplayCode(a.booking_code, a.id)}</span></td>
-                                                                <td style={{ fontWeight: '600' }}>{a.client_name}</td>
-                                                                <td>{a.design_title}</td>
-                                                                <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
-                                                                <td>{formatTime12Hour(a.start_time) || 'N/A'}</td>
-                                                                <td style={{ fontWeight: 'bold' }}>₱{parseFloat(a.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                                <td data-label="Booking ID"><span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b', fontSize: '0.85rem' }}>{getDisplayCode(a.booking_code, a.id)}</span></td>
+                                                                <td data-label="Client" style={{ fontWeight: '600' }}>{a.client_name}</td>
+                                                                <td data-label="Service">{a.design_title}</td>
+                                                                <td data-label="Date">{new Date(a.appointment_date).toLocaleDateString()}</td>
+                                                                <td data-label="Time">{formatTime12Hour(a.start_time) || 'N/A'}</td>
+                                                                <td data-label="Price" style={{ fontWeight: 'bold' }}>₱{parseFloat(a.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                                 {activeTab === 'history' && (
-                                                                    <td style={{ color: '#f59e0b', fontWeight: '500' }}>₱{parseFloat(a.total_material_cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                                    <td data-label="Materials Cost" style={{ color: '#f59e0b', fontWeight: '500' }}>₱{parseFloat(a.total_material_cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                                 )}
-                                                                <td><span className={`badge status-${getStatusColor(a.status)}`}>{formatStatus(a.status)}</span></td>
-                                                                <td>
+                                                                <td data-label="Status"><span className={`badge status-${getStatusColor(a.status)}`}>{formatStatus(a.status)}</span></td>
+                                                                <td data-label="Payment">
                                                                     <span className={`status-badge ${a.payment_status === 'paid' ? 'completed' : a.payment_status === 'pending' ? 'pending' : 'cancelled'}`} style={{ backgroundColor: a.payment_status === 'paid' ? '#dcfce7' : a.payment_status === 'pending' ? '#fef3c7' : '#f3f4f6', color: a.payment_status === 'paid' ? '#16a34a' : a.payment_status === 'pending' ? '#b45309' : '#64748b' }}>
                                                                         {a.payment_status ? a.payment_status.charAt(0).toUpperCase() + a.payment_status.slice(1) : 'Unpaid'}
                                                                     </span>
                                                                 </td>
                                                                 {activeTab === 'pending' && (
-                                                                    <td>
+                                                                    <td data-label="Actions">
                                                                         <div className="artist-action-group">
                                                                             <button onClick={(e) => { e.stopPropagation(); setConfirmModal({ visible: true, title: 'Confirm Availability', message: 'Ready to take on this assignment? Confirming will notify the manager to generate a quote for the client.', onConfirm: () => handleAccept(a.id) }); }} className="artist-btn-accept">Confirm</button>
                                                                             <button onClick={(e) => { e.stopPropagation(); setConfirmModal({ visible: true, title: 'Decline Assignment', message: 'Are you sure you want to decline this assignment? It will be reverted back to the Admin for reassignment.', onConfirm: () => handleReject(a.id) }); }} className="artist-btn-decline">Decline</button>

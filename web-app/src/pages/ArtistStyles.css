@@ -801,4 +801,59 @@
     .header-subtitle {
         margin-right: 0 !important;
     }
+
+    /* === Mobile Card Table (No Scrollbars) === */
+    .table-responsive:has(.mobile-card-table) {
+        overflow-x: visible !important;
+        display: block;
+        width: 100%;
+    }
+
+    .mobile-card-table, 
+    .mobile-card-table tbody,
+    .mobile-card-table tr,
+    .mobile-card-table td {
+        display: block;
+        width: 100% !important;
+    }
+
+    .mobile-card-table thead {
+        display: none; /* Hide headers */
+    }
+
+    .mobile-card-table tr {
+        margin-bottom: 1rem;
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 12px;
+        padding: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .mobile-card-table td {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        text-align: right;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem !important;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        font-size: 0.85rem !important;
+    }
+
+    .mobile-card-table td:last-child {
+        border-bottom: none;
+        padding-top: 1rem !important;
+    }
+
+    .mobile-card-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        color: #64748b;
+        text-align: left;
+        margin-right: auto;
+        flex-shrink: 0;
+    }
 }

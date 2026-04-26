@@ -673,7 +673,7 @@ body.sidenav-collapsed .portal-layout .portal-container {
 
     .portal-table {
         font-size: 0.85rem;
-        min-width: 520px;
+        min-width: 800px;
     }
 
     .portal-table th,

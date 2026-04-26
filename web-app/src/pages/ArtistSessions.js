@@ -9,6 +9,7 @@ import './PortalStyles.css';
 import './ArtistStyles.css';
 import { API_URL } from '../config';
 import { getSessionPaymentStatus, shouldShowInQueue } from '../utils/sessionPayment';
+import { formatTime12Hour, formatStatus, getStatusColor } from '../utils/formatters';
 
 function ArtistSessions() {
     const [sessions, setSessions] = useState([]);
@@ -616,7 +617,7 @@ function ArtistSessions() {
                             {sessions.length > 0 ? (
                                 <>
                                     <div className="table-responsive">
-                                        <table className="portal-table">
+                                        <table className="portal-table mobile-card-table">
                                         <thead>
                                             <tr>
                                                 <th>Time</th>
@@ -629,16 +630,16 @@ function ArtistSessions() {
                                         <tbody>
                                             {sessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(session => (
                                                 <tr key={session.id} onClick={() => { setViewingApt(session); setIsDetailsOpen(true); }} style={{ cursor: 'pointer' }}>
-                                                    <td>
+                                                    <td data-label="Time">
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
                                                             <Clock size={14} className="text-muted" />
-                                                            {session.start_time || 'N/A'}
+                                                            {formatTime12Hour(session.start_time) || 'N/A'}
                                                         </div>
                                                     </td>
-                                                    <td style={{ fontWeight: '600' }}>{session.client_name}</td>
-                                                    <td>{session.design_title}</td>
-                                                    <td><span className={`status-badge ${session.status}`}>{session.status}</span></td>
-                                                    <td>
+                                                    <td data-label="Client" style={{ fontWeight: '600' }}>{session.client_name}</td>
+                                                    <td data-label="Design">{session.design_title}</td>
+                                                    <td data-label="Status"><span className={`badge status-${getStatusColor(session.status)}`}>{formatStatus(session.status)}</span></td>
+                                                    <td data-label="Action">
                                                         <button className="btn btn-primary" onClick={(e) => { e.stopPropagation(); handleManageSession(session); }} style={{ padding: '6px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                             <Play size={14} /> Manage Session
                                                         </button>
@@ -703,7 +704,7 @@ function ArtistSessions() {
                                                     <Clock size={12} style={{ color: '#94a3b8' }} />
                                                     {formattedTime}
                                                 </div>
-                                                <span className={`status-badge ${session.status}`} style={{ fontSize: '0.7rem', padding: '2px 8px', minWidth: '65px', textAlign: 'center' }}>{session.status}</span>
+                                                <span className={`badge status-${getStatusColor(session.status)}`} style={{ fontSize: '0.7rem', padding: '2px 8px', minWidth: '65px', textAlign: 'center' }}>{formatStatus(session.status)}</span>
                                             </div>
                                         );
                                     })}
@@ -754,7 +755,7 @@ function ArtistSessions() {
                                     <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                                         <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</label>
                                         <p style={{ margin: '4px 0 0' }}>
-                                            <span className={`status-badge ${viewingApt.status}`}>{viewingApt.status}</span>
+                                            <span className={`badge status-${getStatusColor(viewingApt.status)}`}>{formatStatus(viewingApt.status)}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -782,7 +783,7 @@ function ArtistSessions() {
                                     <div>
                                         <p style={{ margin: 0, fontSize: '0.8rem', color: '#1d4ed8', fontWeight: '600' }}>Schedule Confirmation</p>
                                         <p style={{ margin: 0, fontSize: '0.95rem', color: '#2563eb', fontWeight: 'bold' }}>
-                                            {viewingApt.appointment_date ? new Date(viewingApt.appointment_date).toLocaleDateString() : 'Today'} at {viewingApt.start_time}
+                                            {viewingApt.appointment_date ? new Date(viewingApt.appointment_date).toLocaleDateString() : 'Today'} at {formatTime12Hour(viewingApt.start_time) || 'N/A'}
                                         </p>
                                     </div>
                                 </div>
@@ -846,7 +847,7 @@ function ArtistSessions() {
                             {/* TAB: Overview */}
                             {sessionTab === 'overview' && (
                                 <div className="grid-2col" style={{ gap: '16px' }}>
-                                    {[{label:'Client', value: activeSession.client_name}, {label:'Email', value: activeSession.client_email || 'N/A'}, {label:'Design / Project', value: activeSession.design_title}, {label:'Scheduled Time', value: activeSession.start_time || 'N/A'}, {label:'Date', value: activeSession.appointment_date ? new Date(activeSession.appointment_date).toLocaleDateString() : 'Today'}, {label:'Service Type', value: activeSession.service_type || 'Tattoo Session'}].map(item => (
+                                    {[{label:'Client', value: activeSession.client_name}, {label:'Email', value: activeSession.client_email || 'N/A'}, {label:'Design / Project', value: activeSession.design_title}, {label:'Scheduled Time', value: formatTime12Hour(activeSession.start_time) || 'N/A'}, {label:'Date', value: activeSession.appointment_date ? new Date(activeSession.appointment_date).toLocaleDateString() : 'Today'}, {label:'Service Type', value: activeSession.service_type || 'Tattoo Session'}].map(item => (
                                         <div key={item.label} style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px', border: '1px solid #e2e8f0' }}>
                                             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>{item.label}</span>
                                             <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{item.value}</span>
