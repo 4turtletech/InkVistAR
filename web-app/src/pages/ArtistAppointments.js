@@ -575,8 +575,8 @@ function ArtistAppointments() {
                                                 <div className="table-responsive">
                                                     <table className="portal-table">
                                                         <thead><tr><th>Booking ID</th><th>Client</th><th>Service</th><th>Date</th><th>Time</th><th>Price</th>{activeTab === 'history' && <th>Materials Cost</th>}<th>Status</th><th>Payment</th>{activeTab === 'pending' && <th>Actions</th>}</tr></thead>
-                                                        <tbody>{currentItems.map(a => (
-                                                            <tr key={a.id} onClick={() => setSelectedAppointment(a)} style={{ cursor: 'pointer' }} className="clickable-row hover-bg">
+                                                        <tbody>{currentItems.map((a, index) => (
+                                                            <tr key={a.id} onClick={() => setSelectedAppointment(a)} style={{ cursor: 'pointer', animation: 'slideInUpFade 0.3s ease-out forwards', animationDelay: `${index * 0.05}s`, opacity: 0 }} className="clickable-row hover-bg">
                                                                 <td><span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b', fontSize: '0.85rem' }}>{getDisplayCode(a.booking_code, a.id)}</span></td>
                                                                 <td style={{ fontWeight: '600' }}>{a.client_name}</td>
                                                                 <td>{a.design_title}</td>

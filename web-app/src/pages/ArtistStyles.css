@@ -222,10 +222,22 @@
     border-radius: 10px;
 }
 
+@keyframes slideInUpFade {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .day-view-apt-card {
     padding: 12px;
     cursor: pointer;
     transition: all 0.2s;
+    animation: slideInUpFade 0.3s ease-out forwards;
 }
 
 .day-view-apt-card:hover {
