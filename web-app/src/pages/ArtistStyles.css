@@ -815,6 +815,11 @@
     .mobile-card-table td {
         display: block;
         width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .mobile-card-table {
+        min-width: 0 !important;
     }
 
     .mobile-card-table thead {
