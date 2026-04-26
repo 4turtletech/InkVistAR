@@ -242,3 +242,29 @@ select option {
         transform: translateY(0);
     }
 }
+
+/* === GLOBAL PAGE ENTRANCE ANIMATION === */
+@keyframes pageEnterGlobal {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-container-enter {
+    animation: pageEnterGlobal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* === GLOBAL BUTTON ACTIVE STATES === */
+button:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+}
+
+.btn:active, .action-btn:active, .icon-btn-v2:active, .checkout-btn:active {
+    transform: scale(0.94) !important;
+}

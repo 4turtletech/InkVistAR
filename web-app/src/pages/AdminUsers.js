@@ -921,19 +921,19 @@ function AdminUsers() {
                                 ) : paginatedUsers.length > 0 ? (
                                     paginatedUsers.map((user) => (
                                         <tr key={user.id}>
-                                            <td>#{user.id}</td>
-                                            <td>{user.name}</td>
-                                            <td>{user.email}</td>
-                                            <td>{user.phone || '-'}</td>
-                                            <td><span className={`badge role-${user.user_type}`}>{user.user_type}</span></td>
-                                            <td>
+                                            <td data-label="ID">#{user.id}</td>
+                                            <td data-label="Name">{user.name}</td>
+                                            <td data-label="Email">{user.email}</td>
+                                            <td data-label="Phone">{user.phone || '-'}</td>
+                                            <td data-label="Role"><span className={`badge role-${user.user_type}`}>{user.user_type}</span></td>
+                                            <td data-label="Status">
                                                 <span className={`badge status-${user.account_status || (user.is_deleted ? 'inactive' : 'active')}`}>
                                                     {user.account_status 
                                                         ? user.account_status.charAt(0).toUpperCase() + user.account_status.slice(1) 
                                                         : (user.is_deleted ? 'Deactivated' : 'Active')}
                                                 </span>
                                             </td>
-                                            <td className="actions-cell">
+                                            <td data-label="Actions" className="actions-cell">
                                                 <button className="action-btn edit-btn" onClick={() => handleManage(user)}>Review</button>
                                                 {!user.is_superadmin && (
                                                     <button className="action-btn manage-btn" onClick={() => handleManageStatusClick(user)}>Status</button>

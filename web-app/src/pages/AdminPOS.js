@@ -567,15 +567,15 @@ function AdminPOS() {
                                 )}
                             </div>
 
-                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
-                                <button className="btn btn-secondary" onClick={() => setShowAssessment(false)} style={{ padding: '10px 20px', borderRadius: '10px' }}>
+                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
+                                <button className="btn btn-secondary" onClick={() => setShowAssessment(false)} style={{ padding: '10px 20px', borderRadius: '10px', flex: '1 1 auto', textAlign: 'center' }}>
                                     Cancel
                                 </button>
                                 <button 
                                     className="checkout-btn" 
                                     disabled={isCheckingOut || (paymentMethod === 'Cash' && (!amountTendered || (parseFloat(amountTendered) || 0) < cartTotal))}
                                     onClick={handleCheckout}
-                                    style={{ width: 'auto', padding: '0 28px', height: '48px', fontSize: '1rem' }}
+                                    style={{ width: 'auto', padding: '0 28px', height: '48px', fontSize: '1rem', flex: '1 1 auto', textAlign: 'center' }}
                                 >
                                     {isCheckingOut ? 'Processing...' : <><CheckCircle size={18} /> Complete Transaction</>}
                                 </button>
@@ -684,8 +684,8 @@ function AdminPOS() {
                                 </div>
                             </div>
 
-                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
-                                <div style={{ display: 'flex', gap: '8px' }}>
+                            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', flex: '1 1 auto' }}>
                                     <button
                                         className="btn btn-secondary"
                                         onClick={() => {
@@ -764,7 +764,7 @@ function AdminPOS() {
                                         <Download size={16} /> Download
                                     </button>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', flex: '1 1 auto' }}>
                                     <button 
                                         className="btn btn-primary"
                                         onClick={handleSendReceipt} 

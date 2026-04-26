@@ -1475,14 +1475,14 @@ function AdminAppointments() {
                                         ) : currentItems.length > 0 ? (
                                             currentItems.map((appointment) => (
                                                 <tr key={appointment.id}>
-                                                    <td>
+                                                    <td data-label="Appointment ID">
                                                         <span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b' }}>
                                                             {getDisplayCode(appointment.bookingCode, appointment.id)}
                                                         </span>
                                                     </td>
-                                                    <td>{appointment.clientName}</td>
-                                                    <td>{appointment.artistName}</td>
-                                                    <td className="admin-st-775cebbf" title={appointment.serviceType}>
+                                                    <td data-label="Client Name">{appointment.clientName}</td>
+                                                    <td data-label="Staff">{appointment.artistName}</td>
+                                                    <td data-label="Service" className="admin-st-775cebbf" title={appointment.serviceType}>
                                                         {appointment.serviceType}
                                                         {appointment.consultationMethod && (
                                                             <span style={{
@@ -1497,9 +1497,9 @@ function AdminAppointments() {
                                                             </span>
                                                         )}
                                                     </td>
-                                                    <td>{appointment.date}</td>
-                                                    <td>{appointment.time}</td>
-                                                    <td>
+                                                    <td data-label="Date">{appointment.date}</td>
+                                                    <td data-label="Time">{appointment.time}</td>
+                                                    <td data-label="Status">
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                                             <span className={`badge status-${getStatusColor(appointment.status || 'pending')}`}>
                                                                 {appointment.status}
@@ -1517,7 +1517,7 @@ function AdminAppointments() {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Payment">
                                                         {appointment.paymentStatus === 'paid' ? (
                                                             <span className="badge status-confirmed admin-st-4c344c9a">Fully Paid</span>
                                                         ) : appointment.paymentStatus === 'downpayment_paid' ? (
@@ -1534,8 +1534,8 @@ function AdminAppointments() {
                                                             <span className="badge admin-st-2d1fd819">No Charge</span>
                                                         )}
                                                     </td>
-                                                    <td>₱{Number(appointment.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                    <td className="actions-cell">
+                                                    <td data-label="Price">₱{Number(appointment.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                    <td data-label="Actions" className="actions-cell">
                                                         {appointment.status === 'pending' && (
                                                             <>
                                                                 <button className="action-btn view-btn admin-st-bb9a2c41" onClick={() => handleStatusUpdate(appointment.id, 'confirmed', appointment.clientName)} title="Approve">

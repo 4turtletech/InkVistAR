@@ -858,24 +858,24 @@ function AdminInventory() {
                             ) : paginatedInventory.length > 0 ? (
                                 paginatedInventory.map((item) => (
                                     <tr key={item.id} className={`status-${getStockStatus(item.currentStock, item.minStock, item.maxStock)}`}>
-                                        <td><strong>{item.name}</strong></td>
-                                        <td>
+                                        <td data-label="Item Name"><strong>{item.name}</strong></td>
+                                        <td data-label="Category">
                                             <span className={`badge category-${item.category}`}>
                                                 {item.category}
                                             </span>
                                         </td>
-                                        <td className="text-center">
+                                        <td data-label="Current Stock" className="text-center">
                                             <span className="admin-fw-600">{item.currentStock}</span>
                                         </td>
-                                        <td className="text-muted text-center admin-st-e7992da2">{item.minStock}</td>
-                                        <td>{item.unit}</td>
-                                <td>₱{item.retailPrice ? item.retailPrice.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : item.cost.toLocaleString()}</td>
-                                        <td>
+                                        <td data-label="Min Stock" className="text-muted text-center admin-st-e7992da2">{item.minStock}</td>
+                                        <td data-label="Unit">{item.unit}</td>
+                                <td data-label="Cost">₱{item.retailPrice ? item.retailPrice.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : item.cost.toLocaleString()}</td>
+                                        <td data-label="Status">
                                             <span className={`badge stock-${getStockStatus(item.currentStock, item.minStock, item.maxStock)}`}>
                                                 {getStockStatus(item.currentStock, item.minStock, item.maxStock)}
                                             </span>
                                         </td>
-                                        <td className="actions-cell">
+                                        <td data-label="Actions" className="actions-cell">
                                             {itemStatusFilter === 'active' ? (
                                                 <div className="admin-st-8487929b">
                                                     <button className="action-btn admin-st-b3452762" onClick={() => openTransactionModal(item, 'in')} title="Stock In" style={{ backgroundColor: '#10b981', color: 'white', borderColor: '#10b981' }}>

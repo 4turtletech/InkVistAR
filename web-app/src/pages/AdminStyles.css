@@ -3050,11 +3050,17 @@
         gap: 12px;
     }
 
-    /* Calendar grid -> compact */
-    .admin-st-3d636867 {
-        grid-template-columns: repeat(7, minmax(36px, 1fr));
-        overflow-x: auto;
-        font-size: 0.7rem;
+    /* Calendar grid -> card stack view for mobile */
+    .calendar-grid.admin-st-3d636867 {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    /* Hide day headers and empty days in mobile stack view */
+    .calendar-grid .admin-st-24b38fb3,
+    .calendar-grid .admin-st-e2f83dcd {
+        display: none !important;
     }
 
     /* Auto-fit grids -> smaller minimums */
@@ -3177,32 +3183,68 @@
         min-width: 100%;
     }
     
-    /* === Global Table Responsiveness: shrink-to-fit === */
+    /* === Global Table Responsiveness: Mobile Card Layout === */
     .table-responsive {
-        overflow-x: hidden !important;
+        overflow-x: visible !important;
         display: block;
         width: 100%;
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
     }
 
-    .data-table,
-    .premium-table {
-        table-layout: fixed;
+    .data-table, .premium-table, 
+    .data-table tbody, .premium-table tbody,
+    .data-table tr, .premium-table tr,
+    .data-table td, .premium-table td {
+        display: block;
         width: 100% !important;
-        font-size: 0.72rem;
     }
 
-    .data-table thead th,
-    .premium-table th {
-        padding: 0.5rem 0.4rem;
-        font-size: 0.65rem;
+    .data-table thead, .premium-table thead {
+        display: none; /* Hide headers on mobile */
     }
 
-    .data-table tbody td,
-    .premium-table td {
-        padding: 0.45rem 0.4rem;
-        overflow: hidden;
-        text-overflow: ellipsis;
+    .data-table tr, .premium-table tr {
+        margin-bottom: 1.25rem;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 12px;
+        padding: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .data-table td, .premium-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        padding: 0.75rem 1rem !important;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        font-size: 0.85rem !important;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
         word-break: break-word;
+    }
+
+    .data-table td:last-child, .premium-table td:last-child {
+        border-bottom: none;
+        justify-content: flex-end; /* Align action buttons nicely */
+        padding-top: 1rem !important;
+    }
+
+    /* Use data-label attribute to create mobile pseudo-headers */
+    .data-table td::before, .premium-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        color: #64748b;
+        text-align: left;
+        margin-right: 1rem;
+        flex-shrink: 0;
     }
     
     /* === Global Stats Grid Optimization (2 Columns) === */
