@@ -9,6 +9,7 @@ import './AdminStaff.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { API_URL } from '../config';
+import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
 import { TATTOO_STYLES } from '../constants/tattooStyles';
 import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
@@ -552,10 +553,10 @@ function AdminUsers() {
                         {artistDetails.appointments.map(apt => (
                             <tr key={apt.id}>
                                 <td>{new Date(apt.appointment_date).toLocaleDateString()}</td>
-                                <td>{apt.start_time}</td>
+                                <td>{formatTime12Hour(apt.start_time)}</td>
                                 <td>{apt.client_name}</td>
                                 <td>{apt.design_title}</td>
-                                <td><span className={`badge status-${apt.status}`}>{apt.status}</span></td>
+                                <td><span className={`badge status-${apt.status}`}>{formatStatus(apt.status)}</span></td>
                             </tr>
                         ))}
                         {artistDetails.appointments.length === 0 && <tr><td colSpan="5" className="no-data">No appointments found</td></tr>}
@@ -1175,7 +1176,7 @@ function AdminUsers() {
                                                                                             </div>
                                                                                             <div>
                                                                                                 <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Time Slot</div>
-                                                                                                <div style={{ color: '#1e293b', fontWeight: 500 }}>{record.start_time ? `${record.start_time}${record.end_time ? ' – ' + record.end_time : ''}` : '—'}</div>
+                                                                                                <div style={{ color: '#1e293b', fontWeight: 500 }}>{record.start_time ? `${formatTime12Hour(record.start_time)}${record.end_time ? ' – ' + formatTime12Hour(record.end_time) : ''}` : '—'}</div>
                                                                                             </div>
                                                                                             <div>
                                                                                                 <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '2px' }}>Price</div>

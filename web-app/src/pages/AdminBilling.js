@@ -13,6 +13,7 @@ import Pagination from '../components/Pagination';
 import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
+import { formatStatus } from '../utils/formatters';
 
 function AdminBilling() {
     const [activeTab, setActiveTab] = useState('invoices');
@@ -642,7 +643,7 @@ function AdminBilling() {
                                                 </td>
                                                 <td data-label="Status">
                                                     <span className={`badge status-${(inv.status || '').toLowerCase() === 'paid' ? 'active' : 'pending'}`}>
-                                                        {inv.status || 'Unknown'}
+                                                        {formatStatus(inv.status)}
                                                     </span>
                                                 </td>
                                                 <td data-label="Actions">
@@ -722,7 +723,7 @@ function AdminBilling() {
                                             <td data-label="Amount">₱{Number(p.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td data-label="Method">{p.payout_method}</td>
                                             <td data-label="Reference">{p.reference_no}</td>
-                                            <td data-label="Status"><span className="badge status-active">{p.status}</span></td>
+                                            <td data-label="Status"><span className="badge status-active">{formatStatus(p.status)}</span></td>
                                         </tr>
                                     ))}
                                     {payouts.filter(p => matchesTimePeriod(p.created_at)).length === 0 && <tr><td colSpan="6" className="admin-st-3927920f">No payouts recorded.</td></tr>}
@@ -1034,7 +1035,7 @@ function AdminBilling() {
                                         <div>
                                             <p className="admin-st-b31ebddf">Invoice Status</p>
                                             <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: previewModal.invoice.status === 'paid' ? '#10b981' : '#f59e0b' }}>
-                                                {previewModal.invoice.status.toUpperCase()}
+                                                {formatStatus(previewModal.invoice.status).toUpperCase()}
                                             </p>
                                         </div>
                                         <div className="signature-line admin-text-center">

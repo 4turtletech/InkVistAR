@@ -24,3 +24,37 @@ export const getDisplayCode = (bookingCode, id) => {
   const seqNum = String((isNaN(numericId) ? 0 : numericId) % 10000).padStart(4, '0');
   return `[!] UNLINKED-${seqNum}`;
 };
+
+/**
+ * Formats a 24-hour time string (e.g. "14:30" or "14:30:00") into a 12-hour format with AM/PM (e.g. "02:30 PM").
+ */
+export const formatTime12Hour = (timeStr) => {
+    if (!timeStr) return 'N/A';
+    // If it's already a full Date string, fallback to standard parsing
+    if (timeStr.includes('T') || timeStr.includes(' ')) {
+        try {
+            return new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch(e) {
+            return timeStr;
+        }
+    }
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return timeStr; 
+    let hour = parseInt(parts[0], 10);
+    const minute = parts[1];
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12 || 12; // Convert 0 or 12 to 12
+    return `${String(hour).padStart(2, '0')}:${minute} ${ampm}`;
+};
+
+/**
+ * Formats a database status string (e.g. "in_progress") into a human-readable capitalized string ("In Progress").
+ */
+export const formatStatus = (statusStr) => {
+    if (!statusStr) return 'Unknown';
+    return statusStr
+        .toString()
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+};

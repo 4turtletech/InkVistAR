@@ -12,7 +12,7 @@ import './AdminAppointments.css';
 import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
-import { getDisplayCode } from '../utils/formatters';
+import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
 import { filterName, filterDigits, clampNumber } from '../utils/validation';
 import { generateReportHeader, downloadCsv, escapeCsv } from '../utils/csvExport';
 
@@ -1208,7 +1208,7 @@ function AdminAppointments() {
                                                                 height: '8px',
                                                                 borderRadius: '50%',
                                                                 backgroundColor: dotColor
-                                                            }} title={apt.status} />
+                                                            }} title={formatStatus(apt.status)} />
                                                         );
                                                     })}
                                                     {dayAppts.length > 5 && <span className="admin-st-ba210a9a">+</span>}
@@ -1274,7 +1274,7 @@ function AdminAppointments() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <span className={`badge status-${getStatusColor(apt.status)}`} style={{ padding: '4px 8px', fontSize: '0.75rem' }}>
-                                                {apt.status}
+                                                {formatStatus(apt.status)}
                                             </span>
                                             {apt.hasPendingRescheduleRequest && (
                                                 <span style={{
@@ -1286,7 +1286,7 @@ function AdminAppointments() {
                                                 </span>
                                             )}
                                         </div>
-                                        <span style={{ color: '#6366f1', fontWeight: '600', fontSize: '0.85rem' }}>{apt.start_time || apt.time}</span>
+                                        <span style={{ color: '#6366f1', fontWeight: '600', fontSize: '0.85rem' }}>{formatTime12Hour(apt.start_time || apt.time)}</span>
                                     </div>
                                 </div>
                             ))}

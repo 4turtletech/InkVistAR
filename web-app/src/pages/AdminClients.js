@@ -6,6 +6,7 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
+import { getDisplayCode, formatStatus } from '../utils/formatters';
 import './AdminUsers.css';
 import { User, Calendar, FileText, Edit2, Trash2, Save, X, RotateCcw, Search, Filter, SlidersHorizontal, Users, UserCheck, UserMinus, Clock } from 'lucide-react';
 
@@ -472,7 +473,7 @@ function AdminClients() {
                                                             <td className="admin-fw-600">{new Date(apt.appointment_date).toLocaleDateString()}</td>
                                                             <td>{apt.artist_name}</td>
                                                             <td>{apt.design_title}</td>
-                                                            <td><span className={`status-badge ${apt.status}`}>{apt.status.toUpperCase()}</span></td>
+                                                            <td><span className={`status-badge ${apt.status}`}>{formatStatus(apt.status)}</span></td>
                                                         </tr>
                                                     )) : (
                                                         <tr><td colSpan="4" className="no-data">This client has no recorded procedures in the archive.</td></tr>

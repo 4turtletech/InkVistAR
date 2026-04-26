@@ -9,6 +9,7 @@ import {
 import AdminSideNav from '../components/AdminSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
+import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
 import './AdminStaff.css';
 import './PortalStyles.css';
 import './AdminStyles.css';
@@ -399,10 +400,10 @@ function AdminStaff() {
                         {artistDetails.appointments.map(apt => (
                             <tr key={apt.id}>
                                 <td>{new Date(apt.appointment_date).toLocaleDateString()}</td>
-                                <td>{apt.start_time}</td>
+                                <td>{formatTime12Hour(apt.start_time)}</td>
                                 <td>{apt.client_name}</td>
                                 <td>{apt.design_title}</td>
-                                <td><span className={`badge status-${apt.status}`}>{apt.status}</span></td>
+                                <td><span className={`badge status-${apt.status}`}>{formatStatus(apt.status)}</span></td>
                             </tr>
                         ))}
                         {artistDetails.appointments.length === 0 && <tr><td colSpan="5" className="no-data">No appointments found</td></tr>}

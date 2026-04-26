@@ -3,6 +3,7 @@ import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, FileText, Image as ImageIcon, Package, Search, Filter, Calendar, Clock, User, X, List } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
+import { getDisplayCode, formatStatus } from '../utils/formatters';
 
 import AdminSideNav from '../components/AdminSideNav';
 import Pagination from '../components/Pagination';
@@ -475,7 +476,7 @@ function AdminCompletedSessions() {
                                                                     <span className="admin-st-34acc2e5">{mat.quantity}x {mat.item_name}</span>
                                                                     <span className="admin-st-fef01c14">Itemized Consumable</span>
                                                                 </div>
-                                                                <span className={`badge status-consumed admin-st-12e5feb7`} >{mat.status.toUpperCase()}</span>
+                                                                <span className={`badge status-consumed admin-st-12e5feb7`} >{formatStatus(mat.status)}</span>
                                                             </div>
                                                         ))}
                                                     </div>

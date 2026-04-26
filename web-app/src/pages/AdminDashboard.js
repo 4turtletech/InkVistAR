@@ -12,7 +12,7 @@ import AdminSideNav from '../components/AdminSideNav';
 import './PortalStyles.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
-import { getDisplayCode } from '../utils/formatters';
+import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
 
 function AdminDashboard() {
     const [stats, setStats] = useState({
@@ -730,11 +730,11 @@ function AdminDashboard() {
                                                         </td>
                                                         <td data-label="Date" className="date-time-cell">
                                                             <div className="primary-date">{new Date(appointment.appointment_date).toLocaleDateString()}</div>
-                                                            <div className="secondary-time">{appointment.start_time}</div>
+                                                            <div className="secondary-time">{formatTime12Hour(appointment.start_time)}</div>
                                                         </td>
                                                         <td data-label="Status">
                                                             <span className={`badge-v2 ${appointment.status.toLowerCase()}`}>
-                                                                {appointment.status}
+                                                                {formatStatus(appointment.status)}
                                                             </span>
                                                         </td>
                                                         <td data-label="Actions">
@@ -846,10 +846,10 @@ function AdminDashboard() {
                                             <div key={apt.id} className="audit-entry">
                                                 <div className="entry-marker"></div>
                                                 <div className="entry-content">
-                                                    <div className="entry-time">{apt.start_time}</div>
+                                                    <div className="entry-time">{formatTime12Hour(apt.start_time)}</div>
                                                     <div className="entry-desc">
                                                         <strong>{apt.artist_name}</strong> session with {apt.client_name || 'Walk-in'}
-                                                        <span className={`badge-v2 ${apt.status}`} style={{ marginLeft: '10px', fontSize: '0.7em', padding: '2px 6px' }}>{apt.status}</span>
+                                                        <span className={`badge-v2 ${apt.status}`} style={{ marginLeft: '10px', fontSize: '0.7em', padding: '2px 6px' }}>{formatStatus(apt.status)}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1001,12 +1001,12 @@ function AdminDashboard() {
                                 </div>
                                 <div className="detail-item admin-st-8edafd44">
                                     <span className="admin-st-2591d288">Timeline (Start)</span>
-                                    <span className="admin-st-c9f09bca">{selectedAppointment.start_time}</span>
+                                    <span className="admin-st-c9f09bca">{formatTime12Hour(selectedAppointment.start_time)}</span>
                                 </div>
                                 <div className="detail-item admin-st-8edafd44">
                                     <span className="admin-st-2591d288">Status Lifecycle</span>
                                     <span className={`status-badge-v2 ${selectedAppointment.status.toLowerCase()}`}>
-                                        {selectedAppointment.status}
+                                        {formatStatus(selectedAppointment.status)}
                                     </span>
                                 </div>
                                 <div className="detail-item admin-st-8edafd44">
