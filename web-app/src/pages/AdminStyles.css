@@ -3051,6 +3051,40 @@
         gap: 12px;
     }
 
+    /* Mobile Calendar Header tweaks */
+    .calendar-header.admin-st-07952507 {
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        padding-bottom: 10px;
+    }
+
+    .calendar-header .admin-st-f21b09cf {
+        gap: 4px;
+        order: 2; /* Put navigation controls below the month text */
+        width: 100%;
+        justify-content: center;
+    }
+
+    .calendar-header .admin-st-f21b09cf .action-btn {
+        padding: 0.3rem 0.6rem;
+    }
+
+    .calendar-header .admin-st-dcacbd6e {
+        font-size: 1.1rem;
+        order: 1; /* Put month text on top */
+        width: 100%;
+        text-align: center;
+        margin-bottom: 4px;
+    }
+
+    /* Info button */
+    .calendar-header > div:last-child {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+    }
+
     /* Calendar grid -> compact horizontally scrollable */
     .calendar-grid.admin-st-3d636867 {
         display: grid;
