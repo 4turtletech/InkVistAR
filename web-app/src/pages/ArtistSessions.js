@@ -770,7 +770,7 @@ function ArtistSessions() {
                                             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
                                                 <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#94a3b8', marginBottom: '10px', textTransform: 'uppercase' }}>Reference Image</p>
                                                 <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #f1f5f9' }}>
-                                                    <img src={viewingApt.reference_image.startsWith('data:') ? viewingApt.reference_image : viewingApt.reference_image.startsWith('http') ? viewingApt.reference_image : `${API_URL}${viewingApt.reference_image}`} alt="Reference" className="lightbox-trigger" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', background: '#f8fafc' }} onClick={() => setLightboxSrc(viewingApt.reference_image.startsWith('data:') ? viewingApt.reference_image : viewingApt.reference_image.startsWith('http') ? viewingApt.reference_image : `${API_URL}${viewingApt.reference_image}`)} />
+                                                    <img src={viewingApt.reference_image.startsWith('data:') ? viewingApt.reference_image : viewingApt.reference_image.startsWith('http') ? viewingApt.reference_image : `${API_URL}${viewingApt.reference_image}`} alt="Reference" className="lightbox-trigger" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', background: '#f8fafc' }} onClick={() => setLightboxSrc(viewingApt.reference_image.startsWith('data:') ? viewingApt.reference_image : viewingApt.reference_image.startsWith('http') ? viewingApt.reference_image : `${API_URL}${viewingApt.reference_image}`)} />
                                                 </div>
                                             </div>
                                         )}
@@ -833,7 +833,7 @@ function ArtistSessions() {
                             </div>
                         </div>
 
-                        <div className="modal-body" style={{ maxHeight: '75vh' }}>
+                        <div className="modal-body" style={{ padding: '24px' }}>
                             {/* Session Tabs */}
                             <div style={{ display: 'flex', gap: '4px', padding: '0 0 16px 0', borderBottom: '1px solid #e2e8f0', marginBottom: '20px' }}>
                                 {[{id:'overview',label:'Overview'},{id:'documentation',label:'Documentation'},{id:'supplies',label:'Supplies'},{id:'auditlog',label:'Audit Log'}].map(tab => (
@@ -855,7 +855,7 @@ function ArtistSessions() {
                                     {activeSession.reference_image && (
                                         <div style={{ gridColumn: '1 / -1', background: '#f8fafc', borderRadius: '12px', padding: '14px', border: '1px solid #e2e8f0' }}>
                                             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '10px' }}>Reference Image</span>
-                                            <img src={activeSession.reference_image.startsWith('data:') ? activeSession.reference_image : activeSession.reference_image.startsWith('http') ? activeSession.reference_image : `${API_URL}${activeSession.reference_image}`} alt="Reference" className="lightbox-trigger" style={{ width: '100%', maxHeight: '280px', objectFit: 'contain', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }} onClick={() => setLightboxSrc(activeSession.reference_image.startsWith('data:') ? activeSession.reference_image : activeSession.reference_image.startsWith('http') ? activeSession.reference_image : `${API_URL}${activeSession.reference_image}`)} />
+                                            <img src={activeSession.reference_image.startsWith('data:') ? activeSession.reference_image : activeSession.reference_image.startsWith('http') ? activeSession.reference_image : `${API_URL}${activeSession.reference_image}`} alt="Reference" className="lightbox-trigger" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }} onClick={() => setLightboxSrc(activeSession.reference_image.startsWith('data:') ? activeSession.reference_image : activeSession.reference_image.startsWith('http') ? activeSession.reference_image : `${API_URL}${activeSession.reference_image}`)} />
                                         </div>
                                     )}
                                 </div>
@@ -1128,7 +1128,7 @@ function ArtistSessions() {
                             </div>
                             <button className="close-btn" onClick={closeInventoryModal}><X size={24} /></button>
                         </div>
-                        <div className="modal-body" style={{ maxHeight: '60vh' }}>
+                        <div className="modal-body" style={{ padding: '24px' }}>
                             <div className="premium-search-box" style={{ marginBottom: '20px' }}>
                                 <Search size={18} className="text-muted" />
                                 <input

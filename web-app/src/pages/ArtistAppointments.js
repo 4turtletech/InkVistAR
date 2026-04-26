@@ -641,8 +641,8 @@ function ArtistAppointments() {
                                         ) : null;
                                         return (
                                         <div className="modal-overlay" onClick={() => setSelectedAppointment(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)' }}>
-                                            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: '600px', background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.6)', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
-                                                <div style={{ padding: '20px', borderBottom: '1px solid rgba(226, 232, 240, 0.6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div className="modal-content large" onClick={e => e.stopPropagation()} style={{ width: '95%', maxWidth: '850px', background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                                                <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                         <h3 style={{ margin: 0, color: '#1e293b' }}>Appointment {getDisplayCode(selectedAppointment.booking_code, selectedAppointment.id)}</h3>
                                                         {roleBadge && (
@@ -653,155 +653,163 @@ function ArtistAppointments() {
                                                     </div>
                                                     <button onClick={() => setSelectedAppointment(null)} className="close-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
                                                 </div>
-                                                <div className="artist-modal-body-scroll" style={{ padding: '20px', maxHeight: '70vh', overflowY: 'auto' }}>
-                                                    <div className="artist-flex-between" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                                                        <div>
-                                                            <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Client</p>
-                                                            <p style={{ margin: 0, fontWeight: '600', fontSize: '1.1rem', color: '#0f172a' }}>{selectedAppointment.client_name}</p>
-                                                        </div>
-                                                        <div style={{ textAlign: 'right' }}>
-                                                            <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Date & Time</p>
-                                                            <p style={{ margin: 0, fontWeight: '600', color: '#0f172a' }}>{new Date(selectedAppointment.appointment_date).toLocaleDateString()} at {formatTime12Hour(selectedAppointment.start_time) || 'N/A'}</p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div style={{ margin: '20px 0', padding: '15px', background: '#f8fafc', borderRadius: '12px' }}>
-                                                        <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Service Requested</p>
-                                                        <p style={{ margin: 0, fontWeight: '600', color: '#0f172a' }}>{selectedAppointment.design_title || 'Tattoo Session'}</p>
-
-                                                        <div style={{ display: 'flex', gap: '30px', marginTop: '15px' }}>
-                                                            <div>
-                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Status</span>
-                                                                <span className={`badge status-${getStatusColor(selectedAppointment.status)}`}>{formatStatus(selectedAppointment.status)}</span>
-                                                            </div>
-                                                            <div>
-                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Price</span>
-                                                                <span style={{ fontWeight: 'bold', color: '#0f172a' }}>₱{parseFloat(selectedAppointment.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                            </div>
-                                                            <div>
-                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>
-                                                                    Your Cut ({(() => {
-                                                                        if (!selectedAppointment.secondary_artist_id) return '30%';
-                                                                        const split = selectedAppointment.commission_split || 50;
-                                                                        const myPct = Number(selectedAppointment.artist_id) === Number(artistId) ? split : (100 - split);
-                                                                        return `${(myPct * 0.3).toFixed(0)}% — collab split`;
-                                                                    })()})
-                                                                </span>
-                                                                <span style={{ fontWeight: 'bold', color: '#10b981' }}>₱{(() => {
-                                                                    const price = parseFloat(selectedAppointment.price || 0);
-                                                                    if (!selectedAppointment.secondary_artist_id) return (price * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                                                    const split = selectedAppointment.commission_split || 50;
-                                                                    const myShare = Number(selectedAppointment.artist_id) === Number(artistId) ? (split / 100) : ((100 - split) / 100);
-                                                                    return (price * 0.30 * myShare).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                                                                })()}</span>
-                                                            </div>
-                                                            <div>
-                                                                <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Payment</span>
-                                                                <span className={`status-badge ${selectedAppointment.payment_status === 'paid' ? 'completed' : selectedAppointment.payment_status === 'pending' ? 'pending' : 'cancelled'}`} style={{ backgroundColor: selectedAppointment.payment_status === 'paid' ? '#dcfce7' : selectedAppointment.payment_status === 'pending' ? '#fef3c7' : '#f3f4f6', color: selectedAppointment.payment_status === 'paid' ? '#16a34a' : selectedAppointment.payment_status === 'pending' ? '#b45309' : '#64748b' }}>
-                                                                    {selectedAppointment.payment_status ? selectedAppointment.payment_status.charAt(0).toUpperCase() + selectedAppointment.payment_status.slice(1) : 'Unpaid'}
-                                                                </span>
-                                                            </div>
-                                                            {selectedAppointment.status === 'completed' && (
+                                                <div className="artist-modal-body-scroll modal-body" style={{ padding: '24px', maxHeight: '75vh', overflowY: 'auto' }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                                        {/* LEFT COLUMN: Info & Notes */}
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                            <div className="artist-flex-between" style={{ display: 'flex', justifyContent: 'space-between' }}>
                                                                 <div>
-                                                                    <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Materials Cost</span>
-                                                                    <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>₱{parseFloat(selectedAppointment.total_material_cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                    <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Client</p>
+                                                                    <p style={{ margin: 0, fontWeight: '600', fontSize: '1.1rem', color: '#0f172a' }}>{selectedAppointment.client_name}</p>
+                                                                </div>
+                                                                <div style={{ textAlign: 'right' }}>
+                                                                    <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Date & Time</p>
+                                                                    <p style={{ margin: 0, fontWeight: '600', color: '#0f172a' }}>{new Date(selectedAppointment.appointment_date).toLocaleDateString()} at {formatTime12Hour(selectedAppointment.start_time) || 'N/A'}</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                                <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Service Requested</p>
+                                                                <p style={{ margin: 0, fontWeight: '600', color: '#0f172a' }}>{selectedAppointment.design_title || 'Tattoo Session'}</p>
+
+                                                                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '15px' }}>
+                                                                    <div>
+                                                                        <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Status</span>
+                                                                        <span className={`badge status-${getStatusColor(selectedAppointment.status)}`}>{formatStatus(selectedAppointment.status)}</span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Price</span>
+                                                                        <span style={{ fontWeight: 'bold', color: '#0f172a' }}>₱{parseFloat(selectedAppointment.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                                                                            Your Cut ({(() => {
+                                                                                if (!selectedAppointment.secondary_artist_id) return '30%';
+                                                                                const split = selectedAppointment.commission_split || 50;
+                                                                                const myPct = Number(selectedAppointment.artist_id) === Number(artistId) ? split : (100 - split);
+                                                                                return `${(myPct * 0.3).toFixed(0)}% split`;
+                                                                            })()})
+                                                                        </span>
+                                                                        <span style={{ fontWeight: 'bold', color: '#10b981' }}>₱{(() => {
+                                                                            const price = parseFloat(selectedAppointment.price || 0);
+                                                                            if (!selectedAppointment.secondary_artist_id) return (price * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                            const split = selectedAppointment.commission_split || 50;
+                                                                            const myShare = Number(selectedAppointment.artist_id) === Number(artistId) ? (split / 100) : ((100 - split) / 100);
+                                                                            return (price * 0.30 * myShare).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                        })()}</span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Payment</span>
+                                                                        <span className={`status-badge ${selectedAppointment.payment_status === 'paid' ? 'completed' : selectedAppointment.payment_status === 'pending' ? 'pending' : 'cancelled'}`} style={{ backgroundColor: selectedAppointment.payment_status === 'paid' ? '#dcfce7' : selectedAppointment.payment_status === 'pending' ? '#fef3c7' : '#f3f4f6', color: selectedAppointment.payment_status === 'paid' ? '#16a34a' : selectedAppointment.payment_status === 'pending' ? '#b45309' : '#64748b' }}>
+                                                                            {selectedAppointment.payment_status ? selectedAppointment.payment_status.charAt(0).toUpperCase() + selectedAppointment.payment_status.slice(1) : 'Unpaid'}
+                                                                        </span>
+                                                                    </div>
+                                                                    {selectedAppointment.status === 'completed' && (
+                                                                        <div>
+                                                                            <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Materials Cost</span>
+                                                                            <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>₱{parseFloat(selectedAppointment.total_material_cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {selectedAppointment.notes && (
+                                                                <div>
+                                                                    <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Notes & Description</p>
+                                                                    <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px', fontSize: '0.95rem', lineHeight: '1.5', color: '#334155' }}>
+                                                                        {selectedAppointment.notes}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* RIGHT COLUMN: Images & Audit */}
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                                            {selectedAppointment.reference_image && (
+                                                                <div>
+                                                                    <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#64748b' }}>Reference Image</p>
+                                                                    <img
+                                                                        src={selectedAppointment.reference_image.startsWith('data:') ? selectedAppointment.reference_image : selectedAppointment.reference_image.startsWith('http') ? selectedAppointment.reference_image : `${API_URL}${selectedAppointment.reference_image}`}
+                                                                        alt="Reference"
+                                                                        style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0' }}
+                                                                    />
+                                                                </div>
+                                                            )}
+
+                                                            {/* Draft Design Section */}
+                                                            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>Artist Draft Design</p>
+                                                                    <label className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '6px', margin: 0 }}>
+                                                                        {selectedAppointment.draft_image ? 'Update Draft' : 'Upload Draft'}
+                                                                        <input
+                                                                            type="file"
+                                                                            accept="image/*"
+                                                                            style={{ display: 'none' }}
+                                                                            onChange={(e) => handleUploadDraft(e, selectedAppointment.id)}
+                                                                        />
+                                                                    </label>
+                                                                </div>
+                                                                {selectedAppointment.draft_image ? (
+                                                                    <img
+                                                                        src={selectedAppointment.draft_image}
+                                                                        alt="Draft Design"
+                                                                        style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#fff' }}
+                                                                    />
+                                                                ) : (
+                                                                    <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem', border: '1px dashed #cbd5e1', borderRadius: '8px', background: '#fff' }}>
+                                                                        No draft uploaded yet. Attach your design mockups here.
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Audit / Completed Image Section */}
+                                                            {selectedAppointment.status === 'completed' && selectedAppointment.after_photo && (
+                                                                <div style={{ background: '#ffffff', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)' }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>Session Audit ({myRole === 'piercing' ? 'Completed Piercing' : 'Completed Tattoo'})</p>
+                                                                    </div>
+                                                                    <img
+                                                                        src={selectedAppointment.after_photo.startsWith('data:') ? selectedAppointment.after_photo : (selectedAppointment.after_photo.startsWith('http') ? selectedAppointment.after_photo : `${API_URL}${selectedAppointment.after_photo}`)}
+                                                                        alt="Completed Tattoo"
+                                                                        style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc' }}
+                                                                    />
+                                                                    <div style={{ marginTop: '15px', textAlign: 'center' }}>
+                                                                        {customerConsent[selectedAppointment.customer_id]?.photo_marketing_consent === false ? (
+                                                                            <div style={{ padding: '12px 18px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+                                                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                                                                                <span style={{ fontSize: '0.82rem', color: '#991b1b', fontWeight: 600 }}>This client declined photo marketing consent.</span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <>
+                                                                                <button
+                                                                                    className="btn"
+                                                                                    disabled={publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing'}
+                                                                                    onClick={() => handlePublishToPortfolio(selectedAppointment)}
+                                                                                    style={{ 
+                                                                                        padding: '10px 24px', 
+                                                                                        borderRadius: '20px', 
+                                                                                        background: publishStatus[selectedAppointment.id] === 'success' ? '#10b981' : 'linear-gradient(135deg, #1e293b, #0f172a)', 
+                                                                                        color: 'white', 
+                                                                                        border: 'none', 
+                                                                                        cursor: publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing' ? 'not-allowed' : 'pointer', 
+                                                                                        fontWeight: '600',
+                                                                                        boxShadow: '0 4px 15px rgba(190, 144, 85, 0.3)',
+                                                                                        transition: 'all 0.3s'
+                                                                                    }}
+                                                                                >
+                                                                                    {publishStatus[selectedAppointment.id] === 'success' ? <><Check size={14} style={{display:'inline', verticalAlign:'middle', marginRight:'4px'}} /> Published to Portfolio</> : publishStatus[selectedAppointment.id] === 'publishing' ? 'Publishing...' : 'Publish to Portfolio'}
+                                                                                </button>
+                                                                                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '8px' }}>This will push the image to your public Gallery.</p>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </div>
-
-                                                    {selectedAppointment.notes && (
-                                                        <div style={{ marginBottom: '20px' }}>
-                                                            <p style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#64748b' }}>Notes & Description</p>
-                                                            <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px', fontSize: '0.95rem', lineHeight: '1.5', color: '#334155' }}>
-                                                                {selectedAppointment.notes}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {selectedAppointment.reference_image && (
-                                                        <div style={{ marginBottom: '20px' }}>
-                                                            <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: '#64748b' }}>Reference Image</p>
-                                                            <img
-                                                                src={selectedAppointment.reference_image.startsWith('data:') ? selectedAppointment.reference_image : selectedAppointment.reference_image.startsWith('http') ? selectedAppointment.reference_image : `${API_URL}${selectedAppointment.reference_image}`}
-                                                                alt="Reference"
-                                                                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0' }}
-                                                            />
-                                                        </div>
-                                                    )}
-
-                                                    {/* Draft Design Section */}
-                                                    <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>Artist Draft Design</p>
-                                                            <label className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '6px', margin: 0 }}>
-                                                                {selectedAppointment.draft_image ? 'Update Draft' : 'Upload Draft'}
-                                                                <input
-                                                                    type="file"
-                                                                    accept="image/*"
-                                                                    style={{ display: 'none' }}
-                                                                    onChange={(e) => handleUploadDraft(e, selectedAppointment.id)}
-                                                                />
-                                                            </label>
-                                                        </div>
-                                                        {selectedAppointment.draft_image ? (
-                                                            <img
-                                                                src={selectedAppointment.draft_image}
-                                                                alt="Draft Design"
-                                                                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', border: '1px dashed #cbd5e1', background: '#fff' }}
-                                                            />
-                                                        ) : (
-                                                            <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem', border: '1px dashed #cbd5e1', borderRadius: '8px', background: '#fff' }}>
-                                                                No draft uploaded yet. Attach your design mockups here.
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Audit / Completed Image Section */}
-                                                    {selectedAppointment.status === 'completed' && selectedAppointment.after_photo && (
-                                                        <div style={{ background: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(10px)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.8)', marginTop: '20px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)' }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', fontWeight: 'bold' }}>Session Audit ({myRole === 'piercing' ? 'Completed Piercing' : 'Completed Tattoo'})</p>
-                                                            </div>
-                                                            <img
-                                                                src={selectedAppointment.after_photo.startsWith('data:') ? selectedAppointment.after_photo : (selectedAppointment.after_photo.startsWith('http') ? selectedAppointment.after_photo : `${API_URL}${selectedAppointment.after_photo}`)}
-                                                                alt="Completed Tattoo"
-                                                                style={{ width: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.5)', background: '#fff' }}
-                                                            />
-                                                            <div style={{ marginTop: '15px', textAlign: 'center' }}>
-                                                                {customerConsent[selectedAppointment.customer_id]?.photo_marketing_consent === false ? (
-                                                                    <div style={{ padding: '12px 18px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
-                                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
-                                                                        <span style={{ fontSize: '0.82rem', color: '#991b1b', fontWeight: 600 }}>This client declined photo marketing consent.</span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <>
-                                                                        <button
-                                                                            className="btn"
-                                                                            disabled={publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing'}
-                                                                            onClick={() => handlePublishToPortfolio(selectedAppointment)}
-                                                                            style={{ 
-                                                                                padding: '10px 24px', 
-                                                                                borderRadius: '20px', 
-                                                                                background: publishStatus[selectedAppointment.id] === 'success' ? '#10b981' : 'linear-gradient(135deg, #1e293b, #0f172a)', 
-                                                                                color: 'white', 
-                                                                                border: 'none', 
-                                                                                cursor: publishStatus[selectedAppointment.id] === 'success' || publishStatus[selectedAppointment.id] === 'publishing' ? 'not-allowed' : 'pointer', 
-                                                                                fontWeight: '600',
-                                                                                boxShadow: '0 4px 15px rgba(190, 144, 85, 0.3)',
-                                                                                transition: 'all 0.3s'
-                                                                            }}
-                                                                        >
-                                                                            {publishStatus[selectedAppointment.id] === 'success' ? <><Check size={14} style={{display:'inline', verticalAlign:'middle', marginRight:'4px'}} /> Published to Portfolio</> : publishStatus[selectedAppointment.id] === 'publishing' ? 'Publishing...' : 'Publish to Portfolio'}
-                                                                        </button>
-                                                                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '8px' }}>This will push the image to your public Gallery.</p>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
                                                 </div>
-                                                <div style={{ padding: '15px 20px', borderTop: '1px solid #e2e8f0', textAlign: 'right', background: '#f8fafc', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                                <div style={{ padding: '15px 24px', borderTop: '1px solid #e2e8f0', textAlign: 'right', background: '#f8fafc', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                                                     {selectedAppointment.status === 'pending' && (
                                                         <>
                                                             <button onClick={() => { setConfirmModal({ visible: true, title: 'Decline Assignment', message: 'Are you sure you want to decline this assignment? It will be reverted back to the Admin for reassignment.', onConfirm: () => { handleReject(selectedAppointment.id); setSelectedAppointment(null); } }); }} className="btn btn-secondary" style={{ padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', color: '#ef4444', border: '1px solid #ef4444', backgroundColor: '#fef2f2' }}>Decline</button>
