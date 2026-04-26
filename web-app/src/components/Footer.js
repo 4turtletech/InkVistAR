@@ -59,10 +59,6 @@ const Footer = () => {
             
             <div className="footer-bottom">
                 <p>&copy; {new Date().getFullYear()} InkVistAR / Inkvictus Tattoo Studio. All Rights Reserved.</p>
-                <div className="footer-legal">
-                    <a href="#" style={{ pointerEvents: 'none', opacity: 0.5, cursor: 'default' }}>Privacy Policy</a>
-                    <a href="#" style={{ pointerEvents: 'none', opacity: 0.5, cursor: 'default' }}>Terms of Service</a>
-                </div>
             </div>
         </footer>
     );

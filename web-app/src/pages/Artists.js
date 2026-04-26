@@ -147,13 +147,11 @@ function Artists() {
                                     className="artist-profile-card fade-in-up"
                                     style={{ animationDelay: `${index * 0.08}s` }}
                                 >
-                                    <div className="artist-portrait-wrapper">
+                                    <div className="artist-portrait-wrapper" onClick={() => navigate(`/artist/${artist.id}`)} style={{ cursor: 'pointer' }}>
                                         <img
                                             src={getProfileImage(artist)}
                                             alt={`${artist.name} — ${artist.specialization}`}
                                             loading="lazy"
-                                            className="lightbox-trigger"
-                                            onClick={(e) => { e.stopPropagation(); setLightboxSrc(getProfileImage(artist)); }}
                                         />
                                         <div className="artist-portrait-brand">V</div>
                                     </div>
