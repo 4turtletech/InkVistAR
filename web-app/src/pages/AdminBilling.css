@@ -278,4 +278,26 @@
         margin-bottom: 1rem;
         padding-bottom: 0.75rem;
     }
+
+    /* ── Billing modals: centered float on mobile ── */
+    .payouts-container ~ .modal-overlay,
+    .admin-page-with-sidenav > .modal-overlay {
+        align-items: center !important;
+        padding: 16px !important;
+    }
+
+    .payouts-container ~ .modal-overlay > .modal-content,
+    .admin-page-with-sidenav > .modal-overlay > .modal-content {
+        border-radius: 20px !important;
+        max-height: 85vh !important;
+        margin: 0 !important;
+    }
+
+    /* Let the modal body scroll, not the whole card */
+    .payouts-container ~ .modal-overlay .modal-body,
+    .admin-page-with-sidenav > .modal-overlay .modal-body {
+        overflow-y: auto;
+        max-height: calc(85vh - 140px); /* header + footer room */
+        -webkit-overflow-scrolling: touch;
+    }
 }

@@ -618,9 +618,9 @@ function AdminBilling() {
                                             <tr><td colSpan="8" className="no-data admin-st-3927920f">Loading invoices...</td></tr>
                                         ) : paginatedInvoices.map(inv => (
                                             <tr key={inv.id}>
-                                                <td>{inv.invoice_number || `INV-${String(inv.id).padStart(6, '0')}`}</td>
-                                                <td>{inv.client_name || 'Walk-in Customer'}</td>
-                                                <td>
+                                                <td data-label="Invoice ID">{inv.invoice_number || `INV-${String(inv.id).padStart(6, '0')}`}</td>
+                                                <td data-label="Client">{inv.client_name || 'Walk-in Customer'}</td>
+                                                <td data-label="Service">
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                         {inv.service_type}
                                                         {((inv.service_type || '').toLowerCase().includes('retail') || (inv.service_type || '').toLowerCase().includes('pos')) && (
@@ -628,9 +628,9 @@ function AdminBilling() {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td>{new Date(inv.created_at).toLocaleDateString()}</td>
-                                                <td>₱{Number(inv.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                <td>
+                                                <td data-label="Date">{new Date(inv.created_at).toLocaleDateString()}</td>
+                                                <td data-label="Amount">₱{Number(inv.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td data-label="Method">
                                                     {(() => {
                                                         try {
                                                             const evt = typeof inv.raw_event === 'string' ? JSON.parse(inv.raw_event) : inv.raw_event;
@@ -640,12 +640,12 @@ function AdminBilling() {
                                                         }
                                                     })()}
                                                 </td>
-                                                <td>
+                                                <td data-label="Status">
                                                     <span className={`badge status-${(inv.status || '').toLowerCase() === 'paid' ? 'active' : 'pending'}`}>
                                                         {inv.status || 'Unknown'}
                                                     </span>
                                                 </td>
-                                                <td>
+                                                <td data-label="Actions">
                                                     <div className="admin-st-ce770332">
                                                         <button className="action-btn" title="View / Print Invoice" onClick={() => openPreview(inv)}>
                                                             <FileText size={16}/>
@@ -717,12 +717,12 @@ function AdminBilling() {
                                 <tbody>
                                     {payouts.filter(p => matchesTimePeriod(p.created_at)).map(p => (
                                         <tr key={p.id}>
-                                            <td>{new Date(p.created_at).toLocaleDateString()}</td>
-                                            <td>{p.artist_name || 'Artist #' + p.artist_id}</td>
-                                            <td>₱{Number(p.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td>{p.payout_method}</td>
-                                            <td>{p.reference_no}</td>
-                                            <td><span className="badge status-active">{p.status}</span></td>
+                                            <td data-label="Date">{new Date(p.created_at).toLocaleDateString()}</td>
+                                            <td data-label="Staff">{p.artist_name || 'Artist #' + p.artist_id}</td>
+                                            <td data-label="Amount">₱{Number(p.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td data-label="Method">{p.payout_method}</td>
+                                            <td data-label="Reference">{p.reference_no}</td>
+                                            <td data-label="Status"><span className="badge status-active">{p.status}</span></td>
                                         </tr>
                                     ))}
                                     {payouts.filter(p => matchesTimePeriod(p.created_at)).length === 0 && <tr><td colSpan="6" className="admin-st-3927920f">No payouts recorded.</td></tr>}
@@ -731,6 +731,8 @@ function AdminBilling() {
                         </div>
                     </div>
                 ) : null}
+
+            </div>
 
                 {/* Create Invoice Modal */}
                 {invoiceModal.mounted && (
@@ -912,7 +914,6 @@ function AdminBilling() {
                         </div>
                     </div>
                 )}
-            </div>
 
             {/* Invoice Preview Modal */}
             {previewModal.mounted && (
