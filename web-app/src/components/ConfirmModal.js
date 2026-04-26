@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { TriangleAlert, Trash2, CheckCircle2, Info, LogOut } from 'lucide-react';
 import '../pages/PortalStyles.css'; // Leverage existing glassmorphism classes
 
@@ -42,7 +43,7 @@ const ConfirmModal = ({
         return '#d97706';
     };
 
-    return (
+    return ReactDOM.createPortal(
         <div className="modal-overlay open" style={{ zIndex: 9999 }} onClick={onClose}>
             <div className="modal-content" style={{ maxWidth: '450px', padding: '0', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
                 <div style={{ padding: '32px 24px', textAlign: 'center' }}>
@@ -78,7 +79,8 @@ const ConfirmModal = ({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
