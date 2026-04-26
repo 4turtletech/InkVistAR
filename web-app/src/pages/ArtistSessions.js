@@ -405,6 +405,11 @@ function ArtistSessions() {
 
     const handleUpdateStatus = async (newStatus) => {
         if (newStatus === 'in_progress') {
+            if (!sessionData.beforePhoto) {
+                showAlert('Before Photo Required', 'Please upload a "Before" photo documenting the client\'s current state before starting the procedure. Go to the Documentation tab to upload.', 'warning');
+                setSessionTab('documentation');
+                return;
+            }
             addAuditEntry('Session Started');
         }
         if (newStatus === 'completed') {
