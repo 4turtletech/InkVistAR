@@ -2953,7 +2953,8 @@
     }
 
     .premium-table {
-        min-width: 600px;
+        min-width: 100%;
+        max-width: 100%;
     }
 
     .premium-table th,
@@ -3050,17 +3051,19 @@
         gap: 12px;
     }
 
-    /* Calendar grid -> card stack view for mobile */
+    /* Calendar grid -> compact horizontally scrollable */
     .calendar-grid.admin-st-3d636867 {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(40px, 1fr));
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 4px;
+        padding-bottom: 8px; /* For scrollbar */
     }
     
-    /* Hide day headers and empty days in mobile stack view */
     .calendar-grid .admin-st-24b38fb3,
     .calendar-grid .admin-st-e2f83dcd {
-        display: none !important;
+        display: flex !important;
     }
 
     /* Auto-fit grids -> smaller minimums */
@@ -3217,9 +3220,10 @@
 
     .data-table td, .premium-table td {
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-end;
         align-items: center;
         text-align: right;
+        gap: 0.5rem;
         padding: 0.75rem 1rem !important;
         border-bottom: 1px solid rgba(0,0,0,0.04);
         font-size: 0.85rem !important;
@@ -3243,7 +3247,7 @@
         font-size: 0.7rem;
         color: #64748b;
         text-align: left;
-        margin-right: 1rem;
+        margin-right: auto;
         flex-shrink: 0;
     }
     
@@ -3282,7 +3286,8 @@
     .admin-gap-15 { gap: 8px; }
 
     .premium-table {
-        min-width: 500px;
+        min-width: 100% !important;
+        max-width: 100%;
     }
 
     .premium-table th,
