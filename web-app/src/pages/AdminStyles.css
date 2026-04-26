@@ -3066,17 +3066,29 @@
         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     }
 
-    /* Tab bar -> horizontal scroll */
+    /* Tab bar -> wrap to fit all tabs on screen */
     .admin-st-d14eab7d {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 0.75rem;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        padding-bottom: 4px;
+        flex-wrap: wrap;
+        overflow-x: hidden;
+        gap: 0;
+        padding: 0 0.75rem;
     }
 
-    .admin-st-d14eab7d::-webkit-scrollbar { display: none; }
+    .admin-st-d14eab7d > button {
+        font-size: 0.72rem !important;
+        padding: 0.55rem 0.6rem !important;
+        gap: 3px !important;
+        flex: 1 1 auto;
+        min-width: 0;
+        text-align: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    /* Hide icons in tab bar to save space on mobile */
+    .admin-st-d14eab7d > button svg {
+        display: none;
+    }
 
     /* Margin containers -> tighter */
     .admin-st-277a8390 {
@@ -3165,12 +3177,32 @@
         min-width: 100%;
     }
     
-    /* === Global Table Responsiveness === */
+    /* === Global Table Responsiveness: shrink-to-fit === */
     .table-responsive {
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch;
+        overflow-x: hidden !important;
         display: block;
         width: 100%;
+    }
+
+    .data-table,
+    .premium-table {
+        table-layout: fixed;
+        width: 100% !important;
+        font-size: 0.72rem;
+    }
+
+    .data-table thead th,
+    .premium-table th {
+        padding: 0.5rem 0.4rem;
+        font-size: 0.65rem;
+    }
+
+    .data-table tbody td,
+    .premium-table td {
+        padding: 0.45rem 0.4rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
     }
     
     /* === Global Stats Grid Optimization (2 Columns) === */

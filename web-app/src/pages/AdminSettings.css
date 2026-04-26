@@ -222,17 +222,21 @@ textarea.form-input {
         border-right: none;
         border-bottom: 2px solid #e5e7eb;
         padding-right: 0;
-        padding-bottom: 1rem;
+        padding-bottom: 0.5rem;
         display: flex;
         flex-direction: row;
-        gap: 0.5rem;
-        overflow-x: auto;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        overflow-x: hidden;
     }
 
     .tab-button {
-        padding: 0.6rem 1rem;
-        font-size: 0.85rem;
+        padding: 0.5rem 0.7rem;
+        font-size: 0.78rem;
         white-space: nowrap;
+        flex: 1 1 auto;
+        text-align: center;
+        min-width: 0;
     }
 
     .form-row {

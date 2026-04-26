@@ -1227,19 +1227,16 @@
     }
 
     .filter-bar {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        flex-wrap: nowrap;
-    }
-
-    .filter-bar::-webkit-scrollbar {
-        display: none;
+        overflow-x: hidden;
+        flex-wrap: wrap;
+        gap: 6px;
     }
 
     .filter-btn {
         white-space: nowrap;
         flex-shrink: 0;
+        font-size: 0.78rem;
+        padding: 6px 14px;
     }
 
     .notification-record {
