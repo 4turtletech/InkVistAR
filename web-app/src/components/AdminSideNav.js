@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import io from 'socket.io-client';
 import Axios from 'axios';
-import { API_URL } from '../config';
+import { API_URL, SOCKET_URL } from '../config';
 import ConfirmModal from './ConfirmModal';
 import PaymentAlertOverlay from './PaymentAlertOverlay';
 import NotificationAlertOverlay from './NotificationAlertOverlay';
@@ -74,7 +74,7 @@ function AdminSideNav() {
 
     // Socket.io for Real-time Chat Notifications
     useEffect(() => {
-        const socket = io(API_URL);
+        const socket = io(SOCKET_URL);
 
         socket.on('connect', () => {
             socket.emit('join_admin_tracking');

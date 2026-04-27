@@ -5,7 +5,7 @@ import AdminSideNav from '../components/AdminSideNav';
 import ChatWidget from '../components/ChatWidget';
 import './PortalStyles.css';
 import './AdminStyles.css';
-import { API_URL } from '../config';
+import { API_URL, SOCKET_URL } from '../config';
 import { io } from 'socket.io-client';
 import './AdminChat.css';
 
@@ -17,7 +17,7 @@ function AdminChat() {
 
     useEffect(() => {
 
-        const socket = io(API_URL);
+        const socket = io(SOCKET_URL);
         socket.emit('join_admin_tracking');
 
         socket.on('support_sessions_update', (sessions) => {

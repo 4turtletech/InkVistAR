@@ -8,13 +8,20 @@ const explicitApi =
   process.env.REACT_APP_API_URL ||
   process.env.REACT_APP_BACKEND_URL;
 
-// Vercel preview/prod: require REACT_APP_API_URL to avoid hitting a non-existent relative /api.
-// Local dev: default to localhost:3001.
-export const API_URL = explicitApi || (isProduction ? '' : 'http://localhost:3001');
+// The direct backend server URL (Railway). Socket.IO MUST connect here directly
+// because Vercel's rewrite proxy does NOT support WebSocket upgrades.
+const BACKEND_DIRECT_URL = 'https://api.inkvictusstudio.com';
+
+// For regular HTTP API calls: use explicit env var, or fall back to the direct backend URL.
+// An empty string ('') causes Socket.IO and some API calls to fail on Vercel.
+export const API_URL = explicitApi || (isProduction ? BACKEND_DIRECT_URL : 'http://localhost:3001');
+
+// For Socket.IO: always connect directly to the backend server, never through Vercel proxy.
+export const SOCKET_URL = explicitApi || (isProduction ? BACKEND_DIRECT_URL : 'http://localhost:3001');
 
 if (!explicitApi) {
   console.warn(
-    `API_URL not provided via env. Using ${API_URL || 'relative /api'}; set REACT_APP_API_URL for production.`
+    `API_URL not provided via env. Using ${API_URL}; set REACT_APP_API_URL for production.`
   );
 }
 

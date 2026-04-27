@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://inkvistar-api.onrender.com/api/:path*"
+      "destination": "https://api.inkvictusstudio.com/api/:path*"
     }
   ]
 }
