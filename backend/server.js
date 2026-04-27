@@ -9300,15 +9300,15 @@ app.post('/api/chat', async (req, res) => {
 
   // Try Groq if key exists
   if (GROQ_API_KEY) {
-    try {
-      // Fetch settings from DB to build a dynamic context
-      db.query('SELECT * FROM app_settings', async (err, settingsResults) => {
-        if (err) {
-          console.error('[ERROR] Chatbot DB Error (falling back):', err.message);
-          const fallback = getFallbackResponse(message);
-          return res.json({ success: true, response: fallback });
-        }
+    // Fetch settings from DB to build a dynamic context
+    db.query('SELECT * FROM app_settings', async (err, settingsResults) => {
+      if (err) {
+        console.error('[ERROR] Chatbot DB Error (falling back):', err.message);
+        const fallback = getFallbackResponse(message);
+        return res.json({ success: true, response: fallback });
+      }
 
+      try {
         const settings = {};
         settingsResults.forEach(row => {
           try {
@@ -9356,12 +9356,12 @@ app.post('/api/chat', async (req, res) => {
 
         const response = chatCompletion.choices[0].message.content;
         return res.json({ success: true, response: response });
-      });
-    } catch (error) {
-      console.error('[ERROR] Groq API error (Falling back to local):', error);
-      const fallback = getFallbackResponse(message);
-      res.json({ success: true, response: fallback });
-    }
+      } catch (error) {
+        console.error('[ERROR] Groq API error (Falling back to local):', error);
+        const fallback = getFallbackResponse(message);
+        res.json({ success: true, response: fallback });
+      }
+    });
   } else {
     // Fallback if no Groq API key is configured
     const fallback = getFallbackResponse(message);
