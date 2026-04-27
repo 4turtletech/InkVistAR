@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet, RefreshControl,
   ScrollView, SafeAreaView, Image, Dimensions, Modal, Pressable, Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,6 +30,7 @@ export function CustomerArtistProfile({ route, onBack, onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [selectedWork, setSelectedWork] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
@@ -56,11 +57,17 @@ export function CustomerArtistProfile({ route, onBack, onNavigate }) {
   const closeDetail = () => { setModalVisible(false); setSelectedWork(null); };
   const handleBookSimilar = () => { closeDetail(); onNavigate('booking-create', { artistId, prefillNote: `I'm interested in a design similar to "${selectedWork?.title}".` }); };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+
   if (loading) return <SafeAreaView style={styles.container}><PremiumLoader message="Loading artist..." /></SafeAreaView>;
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}>
         {/* Hero */}
         <View style={styles.heroWrap}>
           {artist?.profile_image ? (

@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, SafeAreaView, Image, Animated
+  ScrollView, SafeAreaView, Image, Animated, RefreshControl
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Search, Star, Users } from 'lucide-react-native';
@@ -27,6 +27,7 @@ export function CustomerArtistDirectory({ onBack, onNavigate }) {
   const [maxRate, setMaxRate] = useState('');
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const listAnim = useState(new Animated.Value(20))[0];
 
@@ -54,6 +55,12 @@ export function CustomerArtistDirectory({ onBack, onNavigate }) {
       if (result.success) setArtists(result.artists || []);
     } catch (e) { console.error('Artists error:', e); }
     finally { setLoading(false); }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadArtists();
+    setRefreshing(false);
   };
 
   const filtered = artists.filter(a =>
@@ -94,43 +101,59 @@ export function CustomerArtistDirectory({ onBack, onNavigate }) {
         </View>
 
         {loading ? <PremiumLoader message="Loading artists..." /> : (
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Animated.View style={[styles.grid, { opacity: fadeAnim, transform: [{ translateY: listAnim }] }]}>
-              {filtered.length > 0 ? filtered.map((artist, index) => (
-                <AnimatedTouchable
-                  key={artist.id}
-                  style={styles.artistCard}
-                  onPress={() => onNavigate('CustomerArtistProfile', { artistId: artist.id })}
-                >
-                  {artist.profile_image ? (
-                    <View style={styles.imageWrap}>
-                      <Image source={{ uri: artist.profile_image }} style={styles.artistImage} />
-                      <LinearGradient colors={['transparent', 'rgba(15,13,14,0.8)']} style={styles.imgGradient} />
-                    </View>
-                  ) : (
-                    <View style={[styles.imageWrap, styles.placeholderImage]}>
-                      <Text style={styles.placeholderText}>{getInitials(artist.name)}</Text>
-                    </View>
-                  )}
+          <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}>
+            <View style={styles.grid}>
+              {filtered.length > 0 ? filtered.map((artist, index) => {
+                const isTall = index % 4 === 0 || index % 4 === 3;
+                const cardAnim = new Animated.Value(0);
+                const slideAnim = new Animated.Value(20);
+                
+                // Staggered animation effect
+                Animated.parallel([
+                  Animated.timing(cardAnim, { toValue: 1, duration: 400, delay: index * 100, useNativeDriver: true }),
+                  Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 8, delay: index * 100, useNativeDriver: true })
+                ]).start();
 
-                  <View style={styles.artistInfo}>
-                    <Text style={styles.artistName} numberOfLines={1}>{artist.name}</Text>
-                    <Text style={styles.artistSpecialty} numberOfLines={1}>{artist.specialization || 'Master Artist'}</Text>
-                    <View style={styles.ratingRow}>
-                      <Star size={12} color={theme.gold} fill={theme.gold} />
-                      <Text style={styles.ratingText}>{artist.rating || '4.9'} • {artist.review_count || '0'} reviews</Text>
-                    </View>
-                    <View style={styles.viewBtn}>
-                      <Text style={styles.viewBtnText}>View Portfolio</Text>
-                    </View>
-                  </View>
-                </AnimatedTouchable>
-              )) : (
-                <View style={{ width: '100%' }}>
+                return (
+                  <Animated.View 
+                    key={artist.id} 
+                    style={[styles.artistCardWrap, { opacity: cardAnim, transform: [{ translateY: slideAnim }] }]}
+                  >
+                    <AnimatedTouchable
+                      style={[styles.artistCard, isTall ? styles.cardTall : styles.cardShort]}
+                      onPress={() => onNavigate('CustomerArtistProfile', { artistId: artist.id })}
+                    >
+                      {artist.profile_image ? (
+                        <View style={styles.imageWrap}>
+                          <Image source={{ uri: artist.profile_image }} style={styles.artistImage} />
+                          <LinearGradient colors={['transparent', 'rgba(15,13,14,0.9)']} style={styles.imgGradient} />
+                        </View>
+                      ) : (
+                        <View style={[styles.imageWrap, styles.placeholderImage]}>
+                          <Text style={styles.placeholderText}>{getInitials(artist.name)}</Text>
+                        </View>
+                      )}
+
+                      <View style={styles.artistInfo}>
+                        <Text style={styles.artistName} numberOfLines={1}>{artist.name}</Text>
+                        <Text style={styles.artistSpecialty} numberOfLines={1}>{artist.specialization || 'Master Artist'}</Text>
+                        <View style={styles.ratingRow}>
+                          <Star size={12} color={theme.gold} fill={theme.gold} />
+                          <Text style={styles.ratingText}>{artist.rating || '4.9'} • {artist.review_count || '0'}</Text>
+                        </View>
+                        <View style={styles.viewBtn}>
+                          <Text style={styles.viewBtnText}>View Portfolio</Text>
+                        </View>
+                      </View>
+                    </AnimatedTouchable>
+                  </Animated.View>
+                );
+              }) : (
+                <View style={{ width: '100%', marginTop: 20 }}>
                   <EmptyState icon={Users} title="No artists found" subtitle="Try adjusting your search or filters" />
                 </View>
               )}
-            </Animated.View>
+            </View>
           </ScrollView>
         )}
       </View>
@@ -158,17 +181,22 @@ const getStyles = (theme) => StyleSheet.create({
     borderWidth: 1, borderColor: theme.border, ...typography.bodySmall, color: theme.textPrimary,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 40 },
-  artistCard: {
-    width: '48%', backgroundColor: theme.surface, borderRadius: borderRadius.xl,
-    overflow: 'hidden', marginBottom: 14,
-    borderWidth: 1, borderColor: theme.border, ...shadows.subtle,
+  artistCardWrap: {
+    width: '48%', marginBottom: 14,
   },
-  imageWrap: { height: 160, position: 'relative' },
+  artistCard: {
+    backgroundColor: theme.surface, borderRadius: borderRadius.xl,
+    overflow: 'hidden', borderWidth: 1, borderColor: theme.border, ...shadows.subtle,
+    height: '100%',
+  },
+  cardTall: { height: 260 },
+  cardShort: { height: 220 },
+  imageWrap: { flex: 1, position: 'relative', minHeight: 100 },
   artistImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   imgGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 60 },
   placeholderImage: { backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center' },
   placeholderText: { fontSize: 36, fontWeight: '800', color: theme.gold },
-  artistInfo: { padding: 10 },
+  artistInfo: { padding: 10, paddingBottom: 14 },
   artistName: { ...typography.body, fontWeight: '700', color: theme.textPrimary, marginBottom: 2 },
   artistSpecialty: { ...typography.bodyXSmall, color: theme.textSecondary, marginBottom: 6 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },

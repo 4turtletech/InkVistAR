@@ -132,6 +132,7 @@ export function CustomerNotifications({ onBack, userId }) {
   const styles = getStyles(theme);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [filterType, setFilterType] = useState('all');
@@ -177,6 +178,12 @@ export function CustomerNotifications({ onBack, userId }) {
     await deleteNotification(id);
   };
   const loadMore = () => { const next = page + 1; setPage(next); load(next); };
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setPage(1);
+    await load(1);
+    setRefreshing(false);
+  };
   const setFilter = (t) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFilterType(t); setPage(1); setNotifications([]);
@@ -252,6 +259,8 @@ export function CustomerNotifications({ onBack, userId }) {
           keyExtractor={item => (item.id || Math.random()).toString()}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
           ListEmptyComponent={<EmptyState icon={Bell} title="No notifications" subtitle="We'll let you know when something important happens" />}
           ListFooterComponent={
             hasMore ? (

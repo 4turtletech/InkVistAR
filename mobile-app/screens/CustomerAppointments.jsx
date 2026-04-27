@@ -243,7 +243,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew }) {
         ))}
       </View>
 
-      <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 100, paddingTop: 14 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+      <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 100, paddingTop: 14 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}>
         {/* Calendar View */}
         {viewMode === 'calendar' && (
           <View style={styles.calCard}>

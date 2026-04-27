@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, StyleSheet, ScrollView,
-  SafeAreaView, Image, TouchableOpacity,
+  SafeAreaView, Image, TouchableOpacity, RefreshControl,
   Modal, Dimensions, Pressable, Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,6 +47,7 @@ export function CustomerGallery({ onBack, userId }) {
   const [selectedWork, setSelectedWork] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [togglingFavorite, setTogglingFavorite] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!userId && viewMode !== 'All') { setViewMode('All'); return; }
@@ -94,6 +95,12 @@ export function CustomerGallery({ onBack, userId }) {
       }
     } catch (e) { console.error(e); }
     finally { setTogglingFavorite(false); }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchWorks();
+    setRefreshing(false);
   };
 
   const displayItems = viewMode === 'My Tattoos' ? myTattoos : works;
@@ -192,7 +199,7 @@ export function CustomerGallery({ onBack, userId }) {
         <TouchableOpacity onPress={onBack}><Text style={styles.headerBack}>Back</Text></TouchableOpacity>
       </View>
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />}>
         <View style={styles.content}>
           {/* Search with Autocomplete Waterfall */}
           <View style={{ zIndex: 10, position: 'relative' }}>

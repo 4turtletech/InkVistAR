@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, RefreshControl,
   Modal, TextInput, Alert, Animated, Switch, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import {
@@ -36,6 +36,7 @@ const AnimatedTouchable = ({ children, onPress, style, activeOpacity = 0.9 }) =>
 export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const { theme, isDark, toggleTheme, hapticsEnabled, toggleHaptics } = useTheme();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [profile, setProfile] = useState({ name: userName || '', email: userEmail || '', phone: '', location: '' });
   const [stats, setStats] = useState({ tattoos: 0, designs: 0, artists: 0 });
@@ -88,6 +89,12 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
   const handleEdit = () => { setEditForm({ ...profile }); setEditProfileVisible(true); };
   const handleMedicalEdit = () => { setMedicalForm({ ...medicalNotes }); setMedicalVisible(true); };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchProfile();
+    setRefreshing(false);
+  };
 
   const triggerShake = () => {
     Animated.sequence([
@@ -255,7 +262,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Profile</Text>
           <AnimatedTouchable onPress={onLogout} style={styles.logoutBtn}>
