@@ -376,4 +376,13 @@
     .chat-widget-container.open ~ .chat-fab {
         display: none;
     }
+    .mobile-only-close {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+.mobile-only-close {
+    display: none;
 }

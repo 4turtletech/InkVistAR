@@ -320,6 +320,15 @@ export default function ChatWidget({ room = null, currentUser = 'Guest', userNam
                 </button>
               </div>
             )}
+            {!isAdminMode && (
+              <button 
+                className="chat-close-btn mobile-only-close" 
+                onClick={() => setIsOpen(false)}
+                title="Close chat"
+              >
+                <X size={20} />
+              </button>
+            )}
           </div>
         </div>
 

@@ -1620,11 +1620,23 @@
     .inspiration-banner__grid { display: flex !important; flex-wrap: wrap; justify-content: center; gap: 12px; }
     .inspiration-banner__text { min-width: 100%; }
 
-    /* Fix header subtitle negative margins causing horizontal scroll */
-    .customer-st-5c2e40e1 {
+    /* Fix header subtitle negative margins causing overlap/horizontal scroll */
+    .customer-st-5c2e40e1,
+    .customer-st-a37b17a0,
+    .header-subtitle {
         margin-right: 0 !important;
         margin-top: 0 !important;
-        margin-bottom: 1.5rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    /* Make inspiration tiles smaller on mobile to prevent clipping */
+    .inspiration-banner__tile {
+        width: 56px !important;
+        height: 56px !important;
+    }
+    .inspiration-banner__tile svg {
+        width: 20px !important;
+        height: 20px !important;
     }
 }
 
