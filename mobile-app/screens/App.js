@@ -138,6 +138,17 @@ export default function App() {
   const [isResetMode, setIsResetMode] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginUserType, setLoginUserType] = useState('customer');
+
+  const confirmLogout = () => {
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log Out', style: 'destructive', onPress: () => setUser(null) },
+      ]
+    );
+  };
   
   useEffect(() => {
     console.log('User state changed:', user ? `Logged in as ${user.name}` : 'Not logged in');
@@ -229,7 +240,7 @@ export default function App() {
       })}
     >
       <Tab.Screen name="Home">
-        {(props) => <CustomerDashboard {...props} userName={user.name} userId={user.id} onNavigate={props.navigation.navigate} onLogout={() => setUser(null)} />}
+        {(props) => <CustomerDashboard {...props} userName={user.name} userId={user.id} onNavigate={props.navigation.navigate} onLogout={confirmLogout} />}
       </Tab.Screen>
       <Tab.Screen name="Gallery">
         {(props) => <CustomerGallery {...props} onBack={() => props.navigation.navigate('Home')} />}
@@ -244,7 +255,7 @@ export default function App() {
         {(props) => <CustomerAppointments {...props} customerId={user.id} onBack={() => props.navigation.navigate('Home')} onBookNew={() => props.navigation.navigate('booking-create')} />}
       </Tab.Screen>
       <Tab.Screen name="Profile">
-        {(props) => <CustomerProfilePage {...props} userName={user.name} userEmail={user.email} userId={user.id} onBack={() => props.navigation.navigate('Home')} onLogout={() => setUser(null)} />}
+        {(props) => <CustomerProfilePage {...props} userName={user.name} userEmail={user.email} userId={user.id} onBack={() => props.navigation.navigate('Home')} onLogout={confirmLogout} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
@@ -264,7 +275,7 @@ export default function App() {
       })}
     >
       <Tab.Screen name="Dashboard">
-        {(props) => <AdminDashboard {...props} onLogout={() => setUser(null)} />}
+        {(props) => <AdminDashboard {...props} onLogout={confirmLogout} />}
       </Tab.Screen>
       <Tab.Screen name="Users" component={AdminUserManagement} />
       <Tab.Screen name="Bookings" component={AdminAppointmentManagement} />
@@ -287,7 +298,7 @@ export default function App() {
       })}
     >
       <Tab.Screen name="Home">
-        {(props) => <ArtistDashboard {...props} userName={user.name} userEmail={user.email} userId={user.id} onNavigate={props.navigation.navigate} onLogout={() => setUser(null)} />}
+        {(props) => <ArtistDashboard {...props} userName={user.name} userEmail={user.email} userId={user.id} onNavigate={props.navigation.navigate} onLogout={confirmLogout} />}
       </Tab.Screen>
       <Tab.Screen name="Schedule">
         {(props) => <ArtistSchedule {...props} artistId={user.id} onBack={() => props.navigation.navigate('Home')} />}
@@ -299,7 +310,7 @@ export default function App() {
         {(props) => <ArtistWorks {...props} artistId={user.id} onBack={() => props.navigation.navigate('Home')} />}
       </Tab.Screen>
       <Tab.Screen name="Profile">
-        {(props) => <ArtistProfile {...props} userName={user.name} userEmail={user.email} onBack={() => props.navigation.navigate('Home')} onLogout={() => setUser(null)} />}
+        {(props) => <ArtistProfile {...props} userName={user.name} userEmail={user.email} onBack={() => props.navigation.navigate('Home')} onLogout={confirmLogout} />}
       </Tab.Screen>
     </Tab.Navigator>
   );

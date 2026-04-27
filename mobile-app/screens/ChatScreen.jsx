@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import io from 'socket.io-client';
-import { API_URL } from '../src/config'; // Assuming config is in src
+import { API_BASE_URL } from '../src/utils/api';
 
-const socket = io(API_URL);
+const socket = io(API_BASE_URL);
 
 const ChatScreen = ({ route }) => {
     // Get room and user from navigation parameters, with defaults

@@ -3,19 +3,21 @@
  * Themed with lucide icons, type-based icon mapping, filter chips, pagination.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Animated, PanResponder, Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft, Bell, Calendar, CheckCircle, XCircle, Star,
-  CreditCard, Info, MessageSquare, Mail, ChevronDown,
+  CreditCard, Info, MessageSquare, Mail, ChevronDown, Trash2, Filter
 } from 'lucide-react-native';
-import { colors, typography, borderRadius } from '../src/theme';
+import * as Haptics from 'expo-haptics';
+import { useTheme } from '../src/context/ThemeContext';
+import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
-import { getNotifications, markNotificationAsRead, markNotificationAsUnread } from '../src/utils/api';
+import { getNotifications, markNotificationAsRead, markNotificationAsUnread, deleteNotification } from '../src/utils/api';
 
 const timeAgo = (dateString) => {
   if (!dateString) return '';
@@ -38,27 +40,119 @@ const ICON_MAP = {
 };
 const DEF = { Icon: Bell, color: colors.textTertiary, bg: colors.lightBgSecondary };
 
-const FILTERS = {
-  all: 'All', appointment_request: 'Requests', appointment_new: 'New',
-  appointment_confirmed: 'Confirmed', appointment_cancelled: 'Cancelled',
-  appointment_completed: 'Completed', payment_success: 'Payments',
+const MAIN_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'unread', label: 'Unread' },
+  { key: 'read', label: 'Read' }
+];
+
+const TYPE_FILTERS = [
+  { key: 'all_types', label: 'All Types' },
+  { key: 'appointment_request', label: 'Requests' },
+  { key: 'appointment_new', label: 'New' },
+  { key: 'appointment_confirmed', label: 'Confirmed' },
+  { key: 'appointment_cancelled', label: 'Cancelled' },
+  { key: 'appointment_completed', label: 'Completed' },
+  { key: 'payment_success', label: 'Payments' }
+];
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, theme, styles }) => {
+  const cfg = ICON_MAP[item.type] || { Icon: Bell, color: theme.textTertiary, bg: theme.surfaceLight };
+  const pan = useRef(new Animated.ValueXY()).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const itemHeight = useRef(new Animated.Value(100)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 300, delay: index * 100, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 8, delay: index * 100, useNativeDriver: true })
+    ]).start();
+  }, []);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dy) < 10,
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx < 0) {
+          pan.setValue({ x: gestureState.dx, y: 0 });
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx < -SCREEN_WIDTH * 0.3) {
+          Animated.timing(pan, { toValue: { x: -SCREEN_WIDTH, y: 0 }, duration: 200, useNativeDriver: false }).start(() => {
+            Animated.timing(itemHeight, { toValue: 0, duration: 200, useNativeDriver: false }).start(() => {
+              onDismiss(item.id);
+            });
+          });
+        } else {
+          Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
+        }
+      }
+    })
+  ).current;
+
+  return (
+    <Animated.View style={{ height: itemHeight, overflow: 'hidden' }}>
+      <Animated.View style={{ opacity, transform: [{ translateY: slideAnim }], flex: 1 }}>
+      <View style={styles.deleteBg}>
+        <Trash2 size={24} color="#ffffff" />
+        <Text style={styles.deleteText}>Delete</Text>
+      </View>
+      <Animated.View {...panResponder.panHandlers} style={[pan.getLayout(), { flex: 1 }]}>
+        <TouchableOpacity style={[styles.card, !item.is_read && styles.cardUnread]} onPress={() => onPress(item)} activeOpacity={0.9}>
+          {!item.is_read && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(190,144,85,0.06)', borderRadius: borderRadius.xl }]} pointerEvents="none" />}
+          <View style={[styles.iconWrap, { backgroundColor: cfg.bg || theme.surfaceLight }]}>
+            <cfg.Icon size={20} color={cfg.color || theme.textTertiary} />
+          </View>
+          <View style={styles.cardContent}>
+            <View style={styles.cardTop}>
+              <Text style={[styles.cardTitle, !item.is_read && styles.cardTitleBold]} numberOfLines={2}>{item.title || ''}</Text>
+              <Text style={styles.cardTime}>{timeAgo(item.created_at)}</Text>
+            </View>
+            <Text style={styles.cardMsg} numberOfLines={2}>{item.message}</Text>
+          </View>
+          {!!item.is_read && (
+            <TouchableOpacity style={{ padding: 4 }} onPress={() => onUnread(item)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Mail size={16} color={theme.gold} />
+            </TouchableOpacity>
+          )}
+          {!item.is_read && <View style={styles.unreadDot} />}
+        </TouchableOpacity>
+      </Animated.View>
+      </Animated.View>
+    </Animated.View>
+  );
 };
 
 export function CustomerNotifications({ onBack, userId }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [filterType, setFilterType] = useState('all');
+  const [subFilter, setSubFilter] = useState('all_types');
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  useEffect(() => { load(1); }, [userId, filterType]);
+  useEffect(() => { load(1); }, [userId, filterType, subFilter]);
 
   const load = async (p = 1) => {
     if (!userId) { setLoading(false); return; }
     setLoading(true);
     try {
       const opts = { page: p, limit: 20 };
-      if (filterType !== 'all') opts.type = filterType;
+      
+      // Main Filters
+      if (filterType === 'unread') opts.is_read = false;
+      if (filterType === 'read') opts.is_read = true;
+      
+      // Type Filters
+      if (subFilter !== 'all_types') opts.type = subFilter;
+
       const r = await getNotifications(userId, opts);
       if (r.success) {
         p === 1 ? setNotifications(r.notifications || []) : setNotifications(prev => [...prev, ...(r.notifications || [])]);
@@ -77,46 +171,36 @@ export function CustomerNotifications({ onBack, userId }) {
     if (!item.is_read) { await markNotificationAsRead(item.id); setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: true } : n)); }
   };
   const onUnread = async (item) => { await markNotificationAsUnread(item.id); setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: false } : n)); };
+  const onDismiss = async (id) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    await deleteNotification(id);
+  };
   const loadMore = () => { const next = page + 1; setPage(next); load(next); };
-  const setFilter = (t) => { setFilterType(t); setPage(1); setNotifications([]); };
+  const setFilter = (t) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFilterType(t); setPage(1); setNotifications([]);
+  };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  const renderItem = ({ item }) => {
-    const cfg = ICON_MAP[item.type] || DEF;
-    return (
-      <TouchableOpacity style={[styles.card, !item.is_read && styles.cardUnread]} onPress={() => onPress(item)} activeOpacity={0.7}>
-        <View style={[styles.iconWrap, { backgroundColor: cfg.bg }]}>
-          <cfg.Icon size={20} color={cfg.color} />
-        </View>
-        <View style={styles.cardContent}>
-          <View style={styles.cardTop}>
-            <Text style={[styles.cardTitle, !item.is_read && styles.cardTitleBold]} numberOfLines={2}>{item.title || ''}</Text>
-            <Text style={styles.cardTime}>{timeAgo(item.created_at)}</Text>
-          </View>
-          <Text style={styles.cardMsg} numberOfLines={2}>{item.message}</Text>
-        </View>
-        {!!item.is_read && (
-          <TouchableOpacity style={{ padding: 4 }} onPress={() => onUnread(item)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Mail size={16} color={colors.primary} />
-          </TouchableOpacity>
-        )}
-        {!item.is_read && <View style={styles.unreadDot} />}
-      </TouchableOpacity>
-    );
-  };
+  const renderItem = ({ item, index }) => (
+    <SwipeableNotificationItem
+      item={item} index={index} onPress={onPress} onUnread={onUnread} onDismiss={onDismiss} theme={theme} styles={styles}
+    />
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={['#0f172a', '#1e293b']} style={styles.header}>
+      <View style={styles.header}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={onBack} style={styles.headerBtn}>
-            <ArrowLeft size={20} color="#ffffff" />
+            <ArrowLeft size={20} color={theme.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Notifications</Text>
           <View style={{ width: 40 }} />
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={styles.actionsBar}>
         <Text style={styles.countText}>{unreadCount} Unread</Text>
@@ -125,14 +209,40 @@ export function CustomerNotifications({ onBack, userId }) {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.filterWrap}>
+      <View style={[styles.filterWrap, { zIndex: 10 }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {Object.entries(FILTERS).map(([key, label]) => (
-            <TouchableOpacity key={key} style={[styles.chip, filterType === key && styles.chipActive]} onPress={() => setFilter(key)}>
-              <Text style={[styles.chipText, filterType === key && styles.chipTextActive]}>{label}</Text>
+          {MAIN_FILTERS.map(f => (
+            <TouchableOpacity key={f.key} style={[styles.chip, filterType === f.key && styles.chipActive]} onPress={() => setFilter(f.key)}>
+              <Text style={[styles.chipText, filterType === f.key && styles.chipTextActive]}>{f.label}</Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity 
+            style={[styles.chip, { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 10, borderColor: showDropdown ? theme.gold : theme.border, backgroundColor: showDropdown ? theme.surface : theme.surfaceLight }]} 
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowDropdown(!showDropdown); }}
+          >
+            <Filter size={12} color={showDropdown ? theme.gold : theme.textSecondary} />
+            <Text style={[styles.chipText, { color: showDropdown ? theme.gold : theme.textSecondary }]}>
+              {TYPE_FILTERS.find(t => t.key === subFilter)?.label || 'All Types'}
+            </Text>
+            <ChevronDown size={12} color={showDropdown ? theme.gold : theme.textSecondary} />
+          </TouchableOpacity>
         </ScrollView>
+        {showDropdown && (
+          <View style={styles.dropdownWrap}>
+            {TYPE_FILTERS.map(f => (
+              <TouchableOpacity key={f.key} style={styles.dropdownItem} onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSubFilter(f.key);
+                setShowDropdown(false);
+                setPage(1);
+                setNotifications([]);
+              }}>
+                <Text style={[styles.dropdownText, subFilter === f.key && { color: theme.gold, fontWeight: '700' }]}>{f.label}</Text>
+                {subFilter === f.key && <CheckCircle size={14} color={theme.gold} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
 
       {loading && notifications.length === 0 ? <PremiumLoader message="Loading..." /> : (
@@ -147,7 +257,7 @@ export function CustomerNotifications({ onBack, userId }) {
             hasMore ? (
               <TouchableOpacity style={styles.loadMoreBtn} onPress={loadMore}>
                 <Text style={styles.loadMoreText}>Load More</Text>
-                <ChevronDown size={16} color={colors.textSecondary} />
+                <ChevronDown size={16} color={theme.textSecondary} />
               </TouchableOpacity>
             ) : notifications.length > 0 ? <Text style={styles.endText}>No more notifications</Text> : null
           }
@@ -157,48 +267,53 @@ export function CustomerNotifications({ onBack, userId }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { padding: 20, paddingTop: 52, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+const getStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: { padding: 20, paddingTop: 52, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border, ...shadows.subtle },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { ...typography.h2, color: '#ffffff' },
+  headerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { ...typography.h2, color: theme.textPrimary },
   actionsBar: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#ffffff',
-    borderBottomWidth: 1, borderBottomColor: colors.borderLight,
+    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.surface,
+    borderBottomWidth: 1, borderBottomColor: theme.border,
   },
-  countText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
-  markAllText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
-  filterWrap: { backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.borderLight, paddingBottom: 10 },
+  countText: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600' },
+  markAllText: { ...typography.bodySmall, color: theme.gold, fontWeight: '600' },
+  filterWrap: { backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border, paddingBottom: 10 },
   filterRow: { paddingHorizontal: 16, paddingVertical: 6, gap: 8 },
   chip: {
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: borderRadius.round,
-    backgroundColor: colors.lightBgSecondary, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border,
   },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600' },
-  chipTextActive: { color: '#ffffff' },
+  chipActive: { backgroundColor: theme.gold, borderColor: theme.gold },
+  chipText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '600' },
+  chipTextActive: { color: theme.backgroundDeep },
+  dropdownWrap: { position: 'absolute', top: 50, right: 16, width: 180, backgroundColor: theme.backgroundDeep, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: theme.border, ...shadows.medium, paddingVertical: 4, zIndex: 20 },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border },
+  dropdownText: { ...typography.bodySmall, color: theme.textPrimary },
   listContent: { padding: 16 },
+  deleteBg: { position: 'absolute', right: 0, top: 0, bottom: 8, width: 80, backgroundColor: theme.error, borderRadius: borderRadius.xl, justifyContent: 'center', alignItems: 'center' },
+  deleteText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700', marginTop: 4 },
   card: {
-    flexDirection: 'row', backgroundColor: '#ffffff', borderRadius: borderRadius.xl,
+    flexDirection: 'row', backgroundColor: theme.surface, borderRadius: borderRadius.xl,
     padding: 14, marginBottom: 8, alignItems: 'flex-start',
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 1, borderColor: theme.border, ...shadows.subtle
   },
-  cardUnread: { backgroundColor: 'rgba(190,144,85,0.04)', borderLeftWidth: 3, borderLeftColor: colors.primary },
+  cardUnread: { borderLeftWidth: 3, borderLeftColor: theme.gold },
   iconWrap: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   cardContent: { flex: 1, marginRight: 8 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
-  cardTitle: { ...typography.body, fontWeight: '600', color: colors.textPrimary, flex: 1, marginRight: 8 },
-  cardTitleBold: { fontWeight: '800', color: colors.textDark },
-  cardTime: { ...typography.bodyXSmall, color: colors.textTertiary },
-  cardMsg: { ...typography.bodySmall, color: colors.textSecondary, lineHeight: 20 },
-  unreadDot: { position: 'absolute', top: 14, right: 14, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
+  cardTitle: { ...typography.body, fontWeight: '600', color: theme.textPrimary, flex: 1, marginRight: 8 },
+  cardTitleBold: { fontWeight: '800', color: theme.textPrimary },
+  cardTime: { ...typography.bodyXSmall, color: theme.textTertiary },
+  cardMsg: { ...typography.bodySmall, color: theme.textSecondary, lineHeight: 20 },
+  unreadDot: { position: 'absolute', top: 14, right: 14, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.gold },
   loadMoreBtn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4,
-    paddingVertical: 12, marginBottom: 20, backgroundColor: '#ffffff',
-    borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border,
+    paddingVertical: 12, marginBottom: 20, backgroundColor: theme.surface,
+    borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.border,
   },
-  loadMoreText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
-  endText: { ...typography.bodySmall, color: colors.textTertiary, textAlign: 'center', paddingVertical: 20, fontStyle: 'italic' },
+  loadMoreText: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600' },
+  endText: { ...typography.bodySmall, color: theme.textTertiary, textAlign: 'center', paddingVertical: 20, fontStyle: 'italic' },
 });

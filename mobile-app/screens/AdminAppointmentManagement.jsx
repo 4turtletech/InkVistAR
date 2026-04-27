@@ -20,6 +20,7 @@ import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { ConfirmModal } from '../src/components/shared/ConfirmModal';
+import { formatCurrency, formatDate, formatTime, getDisplayCode } from '../src/utils/formatters';
 import {
   getAdminAppointments, updateAppointmentByAdmin, deleteAppointmentByAdmin,
   createAppointmentByAdmin, API_BASE_URL

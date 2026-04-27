@@ -15,7 +15,7 @@ import {
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
-import { API_URL } from '../src/config';
+import { API_BASE_URL, API_URL } from '../src/utils/api';
 
 export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [loading, setLoading] = useState(false);
@@ -29,20 +29,20 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
   useEffect(() => { fetchInventory(); fetchServiceKits(); if (status === 'in_progress') fetchSessionMaterials(); }, [appointment?.id, status]);
 
-  const fetchInventory = async () => { try { const r = await (await fetch(`${API_URL}/api/admin/inventory`)).json(); if (r.success && r.data) setInventoryItems(r.data.filter(i => i.current_stock > 0)); } catch (e) { console.error(e); } };
-  const fetchServiceKits = async () => { try { const r = await (await fetch(`${API_URL}/api/admin/service-kits`)).json(); if (r.success) setServiceKits(r.data || {}); } catch (e) { console.error(e); } };
-  const fetchSessionMaterials = async () => { if (!appointment?.id) return; try { const r = await (await fetch(`${API_URL}/api/appointments/${appointment.id}/materials`)).json(); if (r.success) { setSessionMaterials(r.materials || []); setSessionCost(r.totalCost || 0); } } catch (e) { console.error(e); } };
+  const fetchInventory = async () => { try { const r = await (await fetch(`${API_URL}/admin/inventory`)).json(); if (r.success && r.data) setInventoryItems(r.data.filter(i => i.current_stock > 0)); } catch (e) { console.error(e); } };
+  const fetchServiceKits = async () => { try { const r = await (await fetch(`${API_URL}/admin/service-kits`)).json(); if (r.success) setServiceKits(r.data || {}); } catch (e) { console.error(e); } };
+  const fetchSessionMaterials = async () => { if (!appointment?.id) return; try { const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/materials`)).json(); if (r.success) { setSessionMaterials(r.materials || []); setSessionCost(r.totalCost || 0); } } catch (e) { console.error(e); } };
 
   const handleQuickAdd = async (inventoryId, quantity = 1) => {
     setAddingMaterial(true);
-    try { const r = await (await fetch(`${API_URL}/api/appointments/${appointment.id}/materials`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inventory_id: inventoryId, quantity }) })).json(); if (r.success) fetchSessionMaterials(); else Alert.alert('Error', r.message || 'Failed. Check stock.'); }
+    try { const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/materials`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inventory_id: inventoryId, quantity }) })).json(); if (r.success) fetchSessionMaterials(); else Alert.alert('Error', r.message || 'Failed. Check stock.'); }
     catch (e) { Alert.alert('Error', 'Connection failed'); } finally { setAddingMaterial(false); }
   };
 
   const handleQuickAddKit = async (kitItems) => {
     if (!appointment?.id || !kitItems?.length) return;
     setAddingMaterial(true);
-    try { for (const item of kitItems) await fetch(`${API_URL}/api/appointments/${appointment.id}/materials`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inventory_id: item.inventory_id, quantity: item.default_quantity }) }); fetchSessionMaterials(); Alert.alert('Kit Added', 'All items added.'); }
+    try { for (const item of kitItems) await fetch(`${API_URL}/appointments/${appointment.id}/materials`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inventory_id: item.inventory_id, quantity: item.default_quantity }) }); fetchSessionMaterials(); Alert.alert('Kit Added', 'All items added.'); }
     catch (e) { Alert.alert('Error', 'Failed to add kit.'); } finally { setAddingMaterial(false); }
   };
 
@@ -51,7 +51,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     Alert.alert('Return to Stock', 'Return this item to inventory?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Return Item', onPress: async () => {
-        try { const r = await (await fetch(`${API_URL}/api/appointments/${appointment.id}/release-material`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ materialId: Number(materialId) }) })).json(); r.success ? Alert.alert('Success', 'Returned.') : Alert.alert('Error', r.message || 'Failed.'); }
+        try { const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/release-material`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ materialId: Number(materialId) }) })).json(); r.success ? Alert.alert('Success', 'Returned.') : Alert.alert('Error', r.message || 'Failed.'); }
         catch (e) { Alert.alert('Error', 'Connection failed'); } finally { fetchSessionMaterials(); }
       }},
     ]);
@@ -67,7 +67,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const handleUpdateStatus = async (newStatus) => {
     setLoading(true);
     try {
-      const r = await (await fetch(`${API_URL}/api/appointments/${appointment.id}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) })).json();
+      const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) })).json();
       if (r.success) {
         setStatus(newStatus);
         if (newStatus === 'completed') Alert.alert('Session Completed', `Total material cost: P${sessionCost.toLocaleString()}.`, [{ text: 'OK', onPress: () => onComplete?.() }]);
@@ -80,7 +80,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     if (!appointment?.id) return;
     setLoading(true);
     try {
-      const r = await (await fetch(`${API_URL}/api/appointments/${appointment.id}/details`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes: sessionData.notes, beforePhoto: sessionData.beforePhoto, afterPhoto: sessionData.afterPhoto }) })).json();
+      const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/details`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes: sessionData.notes, beforePhoto: sessionData.beforePhoto, afterPhoto: sessionData.afterPhoto }) })).json();
       r.success ? Alert.alert('Success', 'Session details saved!') : Alert.alert('Error', 'Failed to save.');
     } catch (e) { Alert.alert('Error', 'Connection failed'); } finally { setLoading(false); }
   };

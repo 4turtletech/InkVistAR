@@ -6,23 +6,40 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, SafeAreaView, Image,
+  ScrollView, SafeAreaView, Image, Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Search, Star, Users } from 'lucide-react-native';
-import { colors, typography, borderRadius, shadows } from '../src/theme';
+import { useTheme } from '../src/context/ThemeContext';
+import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
+import { typography, borderRadius, shadows } from '../src/theme';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { getInitials } from '../src/utils/formatters';
 import { getCustomerArtists } from '../src/utils/api';
 
 export function CustomerArtistDirectory({ onBack, onNavigate }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [searchQuery, setSearchQuery] = useState('');
   const [specializationFilter, setSpecializationFilter] = useState('');
   const [minRate, setMinRate] = useState('');
   const [maxRate, setMaxRate] = useState('');
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const listAnim = useState(new Animated.Value(20))[0];
+
+  useEffect(() => {
+    if (!loading && artists.length > 0) {
+      fadeAnim.setValue(0);
+      listAnim.setValue(20);
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(listAnim, { toValue: 0, tension: 50, friction: 8, useNativeDriver: true })
+      ]).start();
+    }
+  }, [loading, artists]);
 
   useEffect(() => { loadArtists(); }, [specializationFilter, minRate, maxRate]);
 
@@ -59,11 +76,11 @@ export function CustomerArtistDirectory({ onBack, onNavigate }) {
       <View style={styles.content}>
         {/* Search */}
         <View style={styles.searchWrap}>
-          <Search size={18} color={colors.textTertiary} />
+          <Search size={18} color={theme.textTertiary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search by name or specialty..."
-            placeholderTextColor={colors.textTertiary}
+            placeholderTextColor={theme.textTertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -71,25 +88,24 @@ export function CustomerArtistDirectory({ onBack, onNavigate }) {
 
         {/* Filters */}
         <View style={styles.filterRow}>
-          <TextInput style={styles.filterInput} placeholder="Specialty" placeholderTextColor={colors.textTertiary} value={specializationFilter} onChangeText={setSpecializationFilter} />
-          <TextInput style={styles.filterInput} placeholder="Min Rate" placeholderTextColor={colors.textTertiary} keyboardType="numeric" value={minRate} onChangeText={setMinRate} />
-          <TextInput style={[styles.filterInput, { marginRight: 0 }]} placeholder="Max Rate" placeholderTextColor={colors.textTertiary} keyboardType="numeric" value={maxRate} onChangeText={setMaxRate} />
+          <TextInput style={styles.filterInput} placeholder="Specialty" placeholderTextColor={theme.textTertiary} value={specializationFilter} onChangeText={setSpecializationFilter} />
+          <TextInput style={styles.filterInput} placeholder="Min Rate" placeholderTextColor={theme.textTertiary} keyboardType="numeric" value={minRate} onChangeText={setMinRate} />
+          <TextInput style={[styles.filterInput, { marginRight: 0 }]} placeholder="Max Rate" placeholderTextColor={theme.textTertiary} keyboardType="numeric" value={maxRate} onChangeText={setMaxRate} />
         </View>
 
         {loading ? <PremiumLoader message="Loading artists..." /> : (
           <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.grid}>
-              {filtered.length > 0 ? filtered.map(artist => (
-                <TouchableOpacity
+            <Animated.View style={[styles.grid, { opacity: fadeAnim, transform: [{ translateY: listAnim }] }]}>
+              {filtered.length > 0 ? filtered.map((artist, index) => (
+                <AnimatedTouchable
                   key={artist.id}
                   style={styles.artistCard}
                   onPress={() => onNavigate('CustomerArtistProfile', { artistId: artist.id })}
-                  activeOpacity={0.8}
                 >
                   {artist.profile_image ? (
                     <View style={styles.imageWrap}>
                       <Image source={{ uri: artist.profile_image }} style={styles.artistImage} />
-                      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.imgGradient} />
+                      <LinearGradient colors={['transparent', 'rgba(15,13,14,0.8)']} style={styles.imgGradient} />
                     </View>
                   ) : (
                     <View style={[styles.imageWrap, styles.placeholderImage]}>
@@ -101,23 +117,20 @@ export function CustomerArtistDirectory({ onBack, onNavigate }) {
                     <Text style={styles.artistName} numberOfLines={1}>{artist.name}</Text>
                     <Text style={styles.artistSpecialty} numberOfLines={1}>{artist.specialization || 'Master Artist'}</Text>
                     <View style={styles.ratingRow}>
-                      <Star size={12} color={colors.primary} fill={colors.primary} />
-                      <Text style={styles.ratingText}>{artist.rating || '4.9'} -- {artist.review_count || '0'} reviews</Text>
+                      <Star size={12} color={theme.gold} fill={theme.gold} />
+                      <Text style={styles.ratingText}>{artist.rating || '4.9'} • {artist.review_count || '0'} reviews</Text>
                     </View>
-                    <TouchableOpacity
-                      style={styles.viewBtn}
-                      onPress={() => onNavigate('CustomerArtistProfile', { artistId: artist.id })}
-                    >
+                    <View style={styles.viewBtn}>
                       <Text style={styles.viewBtnText}>View Portfolio</Text>
-                    </TouchableOpacity>
+                    </View>
                   </View>
-                </TouchableOpacity>
+                </AnimatedTouchable>
               )) : (
                 <View style={{ width: '100%' }}>
                   <EmptyState icon={Users} title="No artists found" subtitle="Try adjusting your search or filters" />
                 </View>
               )}
-            </View>
+            </Animated.View>
           </ScrollView>
         )}
       </View>
@@ -125,41 +138,41 @@ export function CustomerArtistDirectory({ onBack, onNavigate }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+const getStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   header: { padding: 20, paddingTop: 52, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   headerTitle: { ...typography.h2, color: '#ffffff' },
   content: { flex: 1, padding: 16 },
   searchWrap: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface,
     borderRadius: borderRadius.lg, paddingHorizontal: 14, marginBottom: 12,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 1, borderColor: theme.border,
   },
-  searchInput: { flex: 1, height: 46, marginLeft: 10, ...typography.body, color: colors.textPrimary },
+  searchInput: { flex: 1, height: 46, marginLeft: 10, ...typography.body, color: theme.textPrimary },
   filterRow: { flexDirection: 'row', marginBottom: 16 },
   filterInput: {
     flex: 1, height: 40, marginRight: 8, paddingHorizontal: 12,
-    borderRadius: borderRadius.md, backgroundColor: '#ffffff',
-    borderWidth: 1, borderColor: colors.border, ...typography.bodySmall, color: colors.textPrimary,
+    borderRadius: borderRadius.md, backgroundColor: theme.surface,
+    borderWidth: 1, borderColor: theme.border, ...typography.bodySmall, color: theme.textPrimary,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingBottom: 40 },
   artistCard: {
-    width: '48%', backgroundColor: '#ffffff', borderRadius: borderRadius.xl,
+    width: '48%', backgroundColor: theme.surface, borderRadius: borderRadius.xl,
     overflow: 'hidden', marginBottom: 14,
-    borderWidth: 1, borderColor: colors.border, ...shadows.subtle,
+    borderWidth: 1, borderColor: theme.border, ...shadows.subtle,
   },
   imageWrap: { height: 160, position: 'relative' },
   artistImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   imgGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 60 },
-  placeholderImage: { backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center' },
-  placeholderText: { fontSize: 36, fontWeight: '800', color: colors.primary },
+  placeholderImage: { backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center' },
+  placeholderText: { fontSize: 36, fontWeight: '800', color: theme.gold },
   artistInfo: { padding: 10 },
-  artistName: { ...typography.body, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
-  artistSpecialty: { ...typography.bodyXSmall, color: colors.textSecondary, marginBottom: 6 },
+  artistName: { ...typography.body, fontWeight: '700', color: theme.textPrimary, marginBottom: 2 },
+  artistSpecialty: { ...typography.bodyXSmall, color: theme.textSecondary, marginBottom: 6 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 10 },
-  ratingText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '500' },
-  viewBtn: { backgroundColor: colors.darkBg, paddingVertical: 7, borderRadius: borderRadius.sm, alignItems: 'center' },
-  viewBtnText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '600' },
+  ratingText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '500' },
+  viewBtn: { backgroundColor: theme.surfaceLight, paddingVertical: 7, borderRadius: borderRadius.sm, alignItems: 'center' },
+  viewBtnText: { ...typography.bodyXSmall, color: theme.textPrimary, fontWeight: '600' },
 });

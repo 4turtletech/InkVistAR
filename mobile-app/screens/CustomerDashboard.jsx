@@ -1,27 +1,45 @@
 /**
- * CustomerDashboard.jsx -- Premium Customer Home Screen
- * Themed with lucide icons, theme tokens, stats grid, quick actions,
- * upcoming appointments, trending styles, and AI recommendation CTA.
+ * CustomerDashboard.jsx -- Premium Customer Home Screen (Gilded Noir v2)
+ * Themed with lucide icons, theme tokens, bento grid layout.
+ * Features: Hero appointment card, 2x2 quick actions, interactive animations.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, RefreshControl,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, RefreshControl, Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
-  Bell, User, Palette, Calendar, Heart, Star, Sparkles,
+  Bell, User, Palette, Calendar, Heart, Sparkles,
   MessageCircle, Images, Zap, Clock, ChevronRight, Lightbulb, ArrowRight,
+  Activity, Flag, CheckCircle,
 } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { colors, typography, borderRadius, shadows } from '../src/theme';
+import { typography, shadows } from '../src/theme';
+import { useTheme } from '../src/context/ThemeContext';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { getCustomerDashboard } from '../src/utils/api';
 import { getCustomerFavoriteWorks, getCustomerMyTattoos } from '../src/api/customerAPI';
 
+// --- Animated Button Wrapper for "Bouncy" feel ---
+const AnimatedTouchable = ({ children, onPress, style, activeOpacity = 0.9 }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const pressIn = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true }).start();
+  const pressOut = () => Animated.spring(scale, { toValue: 1, damping: 15, useNativeDriver: true }).start();
+  return (
+    <Animated.View style={[{ transform: [{ scale }] }, style]}>
+      <TouchableOpacity onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} activeOpacity={activeOpacity} style={{ flex: 1 }}>
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
+  const { theme: colors } = useTheme();
+  const styles = getStyles(colors);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
@@ -47,251 +65,438 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
   useFocusEffect(useCallback(() => { if (userId) loadDashboard(); }, [userId]));
   const onRefresh = () => { setRefreshing(true); loadDashboard(); };
 
-  const upcomingApts = (dashboardData?.appointments || []).slice(0, 2).map(a => ({
+  // Get next appointment for hero card
+  const allUpcoming = dashboardData?.appointments || [];
+  const nextAptRaw = allUpcoming.length > 0 ? allUpcoming[0] : null;
+  const nextApt = nextAptRaw ? {
+    id: nextAptRaw.id,
+    artist: nextAptRaw.artist_name,
+    date: new Date(nextAptRaw.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' }),
+    time: nextAptRaw.start_time?.slice(0, 5) || 'TBD',
+    type: nextAptRaw.design_title || 'Tattoo Session',
+    status: nextAptRaw.status || 'pending',
+  } : null;
+
+  // Remaining upcoming for secondary list
+  const upcomingApts = allUpcoming.slice(1, 3).map(a => ({
     id: a.id,
     artist: a.artist_name,
     date: new Date(a.appointment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     time: a.start_time?.slice(0, 5) || 'TBD',
-    type: a.design_title || 'Appointment',
+    type: a.design_title || 'Tattoo Session',
     status: a.status || 'pending',
   }));
 
-  const stats = {
-    tattoos: dashboardData?.stats?.total_tattoos ?? myTattoosCount,
-    upcoming: dashboardData?.stats?.upcoming ?? 0,
-    saved: dashboardData?.stats?.saved_designs ?? favoritesCount,
-    artists: dashboardData?.stats?.artists ?? 0,
-  };
-
-  const quickActions = [
-    { title: 'AR Preview', subtitle: 'Try tattoos in AR', Icon: Sparkles, screen: 'AR', gradient: ['#fbbf24', '#d97706'] },
-    { title: 'Book Artist', subtitle: 'Schedule appointment', Icon: Calendar, screen: 'booking-create', gradient: ['#0f172a', '#334155'] },
-    { title: 'Chat', subtitle: 'Contact studio', Icon: MessageCircle, screen: 'Chat', gradient: ['#1e40af', '#3b82f6'] },
-    { title: 'Gallery', subtitle: 'Browse designs', Icon: Images, screen: 'Gallery', gradient: ['#7c3aed', '#a78bfa'] },
-    { title: 'Favorites', subtitle: `${favoritesCount} saved`, Icon: Heart, screen: 'Gallery', params: { initialViewMode: 'Favorites' }, gradient: ['#e11d48', '#fb7185'] },
-    { title: 'My Tattoos', subtitle: `${myTattoosCount} sessions`, Icon: Zap, screen: 'Gallery', params: { initialViewMode: 'My Tattoos' }, gradient: ['#059669', '#34d399'] },
+  const bentoGrid = [
+    { title: 'Book Now', subtitle: 'Schedule session', Icon: Calendar, screen: 'booking-create', color: colors.gold, bg: colors.iconGoldBg },
+    { title: 'My Tattoos', subtitle: `${myTattoosCount} sessions`, Icon: Zap, screen: 'Gallery', params: { initialViewMode: 'My Tattoos' }, color: colors.success, bg: colors.successBg },
+    { title: 'AR Preview', subtitle: 'Try it on', Icon: Sparkles, screen: 'AR', color: colors.info, bg: colors.infoBg },
+    { title: 'Gallery', subtitle: 'Browse designs', Icon: Images, screen: 'Gallery', color: colors.iconPurple, bg: colors.iconPurpleBg },
   ];
 
   const trendingStyles = [
-    { name: 'Minimalist', Icon: Palette, color: '#0f172a' },
-    { name: 'Traditional', Icon: Palette, color: '#b91c1c' },
-    { name: 'Watercolor', Icon: Palette, color: '#3b82f6' },
-    { name: 'Geometric', Icon: Palette, color: '#10b981' },
-    { name: 'Blackwork', Icon: Palette, color: '#111827' },
-  ];
-
-  const statCards = [
-    { label: 'Tattoos', value: stats.tattoos, Icon: Palette, color: colors.primary },
-    { label: 'Upcoming', value: stats.upcoming, Icon: Calendar, color: colors.success },
-    { label: 'Saved', value: stats.saved, Icon: Heart, color: colors.error },
-    { label: 'Artists', value: stats.artists, Icon: Star, color: colors.warning },
+    { name: 'Minimalist', Icon: Palette },
+    { name: 'Traditional', Icon: Palette },
+    { name: 'Watercolor', Icon: Palette },
+    { name: 'Geometric', Icon: Palette },
+    { name: 'Blackwork', Icon: Palette },
   ];
 
   if (loading && !refreshing) {
-    return <SafeAreaView style={styles.container}><PremiumLoader message="Loading your dashboard..." /></SafeAreaView>;
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
+        <PremiumLoader message="Loading your dashboard..." />
+      </SafeAreaView>
+    );
   }
+
+  // Generate initials for avatar
+  const initials = userName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U';
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
-
-        {/* Hero Header */}
-        <LinearGradient colors={['#0f172a', '#1e293b', colors.primaryDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
-          <View style={styles.headerTop}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.welcomeText}>Welcome back,</Text>
-              <Text style={styles.userName}>{userName}</Text>
-              <Text style={styles.tagline}>Your tattoo journey starts here</Text>
-            </View>
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.headerBtn} onPress={() => onNavigate('customer-notifications')}>
-                <Bell size={20} color="#ffffff" />
-                {dashboardData?.unreadCount > 0 && (
-                  <View style={styles.notifDot}><Text style={styles.notifDotText}>{dashboardData.unreadCount > 99 ? '99+' : dashboardData.unreadCount}</Text></View>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.headerBtn} onPress={() => onNavigate('Profile')}>
-                <User size={20} color="#ffffff" />
-              </TouchableOpacity>
-            </View>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
+        
+        {/* Header Bar */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>Welcome back,</Text>
+            <Text style={styles.userName}>{userName.split(' ')[0]}</Text>
           </View>
-
-          {/* Stats */}
-          <View style={styles.statsGrid}>
-            {statCards.map((s, i) => (
-              <View key={i} style={styles.statCard}>
-                <View style={[styles.statIconWrap, { backgroundColor: `${s.color}25` }]}>
-                  <s.Icon size={16} color={s.color} />
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => onNavigate('customer-notifications')}>
+              <Bell size={20} color={colors.textPrimary} />
+              {dashboardData?.unreadCount > 0 && (
+                <View style={styles.notifDot}>
+                  <Text style={styles.notifDotText}>{dashboardData.unreadCount > 99 ? '99+' : dashboardData.unreadCount}</Text>
                 </View>
-                <Text style={styles.statNumber}>{s.value}</Text>
-                <Text style={styles.statLabel}>{s.label}</Text>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
-
-        <View style={styles.content}>
-          {/* Quick Actions */}
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.actionsGrid}>
-            {quickActions.map((a, i) => (
-              <TouchableOpacity key={i} style={styles.actionCard} onPress={() => onNavigate(a.screen, a.params || {})} activeOpacity={0.8}>
-                <LinearGradient colors={a.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actionIcon}>
-                  <a.Icon size={24} color="#ffffff" />
-                </LinearGradient>
-                <Text style={styles.actionTitle}>{a.title}</Text>
-                <Text style={styles.actionSubtitle}>{a.subtitle}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Upcoming Appointments */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
-            <TouchableOpacity onPress={() => onNavigate('Appointments')}>
-              <Text style={styles.viewAll}>View All</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.profileBtn} onPress={() => onNavigate('Profile')}>
+              <User size={22} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
-          {upcomingApts.length > 0 ? upcomingApts.map(apt => (
-            <TouchableOpacity key={apt.id} style={styles.aptCard} onPress={() => onNavigate('Appointments')} activeOpacity={0.7}>
-              <View style={styles.aptLeft}>
-                <View style={[styles.aptAvatarWrap, { backgroundColor: colors.primaryLight }]}>
-                  <Palette size={20} color={colors.primary} />
-                </View>
-              </View>
-              <View style={styles.aptDetails}>
-                <Text style={styles.aptArtist}>{apt.artist}</Text>
-                <Text style={styles.aptType} numberOfLines={1}>{apt.type}</Text>
-                <View style={styles.aptTimeRow}>
-                  <Clock size={12} color={colors.textTertiary} />
-                  <Text style={styles.aptTime}>{apt.date} -- {apt.time}</Text>
-                </View>
-              </View>
-              <StatusBadge status={apt.status} />
-              <ChevronRight size={18} color={colors.textTertiary} style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-          )) : (
-            <View style={styles.emptyApt}>
-              <EmptyState icon={Calendar} title="No upcoming appointments" />
-              <TouchableOpacity style={styles.bookBtn} onPress={() => onNavigate('booking-create')}>
-                <Calendar size={14} color="#ffffff" />
-                <Text style={styles.bookBtnText}>Book Now</Text>
-              </TouchableOpacity>
+        </View>
+
+        {/* Quick Stats Row */}
+        <View style={styles.statsRow}>
+          <TouchableOpacity style={styles.statPill} onPress={() => onNavigate('Appointments')} activeOpacity={0.7}>
+            <View style={[styles.statIconWrap, { backgroundColor: colors.iconBlueBg }]}>
+              <Calendar size={14} color={colors.iconBlue} />
             </View>
+            <View>
+              <Text style={styles.statValue}>{allUpcoming.length}</Text>
+              <Text style={styles.statLabel}>Upcoming</Text>
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.statPill} onPress={() => onNavigate('Gallery', { initialViewMode: 'Favorites' })} activeOpacity={0.7}>
+            <View style={[styles.statIconWrap, { backgroundColor: colors.iconRoseBg }]}>
+              <Heart size={14} color={colors.iconRose} />
+            </View>
+            <View>
+              <Text style={styles.statValue}>{favoritesCount}</Text>
+              <Text style={styles.statLabel}>Saved</Text>
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.statPill} onPress={() => onNavigate('Gallery', { initialViewMode: 'My Tattoos' })} activeOpacity={0.7}>
+            <View style={[styles.statIconWrap, { backgroundColor: colors.iconGreenBg }]}>
+              <Zap size={14} color={colors.iconGreen} />
+            </View>
+            <View>
+              <Text style={styles.statValue}>{myTattoosCount}</Text>
+              <Text style={styles.statLabel}>Tattoos</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Hero Appointment Card */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Up Next</Text>
+          {nextApt ? (
+            <AnimatedTouchable onPress={() => onNavigate('Appointments')} style={styles.heroCard}>
+              <View style={styles.heroAccent} />
+              <View style={styles.heroContent}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.heroMeta}>NEXT APPOINTMENT</Text>
+                  <Text style={styles.heroType} numberOfLines={1}>{nextApt.type}</Text>
+                  <View style={styles.heroTimeRow}>
+                    <Clock size={13} color={colors.textSecondary} style={{ marginRight: 6 }} />
+                    <Text style={styles.heroTime}>{nextApt.date} • {nextApt.time}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 10 }}>
+                    <StatusBadge status={nextApt.status} />
+                    <Text style={styles.heroArtist}>with {nextApt.artist}</Text>
+                  </View>
+                </View>
+                <View style={styles.heroArrowWrap}>
+                  <ChevronRight size={20} color={colors.gold} />
+                </View>
+              </View>
+            </AnimatedTouchable>
+          ) : (
+            <AnimatedTouchable onPress={() => onNavigate('booking-create')} style={styles.heroEmpty}>
+              <Calendar size={28} color={colors.gold} style={{ marginBottom: 12 }} />
+              <Text style={styles.heroEmptyTitle}>Ready for your next tattoo?</Text>
+              <Text style={styles.heroEmptySub}>Book a session with one of our artists.</Text>
+              <View style={styles.heroEmptyBtn}>
+                <Text style={styles.heroEmptyBtnText}>BOOK NOW</Text>
+              </View>
+            </AnimatedTouchable>
           )}
+        </View>
 
-          {/* Trending Styles */}
-          <View style={styles.sectionHeader}>
+        {/* Healing Journey Tracker */}
+        {myTattoosCount > 0 && (
+          <View style={styles.section}>
+            <AnimatedTouchable style={styles.healingCard} onPress={() => onNavigate('Gallery', { initialViewMode: 'My Tattoos' })}>
+              <View style={styles.healingHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Activity size={16} color={colors.gold} />
+                  <Text style={styles.healingTitle}>Healing Journey Tracker</Text>
+                </View>
+                <View style={styles.healingBadge}>
+                  <Text style={styles.healingBadgeText}>View Guide</Text>
+                </View>
+              </View>
+              
+              <View style={styles.healingBody}>
+                <View style={styles.healingProgressWrap}>
+                  <View style={styles.healingCircle}>
+                    <Text style={styles.healingDay}>1</Text>
+                    <Text style={styles.healingDayTotal}>of 30</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.healingContent}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <Text style={styles.healingStatusTag}>INITIAL HEALING</Text>
+                  </View>
+                  <Text style={styles.healingSessionName}>Tattoo Session: Lowkey</Text>
+                  <Text style={styles.healingInstruction} numberOfLines={3}>
+                    Remove the bandage/wrap after 2-4 hours. Gently wash with lukewarm water and fragrance-free antibacterial soap. Pat dry with a clean paper towel — never use a cloth towel.
+                  </Text>
+                </View>
+              </View>
+            </AnimatedTouchable>
+          </View>
+        )}
+
+        {/* 2x2 Bento Grid */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.bentoGrid}>
+            {bentoGrid.map((item, index) => (
+              <AnimatedTouchable 
+                key={index} 
+                style={styles.bentoTileWrap} 
+                onPress={() => onNavigate(item.screen, item.params || {})}
+              >
+                <View style={styles.bentoTile}>
+                  <View style={[styles.bentoIconWrap, { backgroundColor: item.bg }]}>
+                    <item.Icon size={22} color={item.color} />
+                  </View>
+                  <Text style={styles.bentoTitle}>{item.title}</Text>
+                  <Text style={styles.bentoSubtitle}>{item.subtitle}</Text>
+                </View>
+              </AnimatedTouchable>
+            ))}
+          </View>
+        </View>
+
+        {/* Secondary Appointments */}
+        {upcomingApts.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Later</Text>
+              <TouchableOpacity onPress={() => onNavigate('Appointments')}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            {upcomingApts.map(apt => (
+              <AnimatedTouchable key={apt.id} style={styles.aptCard} onPress={() => onNavigate('Appointments')}>
+                <View style={styles.aptDetails}>
+                  <Text style={styles.aptType} numberOfLines={1}>{apt.type}</Text>
+                  <Text style={styles.aptMeta}>{apt.artist} • {apt.date}</Text>
+                </View>
+                <StatusBadge status={apt.status} />
+              </AnimatedTouchable>
+            ))}
+          </View>
+        )}
+
+        {/* Trending Styles */}
+        <View style={[styles.section, { paddingRight: 0 }]}>
+           <View style={[styles.sectionHeaderRow, { paddingRight: 20 }]}>
             <Text style={styles.sectionTitle}>Trending Styles</Text>
-            <TouchableOpacity onPress={() => onNavigate('customer-artists')}>
-              <Text style={styles.viewAll}>Discover Artists</Text>
+            <TouchableOpacity onPress={() => onNavigate('Gallery')}>
+              <Text style={styles.viewAllText}>Explore</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingScroll}>
             {trendingStyles.map((s, i) => (
-              <TouchableOpacity key={i} style={styles.trendingCard} onPress={() => onNavigate('Gallery', { searchQuery: s.name })} activeOpacity={0.7}>
-                <View style={[styles.trendingIcon, { backgroundColor: `${s.color}15` }]}>
-                  <s.Icon size={22} color={s.color} />
+              <AnimatedTouchable key={i} onPress={() => onNavigate('Gallery', { searchQuery: s.name })}>
+                <View style={styles.trendingCard}>
+                  <View style={styles.trendingIconWrap}>
+                    <s.Icon size={20} color={colors.textSecondary} />
+                  </View>
+                  <Text style={styles.trendingText}>{s.name}</Text>
                 </View>
-                <Text style={styles.trendingText}>{s.name}</Text>
-              </TouchableOpacity>
+              </AnimatedTouchable>
             ))}
           </ScrollView>
-
-          {/* AI CTA */}
-          <LinearGradient colors={['#0f172a', '#1e293b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ctaCard}>
-            <Lightbulb size={28} color="#fbbf24" />
-            <View style={styles.ctaText}>
-              <Text style={styles.ctaTitle}>Need Inspiration?</Text>
-              <Text style={styles.ctaDesc}>Chat with our AI for personalized tattoo suggestions</Text>
-            </View>
-            <TouchableOpacity style={styles.ctaBtn} onPress={() => onNavigate('chatbot-enhanced')} activeOpacity={0.8}>
-              <Text style={styles.ctaBtnText}>Try AI</Text>
-              <ArrowRight size={14} color="#0f172a" />
-            </TouchableOpacity>
-          </LinearGradient>
-
-          <View style={{ height: 40 }} />
         </View>
+
+        {/* Reports & Feedback */}
+        <View style={styles.section}>
+          <AnimatedTouchable onPress={() => onNavigate('support')} style={styles.feedbackCard}>
+            <View style={styles.feedbackIconWrap}>
+              <Flag size={20} color={colors.textSecondary} />
+            </View>
+            <View style={styles.feedbackTextWrap}>
+              <Text style={styles.feedbackTitle}>Reports & Feedback</Text>
+              <Text style={styles.feedbackDesc}>Submit bug reports or share your feedback</Text>
+            </View>
+            <ArrowRight size={16} color={colors.textTertiary} />
+          </AnimatedTouchable>
+        </View>
+
+        {/* AI Chat CTA */}
+        <View style={styles.section}>
+          <AnimatedTouchable onPress={() => onNavigate('chatbot-enhanced')} style={styles.aiCard}>
+            <View style={styles.aiIconWrap}>
+              <Lightbulb size={24} color={colors.gold} />
+            </View>
+            <View style={styles.aiTextWrap}>
+              <Text style={styles.aiTitle}>Need Inspiration?</Text>
+              <Text style={styles.aiDesc}>Chat with AI for tattoo ideas</Text>
+            </View>
+            <ArrowRight size={20} color={colors.textSecondary} />
+          </AnimatedTouchable>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { padding: 20, paddingTop: 56, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  welcomeText: { ...typography.body, color: 'rgba(255,255,255,0.8)' },
-  userName: { ...typography.h1, color: '#ffffff', marginBottom: 2 },
-  tagline: { ...typography.bodySmall, color: 'rgba(255,255,255,0.65)' },
-  headerActions: { flexDirection: 'row', gap: 10 },
-  headerBtn: {
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center',
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24,
+  },
+  greeting: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: 2 },
+  userName: { ...typography.h2, color: colors.textPrimary },
+  headerActions: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  iconBtn: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
   notifDot: {
-    position: 'absolute', top: -3, right: -3,
-    backgroundColor: colors.error, minWidth: 16, height: 16, borderRadius: 8,
-    justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3,
-    borderWidth: 1.5, borderColor: colors.darkBg,
+    position: 'absolute', top: -2, right: -2,
+    backgroundColor: colors.error, minWidth: 18, height: 18, borderRadius: 9,
+    justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4,
+    borderWidth: 2, borderColor: colors.background,
   },
-  notifDotText: { color: '#fff', fontSize: 8, fontWeight: '800' },
-
-  statsGrid: { flexDirection: 'row', gap: 8 },
-  statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: borderRadius.xl, padding: 12, alignItems: 'center' },
-  statIconWrap: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  statNumber: { ...typography.h4, color: '#ffffff', fontWeight: '800', marginBottom: 2 },
-  statLabel: { ...typography.bodyXSmall, color: 'rgba(255,255,255,0.8)' },
-
-  content: { padding: 16, paddingBottom: 80 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 8 },
-  sectionTitle: { ...typography.h3, color: colors.textPrimary, marginBottom: 12 },
-  viewAll: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
-
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
-  actionCard: {
-    width: '48%', backgroundColor: '#ffffff', borderRadius: borderRadius.xl, padding: 14,
-    borderWidth: 1, borderColor: colors.border, ...shadows.subtle,
+  notifDotText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+  avatarWrap: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.gold,
   },
-  actionIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  actionTitle: { ...typography.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
-  actionSubtitle: { ...typography.bodyXSmall, color: colors.textSecondary },
+  avatarText: { ...typography.body, fontWeight: '700', color: colors.gold },
 
+  // Stats Row
+  statsRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingHorizontal: 20, marginBottom: 28, gap: 10,
+  },
+  statPill: {
+    flex: 1, backgroundColor: colors.surface, borderRadius: 12, padding: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: 1, borderColor: colors.borderLight, ...shadows.subtle,
+  },
+  statIconWrap: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  statValue: { ...typography.h4, color: colors.textPrimary, lineHeight: 22 },
+  statLabel: { ...typography.labelSmall, color: colors.textSecondary, fontSize: 10 },
+
+  section: { paddingHorizontal: 20, marginBottom: 28 },
+  sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 14 },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  viewAllText: { ...typography.bodySmall, color: colors.gold, fontWeight: '600' },
+
+  // Hero Card
+  heroCard: {
+    backgroundColor: colors.surface, borderRadius: 16, flexDirection: 'row',
+    overflow: 'hidden', borderWidth: 1, borderColor: colors.borderLight, ...shadows.subtle,
+  },
+  heroAccent: { width: 4, backgroundColor: colors.gold },
+  heroContent: { flex: 1, padding: 18, flexDirection: 'row', alignItems: 'center' },
+  heroMeta: { ...typography.labelSmall, color: colors.textSecondary, marginBottom: 6 },
+  heroType: { ...typography.h3, color: colors.textPrimary, marginBottom: 6 },
+  heroTimeRow: { flexDirection: 'row', alignItems: 'center' },
+  heroTime: { ...typography.bodySmall, color: colors.textSecondary },
+  heroArtist: { ...typography.bodySmall, color: colors.textSecondary },
+  heroArrowWrap: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: colors.iconGoldBg,
+    justifyContent: 'center', alignItems: 'center', marginLeft: 12,
+  },
+
+  heroEmpty: {
+    backgroundColor: colors.surface, borderRadius: 16, padding: 24,
+    alignItems: 'center', borderWidth: 1, borderColor: colors.borderLight, borderStyle: 'dashed',
+  },
+  heroEmptyTitle: { ...typography.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
+  heroEmptySub: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: 16, textAlign: 'center' },
+  heroEmptyBtn: {
+    backgroundColor: colors.gold, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8,
+  },
+  heroEmptyBtnText: { ...typography.button, color: colors.backgroundDeep, fontSize: 13 },
+
+  // Healing Tracker
+  healingCard: {
+    backgroundColor: '#1c1819', borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: colors.borderLight, ...shadows.subtle,
+  },
+  healingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  healingTitle: { ...typography.bodySmall, fontWeight: '700', color: colors.gold, letterSpacing: 0.5 },
+  healingBadge: { backgroundColor: 'rgba(190, 144, 85, 0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  healingBadgeText: { ...typography.labelSmall, color: colors.gold, fontWeight: '700' },
+  healingBody: { flexDirection: 'row', alignItems: 'center' },
+  healingProgressWrap: { marginRight: 16 },
+  healingCircle: {
+    width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: colors.gold,
+    justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface,
+  },
+  healingDay: { ...typography.h3, color: colors.gold, lineHeight: 22, marginTop: 4 },
+  healingDayTotal: { ...typography.labelSmall, color: colors.textTertiary, fontSize: 9 },
+  healingContent: { flex: 1 },
+  healingStatusTag: { ...typography.labelSmall, color: colors.error, fontWeight: '800', letterSpacing: 1 },
+  healingSessionName: { ...typography.body, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 },
+  healingInstruction: { ...typography.bodyXSmall, color: colors.textSecondary, lineHeight: 16 },
+
+  // Bento Grid
+  bentoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  bentoTileWrap: { width: '48%', aspectRatio: 1.1 },
+  bentoTile: {
+    flex: 1, backgroundColor: colors.surface, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: colors.borderLight, justifyContent: 'flex-end',
+  },
+  bentoIconWrap: {
+    width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+    position: 'absolute', top: 16, left: 16,
+  },
+  bentoTitle: { ...typography.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+  bentoSubtitle: { ...typography.bodyXSmall, color: colors.textSecondary },
+
+  // Secondary Apts
   aptCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff',
-    borderRadius: borderRadius.xl, padding: 14, marginBottom: 10,
-    borderWidth: 1, borderColor: colors.border, ...shadows.subtle,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
+    padding: 16, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.borderLight,
   },
-  aptLeft: { marginRight: 12 },
-  aptAvatarWrap: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  aptDetails: { flex: 1 },
-  aptArtist: { ...typography.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
-  aptType: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: 4 },
-  aptTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  aptTime: { ...typography.bodyXSmall, color: colors.textTertiary },
-  emptyApt: { alignItems: 'center' },
-  bookBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12,
-    backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: borderRadius.md,
-  },
-  bookBtnText: { ...typography.button, color: '#ffffff' },
+  aptDetails: { flex: 1, marginRight: 12 },
+  aptType: { ...typography.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
+  aptMeta: { ...typography.bodySmall, color: colors.textSecondary },
 
-  trendingRow: { gap: 12, paddingRight: 16, marginBottom: 8 },
-  trendingCard: { alignItems: 'center', padding: 10 },
-  trendingIcon: { width: 52, height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  trendingText: { ...typography.bodyXSmall, fontWeight: '600', color: colors.textSecondary },
+  // Trending
+  trendingScroll: { paddingRight: 20, gap: 12 },
+  trendingCard: {
+    backgroundColor: colors.surface, paddingHorizontal: 16, paddingVertical: 12,
+    borderRadius: 12, borderWidth: 1, borderColor: colors.borderLight,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+  },
+  trendingIconWrap: {
+    width: 32, height: 32, borderRadius: 8, backgroundColor: colors.darkBgSecondary,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  trendingText: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary },
 
-  ctaCard: {
-    flexDirection: 'row', alignItems: 'center', borderRadius: borderRadius.xxl,
-    padding: 20, marginTop: 8,
+  // AI Card
+  aiCard: {
+    backgroundColor: colors.surface, padding: 16, borderRadius: 16,
+    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.borderLight,
   },
-  ctaText: { flex: 1, marginHorizontal: 14 },
-  ctaTitle: { ...typography.h4, color: '#ffffff', marginBottom: 3 },
-  ctaDesc: { ...typography.bodySmall, color: 'rgba(255,255,255,0.75)', lineHeight: 18 },
-  ctaBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#ffffff', paddingHorizontal: 14, paddingVertical: 10, borderRadius: borderRadius.md,
+  aiIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.iconGoldBg, justifyContent: 'center', alignItems: 'center' },
+  aiTextWrap: { flex: 1, marginLeft: 14 },
+  aiTitle: { ...typography.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+  aiDesc: { ...typography.bodyXSmall, color: colors.textSecondary },
+
+  // Feedback Card
+  feedbackCard: {
+    backgroundColor: colors.surface, padding: 16, borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.borderLight,
   },
-  ctaBtnText: { ...typography.bodySmall, fontWeight: '700', color: '#0f172a' },
+  feedbackIconWrap: {
+    width: 36, height: 36, borderRadius: 8, backgroundColor: colors.darkBgSecondary,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  feedbackTextWrap: { flex: 1, marginLeft: 12 },
+  feedbackTitle: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+  feedbackDesc: { ...typography.bodyXSmall, color: colors.textTertiary },
 });

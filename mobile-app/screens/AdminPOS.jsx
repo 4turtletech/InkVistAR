@@ -47,6 +47,11 @@ export const AdminPOS = ({ navigation }) => {
       Alert.alert('Validation Error', 'Please enter a valid positive amount.');
       return;
     }
+    const totalPrice = parseFloat(selectedAppt.price || selectedAppt.total_price || 0);
+    if (totalPrice > 0 && amount < totalPrice) {
+      Alert.alert('Insufficient Amount', `Payment amount (P${amount.toLocaleString()}) is less than the session price (P${totalPrice.toLocaleString()}). Please enter the full amount or adjust the session price first.`);
+      return;
+    }
     setIsProcessing(true);
     const result = await createAdminManualPayment(selectedAppt.id, { amount, method: paymentMethod });
     if (result.success) {

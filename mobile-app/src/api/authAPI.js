@@ -75,6 +75,22 @@ export const changePassword = async (currentPassword, newPassword) => {
   });
 };
 
+// Send OTP
+export const sendOtp = async (email, otpMethod = 'email') => {
+  return fetchAPI('/send-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp_method: otpMethod }),
+  });
+};
+
+// Verify OTP
+export const verifyOtp = async (email, otp) => {
+  return fetchAPI('/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp }),
+  });
+};
+
 // Get current user
 export const getCurrentUser = async () => {
   return fetchAPI('/auth/me');

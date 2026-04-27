@@ -7666,7 +7666,7 @@ app.put('/api/appointments/:id/after-photo', (req, res) => {
 // Get notifications with pagination and filtering
 app.get('/api/notifications/:userId', (req, res) => {
   const { userId } = req.params;
-  const { page = 1, limit = 20, type } = req.query;
+  const { page = 1, limit = 20, type, is_read } = req.query;
 
   const pageNum = parseInt(page, 10);
   const limitNum = parseInt(limit, 10);
@@ -7679,6 +7679,10 @@ app.get('/api/notifications/:userId', (req, res) => {
     query += ' AND type = ?';
     queryParams.push(type);
   }
+  if (is_read !== undefined) {
+    query += ' AND is_read = ?';
+    queryParams.push(is_read === '1' ? 1 : 0);
+  }
 
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
   queryParams.push(limitNum, offset);
@@ -7690,6 +7694,10 @@ app.get('/api/notifications/:userId', (req, res) => {
   if (type) {
     countQuery += ' AND type = ?';
     countParams.push(type);
+  }
+  if (is_read !== undefined) {
+    countQuery += ' AND is_read = ?';
+    countParams.push(is_read === '1' ? 1 : 0);
   }
 
   db.query(countQuery, countParams, (countErr, countResults) => {
@@ -7742,6 +7750,18 @@ app.put('/api/notifications/:id/read', (req, res) => {
     }
 
     res.json({ success: true, message: 'Marked as read' });
+  });
+});
+
+// Delete notification
+app.delete('/api/notifications/:id', (req, res) => {
+  const { id } = req.params;
+  db.query('DELETE FROM notifications WHERE id = ?', [id], (err, result) => {
+    if (err) {
+      console.error('[ERROR] Error deleting notification:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    res.json({ success: true, message: 'Notification deleted' });
   });
 });
 

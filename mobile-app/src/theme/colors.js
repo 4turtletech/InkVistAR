@@ -1,87 +1,157 @@
 /**
- * InkVistAR Mobile -- Centralized Color Palette
- * Matches the web app's glassmorphism + premium dark aesthetic.
- * All portals pull from this single source of truth.
+ * InkVistAR Mobile -- Color Palette (Gilded Noir v2 & Gilded Pearl)
+ * Brand Gold: #be9055 (warm bronze)
+ * Automatically adapts to System Light/Dark mode on app load.
  */
 
-export const colors = {
-  // Brand
+import { Appearance } from 'react-native';
+
+const sharedColors = {
+  // Brand -- Warm Bronze Gold (Identical in both modes to maintain brand identity)
   primary: '#be9055',
-  primaryLight: 'rgba(190, 144, 85, 0.15)',
   primaryDark: '#a67c3d',
-  primaryGold: '#daa520',
-
-  // Backgrounds
-  darkBg: '#0f172a',
-  darkBgSecondary: '#1e293b',
-  darkBgTertiary: '#334155',
-  lightBg: '#f8fafc',
-  lightBgSecondary: '#f1f5f9',
-
-  // Glass effects
-  glassWhite: 'rgba(255, 255, 255, 0.05)',
-  glassBorder: 'rgba(255, 255, 255, 0.1)',
-  glassWhiteStrong: 'rgba(255, 255, 255, 0.08)',
-
-  // Text
-  textPrimary: '#1e293b',
-  textSecondary: '#64748b',
-  textTertiary: '#94a3b8',
-  textWhite: '#ffffff',
-  textDark: '#0f172a',
+  primaryGold: '#be9055',
+  gold: '#be9055',
+  goldLight: '#d4a870',
+  goldMuted: '#8a7055',
 
   // Status badges
   statusConfirmed: '#10b981',
-  statusConfirmedBg: 'rgba(16, 185, 129, 0.12)',
   statusPending: '#f59e0b',
-  statusPendingBg: 'rgba(245, 158, 11, 0.12)',
   statusCancelled: '#ef4444',
-  statusCancelledBg: 'rgba(239, 68, 68, 0.12)',
-  statusCompleted: '#6366f1',
-  statusCompletedBg: 'rgba(99, 102, 241, 0.12)',
+  statusCompleted: '#8b5cf6',
   statusInProgress: '#3b82f6',
-  statusInProgressBg: 'rgba(59, 130, 246, 0.12)',
   statusPaid: '#10b981',
-  statusPaidBg: 'rgba(16, 185, 129, 0.12)',
   statusUnpaid: '#ef4444',
-  statusUnpaidBg: 'rgba(239, 68, 68, 0.12)',
 
   // Semantic
   success: '#10b981',
-  successBg: 'rgba(16, 185, 129, 0.12)',
   warning: '#f59e0b',
-  warningBg: 'rgba(245, 158, 11, 0.12)',
   error: '#ef4444',
-  errorBg: 'rgba(239, 68, 68, 0.12)',
   info: '#3b82f6',
-  infoBg: 'rgba(59, 130, 246, 0.12)',
 
-  // Action icon wrappers (matching web)
+  // Icons
   iconBlue: '#3b82f6',
-  iconBlueBg: 'rgba(59, 130, 246, 0.2)',
   iconGold: '#be9055',
-  iconGoldBg: 'rgba(218, 165, 32, 0.2)',
   iconPurple: '#8b5cf6',
-  iconPurpleBg: 'rgba(139, 92, 246, 0.2)',
   iconRose: '#f43f5e',
-  iconRoseBg: 'rgba(244, 63, 94, 0.2)',
   iconGreen: '#10b981',
-  iconGreenBg: 'rgba(16, 185, 129, 0.2)',
+};
+
+export const darkColors = {
+  ...sharedColors,
+
+  // Backgrounds -- Deep Noir
+  background: '#171516',
+  backgroundDeep: '#0f0d0e',
+  surface: '#262022',
+  surfaceLight: '#302a2c',
+  surfaceElevated: '#1f1b1d',
+  darkBg: '#171516',
+  darkBgSecondary: '#1f1b1d',
+  darkBgTertiary: '#262022',
+  lightBg: '#f8fafc',
+  lightBgSecondary: '#f1f5f9',
+
+  // Text
+  textPrimary: '#FFFFFF',
+  textSecondary: '#a0978e',
+  textTertiary: '#6b6560',
+  textWhite: '#ffffff',
+  textDark: '#1e293b',
+
+  // Tints & Backgrounds
+  primaryLight: 'rgba(190, 144, 85, 0.15)',
+  statusConfirmedBg: 'rgba(16, 185, 129, 0.15)',
+  statusPendingBg: 'rgba(245, 158, 11, 0.15)',
+  statusCancelledBg: 'rgba(239, 68, 68, 0.15)',
+  statusCompletedBg: 'rgba(139, 92, 246, 0.15)',
+  statusInProgressBg: 'rgba(59, 130, 246, 0.15)',
+  statusPaidBg: 'rgba(16, 185, 129, 0.15)',
+  statusUnpaidBg: 'rgba(239, 68, 68, 0.15)',
+  successBg: 'rgba(16, 185, 129, 0.15)',
+  warningBg: 'rgba(245, 158, 11, 0.15)',
+  errorBg: 'rgba(239, 68, 68, 0.15)',
+  infoBg: 'rgba(59, 130, 246, 0.15)',
+  iconBlueBg: 'rgba(59, 130, 246, 0.18)',
+  iconGoldBg: 'rgba(190, 144, 85, 0.18)',
+  iconPurpleBg: 'rgba(139, 92, 246, 0.18)',
+  iconRoseBg: 'rgba(244, 63, 94, 0.18)',
+  iconGreenBg: 'rgba(16, 185, 129, 0.18)',
 
   // Borders & dividers
-  border: '#e2e8f0',
-  borderLight: '#f1f5f9',
-  borderDark: '#374151',
+  border: '#332d2f',
+  borderLight: '#3e3638',
+  borderDark: '#1f1b1d',
+  borderGold: 'rgba(190, 144, 85, 0.2)',
 
-  // Shadows (used as shadow color)
-  shadow: 'rgba(0, 0, 0, 0.1)',
-  shadowDark: 'rgba(0, 0, 0, 0.25)',
-
-  // Admin-specific
-  adminBar: '#1f2937',
-  adminAccent: '#f59e0b',
+  // Shadows
+  shadow: 'rgba(0, 0, 0, 0.4)',
+  shadowDark: 'rgba(0, 0, 0, 0.6)',
 
   // Tab bar
-  tabActive: '#daa520',
-  tabInactive: '#9ca3af',
+  tabActive: '#be9055',
+  tabInactive: '#6b6560',
 };
+
+export const lightColors = {
+  ...sharedColors,
+
+  // Backgrounds -- Gilded Pearl (Light)
+  background: '#f8fafc',
+  backgroundDeep: '#f1f5f9',
+  surface: '#ffffff',
+  surfaceLight: '#f8fafc',
+  surfaceElevated: '#ffffff',
+  darkBg: '#f8fafc', // Mapped for backwards compat
+  darkBgSecondary: '#f1f5f9',
+  darkBgTertiary: '#ffffff',
+  lightBg: '#f8fafc',
+  lightBgSecondary: '#f1f5f9',
+
+  // Text -- Inverted for light mode
+  textPrimary: '#171516',
+  textSecondary: '#6b6560',
+  textTertiary: '#a0978e',
+  textWhite: '#ffffff',
+  textDark: '#1e293b',
+
+  // Tints & Backgrounds (Slightly more opaque for light mode)
+  primaryLight: 'rgba(190, 144, 85, 0.12)',
+  statusConfirmedBg: 'rgba(16, 185, 129, 0.12)',
+  statusPendingBg: 'rgba(245, 158, 11, 0.12)',
+  statusCancelledBg: 'rgba(239, 68, 68, 0.12)',
+  statusCompletedBg: 'rgba(139, 92, 246, 0.12)',
+  statusInProgressBg: 'rgba(59, 130, 246, 0.12)',
+  statusPaidBg: 'rgba(16, 185, 129, 0.12)',
+  statusUnpaidBg: 'rgba(239, 68, 68, 0.12)',
+  successBg: 'rgba(16, 185, 129, 0.12)',
+  warningBg: 'rgba(245, 158, 11, 0.12)',
+  errorBg: 'rgba(239, 68, 68, 0.12)',
+  infoBg: 'rgba(59, 130, 246, 0.12)',
+  iconBlueBg: 'rgba(59, 130, 246, 0.12)',
+  iconGoldBg: 'rgba(190, 144, 85, 0.12)',
+  iconPurpleBg: 'rgba(139, 92, 246, 0.12)',
+  iconRoseBg: 'rgba(244, 63, 94, 0.12)',
+  iconGreenBg: 'rgba(16, 185, 129, 0.12)',
+
+  // Borders & dividers (Lighter for light mode)
+  border: '#e2e8f0',
+  borderLight: '#cbd5e1',
+  borderDark: '#94a3b8',
+  borderGold: 'rgba(190, 144, 85, 0.3)',
+
+  // Shadows
+  shadow: 'rgba(0, 0, 0, 0.08)',
+  shadowDark: 'rgba(0, 0, 0, 0.12)',
+
+  // Tab bar
+  tabActive: '#be9055',
+  tabInactive: '#94a3b8',
+};
+
+// Evaluate system preference on boot
+const isLightMode = Appearance.getColorScheme() === 'light';
+
+// Export the active color set, so no other files need to change their imports
+export const colors = isLightMode ? lightColors : darkColors;

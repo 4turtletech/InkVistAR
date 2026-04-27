@@ -67,9 +67,11 @@ import { registerForPushNotifications } from './src/utils/pushNotifications';
 
 // Theme
 import { colors } from './src/theme';
+import { ThemeProvider } from './src/context/ThemeContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
 
 // ============================================================
 // TAB NAVIGATORS (one per role)
@@ -80,7 +82,7 @@ const CustomerTabs = ({ user, onLogout }) => (
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: '#ffffff',
+        backgroundColor: colors.darkBgSecondary,
         borderTopColor: colors.border,
         height: 60,
         paddingBottom: 8,
@@ -235,7 +237,7 @@ const ManagerTabs = ({ user, onLogout }) => (
 // MAIN APP
 // ============================================================
 
-export default function App() {
+function AppContent() {
   const [user, setUser] = useState(null);
   const [showOTP, setShowOTP] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
@@ -415,7 +417,7 @@ export default function App() {
                   {(props) => <CustomerNotifications {...props} userId={user.id} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
                 <Stack.Screen name="booking-create">
-                  {(props) => <CustomerBooking {...props} customerId={user.id} onBack={() => props.navigation.goBack()} />}
+                  {(props) => <CustomerBooking {...props} customerId={user.id} initialUser={user} onBack={() => props.navigation.goBack()} />}
                 </Stack.Screen>
                 <Stack.Screen name="customer-transactions" component={CustomerTransactions} />
                 <Stack.Screen name="customer-review" component={CustomerReview} />
@@ -468,5 +470,13 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
     </View>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }

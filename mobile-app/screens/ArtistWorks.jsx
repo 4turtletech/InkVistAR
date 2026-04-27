@@ -73,7 +73,7 @@ export function ArtistWorks({ onBack, artistId }) {
     const payload = { title: sanitize(newWorkTitle), description: sanitize(newWorkDescription), category: newWorkCategory, imageUrl: newWorkImage, isPublic, priceEstimate: newWorkPriceEstimate ? sanitize(newWorkPriceEstimate) : null };
     setLoading(true);
     let result;
-    if (editingWorkId) { try { result = await (await fetch(`${API_URL}/api/artist/portfolio/${editingWorkId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })).json(); } catch (e) { result = { success: false, message: 'Network error.' }; } }
+    if (editingWorkId) { try { result = await (await fetch(`${API_URL}/artist/portfolio/${editingWorkId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })).json(); } catch (e) { result = { success: false, message: 'Network error.' }; } }
     else result = await addArtistWork(artistId, payload);
     setLoading(false);
     if (result.success) { Alert.alert('Success!', editingWorkId ? 'Work updated.' : 'Uploaded to portfolio.'); resetForm(); setShowUploadModal(false); loadPortfolio(); }
