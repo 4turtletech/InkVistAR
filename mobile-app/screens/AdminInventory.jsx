@@ -22,6 +22,7 @@ import {
   getAdminInventory, createAdminInventory, updateAdminInventory,
   deleteAdminInventory, fetchAPI,
 } from '../src/utils/api';
+import { sanitizeText, sanitizeNumeric } from '../src/utils/validators';
 
 export const AdminInventory = ({ navigation }) => {
   const [items, setItems] = useState([]);
@@ -76,15 +77,17 @@ export const AdminInventory = ({ navigation }) => {
   };
 
   const handleSave = async () => {
-    if (!form.name?.trim()) {
+    const sName = sanitizeText(form.name);
+    if (!sName) {
       Alert.alert('Validation Error', 'Item name is required');
       return;
     }
     const payload = {
       ...form,
-      current_stock: parseInt(form.current_stock) || 0,
-      min_stock: parseInt(form.min_stock) || 0,
-      cost_per_unit: parseFloat(form.cost_per_unit) || 0,
+      name: sName,
+      current_stock: parseInt(sanitizeNumeric(form.current_stock)) || 0,
+      min_stock: parseInt(sanitizeNumeric(form.min_stock)) || 0,
+      cost_per_unit: parseFloat(sanitizeNumeric(form.cost_per_unit, true)) || 0,
     };
 
     const result = editingItem
@@ -119,16 +122,21 @@ export const AdminInventory = ({ navigation }) => {
   };
 
   const handleTransaction = async () => {
-    if (!txQty || parseInt(txQty) <= 0) {
-      Alert.alert('Validation Error', 'Enter a valid quantity');
+    const sQty = parseInt(sanitizeNumeric(txQty));
+    if (!sQty || isNaN(sQty) || sQty <= 0) {
+      Alert.alert('Validation Error', 'Quantity must be greater than 0');
+      return;
+    }
+    if (!sanitizeText(txNotes)) {
+      Alert.alert('Validation Error', 'Reason/Notes is required');
       return;
     }
     const result = await fetchAPI(`/admin/inventory/${txItem.id}/transaction`, {
       method: 'POST',
       body: JSON.stringify({
         type: txType,
-        quantity: parseInt(txQty),
-        notes: txNotes.trim(),
+        quantity: sQty,
+        notes: sanitizeText(txNotes),
       }),
     });
     if (result.success) {

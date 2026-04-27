@@ -11,7 +11,7 @@ import {
   RefreshControl, Image,
 } from 'react-native';
 import {
-  Search, Calendar, User, Palette, Clock, X,
+  Search, Calendar, User, Palette, Clock, X, Plus,
   CheckCircle, AlertTriangle, FileText, Trash2, Save,
   ChevronLeft, ChevronRight, Filter,
 } from 'lucide-react-native';
@@ -20,8 +20,11 @@ import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { ConfirmModal } from '../src/components/shared/ConfirmModal';
-import { formatCurrency, formatDate, formatTime, getDisplayCode } from '../src/utils/formatters';
-import { getAdminAppointments, updateAppointmentByAdmin, deleteAppointmentByAdmin, API_BASE_URL } from '../src/utils/api';
+import {
+  getAdminAppointments, updateAppointmentByAdmin, deleteAppointmentByAdmin,
+  createAppointmentByAdmin, API_BASE_URL
+} from '../src/utils/api';
+import { sanitizeNumeric } from '../src/utils/validators';
 
 export const AdminAppointmentManagement = ({ navigation }) => {
   const [appointments, setAppointments] = useState([]);
@@ -38,6 +41,8 @@ export const AdminAppointmentManagement = ({ navigation }) => {
   const [editTime, setEditTime] = useState('');
   const [editStatus, setEditStatus] = useState('');
   const [editPrice, setEditPrice] = useState('');
+  const [editClientEmail, setEditClientEmail] = useState('');
+  const [editDesignTitle, setEditDesignTitle] = useState('');
 
   // Delete confirm
   const [deleteModal, setDeleteModal] = useState({ visible: false });
@@ -57,22 +62,46 @@ export const AdminAppointmentManagement = ({ navigation }) => {
 
   const openModal = (appt) => {
     setSelectedAppt(appt);
-    try {
-      setEditDate(new Date(appt.appointment_date).toISOString().split('T')[0]);
-    } catch { setEditDate(''); }
-    setEditTime(appt.start_time || '');
-    setEditStatus(appt.status || 'pending');
-    setEditPrice(appt.price?.toString() || appt.total_price?.toString() || '0');
+    setEditDate(appt ? (appt.appointment_date ? appt.appointment_date.split('T')[0] : '') : '');
+    setEditTime(appt ? appt.start_time || '' : '');
+    setEditStatus(appt ? appt.status || 'pending' : 'pending');
+    setEditPrice(appt ? String(appt.price || appt.total_price || '') : '');
+    setEditClientEmail(appt ? appt.client_email || '' : '');
+    setEditDesignTitle(appt ? appt.design_title || '' : '');
     setModalVisible(true);
   };
 
   const handleSave = async () => {
-    if (!selectedAppt) return;
+    const sPrice = parseFloat(sanitizeNumeric(editPrice, true)) || 0;
+    
+    if (!selectedAppt) {
+      if (!editClientEmail || !editDate || !editTime) {
+        Alert.alert('Validation Error', 'Email, Date, and Time are required');
+        return;
+      }
+      const result = await createAppointmentByAdmin({
+        clientEmail: editClientEmail,
+        designTitle: editDesignTitle,
+        date: editDate,
+        startTime: editTime,
+        price: sPrice,
+        status: editStatus,
+      });
+      if (result.success) {
+        Alert.alert('Success', 'Appointment created');
+        setModalVisible(false);
+        loadData();
+      } else {
+        Alert.alert('Error', result.message || 'Failed to create');
+      }
+      return;
+    }
+
     const result = await updateAppointmentByAdmin(selectedAppt.id, {
       status: editStatus,
       date: editDate,
       startTime: editTime,
-      price: parseFloat(editPrice) || 0,
+      price: sPrice,
     });
     if (result.success) {
       Alert.alert('Success', 'Appointment updated');
@@ -144,8 +173,13 @@ export const AdminAppointmentManagement = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Appointments</Text>
-        <Text style={styles.headerCount}>{filteredData.length} total</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>Appointments</Text>
+          <Text style={styles.headerCount}>{filteredData.length} total</Text>
+        </View>
+        <TouchableOpacity style={styles.addBtn} onPress={() => openModal(null)}>
+          <Plus size={20} color="#ffffff" />
+        </TouchableOpacity>
       </View>
 
       {/* Search */}
@@ -214,19 +248,28 @@ export const AdminAppointmentManagement = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {selectedAppt && (
-              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            {/* Modal Scroll View */}
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
                 {/* Info Section */}
-                <View style={styles.infoSection}>
-                  <InfoRow label="Booking Code" value={getDisplayCode(selectedAppt.booking_code, selectedAppt.id)} />
-                  <InfoRow label="Client" value={`${selectedAppt.client_name}${selectedAppt.client_email ? ` (${selectedAppt.client_email})` : ''}`} />
-                  <InfoRow label="Artist" value={selectedAppt.artist_name || 'Unassigned'} />
-                  <InfoRow label="Design" value={selectedAppt.design_title || 'Tattoo Session'} />
-                  <InfoRow label="Notes" value={selectedAppt.notes || 'No notes'} />
-                </View>
+                {selectedAppt && selectedAppt.id ? (
+                  <View style={styles.infoSection}>
+                    <InfoRow label="Booking Code" value={getDisplayCode(selectedAppt.booking_code, selectedAppt.id)} />
+                    <InfoRow label="Client" value={`${selectedAppt.client_name}${selectedAppt.client_email ? ` (${selectedAppt.client_email})` : ''}`} />
+                    <InfoRow label="Artist" value={selectedAppt.artist_name || 'Unassigned'} />
+                    <InfoRow label="Design" value={selectedAppt.design_title || 'Tattoo Session'} />
+                    <InfoRow label="Notes" value={selectedAppt.notes || 'No notes'} />
+                  </View>
+                ) : (
+                  <View style={styles.infoSection}>
+                    <Text style={styles.inputLabel}>Client Email *</Text>
+                    <TextInput style={styles.input} value={editClientEmail} onChangeText={setEditClientEmail} keyboardType="email-address" autoCapitalize="none" />
+                    <Text style={styles.inputLabel}>Design Title</Text>
+                    <TextInput style={styles.input} value={editDesignTitle} onChangeText={setEditDesignTitle} />
+                  </View>
+                )}
 
                 {/* Reference Image */}
-                {selectedAppt.before_photo && (
+                {selectedAppt?.before_photo && (
                   <View style={styles.imgContainer}>
                     <Text style={styles.inputLabel}>Reference Image</Text>
                     <Image
@@ -266,10 +309,12 @@ export const AdminAppointmentManagement = ({ navigation }) => {
 
                 {/* Actions */}
                 <View style={styles.actionRow}>
-                  <TouchableOpacity style={styles.deleteBtnModal} onPress={() => setDeleteModal({ visible: true })}>
-                    <Trash2 size={18} color="#ffffff" />
-                    <Text style={styles.actionBtnText}>Delete</Text>
-                  </TouchableOpacity>
+                  {selectedAppt?.id && (
+                    <TouchableOpacity style={styles.deleteBtnModal} onPress={() => setDeleteModal({ visible: true })}>
+                      <Trash2 size={18} color="#ffffff" />
+                      <Text style={styles.actionBtnText}>Delete</Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity style={styles.saveBtnModal} onPress={handleSave}>
                     <Save size={18} color="#ffffff" />
                     <Text style={styles.actionBtnText}>Save</Text>
@@ -277,8 +322,7 @@ export const AdminAppointmentManagement = ({ navigation }) => {
                 </View>
 
                 <View style={{ height: 30 }} />
-              </ScrollView>
-            )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -314,7 +358,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   headerTitle: { ...typography.h2, color: colors.textPrimary },
-  headerCount: { ...typography.bodySmall, color: colors.textTertiary },
+  addBtn: {
+    width: 36, height: 36, borderRadius: borderRadius.round, backgroundColor: colors.primary,
+    justifyContent: 'center', alignItems: 'center',
+    ...shadows.sm,
+  },
+  headerCount: { ...typography.body, color: colors.textTertiary, marginTop: 4 },
 
   // Search
   searchBar: {

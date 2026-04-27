@@ -1026,35 +1026,35 @@ function CustomerBookings(){
                             {displayedAppointments.length ? (
                                 <>
                                     <div className="table-responsive">
-                                        <table className="portal-table">
+                                        <table className="portal-table mobile-card-table">
                                             <thead><tr><th>ID</th><th>Service</th><th>Date</th><th>Time</th><th>Status</th><th>Price</th><th>Payment</th></tr></thead>
                                             <tbody>{displayedAppointments.map(a=> (
                                                 <tr key={a.id} onClick={() => handleViewDetails(a)} style={{ cursor: 'pointer' }} className="clickable-row hover-bg">
-                                                    <td className="customer-st-968fd1b5" >
+                                                    <td className="customer-st-968fd1b5" data-label="ID">
                                                         <span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b' }}>
                                                             {getDisplayCode(a.booking_code, a.id)}
                                                         </span>
                                                     </td>
-                                                    <td>{a.service_type || 'Tattoo'}</td>
-                                                    <td>{new Date(a.appointment_date).toLocaleDateString()}</td>
-                                                    <td>{a.start_time}</td>
-                                                    <td>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                    <td data-label="Service">{a.service_type || 'Tattoo'}</td>
+                                                    <td data-label="Date">{new Date(a.appointment_date).toLocaleDateString()}</td>
+                                                    <td data-label="Time">{a.start_time ? new Date(`1970-01-01T${a.start_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : ''}</td>
+                                                    <td data-label="Status">
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                                             <span className={`status-badge ${a.status.toLowerCase()}`}>{a.status}</span>
                                                             {!['cancelled', 'completed', 'finished'].includes(a.status.toLowerCase()) && isWithinGracePeriod(a) && (
                                                                 <GracePeriodTimer appointment={a} onCancel={openGraceCancelModal} />
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Price">
                                                         {a.price > 0 ? (
                                                             <div className="customer-st-52ddb992" >₱{Number(a.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                         ) : (
                                                             <span className="customer-st-b8eb7d87" >Pending Quote</span>
                                                         )}
                                                     </td>
-                                                    <td>
-                                                        <div className="customer-st-929a545b" >
+                                                    <td data-label="Payment">
+                                                        <div className="customer-st-929a545b" style={{display: 'flex', justifyContent: 'flex-end'}}>
                                                             {a.status === 'pending' && a.price > 0 && a.payment_status === 'unpaid' ? (
                                                                 <button 
                                                                     className="btn btn-primary" 

@@ -15,6 +15,7 @@ import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { formatCurrency, formatDate, getDisplayCode } from '../src/utils/formatters';
 import { getAdminAppointments, createAdminManualPayment } from '../src/utils/api';
+import { sanitizeNumeric } from '../src/utils/validators';
 
 export const AdminPOS = ({ navigation }) => {
   const [appointments, setAppointments] = useState([]);
@@ -41,7 +42,7 @@ export const AdminPOS = ({ navigation }) => {
 
   const handleProcessPayment = async () => {
     if (!selectedAppt) return;
-    const amount = parseFloat(paymentAmount);
+    const amount = parseFloat(sanitizeNumeric(paymentAmount, true));
     if (isNaN(amount) || amount <= 0) {
       Alert.alert('Validation Error', 'Please enter a valid positive amount.');
       return;

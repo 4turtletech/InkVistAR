@@ -111,7 +111,7 @@ function CustomerTransactions() {
                 <div className="portal-content">
                     <div className="data-card">
                         <div className="table-responsive">
-                            <table className="portal-table premium-table">
+                            <table className="portal-table premium-table mobile-card-table">
                                 <thead>
                                     <tr>
                                         <th>Date & Time</th>
@@ -130,27 +130,27 @@ function CustomerTransactions() {
                                             
                                             return (
                                                 <tr key={t.id}>
-                                                    <td className="date-cell">
+                                                    <td className="date-cell" data-label="Date & Time">
                                                         <div className="date-info" style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
                                                             <Calendar size={14} color="#64748b"/>
                                                             <span>{formatDate(t.created_at)}</span>
                                                         </div>
                                                     </td>
-                                                    <td>
-                                                        <div className="customer-st-120fac5f" style={{display: 'flex', flexDirection: 'column'}}>
+                                                    <td data-label="Reference">
+                                                        <div className="customer-st-120fac5f" style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end'}}>
                                                             <span className="customer-st-af086db4" style={{fontWeight: 600}}>Appt #{t.appointment_id}</span>
                                                             <span className="customer-st-daff4552" style={{fontSize: '0.8rem', color: '#64748b'}}>{t.paymongo_payment_id || t.session_id?.substring(0, 15) + '...'}</span>
                                                         </div>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Service">
                                                         <span className="design-title">{t.design_title || 'Tattoo Service'}</span>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Amount">
                                                         <div className="customer-st-d6dc26a1" style={{fontWeight: 'bold'}}>
                                                             ₱{(t.amount / 100).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                         </div>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Status">
                                                         <span 
                                                             className="status-badge" 
                                                             style={{ 
@@ -169,7 +169,7 @@ function CustomerTransactions() {
                                                             {t.status?.toUpperCase()}
                                                         </span>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Action">
                                                         <button 
                                                             className="btn-view" 
                                                             style={{background: 'none', border: 'none', color: '#be9055', cursor: 'pointer'}} 

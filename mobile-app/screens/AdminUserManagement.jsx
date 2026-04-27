@@ -20,6 +20,7 @@ import { ClientProfileModal } from '../src/components/Admin/ClientProfileModal';
 import { ArtistProfileModal } from '../src/components/Admin/ArtistProfileModal';
 import { getInitials } from '../src/utils/formatters';
 import { getAllUsersForAdmin, deleteUserByAdmin, createUserByAdmin, updateUserByAdmin } from '../src/utils/api';
+import { sanitizeText, sanitizeEmail, isValidEmail, sanitizePhone } from '../src/utils/validators';
 
 const ROLE_COLORS = {
   admin: { bg: colors.warningBg, text: colors.warning },
@@ -69,8 +70,16 @@ export const AdminUserManagement = ({ navigation }) => {
   };
 
   const handleSaveUser = async () => {
-    if (!formData.name?.trim() || !formData.email?.trim()) {
+    const sName = sanitizeText(formData.name);
+    const sEmail = sanitizeEmail(formData.email);
+    const sPhone = sanitizePhone(formData.phone);
+
+    if (!sName || !sEmail) {
       Alert.alert('Validation Error', 'Name and Email are required');
+      return;
+    }
+    if (!isValidEmail(sEmail)) {
+      Alert.alert('Validation Error', 'Please enter a valid email address');
       return;
     }
     if (!editingUser && !formData.password) {
@@ -78,9 +87,11 @@ export const AdminUserManagement = ({ navigation }) => {
       return;
     }
 
+    const payload = { ...formData, name: sName, email: sEmail, phone: sPhone };
+
     const result = editingUser
-      ? await updateUserByAdmin(editingUser.id, formData)
-      : await createUserByAdmin(formData);
+      ? await updateUserByAdmin(editingUser.id, payload)
+      : await createUserByAdmin(payload);
 
     if (result.success) {
       Alert.alert('Success', editingUser ? 'User updated' : 'User created');

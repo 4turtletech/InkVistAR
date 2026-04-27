@@ -94,7 +94,7 @@ function CustomerPortal() {
                     artist: apt.artist_name || 'Unknown',
                     service: apt.design_title || 'Tattoo',
                     date: new Date(apt.appointment_date).toLocaleDateString(),
-                    time: apt.start_time,
+                    time: apt.start_time ? new Date(`1970-01-01T${apt.start_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '',
                     status: apt.status.charAt(0).toUpperCase() + apt.status.slice(1),
                     price: apt.price || 0,
                     notes: apt.notes,
@@ -367,7 +367,7 @@ function CustomerPortal() {
                                 </div>
                                 <div className="modern-table-wrapper table-responsive">
                                     {appointments.length > 0 ? (
-                                        <table className="premium-table">
+                                        <table className="premium-table mobile-card-table">
                                             <thead>
                                                 <tr>
                                                     <th>Artist</th>
@@ -379,20 +379,20 @@ function CustomerPortal() {
                                             <tbody>
                                                 {appointments.map((apt) => (
                                                     <tr className="customer-st-637517f0" key={apt.id} onClick={() => { setSelectedApt(apt); setIsModalOpen(true); }} >
-                                                        <td>
+                                                        <td data-label="Artist">
                                                             <div className="client-cell">
                                                                 <div className="avatar-placeholder">{apt.artist.charAt(0)}</div>
                                                                 <span>{apt.artist}</span>
                                                             </div>
                                                         </td>
-                                                        <td>{apt.service}</td>
-                                                        <td>
+                                                        <td data-label="Service">{apt.service}</td>
+                                                        <td data-label="Date & Time">
                                                             <div className="date-time-cell">
                                                                 <div className="primary-date">{apt.date}</div>
                                                                 <div className="secondary-time">{apt.time}</div>
                                                             </div>
                                                         </td>
-                                                        <td><span className={`status-badge-v2 ${apt.status.toLowerCase()}`}>{apt.status}</span></td>
+                                                        <td data-label="Status"><span className={`status-badge-v2 ${apt.status.toLowerCase()}`}>{apt.status}</span></td>
                                                     </tr>
                                                 ))}
                                             </tbody>

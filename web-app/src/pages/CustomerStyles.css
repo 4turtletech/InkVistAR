@@ -1617,7 +1617,7 @@
     .customer-st-f26d6ce7, .customer-st-05fe7b62 { font-size: 1.3rem !important; }
 
     /* Inspiration banner -> stack */
-    .inspiration-banner__grid { grid-template-columns: 1fr !important; gap: 12px; }
+    .inspiration-banner__grid { display: flex !important; flex-wrap: wrap; justify-content: center; gap: 12px; }
     .inspiration-banner__text { min-width: 100%; }
 
     /* Fix header subtitle negative margins causing horizontal scroll */

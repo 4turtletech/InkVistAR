@@ -499,6 +499,14 @@ export const updateAppointmentByAdmin = async (apptId, data) => {
   });
 };
 
+// Admin: Create Appointment
+export const createAppointmentByAdmin = async (data) => {
+  return fetchAPI('/admin/appointments', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
 // Admin: Delete Appointment
 export const deleteAppointmentByAdmin = async (apptId) => {
 
@@ -617,4 +625,30 @@ export const updateReviewStatus = async (reviewId, status) => {
 // Chat: Get History
 export const getChatHistory = async (room) => {
   return fetchAPI(`/chat/${room}`);
+};
+
+// Admin: Service Kits
+export const getAdminServiceKits = async () => {
+  return fetchAPI('/admin/service-kits');
+};
+
+export const createAdminServiceKit = async (data) => {
+  return fetchAPI('/admin/service-kits', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+};
+
+export const updateAdminServiceKit = async (serviceType, data) => {
+  // Service kits typically updated via POST replacing old, or PUT
+  return fetchAPI(`/admin/service-kits`, {
+    method: 'POST', // Backend implementation relies on POST for updating kits
+    body: JSON.stringify(data)
+  });
+};
+
+export const deleteAdminServiceKit = async (serviceType) => {
+  return fetchAPI(`/admin/service-kits/${encodeURIComponent(serviceType)}`, {
+    method: 'DELETE'
+  });
 };
