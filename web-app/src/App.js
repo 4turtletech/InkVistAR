@@ -56,6 +56,7 @@ import PayMongoPayment from './pages/PayMongoPayment';
 import CustomerInvoice from './pages/CustomerInvoice';
 import CustomerAftercare from './pages/CustomerAftercare';
 import CustomerReports from './pages/CustomerReports';
+import TermsPage from './pages/TermsPage';
 
 
 
@@ -103,6 +104,7 @@ function App() {
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/book" element={<PublicBooking />} />
+            <Route path="/terms" element={<TermsPage />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/admin" element={<PublicRoute><AdminLogin /></PublicRoute>} />

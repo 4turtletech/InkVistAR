@@ -1,24 +1,27 @@
 /**
- * ArtistClientDetails.jsx -- Client Profile Card for Artists
- * Themed with lucide icons, session details, contact info, notes, and new appointment CTA.
+ * ArtistClientDetails.jsx -- Client Profile Card (Gilded Noir v2)
+ * Theme-aware, animated, gold accents, contact actions.
  */
-
 import { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, SafeAreaView, Alert, Linking,
+  ScrollView, SafeAreaView, Linking,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft, Phone, Mail, MessageSquare, Tag, Clock, FileText,
   MapPin, Calendar, Pencil,
 } from 'lucide-react-native';
-import { colors, typography, borderRadius, shadows } from '../src/theme';
+import * as Haptics from 'expo-haptics';
+import { typography } from '../src/theme';
+import { useTheme } from '../src/context/ThemeContext';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { getInitials, formatCurrency } from '../src/utils/formatters';
 import { fetchAPI } from '../src/utils/api';
 
 export function ArtistClientDetails({ route, onBack }) {
+  const { theme: colors, hapticsEnabled } = useTheme();
+  const styles = getStyles(colors);
   const { client, session } = route.params || {};
   const [loading, setLoading] = useState(true);
   const [details, setDetails] = useState(null);
@@ -40,13 +43,13 @@ export function ArtistClientDetails({ route, onBack }) {
 
   const handleCall = () => {
     const ph = details?.phone || client?.phone;
-    ph ? Linking.openURL(`tel:${ph}`) : Alert.alert('Not Available', 'No phone number provided.');
+    if (ph) Linking.openURL(`tel:${ph}`);
   };
   const handleEmail = () => Linking.openURL(`mailto:${displayEmail}`);
 
   const InfoRow = ({ icon: Icon, label, value, last }) => (
     <View style={[styles.infoRow, last && { borderBottomWidth: 0 }]}>
-      <View style={styles.infoIconWrap}><Icon size={18} color={colors.primary} /></View>
+      <View style={styles.infoIconWrap}><Icon size={18} color={colors.gold} /></View>
       <View><Text style={styles.infoLabel}>{label}</Text><Text style={styles.infoValue}>{value || 'Not provided'}</Text></View>
     </View>
   );
@@ -56,32 +59,35 @@ export function ArtistClientDetails({ route, onBack }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={['#0f172a', '#1e293b']} style={styles.header}>
-          <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-            <ArrowLeft size={20} color="#ffffff" />
-          </TouchableOpacity>
-          <View style={styles.profileHeader}>
-            <View style={styles.avatarWrap}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{getInitials(displayName)}</Text>
-              </View>
-              <View style={styles.statusDot} />
+        {/* Header */}
+        <View style={styles.header}>
+          <AnimatedTouchable onPress={onBack} style={styles.backBtn}>
+            <ArrowLeft size={20} color={colors.textPrimary} />
+          </AnimatedTouchable>
+        </View>
+
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarWrap}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{getInitials(displayName)}</Text>
             </View>
-            <Text style={styles.clientName}>{displayName}</Text>
-            <Text style={styles.clientEmail}>{displayEmail}</Text>
-            <View style={styles.quickActions}>
-              <TouchableOpacity style={styles.actionCircle} onPress={handleCall}>
-                <Phone size={18} color="#ffffff" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionCircle} onPress={handleEmail}>
-                <Mail size={18} color="#ffffff" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionCircle}>
-                <MessageSquare size={18} color="#ffffff" />
-              </TouchableOpacity>
-            </View>
+            <View style={styles.statusDot} />
           </View>
-        </LinearGradient>
+          <Text style={styles.clientName}>{displayName}</Text>
+          <Text style={styles.clientEmail}>{displayEmail}</Text>
+          <View style={styles.quickActions}>
+            <AnimatedTouchable style={styles.actionCircle} onPress={handleCall}>
+              <Phone size={18} color={colors.gold} />
+            </AnimatedTouchable>
+            <AnimatedTouchable style={styles.actionCircle} onPress={handleEmail}>
+              <Mail size={18} color={colors.gold} />
+            </AnimatedTouchable>
+            <AnimatedTouchable style={styles.actionCircle}>
+              <MessageSquare size={18} color={colors.gold} />
+            </AnimatedTouchable>
+          </View>
+        </View>
 
         <View style={styles.content}>
           {/* Stats */}
@@ -125,56 +131,83 @@ export function ArtistClientDetails({ route, onBack }) {
               <Text style={styles.notesText}>
                 {details?.notes || 'No specific notes recorded for this client yet. Notes help in providing personalized service during tattoo sessions.'}
               </Text>
-              <TouchableOpacity style={styles.editNotesBtn}>
-                <Pencil size={14} color={colors.primary} />
+              <AnimatedTouchable style={styles.editNotesBtn}>
+                <Pencil size={14} color={colors.gold} />
                 <Text style={styles.editNotesText}>Edit Notes</Text>
-              </TouchableOpacity>
+              </AnimatedTouchable>
             </View>
           </View>
 
           {/* CTA */}
-          <TouchableOpacity style={styles.ctaBtn} onPress={() => Alert.alert('Action', 'Initialize new appointment for this client.')} activeOpacity={0.8}>
-            <LinearGradient colors={['#0f172a', colors.primary]} style={styles.ctaGradient}>
-              <Calendar size={18} color="#ffffff" />
-              <Text style={styles.ctaText}>Create New Appointment</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          <AnimatedTouchable style={styles.ctaBtn}>
+            <Calendar size={18} color={colors.backgroundDeep} />
+            <Text style={styles.ctaText}>Create New Appointment</Text>
+          </AnimatedTouchable>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { padding: 24, paddingTop: 56, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, alignItems: 'center' },
-  backBtn: { position: 'absolute', top: 56, left: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
-  profileHeader: { alignItems: 'center', marginTop: 16 },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { paddingTop: 52, paddingHorizontal: 20 },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+  },
+  profileCard: { alignItems: 'center', paddingVertical: 24 },
   avatarWrap: { position: 'relative', marginBottom: 14 },
-  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)' },
-  avatarText: { fontSize: 34, fontWeight: '800', color: colors.primary },
-  statusDot: { position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.success, borderWidth: 3, borderColor: '#0f172a' },
-  clientName: { ...typography.h2, color: '#ffffff', marginBottom: 4 },
-  clientEmail: { ...typography.bodySmall, color: 'rgba(255,255,255,0.7)', marginBottom: 16 },
+  avatar: {
+    width: 88, height: 88, borderRadius: 44, backgroundColor: colors.surface,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.gold,
+  },
+  avatarText: { fontSize: 34, fontWeight: '800', color: colors.gold },
+  statusDot: {
+    position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, borderRadius: 9,
+    backgroundColor: colors.success, borderWidth: 3, borderColor: colors.background,
+  },
+  clientName: { ...typography.h2, color: colors.textPrimary, marginBottom: 4 },
+  clientEmail: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: 16 },
   quickActions: { flexDirection: 'row', gap: 14 },
-  actionCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  actionCircle: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.borderGold,
+  },
   content: { padding: 20, paddingBottom: 40 },
-  statsRow: { flexDirection: 'row', gap: 14, marginBottom: 24, marginTop: -32 },
-  statCard: { flex: 1, backgroundColor: '#ffffff', borderRadius: borderRadius.xxl, padding: 18, alignItems: 'center', ...shadows.card },
-  statNumber: { ...typography.h3, color: colors.textPrimary, fontWeight: '800', marginBottom: 4 },
+  statsRow: { flexDirection: 'row', gap: 14, marginBottom: 24 },
+  statCard: {
+    flex: 1, backgroundColor: colors.surface, borderRadius: 16, padding: 18,
+    alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+  },
+  statNumber: { ...typography.h3, color: colors.gold, fontWeight: '800', marginBottom: 4 },
   statLabel: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600' },
   section: { marginBottom: 24 },
   sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 12 },
-  infoCard: { backgroundColor: '#ffffff', borderRadius: borderRadius.xxl, padding: 16, borderWidth: 1, borderColor: colors.border },
-  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
-  infoIconWrap: { width: 36, height: 36, borderRadius: borderRadius.md, backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  infoCard: {
+    backgroundColor: colors.surface, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  infoRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  infoIconWrap: {
+    width: 36, height: 36, borderRadius: 12, backgroundColor: colors.iconGoldBg,
+    justifyContent: 'center', alignItems: 'center', marginRight: 14,
+  },
   infoLabel: { ...typography.bodyXSmall, color: colors.textTertiary, marginBottom: 2 },
   infoValue: { ...typography.body, fontWeight: '600', color: colors.textPrimary },
-  notesCard: { backgroundColor: '#ffffff', borderRadius: borderRadius.xxl, padding: 18, borderWidth: 1, borderColor: colors.border },
+  notesCard: {
+    backgroundColor: colors.surface, borderRadius: 16, padding: 18,
+    borderWidth: 1, borderColor: colors.border,
+  },
   notesText: { ...typography.body, lineHeight: 22, color: colors.textSecondary, fontStyle: 'italic', marginBottom: 12 },
   editNotesBtn: { flexDirection: 'row', alignSelf: 'flex-end', alignItems: 'center', gap: 4 },
-  editNotesText: { ...typography.bodySmall, color: colors.primary, fontWeight: '600' },
-  ctaBtn: { marginTop: 8 },
-  ctaGradient: { flexDirection: 'row', height: 54, borderRadius: borderRadius.xl, justifyContent: 'center', alignItems: 'center', gap: 10, ...shadows.button },
-  ctaText: { ...typography.button, color: '#ffffff', fontSize: 16 },
+  editNotesText: { ...typography.bodySmall, color: colors.gold, fontWeight: '600' },
+  ctaBtn: {
+    flexDirection: 'row', height: 54, borderRadius: 12, backgroundColor: colors.gold,
+    justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 8,
+  },
+  ctaText: { ...typography.button, color: colors.backgroundDeep, fontSize: 16 },
 });

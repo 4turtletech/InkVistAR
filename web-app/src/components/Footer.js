@@ -25,6 +25,7 @@ const Footer = () => {
                         <li><a href="/artists">Artists</a></li>
                         <li><a href="/gallery">Gallery</a></li>
                         <li><a href="/book">Book Consultation</a></li>
+                        <li><a href="/terms">Terms & Conditions</a></li>
                     </ul>
                 </div>
 
@@ -58,7 +59,7 @@ const Footer = () => {
             </div>
             
             <div className="footer-bottom">
-                <p>&copy; {new Date().getFullYear()} InkVistAR / Inkvictus Tattoo Studio. All Rights Reserved.</p>
+                <p>&copy; {new Date().getFullYear()} InkVistAR / Inkvictus Tattoo Studio. All Rights Reserved. | <a href="/terms" style={{ color: '#be9055', textDecoration: 'none' }}>Terms & Conditions</a></p>
             </div>
         </footer>
     );

@@ -45,6 +45,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const [isEditProfileVisible, setEditProfileVisible] = useState(false);
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const [isMedicalVisible, setMedicalVisible] = useState(false);
+  const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
 
   const [editForm, setEditForm] = useState({});
   const [medicalForm, setMedicalForm] = useState({});
@@ -75,6 +76,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
         setProfile({
           name: res.customer.name, email: res.customer.email,
           phone: res.customer.phone || '', location: res.customer.location || '',
+          profile_image: res.customer.profile_image || '',
         });
         setStats({
           tattoos: res.stats?.total_tattoos || 0,
@@ -153,7 +155,8 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
       Animated.spring(avatarScale, { toValue: 1, friction: 3, tension: 100, useNativeDriver: true })
     ]).start();
 
-    customAlert('Profile Picture', 'Update your avatar?', [
+    // Use native Alert instead of custom Modal to avoid Android blocking the image picker
+    Alert.alert('Profile Picture', 'Update your avatar?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Choose from Library', onPress: pickImage }
     ]);
@@ -177,7 +180,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
     if (!result.canceled && result.assets[0].base64) {
       const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`;
       setProfile(prev => ({ ...prev, profile_image: base64Img }));
-      await updateCustomerProfile(userId, { profile_image: base64Img });
+      await updateCustomerProfile(userId, { profileImage: base64Img });
     }
   };
 
@@ -265,7 +268,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
       <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Profile</Text>
-          <AnimatedTouchable onPress={onLogout} style={styles.logoutBtn}>
+          <AnimatedTouchable onPress={() => setLogoutConfirmVisible(true)} style={styles.logoutBtn}>
             <LogOut size={22} color={theme.error} />
           </AnimatedTouchable>
         </View>
@@ -557,11 +560,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                     style={[styles.saveBtn, { flex: 1, marginTop: 0, backgroundColor: btn.style === 'cancel' ? theme.surfaceLight : theme.gold }]}
                     onPress={() => {
                       setAlertModal({ ...alertModal, visible: false });
-                      if (btn.onPress) {
-                        setTimeout(() => {
-                          btn.onPress();
-                        }, 400); // Give modal time to fully close before opening system picker
-                      }
+                      if (btn.onPress) btn.onPress();
                     }}
                   >
                     <Text style={[styles.saveBtnText, { color: btn.style === 'cancel' ? theme.textPrimary : theme.backgroundDeep }]}>{btn.text}</Text>
@@ -575,6 +574,33 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                   <Text style={styles.saveBtnText}>OK</Text>
                 </AnimatedTouchable>
               )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Logout Confirmation Modal */}
+      <Modal visible={logoutConfirmVisible} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { alignItems: 'center', width: '85%' }]}>
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: `${theme.error}20`, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              <LogOut size={24} color={theme.error} />
+            </View>
+            <Text style={{ ...typography.h3, color: theme.textPrimary, marginBottom: 8, textAlign: 'center' }}>Sign Out</Text>
+            <Text style={{ ...typography.body, color: theme.textSecondary, marginBottom: 24, textAlign: 'center' }}>Are you sure you want to sign out of your account?</Text>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <AnimatedTouchable
+                style={[styles.saveBtn, { flex: 1, marginTop: 0, backgroundColor: theme.surfaceLight }]}
+                onPress={() => setLogoutConfirmVisible(false)}
+              >
+                <Text style={[styles.saveBtnText, { color: theme.textPrimary }]}>Cancel</Text>
+              </AnimatedTouchable>
+              <AnimatedTouchable
+                style={[styles.saveBtn, { flex: 1, marginTop: 0, backgroundColor: theme.error }]}
+                onPress={() => { setLogoutConfirmVisible(false); onLogout(); }}
+              >
+                <Text style={[styles.saveBtnText, { color: '#ffffff' }]}>Sign Out</Text>
+              </AnimatedTouchable>
             </View>
           </View>
         </View>

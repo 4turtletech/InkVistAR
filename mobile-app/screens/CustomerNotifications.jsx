@@ -12,6 +12,7 @@ import {
   ArrowLeft, Bell, Calendar, CheckCircle, XCircle, Star,
   CreditCard, Info, MessageSquare, Mail, ChevronDown, Trash2, Filter
 } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../src/context/ThemeContext';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
@@ -74,7 +75,10 @@ const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, 
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dy) < 10,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+      },
       onPanResponderMove: (_, gestureState) => {
         if (gestureState.dx < 0) {
           pan.setValue({ x: gestureState.dx, y: 0 });
@@ -90,6 +94,9 @@ const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, 
         } else {
           Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
         }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
       }
     })
   ).current;
@@ -129,6 +136,7 @@ const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, 
 
 export function CustomerNotifications({ onBack, userId }) {
   const { theme } = useTheme();
+  const navigation = useNavigation();
   const styles = getStyles(theme);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -170,6 +178,12 @@ export function CustomerNotifications({ onBack, userId }) {
 
   const onPress = async (item) => {
     if (!item.is_read) { await markNotificationAsRead(item.id); setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: true } : n)); }
+    
+    if (item.type === 'payment_success') {
+      try { navigation.navigate('customer-transactions', { openTransactionId: item.related_id }); } catch (e) {}
+    } else if (item.type?.startsWith('appointment_') || item.type === 'review_prompt') {
+      try { navigation.navigate('customer-main', { screen: 'Appointments', params: { openAppointmentId: item.related_id } }); } catch (e) {}
+    }
   };
   const onUnread = async (item) => { await markNotificationAsUnread(item.id); setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: false } : n)); };
   const onDismiss = async (id) => {

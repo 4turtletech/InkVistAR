@@ -8,15 +8,21 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Animated,
 } from 'react-native';
-import { ArrowLeft, Sparkles, User, Cpu, SendHorizontal } from 'lucide-react-native';
+import { ArrowLeft, Sparkles, User, Cpu, SendHorizontal, Wifi, WifiOff } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { typography, borderRadius, shadows } from '../src/theme';
-import { sendChatMessage, API_URL } from '../src/utils/api';
+import { sendChatMessage, API_BASE_URL } from '../src/utils/api';
 import io from 'socket.io-client';
 
-const socket = io(API_URL.replace('/api', ''));
+// Connect socket directly to the backend origin (matches web-app SOCKET_URL pattern)
+const socket = io(API_BASE_URL, {
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 2000,
+});
 
 const AnimatedMessageBubble = ({ msg, currentUserName, theme, styles }) => {
   const animValue = useRef(new Animated.Value(0)).current;
@@ -52,6 +58,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
   const { theme } = useTheme();
   const styles = getStyles(theme);
   const [isHumanMode, setIsHumanMode] = useState(false);
+  const [isConnected, setIsConnected] = useState(socket.connected);
   const [botMessages, setBotMessages] = useState([
     { id: 1, text: "Hi! I'm your tattoo design assistant. I can help with design ideas, placement, aftercare tips, and more. How can I help?", sender: 'bot', timestamp: new Date() },
   ]);
@@ -69,33 +76,59 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
 
   useEffect(() => { scrollRef.current?.scrollToEnd({ animated: true }); }, [botMessages, humanMessages, isHumanMode]);
 
+  // Track socket connection status
+  useEffect(() => {
+    const onConnect = () => { console.log('[CHAT] Socket connected'); setIsConnected(true); };
+    const onDisconnect = () => { console.log('[CHAT] Socket disconnected'); setIsConnected(false); };
+    
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    
+    // If already connected, set state
+    if (socket.connected) setIsConnected(true);
+    
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+    };
+  }, []);
+
+  // Socket.IO room join + event handlers (mirrors web-app ChatWidget pattern)
   useEffect(() => {
     socket.emit('join_room', room);
+
+    // When switching to human mode, immediately announce the session to the admin dashboard
+    if (isHumanMode) {
+      socket.emit('start_support_session', { room, name: currentUserName });
+    }
+
     const onMsg = (data) => {
       if (data.room !== room) return;
       setHumanMessages(prev => [...prev, { id: Date.now() + Math.random(), sender: data.sender, text: data.text, timestamp: new Date() }]);
     };
+
     const onClose = () => {
       setIsHumanMode(false);
       setHumanMessages(prev => [...prev, { id: 'sys-reset', sender: 'system', text: 'Live chat ended by the agent. Returning to AI assistant.', timestamp: new Date() }]);
     };
+
     socket.on('receive_message', onMsg);
     socket.on('session_closed', onClose);
+
     return () => { socket.off('receive_message', onMsg); socket.off('session_closed', onClose); };
-  }, [room]);
+  }, [room, isHumanMode]);
 
   const handleSend = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    sendMessage(inputValue);
+    sendMessageHandler(inputValue);
   };
 
-  const sendMessage = async (text) => {
+  const sendMessageHandler = async (text) => {
     if (text.trim().length === 0 || isLoading) return;
     if (inputValue === text) setInputValue('');
 
     if (isHumanMode) {
       const data = { room, sender: currentUserName, text: text.trim() };
-      if (humanMessages.length <= 1) socket.emit('start_support_session', { room, name: currentUserName });
       socket.emit('send_message', data);
       setHumanMessages(prev => [...prev, { id: Date.now(), sender: currentUserName, text: text.trim(), timestamp: new Date() }]);
     } else {
@@ -114,6 +147,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
 
   const toggleMode = () => {
     if (!isHumanMode && !isShopOpen) { Alert.alert('Agents Offline', 'Live support: 1 PM - 8 PM. Use AI Assistant for now.'); return; }
+    if (!isHumanMode && !isConnected) { Alert.alert('Connection Issue', 'Unable to reach live support. Please check your internet connection and try again.'); return; }
     setIsHumanMode(!isHumanMode);
   };
 
@@ -133,7 +167,14 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.headerTitle}>{isHumanMode ? 'Live Artist Support' : 'Tattoo AI Assistant'}</Text>
-              <Text style={styles.headerSub}>{isHumanMode ? 'Chatting with a person' : 'Always here to help'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                {isHumanMode && (
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isConnected ? theme.success : theme.error }} />
+                )}
+                <Text style={styles.headerSub}>
+                  {isHumanMode ? (isConnected ? 'Connected to live support' : 'Reconnecting...') : 'Always here to help'}
+                </Text>
+              </View>
             </View>
             <TouchableOpacity onPress={toggleMode} style={styles.modeToggle}>
               {isHumanMode ? <Cpu size={16} color={theme.textSecondary} /> : <User size={16} color={theme.textSecondary} />}
@@ -157,7 +198,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
               <Text style={styles.quickLabel}>Quick questions:</Text>
               <View style={styles.quickRow}>
                 {quickQ.map((q, i) => (
-                  <AnimatedTouchable key={i} onPress={() => sendMessage(q)} style={styles.quickChip}>
+                  <AnimatedTouchable key={i} onPress={() => sendMessageHandler(q)} style={styles.quickChip}>
                     <Text style={styles.quickChipText}>{q}</Text>
                   </AnimatedTouchable>
                 ))}

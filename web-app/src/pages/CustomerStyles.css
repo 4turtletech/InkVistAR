@@ -1638,6 +1638,18 @@
         width: 20px !important;
         height: 20px !important;
     }
+
+    /* Make header action buttons compact on mobile to prevent overlap */
+    .header-actions {
+        gap: 6px !important;
+        flex-wrap: wrap;
+    }
+    .header-actions button,
+    .header-actions a {
+        padding: 7px 12px !important;
+        font-size: 0.78rem !important;
+        white-space: nowrap;
+    }
 }
 
 @media (max-width: 480px) {

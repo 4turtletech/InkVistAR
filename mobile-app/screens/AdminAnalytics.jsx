@@ -10,7 +10,11 @@ import {
 } from 'react-native';
 import { ArrowLeft, BarChart3, TrendingUp, Users, Calendar, Package, DollarSign } from 'lucide-react-native';
 import { BarChart, PieChart } from 'react-native-chart-kit';
-import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../src/context/ThemeContext';
+import { typography, spacing, borderRadius, shadows } from '../src/theme';
+import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
+import { StaggerItem } from '../src/components/shared/StaggerItem';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { formatCurrency } from '../src/utils/formatters';
@@ -19,18 +23,23 @@ import { getAdminAnalytics } from '../src/utils/api';
 const SCREEN_W = Dimensions.get('window').width;
 const CHART_W = SCREEN_W - 64;
 
-const chartConfig = {
-  backgroundColor: '#ffffff',
-  backgroundGradientFrom: '#ffffff',
-  backgroundGradientTo: '#ffffff',
+const getChartConfig = (theme) => ({
+  backgroundColor: theme.surface,
+  backgroundGradientFrom: theme.surface,
+  backgroundGradientTo: theme.surface,
   decimalPlaces: 0,
   color: (opacity = 1) => `rgba(190, 144, 85, ${opacity})`,
-  labelColor: () => colors.textTertiary,
+  labelColor: () => theme.textTertiary,
   barPercentage: 0.5,
-  propsForBackgroundLines: { strokeDasharray: '', stroke: colors.borderLight },
-};
+  propsForBackgroundLines: { strokeDasharray: '', stroke: theme.borderLight },
+});
 
 export const AdminAnalytics = ({ navigation }) => {
+  const { theme, hapticsEnabled } = useTheme();
+  const insets = useSafeAreaInsets();
+  const styles = getStyles(theme, insets);
+  const chartConfig = getChartConfig(theme);
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,9 +61,9 @@ export const AdminAnalytics = ({ navigation }) => {
   const apptCancelled = parseInt(data?.appointments?.cancelled || 0);
 
   const pieData = [
-    { name: 'Completed', count: apptCompleted, color: colors.success, legendFontColor: colors.textSecondary, legendFontSize: 12 },
-    { name: 'Scheduled', count: apptScheduled, color: colors.info, legendFontColor: colors.textSecondary, legendFontSize: 12 },
-    { name: 'Cancelled', count: apptCancelled, color: colors.error, legendFontColor: colors.textSecondary, legendFontSize: 12 },
+    { name: 'Completed', count: apptCompleted, color: theme.success, legendFontColor: theme.textSecondary, legendFontSize: 12 },
+    { name: 'Scheduled', count: apptScheduled, color: theme.info, legendFontColor: theme.textSecondary, legendFontSize: 12 },
+    { name: 'Cancelled', count: apptCancelled, color: theme.error, legendFontColor: theme.textSecondary, legendFontSize: 12 },
   ].filter(d => d.count > 0);
 
   const artists = data?.artists || [];
@@ -68,52 +77,60 @@ export const AdminAnalytics = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation?.goBack?.()} style={styles.backBtn}>
-          <ArrowLeft size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <AnimatedTouchable onPress={() => navigation?.goBack?.()} style={styles.backBtn}>
+          <ArrowLeft size={22} color={theme.textPrimary} />
+        </AnimatedTouchable>
         <Text style={styles.headerTitle}>Analytics</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.primary} />}>
+      <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={theme.gold} />}>
         {/* Stat Cards */}
-        <View style={styles.statsRow}>
-          <StatCard icon={DollarSign} label="Revenue" value={`P${formatCurrency(revenue)}`} color={colors.success} bg={colors.successBg} />
-          <StatCard icon={Calendar} label="Appointments" value={String(apptTotal)} color={colors.iconPurple} bg={colors.iconPurpleBg} />
-        </View>
+        <StaggerItem index={0}>
+          <View style={styles.statsRow}>
+            <StatCard icon={DollarSign} label="Revenue" value={`P${formatCurrency(revenue)}`} color={theme.success} bg={theme.successBg || 'rgba(16,185,129,0.1)'} styles={styles} />
+            <StatCard icon={Calendar} label="Appointments" value={String(apptTotal)} color={theme.iconPurple} bg={theme.iconPurpleBg || 'rgba(168,85,247,0.1)'} styles={styles} />
+          </View>
+        </StaggerItem>
 
         {/* Appointment Status Pie */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Appointment Status</Text>
-          {pieData.length > 0 ? (
-            <PieChart data={pieData} width={CHART_W} height={180} chartConfig={chartConfig} accessor="count" backgroundColor="transparent" paddingLeft="15" absolute />
-          ) : (
-            <EmptyState icon={Calendar} title="No appointment data" />
-          )}
-        </View>
+        <StaggerItem index={1}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Appointment Status</Text>
+            {pieData.length > 0 ? (
+              <PieChart data={pieData} width={CHART_W} height={180} chartConfig={chartConfig} accessor="count" backgroundColor="transparent" paddingLeft="15" absolute />
+            ) : (
+              <EmptyState icon={Calendar} title="No appointment data" />
+            )}
+          </View>
+        </StaggerItem>
 
         {/* Artist Revenue Bar */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Top Artist Revenue</Text>
-          <BarChart data={barData} width={CHART_W} height={220} yAxisLabel="P" chartConfig={chartConfig} style={{ borderRadius: 12 }} />
-        </View>
+        <StaggerItem index={2}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Top Artist Revenue</Text>
+            <BarChart data={barData} width={CHART_W} height={220} yAxisLabel="P" chartConfig={chartConfig} style={{ borderRadius: 12 }} />
+          </View>
+        </StaggerItem>
 
         {/* Top Consumed Inventory */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Top Consumed Inventory</Text>
-          {inventoryItems.length === 0 ? (
-            <EmptyState icon={Package} title="No data yet" subtitle="Inventory transactions will appear here" />
-          ) : (
-            inventoryItems.slice(0, 8).map((item, i) => (
-              <View key={i} style={styles.invRow}>
-                <View style={styles.invLeft}>
-                  <View style={styles.invDot} />
-                  <Text style={styles.invName}>{item.name}</Text>
+        <StaggerItem index={3}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Top Consumed Inventory</Text>
+            {inventoryItems.length === 0 ? (
+              <EmptyState icon={Package} title="No data yet" subtitle="Inventory transactions will appear here" />
+            ) : (
+              inventoryItems.slice(0, 8).map((item, i) => (
+                <View key={i} style={styles.invRow}>
+                  <View style={styles.invLeft}>
+                    <View style={styles.invDot} />
+                    <Text style={styles.invName}>{item.name}</Text>
+                  </View>
+                  <Text style={styles.invValue}>{item.used} {item.unit}</Text>
                 </View>
-                <Text style={styles.invValue}>{item.used} {item.unit}</Text>
-              </View>
-            ))
-          )}
-        </View>
+              ))
+            )}
+          </View>
+        </StaggerItem>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -121,7 +138,7 @@ export const AdminAnalytics = ({ navigation }) => {
   );
 };
 
-const StatCard = ({ icon: Icon, label, value, color, bg }) => (
+const StatCard = ({ icon: Icon, label, value, color, bg, styles }) => (
   <View style={styles.statCard}>
     <View style={[styles.statIcon, { backgroundColor: bg }]}>
       <Icon size={20} color={color} />
@@ -131,37 +148,37 @@ const StatCard = ({ icon: Icon, label, value, color, bg }) => (
   </View>
 );
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
+const getStyles = (theme, insets) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
-    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16,
+    backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   backBtn: { padding: 4 },
-  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  headerTitle: { ...typography.h2, color: theme.textPrimary },
   scrollContent: { padding: 16 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   statCard: {
-    flex: 1, backgroundColor: '#ffffff', borderRadius: borderRadius.xl,
-    padding: 14, borderWidth: 1, borderColor: colors.border, ...shadows.subtle,
+    flex: 1, backgroundColor: theme.surface, borderRadius: borderRadius.xl,
+    padding: 16, borderWidth: 1, borderColor: theme.borderLight, ...shadows.subtle,
   },
-  statIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  statLabel: { ...typography.bodyXSmall, color: colors.textSecondary, marginBottom: 2 },
-  statValue: { ...typography.h3, color: colors.textPrimary },
+  statIcon: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  statLabel: { ...typography.bodyXSmall, color: theme.textSecondary, marginBottom: 4 },
+  statValue: { ...typography.h3, color: theme.textPrimary },
   card: {
-    backgroundColor: '#ffffff', borderRadius: borderRadius.xl, padding: 16,
-    marginBottom: 16, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: theme.surface, borderRadius: borderRadius.xl, padding: 16,
+    marginBottom: 16, borderWidth: 1, borderColor: theme.borderLight,
     ...shadows.subtle, alignItems: 'center',
   },
-  cardTitle: { ...typography.h4, color: colors.textPrimary, alignSelf: 'flex-start', marginBottom: 12 },
+  cardTitle: { ...typography.h4, color: theme.textPrimary, alignSelf: 'flex-start', marginBottom: 16 },
   invRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    width: '100%', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.borderLight,
+    width: '100%', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderLight,
   },
   invLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  invDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary },
-  invName: { ...typography.body, color: colors.textPrimary },
-  invValue: { ...typography.bodySmall, color: colors.success, fontWeight: '700' },
+  invDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.gold },
+  invName: { ...typography.body, color: theme.textPrimary },
+  invValue: { ...typography.bodySmall, color: theme.success, fontWeight: '700' },
 });

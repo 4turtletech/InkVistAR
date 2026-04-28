@@ -14,6 +14,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Eye, EyeOff, Check, X, CheckCircle, ArrowRight, Mail, Lock, Sun, Moon } from 'lucide-react-native';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
+import { useToast } from '../src/context/ToastContext';
+import { useShakeAnimation } from '../src/utils/animations';
+import { SuccessCheckmark } from '../src/components/shared/SuccessCheckmark';
 import { API_URL } from '../src/utils/api';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -47,7 +50,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const { shakeAnim, triggerShake } = useShakeAnimation();
 
   // Background slideshow
   const [bgIndex, setBgIndex] = useState(0);
@@ -56,6 +59,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
   // Global Theme State
   const { isDark, theme, toggleTheme } = useTheme();
   const overlayColor = isDark ? 'rgba(15,13,14,0.88)' : 'rgba(248,250,252,0.88)';
+  const { showToast } = useToast();
 
   useEffect(() => {
     Animated.parallel([
@@ -88,16 +92,6 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
     return () => clearInterval(interval);
   }, [lockoutTime]);
 
-  const triggerShake = () => {
-    Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: 8, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -8, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 6, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -6, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
-    ]).start();
-  };
-
   const handleEmailChange = (text) => {
     const sanitized = text.replace(/\s/g, '');
     setEmail(sanitized);
@@ -127,7 +121,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
 
     if (!isValid) { triggerShake(); return; }
 
-    if (lockoutTime > 0) { Alert.alert('Locked Out', `Please wait ${lockoutTime} seconds before trying again.`); return; }
+    if (lockoutTime > 0) { showToast(`Please wait ${lockoutTime} seconds before trying again.`, 'error'); return; }
     setIsLoading(true);
     const result = await onLogin(cleanEmail, password);
     setIsLoading(false);
@@ -136,15 +130,16 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
       else {
         triggerShake();
         const n = failedAttempts + 1; setFailedAttempts(n);
-        if (n >= 3) { setLockoutTime(30); Alert.alert('Too Many Attempts', 'Temporarily locked for 30 seconds.'); }
+        if (n >= 3) { setLockoutTime(30); showToast('Temporarily locked for 30 seconds.', 'error'); }
+        else { showToast(result.message || 'Invalid credentials', 'error'); }
       }
     } else { setFailedAttempts(0); }
   };
 
   const handleResetSubmit = () => {
-    if (!resetEmail.trim()) { Alert.alert('Error', 'Please enter your email address'); return; }
+    if (!resetEmail.trim()) { showToast('Please enter your email address', 'error'); return; }
     if (onForgotPassword) { onForgotPassword(resetEmail, 'customer'); setShowForgotModal(false); setResetEmail(''); }
-    else { Alert.alert('Coming Soon', 'Not connected yet.'); setShowForgotModal(false); }
+    else { showToast('Not connected yet.', 'error'); setShowForgotModal(false); }
   };
 
   const handleResendVerification = async () => {
@@ -153,8 +148,8 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim() }),
       });
       const data = await response.json();
-      data.success ? (Alert.alert('Success', data.message), setShowVerificationModal(false)) : Alert.alert('Error', data.message);
-    } catch (e) { Alert.alert('Error', 'Failed to connect to server'); }
+      data.success ? (showToast(data.message, 'success'), setShowVerificationModal(false)) : showToast(data.message, 'error');
+    } catch (e) { showToast('Failed to connect to server', 'error'); }
   };
 
   return (
@@ -347,9 +342,7 @@ export function LoginPage({ route, onLogin, onSwitchToRegister, onForgotPassword
                 </TouchableOpacity>
               </View>
               <View style={{ alignItems: 'center', marginBottom: 20 }}>
-                <View style={styles.successCircle}>
-                  <CheckCircle size={40} color={colors.success} />
-                </View>
+                <SuccessCheckmark size={40} />
               </View>
               <Text style={[styles.modalText, { textAlign: 'center' }]}>{successMessage}</Text>
               <TouchableOpacity onPress={() => setShowSuccessModal(false)} activeOpacity={0.8}>

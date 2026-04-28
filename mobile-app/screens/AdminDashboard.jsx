@@ -1,36 +1,48 @@
-/**
- * AdminDashboard.jsx -- Full-featured Admin Dashboard
- * 1:1 parity with web's AdminDashboard.js
- * Features: Stats grid, weekly chart, appointment overview with search/filter/pagination,
- * artist status, system alerts, audit logs, notification badge.
- */
-
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, TextInput, FlatList, Modal, Dimensions,
+  View, Text, StyleSheet, ScrollView,
+  RefreshControl, TextInput, Modal, Dimensions, Animated, Platform
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  LayoutDashboard, Users, Calendar, Palette, Package, BarChart3,
-  Bell, AlertTriangle, CheckCircle, FileText, Search, ChevronLeft,
-  ChevronRight, ShoppingCart, Settings, MessageSquare, RefreshCw,
-  TrendingUp, Clock, DollarSign, X, ChevronDown,
+  Users, Calendar, Palette, Package, BarChart3,
+  Bell, AlertTriangle, CheckCircle, Search, ChevronLeft,
+  ChevronRight, ShoppingCart, Settings, MessageSquare,
+  DollarSign, X, Activity
 } from 'lucide-react-native';
-import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import * as Haptics from 'expo-haptics';
+import { typography, borderRadius, shadows } from '../src/theme';
+import { useTheme } from '../src/context/ThemeContext';
 import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { ConfirmModal } from '../src/components/shared/ConfirmModal';
+import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { formatCurrency, formatDate, formatTime, getDisplayCode } from '../src/utils/formatters';
 import {
   getAdminDashboard, getAdminAppointments, getAdminAnalytics,
-  getNotifications, updateAppointmentStatus, fetchAPI,
+  updateAppointmentStatus
 } from '../src/utils/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+const StaggerItem = ({ index, children }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, { toValue: 1, duration: 400, delay: index * 80, useNativeDriver: true }).start();
+  }, []);
+  return (
+    <Animated.View style={{ opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }}>
+      {children}
+    </Animated.View>
+  );
+};
+
 export const AdminDashboard = ({ onLogout, navigation }) => {
-  // Core state
+  const { theme, hapticsEnabled } = useTheme();
+  const insets = useSafeAreaInsets();
+  const styles = getStyles(theme, insets);
+
   const [stats, setStats] = useState({ totalUsers: 0, totalAppointments: 0, totalRevenue: 0, activeArtists: 0 });
   const [appointments, setAppointments] = useState([]);
   const [artistStatus, setArtistStatus] = useState([]);
@@ -38,25 +50,15 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Appointments pagination & filter
   const [appointmentSearch, setAppointmentSearch] = useState('');
   const [appointmentFilter, setAppointmentFilter] = useState('upcoming');
   const [appointmentPage, setAppointmentPage] = useState(1);
-  const appointmentsPerPage = 8;
+  const appointmentsPerPage = 5;
 
-  // Detail modal
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
-
-  // Confirm modal
   const [confirmModal, setConfirmModal] = useState({ visible: false, message: '', onConfirm: null });
 
-  // Analytics
-  const [analyticsData, setAnalyticsData] = useState(null);
-
-  // =========================================
-  // DATA FETCHING
-  // =========================================
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -66,7 +68,6 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
         getAdminAnalytics(),
       ]);
 
-      // Dashboard stats
       if (dashRes.success && dashRes.data) {
         const d = dashRes.data;
         setStats({
@@ -77,16 +78,13 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
         });
       }
 
-      // Appointments
       if (apptRes.success) {
         const appts = apptRes.data || apptRes.appointments || [];
         setAppointments(appts);
         processAppointmentData(appts);
       }
 
-      // Analytics
       if (analyticsRes.success && analyticsRes.data) {
-        setAnalyticsData(analyticsRes.data);
         processAnalyticsStats(analyticsRes.data);
       }
     } catch (e) {
@@ -96,10 +94,6 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
   }, []);
 
   const processAppointmentData = (appts) => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-
-    // Weekly chart data (last 7 days)
     const last7 = {};
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
@@ -117,7 +111,6 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
       count,
     })));
 
-    // System alerts
     const genAlerts = [];
     const pending = appts.filter(a => a.status === 'pending');
     if (pending.length > 0) {
@@ -128,20 +121,11 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
 
   const processAnalyticsStats = (data) => {
     if (data.users) {
-      setStats(prev => ({
-        ...prev,
-        totalUsers: data.users.total || prev.totalUsers,
-        activeArtists: data.artists?.length || prev.activeArtists,
-      }));
+      setStats(prev => ({ ...prev, totalUsers: data.users.total || prev.totalUsers, activeArtists: data.artists?.length || prev.activeArtists }));
     }
-    if (data.revenue) {
-      setStats(prev => ({ ...prev, totalRevenue: data.revenue.total || prev.totalRevenue }));
-    }
-    if (data.appointments) {
-      setStats(prev => ({ ...prev, totalAppointments: data.appointments.total || prev.totalAppointments }));
-    }
+    if (data.revenue) setStats(prev => ({ ...prev, totalRevenue: data.revenue.total || prev.totalRevenue }));
+    if (data.appointments) setStats(prev => ({ ...prev, totalAppointments: data.appointments.total || prev.totalAppointments }));
 
-    // Artist status
     if (data.artists) {
       setArtistStatus(data.artists.map(a => ({
         id: a.id || a.artist_id,
@@ -154,9 +138,6 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // =========================================
-  // FILTERED / PAGINATED APPOINTMENTS
-  // =========================================
   const filteredAppointments = appointments.filter(apt => {
     const matchSearch =
       (apt.client_name || '').toLowerCase().includes(appointmentSearch.toLowerCase()) ||
@@ -175,16 +156,11 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
     return new Date(a.appointment_date) - new Date(b.appointment_date);
   });
 
-  const totalPages = Math.ceil(filteredAppointments.length / appointmentsPerPage);
-  const displayedAppointments = filteredAppointments.slice(
-    (appointmentPage - 1) * appointmentsPerPage,
-    appointmentPage * appointmentsPerPage
-  );
+  const totalPages = Math.ceil(filteredAppointments.length / appointmentsPerPage) || 1;
+  const displayedAppointments = filteredAppointments.slice((appointmentPage - 1) * appointmentsPerPage, appointmentPage * appointmentsPerPage);
 
-  // =========================================
-  // ACTIONS
-  // =========================================
   const handleStatusUpdate = (id, status) => {
+    if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setConfirmModal({
       visible: true,
       message: `Mark this appointment as "${status}"?`,
@@ -196,12 +172,8 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
     });
   };
 
-  // =========================================
-  // RENDER HELPERS
-  // =========================================
-
   const StatCard = ({ icon: Icon, label, value, color, bgColor, onPress }) => (
-    <TouchableOpacity style={styles.statCard} onPress={onPress} activeOpacity={0.7}>
+    <AnimatedTouchable style={styles.statCard} onPress={onPress} activeOpacity={0.8} disabled={!onPress}>
       <View style={[styles.statIconBg, { backgroundColor: bgColor }]}>
         <Icon size={22} color={color} />
       </View>
@@ -209,16 +181,16 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
         <Text style={styles.statLabel}>{label}</Text>
         <Text style={styles.statValue}>{value}</Text>
       </View>
-    </TouchableOpacity>
+    </AnimatedTouchable>
   );
 
   const QuickAction = ({ icon: Icon, label, color, onPress }) => (
-    <TouchableOpacity style={styles.quickAction} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.quickActionIcon, { backgroundColor: color }]}>
-        <Icon size={22} color="#ffffff" />
+    <AnimatedTouchable style={styles.quickAction} onPress={onPress} activeOpacity={0.8}>
+      <View style={[styles.quickActionIcon, { backgroundColor: color + '15' }]}>
+        <Icon size={24} color={color} />
       </View>
       <Text style={styles.quickActionLabel} numberOfLines={1}>{label}</Text>
-    </TouchableOpacity>
+    </AnimatedTouchable>
   );
 
   const BarChart = ({ data }) => {
@@ -239,10 +211,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
     );
   };
 
-  // =========================================
-  // MAIN RENDER
-  // =========================================
-  if (loading) {
+  if (loading && !appointments.length) {
     return (
       <View style={styles.loadingContainer}>
         <PremiumLoader message="Loading admin dashboard..." />
@@ -252,238 +221,176 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Admin Dashboard</Text>
-          <Text style={styles.headerSubtitle}>System Overview & Management</Text>
+          <Text style={styles.headerTitle}>Studio Dashboard</Text>
+          <Text style={styles.headerSubtitle}>InkVistAR Management</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => navigation?.navigate?.('admin-notifications')}>
-            <Bell size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerBtn} onPress={onLogout}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
+          <AnimatedTouchable style={styles.headerBtn} onPress={() => navigation?.navigate?.('admin-notifications')}>
+            <Bell size={20} color={theme.textPrimary} />
+            {alerts.length > 0 && <View style={styles.badge} />}
+          </AnimatedTouchable>
+          <AnimatedTouchable style={styles.headerBtn} onPress={onLogout}>
+            <Text style={styles.logoutText}>Log Out</Text>
+          </AnimatedTouchable>
         </View>
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadAll} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadAll} tintColor={theme.gold} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <StatCard
-            icon={DollarSign} label="Revenue"
-            value={`P${formatCurrency(stats.totalRevenue)}`}
-            color={colors.success} bgColor={colors.successBg}
-            onPress={() => navigation?.navigate?.('admin-analytics')}
-          />
-          <StatCard
-            icon={Calendar} label="Appointments"
-            value={String(stats.totalAppointments)}
-            color={colors.iconPurple} bgColor={colors.iconPurpleBg}
-          />
-          <StatCard
-            icon={Users} label="Total Users"
-            value={String(stats.totalUsers)}
-            color={colors.iconBlue} bgColor={colors.iconBlueBg}
-          />
-          <StatCard
-            icon={Palette} label="Artists"
-            value={String(stats.activeArtists)}
-            color={colors.warning} bgColor={colors.warningBg}
-          />
-        </View>
+        <StaggerItem index={0}>
+          <View style={styles.statsGrid}>
+            <StatCard icon={DollarSign} label="Revenue" value={`P${formatCurrency(stats.totalRevenue)}`} color={theme.success} bgColor={`${theme.success}15`} onPress={() => navigation?.navigate?.('admin-analytics')} />
+            <StatCard icon={Calendar} label="Bookings" value={String(stats.totalAppointments)} color={theme.gold} bgColor={`${theme.gold}15`} onPress={() => navigation?.navigate?.('Bookings')} />
+            <StatCard icon={Users} label="Total Users" value={String(stats.totalUsers)} color={theme.info} bgColor={`${theme.info}15`} onPress={() => navigation?.navigate?.('Users')} />
+            <StatCard icon={Palette} label="Active Artists" value={String(stats.activeArtists)} color={theme.warning} bgColor={`${theme.warning}15`} />
+          </View>
+        </StaggerItem>
 
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Management</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActionsScroll} contentContainerStyle={styles.quickActionsContent}>
-          <QuickAction icon={Calendar} label="Calendar" color="#f59e0b" onPress={() => navigation?.navigate?.('Bookings')} />
-          <QuickAction icon={Users} label="Users" color="#3b82f6" onPress={() => navigation?.navigate?.('Users')} />
-          <QuickAction icon={ShoppingCart} label="POS" color="#8b5cf6" onPress={() => navigation?.navigate?.('admin-pos')} />
-          <QuickAction icon={MessageSquare} label="Chat" color="#0ea5e9" onPress={() => navigation?.navigate?.('admin-chat')} />
-          <QuickAction icon={Package} label="Inventory" color="#ec4899" onPress={() => navigation?.navigate?.('admin-inventory')} />
-          <QuickAction icon={BarChart3} label="Analytics" color="#10b981" onPress={() => navigation?.navigate?.('admin-analytics')} />
-          <QuickAction icon={Settings} label="Settings" color="#64748b" onPress={() => navigation?.navigate?.('admin-settings')} />
-        </ScrollView>
+        <StaggerItem index={1}>
+          <Text style={styles.sectionTitle}>Studio Operations</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActionsScroll} contentContainerStyle={styles.quickActionsContent}>
+            <QuickAction icon={Calendar} label="Calendar" color={theme.gold} onPress={() => navigation?.navigate?.('Bookings')} />
+            <QuickAction icon={Users} label="Users" color={theme.info} onPress={() => navigation?.navigate?.('Users')} />
+            <QuickAction icon={ShoppingCart} label="POS" color={theme.success} onPress={() => navigation?.navigate?.('admin-pos')} />
+            <QuickAction icon={Package} label="Inventory" color={theme.warning} onPress={() => navigation?.navigate?.('admin-inventory')} />
+            <QuickAction icon={BarChart3} label="Analytics" color={theme.textPrimary} onPress={() => navigation?.navigate?.('admin-analytics')} />
+            <QuickAction icon={MessageSquare} label="Chat" color={theme.textSecondary} onPress={() => navigation?.navigate?.('admin-chat')} />
+            <QuickAction icon={Settings} label="Settings" color={theme.textTertiary} onPress={() => navigation?.navigate?.('admin-settings')} />
+          </ScrollView>
+        </StaggerItem>
 
-        {/* Weekly Chart */}
         {chartData.length > 0 && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <BarChart3 size={18} color={colors.textSecondary} />
-              <Text style={styles.cardTitle}>Weekly Appointments</Text>
+          <StaggerItem index={2}>
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Activity size={18} color={theme.gold} />
+                <Text style={styles.cardTitle}>Booking Velocity</Text>
+              </View>
+              <BarChart data={chartData} />
             </View>
-            <BarChart data={chartData} />
-          </View>
+          </StaggerItem>
         )}
 
-        {/* Appointments Overview */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Calendar size={18} color={colors.textSecondary} />
-            <Text style={styles.cardTitle}>Appointments</Text>
-          </View>
-
-          {/* Filters */}
-          <View style={styles.filterRow}>
-            {['upcoming', 'latest', 'all'].map(f => (
-              <TouchableOpacity
-                key={f}
-                style={[styles.filterPill, appointmentFilter === f && styles.filterPillActive]}
-                onPress={() => { setAppointmentFilter(f); setAppointmentPage(1); }}
-              >
-                <Text style={[styles.filterPillText, appointmentFilter === f && styles.filterPillTextActive]}>
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Search */}
-          <View style={styles.searchBar}>
-            <Search size={16} color={colors.textTertiary} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search client or artist..."
-              placeholderTextColor={colors.textTertiary}
-              value={appointmentSearch}
-              onChangeText={(t) => { setAppointmentSearch(t); setAppointmentPage(1); }}
-              maxLength={100}
-            />
-          </View>
-
-          {/* Appointment Cards */}
-          {displayedAppointments.length > 0 ? (
-            displayedAppointments.map((apt, index) => (
-              <TouchableOpacity
-                key={`apt-${apt.id || index}`}
-                style={styles.appointmentRow}
-                onPress={() => { setSelectedAppointment(apt); setDetailModalVisible(true); }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.appointmentLeft}>
-                  <Text style={styles.aptClient} numberOfLines={1}>{apt.client_name || 'N/A'}</Text>
-                  <Text style={styles.aptArtist} numberOfLines={1}>{apt.artist_name || 'Unassigned'}</Text>
-                  <Text style={styles.aptDate}>
-                    {formatDate(apt.appointment_date)} {apt.start_time ? `at ${formatTime(apt.start_time)}` : ''}
-                  </Text>
-                </View>
-                <View style={styles.appointmentRight}>
-                  <StatusBadge status={apt.status} />
-                  {apt.status === 'pending' && (
-                    <View style={styles.aptActions}>
-                      <TouchableOpacity style={styles.aptActionBtn} onPress={() => handleStatusUpdate(apt.id, 'confirmed')}>
-                        <CheckCircle size={18} color={colors.success} />
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.aptActionBtn} onPress={() => handleStatusUpdate(apt.id, 'cancelled')}>
-                        <X size={18} color={colors.error} />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <EmptyState icon={Calendar} title="No appointments found" subtitle="Try adjusting your filters or search." />
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <View style={styles.pagination}>
-              <TouchableOpacity
-                disabled={appointmentPage === 1}
-                onPress={() => setAppointmentPage(p => p - 1)}
-                style={[styles.pageBtn, appointmentPage === 1 && styles.pageBtnDisabled]}
-              >
-                <ChevronLeft size={18} color={appointmentPage === 1 ? colors.textTertiary : colors.textPrimary} />
-              </TouchableOpacity>
-              <Text style={styles.pageText}>{appointmentPage} / {totalPages}</Text>
-              <TouchableOpacity
-                disabled={appointmentPage === totalPages}
-                onPress={() => setAppointmentPage(p => p + 1)}
-                style={[styles.pageBtn, appointmentPage === totalPages && styles.pageBtnDisabled]}
-              >
-                <ChevronRight size={18} color={appointmentPage === totalPages ? colors.textTertiary : colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* Artist Status */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Palette size={18} color={colors.textSecondary} />
-            <Text style={styles.cardTitle}>Artist Status</Text>
-          </View>
-          {artistStatus.length > 0 ? artistStatus.map((artist, index) => (
-            <View key={`artist-${artist.id || index}`} style={styles.artistRow}>
-              <View style={styles.artistInfo}>
-                <View style={[styles.statusDot, { backgroundColor: artist.status === 'Available' ? colors.success : colors.warning }]} />
-                <Text style={styles.artistName}>{artist.name}</Text>
-              </View>
-              <View style={[styles.artistTag, { backgroundColor: artist.status === 'Available' ? colors.successBg : colors.warningBg }]}>
-                <Text style={[styles.artistTagText, { color: artist.status === 'Available' ? colors.success : colors.warning }]}>
-                  {artist.status}
-                </Text>
-              </View>
-            </View>
-          )) : (
-            <EmptyState icon={Users} title="No artists found" />
-          )}
-        </View>
-
-        {/* System Alerts */}
         {alerts.length > 0 && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Bell size={18} color={colors.textSecondary} />
-              <Text style={styles.cardTitle}>System Alerts</Text>
-            </View>
-            {alerts.map((alert, index) => (
-              <View key={`alert-${alert.id || index}`} style={[styles.alertItem, alert.severity === 'high' ? styles.alertHigh : styles.alertMedium]}>
-                <AlertTriangle size={16} color={alert.severity === 'high' ? colors.error : colors.warning} />
-                <Text style={styles.alertText}>{alert.message}</Text>
+          <StaggerItem index={3}>
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <AlertTriangle size={18} color={theme.warning} />
+                <Text style={styles.cardTitle}>Action Required</Text>
               </View>
-            ))}
-          </View>
+              {alerts.map((alert, index) => (
+                <View key={`alert-${alert.id || index}`} style={styles.alertItem}>
+                  <Text style={styles.alertText}>{alert.message}</Text>
+                  <ChevronRight size={16} color={theme.textTertiary} />
+                </View>
+              ))}
+            </View>
+          </StaggerItem>
         )}
 
-        <View style={{ height: 40 }} />
+        <StaggerItem index={4}>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Calendar size={18} color={theme.gold} />
+              <Text style={styles.cardTitle}>Recent Appointments</Text>
+            </View>
+
+            <View style={styles.filterRow}>
+              {['upcoming', 'latest', 'all'].map(f => (
+                <AnimatedTouchable key={f} style={[styles.filterPill, appointmentFilter === f && styles.filterPillActive]} onPress={() => { setAppointmentFilter(f); setAppointmentPage(1); }}>
+                  <Text style={[styles.filterPillText, appointmentFilter === f && styles.filterPillTextActive]}>{f.charAt(0).toUpperCase() + f.slice(1)}</Text>
+                </AnimatedTouchable>
+              ))}
+            </View>
+
+            <View style={styles.searchBar}>
+              <Search size={16} color={theme.textTertiary} />
+              <TextInput style={styles.searchInput} placeholder="Search client or artist..." placeholderTextColor={theme.textTertiary} value={appointmentSearch} onChangeText={(t) => { setAppointmentSearch(t); setAppointmentPage(1); }} />
+            </View>
+
+            {displayedAppointments.length > 0 ? (
+              displayedAppointments.map((apt, index) => (
+                <AnimatedTouchable key={`apt-${apt.id || index}`} style={styles.appointmentRow} onPress={() => { setSelectedAppointment(apt); setDetailModalVisible(true); }} activeOpacity={0.8}>
+                  
+                  <View style={styles.aptHeader}>
+                    <View style={styles.aptInfoWrapper}>
+                      <Text style={styles.aptClient} numberOfLines={1}>{apt.client_name || 'N/A'}</Text>
+                      <Text style={styles.aptArtist} numberOfLines={1}>with {apt.artist_name || 'Unassigned'}</Text>
+                    </View>
+                    <StatusBadge status={apt.status} />
+                  </View>
+
+                  <View style={styles.aptFooter}>
+                    <Text style={styles.aptDate}>
+                      {formatDate(apt.appointment_date)} {apt.start_time ? `at ${formatTime(apt.start_time)}` : ''}
+                    </Text>
+                    
+                    {apt.status === 'pending' && (
+                      <View style={styles.aptActions}>
+                        <AnimatedTouchable style={[styles.aptActionBtn, { borderColor: theme.success }]} onPress={() => handleStatusUpdate(apt.id, 'confirmed')}>
+                          <CheckCircle size={18} color={theme.success} />
+                        </AnimatedTouchable>
+                        <AnimatedTouchable style={[styles.aptActionBtn, { borderColor: theme.error }]} onPress={() => handleStatusUpdate(apt.id, 'cancelled')}>
+                          <X size={18} color={theme.error} />
+                        </AnimatedTouchable>
+                      </View>
+                    )}
+                  </View>
+
+                </AnimatedTouchable>
+              ))
+            ) : (
+              <EmptyState icon={Calendar} title="No appointments found" subtitle="Try adjusting your filters or search." />
+            )}
+
+            {totalPages > 1 && (
+              <View style={styles.pagination}>
+                <AnimatedTouchable disabled={appointmentPage === 1} onPress={() => setAppointmentPage(p => p - 1)} style={[styles.pageBtn, appointmentPage === 1 && styles.pageBtnDisabled]}>
+                  <ChevronLeft size={18} color={appointmentPage === 1 ? theme.textTertiary : theme.textPrimary} />
+                </AnimatedTouchable>
+                <Text style={styles.pageText}>{appointmentPage} / {totalPages}</Text>
+                <AnimatedTouchable disabled={appointmentPage === totalPages} onPress={() => setAppointmentPage(p => p + 1)} style={[styles.pageBtn, appointmentPage === totalPages && styles.pageBtnDisabled]}>
+                  <ChevronRight size={18} color={appointmentPage === totalPages ? theme.textTertiary : theme.textPrimary} />
+                </AnimatedTouchable>
+              </View>
+            )}
+          </View>
+        </StaggerItem>
       </ScrollView>
 
-      {/* Appointment Detail Modal */}
       <Modal visible={detailModalVisible} transparent animationType="slide" onRequestClose={() => setDetailModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Appointment Details</Text>
-              <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
-                <X size={22} color={colors.textSecondary} />
-              </TouchableOpacity>
+              <AnimatedTouchable onPress={() => setDetailModalVisible(false)}>
+                <X size={22} color={theme.textSecondary} />
+              </AnimatedTouchable>
             </View>
             {selectedAppointment && (
               <ScrollView style={styles.modalBody}>
-                <DetailRow label="Booking Code" value={getDisplayCode(selectedAppointment.booking_code, selectedAppointment.id)} />
-                <DetailRow label="Client" value={selectedAppointment.client_name} />
-                <DetailRow label="Artist" value={selectedAppointment.artist_name} />
-                <DetailRow label="Date" value={formatDate(selectedAppointment.appointment_date)} />
-                <DetailRow label="Time" value={formatTime(selectedAppointment.start_time)} />
-                <DetailRow label="Service" value={selectedAppointment.service_type || selectedAppointment.design_title || 'Tattoo Session'} />
-                <DetailRow label="Status" value={selectedAppointment.status} isStatus />
-                <DetailRow label="Payment" value={selectedAppointment.payment_status || 'N/A'} isStatus />
-                <DetailRow label="Total Price" value={`P${formatCurrency(selectedAppointment.total_price || selectedAppointment.price || 0)}`} />
-                {selectedAppointment.notes && <DetailRow label="Notes" value={selectedAppointment.notes} />}
+                <DetailRow theme={theme} label="Booking Code" value={getDisplayCode(selectedAppointment.booking_code, selectedAppointment.id)} />
+                <DetailRow theme={theme} label="Client" value={selectedAppointment.client_name} />
+                <DetailRow theme={theme} label="Artist" value={selectedAppointment.artist_name} />
+                <DetailRow theme={theme} label="Date" value={formatDate(selectedAppointment.appointment_date)} />
+                <DetailRow theme={theme} label="Time" value={formatTime(selectedAppointment.start_time)} />
+                <DetailRow theme={theme} label="Service" value={selectedAppointment.service_type || selectedAppointment.design_title || 'Tattoo Session'} />
+                <DetailRow theme={theme} label="Status" value={selectedAppointment.status} isStatus />
+                <DetailRow theme={theme} label="Payment" value={selectedAppointment.payment_status || 'N/A'} isStatus />
+                <DetailRow theme={theme} label="Total Price" value={`P${formatCurrency(selectedAppointment.total_price || selectedAppointment.price || 0)}`} />
+                {selectedAppointment.notes && <DetailRow theme={theme} label="Notes" value={selectedAppointment.notes} />}
+                <View style={{height:40}}/>
               </ScrollView>
             )}
           </View>
         </View>
       </Modal>
 
-      {/* Confirm Modal */}
       <ConfirmModal
         visible={confirmModal.visible}
         title="Confirm Action"
@@ -495,171 +402,89 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
   );
 };
 
-const DetailRow = ({ label, value, isStatus }) => (
-  <View style={styles.detailRow}>
-    <Text style={styles.detailLabel}>{label}</Text>
-    {isStatus ? <StatusBadge status={value} /> : <Text style={styles.detailValue}>{value || 'N/A'}</Text>}
-  </View>
-);
+const DetailRow = ({ theme, label, value, isStatus }) => {
+  const insets = useSafeAreaInsets();
+  const styles = getStyles(theme, insets);
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      {isStatus ? <StatusBadge status={value} /> : <Text style={styles.detailValue}>{value || 'N/A'}</Text>}
+    </View>
+  );
+};
 
-// =========================================
-// STYLES
-// =========================================
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
-
-  // Header
+const getStyles = (theme, insets) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
-    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
-    ...shadows.subtle,
+    paddingHorizontal: 16, paddingTop: (insets?.top || 0) + 12, paddingBottom: 16,
+    backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
-  headerTitle: { ...typography.h2, color: colors.textPrimary },
-  headerSubtitle: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 2 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerBtn: {
-    padding: 8, borderRadius: borderRadius.md,
-    backgroundColor: colors.lightBgSecondary,
-  },
-  logoutText: { ...typography.button, color: colors.error, fontSize: 13 },
-
-  scrollContent: { padding: 16 },
-
-  // Stats
+  headerTitle: { ...typography.h2, color: theme.textPrimary },
+  headerSubtitle: { ...typography.bodySmall, color: theme.gold, marginTop: 2 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerBtn: { padding: 8, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight },
+  badge: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.error },
+  logoutText: { ...typography.button, color: theme.error, fontSize: 13 },
+  scrollContent: { padding: 16, paddingBottom: 60 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 },
   statCard: {
-    width: '48%', backgroundColor: '#ffffff', borderRadius: borderRadius.xl,
+    width: '48%', backgroundColor: theme.surface, borderRadius: borderRadius.xl,
     padding: 14, marginBottom: 12, flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: colors.border, ...shadows.subtle,
+    borderWidth: 1, borderColor: theme.border,
   },
-  statIconBg: {
-    width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', marginRight: 10,
-  },
+  statIconBg: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
   statInfo: { flex: 1 },
-  statLabel: { ...typography.bodyXSmall, color: colors.textSecondary, marginBottom: 2 },
-  statValue: { ...typography.h3, color: colors.textPrimary },
-
-  // Quick Actions
-  sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 10 },
-  quickActionsScroll: { marginBottom: 20 },
-  quickActionsContent: { paddingRight: 16, gap: 10 },
-  quickAction: {
-    alignItems: 'center', width: 70,
-  },
-  quickActionIcon: {
-    width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 6,
-  },
-  quickActionLabel: { ...typography.bodyXSmall, color: colors.textPrimary, textAlign: 'center', fontWeight: '600' },
-
-  // Card
-  card: {
-    backgroundColor: '#ffffff', borderRadius: borderRadius.xl,
-    padding: 16, marginBottom: 16,
-    borderWidth: 1, borderColor: colors.border, ...shadows.subtle,
-  },
-  cardHeader: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14,
-  },
-  cardTitle: { ...typography.h4, color: colors.textPrimary },
-
-  // Chart
-  chartContainer: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
-    height: 120, paddingTop: 8,
-  },
+  statLabel: { ...typography.bodyXSmall, color: theme.textSecondary, marginBottom: 2 },
+  statValue: { ...typography.h3, color: theme.textPrimary },
+  sectionTitle: { ...typography.h4, color: theme.textPrimary, marginBottom: 12 },
+  quickActionsScroll: { marginBottom: 24, overflow: 'visible' },
+  quickActionsContent: { paddingRight: 16, gap: 16 },
+  quickAction: { alignItems: 'center', width: 70 },
+  quickActionIcon: { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: theme.border },
+  quickActionLabel: { ...typography.bodyXSmall, color: theme.textPrimary, textAlign: 'center', fontWeight: '600' },
+  card: { backgroundColor: theme.surface, borderRadius: borderRadius.xl, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: theme.border },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  cardTitle: { ...typography.h4, color: theme.textPrimary },
+  chartContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 140, paddingTop: 8 },
   barGroup: { alignItems: 'center', flex: 1 },
-  barRail: {
-    width: 28, height: 100,
-    backgroundColor: colors.lightBgSecondary, borderRadius: borderRadius.sm,
-    justifyContent: 'flex-end', overflow: 'hidden',
-  },
-  barFill: {
-    width: '100%', borderRadius: borderRadius.sm,
-    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'flex-start',
-    minHeight: 4,
-  },
-  barTooltip: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700', marginTop: 2 },
-  barLabel: { ...typography.bodyXSmall, color: colors.textTertiary, marginTop: 4 },
-
-  // Filters
-  filterRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
-  filterPill: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.round,
-    backgroundColor: colors.lightBgSecondary,
-  },
-  filterPillActive: { backgroundColor: colors.primary },
-  filterPillText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600' },
-  filterPillTextActive: { color: '#ffffff' },
-
-  // Search
-  searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: colors.lightBgSecondary, borderRadius: borderRadius.md,
-    paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12,
-  },
-  searchInput: { flex: 1, ...typography.bodySmall, color: colors.textPrimary },
-
-  // Appointment Row
-  appointmentRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.borderLight,
-  },
-  appointmentLeft: { flex: 1, marginRight: 10 },
-  aptClient: { ...typography.body, fontWeight: '600', color: colors.textPrimary },
-  aptArtist: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 1 },
-  aptDate: { ...typography.bodyXSmall, color: colors.textTertiary, marginTop: 3 },
-  appointmentRight: { alignItems: 'flex-end', gap: 6 },
-  aptActions: { flexDirection: 'row', gap: 6 },
-  aptActionBtn: { padding: 4 },
-
-  // Pagination
-  pagination: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 12,
-  },
-  pageBtn: { padding: 6 },
+  barRail: { width: 24, height: 110, backgroundColor: theme.surfaceLight, borderRadius: borderRadius.sm, justifyContent: 'flex-end', overflow: 'hidden' },
+  barFill: { width: '100%', borderRadius: borderRadius.sm, backgroundColor: theme.gold, alignItems: 'center', justifyContent: 'flex-start', minHeight: 4 },
+  barTooltip: { ...typography.bodyXSmall, color: theme.backgroundDeep, fontWeight: '800', marginTop: 4 },
+  barLabel: { ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 8 },
+  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  filterPill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: borderRadius.round, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border },
+  filterPillActive: { backgroundColor: theme.gold, borderColor: theme.gold },
+  filterPillText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '700' },
+  filterPillTextActive: { color: theme.backgroundDeep },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surfaceLight, borderRadius: borderRadius.md, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16, borderWidth: 1, borderColor: theme.border },
+  searchInput: { flex: 1, ...typography.bodySmall, color: theme.textPrimary },
+  
+  appointmentRow: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border },
+  aptHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  aptInfoWrapper: { flex: 1, marginRight: 12 },
+  aptClient: { ...typography.body, fontWeight: '700', color: theme.textPrimary },
+  aptArtist: { ...typography.bodySmall, color: theme.textSecondary, marginTop: 2 },
+  
+  aptFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  aptDate: { ...typography.bodyXSmall, color: theme.textTertiary, flex: 1 },
+  
+  aptActions: { flexDirection: 'row', gap: 8 },
+  aptActionBtn: { padding: 8, borderRadius: borderRadius.sm, borderWidth: 1, backgroundColor: theme.surfaceLight, alignItems: 'center', justifyContent: 'center' },
+  
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 16 },
+  pageBtn: { padding: 8, backgroundColor: theme.surfaceLight, borderRadius: borderRadius.md },
   pageBtnDisabled: { opacity: 0.3 },
-  pageText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
-
-  // Artist Status
-  artistRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.borderLight,
-  },
-  artistInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  artistName: { ...typography.body, color: colors.textPrimary, fontWeight: '500' },
-  artistTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: borderRadius.round },
-  artistTagText: { ...typography.bodyXSmall, fontWeight: '600' },
-
-  // Alerts
-  alertItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 12, borderRadius: borderRadius.md, marginBottom: 8,
-  },
-  alertHigh: { backgroundColor: colors.errorBg },
-  alertMedium: { backgroundColor: colors.warningBg },
-  alertText: { ...typography.bodySmall, color: colors.textPrimary, flex: 1 },
-
-  // Modal
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: '#ffffff', borderTopLeftRadius: borderRadius.xxl, borderTopRightRadius: borderRadius.xxl,
-    maxHeight: '75%', ...shadows.cardStrong,
-  },
-  modalHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 18, borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  modalTitle: { ...typography.h3, color: colors.textPrimary },
-  modalBody: { padding: 18 },
-  detailRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.borderLight,
-  },
-  detailLabel: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
-  detailValue: { ...typography.body, color: colors.textPrimary, textAlign: 'right', maxWidth: '60%' },
+  pageText: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '700' },
+  alertItem: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: borderRadius.md, marginBottom: 8, backgroundColor: `${theme.warning}15`, borderWidth: 1, borderColor: `${theme.warning}30` },
+  alertText: { ...typography.bodySmall, color: theme.warning, flex: 1, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15,13,14,0.7)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: theme.surface, borderTopLeftRadius: borderRadius.xxl, borderTopRightRadius: borderRadius.xxl, maxHeight: '85%', borderWidth: 1, borderColor: theme.border },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: theme.border },
+  modalTitle: { ...typography.h3, color: theme.textPrimary },
+  modalBody: { padding: 20 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.border },
+  detailLabel: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  detailValue: { ...typography.body, color: theme.textPrimary, textAlign: 'right', maxWidth: '60%', fontWeight: '500' },
 });

@@ -11,7 +11,11 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Search, Plus, Pencil, Trash2, X, UserPlus, Shield, ChevronDown, ChevronLeft } from 'lucide-react-native';
-import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../src/context/ThemeContext';
+import { typography, spacing, borderRadius, shadows } from '../src/theme';
+import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
+import { StaggerItem } from '../src/components/shared/StaggerItem';
 import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
@@ -22,14 +26,18 @@ import { getInitials } from '../src/utils/formatters';
 import { getAllUsersForAdmin, deleteUserByAdmin, createUserByAdmin, updateUserByAdmin } from '../src/utils/api';
 import { sanitizeText, sanitizeEmail, isValidEmail, sanitizePhone } from '../src/utils/validators';
 
-const ROLE_COLORS = {
-  admin: { bg: colors.warningBg, text: colors.warning },
-  artist: { bg: colors.iconPurpleBg, text: colors.iconPurple },
-  customer: { bg: colors.iconBlueBg, text: colors.iconBlue },
-  manager: { bg: colors.successBg, text: colors.success },
-};
+const getRoleColors = (theme) => ({
+  admin: { bg: theme.warningBg || 'rgba(245, 158, 11, 0.15)', text: theme.warning || '#f59e0b' },
+  artist: { bg: theme.iconPurpleBg || 'rgba(168, 85, 247, 0.15)', text: theme.iconPurple || '#a855f7' },
+  customer: { bg: theme.iconBlueBg || 'rgba(59, 130, 246, 0.15)', text: theme.iconBlue || '#3b82f6' },
+  manager: { bg: theme.successBg || 'rgba(16, 185, 129, 0.15)', text: theme.success || '#10b981' },
+});
 
 export const AdminUserManagement = ({ navigation }) => {
+  const { theme, hapticsEnabled } = useTheme();
+  const insets = useSafeAreaInsets();
+  const styles = getStyles(theme, insets);
+  const ROLE_COLORS = getRoleColors(theme);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -123,33 +131,35 @@ export const AdminUserManagement = ({ navigation }) => {
     return true;
   });
 
-  const renderUser = ({ item }) => {
+  const renderUser = ({ item, index }) => {
     const roleColor = ROLE_COLORS[item.user_type] || ROLE_COLORS.customer;
     return (
-      <View style={styles.userCard}>
-        <View style={styles.userLeft}>
-          <View style={[styles.avatar, { backgroundColor: roleColor.bg }]}>
-            <Text style={[styles.avatarText, { color: roleColor.text }]}>{getInitials(item.name)}</Text>
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.userName} numberOfLines={1}>{item.name}</Text>
-            <Text style={styles.userEmail} numberOfLines={1}>{item.email}</Text>
-            <View style={[styles.roleBadge, { backgroundColor: roleColor.bg }]}>
-              <Text style={[styles.roleText, { color: roleColor.text }]}>
-                {(item.user_type || 'customer').toUpperCase()}
-              </Text>
+      <StaggerItem index={index}>
+        <View style={styles.userCard}>
+          <View style={styles.userLeft}>
+            <View style={[styles.avatar, { backgroundColor: roleColor.bg }]}>
+              <Text style={[styles.avatarText, { color: roleColor.text }]}>{getInitials(item.name)}</Text>
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.userName} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.userEmail} numberOfLines={1}>{item.email}</Text>
+              <View style={[styles.roleBadge, { backgroundColor: roleColor.bg }]}>
+                <Text style={[styles.roleText, { color: roleColor.text }]}>
+                  {(item.user_type || 'customer').toUpperCase()}
+                </Text>
+              </View>
             </View>
           </View>
+          <View style={styles.userActions}>
+            <AnimatedTouchable style={[styles.iconBtn, styles.editBtn]} onPress={() => handleOpenModal(item)}>
+              <Pencil size={16} color={theme.warning} />
+            </AnimatedTouchable>
+            <AnimatedTouchable style={[styles.iconBtn, styles.deleteBtn]} onPress={() => confirmDelete(item.id, item.name)}>
+              <Trash2 size={16} color={theme.error} />
+            </AnimatedTouchable>
+          </View>
         </View>
-        <View style={styles.userActions}>
-          <TouchableOpacity style={[styles.iconBtn, styles.editBtn]} onPress={() => handleOpenModal(item)}>
-            <Pencil size={16} color={colors.warning} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconBtn, styles.deleteBtn]} onPress={() => confirmDelete(item.id, item.name)}>
-            <Trash2 size={16} color={colors.error} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      </StaggerItem>
     );
   };
 
@@ -157,19 +167,19 @@ export const AdminUserManagement = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>User Management</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => handleOpenModal(null)}>
-          <Plus size={20} color="#ffffff" />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>User Roster</Text>
+        <AnimatedTouchable style={styles.addBtn} onPress={() => handleOpenModal(null)}>
+          <Plus size={20} color={theme.backgroundDeep} />
+        </AnimatedTouchable>
       </View>
 
       {/* Search */}
       <View style={styles.searchBar}>
-        <Search size={18} color={colors.textTertiary} />
+        <Search size={18} color={theme.textTertiary} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search users..."
-          placeholderTextColor={colors.textTertiary}
+          placeholderTextColor={theme.textTertiary}
           value={search}
           onChangeText={setSearch}
         />
@@ -178,7 +188,7 @@ export const AdminUserManagement = ({ navigation }) => {
       {/* Role Filters */}
       <View style={styles.filterRow}>
         {['all', 'customer', 'artist', 'admin', 'manager'].map(role => (
-          <TouchableOpacity
+          <AnimatedTouchable
             key={role}
             style={[styles.filterPill, roleFilter === role && styles.filterPillActive]}
             onPress={() => setRoleFilter(role)}
@@ -186,7 +196,7 @@ export const AdminUserManagement = ({ navigation }) => {
             <Text style={[styles.filterText, roleFilter === role && styles.filterTextActive]}>
               {role.charAt(0).toUpperCase() + role.slice(1)}
             </Text>
-          </TouchableOpacity>
+          </AnimatedTouchable>
         ))}
       </View>
 
@@ -203,7 +213,7 @@ export const AdminUserManagement = ({ navigation }) => {
           keyExtractor={item => (item.id || Math.random()).toString()}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={<EmptyState icon={Shield} title="No users found" subtitle="Try adjusting your search or filters" />}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadUsers} tintColor={colors.primary} />}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadUsers} tintColor={theme.gold} />}
         />
       )}
 
@@ -224,27 +234,27 @@ export const AdminUserManagement = ({ navigation }) => {
       />
 
       {/* Add/Edit Modal for Admins & Managers */}
-      <Modal visible={modalVisible && (!editingUser || ['admin', 'manager'].includes(editingUser.user_type))} animationType="slide" transparent>
+      <Modal visible={modalVisible && (!editingUser || ['admin', 'manager'].includes(editingUser.user_type))} animationType="fade" transparent>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingUser ? 'Edit User' : 'Create New User'}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X size={22} color={colors.textSecondary} />
-              </TouchableOpacity>
+              <Text style={styles.modalTitle}>{editingUser ? 'Edit User' : 'New User'}</Text>
+              <AnimatedTouchable onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+                <X size={20} color={theme.textSecondary} />
+              </AnimatedTouchable>
             </View>
 
             <TextInput
               style={styles.input}
               placeholder="Full Name"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={theme.textTertiary}
               value={formData.name}
               onChangeText={t => setFormData({ ...formData, name: t })}
             />
             <TextInput
               style={styles.input}
               placeholder="Email"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={theme.textTertiary}
               value={formData.email}
               onChangeText={t => setFormData({ ...formData, email: t })}
               autoCapitalize="none"
@@ -253,7 +263,7 @@ export const AdminUserManagement = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="Phone (Optional)"
-              placeholderTextColor={colors.textTertiary}
+              placeholderTextColor={theme.textTertiary}
               value={formData.phone}
               onChangeText={t => setFormData({ ...formData, phone: t })}
               keyboardType="phone-pad"
@@ -263,7 +273,7 @@ export const AdminUserManagement = ({ navigation }) => {
             <Text style={styles.inputLabel}>Role</Text>
             <View style={styles.typeRow}>
               {['customer', 'artist', 'admin', 'manager'].map(type => (
-                <TouchableOpacity
+                <AnimatedTouchable
                   key={type}
                   style={[styles.typeBtn, formData.type === type && styles.typeBtnActive]}
                   onPress={() => setFormData({ ...formData, type })}
@@ -271,7 +281,7 @@ export const AdminUserManagement = ({ navigation }) => {
                   <Text style={[styles.typeText, formData.type === type && styles.typeTextActive]}>
                     {type.toUpperCase()}
                   </Text>
-                </TouchableOpacity>
+                </AnimatedTouchable>
               ))}
             </View>
 
@@ -281,17 +291,18 @@ export const AdminUserManagement = ({ navigation }) => {
                 <Text style={styles.inputLabel}>Status</Text>
                 <View style={styles.typeRow}>
                   {['active', 'suspended'].map(status => (
-                    <TouchableOpacity
+                    <AnimatedTouchable
                       key={status}
                       style={[styles.typeBtn, formData.status === status && {
-                        backgroundColor: status === 'active' ? colors.success : colors.error,
+                        backgroundColor: status === 'active' ? theme.success : theme.error,
+                        borderColor: status === 'active' ? theme.success : theme.error,
                       }]}
                       onPress={() => setFormData({ ...formData, status })}
                     >
-                      <Text style={[styles.typeText, formData.status === status && { color: '#ffffff' }]}>
+                      <Text style={[styles.typeText, formData.status === status && { color: theme.backgroundDeep }]}>
                         {status.toUpperCase()}
                       </Text>
-                    </TouchableOpacity>
+                    </AnimatedTouchable>
                   ))}
                 </View>
               </>
@@ -302,7 +313,7 @@ export const AdminUserManagement = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="Password"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={theme.textTertiary}
                 value={formData.password}
                 onChangeText={t => setFormData({ ...formData, password: t })}
                 secureTextEntry
@@ -311,12 +322,12 @@ export const AdminUserManagement = ({ navigation }) => {
 
             {/* Actions */}
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
+              <AnimatedTouchable style={styles.cancelBtn} onPress={() => setModalVisible(false)}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveUser}>
+              </AnimatedTouchable>
+              <AnimatedTouchable style={styles.saveBtn} onPress={handleSaveUser}>
                 <Text style={styles.saveBtnText}>{editingUser ? 'Update' : 'Create'}</Text>
-              </TouchableOpacity>
+              </AnimatedTouchable>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -336,45 +347,45 @@ export const AdminUserManagement = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+const getStyles = (theme, insets) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
 
   // Header
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
-    backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: colors.border,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16,
+    backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
-  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  headerTitle: { ...typography.h2, color: theme.textPrimary },
   addBtn: {
-    backgroundColor: colors.primary, padding: 10, borderRadius: borderRadius.md,
+    backgroundColor: theme.gold, padding: 10, borderRadius: borderRadius.md,
     ...shadows.button,
   },
 
   // Search
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#ffffff', margin: 16, marginBottom: 8,
+    backgroundColor: theme.surfaceLight, margin: 16, marginBottom: 8,
     borderRadius: borderRadius.md, paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: colors.border,
+    borderWidth: 1, borderColor: theme.border,
   },
-  searchInput: { flex: 1, ...typography.body, color: colors.textPrimary },
+  searchInput: { flex: 1, ...typography.body, color: theme.textPrimary },
 
   // Filters
   filterRow: {
-    flexDirection: 'row', paddingHorizontal: 16, gap: 6, marginBottom: 8,
+    flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 8,
     flexWrap: 'wrap',
   },
   filterPill: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: borderRadius.round,
-    backgroundColor: colors.lightBgSecondary,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: borderRadius.round,
+    backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.borderLight,
   },
-  filterPillActive: { backgroundColor: colors.primary },
-  filterText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600' },
-  filterTextActive: { color: '#ffffff' },
+  filterPillActive: { backgroundColor: theme.gold, borderColor: theme.gold },
+  filterText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '600' },
+  filterTextActive: { color: theme.backgroundDeep },
 
   countText: {
-    ...typography.bodySmall, color: colors.textTertiary, paddingHorizontal: 16, marginBottom: 8,
+    ...typography.bodySmall, color: theme.textTertiary, paddingHorizontal: 16, marginBottom: 8,
   },
 
   // List
@@ -383,61 +394,66 @@ const styles = StyleSheet.create({
   // User Card
   userCard: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#ffffff', padding: 14, borderRadius: borderRadius.xl,
-    marginBottom: 8, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: theme.surface, padding: 16, borderRadius: borderRadius.xl,
+    marginBottom: 10, borderWidth: 1, borderColor: theme.borderLight, ...shadows.subtle,
   },
   userLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
   avatar: {
-    width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', marginRight: 12,
+    width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 14,
   },
-  avatarText: { fontWeight: '700', fontSize: 15 },
+  avatarText: { fontWeight: '700', fontSize: 16 },
   userInfo: { flex: 1 },
-  userName: { ...typography.body, fontWeight: '600', color: colors.textPrimary },
-  userEmail: { ...typography.bodyXSmall, color: colors.textSecondary, marginTop: 1 },
+  userName: { ...typography.body, fontWeight: '700', color: theme.textPrimary },
+  userEmail: { ...typography.bodyXSmall, color: theme.textSecondary, marginTop: 2 },
   roleBadge: {
-    alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2,
-    borderRadius: borderRadius.round, marginTop: 4,
+    alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: borderRadius.round, marginTop: 6,
   },
-  roleText: { fontSize: 10, fontWeight: '700' },
-  userActions: { flexDirection: 'row', gap: 6 },
-  iconBtn: { padding: 8, borderRadius: borderRadius.md },
-  editBtn: { backgroundColor: colors.warningBg },
-  deleteBtn: { backgroundColor: colors.errorBg },
+  roleText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  userActions: { flexDirection: 'row', gap: 8 },
+  iconBtn: { padding: 10, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.borderLight },
+  editBtn: { backgroundColor: theme.surfaceLight },
+  deleteBtn: { backgroundColor: theme.surfaceLight },
 
   // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.55)', justifyContent: 'center', padding: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
   modalCard: {
-    backgroundColor: '#ffffff', borderRadius: borderRadius.xxl, padding: 20,
-    ...shadows.cardStrong,
+    backgroundColor: theme.surface, borderRadius: borderRadius.xxl, padding: 24,
+    ...shadows.cardStrong, borderWidth: 1, borderColor: theme.borderLight,
   },
   modalHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20,
   },
-  modalTitle: { ...typography.h3, color: colors.textPrimary },
-  inputLabel: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600', marginBottom: 6, marginTop: 4 },
+  modalTitle: { ...typography.h3, color: theme.textPrimary },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: theme.surfaceLight,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  inputLabel: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '600', marginBottom: 8, marginTop: 8 },
   input: {
-    backgroundColor: colors.lightBgSecondary, color: colors.textPrimary,
-    padding: 12, borderRadius: borderRadius.md, marginBottom: 12,
-    ...typography.body, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: theme.surfaceLight, color: theme.textPrimary,
+    padding: 14, borderRadius: borderRadius.md, marginBottom: 16,
+    ...typography.body, borderWidth: 1, borderColor: theme.border,
   },
-  typeRow: { flexDirection: 'row', gap: 6, marginBottom: 12, flexWrap: 'wrap' },
+  typeRow: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
   typeBtn: {
-    flex: 1, minWidth: '22%', padding: 10, alignItems: 'center',
-    backgroundColor: colors.lightBgSecondary, borderRadius: borderRadius.md,
+    flex: 1, minWidth: '22%', padding: 12, alignItems: 'center',
+    backgroundColor: theme.surfaceLight, borderRadius: borderRadius.md,
+    borderWidth: 1, borderColor: theme.borderLight,
   },
-  typeBtnActive: { backgroundColor: colors.primary },
-  typeText: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '700' },
-  typeTextActive: { color: '#ffffff' },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  typeBtnActive: { backgroundColor: theme.gold, borderColor: theme.gold },
+  typeText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '700' },
+  typeTextActive: { color: theme.backgroundDeep },
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 12 },
   cancelBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: borderRadius.md,
-    backgroundColor: colors.lightBgSecondary, alignItems: 'center',
+    flex: 1, paddingVertical: 16, borderRadius: borderRadius.md,
+    backgroundColor: theme.surfaceLight, alignItems: 'center', borderWidth: 1, borderColor: theme.borderLight,
   },
-  cancelBtnText: { ...typography.button, color: colors.textSecondary },
+  cancelBtnText: { ...typography.button, color: theme.textSecondary },
   saveBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: borderRadius.md,
-    backgroundColor: colors.primary, alignItems: 'center',
+    flex: 1, paddingVertical: 16, borderRadius: borderRadius.md,
+    backgroundColor: theme.gold, alignItems: 'center',
     ...shadows.button,
   },
-  saveBtnText: { ...typography.button, color: '#ffffff' },
+  saveBtnText: { ...typography.button, color: theme.backgroundDeep },
 });

@@ -12,12 +12,14 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  KeyboardAvoidingView, Platform, Alert, Animated, StatusBar, Dimensions,
+  KeyboardAvoidingView, Platform, Alert, Animated, StatusBar, Dimensions, Keyboard,
 } from 'react-native';
 import { Eye, EyeOff, Check, User, Mail, Phone, Lock, Shield, ArrowRight, Pencil, Sun, Moon, AlertCircle } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, shadows } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
+import { useToast } from '../src/context/ToastContext';
+import { useShakeAnimation } from '../src/utils/animations';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -74,7 +76,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const { shakeAnim, triggerShake } = useShakeAnimation();
   const strengthAnim = useRef(new Animated.Value(0)).current;
   const [bgIndex, setBgIndex] = useState(0);
   const bgOpacity = useRef(new Animated.Value(1)).current;
@@ -82,6 +84,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
   // Global Theme State
   const { isDark, theme, toggleTheme } = useTheme();
   const overlayColor = isDark ? 'rgba(15,13,14,0.88)' : 'rgba(248,250,252,0.88)';
+  const { showToast } = useToast();
 
   useEffect(() => {
     Animated.parallel([
@@ -97,16 +100,6 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
     }, 5000);
     return () => clearInterval(bgInterval);
   }, []);
-
-  const triggerShake = () => {
-    Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: 8, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -8, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 6, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -6, duration: 50, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
-    ]).start();
-  };
 
   // --- Field-level validation (matches web validateField) ---
   const validateField = (name, value) => {
@@ -204,7 +197,7 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
       const fullName = [form.firstName.trim(), form.lastName.trim(), form.suffix.trim()].filter(Boolean).join(' ');
       const result = await onRegister(fullName, form.email.toLowerCase().trim(), form.password, fullPhone, 'customer', orphanId);
       if (result && !result.success) setSubmitted(false);
-    } catch (e) { Alert.alert('Registration Failed', e.message || 'Please try again'); setSubmitted(false); }
+    } catch (e) { showToast(e.message || 'Registration Failed', 'error'); setSubmitted(false); }
   };
 
   const handleButtonPressIn = () => { Animated.spring(buttonScale, { toValue: 0.96, useNativeDriver: true }).start(); };

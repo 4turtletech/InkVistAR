@@ -53,7 +53,7 @@ const PulseDot = ({ color }) => {
   return <Animated.View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: color, opacity: anim, marginRight: 6 }} />;
 };
 
-export function CustomerAppointments({ customerId, onBack, onBookNew }) {
+export function CustomerAppointments({ customerId, onBack, onBookNew, navigation, route }) {
   const { theme, hapticsEnabled } = useTheme();
   const styles = getStyles(theme);
   const modalS = getModalStyles(theme);
@@ -105,6 +105,16 @@ export function CustomerAppointments({ customerId, onBack, onBookNew }) {
       } catch (e) { /* silent */ }
     }
   };
+
+  useEffect(() => {
+    if (route?.params?.openAppointmentId && appointments.length > 0) {
+      const apt = appointments.find(a => a.id === route.params.openAppointmentId);
+      if (apt) {
+        setSelectedAppointment(apt);
+        if (navigation) navigation.setParams({ openAppointmentId: undefined });
+      }
+    }
+  }, [route?.params?.openAppointmentId, appointments]);
 
   const handlePayment = async () => {
     if (!selectedAppointment) return;

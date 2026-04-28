@@ -1,26 +1,42 @@
 /**
- * ArtistEarnings.jsx -- Earnings Ledger with Time Filters
- * Themed upgrade with lucide icons, commission calculations from live data.
+ * ArtistEarnings.jsx -- Earnings Ledger (Gilded Noir v2)
+ * Theme-aware, animated, gold accents, filter pills, haptic feedback.
  */
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Alert,
+  View, Text, StyleSheet, ScrollView, SafeAreaView, RefreshControl, Animated, Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft, Download, Clock, DollarSign, CheckCircle, TrendingUp,
 } from 'lucide-react-native';
-import { colors, typography, borderRadius, shadows } from '../src/theme';
+import * as Haptics from 'expo-haptics';
+import { typography, shadows } from '../src/theme';
+import { useTheme } from '../src/context/ThemeContext';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { StatusBadge } from '../src/components/shared/StatusBadge';
-import { formatCurrency, getInitials } from '../src/utils/formatters';
+import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
+import { formatCurrency } from '../src/utils/formatters';
 import { getArtistAppointments } from '../src/utils/api';
 
+const StaggerItem = ({ index, children }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, { toValue: 1, duration: 400, delay: index * 80, useNativeDriver: true }).start();
+  }, []);
+  return (
+    <Animated.View style={{ opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }}>
+      {children}
+    </Animated.View>
+  );
+};
+
 export function ArtistEarnings({ onBack, artistId }) {
+  const { theme: colors, hapticsEnabled } = useTheme();
+  const styles = getStyles(colors);
   const [timeFilter, setTimeFilter] = useState('month');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ totalEarnings: 0, sessionsCount: 0, average: 0, pendingPayout: 0, totalPotential: 0 });
   const [transactions, setTransactions] = useState([]);
   const [allData, setAllData] = useState([]);
@@ -43,12 +59,11 @@ export function ArtistEarnings({ onBack, artistId }) {
         setAllData(data);
         calculateStats(data, timeFilter);
       }
-    } catch (e) {
-      console.error('Earnings error:', e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error('Earnings error:', e); }
+    finally { setLoading(false); setRefreshing(false); }
   };
+
+  const onRefresh = () => { setRefreshing(true); fetchEarnings(); };
 
   const calculateStats = (data, filter) => {
     const now = new Date();
@@ -79,74 +94,94 @@ export function ArtistEarnings({ onBack, artistId }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={['#0f172a', '#064e3b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={onBack} style={styles.headerBtn}>
-              <ArrowLeft size={20} color="#ffffff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Earnings</Text>
-            <TouchableOpacity style={styles.headerBtn} onPress={() => Alert.alert('Report', 'Earnings report sent to your email.')}>
-              <Download size={20} color="#ffffff" />
-            </TouchableOpacity>
+      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />}>
+        {/* Header */}
+        <View style={styles.header}>
+          <AnimatedTouchable onPress={onBack} style={styles.headerBtn}>
+            <ArrowLeft size={20} color={colors.textPrimary} />
+          </AnimatedTouchable>
+          <Text style={styles.headerTitle}>Earnings</Text>
+          <View style={styles.headerBtn}>
+            <Download size={20} color={colors.textTertiary} />
           </View>
+        </View>
 
-          {loading ? (
-            <View style={{ height: 160, justifyContent: 'center' }}><PremiumLoader /></View>
-          ) : (
-            <>
-              <View style={styles.earningsCenter}>
-                <Text style={styles.earningsAmount}>P{formatCurrency(stats.totalEarnings)}</Text>
-                <Text style={styles.earningsPeriod}>{periodLabel}</Text>
-              </View>
-              <View style={styles.miniStats}>
-                <View style={styles.miniCard}>
-                  <Clock size={16} color="#ffffff" />
-                  <Text style={styles.miniValue}>P{formatCurrency(stats.pendingPayout)}</Text>
-                  <Text style={styles.miniLabel}>Pending</Text>
+        {/* Earnings Hero */}
+        <StaggerItem index={0}>
+          <View style={styles.heroCard}>
+            <View style={styles.heroGoldStripe} />
+            {loading ? (
+              <View style={{ height: 160, justifyContent: 'center' }}><PremiumLoader /></View>
+            ) : (
+              <View style={styles.heroContent}>
+                <Text style={styles.heroLabel}>{periodLabel}</Text>
+                <Text style={styles.heroAmount}>P{formatCurrency(stats.totalEarnings)}</Text>
+                <View style={styles.heroRow}>
+                  <View style={styles.heroMini}>
+                    <Clock size={14} color={colors.warning} />
+                    <Text style={styles.heroMiniValue}>P{formatCurrency(stats.pendingPayout)}</Text>
+                    <Text style={styles.heroMiniLabel}>Pending</Text>
+                  </View>
+                  <View style={styles.heroMiniDivider} />
+                  <View style={styles.heroMini}>
+                    <TrendingUp size={14} color={colors.success} />
+                    <Text style={styles.heroMiniValue}>P{formatCurrency(stats.totalPotential)}</Text>
+                    <Text style={styles.heroMiniLabel}>Total Value</Text>
+                  </View>
+                  <View style={styles.heroMiniDivider} />
+                  <View style={styles.heroMini}>
+                    <DollarSign size={14} color={colors.info} />
+                    <Text style={styles.heroMiniValue}>{stats.sessionsCount}</Text>
+                    <Text style={styles.heroMiniLabel}>Sessions</Text>
+                  </View>
                 </View>
-                <View style={styles.miniCard}>
-                  <TrendingUp size={16} color="#ffffff" />
-                  <Text style={styles.miniValue}>P{formatCurrency(stats.totalPotential)}</Text>
-                  <Text style={styles.miniLabel}>Total Value</Text>
-                </View>
               </View>
-            </>
-          )}
-        </LinearGradient>
+            )}
+          </View>
+        </StaggerItem>
 
         <View style={styles.content}>
           {/* Filter Pills */}
-          <View style={styles.filters}>
-            {['week', 'month', 'year'].map(f => (
-              <TouchableOpacity key={f} style={[styles.filterBtn, timeFilter === f && styles.filterBtnActive]} onPress={() => setTimeFilter(f)}>
-                <Text style={[styles.filterText, timeFilter === f && styles.filterTextActive]}>
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <StaggerItem index={1}>
+            <View style={styles.filters}>
+              {['week', 'month', 'year'].map(f => (
+                <AnimatedTouchable
+                  key={f}
+                  style={[styles.filterBtn, timeFilter === f && styles.filterBtnActive]}
+                  onPress={() => { if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setTimeFilter(f); }}
+                >
+                  <Text style={[styles.filterText, timeFilter === f && styles.filterTextActive]}>
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </Text>
+                </AnimatedTouchable>
+              ))}
+            </View>
+          </StaggerItem>
 
           {/* Transactions */}
-          <Text style={styles.sectionTitle}>Completed Sessions</Text>
+          <StaggerItem index={2}>
+            <Text style={styles.sectionTitle}>Completed Sessions</Text>
+          </StaggerItem>
           {transactions.length > 0 ? (
-            transactions.map(tx => (
-              <View key={tx.id} style={styles.txCard}>
-                <View style={[styles.txIcon, { backgroundColor: colors.successBg }]}>
-                  <CheckCircle size={20} color={colors.success} />
+            transactions.map((tx, i) => (
+              <StaggerItem key={tx.id} index={i + 3}>
+                <View style={styles.txCard}>
+                  <View style={[styles.txIcon, { backgroundColor: colors.successBg }]}>
+                    <CheckCircle size={20} color={colors.success} />
+                  </View>
+                  <View style={styles.txDetails}>
+                    <Text style={styles.txClient}>{tx.client_name || 'Client'}</Text>
+                    <Text style={styles.txDesign} numberOfLines={1}>{tx.design_title || 'Tattoo Session'}</Text>
+                    <Text style={styles.txDate}>{tx.displayDate}</Text>
+                  </View>
+                  <View style={styles.txAmountWrap}>
+                    <Text style={[styles.txAmount, tx.payment_status !== 'paid' && { color: colors.warning }]}>
+                      P{formatCurrency(tx.artistShare)}
+                    </Text>
+                    <StatusBadge status={tx.payment_status === 'paid' ? 'paid' : 'unpaid'} />
+                  </View>
                 </View>
-                <View style={styles.txDetails}>
-                  <Text style={styles.txClient}>{tx.client_name || 'Client'}</Text>
-                  <Text style={styles.txDesign} numberOfLines={1}>{tx.design_title || 'Tattoo Session'}</Text>
-                  <Text style={styles.txDate}>{tx.displayDate}</Text>
-                </View>
-                <View style={styles.txAmountWrap}>
-                  <Text style={[styles.txAmount, tx.payment_status !== 'paid' && { color: colors.warning }]}>
-                    P{formatCurrency(tx.artistShare)}
-                  </Text>
-                  <StatusBadge status={tx.payment_status === 'paid' ? 'paid' : 'unpaid'} />
-                </View>
-              </View>
+              </StaggerItem>
             ))
           ) : (
             <EmptyState icon={DollarSign} title="No sessions" subtitle={`No completed sessions for ${periodLabel.toLowerCase()}`} />
@@ -157,32 +192,45 @@ export function ArtistEarnings({ onBack, artistId }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { padding: 20, paddingTop: 56, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { ...typography.h2, color: '#ffffff' },
-  earningsCenter: { alignItems: 'center', marginBottom: 20 },
-  earningsAmount: { fontSize: 40, fontWeight: '800', color: '#ffffff', marginBottom: 4 },
-  earningsPeriod: { ...typography.body, color: 'rgba(255,255,255,0.8)' },
-  miniStats: { flexDirection: 'row', gap: 10 },
-  miniCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: borderRadius.xl, padding: 12, alignItems: 'center' },
-  miniValue: { ...typography.h4, color: '#ffffff', marginTop: 4, marginBottom: 2 },
-  miniLabel: { ...typography.bodyXSmall, color: 'rgba(255,255,255,0.8)' },
+const getStyles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+  },
+  headerBtn: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+  },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  // Hero
+  heroCard: {
+    marginHorizontal: 20, borderRadius: 16, overflow: 'hidden',
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, marginBottom: 20,
+  },
+  heroGoldStripe: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: colors.gold },
+  heroContent: { padding: 20 },
+  heroLabel: { ...typography.bodyXSmall, color: colors.textTertiary, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
+  heroAmount: { fontSize: 36, fontWeight: '800', color: colors.gold, marginTop: 4, marginBottom: 16, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
+  heroRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
+  heroMini: { alignItems: 'center', gap: 4 },
+  heroMiniValue: { ...typography.body, color: colors.textPrimary, fontWeight: '700' },
+  heroMiniLabel: { ...typography.bodyXSmall, color: colors.textTertiary },
+  heroMiniDivider: { width: 1, height: 30, backgroundColor: colors.border },
+  // Content
   content: { padding: 16, paddingBottom: 40 },
   filters: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   filterBtn: {
-    flex: 1, paddingVertical: 10, backgroundColor: '#ffffff',
-    borderRadius: borderRadius.round, borderWidth: 1, borderColor: colors.border, alignItems: 'center',
+    flex: 1, paddingVertical: 10, backgroundColor: colors.surface,
+    borderRadius: 20, borderWidth: 1, borderColor: colors.border, alignItems: 'center',
   },
-  filterBtnActive: { backgroundColor: colors.darkBg, borderColor: colors.darkBg },
+  filterBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
   filterText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
-  filterTextActive: { color: '#ffffff' },
+  filterTextActive: { color: colors.backgroundDeep },
   sectionTitle: { ...typography.h3, color: colors.textPrimary, marginBottom: 14 },
   txCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff',
-    borderRadius: borderRadius.xl, padding: 14, marginBottom: 10,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
+    borderRadius: 16, padding: 14, marginBottom: 10,
     borderWidth: 1, borderColor: colors.border,
   },
   txIcon: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', marginRight: 12 },

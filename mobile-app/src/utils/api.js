@@ -583,6 +583,20 @@ export const createAdminManualPayment = async (appointmentId, data) => {
   });
 };
 
+export const createAdminInvoice = async (data) => {
+  return fetchAPI('/admin/invoices', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const processInventoryTransaction = async (inventoryId, data) => {
+  return fetchAPI(`/admin/inventory/${inventoryId}/transaction`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
 // Admin: Settings
 export const getAdminSettings = async () => {
   return fetchAPI('/admin/settings');

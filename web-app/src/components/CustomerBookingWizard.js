@@ -201,7 +201,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         if (currentUser) {
             finalCustomerId = currentUser.id;
         } else {
-            finalCustomerId = null; 
+            // Guest booking: use 'admin' sentinel — backend resolveAdminIds() maps this to the actual admin user ID
+            finalCustomerId = 'admin'; 
         }
         finalizeBooking(finalCustomerId);
     };
@@ -232,7 +233,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
             const response = await Axios.post(`${API_URL}/api/admin/appointments`, {
                 customerId: uid,
-                artistId: null,
+                artistId: 'admin',
                 date: formData.date,
                 startTime: formData.time || '13:00',
                 endTime: formData.time || '13:00',

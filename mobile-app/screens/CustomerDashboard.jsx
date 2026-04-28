@@ -314,29 +314,33 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
 
         {/* Reports & Feedback */}
         <View style={styles.section}>
-          <AnimatedTouchable onPress={() => onNavigate('support')} style={styles.feedbackCard}>
-            <View style={styles.feedbackIconWrap}>
-              <Flag size={20} color={colors.textSecondary} />
+          <AnimatedTouchable onPress={() => onNavigate('CustomerReports')} style={styles.actionRowCard}>
+            <View style={styles.actionRowInner}>
+              <View style={styles.actionRowIconWrap}>
+                <Flag size={20} color={colors.textSecondary} />
+              </View>
+              <View style={styles.actionRowTextWrap}>
+                <Text style={styles.actionRowTitle}>Reports & Feedback</Text>
+                <Text style={styles.actionRowDesc}>Submit bugs or share feedback</Text>
+              </View>
+              <ChevronRight size={20} color={colors.textTertiary} />
             </View>
-            <View style={styles.feedbackTextWrap}>
-              <Text style={styles.feedbackTitle}>Reports & Feedback</Text>
-              <Text style={styles.feedbackDesc}>Submit bug reports or share your feedback</Text>
-            </View>
-            <ArrowRight size={16} color={colors.textTertiary} />
           </AnimatedTouchable>
         </View>
 
         {/* AI Chat CTA */}
         <View style={styles.section}>
-          <AnimatedTouchable onPress={() => onNavigate('chatbot-enhanced')} style={styles.aiCard}>
-            <View style={styles.aiIconWrap}>
-              <Lightbulb size={24} color={colors.gold} />
+          <AnimatedTouchable onPress={() => onNavigate('Gallery')} style={styles.actionRowCard}>
+            <View style={styles.actionRowInner}>
+              <View style={[styles.actionRowIconWrap, { backgroundColor: colors.iconGoldBg }]}>
+                <Lightbulb size={24} color={colors.gold} />
+              </View>
+              <View style={styles.actionRowTextWrap}>
+                <Text style={styles.actionRowTitle}>Need Inspiration?</Text>
+                <Text style={styles.actionRowDesc}>Chat with AI for tattoo ideas</Text>
+              </View>
+              <ChevronRight size={20} color={colors.textTertiary} />
             </View>
-            <View style={styles.aiTextWrap}>
-              <Text style={styles.aiTitle}>Need Inspiration?</Text>
-              <Text style={styles.aiDesc}>Chat with AI for tattoo ideas</Text>
-            </View>
-            <ArrowRight size={20} color={colors.textSecondary} />
           </AnimatedTouchable>
         </View>
 
@@ -477,26 +481,20 @@ const getStyles = (colors) => StyleSheet.create({
   },
   trendingText: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary },
 
-  // AI Card
-  aiCard: {
-    backgroundColor: colors.surface, padding: 16, borderRadius: 16,
-    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.borderLight,
+  // Action Row Cards (Feedback & AI)
+  actionRowCard: {
+    backgroundColor: colors.surface, borderRadius: 16,
+    borderWidth: 1, borderColor: colors.borderLight,
+    overflow: 'hidden',
   },
-  aiIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.iconGoldBg, justifyContent: 'center', alignItems: 'center' },
-  aiTextWrap: { flex: 1, marginLeft: 14 },
-  aiTitle: { ...typography.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
-  aiDesc: { ...typography.bodyXSmall, color: colors.textSecondary },
-
-  // Feedback Card
-  feedbackCard: {
-    backgroundColor: colors.surface, padding: 16, borderRadius: 12,
-    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.borderLight,
+  actionRowInner: {
+    padding: 16, flexDirection: 'row', alignItems: 'center',
   },
-  feedbackIconWrap: {
-    width: 36, height: 36, borderRadius: 8, backgroundColor: colors.darkBgSecondary,
-    justifyContent: 'center', alignItems: 'center',
+  actionRowIconWrap: {
+    width: 44, height: 44, borderRadius: 12, backgroundColor: colors.darkBgSecondary,
+    justifyContent: 'center', alignItems: 'center', marginRight: 14,
   },
-  feedbackTextWrap: { flex: 1, marginLeft: 12 },
-  feedbackTitle: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
-  feedbackDesc: { ...typography.bodyXSmall, color: colors.textTertiary },
+  actionRowTextWrap: { flex: 1, paddingRight: 8 },
+  actionRowTitle: { ...typography.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+  actionRowDesc: { ...typography.bodyXSmall, color: colors.textSecondary },
 });

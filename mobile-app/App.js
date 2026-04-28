@@ -11,6 +11,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { Shield, Users, Calendar as CalendarIcon, Grid, Package } from 'lucide-react-native';
 
 // Auth Screens
 import { LoginPage } from './screens/LoginPage.jsx';
@@ -27,6 +28,7 @@ import { CustomerBooking } from './screens/CustomerBooking.jsx';
 import { CustomerGallery } from './screens/CustomerGallery.jsx';
 import { CustomerTransactions } from './screens/CustomerTransactions.jsx';
 import { CustomerReview } from './screens/CustomerReview.jsx';
+import { CustomerReports } from './screens/CustomerReports.jsx';
 import { CustomerNotifications } from './screens/CustomerNotifications.jsx';
 
 // Artist Screens
@@ -44,10 +46,7 @@ import { AdminDashboard } from './screens/AdminDashboard.jsx';
 import { AdminUserManagement } from './screens/AdminUserManagement.jsx';
 import { AdminAppointmentManagement } from './screens/AdminAppointmentManagement.jsx';
 import { AdminStudio } from './screens/AdminStudio.jsx';
-import { AdminServices } from './screens/AdminServices.jsx';
-import { AdminStaffScheduling } from './screens/AdminStaffScheduling.jsx';
 import { AdminInventory } from './screens/AdminInventory.jsx';
-import { AdminTasks } from './screens/AdminTasks.jsx';
 import { AdminNotifications } from './screens/AdminNotifications.jsx';
 import { AdminAnalytics } from './screens/AdminAnalytics.jsx';
 import { AdminSettings } from './screens/AdminSettings.jsx';
@@ -65,9 +64,10 @@ import {
 } from './src/utils/api';
 import { registerForPushNotifications } from './src/utils/pushNotifications';
 
-// Theme
+// Theme & Global Contexts
 import { colors } from './src/theme';
 import { ThemeProvider } from './src/context/ThemeContext';
+import { ToastProvider } from './src/context/ToastContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -84,8 +84,8 @@ const CustomerTabs = ({ user, onLogout }) => (
       tabBarStyle: {
         backgroundColor: colors.darkBgSecondary,
         borderTopColor: colors.border,
-        height: 60,
-        paddingBottom: 8,
+        height: 75,
+        paddingBottom: 14,
         paddingTop: 8,
       },
       tabBarActiveTintColor: colors.tabActive,
@@ -129,10 +129,10 @@ const ArtistTabs = ({ user, onLogout }) => (
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: '#ffffff',
+        backgroundColor: colors.darkBgSecondary,
         borderTopColor: colors.border,
-        height: 60,
-        paddingBottom: 8,
+        height: 75,
+        paddingBottom: 14,
         paddingTop: 8,
       },
       tabBarActiveTintColor: colors.tabActive,
@@ -172,22 +172,20 @@ const AdminTabs = ({ user, onLogout }) => (
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: colors.adminBar,
-        borderTopColor: colors.borderDark,
-        height: 60,
-        paddingBottom: 8,
+        backgroundColor: colors.surface,
+        borderTopColor: colors.border,
+        height: 75,
+        paddingBottom: 14,
         paddingTop: 8,
       },
-      tabBarActiveTintColor: colors.adminAccent,
+      tabBarActiveTintColor: colors.gold,
       tabBarInactiveTintColor: colors.tabInactive,
       tabBarIcon: ({ focused, color }) => {
-        const icons = {
-          Dashboard: focused ? 'shield' : 'shield-outline',
-          Users: focused ? 'people' : 'people-outline',
-          Bookings: focused ? 'calendar' : 'calendar-outline',
-          Studio: focused ? 'grid' : 'grid-outline',
-        };
-        return <Ionicons name={icons[route.name] || 'ellipse'} size={24} color={color} />;
+        if (route.name === 'Dashboard') return <Shield size={24} color={color} />;
+        if (route.name === 'Users') return <Users size={24} color={color} />;
+        if (route.name === 'Bookings') return <CalendarIcon size={24} color={color} />;
+        if (route.name === 'Studio') return <Grid size={24} color={color} />;
+        return <Shield size={24} color={color} />;
       },
     })}
   >
@@ -205,22 +203,20 @@ const ManagerTabs = ({ user, onLogout }) => (
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: colors.darkBgSecondary,
-        borderTopColor: colors.borderDark,
-        height: 60,
-        paddingBottom: 8,
+        backgroundColor: colors.surface,
+        borderTopColor: colors.border,
+        height: 75,
+        paddingBottom: 14,
         paddingTop: 8,
       },
-      tabBarActiveTintColor: colors.primary,
+      tabBarActiveTintColor: colors.gold,
       tabBarInactiveTintColor: colors.tabInactive,
       tabBarIcon: ({ focused, color }) => {
-        const icons = {
-          Dashboard: focused ? 'shield' : 'shield-outline',
-          Users: focused ? 'people' : 'people-outline',
-          Bookings: focused ? 'calendar' : 'calendar-outline',
-          Inventory: focused ? 'cube' : 'cube-outline',
-        };
-        return <Ionicons name={icons[route.name] || 'ellipse'} size={24} color={color} />;
+        if (route.name === 'Dashboard') return <Shield size={24} color={color} />;
+        if (route.name === 'Users') return <Users size={24} color={color} />;
+        if (route.name === 'Bookings') return <CalendarIcon size={24} color={color} />;
+        if (route.name === 'Inventory') return <Package size={24} color={color} />;
+        return <Shield size={24} color={color} />;
       },
     })}
   >
@@ -356,7 +352,7 @@ function AppContent() {
   return (
     <View style={{ flex: 1 }} onTouchStart={Platform.OS === 'android' ? hideNavigationBar : undefined}>
       <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right', animationDuration: 300 }}>
           {user ? (
             // ----- LOGGED IN -----
             user.type === 'admin' ? (
@@ -364,10 +360,7 @@ function AppContent() {
                 <Stack.Screen name="admin-main">
                   {() => <AdminTabs user={user} onLogout={handleLogout} />}
                 </Stack.Screen>
-                <Stack.Screen name="admin-services" component={AdminServices} />
-                <Stack.Screen name="admin-staff" component={AdminStaffScheduling} />
                 <Stack.Screen name="admin-inventory" component={AdminInventory} />
-                <Stack.Screen name="admin-tasks" component={AdminTasks} />
                 <Stack.Screen name="admin-notifications" component={AdminNotifications} />
                 <Stack.Screen name="admin-analytics" component={AdminAnalytics} />
                 <Stack.Screen name="admin-settings" component={AdminSettings} />
@@ -381,7 +374,6 @@ function AppContent() {
                   {() => <ManagerTabs user={user} onLogout={handleLogout} />}
                 </Stack.Screen>
                 <Stack.Screen name="admin-inventory" component={AdminInventory} />
-                <Stack.Screen name="admin-staff" component={AdminStaffScheduling} />
                 <Stack.Screen name="admin-analytics" component={AdminAnalytics} />
                 <Stack.Screen name="admin-notifications" component={AdminNotifications} />
               </>
@@ -421,6 +413,7 @@ function AppContent() {
                 </Stack.Screen>
                 <Stack.Screen name="customer-transactions" component={CustomerTransactions} />
                 <Stack.Screen name="customer-review" component={CustomerReview} />
+                <Stack.Screen name="CustomerReports" component={CustomerReports} />
               </>
             )
           ) : showOTP ? (
@@ -476,7 +469,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
     </ThemeProvider>
   );
 }
