@@ -26,6 +26,7 @@ import {
 import io from 'socket.io-client';
 import Axios from 'axios';
 import { API_URL, SOCKET_URL } from '../config';
+import { playNotificationSound } from '../utils/notificationSound';
 import ConfirmModal from './ConfirmModal';
 import PaymentAlertOverlay from './PaymentAlertOverlay';
 import NotificationAlertOverlay from './NotificationAlertOverlay';
@@ -106,6 +107,9 @@ function AdminSideNav() {
                 if (res.data.success) {
                     setUnreadNotifCount(prev => {
                         const newCount = res.data.unreadCount || 0;
+                        if (newCount > prev && prev !== undefined) {
+                            playNotificationSound();
+                        }
                         return newCount !== prev ? newCount : prev;
                     });
                     

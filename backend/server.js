@@ -768,6 +768,24 @@ db.getConnection((err, connection) => {
           if (!err) console.log('[OK] Ensured appointments status is VARCHAR(50)');
         });
 
+        // FIX: Recalculate payment_status for appointments stuck due to NULL manual_paid_amount bug
+        // This corrects any completed sessions where payment_status should be 'paid' but is stuck as 'downpayment_paid'
+        const fixStuckPaymentsQuery = `
+          UPDATE appointments 
+          SET payment_status = 'paid'
+          WHERE price > 0 
+            AND payment_status != 'paid'
+            AND (
+              ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = appointments.id AND status = 'paid') / 100) 
+              + COALESCE(manual_paid_amount, 0)
+            ) >= price
+        `;
+        db.query(fixStuckPaymentsQuery, (fixErr, fixResult) => {
+          if (!fixErr && fixResult.affectedRows > 0) {
+            console.log(`[FIX] Corrected payment_status for ${fixResult.affectedRows} appointment(s) that were stuck due to NULL manual_paid_amount bug.`);
+          }
+        });
+
         // FIX: Try to drop the specific problematic constraint if it exists
         db.query("ALTER TABLE appointments DROP FOREIGN KEY fk_appointments_artist", (err) => {
           if (!err) {
@@ -5606,7 +5624,7 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
         const updateStatusQuery = `
         UPDATE appointments SET 
           payment_status = CASE
-            WHEN price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount >= price THEN 'paid'
+            WHEN price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) >= price THEN 'paid'
             WHEN price = 0 OR price IS NULL THEN 'paid'
             ELSE 'downpayment_paid'
           END,
@@ -5631,27 +5649,8 @@ app.post('/api/admin/appointments/:id/manual-payment', (req, res) => {
               const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
               createNotification(apptData.customer_id, 'Payment Received', customerMsg, 'payment_success', invInsertRes?.insertId || id);
 
-              // Notify the artist about payment collected for their session
-              if (apptData.artist_id) {
-                db.query('SELECT user_type FROM users WHERE id = ?', [apptData.artist_id], (aErr, aRes) => {
-                  if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
-                    const artistCut = (actualPayment * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-                    createNotification(apptData.artist_id, 'Payment Collected', `A payment of ₱${actualPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (${method || 'Cash'}) was collected for session #${id}. Your 30% commission share: ₱${artistCut}.`, 'payment_success', id);
-
-                    // Check if session is now fully paid — send distinct notification
-                    db.query('SELECT price, manual_paid_amount, (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = \'paid\') as digital_paid FROM appointments WHERE id = ?', [id, id], (fpErr, fpRes) => {
-                      if (!fpErr && fpRes.length) {
-                        const totalPaid = (fpRes[0].digital_paid / 100) + (fpRes[0].manual_paid_amount || 0);
-                        const sessionPrice = fpRes[0].price || 0;
-                        if (sessionPrice > 0 && totalPaid >= sessionPrice) {
-                          const designTitle = apptData.design_title || 'Session';
-                          createNotification(apptData.artist_id, 'Session Fully Paid', `Great news! Session #${id} for "${designTitle}" is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', id);
-                        }
-                      }
-                    });
-                  }
-                });
-              }
+              // Artist payment notifications removed per business rules — only admin receives payment alerts
+              // Artists should not see individual payment collection or fully-paid notifications
 
               const isConfirmedNow = apptData.status === 'confirmed' || apptData.status === 'pending';
               if (apptData.artist_id && isConfirmedNow) {
@@ -5767,7 +5766,7 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
         const updateStatusQuery = `
           UPDATE appointments SET
             payment_status = CASE
-              WHEN price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount >= price THEN 'paid'
+              WHEN price > 0 AND ((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0) >= price THEN 'paid'
               WHEN price = 0 OR price IS NULL THEN 'paid'
               ELSE 'downpayment_paid'
             END,
@@ -5794,25 +5793,7 @@ app.post('/api/admin/billing/record-payment', (req, res) => {
               const customerMsg = `Your payment of ₱${actualPayment.toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been recorded. Invoice ${invoiceNumber} is now available. View your receipt from your notifications.`;
               createNotification(customerId, 'Payment Received', customerMsg, 'payment_success', invInsertRes?.insertId || appointmentId);
 
-              if (apptData.artist_id) {
-                db.query('SELECT user_type FROM users WHERE id = ?', [apptData.artist_id], (aErr, aRes) => {
-                  if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
-                    const artistCut = (actualPayment * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-                    createNotification(apptData.artist_id, 'Payment Collected', `A payment of ₱${actualPayment.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (${method}) was collected for your session. Your 30% commission share: ₱${artistCut}.`, 'payment_success', appointmentId);
-
-                    // Check if session is now fully paid
-                    db.query('SELECT price, manual_paid_amount, (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = \'paid\') as digital_paid FROM appointments WHERE id = ?', [appointmentId, appointmentId], (fpErr, fpRes) => {
-                      if (!fpErr && fpRes.length) {
-                        const totalPaid = (fpRes[0].digital_paid / 100) + (fpRes[0].manual_paid_amount || 0);
-                        const sessionPrice = fpRes[0].price || 0;
-                        if (sessionPrice > 0 && totalPaid >= sessionPrice) {
-                          createNotification(apptData.artist_id, 'Session Fully Paid', `Great news! Session #${appointmentId} is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', appointmentId);
-                        }
-                      }
-                    });
-                  }
-                });
-              }
+              // Artist payment notifications removed per business rules — only admin receives payment alerts
 
               // Send receipt email
               sendReceiptEmail(apptData.cx_email, {
@@ -6368,6 +6349,7 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
     const apptsQuery = `
       SELECT ap.id, ap.appointment_date, ap.design_title, ap.price, ap.tattoo_price, ap.piercing_price, ap.service_type, ap.payment_status, ap.status, 
              ap.artist_id, ap.secondary_artist_id, ap.commission_split, ap.is_referral,
+             ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
              u_cust.name as client_name,
              u_sec.name as secondary_artist_name,
              u_pri.name as primary_artist_name
@@ -6442,16 +6424,19 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
             splitPercent,
             collabPartnerName,
             serviceLine,
-            isReferral: !!a.is_referral
+            isReferral: !!a.is_referral,
+            totalPaid: a.total_paid || 0,
+            // Cross-check: if total_paid covers full price, treat as paid regardless of stale payment_status
+            effectivePaymentStatus: (a.price > 0 && (a.total_paid || 0) >= a.price) ? 'paid' : a.payment_status
           };
         });
 
         const totalEarned = calculations
-          .filter(a => a.payment_status === 'paid')
+          .filter(a => a.effectivePaymentStatus === 'paid')
           .reduce((sum, a) => sum + a.artistShare, 0);
 
         const pendingFromUnpaid = calculations
-          .filter(a => a.payment_status !== 'paid')
+          .filter(a => a.effectivePaymentStatus !== 'paid')
           .reduce((sum, a) => sum + a.artistShare, 0);
 
         const totalPaidOut = payouts.reduce((sum, p) => sum + Number(p.amount), 0);
@@ -6879,26 +6864,7 @@ app.get('/api/appointments/:id/payment-status', async (req, res) => {
                   createNotification(appt.customer_id, 'Payment Received', `Your payment of ₱${customerAmtStr} for appointment #${appointmentId} (${paymentTypeStr}) has been successfully confirmed.`, 'payment_success', appointmentId);
 
                   // Notify artist about payment collected for their session
-                  if (appt.artist_id) {
-                    db.query('SELECT user_type FROM users WHERE id = ?', [appt.artist_id], (aErr, aRes) => {
-                      if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
-                        const payAmt = amountCentavos / 100;
-                        const artistCut = (payAmt * 0.30).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-                        createNotification(appt.artist_id, 'Payment Collected', `A payment of ₱${payAmt.toLocaleString('en-PH', { minimumFractionDigits: 2 })} (PayMongo - ${paymentTypeStr}) was collected for appointment #${appointmentId}. Your 30% commission share: ₱${artistCut}.`, 'payment_success', appointmentId);
-
-                        // Check if session is now fully paid
-                        db.query('SELECT price, manual_paid_amount, (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = \'paid\') as digital_paid FROM appointments WHERE id = ?', [appointmentId, appointmentId], (fpErr, fpRes) => {
-                          if (!fpErr && fpRes.length) {
-                            const totalPaid = (fpRes[0].digital_paid / 100) + (fpRes[0].manual_paid_amount || 0);
-                            const sessionPrice = fpRes[0].price || 0;
-                            if (sessionPrice > 0 && totalPaid >= sessionPrice) {
-                              createNotification(appt.artist_id, 'Session Fully Paid', `Great news! Appointment #${appointmentId} is now fully paid. Total: ₱${sessionPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}.`, 'payment_received', appointmentId);
-                            }
-                          }
-                        });
-                      }
-                    });
-                  }
+                  // Artist payment notifications removed per business rules — only admin receives payment alerts
 
                   const wasPending = currentAptStatus?.toLowerCase() === 'pending';
 

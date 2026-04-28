@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Axios from 'axios';
 import { API_URL } from '../config';
+import { playNotificationSound } from '../utils/notificationSound';
 import '../styles/ManagerSideNav.css';
 
 function ManagerSideNav() {
@@ -54,7 +55,13 @@ function ManagerSideNav() {
             try {
                 const res = await Axios.get(`${API_URL}/api/notifications/${managerId}?limit=100`);
                 if (res.data.success) {
-                    setUnreadNotifCount(res.data.unreadCount || 0);
+                    const newCount = res.data.unreadCount || 0;
+                    setUnreadNotifCount(prev => {
+                        if (newCount > prev && prev !== undefined) {
+                            playNotificationSound();
+                        }
+                        return newCount;
+                    });
                 }
             } catch (e) { /* silent */ }
         };

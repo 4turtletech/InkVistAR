@@ -17,6 +17,7 @@ import {
 import ConfirmModal from './ConfirmModal';
 import Axios from 'axios';
 import { API_URL } from '../config';
+import { playNotificationSound } from '../utils/notificationSound';
 import '../styles/CustomerSideNav.css';
 import NotificationAlertOverlay from './NotificationAlertOverlay';
 import CustomerPaymentAlertOverlay from './CustomerPaymentAlertOverlay';
@@ -60,6 +61,9 @@ function CustomerSideNav() {
                 if (res.data.success) {
                     setUnreadNotifCount(prev => {
                         const newCount = res.data.unreadCount || 0;
+                        if (newCount > prev && prev !== undefined) {
+                            playNotificationSound();
+                        }
                         return newCount !== prev ? newCount : prev;
                     });
                     

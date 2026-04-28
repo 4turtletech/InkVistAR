@@ -107,10 +107,10 @@ function ArtistEarnings() {
     // ── Computed Metrics (from filtered data) ──
     const metrics = useMemo(() => {
         const totalEarned = filteredSessions
-            .filter(s => s.payment_status === 'paid')
+            .filter(s => (s.effectivePaymentStatus || s.payment_status) === 'paid')
             .reduce((sum, s) => sum + (s.artistShare || 0), 0);
         const pendingUnpaid = filteredSessions
-            .filter(s => s.payment_status !== 'paid')
+            .filter(s => (s.effectivePaymentStatus || s.payment_status) !== 'paid')
             .reduce((sum, s) => sum + (s.artistShare || 0), 0);
         const totalPaidOut = filteredPayouts.reduce((sum, p) => sum + Number(p.amount || 0), 0);
         const balanceDue = totalEarned - totalPaidOut;
@@ -134,10 +134,10 @@ function ArtistEarnings() {
     // ── Chart Data: Payment Status Donut ──
     const paymentStatusData = useMemo(() => {
         const paid = filteredSessions
-            .filter(s => s.payment_status === 'paid')
+            .filter(s => (s.effectivePaymentStatus || s.payment_status) === 'paid')
             .reduce((sum, s) => sum + (s.artistShare || 0), 0);
         const unpaid = filteredSessions
-            .filter(s => s.payment_status !== 'paid')
+            .filter(s => (s.effectivePaymentStatus || s.payment_status) !== 'paid')
             .reduce((sum, s) => sum + (s.artistShare || 0), 0);
         const data = [];
         if (paid > 0) data.push({ name: 'Paid', value: paid });
@@ -174,7 +174,7 @@ function ArtistEarnings() {
             ['Summary', 'Total Earned (Paid)', `₱${metrics.totalEarned.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
             ['Summary', 'Pending (Unpaid)', `₱${metrics.pendingUnpaid.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
             ['Summary', 'Total Paid Out', `₱${metrics.totalPaidOut.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
-            ['Summary', 'Balance Due', `₱${metrics.balanceDue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+            ['Summary', 'Pending Earning', `₱${metrics.balanceDue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
             [],
             ['Date', 'Client', 'Service', 'Type', 'Session Total', 'Your Cut', 'Status'],
             ...filteredSessions.map(s => [
@@ -184,7 +184,7 @@ function ArtistEarnings() {
                 s.isCollab ? `Collab ${s.splitPercent}%` : (s.isReferral ? 'Referral (70%)' : 'Solo'),
                 `₱${(s.basePrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
                 `₱${(s.artistShare || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                s.payment_status === 'paid' ? 'Paid' : 'Unpaid'
+                (s.effectivePaymentStatus || s.payment_status) === 'paid' ? 'Paid' : 'Unpaid'
             ]),
             [],
             ['Payout Date', 'Amount', 'Method', 'Reference', 'Status'],
@@ -255,10 +255,10 @@ function ArtistEarnings() {
                         {/* ═══════════════ METRIC CARDS ═══════════════ */}
                         <div className="metrics-section" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                             {[
-                                { label: 'Total Earned', value: formatCurrency(metrics.totalEarned), icon: <PhilippinePeso size={28} />, color: '#10b981', sub: `From ${filteredSessions.filter(s => s.payment_status === 'paid').length} paid session${filteredSessions.filter(s => s.payment_status === 'paid').length !== 1 ? 's' : ''}` },
-                                { label: 'Pending (Unpaid)', value: formatCurrency(metrics.pendingUnpaid), icon: <Clock size={28} />, color: '#f59e0b', sub: `${filteredSessions.filter(s => s.payment_status !== 'paid').length} unpaid session${filteredSessions.filter(s => s.payment_status !== 'paid').length !== 1 ? 's' : ''}` },
+                                { label: 'Total Earned', value: formatCurrency(metrics.totalEarned), icon: <PhilippinePeso size={28} />, color: '#10b981', sub: `From ${filteredSessions.filter(s => (s.effectivePaymentStatus || s.payment_status) === 'paid').length} paid session${filteredSessions.filter(s => (s.effectivePaymentStatus || s.payment_status) === 'paid').length !== 1 ? 's' : ''}` },
+                                { label: 'Pending (Unpaid)', value: formatCurrency(metrics.pendingUnpaid), icon: <Clock size={28} />, color: '#f59e0b', sub: `${filteredSessions.filter(s => (s.effectivePaymentStatus || s.payment_status) !== 'paid').length} unpaid session${filteredSessions.filter(s => (s.effectivePaymentStatus || s.payment_status) !== 'paid').length !== 1 ? 's' : ''}` },
                                 { label: 'Paid Out', value: formatCurrency(metrics.totalPaidOut), icon: <CheckCircle size={28} />, color: '#3b82f6', sub: `${filteredPayouts.length} payout${filteredPayouts.length !== 1 ? 's' : ''} disbursed` },
-                                { label: 'Balance Due', value: formatCurrency(metrics.balanceDue), icon: <Wallet size={28} />, color: metrics.balanceDue > 0 ? '#be9055' : '#10b981', sub: `Commission rate: ${commissionRate}%` },
+                                { label: 'Pending Earning', value: formatCurrency(metrics.balanceDue), icon: <Wallet size={28} />, color: metrics.balanceDue > 0 ? '#be9055' : '#10b981', sub: `Commission rate: ${commissionRate}%` },
                             ].map((m, i) => (
                                 <div key={i} className="metric-card glass-card" style={{ transition: 'transform 0.3s, box-shadow 0.3s' }}
                                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)'; }}
@@ -446,10 +446,10 @@ function ArtistEarnings() {
                                                             )}
                                                         </td>
                                                         <td>{formatCurrency(session.basePrice)}</td>
-                                                        <td style={{ color: session.payment_status === 'paid' ? '#10b981' : '#f59e0b', fontWeight: 'bold' }}>
+                                                        <td style={{ color: (session.effectivePaymentStatus || session.payment_status) === 'paid' ? '#10b981' : '#f59e0b', fontWeight: 'bold' }}>
                                                             {formatCurrency(session.artistShare)}
-                                                            <span style={{ fontSize: '0.7rem', display: 'block', color: session.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>
-                                                                {session.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
+                                                            <span style={{ fontSize: '0.7rem', display: 'block', color: (session.effectivePaymentStatus || session.payment_status) === 'paid' ? '#10b981' : '#f59e0b' }}>
+                                                                {(session.effectivePaymentStatus || session.payment_status) === 'paid' ? 'Paid' : 'Unpaid'}
                                                             </span>
                                                         </td>
                                                     </tr>

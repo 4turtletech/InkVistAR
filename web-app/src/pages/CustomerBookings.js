@@ -1866,21 +1866,27 @@ function CustomerBookings(){
                                                     <label className="customer-st-67198c20" >Concept Name <span style={{ color: '#ef4444', fontWeight: '400' }}>*</span></label>
                                                     <input 
                                                         type="text" className="form-input" placeholder="e.g. Traditional Dagger with Flowers" 
-                                                        name="designTitle"
+                                                        name="designTitle" maxLength={150}
                                                         value={bookingData.designTitle} onChange={handleBookingFormChange}
                                                         style={{ border: errors.designTitle ? '1px solid #ef4444' : undefined }}
                                                     />
-                                                    {errors.designTitle && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.designTitle}</span>}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                                                        {errors.designTitle ? <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>{errors.designTitle}</span> : <span />}
+                                                        <small style={{ color: (bookingData.designTitle?.length || 0) >= 140 ? '#ef4444' : '#94a3b8', fontSize: '0.75rem' }}>{bookingData.designTitle?.length || 0}/150</small>
+                                                    </div>
                                                 </div>
                                                 <div className="form-group customer-st-5d155c93" style={{ marginBottom: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
                                                     <label className="customer-st-67198c20" >Tell us your story (Optional)</label>
                                                     <textarea 
                                                         className="form-input" placeholder="Describe the size, color preferences, and any meaningful details..."
-                                                        name="notes"
+                                                        name="notes" maxLength={500}
                                                         value={bookingData.notes} onChange={handleBookingFormChange}
                                                         style={{ resize: 'none', border: errors.notes ? '1px solid #ef4444' : undefined, flex: 1 }}
                                                     />
-                                                    {errors.notes && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>{errors.notes}</span>}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                                                        {errors.notes ? <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>{errors.notes}</span> : <span />}
+                                                        <small style={{ color: (bookingData.notes?.length || 0) >= 480 ? '#ef4444' : '#94a3b8', fontSize: '0.75rem' }}>{bookingData.notes?.length || 0}/500</small>
+                                                    </div>
                                                 </div>
                                                 {derivedType === 'Tattoo + Piercing' && (
                                                     <div style={{ padding: '14px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
