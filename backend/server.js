@@ -2487,6 +2487,13 @@ app.post('/api/send-otp', (req, res) => {
     // Allow OTP for both verified users (password reset) and unverified users (account verification)
     // No verification gate — OTP is the verification mechanism itself
 
+    // If user already has a valid, unexpired OTP (e.g. from registration), skip sending a new one
+    // to avoid duplicate emails. Only applies to email-based OTP (not SMS which is always re-sent).
+    if (otp_method === 'email' && user.otp_code && user.otp_expires && new Date(user.otp_expires) > new Date()) {
+      console.log(`[INFO] Existing valid OTP found for ${email} — skipping duplicate email send.`);
+      return res.json({ success: true, message: 'OTP sent to your email!', reused: true });
+    }
+
     // Validate SMS method requires a phone number
     if (otp_method === 'sms' && !user.phone) {
       return res.json({ success: false, message: 'No phone number on file. Please use email OTP.' });
@@ -2791,18 +2798,31 @@ app.post('/api/register', async (req, res) => {
         const host = req.get('host');
         const verifyUrl = `${protocol}://${host}/api/verify?token=${verification_token}&email=${email}`;
 
+        // Generate OTP at registration time so the user has it immediately
+        // (avoids a second email when they try to login unverified)
+        const reg_otp_code = Math.floor(100000 + Math.random() * 900000).toString();
+        const reg_otp_expires = new Date(Date.now() + 30 * 60 * 1000); // 30 min for registration OTP
+        db.query('UPDATE users SET otp_code = ?, otp_expires = ? WHERE id = ?', [reg_otp_code, reg_otp_expires, newUserId]);
+
         // LOG VERIFICATION LINK (Fix for development/Gmail issues)
         console.log('[DEBUG] Verification Link:', verifyUrl);
+        console.log('[DEBUG] Registration OTP:', reg_otp_code);
 
         const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Welcome, ${fullName}!</h2>
               <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Just one step to get started</p>
-              <p style="margin:0 0 16px;">Thank you for creating your InkVistAR account. Your creative journey is almost ready to begin — verify your email address below to activate your account.</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
-                <a href="${verifyUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">Verify Email Address</a>
+              <p style="margin:0 0 16px;">Thank you for creating your InkVistAR account. Your creative journey is almost ready to begin — verify your email address using the code below:</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:20px 0;">
+                <div style="display:inline-block;background-color:#1a1a1a;border:2px solid rgba(193,154,107,0.3);border-radius:12px;padding:16px 32px;">
+                  <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${reg_otp_code}</span>
+                </div>
               </td></tr></table>
-              <p style="margin:20px 0 8px;font-size:12px;color:#555;text-align:center;">This link will expire in 24 hours.</p>
-              <p style="margin:0;font-size:12px;color:#555;text-align:center;word-break:break-all;">Or copy this link: <a href="${verifyUrl}" style="color:#C19A6B;text-decoration:none;">${verifyUrl}</a></p>
+              <p style="margin:0 0 16px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">30 minutes</strong>.</p>
+              <p style="margin:0 0 20px;font-size:12px;color:#555;text-align:center;">You can also verify by clicking the button below:</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
+                <a href="${verifyUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:13px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.5px;text-transform:uppercase;">Verify via Link</a>
+              </td></tr></table>
+              <p style="margin:16px 0 0;font-size:11px;color:#555;text-align:center;">Do not share this code with anyone. InkVistAR will never ask for your code via phone or message.</p>
         `);
         sendEmail(email, 'Verify Your InkVistAR Account', html);
 
