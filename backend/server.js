@@ -4953,13 +4953,14 @@ function processAdminPostUpdate(res, db, id, oldAppt, fields) {
   const recalculateStatusQuery = `
     UPDATE appointments 
     SET payment_status = CASE 
-      WHEN price > 0 AND (((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + manual_paid_amount) >= price THEN 'paid'
+      WHEN price > 0 AND (((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0)) >= price THEN 'paid'
+      WHEN price > 0 AND (((SELECT COALESCE(SUM(amount), 0) FROM payments WHERE appointment_id = ? AND status = 'paid') / 100) + COALESCE(manual_paid_amount, 0)) > 0 THEN 'downpayment_paid'
       WHEN price = 0 OR price IS NULL THEN 'paid'
       ELSE payment_status
     END 
     WHERE id = ? AND payment_status != 'paid'
   `;
-  db.query(recalculateStatusQuery, [id, id], (err) => {
+  db.query(recalculateStatusQuery, [id, id, id], (err) => {
     if (err) console.error(`[WARN] Error auto-recalculating status for appointment #${id}:`, err.message);
   });
 

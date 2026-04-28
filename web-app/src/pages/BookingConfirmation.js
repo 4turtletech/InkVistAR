@@ -33,7 +33,7 @@ const BookingConfirmation = () => {
     const verifyPayment = async (id, expectedType, bookingCodeFromState) => {
         setVerificationStatus('verifying');
         let attempts = 0;
-        const maxAttempts = 6;
+        const maxAttempts = 10;
 
         const poll = async () => {
             try {

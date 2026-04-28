@@ -810,7 +810,6 @@ function AdminAppointments() {
                     date: formData.date,
                     startTime: formData.time,
                     status: formData.status,
-                    paymentStatus: formData.paymentStatus,
                     notes: formData.notes,
                     price: finalPrice,
                     beforePhoto: formData.beforePhoto,
@@ -824,6 +823,16 @@ function AdminAppointments() {
                     tattooPrice: isDualService ? (Number(formData.tattooPrice) || 0) : null,
                     piercingPrice: isDualService ? (Number(formData.piercingPrice) || 0) : null
                 };
+
+                // Only include paymentStatus if the admin explicitly changed it from
+                // the value loaded at modal open time. This prevents accidental overwrite
+                // of webhook-set values (e.g. 'downpayment_paid' -> 'unpaid').
+                const adminChangedPaymentStatus = selectedAppointment
+                    && initialFormDataRef.current
+                    && formData.paymentStatus !== initialFormDataRef.current.paymentStatus;
+                if (!selectedAppointment || adminChangedPaymentStatus) {
+                    payload.paymentStatus = formData.paymentStatus;
+                }
 
                 if (selectedAppointment) {
                     await Axios.put(`${API_URL}/api/admin/appointments/${selectedAppointment.id}`, payload);

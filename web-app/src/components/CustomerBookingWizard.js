@@ -973,6 +973,9 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 <div style={{ padding: '12px 20px', background: 'rgba(193,154,107,0.08)', border: '1px solid rgba(193,154,107,0.2)', borderRadius: '12px', marginBottom: '20px' }}>
                     <p style={{ margin: 0, fontWeight: '700', color: '#be9055', fontSize: '1rem' }}>{formData.email}</p>
                 </div>
+                <p style={{ color: '#475569', marginBottom: '12px', lineHeight: '1.6', fontSize: '0.9rem', fontWeight: 600 }}>
+                    Our team will reach out to you within 24 hours via call or message to confirm your consultation and discuss details.
+                </p>
                 <p style={{ color: '#64748b', marginBottom: '28px', lineHeight: '1.6', fontSize: '0.85rem' }}>
                     You'll also receive SMS and email notifications whenever there's an update to your booking status — like confirmation, scheduling changes, or your price quote.
                 </p>
