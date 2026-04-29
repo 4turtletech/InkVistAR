@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle, Printer, ShieldCheck, RefreshCw, AlertTriangle, ClipboardList, Syringe, Wrench } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle, Printer, ShieldCheck, RefreshCw, AlertTriangle, ClipboardList, Syringe, Wrench, Layers, Tag } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -62,6 +62,8 @@ function AdminAppointments() {
     const [modalTab, setModalTab] = useState('details'); // 'details', 'pricing', or 'notes'
     const [appointmentModal, setAppointmentModal] = useState({ mounted: false, visible: false });
     const [manualPaymentModal, setManualPaymentModal] = useState({ isOpen: false, amount: '', method: 'Cash' });
+    const [isSavingAppointment, setIsSavingAppointment] = useState(false);
+    const [isRecordingPayment, setIsRecordingPayment] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'danger', isAlert: false });
     const [lightboxSrc, setLightboxSrc] = useState(null);
     const [formData, setFormData] = useState({
@@ -301,7 +303,13 @@ function AdminAppointments() {
                         auditLog: apt.audit_log || null,
                         totalCost: apt.total_material_cost || 0,
                         hasPendingRescheduleRequest: apt.has_pending_reschedule_request > 0,
-                        waiverAcceptedAt: apt.waiver_accepted_at || null
+                        waiverAcceptedAt: apt.waiver_accepted_at || null,
+                        sessionNumber: apt.session_number || null,
+                        totalSessions: apt.total_sessions || null,
+                        discountAmount: parseFloat(apt.discount_amount) || 0,
+                        discountType: apt.discount_type || null,
+                        selectedJewelryId: apt.selected_jewelry_id || null,
+                        selectedJewelryName: apt.selected_jewelry_name || null
                     };
                 });
                 setAppointments(mappedAppointments);
@@ -601,7 +609,11 @@ function AdminAppointments() {
             rescheduleReason: '',
             isReferral: !!appointment.isReferral,
             consultationNotes: appointment.consultationNotes || '',
-            quotedPrice: appointment.quotedPrice || ''
+            quotedPrice: appointment.quotedPrice || '',
+            sessionNumber: appointment.sessionNumber || '',
+            totalSessions: appointment.totalSessions || '',
+            discountAmount: appointment.discountAmount || 0,
+            discountType: appointment.discountType || 'flat'
         });
         setClientSearch(appointment.clientName);
         initialFormDataRef.current = {
@@ -627,7 +639,11 @@ function AdminAppointments() {
             rescheduleReason: '',
             isReferral: !!appointment.isReferral,
             consultationNotes: appointment.consultationNotes || '',
-            quotedPrice: appointment.quotedPrice || ''
+            quotedPrice: appointment.quotedPrice || '',
+            sessionNumber: appointment.sessionNumber || '',
+            totalSessions: appointment.totalSessions || '',
+            discountAmount: appointment.discountAmount || 0,
+            discountType: appointment.discountType || 'flat'
         };
         openModal();
         // Fetch any pending reschedule request for this appointment
@@ -673,7 +689,11 @@ function AdminAppointments() {
             rescheduleReason: '',
             isReferral: false,
             consultationNotes: '',
-            quotedPrice: ''
+            quotedPrice: '',
+            sessionNumber: '',
+            totalSessions: '',
+            discountAmount: 0,
+            discountType: 'flat'
         });
         setClientSearch('');
         initialFormDataRef.current = { ...formData, clientId: '', artistId: '', secondaryArtistId: '', commissionSplit: 50, serviceType: '', date: prefilledDate || new Date().toISOString().split('T')[0], time: '13:00', status: 'pending', paymentStatus: 'unpaid', notes: '', price: 0, tattooPrice: 0, piercingPrice: 0, beforePhoto: null, referenceImage: null, manualPaidAmount: 0, manualPaymentMethod: 'Cash', rejectionReason: '', rescheduleReason: '', isReferral: false };
@@ -799,6 +819,7 @@ function AdminAppointments() {
         }
 
         const doSave = async () => {
+            setIsSavingAppointment(true);
             try {
                 const payload = {
                     customerId: formData.clientId,
@@ -821,7 +842,11 @@ function AdminAppointments() {
                     consultationNotes: formData.consultationNotes || null,
                     quotedPrice: formData.quotedPrice || null,
                     tattooPrice: isDualService ? (Number(formData.tattooPrice) || 0) : null,
-                    piercingPrice: isDualService ? (Number(formData.piercingPrice) || 0) : null
+                    piercingPrice: isDualService ? (Number(formData.piercingPrice) || 0) : null,
+                    sessionNumber: formData.totalSessions ? (parseInt(formData.sessionNumber) || 1) : null,
+                    totalSessions: formData.totalSessions ? (parseInt(formData.totalSessions) || null) : null,
+                    discountAmount: parseFloat(formData.discountAmount) || 0,
+                    discountType: parseFloat(formData.discountAmount) > 0 ? (formData.discountType || 'flat') : null
                 };
 
                 // Only include paymentStatus if the admin explicitly changed it from
@@ -847,6 +872,7 @@ function AdminAppointments() {
                 showAlert('Save Failed', msg, 'danger');
             } finally {
                 setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                setIsSavingAppointment(false);
             }
         };
 
@@ -920,6 +946,7 @@ function AdminAppointments() {
             return;
         }
 
+        setIsRecordingPayment(true);
         try {
             const res = await Axios.post(`${API_URL}/api/admin/appointments/${selectedAppointment.id}/manual-payment`, {
                 amount: manualPaymentModal.amount,
@@ -934,6 +961,8 @@ function AdminAppointments() {
             }
         } catch (error) {
             showAlert("Payment Failed", error.response?.data?.message || "Failed to record payment", "danger");
+        } finally {
+            setIsRecordingPayment(false);
         }
     };
 
@@ -2443,6 +2472,22 @@ function AdminAppointments() {
                                                             <span className="admin-st-0e40c814">₱{Number(formData.price).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                         </div>
                                                     )}
+                                                    {formData.totalSessions > 0 && (
+                                                        <div className="admin-flex-between">
+                                                            <span className="admin-st-26b52dcd">Session:</span>
+                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '6px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', fontSize: '0.75rem', fontWeight: 700 }}>
+                                                                {formData.sessionNumber || 1} of {formData.totalSessions}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {parseFloat(formData.discountAmount) > 0 && (
+                                                        <div className="admin-flex-between">
+                                                            <span className="admin-st-26b52dcd">Discount:</span>
+                                                            <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>
+                                                                {formData.discountType === 'percent' ? `${formData.discountAmount}%` : `₱${Number(formData.discountAmount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`} off
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -2459,6 +2504,120 @@ function AdminAppointments() {
                                                         : "Add any notes about this new appointment — placement preferences, client requests, design specifics, scheduling notes, etc."
                                                     }
                                                 />
+                                            </div>
+
+                                            {/* Multi-Session Project Toggle (Task 1.2) */}
+                                            <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(99, 102, 241, 0.04)', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.15)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: formData.totalSessions ? '14px' : 0 }}>
+                                                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <Layers size={16} style={{ color: '#6366f1' }} />
+                                                        Multi-Session Project
+                                                    </label>
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!formData.totalSessions}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setFormData({ ...formData, totalSessions: 2, sessionNumber: 1 });
+                                                                } else {
+                                                                    setFormData({ ...formData, totalSessions: '', sessionNumber: '' });
+                                                                }
+                                                            }}
+                                                            style={{ width: '18px', height: '18px', accentColor: '#6366f1' }}
+                                                        />
+                                                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Enabled</span>
+                                                    </label>
+                                                </div>
+                                                {!!formData.totalSessions && (
+                                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                        <div style={{ flex: 1 }}>
+                                                            <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Session #</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                max={formData.totalSessions || 10}
+                                                                value={formData.sessionNumber || 1}
+                                                                onChange={(e) => setFormData({ ...formData, sessionNumber: Math.min(Math.max(1, parseInt(e.target.value) || 1), parseInt(formData.totalSessions) || 10) })}
+                                                                className="premium-input-v2"
+                                                                style={{ textAlign: 'center' }}
+                                                            />
+                                                        </div>
+                                                        <span style={{ fontSize: '1.1rem', color: '#94a3b8', fontWeight: 700, paddingTop: '18px' }}>of</span>
+                                                        <div style={{ flex: 1 }}>
+                                                            <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Total Sessions</label>
+                                                            <input
+                                                                type="number"
+                                                                min="2"
+                                                                max="10"
+                                                                value={formData.totalSessions || 2}
+                                                                onChange={(e) => {
+                                                                    const val = Math.min(Math.max(2, parseInt(e.target.value) || 2), 10);
+                                                                    setFormData({ ...formData, totalSessions: val, sessionNumber: Math.min(parseInt(formData.sessionNumber) || 1, val) });
+                                                                }}
+                                                                className="premium-input-v2"
+                                                                style={{ textAlign: 'center' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Special Discount Section (Task 1.3) */}
+                                            <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(245, 158, 11, 0.04)', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.15)' }}>
+                                                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                                    <Tag size={16} style={{ color: '#f59e0b' }} />
+                                                    Special Discount
+                                                </label>
+                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Type</label>
+                                                        <select
+                                                            value={formData.discountType || 'flat'}
+                                                            onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
+                                                            className="premium-select-v2"
+                                                            style={{ fontSize: '0.85rem' }}
+                                                        >
+                                                            <option value="flat">Flat (₱)</option>
+                                                            <option value="percent">Percentage (%)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                                                            Amount {formData.discountType === 'percent' ? '(%)' : '(₱)'}
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max={formData.discountType === 'percent' ? 100 : (formData.price || 0)}
+                                                            value={formData.discountAmount || ''}
+                                                            onChange={(e) => {
+                                                                let val = parseFloat(e.target.value) || 0;
+                                                                if (formData.discountType === 'percent') val = Math.min(val, 100);
+                                                                else val = Math.min(val, formData.price || 999999);
+                                                                setFormData({ ...formData, discountAmount: val });
+                                                            }}
+                                                            className="premium-input-v2"
+                                                            placeholder="0"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                {parseFloat(formData.discountAmount) > 0 && formData.price > 0 && (
+                                                    <div style={{ marginTop: '10px', padding: '8px 12px', background: '#fefce8', borderRadius: '8px', border: '1px solid #fde68a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontSize: '0.8rem', color: '#92400e' }}>Effective Price:</span>
+                                                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#b45309' }}>
+                                                            ₱{(() => {
+                                                                const p = parseFloat(formData.price) || 0;
+                                                                const d = parseFloat(formData.discountAmount) || 0;
+                                                                const eff = formData.discountType === 'percent' ? p * (1 - d / 100) : Math.max(0, p - d);
+                                                                return eff.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                            })()}
+                                                            <span style={{ fontSize: '0.7rem', color: '#d97706', marginLeft: '4px' }}>
+                                                                (was ₱{Number(formData.price).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Consultation Summary Fields — Only visible for Consultation appointments */}
@@ -2665,8 +2824,8 @@ function AdminAppointments() {
                                             </>
                                         )}
                                     </div>
-                                    <button className="btn btn-primary admin-st-a3930dd9" onClick={handleSave} >
-                                        {selectedAppointment ? 'Update Appointment' : 'Create Appointment'}
+                                    <button className="btn btn-primary admin-st-a3930dd9" onClick={handleSave} disabled={isSavingAppointment} style={{ opacity: isSavingAppointment ? 0.7 : 1, cursor: isSavingAppointment ? 'not-allowed' : 'pointer' }}>
+                                        {isSavingAppointment ? 'Saving...' : (selectedAppointment ? 'Update Appointment' : 'Create Appointment')}
                                     </button>
                                 </div>
                                 <button className="btn btn-secondary admin-st-2b5b349d" onClick={() => closeModal()} onMouseEnter={(e) => e.target.style.backgroundColor = '#e2e8f0'}
@@ -2714,7 +2873,7 @@ function AdminAppointments() {
                             </div>
                             <div className="modal-footer">
                                 <button className="btn btn-secondary" onClick={() => setManualPaymentModal({ ...manualPaymentModal, isOpen: false })}>Cancel</button>
-                                <button className="btn btn-primary" onClick={handleApplyManualPayment}>Record Payment</button>
+                                <button className="btn btn-primary" onClick={handleApplyManualPayment} disabled={isRecordingPayment} style={{ opacity: isRecordingPayment ? 0.7 : 1, cursor: isRecordingPayment ? 'not-allowed' : 'pointer' }}>{isRecordingPayment ? 'Recording...' : 'Record Payment'}</button>
                             </div>
                         </div>
                     </div>

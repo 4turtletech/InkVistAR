@@ -578,7 +578,14 @@ function ArtistAppointments() {
                                                         <thead><tr><th>Booking ID</th><th>Client</th><th>Service</th><th>Date</th><th>Time</th><th>Price</th>{activeTab === 'history' && <th>Materials Cost</th>}<th>Status</th><th>Payment</th>{activeTab === 'pending' && <th>Actions</th>}</tr></thead>
                                                         <tbody>{currentItems.map((a, index) => (
                                                             <tr key={a.id} onClick={() => setSelectedAppointment(a)} style={{ cursor: 'pointer', animation: 'slideInUpFade 0.3s ease-out forwards', animationDelay: `${index * 0.05}s`, opacity: 0 }} className="clickable-row hover-bg">
-                                                                <td data-label="Booking ID"><span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b', fontSize: '0.85rem' }}>{getDisplayCode(a.booking_code, a.id)}</span></td>
+                                                                <td data-label="Booking ID">
+                                                                    <span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b', fontSize: '0.85rem' }}>{getDisplayCode(a.booking_code, a.id)}</span>
+                                                                    {a.total_sessions > 1 && (
+                                                                        <span style={{ display: 'inline-block', marginLeft: '6px', fontSize: '0.65rem', fontWeight: 700, background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', padding: '2px 6px', borderRadius: '6px', verticalAlign: 'middle' }}>
+                                                                            {a.session_number || 1}/{a.total_sessions}
+                                                                        </span>
+                                                                    )}
+                                                                </td>
                                                                 <td data-label="Client" style={{ fontWeight: '600' }}>{a.client_name}</td>
                                                                 <td data-label="Service">{a.design_title}</td>
                                                                 <td data-label="Date">{new Date(a.appointment_date).toLocaleDateString()}</td>
@@ -645,6 +652,11 @@ function ArtistAppointments() {
                                                 <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                         <h3 style={{ margin: 0, color: '#1e293b' }}>Appointment {getDisplayCode(selectedAppointment.booking_code, selectedAppointment.id)}</h3>
+                                                        {selectedAppointment.total_sessions > 1 && (
+                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                                                                Session {selectedAppointment.session_number || 1} of {selectedAppointment.total_sessions}
+                                                            </span>
+                                                        )}
                                                         {roleBadge && (
                                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 12px', borderRadius: '20px', background: roleBadge.bg, color: roleBadge.color, fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
                                                                 {roleBadge.icon} {roleBadge.label}

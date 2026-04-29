@@ -2060,26 +2060,47 @@ function CustomerBookings(){
                                                         <>
                                                             <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                 <Paintbrush size={15} color="#be9055" /> Tattoo Placement
+                                                                {bookingData.placement.length > 0 && <span style={{ fontSize: '0.72rem', background: '#be9055', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>{bookingData.placement.length} selected</span>}
                                                             </p>
-                                                            <div className="grid-placement-parts">
-                                                                {tattooBodyParts.map(part => {
-                                                                    const isSelected = bookingData.placement.includes(part);
-                                                                    return (
-                                                                        <button key={part} type="button" onClick={() => togglePlacementItem('placement', part)} style={{
-                                                                            padding: '9px 5px', borderRadius: '10px',
-                                                                            border: `1.5px solid ${isSelected ? '#be9055' : '#e2e8f0'}`,
-                                                                            background: isSelected ? '#be9055' : 'white',
-                                                                            color: isSelected ? 'white' : '#1e293b',
-                                                                            fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer',
-                                                                            transition: 'all 0.2s',
-                                                                            boxShadow: isSelected ? '0 2px 8px rgba(193,154,107,0.3)' : 'none'
-                                                                        }}>
-                                                                            {isSelected && <Check size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />}
-                                                                            {part}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
+                                                            {(() => {
+                                                                const groups = {
+                                                                    'Head / Neck': ['Face', 'Neck'],
+                                                                    'Upper Body': ['Chest', 'Back', 'Left Shoulder', 'Right Shoulder', 'Left Ribs', 'Right Ribs', 'Left Hip', 'Right Hip'],
+                                                                    'Arms': ['Left Upper Arm', 'Right Upper Arm', 'Left Forearm', 'Right Forearm'],
+                                                                    'Hands / Wrists': ['Left Wrist', 'Right Wrist', 'Left Hand', 'Right Hand'],
+                                                                    'Lower Body': ['Left Thigh', 'Right Thigh', 'Left Calf', 'Right Calf'],
+                                                                    'Feet / Ankles': ['Left Ankle', 'Right Ankle'],
+                                                                    'Custom': ['Other']
+                                                                };
+                                                                return (
+                                                                    <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                        {Object.entries(groups).map(([group, parts]) => (
+                                                                            <div key={group}>
+                                                                                <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '6px 0 4px' }}>{group}</p>
+                                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                                                    {parts.map(part => {
+                                                                                        const isSelected = bookingData.placement.includes(part);
+                                                                                        return (
+                                                                                            <button key={part} type="button" onClick={() => togglePlacementItem('placement', part)} style={{
+                                                                                                padding: '7px 12px', borderRadius: '8px',
+                                                                                                border: `1.5px solid ${isSelected ? '#be9055' : '#e2e8f0'}`,
+                                                                                                background: isSelected ? '#be9055' : 'white',
+                                                                                                color: isSelected ? 'white' : '#1e293b',
+                                                                                                fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer',
+                                                                                                transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                                                                boxShadow: isSelected ? '0 2px 8px rgba(193,154,107,0.3)' : 'none'
+                                                                                            }}>
+                                                                                                {isSelected && <Check size={11} />}
+                                                                                                {part}
+                                                                                            </button>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </>
                                                     )}
 
@@ -2091,26 +2112,45 @@ function CustomerBookings(){
                                                         <>
                                                             <p style={{ fontWeight: '700', color: '#1e293b', margin: 0, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                 <Gem size={15} color="#4FC3F7" /> Piercing Placement
+                                                                {bookingData[piercingField].length > 0 && <span style={{ fontSize: '0.72rem', background: '#4FC3F7', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 700 }}>{bookingData[piercingField].length} selected</span>}
                                                             </p>
-                                                            <div className="grid-placement-parts">
-                                                                {piercingBodyParts.map(part => {
-                                                                    const isSelected = bookingData[piercingField].includes(part);
-                                                                    return (
-                                                                        <button key={`p-${part}`} type="button" onClick={() => togglePlacementItem(piercingField, part)} style={{
-                                                                            padding: '9px 5px', borderRadius: '10px',
-                                                                            border: `1.5px solid ${isSelected ? '#be9055' : '#e2e8f0'}`,
-                                                                            background: isSelected ? '#be9055' : 'white',
-                                                                            color: isSelected ? 'white' : '#1e293b',
-                                                                            fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer',
-                                                                            transition: 'all 0.2s',
-                                                                            boxShadow: isSelected ? '0 2px 8px rgba(193,154,107,0.3)' : 'none'
-                                                                        }}>
-                                                                            {isSelected && <Check size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />}
-                                                                            {part}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
+                                                            {(() => {
+                                                                const pGroups = {
+                                                                    'Ears': ['Left Ear Lobe', 'Right Ear Lobe', 'Left Helix', 'Right Helix', 'Left Tragus', 'Right Tragus', 'Left Conch', 'Right Conch', 'Left Industrial', 'Right Industrial'],
+                                                                    'Nose / Face': ['Left Nostril', 'Right Nostril', 'Septum', 'Left Eyebrow', 'Right Eyebrow'],
+                                                                    'Mouth / Lips': ['Lip/Oral'],
+                                                                    'Torso': ['Navel', 'Left Nipple', 'Right Nipple'],
+                                                                    'Custom': ['Other']
+                                                                };
+                                                                return (
+                                                                    <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                        {Object.entries(pGroups).map(([group, parts]) => (
+                                                                            <div key={group}>
+                                                                                <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '6px 0 4px' }}>{group}</p>
+                                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                                                    {parts.map(part => {
+                                                                                        const isSelected = bookingData[piercingField].includes(part);
+                                                                                        return (
+                                                                                            <button key={`p-${part}`} type="button" onClick={() => togglePlacementItem(piercingField, part)} style={{
+                                                                                                padding: '7px 12px', borderRadius: '8px',
+                                                                                                border: `1.5px solid ${isSelected ? '#4FC3F7' : '#e2e8f0'}`,
+                                                                                                background: isSelected ? '#4FC3F7' : 'white',
+                                                                                                color: isSelected ? 'white' : '#1e293b',
+                                                                                                fontWeight: '600', fontSize: '0.78rem', cursor: 'pointer',
+                                                                                                transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                                                                boxShadow: isSelected ? '0 2px 8px rgba(79,195,247,0.3)' : 'none'
+                                                                                            }}>
+                                                                                                {isSelected && <Check size={11} />}
+                                                                                                {part}
+                                                                                            </button>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </>
                                                     )}
                                                 </div>

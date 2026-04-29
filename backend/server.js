@@ -786,6 +786,36 @@ db.getConnection((err, connection) => {
           }
         });
 
+        // MIGRATION: Add multi-session tracking columns
+        db.query("SHOW COLUMNS FROM appointments LIKE 'session_number'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('[MIGRATE] Adding multi-session columns to appointments...');
+            db.query("ALTER TABLE appointments ADD COLUMN session_number INT DEFAULT NULL AFTER notes");
+            db.query("ALTER TABLE appointments ADD COLUMN total_sessions INT DEFAULT NULL AFTER session_number");
+            console.log('[OK] Added session_number and total_sessions columns');
+          }
+        });
+
+        // MIGRATION: Add discount columns to appointments
+        db.query("SHOW COLUMNS FROM appointments LIKE 'discount_amount'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('[MIGRATE] Adding discount columns to appointments...');
+            db.query("ALTER TABLE appointments ADD COLUMN discount_amount DECIMAL(10, 2) DEFAULT 0.00 AFTER price");
+            db.query("ALTER TABLE appointments ADD COLUMN discount_type VARCHAR(20) DEFAULT NULL AFTER discount_amount");
+            console.log('[OK] Added discount_amount and discount_type columns');
+          }
+        });
+
+        // MIGRATION: Add jewelry selection columns to appointments
+        db.query("SHOW COLUMNS FROM appointments LIKE 'selected_jewelry_id'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('[MIGRATE] Adding jewelry selection columns to appointments...');
+            db.query("ALTER TABLE appointments ADD COLUMN selected_jewelry_id INT DEFAULT NULL AFTER notes");
+            db.query("ALTER TABLE appointments ADD COLUMN selected_jewelry_name VARCHAR(255) DEFAULT NULL AFTER selected_jewelry_id");
+            console.log('[OK] Added selected_jewelry_id and selected_jewelry_name columns');
+          }
+        });
+
         // FIX: Try to drop the specific problematic constraint if it exists
         db.query("ALTER TABLE appointments DROP FOREIGN KEY fk_appointments_artist", (err) => {
           if (!err) {
@@ -3482,6 +3512,20 @@ app.put('/api/customer/profile/:id', (req, res) => {
     });
 });
 
+// GET available jewelry items for piercing bookings (Public)
+app.get('/api/inventory/jewelry', (req, res) => {
+  const query = `
+    SELECT id, name, category, cost, quantity, unit 
+    FROM inventory 
+    WHERE LOWER(category) = 'jewelry' AND is_deleted = 0 AND quantity > 0
+    ORDER BY name ASC
+  `;
+  db.query(query, (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    res.json({ success: true, items: results });
+  });
+});
+
 // Get all available portfolio categories
 app.get('/api/gallery/categories', (req, res) => {
   db.query("SELECT data FROM app_settings WHERE section = 'gallery'", (settingsErr, settingsResults) => {
@@ -4752,6 +4796,33 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   if (consultationNotes !== undefined) { updates.push('consultation_notes = ?'); params.push(consultationNotes); }
   if (quotedPrice !== undefined) { updates.push('quoted_price = ?'); params.push(quotedPrice); }
 
+  // Multi-session tracking (Task 1.2)
+  if (body.sessionNumber !== undefined) {
+    const sn = body.sessionNumber === '' || body.sessionNumber === null ? null : parseInt(body.sessionNumber);
+    updates.push('session_number = ?'); params.push(sn);
+  }
+  if (body.totalSessions !== undefined) {
+    const ts = body.totalSessions === '' || body.totalSessions === null ? null : parseInt(body.totalSessions);
+    updates.push('total_sessions = ?'); params.push(ts);
+  }
+
+  // Special discount (Task 1.3)
+  if (body.discountAmount !== undefined) {
+    const da = body.discountAmount === '' ? 0 : parseFloat(body.discountAmount) || 0;
+    updates.push('discount_amount = ?'); params.push(da);
+  }
+  if (body.discountType !== undefined) {
+    updates.push('discount_type = ?'); params.push(body.discountType || null);
+  }
+
+  // Jewelry selection (Task 1.4)
+  if (body.selectedJewelryId !== undefined) {
+    updates.push('selected_jewelry_id = ?'); params.push(body.selectedJewelryId || null);
+  }
+  if (body.selectedJewelryName !== undefined) {
+    updates.push('selected_jewelry_name = ?'); params.push(body.selectedJewelryName || null);
+  }
+
   // Dual-service split pricing: sanitize and persist tattoo_price / piercing_price
   const isDualServiceUpdate = (serviceType === 'Tattoo + Piercing');
   if (body.tattooPrice !== undefined) {
@@ -5982,6 +6053,26 @@ app.put('/api/appointments/:id/status', (req, res) => {
           });
         }
       });
+
+      // Auto-link selected jewelry if this is a piercing appointment (Task 3.1)
+      if (appointment.selected_jewelry_id) {
+        db.query('SELECT id, name, cost, quantity FROM inventory WHERE id = ? AND is_deleted = 0', [appointment.selected_jewelry_id], (jewErr, jewResults) => {
+          if (!jewErr && jewResults.length > 0 && jewResults[0].quantity > 0) {
+            const jewItem = jewResults[0];
+            // Deduct from inventory
+            db.query('UPDATE inventory SET quantity = quantity - 1 WHERE id = ? AND quantity >= 1', [jewItem.id], (updErr, updRes) => {
+              if (!updErr && updRes.affectedRows > 0) {
+                // Record as consumed (jewelry is immediately consumed, not held)
+                db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, 1, ?)',
+                  [id, jewItem.id, 'consumed']);
+                db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason) VALUES (?, ?, 1, ?)',
+                  [jewItem.id, 'out', `Pre-selected jewelry for piercing session #${id}`]);
+                console.log(`[OK] Auto-linked jewelry "${jewItem.name}" to session #${id}`);
+              }
+            });
+          }
+        });
+      }
     } else if (status === 'completed' && appointment.status === 'in_progress') {
       // 2. Session Completed: Finalize tracking and log material transaction out
       db.query('SELECT sm.id, sm.inventory_id, sm.quantity, i.cost, i.name FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ? AND sm.status = \'hold\'', [id], (matErr, mats) => {
@@ -6349,6 +6440,7 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
     const apptsQuery = `
       SELECT ap.id, ap.appointment_date, ap.design_title, ap.price, ap.tattoo_price, ap.piercing_price, ap.service_type, ap.payment_status, ap.status, 
              ap.artist_id, ap.secondary_artist_id, ap.commission_split, ap.is_referral,
+             COALESCE(ap.discount_amount, 0) as discount_amount, ap.discount_type,
              ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
              u_cust.name as client_name,
              u_sec.name as secondary_artist_name,
@@ -6371,6 +6463,17 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
         // e.g. commission_split=50 means primary gets 50% of pool, secondary gets 50%
         // e.g. commission_split=60 means primary gets 60% of pool, secondary gets 40%
         const calculations = appts.map(a => {
+          // Calculate effective price after discount (Task 1.3)
+          let effectivePrice = a.price || 0;
+          const rawDiscount = parseFloat(a.discount_amount) || 0;
+          if (rawDiscount > 0) {
+            if (a.discount_type === 'percent') {
+              effectivePrice = effectivePrice * (1 - rawDiscount / 100);
+            } else {
+              effectivePrice = Math.max(0, effectivePrice - rawDiscount);
+            }
+          }
+
           let artistShare;
           const isCollab = !!a.secondary_artist_id;
           const isPrimary = Number(a.artist_id) === Number(id);
@@ -6383,28 +6486,28 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
             const hasSplitPricing = a.tattoo_price !== null && a.piercing_price !== null;
 
             if (hasSplitPricing) {
-              // Per-service-line commission: Tattoo artist earns from tattoo_price, Piercer earns from piercing_price
+              // Per-service-line commission: use service-line prices (discount already factored into total)
+              const discountRatio = a.price > 0 ? effectivePrice / a.price : 1;
               if (isPrimary) {
-                artistShare = a.tattoo_price * ARTIST_RATE;
+                artistShare = a.tattoo_price * discountRatio * ARTIST_RATE;
                 splitPercent = Math.round((a.tattoo_price / a.price) * 100) || 0;
                 collabPartnerName = a.secondary_artist_name;
                 serviceLine = 'Tattoo';
               } else {
-                artistShare = a.piercing_price * ARTIST_RATE;
+                artistShare = a.piercing_price * discountRatio * ARTIST_RATE;
                 splitPercent = Math.round((a.piercing_price / a.price) * 100) || 0;
                 collabPartnerName = a.primary_artist_name;
                 serviceLine = 'Piercing';
               }
             } else {
               // Legacy collab or dual-tattoo-artist session: split by percentage slider
-              // Referral does NOT apply to collab sessions
               const split = a.commission_split || 50;
               if (isPrimary) {
-                artistShare = a.price * ARTIST_RATE * (split / 100);
+                artistShare = effectivePrice * ARTIST_RATE * (split / 100);
                 splitPercent = split;
                 collabPartnerName = a.secondary_artist_name;
               } else {
-                artistShare = a.price * ARTIST_RATE * ((100 - split) / 100);
+                artistShare = effectivePrice * ARTIST_RATE * ((100 - split) / 100);
                 splitPercent = 100 - split;
                 collabPartnerName = a.primary_artist_name;
               }
@@ -6412,13 +6515,16 @@ app.get('/api/artist/:id/earnings-ledger', (req, res) => {
           } else {
             // Solo session: apply referral rate if flagged
             const effectiveRate = a.is_referral ? REFERRAL_RATE : ARTIST_RATE;
-            artistShare = a.price * effectiveRate;
+            artistShare = effectivePrice * effectiveRate;
           }
           return {
             ...a,
             artistShare,
-            basePrice: a.price,
-            studioShare: a.price - artistShare,
+            basePrice: effectivePrice,
+            originalPrice: a.price,
+            discountAmount: rawDiscount,
+            discountType: a.discount_type,
+            studioShare: effectivePrice - artistShare,
             isCollab,
             isPrimary,
             splitPercent,
@@ -8070,6 +8176,23 @@ app.delete('/api/admin/users/:id/permanent', (req, res) => {
       logAction(getAdminId(req), 'DELETE_USER', `Permanently deleted user ID ${id}`, req.ip);
       res.json({ success: true, message: 'User permanently deleted' });
     });
+  });
+});
+
+// Admin: Undo soft delete (Task 4.1)
+app.put('/api/admin/undo-delete', (req, res) => {
+  const { table, id } = req.body;
+  const allowedTables = ['users', 'appointments', 'inventory', 'portfolio_works', 'branches'];
+  if (!allowedTables.includes(table)) {
+    return res.status(400).json({ success: false, message: 'Invalid table for undo operation' });
+  }
+  if (!id) return res.status(400).json({ success: false, message: 'Missing record ID' });
+
+  db.query(`UPDATE ${table} SET is_deleted = 0 WHERE id = ?`, [id], (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error' });
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Record not found' });
+    console.log(`[UNDO] Restored ${table} record #${id}`);
+    res.json({ success: true, message: 'Record restored successfully' });
   });
 });
 

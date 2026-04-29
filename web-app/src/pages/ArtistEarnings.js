@@ -55,7 +55,10 @@ function ArtistEarnings() {
                 if (res.data.success) {
                     setRawStats(res.data.stats);
                     setCommissionRate((res.data.commissionRate * 100).toFixed(0));
-                    setSessionEarnings(res.data.sessions.sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date)));
+                    setSessionEarnings(res.data.sessions.sort((a, b) => {
+                        const dateDiff = new Date(b.appointment_date) - new Date(a.appointment_date);
+                        return dateDiff !== 0 ? dateDiff : (b.id - a.id);
+                    }));
                     setPayoutHistory(res.data.payouts || []);
                 }
                 setLoading(false);

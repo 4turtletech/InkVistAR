@@ -93,7 +93,7 @@ function CustomerSideNav() {
                     const unpaidAlerts = res.data.appointments.filter(a => 
                         ['pending', 'confirmed', 'scheduled', 'completed'].includes((a.status || '').toLowerCase()) 
                         && a.price > 0 
-                        && a.payment_status === 'unpaid'
+                        && ['unpaid', 'downpayment_paid'].includes(a.payment_status)
                     );
                     window.dispatchEvent(new CustomEvent('customer-payment-alert', { detail: { alerts: unpaidAlerts } }));
                 }

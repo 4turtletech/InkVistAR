@@ -32,6 +32,7 @@ function ArtistSessions() {
     const [addingMaterial, setAddingMaterial] = useState(false);
     const [inventorySearch, setInventorySearch] = useState('');
     const [isCompletingSession, setIsCompletingSession] = useState(false);
+    const [isStartingProcedure, setIsStartingProcedure] = useState(false);
     const [showAbortModal, setShowAbortModal] = useState(false);
     const [abortReason, setAbortReason] = useState('');
     const [isAborting, setIsAborting] = useState(false);
@@ -437,7 +438,12 @@ function ArtistSessions() {
             }
             setIsCompletingSession(true);
         } else {
-            await processStatusUpdate(newStatus);
+            if (newStatus === 'in_progress') setIsStartingProcedure(true);
+            try {
+                await processStatusUpdate(newStatus);
+            } finally {
+                if (newStatus === 'in_progress') setIsStartingProcedure(false);
+            }
         }
     };
 
@@ -818,6 +824,11 @@ function ArtistSessions() {
                             <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                                     <h2 style={{ margin: 0 }}>Active Session: {activeSession.client_name}</h2>
+                                    {activeSession.total_sessions > 1 && (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', fontSize: '0.72rem', fontWeight: 700 }}>
+                                            Session {activeSession.session_number || 1} of {activeSession.total_sessions}
+                                        </span>
+                                    )}
                                     {roleBadge && (
                                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 14px', borderRadius: '20px', background: roleBadge.bg, color: roleBadge.color, fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
                                             {roleBadge.icon} {roleBadge.label}
@@ -1057,23 +1068,26 @@ function ArtistSessions() {
                                             className="btn btn-primary" 
                                             style={{ 
                                                 padding: '10px 24px',
-                                                opacity: payCheck.canStart ? 1 : 0.6,
-                                                cursor: payCheck.canStart ? 'pointer' : 'not-allowed'
+                                                opacity: (payCheck.canStart && !isStartingProcedure) ? 1 : 0.6,
+                                                cursor: (payCheck.canStart && !isStartingProcedure) ? 'pointer' : 'not-allowed'
                                             }} 
                                             title={payCheck.canStart ? 'Start Session' : payCheck.reason}
+                                            disabled={isStartingProcedure}
                                             onClick={() => {
-                                                if (!payCheck.canStart) {
-                                                    showAlert(
-                                                        payCheck.isFollowUp ? 'Full Payment Required' : 'Downpayment Required',
-                                                        payCheck.reason,
-                                                        'warning'
-                                                    );
+                                                if (!payCheck.canStart || isStartingProcedure) {
+                                                    if (!payCheck.canStart) {
+                                                        showAlert(
+                                                            payCheck.isFollowUp ? 'Full Payment Required' : 'Downpayment Required',
+                                                            payCheck.reason,
+                                                            'warning'
+                                                        );
+                                                    }
                                                     return;
                                                 }
                                                 handleUpdateStatus('in_progress');
                                             }}
                                         >
-                                            <Play size={16} /> Start Procedure
+                                            <Play size={16} /> {isStartingProcedure ? 'Starting...' : 'Start Procedure'}
                                         </button>
                                         {!payCheck.canStart && (
                                             <span style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600 }}>

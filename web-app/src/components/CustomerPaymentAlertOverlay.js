@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, X, ArrowRight, FileText, Clock } from 'lucide-react';
+import { AlertTriangle, X, ArrowRight, FileText, Clock, Loader2 } from 'lucide-react';
 import PhilippinePeso from './PhilippinePeso';
+import { getDisplayCode } from '../utils/formatters';
 
 /**
  * Global Customer Payment Alert Overlay
@@ -17,6 +18,7 @@ function CustomerPaymentAlertOverlay() {
     const [selectedAlert, setSelectedAlert] = useState(null);
     const hasShownOnLoginRef = useRef(false);
     const [notificationVisible, setNotificationVisible] = useState(false);
+    const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
 
     // Listen for notification alerts to shift payment toast down
     useEffect(() => {
@@ -67,8 +69,23 @@ function CustomerPaymentAlertOverlay() {
     };
 
     const handleGoToAppointment = (alertItem) => {
+        if (isInitiatingPayment) return;
+        setIsInitiatingPayment(true);
         setShowPopup(false);
-        navigate(`/customer/bookings?editId=${alertItem.id}`);
+        const totalPaid = Number(alertItem.total_paid || 0);
+        const totalPrice = Number(alertItem.price || 0);
+        const remainingBalance = Math.max(0, totalPrice - totalPaid);
+        navigate('/customer/payment', {
+            state: {
+                appointmentId: alertItem.id,
+                price: totalPrice,
+                type: totalPaid > 0 ? 'balance' : null,
+                remainingBalance: remainingBalance,
+                serviceType: alertItem.service_type || 'Tattoo Session',
+                bookingCode: alertItem.booking_code || null
+            }
+        });
+        setTimeout(() => setIsInitiatingPayment(false), 2000);
     };
 
     if (alerts.length === 0) return null;
@@ -190,12 +207,13 @@ function CustomerPaymentAlertOverlay() {
                             }}>
                                 Dismiss
                             </button>
-                            <button onClick={() => handleGoToAppointment(selectedAlert)} style={{
+                            <button onClick={() => handleGoToAppointment(selectedAlert)} disabled={isInitiatingPayment} style={{
                                 padding: '10px 20px', background: '#f59e0b',
-                                border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer',
-                                color: '#fff', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px'
+                                border: 'none', borderRadius: '10px', fontWeight: 600, cursor: isInitiatingPayment ? 'not-allowed' : 'pointer',
+                                color: '#fff', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px',
+                                opacity: isInitiatingPayment ? 0.7 : 1
                             }}>
-                                <PhilippinePeso size={14} /> Pay Online <ArrowRight size={14} />
+                                {isInitiatingPayment ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Processing...</> : <><PhilippinePeso size={14} /> Pay Online <ArrowRight size={14} /></>}
                             </button>
                         </div>
                     </div>
@@ -233,6 +251,7 @@ function CustomerPaymentAlertOverlay() {
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
                 @keyframes slideInFromRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
         </>,
         document.body
