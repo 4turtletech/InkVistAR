@@ -974,7 +974,7 @@ function CustomerBookings(){
     return (<>
         <div className="portal-layout">
             <CustomerSideNav />
-            <div className="portal-container customer-portal">
+            <div className="portal-container customer-portal animated-bg">
             <header className="portal-header">
                 <div className="header-title">
                     <h1>My Bookings</h1>
@@ -1041,7 +1041,7 @@ function CustomerBookings(){
                                                     <td data-label="Date">{new Date(a.appointment_date).toLocaleDateString()}</td>
                                                     <td data-label="Time">{a.start_time ? new Date(`1970-01-01T${a.start_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : ''}</td>
                                                     <td data-label="Status">
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
                                                             <span className={`status-badge ${a.status.toLowerCase()}`}>{a.status}</span>
                                                         </div>
                                                     </td>
@@ -1053,7 +1053,7 @@ function CustomerBookings(){
                                                         )}
                                                     </td>
                                                     <td data-label="Payment">
-                                                        <div className="customer-st-929a545b" style={{display: 'flex', justifyContent: 'flex-end'}}>
+                                                        <div className="customer-st-929a545b" style={{display: 'flex', justifyContent: 'flex-start'}}>
                                                             {a.status === 'pending' && a.price > 0 && a.payment_status === 'unpaid' ? (
                                                                 <button 
                                                                     className="btn btn-primary" 
@@ -2348,37 +2348,127 @@ function CustomerBookings(){
 
             <style>{`
                 /* Premium Glassmorphism Overrides for Customer Bookings */
-                .table-card-container {
-                    background: rgba(255, 255, 255, 0.85) !important;
-                    backdrop-filter: blur(16px) !important;
-                    -webkit-backdrop-filter: blur(16px) !important;
-                    border: 1px solid rgba(255, 255, 255, 0.4) !important;
-                    border-radius: 20px !important;
-                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), 0 2px 10px rgba(0, 0, 0, 0.02) !important;
-                    overflow: hidden !important;
+                .animated-bg {
+                    position: relative;
+                    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+                    z-index: 1;
                 }
+                .animated-bg::before, .animated-bg::after {
+                    content: '';
+                    position: absolute;
+                    border-radius: 50%;
+                    filter: blur(80px);
+                    z-index: -1;
+                    animation: float 20s infinite ease-in-out alternate;
+                    pointer-events: none;
+                }
+                .animated-bg::before {
+                    width: 500px;
+                    height: 500px;
+                    background: rgba(190, 144, 85, 0.15); /* InkVistAR Gold tint */
+                    top: -150px;
+                    left: -150px;
+                    animation-delay: 0s;
+                }
+                .animated-bg::after {
+                    width: 600px;
+                    height: 600px;
+                    background: rgba(99, 102, 241, 0.08); /* Indigo tint */
+                    bottom: -200px;
+                    right: -100px;
+                    animation-delay: -5s;
+                }
+                @keyframes float {
+                    0% { transform: translate(0, 0) scale(1); }
+                    33% { transform: translate(30px, -50px) scale(1.1); }
+                    66% { transform: translate(-20px, 20px) scale(0.9); }
+                    100% { transform: translate(0, 0) scale(1); }
+                }
+
+                .table-card-container {
+                    background: rgba(255, 255, 255, 0.7) !important;
+                    backdrop-filter: blur(24px) !important;
+                    -webkit-backdrop-filter: blur(24px) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+                    border-radius: 24px !important;
+                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0,0,0,0.02), inset 0 1px 0 rgba(255,255,255,0.6) !important;
+                    overflow: hidden !important;
+                    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+                }
+                @keyframes slideUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
                 .portal-table thead th {
-                    background: rgba(248, 250, 252, 0.5) !important;
-                    border-bottom: 1px solid rgba(226, 232, 240, 0.6) !important;
-                    font-weight: 600 !important;
-                    color: #475569 !important;
+                    background: rgba(248, 250, 252, 0.4) !important;
+                    border-bottom: 1px solid rgba(226, 232, 240, 0.5) !important;
+                    font-weight: 700 !important;
+                    color: #64748b !important;
                     text-transform: uppercase !important;
-                    letter-spacing: 0.5px !important;
+                    letter-spacing: 0.8px !important;
                     font-size: 0.75rem !important;
-                    padding: 18px 24px !important;
+                    padding: 20px 24px !important;
+                    text-align: left !important;
                 }
                 .portal-table tbody td {
                     padding: 18px 24px !important;
-                    border-bottom: 1px solid rgba(226, 232, 240, 0.5) !important;
+                    border-bottom: 1px solid rgba(226, 232, 240, 0.4) !important;
                     color: #334155 !important;
+                    font-weight: 500 !important;
+                    text-align: left !important;
                 }
                 .clickable-row.hover-bg {
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                    position: relative;
+                    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                    z-index: 1;
                 }
                 .clickable-row.hover-bg:hover {
-                    background: rgba(241, 245, 249, 0.7) !important;
-                    transform: scale(1.005) !important;
-                    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.8) !important;
+                    background: rgba(255, 255, 255, 0.95) !important;
+                    transform: translateY(-3px) !important;
+                    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.03) !important;
+                    z-index: 10;
+                    border-radius: 12px;
+                }
+                .clickable-row.hover-bg:hover td {
+                    border-bottom-color: transparent !important;
+                    color: #0f172a !important;
+                }
+                .clickable-row.hover-bg:hover td:first-child {
+                    border-top-left-radius: 12px;
+                    border-bottom-left-radius: 12px;
+                }
+                .clickable-row.hover-bg:hover td:last-child {
+                    border-top-right-radius: 12px;
+                    border-bottom-right-radius: 12px;
+                }
+
+                .action-btn.customer-st-98cc44d8 {
+                    background: linear-gradient(135deg, #1e293b, #0f172a) !important;
+                    border: none !important;
+                    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.2) !important;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                    overflow: hidden;
+                    position: relative;
+                    border-radius: 12px !important;
+                }
+                .action-btn.customer-st-98cc44d8::after {
+                    content: '';
+                    position: absolute;
+                    top: 0; left: -100%;
+                    width: 50%; height: 100%;
+                    background: linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent);
+                    transform: skewX(-20deg);
+                    animation: shimmer 3s infinite;
+                }
+                .action-btn.customer-st-98cc44d8:hover {
+                    transform: translateY(-2px) !important;
+                    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.3) !important;
+                }
+                @keyframes shimmer {
+                    0% { left: -100%; }
+                    20% { left: 200%; }
+                    100% { left: 200%; }
                 }
                 .card-header-v2 {
                     background: transparent !important;
