@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -53,6 +53,7 @@ function CustomerSideNav() {
     };
 
     // Fetch unread notification count and latest notification with polling (10s, silent merge)
+    const hasMountedNotifRef = useRef(false);
     useEffect(() => {
         if (!customerId) return;
         const fetchCount = async () => {
@@ -61,10 +62,11 @@ function CustomerSideNav() {
                 if (res.data.success) {
                     setUnreadNotifCount(prev => {
                         const newCount = res.data.unreadCount || 0;
-                        if (newCount > prev && prev !== undefined) {
+                        if (hasMountedNotifRef.current && newCount > prev) {
                             playNotificationSound();
                         }
-                        return newCount !== prev ? newCount : prev;
+                        hasMountedNotifRef.current = true;
+                        return newCount;
                     });
                     
                     // Dispatch the latest unread notification

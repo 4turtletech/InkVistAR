@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -52,6 +52,7 @@ function ArtistSideNav() {
     };
 
     // Fetch unread notification count with polling (10s, silent merge)
+    const hasMountedNotifRef = useRef(false);
     useEffect(() => {
         if (!artistId) return;
         const fetchCount = async () => {
@@ -60,10 +61,11 @@ function ArtistSideNav() {
                 if (res.data.success) {
                     setUnreadNotifCount(prev => {
                         const newCount = res.data.unreadCount || 0;
-                        if (newCount > prev && prev !== undefined) {
+                        if (hasMountedNotifRef.current && newCount > prev) {
                             playNotificationSound();
                         }
-                        return newCount !== prev ? newCount : prev;
+                        hasMountedNotifRef.current = true;
+                        return newCount;
                     });
                     
                     if (res.data.notifications && res.data.notifications.length > 0) {

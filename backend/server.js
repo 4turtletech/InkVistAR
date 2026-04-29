@@ -7799,33 +7799,41 @@ app.get('/api/notifications/:userId', (req, res) => {
       return res.status(500).json({ success: false, message: 'Database error' });
     }
 
-    db.query(query, queryParams, (err, results) => {
-      if (err) {
-        console.error('[ERROR] Error fetching notifications:', err);
+    // Get TOTAL unread count for this user (independent of pagination/filters)
+    db.query('SELECT COUNT(*) as unread FROM notifications WHERE user_id = ? AND is_read = 0', [userId], (unreadErr, unreadResults) => {
+      if (unreadErr) {
+        console.error('[ERROR] Error fetching unread count:', unreadErr);
         return res.status(500).json({ success: false, message: 'Database error' });
       }
 
-      const formattedResults = results.map(n => ({
-        ...n,
-        // Append Z to correctly parse as UTC since dateStrings: true returns raw timestamp string
-        created_at: typeof n.created_at === 'string' && !n.created_at.includes('Z') ?
-          n.created_at.replace(' ', 'T') + 'Z' : n.created_at
-      }));
-
-      const unreadCount = formattedResults.filter(n => !n.is_read).length;
-      const total = countResults[0]?.total || 0;
-      const hasMore = offset + results.length < total;
-
-      res.json({
-        success: true,
-        notifications: formattedResults,
-        unreadCount,
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          hasMore
+      db.query(query, queryParams, (err, results) => {
+        if (err) {
+          console.error('[ERROR] Error fetching notifications:', err);
+          return res.status(500).json({ success: false, message: 'Database error' });
         }
+
+        const formattedResults = results.map(n => ({
+          ...n,
+          // Append Z to correctly parse as UTC since dateStrings: true returns raw timestamp string
+          created_at: typeof n.created_at === 'string' && !n.created_at.includes('Z') ?
+            n.created_at.replace(' ', 'T') + 'Z' : n.created_at
+        }));
+
+        const unreadCount = unreadResults[0]?.unread || 0;
+        const total = countResults[0]?.total || 0;
+        const hasMore = offset + results.length < total;
+
+        res.json({
+          success: true,
+          notifications: formattedResults,
+          unreadCount,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            hasMore
+          }
+        });
       });
     });
   });
@@ -7843,6 +7851,20 @@ app.put('/api/notifications/:id/read', (req, res) => {
     }
 
     res.json({ success: true, message: 'Marked as read' });
+  });
+});
+
+// Bulk mark ALL notifications as read for a user
+app.put('/api/notifications/:userId/read-all', (req, res) => {
+  const { userId } = req.params;
+
+  db.query('UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0', [userId], (err, result) => {
+    if (err) {
+      console.error('[ERROR] Error bulk marking notifications:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+
+    res.json({ success: true, message: `Marked ${result.affectedRows} notifications as read`, count: result.affectedRows });
   });
 });
 

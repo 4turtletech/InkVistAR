@@ -69,7 +69,7 @@ function AdminNotifications() {
             const adminId = user ? user.id : 1;
 
             const [notifsResponse, appointmentsResponse, inventoryResponse, paymentAlertsResponse] = await Promise.all([
-                Axios.get(`${API_URL}/api/notifications/${adminId}`), // Admin notifications
+                Axios.get(`${API_URL}/api/notifications/${adminId}?limit=500`), // Admin notifications — fetch all
                 Axios.get(`${API_URL}/api/admin/appointments`),
                 Axios.get(`${API_URL}/api/admin/inventory?status=active`),
                 Axios.get(`${API_URL}/api/admin/pending-payment-alerts`).catch(() => ({ data: { success: false } }))
@@ -249,11 +249,12 @@ function AdminNotifications() {
 
     const markAllRead = async () => {
         try {
-            const unreadIds = notifications.filter(n => !n.is_read && !n.id.toString().startsWith('inv-') && n.id !== 'apt-pending').map(n => n.id);
-            if (unreadIds.length > 0) {
-                await Promise.all(unreadIds.map(id => Axios.put(`${API_URL}/api/notifications/${id}/read`)));
-                setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
-            }
+            const user = JSON.parse(localStorage.getItem('user'));
+            const adminId = user ? user.id : 1;
+            // Use the bulk endpoint to mark ALL notifications server-side
+            await Axios.put(`${API_URL}/api/notifications/${adminId}/read-all`);
+            // Update local state
+            setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
         } catch (e) {
             console.error(e);
         }

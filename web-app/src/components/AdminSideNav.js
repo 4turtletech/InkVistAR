@@ -99,6 +99,7 @@ function AdminSideNav() {
     }, []);
 
     // Fetch unread notification count with polling (10s, silent merge)
+    const hasMountedNotifRef = useRef(false);
     useEffect(() => {
         if (!adminId) return;
         const fetchCount = async () => {
@@ -107,10 +108,11 @@ function AdminSideNav() {
                 if (res.data.success) {
                     setUnreadNotifCount(prev => {
                         const newCount = res.data.unreadCount || 0;
-                        if (newCount > prev && prev !== undefined) {
+                        if (hasMountedNotifRef.current && newCount > prev) {
                             playNotificationSound();
                         }
-                        return newCount !== prev ? newCount : prev;
+                        hasMountedNotifRef.current = true;
+                        return newCount;
                     });
                     
                     if (res.data.notifications && res.data.notifications.length > 0) {
