@@ -75,7 +75,7 @@ function CustomerPaymentAlertOverlay() {
         const totalPaid = Number(alertItem.total_paid || 0);
         const totalPrice = Number(alertItem.price || 0);
         const remainingBalance = Math.max(0, totalPrice - totalPaid);
-        navigate('/customer/payment', {
+        navigate(`/pay-mongo?appointmentId=${alertItem.id}&price=${totalPrice}`, {
             state: {
                 appointmentId: alertItem.id,
                 price: totalPrice,
