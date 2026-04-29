@@ -974,7 +974,7 @@ function CustomerBookings(){
     return (<>
         <div className="portal-layout">
             <CustomerSideNav />
-            <div className="portal-container customer-portal animated-bg">
+            <div className="portal-container customer-portal">
             <header className="portal-header">
                 <div className="header-title">
                     <h1>My Bookings</h1>
@@ -2348,43 +2348,6 @@ function CustomerBookings(){
 
             <style>{`
                 /* Premium Glassmorphism Overrides for Customer Bookings */
-                .animated-bg {
-                    position: relative;
-                    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
-                    z-index: 1;
-                }
-                .animated-bg::before, .animated-bg::after {
-                    content: '';
-                    position: absolute;
-                    border-radius: 50%;
-                    filter: blur(80px);
-                    z-index: -1;
-                    animation: float 20s infinite ease-in-out alternate;
-                    pointer-events: none;
-                }
-                .animated-bg::before {
-                    width: 500px;
-                    height: 500px;
-                    background: rgba(190, 144, 85, 0.15); /* InkVistAR Gold tint */
-                    top: -150px;
-                    left: -150px;
-                    animation-delay: 0s;
-                }
-                .animated-bg::after {
-                    width: 600px;
-                    height: 600px;
-                    background: rgba(99, 102, 241, 0.08); /* Indigo tint */
-                    bottom: -200px;
-                    right: -100px;
-                    animation-delay: -5s;
-                }
-                @keyframes float {
-                    0% { transform: translate(0, 0) scale(1); }
-                    33% { transform: translate(30px, -50px) scale(1.1); }
-                    66% { transform: translate(-20px, 20px) scale(0.9); }
-                    100% { transform: translate(0, 0) scale(1); }
-                }
-
                 .table-card-container {
                     background: rgba(255, 255, 255, 0.7) !important;
                     backdrop-filter: blur(24px) !important;

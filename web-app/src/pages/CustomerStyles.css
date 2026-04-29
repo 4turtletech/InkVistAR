@@ -1510,6 +1510,45 @@
 .inspiration-banner__tile--green { background: rgba(16, 185, 129, 0.06); color: #10b981; }
 .inspiration-banner__tile--blue { background: rgba(59, 130, 246, 0.06); color: #3b82f6; }
 
+/* ========== GLOBAL CUSTOMER PORTAL BACKGROUND ========== */
+.customer-portal {
+    position: relative;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+    z-index: 1;
+    overflow: hidden; /* Ensure glowing orbs don't create scrollbars */
+}
+.customer-portal::before, .customer-portal::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: -1;
+    animation: float 20s infinite ease-in-out alternate;
+    pointer-events: none;
+}
+.customer-portal::before {
+    width: 500px;
+    height: 500px;
+    background: rgba(190, 144, 85, 0.15); /* InkVistAR Gold tint */
+    top: -150px;
+    left: -150px;
+    animation-delay: 0s;
+}
+.customer-portal::after {
+    width: 600px;
+    height: 600px;
+    background: rgba(99, 102, 241, 0.08); /* Indigo tint */
+    bottom: -200px;
+    right: -100px;
+    animation-delay: -5s;
+}
+@keyframes float {
+    0% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0, 0) scale(1); }
+}
+
 /* ========== QUICK ACTIONS & NOTIFICATIONS ========== */
 .quick-actions-grid {
     display: grid;
