@@ -1043,9 +1043,6 @@ function CustomerBookings(){
                                                     <td data-label="Status">
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                                             <span className={`status-badge ${a.status.toLowerCase()}`}>{a.status}</span>
-                                                            {!['cancelled', 'completed', 'finished'].includes(a.status.toLowerCase()) && isWithinGracePeriod(a) && (
-                                                                <GracePeriodTimer appointment={a} onCancel={openGraceCancelModal} />
-                                                            )}
                                                         </div>
                                                     </td>
                                                     <td data-label="Price">
@@ -2350,6 +2347,57 @@ function CustomerBookings(){
             )}
 
             <style>{`
+                /* Premium Glassmorphism Overrides for Customer Bookings */
+                .table-card-container {
+                    background: rgba(255, 255, 255, 0.85) !important;
+                    backdrop-filter: blur(16px) !important;
+                    -webkit-backdrop-filter: blur(16px) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+                    border-radius: 20px !important;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+                    overflow: hidden !important;
+                }
+                .portal-table thead th {
+                    background: rgba(248, 250, 252, 0.5) !important;
+                    border-bottom: 1px solid rgba(226, 232, 240, 0.6) !important;
+                    font-weight: 600 !important;
+                    color: #475569 !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.5px !important;
+                    font-size: 0.75rem !important;
+                    padding: 18px 24px !important;
+                }
+                .portal-table tbody td {
+                    padding: 18px 24px !important;
+                    border-bottom: 1px solid rgba(226, 232, 240, 0.5) !important;
+                    color: #334155 !important;
+                }
+                .clickable-row.hover-bg {
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                }
+                .clickable-row.hover-bg:hover {
+                    background: rgba(241, 245, 249, 0.7) !important;
+                    transform: scale(1.005) !important;
+                    box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.8) !important;
+                }
+                .card-header-v2 {
+                    background: transparent !important;
+                    border-bottom: 1px solid rgba(226, 232, 240, 0.5) !important;
+                    padding: 24px 28px !important;
+                }
+                .pagination-select {
+                    background-color: rgba(255, 255, 255, 0.8) !important;
+                    backdrop-filter: blur(8px) !important;
+                    border: 1px solid rgba(226, 232, 240, 0.8) !important;
+                    border-radius: 12px !important;
+                    padding: 10px 14px !important;
+                    transition: all 0.2s !important;
+                }
+                .pagination-select:focus {
+                    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+                    border-color: #818cf8 !important;
+                }
+
                 .calendar-day {
                     aspect-ratio: 1;
                     display: flex;
