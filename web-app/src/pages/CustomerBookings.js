@@ -839,6 +839,7 @@ function CustomerBookings(){
         return getGraceSecondsRemaining(appointment) > 0;
     };
 
+    const openGraceCancelModal = (appt) => {
         setGraceCancelModal({ isOpen: true, appointment: appt, reason: '', customReason: '' });
         setIsModalOpen(false); // Close details modal to prevent stacking
     };
