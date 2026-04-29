@@ -79,7 +79,7 @@ function CustomerNotifications() {
     const fetchNotifications = async (showLoader = false) => {
         try {
             if (showLoader) setLoading(true);
-            const res = await Axios.get(`${API_URL}/api/notifications/${customerId}`);
+            const res = await Axios.get(`${API_URL}/api/notifications/${customerId}?limit=500`);
             if (res.data.success) {
                 const sorted = res.data.notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 setNotifications(prev => {
@@ -115,11 +115,9 @@ function CustomerNotifications() {
 
     const markAllRead = async () => {
         try {
-            const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
-            if (unreadIds.length > 0) {
-                await Promise.all(unreadIds.map(id => Axios.put(`${API_URL}/api/notifications/${id}/read`)));
-                setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
-            }
+            // Use bulk endpoint to mark ALL notifications server-side in one query
+            await Axios.put(`${API_URL}/api/notifications/${customerId}/read-all`);
+            setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
         } catch (e) {
             console.error(e);
         }
