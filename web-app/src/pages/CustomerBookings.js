@@ -2368,7 +2368,7 @@ function CustomerBookings(){
 
             {/* Cancellation Reason Modal */}
             {cancelModal.isOpen && (
-                <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={() => !isCancelling && setCancelModal({ isOpen: false, appointmentId: null, reason: '' })}>
+                <div className="modal-overlay" style={{ zIndex: 2100 }} onClick={() => !isCancelling && setCancelModal({ isOpen: false, appointmentId: null, reason: '' })}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
                         <div className="modal-header">
                             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', color: '#dc2626' }}>
@@ -2466,7 +2466,7 @@ function CustomerBookings(){
 
             {/* Deadline Quick Cancel Modal */}
             {graceCancelModal.isOpen && graceCancelModal.appointment && (
-                <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={() => !isGraceCancelling && setGraceCancelModal({ isOpen: false, appointment: null, reason: '', customReason: '' })}>
+                <div className="modal-overlay" style={{ zIndex: 2100 }} onClick={() => !isGraceCancelling && setGraceCancelModal({ isOpen: false, appointment: null, reason: '', customReason: '' })}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
                         <div className="modal-header">
                             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', color: '#dc2626' }}>

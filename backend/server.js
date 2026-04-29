@@ -7613,7 +7613,7 @@ app.put('/api/customer/appointments/:id/cancel', (req, res) => {
 
     // 2. Check cancellation limit (max 3 in last 30 days) — applies to both flows
     db.query(
-      "SELECT COUNT(*) as cancelCount FROM appointments WHERE customer_id = ? AND status = 'cancelled' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
+      "SELECT COUNT(*) as cancelCount FROM appointments WHERE customer_id = ? AND status = 'cancelled' AND appointment_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
       [customerId],
       (countErr, countResults) => {
         if (countErr) return res.status(500).json({ success: false, message: 'Database error checking limits.' });
@@ -7627,7 +7627,7 @@ app.put('/api/customer/appointments/:id/cancel', (req, res) => {
         const cancelTag = isGracePeriod ? `--- Deadline Cancellation (${isConsultation ? 'Consultation — 3-day rule' : 'Session — 7-day rule'}) ---` : '--- Customer Cancellation Reason ---';
         const appendedNotes = `${appointment.notes || ''}\n\n${cancelTag}\n${reason.trim()}`;
         db.query(
-          'UPDATE appointments SET status = ?, notes = ?, updated_at = NOW() WHERE id = ?',
+          'UPDATE appointments SET status = ?, notes = ? WHERE id = ?',
           ['cancelled', appendedNotes, id],
           (updateErr) => {
             if (updateErr) return res.status(500).json({ success: false, message: 'Failed to cancel appointment.' });
