@@ -790,6 +790,7 @@ function CustomerBookings(){
             return;
         }
         setCancelModal({ isOpen: true, appointmentId: appt.id, reason: '' });
+        setIsModalOpen(false); // Close details modal to prevent stacking
     };
 
     const submitCancellation = async () => {
@@ -838,8 +839,8 @@ function CustomerBookings(){
         return getGraceSecondsRemaining(appointment) > 0;
     };
 
-    const openGraceCancelModal = (appt) => {
         setGraceCancelModal({ isOpen: true, appointment: appt, reason: '', customReason: '' });
+        setIsModalOpen(false); // Close details modal to prevent stacking
     };
 
     const submitGracePeriodCancel = async () => {
@@ -1114,8 +1115,8 @@ function CustomerBookings(){
 
             {/* Payment Details Modal */}
             {isModalOpen && selectedApt && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
+                <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <div>
                                 <h3 style={{ margin: 0 }}>Appointment Details</h3>
@@ -2361,6 +2362,13 @@ function CustomerBookings(){
                 .calendar-day:hover:not(.disabled):not(.selected) { filter: brightness(0.95); }
                 .calendar-day.selected { border: 2px solid #be9055 !important; box-shadow: 0 0 0 3px rgba(193, 154, 107, 0.2) !important; font-weight: 700; }
                 .calendar-day.disabled { cursor: not-allowed; pointer-events: none; }
+                .close-btn {
+                    position: absolute;
+                    right: 1.5rem;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    z-index: 10;
+                }
                 .fade-in { animation: fadeIn 0.3s ease-in-out; }
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.03); } }
