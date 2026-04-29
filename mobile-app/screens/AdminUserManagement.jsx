@@ -43,6 +43,13 @@ export const AdminUserManagement = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
 
+  const stats = {
+    total: users.length,
+    artists: users.filter(u => u.user_type === 'artist').length,
+    customers: users.filter(u => u.user_type === 'customer').length,
+    admins: users.filter(u => u.user_type === 'admin' || u.user_type === 'manager').length,
+  };
+
   // Modal
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -173,8 +180,31 @@ export const AdminUserManagement = ({ navigation }) => {
         </AnimatedTouchable>
       </View>
 
-      {/* Search */}
-      <View style={styles.searchBar}>
+      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={loading} onRefresh={loadUsers} tintColor={theme.gold} />}>
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+            <View style={styles.statBox}>
+              <Text style={styles.statBoxTitle}>Total Users</Text>
+              <Text style={styles.statBoxValue}>{stats.total}</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statBoxTitle}>Artists</Text>
+              <Text style={[styles.statBoxValue, { color: ROLE_COLORS.artist.text }]}>{stats.artists}</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statBoxTitle}>Customers</Text>
+              <Text style={[styles.statBoxValue, { color: ROLE_COLORS.customer.text }]}>{stats.customers}</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statBoxTitle}>Staff/Admins</Text>
+              <Text style={[styles.statBoxValue, { color: ROLE_COLORS.admin.text }]}>{stats.admins}</Text>
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* Search */}
+        <View style={styles.searchBar}>
         <Search size={18} color={theme.textTertiary} />
         <TextInput
           style={styles.searchInput}
@@ -204,18 +234,18 @@ export const AdminUserManagement = ({ navigation }) => {
       <Text style={styles.countText}>{filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}</Text>
 
       {/* List */}
-      {loading ? (
-        <PremiumLoader message="Loading users..." />
-      ) : (
-        <FlatList
-          data={filteredUsers}
-          renderItem={renderUser}
-          keyExtractor={item => (item.id || Math.random()).toString()}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<EmptyState icon={Shield} title="No users found" subtitle="Try adjusting your search or filters" />}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadUsers} tintColor={theme.gold} />}
-        />
-      )}
+        {loading ? (
+          <PremiumLoader message="Loading users..." />
+        ) : (
+          <View style={styles.listContent}>
+            {filteredUsers.length === 0 ? (
+              <EmptyState icon={Users} title="No users found" subtitle="Try adjusting your filters" />
+            ) : (
+              filteredUsers.map((item, index) => renderUser({ item, index }))
+            )}
+          </View>
+        )}
+      </ScrollView>
 
       {/* Customer Modal */}
       <ClientProfileModal
@@ -358,16 +388,24 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
   addBtn: {
-    backgroundColor: theme.gold, padding: 10, borderRadius: borderRadius.md,
-    ...shadows.button,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: theme.gold, justifyContent: 'center', alignItems: 'center',
+    ...shadows.subtle,
   },
+  statsRow: { marginTop: 16, marginBottom: 4 },
+  statBox: {
+    backgroundColor: theme.surface, padding: 12, borderRadius: borderRadius.lg,
+    borderWidth: 1, borderColor: theme.border, minWidth: 100,
+  },
+  statBoxTitle: { ...typography.bodyXSmall, color: theme.textSecondary, marginBottom: 4 },
+  statBoxValue: { ...typography.h3, color: theme.textPrimary },
 
   // Search
   searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: theme.surfaceLight, margin: 16, marginBottom: 8,
-    borderRadius: borderRadius.md, paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: theme.border,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: theme.surface, marginHorizontal: 16, marginTop: 12, marginBottom: 16,
+    paddingHorizontal: 14, paddingVertical: 12, borderRadius: borderRadius.lg,
+    borderWidth: 1, borderColor: theme.border, gap: 10,
   },
   searchInput: { flex: 1, ...typography.body, color: theme.textPrimary },
 

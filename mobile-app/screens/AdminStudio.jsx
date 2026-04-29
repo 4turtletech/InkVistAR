@@ -6,7 +6,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import {
-  Package, ShoppingCart,
+  Package, ShoppingCart, Banknote, Users,
   MessageSquare, BarChart3, Settings, Star,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,8 +16,11 @@ import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { StaggerItem } from '../src/components/shared/StaggerItem';
 
 const getModules = (theme) => [
+  { id: 'admin-staff', title: 'Staff', Icon: Users, color: theme.iconPurple || '#a855f7', desc: 'Artist profiles' },
+  { id: 'admin-clients', title: 'Clients', Icon: Users, color: theme.iconBlue || '#3b82f6', desc: 'Customer CRM' },
   { id: 'admin-inventory', title: 'Inventory', Icon: Package, color: theme.iconBlue || '#3b82f6', desc: 'Session supplies' },
   { id: 'admin-pos', title: 'Point of Sale', Icon: ShoppingCart, color: theme.gold || '#be9055', desc: 'Manual billing' },
+  { id: 'admin-billing', title: 'Billing', Icon: Banknote, color: theme.success || '#10b981', desc: 'Invoices & Payouts' },
   { id: 'admin-chat', title: 'Live Chat', Icon: MessageSquare, color: theme.primary || '#3b82f6', desc: 'Customer support' },
   { id: 'admin-analytics', title: 'Analytics', Icon: BarChart3, color: theme.iconPurple || '#a855f7', desc: 'Studio performance' },
   { id: 'admin-reviews', title: 'Reviews', Icon: Star, color: theme.gold || '#be9055', desc: 'Review moderation' },

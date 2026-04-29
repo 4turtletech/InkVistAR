@@ -53,6 +53,9 @@ import { AdminSettings } from './screens/AdminSettings.jsx';
 import { AdminChat } from './screens/AdminChat.jsx';
 import { AdminPOS } from './screens/AdminPOS.jsx';
 import { AdminReviewModeration } from './screens/AdminReviewModeration.jsx';
+import { AdminBilling } from './screens/AdminBilling.jsx';
+import { AdminStaff } from './screens/AdminStaff.jsx';
+import { AdminClients } from './screens/AdminClients.jsx';
 
 // Placeholder for AR Tab
 import PlaceholderScreen from './components/PlaceholderScreen.jsx';
@@ -367,6 +370,9 @@ function AppContent() {
                 <Stack.Screen name="admin-chat" component={AdminChat} />
                 <Stack.Screen name="admin-pos" component={AdminPOS} />
                 <Stack.Screen name="admin-reviews" component={AdminReviewModeration} />
+                <Stack.Screen name="admin-billing" component={AdminBilling} />
+                <Stack.Screen name="admin-staff" component={AdminStaff} />
+                <Stack.Screen name="admin-clients" component={AdminClients} />
               </>
             ) : user.type === 'manager' ? (
               <>
