@@ -7,7 +7,7 @@ import './AdminSettings.css';
 import './AdminStyles.css';
 import { API_URL } from '../config';
 
-function AdminSettings() {
+function AdminSettings({ initialTab = 'studio' }) {
     const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
     const isSuperAdmin = currentUser?.is_superadmin === true;
     const [settings, setSettings] = useState({
@@ -53,7 +53,7 @@ function AdminSettings() {
         }
     });
 
-    const [activeTab, setActiveTab] = useState('studio');
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [isSaved, setIsSaved] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
     const [errors, setErrors] = useState({});

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useLocation } from 'react-router-dom';
-import { MapPin, Clock, Users, Power, Trash2, Edit2, Plus, X, Search, Filter, SlidersHorizontal, Mail, MessageSquare } from 'lucide-react';
+import { MapPin, Clock, Users, Power, Trash2, Edit2, Plus, X, Search, Filter, SlidersHorizontal, Mail, MessageSquare, Shield } from 'lucide-react';
 import MarketingEmailModal from '../components/MarketingEmailModal';
 import AdminSideNav from '../components/AdminSideNav';
 import './PortalStyles.css';
@@ -34,6 +34,19 @@ function AdminStudio() {
     const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, type: 'info', isAlert: false });
     const [errors, setErrors] = useState({});
     const [unreadReportCount, setUnreadReportCount] = useState(0);
+
+    const searchRef = useRef(null);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     // Poll unread report count for notification dot
     const fetchUnreadReportCount = useCallback(async () => {
@@ -311,6 +324,7 @@ function AdminStudio() {
                     {[
                         { key: 'branches', label: 'Branches Directory' },
                         { key: 'settings', label: 'System Preferences' },
+                        { key: 'policies', label: 'Terms & Policies' },
                         { key: 'reviews', label: 'Customer Reviews' },
                         { key: 'aftercare', label: 'Aftercare Schedule' },
                         { key: 'marketing', label: 'Marketing Emails' },
@@ -337,6 +351,7 @@ function AdminStudio() {
                         >
                             {tab.key === 'marketing' && <Mail size={16} />}
                             {tab.key === 'reports' && <MessageSquare size={16} />}
+                            {tab.key === 'policies' && <Shield size={16} />}
                             {tab.label}
                             {tab.key === 'reports' && unreadReportCount > 0 && (
                                 <span style={{
@@ -353,14 +368,38 @@ function AdminStudio() {
                 {activeTab === 'branches' ? (
                     <>
                         <div className="premium-filter-bar premium-filter-bar--stacked">
-                    <div className="premium-search-box premium-search-box--full">
+                    <div className="premium-search-box premium-search-box--full" ref={searchRef} style={{ position: 'relative' }}>
                         <Search size={16} className="text-muted" />
                         <input
                             type="text"
                             placeholder="Search branches by name or address..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setShowSuggestions(true);
+                            }}
+                            onFocus={() => setShowSuggestions(true)}
                         />
+                        {showSuggestions && searchTerm && filteredBranches.length > 0 && (
+                            <div className="autocomplete-dropdown waterfall-dropdown">
+                                {filteredBranches.slice(0, 5).map((branch, index) => (
+                                    <div 
+                                        key={branch.id} 
+                                        className="autocomplete-item waterfall-item"
+                                        style={{ animationDelay: `${index * 0.05}s` }}
+                                        onClick={() => {
+                                            setSearchTerm(branch.name);
+                                            setShowSuggestions(false);
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontWeight: 600, color: '#1e293b' }}>{branch.name}</span>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{branch.address}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="premium-filters-row">
@@ -528,6 +567,8 @@ function AdminStudio() {
                 </>
                 ) : activeTab === 'settings' ? (
                     <AdminSettings />
+                ) : activeTab === 'policies' ? (
+                    <AdminSettings initialTab="policies" />
                 ) : activeTab === 'reviews' ? (
                     <AdminReviews />
                 ) : activeTab === 'aftercare' ? (

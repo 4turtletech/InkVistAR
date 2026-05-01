@@ -42,6 +42,22 @@ function AdminBilling() {
     const [payoutModal, setPayoutModal] = useState({ mounted: false, visible: false });
     const [newPayout, setNewPayout] = useState({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
 
+    // Payout filter states
+    const [payoutSearchTerm, setPayoutSearchTerm] = useState('');
+    const [showPayoutSuggestions, setShowPayoutSuggestions] = useState(false);
+    const payoutSearchRef = useRef(null);
+    const [payoutMethodFilter, setPayoutMethodFilter] = useState('all');
+
+    useEffect(() => {
+        function handleClickOutsidePayouts(event) {
+            if (payoutSearchRef.current && !payoutSearchRef.current.contains(event.target)) {
+                setShowPayoutSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutsidePayouts);
+        return () => document.removeEventListener("mousedown", handleClickOutsidePayouts);
+    }, []);
+
     // Customer + Appointment selector state for invoice modal
     const [customers, setCustomers] = useState([]);
     const [clientSearch, setClientSearch] = useState('');
@@ -454,6 +470,20 @@ function AdminBilling() {
         })
     ])).filter(Boolean);
 
+    const filteredPayouts = payouts.filter(p => {
+        const matchesDate = matchesTimePeriod(p.created_at);
+        const matchesMethod = payoutMethodFilter === 'all' || p.payout_method === payoutMethodFilter;
+        const searchLower = payoutSearchTerm.toLowerCase();
+        const artistName = p.artist_name || 'Artist #' + p.artist_id;
+        const matchesSearch = artistName.toLowerCase().includes(searchLower) || (p.reference_no || '').toLowerCase().includes(searchLower);
+        return matchesDate && matchesMethod && matchesSearch;
+    });
+
+    const payoutSearchSuggestions = Array.from(new Set([
+        ...payouts.map(p => (p.artist_name || 'Artist #' + p.artist_id).trim()),
+        ...payouts.map(p => (p.reference_no || '').trim())
+    ])).filter(Boolean);
+
     return (
         <div className="admin-page-with-sidenav">
             <AdminSideNav />
@@ -471,6 +501,19 @@ function AdminBilling() {
                                 <CreditCard size={16}/> <span>Artist Payouts</span>
                             </button>
                         </div>
+                        {activeTab === 'invoices' ? (
+                            <button className="btn btn-primary admin-st-4796037d" onClick={openModal} >
+                                <Plus size={18} className="admin-st-c02c7d9c" /> Create Invoice
+                            </button>
+                        ) : (
+                            <button className="btn btn-primary" onClick={() => {
+                                setNewPayout({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
+                                setPayoutErrors({});
+                                setPayoutModal({ mounted: true, visible: true });
+                            }}>
+                                <Plus size={18} className="admin-st-c02c7d9c" /> Record Payout
+                            </button>
+                        )}
                     </div>
                 </header>
                 <p className="header-subtitle">Manage studio revenue, invoices, and payment tracking</p>
@@ -581,9 +624,6 @@ function AdminBilling() {
                                     )}
                                 </div>
 
-                                <button className="btn btn-primary admin-st-4796037d" onClick={openModal} >
-                                    <Plus size={18} className="admin-st-c02c7d9c" /> Create Invoice
-                                </button>
                             </div>
                         </div>
 
@@ -604,10 +644,8 @@ function AdminBilling() {
                                                 <th key={col.key} onClick={() => handleSort(col.key)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
                                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                                         {col.label}
-                                                        {sortConfig.key === col.key ? (
+                                                        {sortConfig.key === col.key && (
                                                             sortConfig.direction === 'asc' ? <ChevronUp size={14} style={{ color: '#be9055' }} /> : <ChevronDown size={14} style={{ color: '#be9055' }} />
-                                                        ) : (
-                                                            <ChevronDown size={14} style={{ color: '#cbd5e1' }} />
                                                         )}
                                                     </span>
                                                 </th>
@@ -693,15 +731,80 @@ function AdminBilling() {
                             </div>
                         </div>
 
-                        <div className="premium-filter-bar">
-                            <h2 className="admin-st-c4858c02">Payout History</h2>
-                            <button className="btn btn-primary" onClick={() => {
-                                setNewPayout({ artistId: '', amount: '', method: 'Bank Transfer', reference: '' });
-                                setPayoutErrors({});
-                                setPayoutModal({ mounted: true, visible: true });
-                            }}>
-                                <Plus size={18} className="admin-st-c02c7d9c" /> Record Payout
-                            </button>
+                        <div className="premium-filter-bar premium-filter-bar--stacked">
+                            <div className="premium-search-box premium-search-box--full" ref={payoutSearchRef} style={{ position: 'relative' }}>
+                                <Search size={16} className="premium-search-icon" />
+                                <input
+                                    type="text"
+                                    placeholder="Search payouts by artist or reference..."
+                                    value={payoutSearchTerm}
+                                    onChange={(e) => {
+                                        setPayoutSearchTerm(e.target.value);
+                                        setShowPayoutSuggestions(true);
+                                    }}
+                                    onFocus={() => setShowPayoutSuggestions(true)}
+                                    maxLength={100}
+                                />
+                                {showPayoutSuggestions && payoutSearchTerm && payoutSearchSuggestions.filter(s => s.toLowerCase().includes(payoutSearchTerm.toLowerCase())).length > 0 && (
+                                    <div className="autocomplete-dropdown waterfall-dropdown">
+                                        {payoutSearchSuggestions
+                                            .filter(s => s.toLowerCase().includes(payoutSearchTerm.toLowerCase()))
+                                            .slice(0, 8)
+                                            .map((suggestion, index) => (
+                                                <div 
+                                                    key={suggestion} 
+                                                    className="autocomplete-item waterfall-item"
+                                                    style={{ animationDelay: `${index * 0.05}s` }}
+                                                    onClick={() => {
+                                                        setPayoutSearchTerm(suggestion);
+                                                        setShowPayoutSuggestions(false);
+                                                    }}
+                                                >
+                                                    {suggestion}
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="premium-filters-row">
+                                <div className="premium-filter-item">
+                                    <Filter size={16} />
+                                    <span>Method:</span>
+                                    <select 
+                                        value={payoutMethodFilter} 
+                                        onChange={(e) => setPayoutMethodFilter(e.target.value)}
+                                        className="premium-select-v2"
+                                    >
+                                        <option value="all">All Methods</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                        <option value="GCash">GCash</option>
+                                        <option value="Maya">Maya</option>
+                                    </select>
+                                </div>
+                                <div className="premium-filter-item">
+                                    <Filter size={16} />
+                                    <span>Period:</span>
+                                    <select
+                                        value={timePeriodFilter}
+                                        onChange={(e) => { setTimePeriodFilter(e.target.value); if (e.target.value !== 'custom') { setCustomStartDate(''); setCustomEndDate(''); } }}
+                                        className="premium-select-v2"
+                                    >
+                                        <option value="all">All Time</option>
+                                        <option value="weekly">This Week</option>
+                                        <option value="monthly">This Month</option>
+                                        <option value="yearly">This Year</option>
+                                        <option value="custom">Custom Range</option>
+                                    </select>
+                                    {timePeriodFilter === 'custom' && (
+                                        <>
+                                            <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="premium-select-v2" style={{ height: '38px', padding: '0 10px' }} />
+                                            <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>to</span>
+                                            <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="premium-select-v2" style={{ height: '38px', padding: '0 10px' }} />
+                                        </>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="table-card-container">
@@ -717,7 +820,7 @@ function AdminBilling() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {payouts.filter(p => matchesTimePeriod(p.created_at)).map(p => (
+                                    {filteredPayouts.map(p => (
                                         <tr key={p.id}>
                                             <td data-label="Date">{new Date(p.created_at).toLocaleDateString()}</td>
                                             <td data-label="Staff">{p.artist_name || 'Artist #' + p.artist_id}</td>
@@ -727,7 +830,7 @@ function AdminBilling() {
                                             <td data-label="Status"><span className="badge status-active">{formatStatus(p.status)}</span></td>
                                         </tr>
                                     ))}
-                                    {payouts.filter(p => matchesTimePeriod(p.created_at)).length === 0 && <tr><td colSpan="6" className="admin-st-3927920f">No payouts recorded.</td></tr>}
+                                    {filteredPayouts.length === 0 && <tr><td colSpan="6" className="admin-st-3927920f">No payouts found matching your criteria.</td></tr>}
                                 </tbody>
                             </table>
                         </div>

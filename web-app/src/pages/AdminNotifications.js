@@ -39,6 +39,19 @@ function AdminNotifications() {
     const [loading, setLoading] = useState(true);
     const unreadCount = notifications.filter(n => !n.is_read).length;
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = React.useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     const [activeFilter, setActiveFilter] = useState('all'); // This is category type
     const [readStateFilter, setReadStateFilter] = useState('all'); // default to all
     const [currentPage, setCurrentPage] = useState(1);
@@ -276,14 +289,6 @@ function AdminNotifications() {
         return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     };
 
-    const filterButtonStyle = (isActive, type = 'default') => {
-        if (!isActive) return { background: 'rgba(255,255,255,0.05)', color: '#be9055', border: '1px solid #cbd5e1' };
-
-        // Distinguish Unread with a more urgent amber color
-        const activeBg = type === 'unread' ? '#f59e0b' : '#be9055';
-        return { background: activeBg, color: 'white', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' };
-    };
-
 
     const filteredNotifs = notifications.filter(n => {
         const matchesSearch = n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -354,57 +359,70 @@ function AdminNotifications() {
                     </div>
                 </div>
 
-                <div className="filter-bar">
-                    <button
-                        className={`filter-btn ${readStateFilter === 'all' ? 'active' : ''}`}
-                        onClick={() => setReadStateFilter('all')}
-                        style={filterButtonStyle(readStateFilter === 'all')}
-                    >
-                        All
-                    </button>
-                    <button
-                        className={`filter-btn ${readStateFilter === 'unread' ? 'active' : ''}`}
-                        onClick={() => setReadStateFilter('unread')}
-                        style={filterButtonStyle(readStateFilter === 'unread', 'unread')}
-                    >
-                        Unread
-                    </button>
-                    <button
-                        className={`filter-btn ${readStateFilter === 'read' ? 'active' : ''}`}
-                        onClick={() => setReadStateFilter('read')}
-                        style={filterButtonStyle(readStateFilter === 'read')}
-                    >
-                        Read
-                    </button>
-                </div>
-
                 <div className="portal-content">
-                    <div className="premium-filter-bar" style={{ marginBottom: '20px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-                        <div className="premium-search-box premium-search-box--full" style={{ flex: '0 0 75%', margin: 0 }}>
-                            <Search size={16} className="text-muted" />
+                    <div className="premium-filter-bar premium-filter-bar--stacked" style={{ marginBottom: '20px' }}>
+                        <div className="premium-search-box premium-search-box--full" ref={searchRef} style={{ position: 'relative' }}>
+                            <Search size={16} className="premium-search-icon" />
                             <input
                                 type="text"
-                                placeholder="Search notifications..."
+                                placeholder="Search notifications by title or message..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setShowSuggestions(true);
+                                }}
+                                onFocus={() => setShowSuggestions(true)}
+                                maxLength={100}
                             />
+                            {showSuggestions && searchTerm && filteredNotifs.filter(s => s.title.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 && (
+                                <div className="autocomplete-dropdown waterfall-dropdown">
+                                    {Array.from(new Set(filteredNotifs.filter(s => s.title.toLowerCase().includes(searchTerm.toLowerCase())).map(s => s.title)))
+                                        .slice(0, 8)
+                                        .map((suggestion, index) => (
+                                            <div 
+                                                key={suggestion} 
+                                                className="autocomplete-item waterfall-item"
+                                                style={{ animationDelay: `${index * 0.05}s` }}
+                                                onClick={() => {
+                                                    setSearchTerm(suggestion);
+                                                    setShowSuggestions(false);
+                                                }}
+                                            >
+                                                {suggestion}
+                                            </div>
+                                        ))}
+                                </div>
+                            )}
                         </div>
 
-                        <div className="premium-filter-item" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                            <Filter size={16} style={{ color: '#64748b' }} />
-                            <span style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: '600', whiteSpace: 'nowrap' }}>Type:</span>
-                            <select
-                                value={activeFilter}
-                                onChange={(e) => setActiveFilter(e.target.value)}
-                                className="premium-select-v2"
-                                style={{ flex: 1, minWidth: 0 }}
-                            >
-                                <option value="all">All Notifications</option>
-                                <option value="contact_inquiry">Customer Inquiries</option>
-                                <option value="inventory">Inventory Alerts</option>
-                                <option value="appointment">Booking Requests</option>
-                                <option value="system">System Updates</option>
-                            </select>
+                        <div className="premium-filters-row">
+                            <div className="modern-view-toggle" style={{ margin: 0 }}>
+                                <button className={`toggle-btn ${readStateFilter === 'all' ? 'active' : ''}`} onClick={() => setReadStateFilter('all')}>
+                                    <Bell size={14} /> <span>All</span>
+                                </button>
+                                <button className={`toggle-btn ${readStateFilter === 'unread' ? 'active' : ''}`} onClick={() => setReadStateFilter('unread')} style={{ color: readStateFilter === 'unread' ? '#f59e0b' : '' }}>
+                                    <AlertTriangle size={14} /> <span>Unread</span>
+                                </button>
+                                <button className={`toggle-btn ${readStateFilter === 'read' ? 'active' : ''}`} onClick={() => setReadStateFilter('read')} style={{ color: readStateFilter === 'read' ? '#10b981' : '' }}>
+                                    <CheckCircle size={14} /> <span>Read</span>
+                                </button>
+                            </div>
+
+                            <div className="premium-filter-item">
+                                <Filter size={16} />
+                                <span>Type:</span>
+                                <select
+                                    value={activeFilter}
+                                    onChange={(e) => setActiveFilter(e.target.value)}
+                                    className="premium-select-v2"
+                                >
+                                    <option value="all">All Notifications</option>
+                                    <option value="contact_inquiry">Customer Inquiries</option>
+                                    <option value="inventory">Inventory Alerts</option>
+                                    <option value="appointment">Booking Requests</option>
+                                    <option value="system">System Updates</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
