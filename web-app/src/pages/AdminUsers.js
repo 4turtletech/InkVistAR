@@ -76,6 +76,7 @@ function AdminUsers() {
     const [artistDetails, setArtistDetails] = useState({ profile: {}, appointments: [], portfolio: [], stats: {} });
     const [artistFormData, setArtistFormData] = useState({});
     const [loadingArtistDetails, setLoadingArtistDetails] = useState(false);
+    const artistOriginalFormData = useRef({});
 
     // Portfolio Editor Sub-Modal
     const [selectedWork, setSelectedWork] = useState(null);
@@ -167,6 +168,36 @@ function AdminUsers() {
     const closeArtistModal = () => {
         setArtistModal(prev => ({ ...prev, visible: false }));
         setTimeout(() => { setArtistModal({ mounted: false, visible: false }); setSelectedArtist(null); }, 200);
+    };
+
+    const isArtistFormDirty = () => {
+        const orig = artistOriginalFormData.current;
+        return Object.keys(orig).some(key => String(artistFormData[key] ?? '') !== String(orig[key] ?? ''));
+    };
+
+    const handleCloseArtistModal = () => {
+        if (artistActiveTab === 'profile' && isArtistFormDirty()) {
+            setConfirmDialog({
+                isOpen: true,
+                title: 'Unsaved Changes',
+                message: 'You have unsaved changes on the Profile tab. Save before closing?',
+                confirmText: 'Save & Close',
+                cancelText: 'Discard & Close',
+                type: 'warning',
+                isAlert: false,
+                onConfirm: async () => {
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                    await handleUpdateArtistProfile();
+                    closeArtistModal();
+                },
+                onClose: () => {
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                    closeArtistModal();
+                }
+            });
+        } else {
+            closeArtistModal();
+        }
     };
 
     const openCreateModalAnim = () => {
@@ -423,6 +454,11 @@ function AdminUsers() {
                     hourly_rate: data.artist.hourly_rate, experience_years: data.artist.experience_years,
                     commission_rate: data.artist.commission_rate
                 });
+                artistOriginalFormData.current = {
+                    name: data.artist.name, specialization: data.artist.specialization,
+                    hourly_rate: data.artist.hourly_rate, experience_years: data.artist.experience_years,
+                    commission_rate: data.artist.commission_rate
+                };
             } else {
                 throw new Error(dashboardRes.data.message || portfolioRes.data.message || 'Failed to fetch artist details.');
             }
@@ -440,6 +476,7 @@ function AdminUsers() {
             await Axios.put(`${API_URL}/api/artist/profile/${selectedArtist.id}`, artistFormData);
             showAlert("Success", "Profile updated successfully", "success");
             setArtistDetails(prev => ({ ...prev, profile: { ...prev.profile, ...artistFormData } }));
+            artistOriginalFormData.current = { ...artistFormData };
             fetchUsers();
         } catch (error) {
             console.error("Error updating profile:", error);
@@ -1270,7 +1307,7 @@ function AdminUsers() {
                 {/* ARTIST MODAL — 4 tabs */}
                 {/* ═══════════════════════════════════════════════════ */}
                 {artistModal.mounted && selectedArtist && (
-                    <div className={`modal-overlay ${artistModal.visible ? 'open' : ''}`} onClick={closeArtistModal}>
+                    <div className={`modal-overlay ${artistModal.visible ? 'open' : ''}`} onClick={handleCloseArtistModal}>
                         <div className="modal-content xl admin-st-980ed307" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
                                 <div className="admin-flex-center admin-gap-20">
@@ -1289,7 +1326,7 @@ function AdminUsers() {
                                         </div>
                                     </div>
                                 </div>
-                                <button className="close-btn" onClick={closeArtistModal}><X size={24} /></button>
+                                <button className="close-btn" onClick={handleCloseArtistModal} aria-label="Close modal"><X size={24} /></button>
                             </div>
 
                             <div className="settings-tabs admin-st-23c98a22">
@@ -1323,7 +1360,13 @@ function AdminUsers() {
                                 )}
                             </div>
                             <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={closeArtistModal}>Close Management Portal</button>
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={handleCloseArtistModal}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1.5px solid #cbd5e1', background: 'transparent', color: '#475569' }}
+                                >
+                                    <X size={16} /> Close
+                                </button>
                                 {artistActiveTab === 'profile' && (
                                     <button className="btn btn-primary admin-st-f9a92399" onClick={handleUpdateArtistProfile}>
                                         <Save size={18} /> Sync Account Updates

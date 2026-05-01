@@ -1535,11 +1535,41 @@
     padding: 0 30px;
     border-bottom: 1px solid #f1f5f9;
     background: #f8fafc;
+    /* Override vertical stacking — artist modal tabs are horizontal */
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    border-right: none;
+    padding-right: 30px;
+    overflow-x: auto;
 }
 
 .admin-st-89c672df {
     flex: 1;
     padding: 30px;
+}
+
+/* Tab buttons inside the horizontal artist modal tab bar */
+.admin-st-23c98a22 .tab-button {
+    text-align: center;
+    white-space: nowrap;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    background: none;
+}
+
+.admin-st-23c98a22 .tab-button:hover {
+    background: rgba(0,0,0,0.03);
+    border-bottom-color: #cbd5e1;
+}
+
+.admin-st-23c98a22 .tab-button.active {
+    background: none;
+    color: #4f46e5;
+    border-bottom-color: #4f46e5;
 }
 
 .admin-st-cc3b3598 {
