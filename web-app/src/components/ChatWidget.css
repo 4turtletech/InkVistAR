@@ -305,7 +305,7 @@
     background: #f1f5f9;
     border: none;
     padding: 6px 12px;
-    borderRadius: 15px;
+    border-radius: 15px;
     font-size: 0.8rem;
     color: #334155;
     cursor: pointer;

@@ -151,6 +151,7 @@ function AdminSettings() {
                     </p>
                 </div>
             ) : (
+            <>
             <div className="admin-st-77aa706a">
                 <button className="btn btn-primary" onClick={handleSave}>
                     <Save size={18} className="admin-st-7f4ee4f3"/> Save Changes
@@ -472,6 +473,7 @@ function AdminSettings() {
 
                 </div>
             </div>
+            </>
             )}
             <ConfirmModal {...confirmDialog} onClose={() => setConfirmDialog(prev => ({...prev, isOpen: false}))} />
         </div>
