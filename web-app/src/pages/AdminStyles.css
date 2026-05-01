@@ -3443,19 +3443,6 @@
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
 }
 
-.modern-view-toggle .toggle-slider {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    bottom: 4px;
-    width: calc(50% - 4px);
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1;
-}
-
 .modern-view-toggle .toggle-btn {
     position: relative;
     z-index: 2;
@@ -3471,11 +3458,13 @@
     font-weight: 600;
     color: #64748b;
     cursor: pointer;
-    transition: color 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 16px;
     min-width: 100px;
 }
 
 .modern-view-toggle .toggle-btn.active {
     color: #1e293b;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
