@@ -1,0 +1,127 @@
+.custom-select-wrapper {
+    position: relative;
+    width: 100%;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.premium-filter-item-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+
+.custom-select-trigger:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+.custom-select-trigger.open {
+    border-color: #be9055;
+    box-shadow: 0 0 0 3px rgba(190, 144, 85, 0.15);
+    background: #ffffff;
+}
+
+.custom-select-arrow {
+    color: #64748b;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-select-arrow.rotated {
+    transform: rotate(180deg);
+    color: #be9055;
+}
+
+/* Dropdown pane */
+.custom-select-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    min-width: max-content;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    padding: 6px;
+    
+    /* Animation states */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.custom-select-dropdown.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Options */
+.custom-select-option {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #334155;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    /* Child animation setup */
+    opacity: 0;
+    transform: translateX(-5px);
+}
+
+.custom-select-dropdown.visible .custom-select-option {
+    animation: slideInOption 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.custom-select-option:hover {
+    background: #f1f5f9;
+    color: #be9055;
+    padding-left: 16px; /* Interactive nudge */
+}
+
+.custom-select-option.selected {
+    background: #fef9f3;
+    color: #be9055;
+    font-weight: 700;
+}
+
+@keyframes slideInOption {
+    0% {
+        opacity: 0;
+        transform: translateX(-5px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}

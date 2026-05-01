@@ -14,6 +14,7 @@ import { TATTOO_STYLES } from '../constants/tattooStyles';
 import { getPhoneParts } from '../constants/countryCodes';
 import CountryCodeSelect from '../components/CountryCodeSelect';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
+import CustomSelect from '../components/CustomSelect';
 import { filterName, filterDigits, clampNumber } from '../utils/validation';
 
 import {
@@ -46,7 +47,7 @@ function AdminUsers() {
     }, []);
     const [filterRole, setFilterRole] = useState('all');
     const [filterStatus, setFilterStatus] = useState('active');
-    const [sortBy, setSortBy] = useState('name');
+    const [sortBy, setSortBy] = useState('newest');
     const [loading, setLoading] = useState(true);
 
     // Pagination
@@ -264,9 +265,10 @@ function AdminUsers() {
             const matchesRole = filterRole === 'all' || user.user_type === filterRole;
             return matchesSearch && matchesRole;
         });
-        if (sortBy === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
-        else if (sortBy === 'email') filtered.sort((a, b) => a.email.localeCompare(b.email));
-        else if (sortBy === 'role') filtered.sort((a, b) => a.user_type.localeCompare(b.user_type));
+        if (sortBy === 'name_asc') filtered.sort((a, b) => a.name.localeCompare(b.name));
+        else if (sortBy === 'name_desc') filtered.sort((a, b) => b.name.localeCompare(a.name));
+        else if (sortBy === 'newest') filtered.sort((a, b) => b.id - a.id);
+        else if (sortBy === 'oldest') filtered.sort((a, b) => a.id - b.id);
         setFilteredUsers(filtered);
         setCurrentPage(1);
     };
@@ -879,32 +881,41 @@ function AdminUsers() {
                         )}
                     </div>
                     <div className="premium-filters-row">
-                        <div className="premium-filter-item">
-                            <Filter size={16} /><span>Filter by:</span>
-                            <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="premium-select-v2">
-                                <option value="all">All Roles</option>
-                                <option value="admin">Admin</option>
-                                <option value="artist">Artist</option>
-                                <option value="customer">Customer</option>
-                            </select>
-                        </div>
-                        <div className="premium-filter-item">
-                            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="premium-select-v2">
-                                <option value="all">All Statuses</option>
-                                <option value="active">Active Users</option>
-                                <option value="deactivated">Deactivated</option>
-                                <option value="banned">Banned</option>
-                                <option value="deleted">Soft Deleted</option>
-                            </select>
-                        </div>
-                        <div className="premium-filter-item">
-                            <SlidersHorizontal size={16} /><span>Sort:</span>
-                            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="premium-select-v2">
-                                <option value="name">Name</option>
-                                <option value="email">Email</option>
-                                <option value="role">Role</option>
-                            </select>
-                        </div>
+                        <CustomSelect 
+                            value={filterRole} 
+                            onChange={setFilterRole} 
+                            icon={Filter}
+                            label="Filter by:"
+                            options={[
+                                { value: 'all', label: 'All Roles' },
+                                { value: 'admin', label: 'Admin' },
+                                { value: 'artist', label: 'Artist' },
+                                { value: 'customer', label: 'Customer' }
+                            ]}
+                        />
+                        <CustomSelect 
+                            value={filterStatus} 
+                            onChange={setFilterStatus} 
+                            options={[
+                                { value: 'all', label: 'All Statuses' },
+                                { value: 'active', label: 'Active Users' },
+                                { value: 'deactivated', label: 'Deactivated' },
+                                { value: 'banned', label: 'Banned' },
+                                { value: 'deleted', label: 'Soft Deleted' }
+                            ]}
+                        />
+                        <CustomSelect 
+                            value={sortBy} 
+                            onChange={setSortBy} 
+                            icon={SlidersHorizontal}
+                            label="Sort:"
+                            options={[
+                                { value: 'newest', label: 'Newest First' },
+                                { value: 'oldest', label: 'Oldest First' },
+                                { value: 'name_asc', label: 'Alphabetical (A-Z)' },
+                                { value: 'name_desc', label: 'Alphabetical (Z-A)' }
+                            ]}
+                        />
                     </div>
                 </div>
 
