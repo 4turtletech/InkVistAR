@@ -52,6 +52,8 @@ function AdminSideNav() {
 
     const adminUser = JSON.parse(localStorage.getItem('user') || 'null');
     const adminId = adminUser ? adminUser.id : null;
+    const isSuperAdmin = adminUser?.is_superadmin === true;
+    const isManager = adminUser?.type === 'manager';
 
     useEffect(() => {
         if (collapsed) {
@@ -194,16 +196,16 @@ function AdminSideNav() {
 
     const quickActions = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard', description: 'Overview' },
-        { label: 'User Management', icon: Users, path: '/admin/users', description: 'Manage all users' },
+        ...(!isManager ? [{ label: 'User Management', icon: Users, path: '/admin/users', description: 'Manage all users' }] : []),
         { label: 'Appointments', icon: Calendar, path: '/admin/appointments', description: 'View appointments' },
         { label: 'Chat', icon: MessageSquare, path: '/admin/chat', description: 'Chat with customers' },
         { label: 'Inventory', icon: Package, path: '/admin/inventory', description: 'Manage inventory' },
         { label: 'POS System', icon: ShoppingCart, path: '/admin/pos', description: 'Point of Sale' },
         { label: 'Analytics', icon: BarChart3, path: '/admin/analytics', description: 'View reports' },
         { label: 'Billing', icon: Receipt, path: '/admin/billing', description: 'Payments & Invoices' },
-
         { label: 'Studio', icon: Building2, path: '/admin/studio', description: 'Manage branches' },
-        { label: 'Notifications', icon: Bell, path: '/admin/notifications', description: 'System alerts & updates' }
+        { label: 'Notifications', icon: Bell, path: '/admin/notifications', description: 'System alerts & updates' },
+        ...(isSuperAdmin ? [{ label: 'Settings', icon: Settings, path: '/admin/settings', description: 'System settings' }] : []),
     ];
 
     const handleLogout = () => {
@@ -234,7 +236,9 @@ function AdminSideNav() {
 
             <nav className="sidenav-menu">
                 <div className="menu-section" ref={menuRef} onScroll={handleMenuScroll}>
-                    <p className="menu-label">Main Menu</p>
+                    <p className="menu-label">
+                        {isSuperAdmin ? 'Super Admin' : isManager ? 'Manager' : 'Admin'}
+                    </p>
                     <ul className="menu-list">
                         {quickActions.map((action, index) => {
                             const IconComponent = action.icon;

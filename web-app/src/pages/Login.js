@@ -136,8 +136,7 @@ function Login() {
                 }
                 
                 const role = user.type;
-                if (role === 'admin') navigate('/admin/dashboard', { replace: true });
-                else if (role === 'manager') navigate('/manager', { replace: true });
+                if (role === 'admin' || role === 'manager') navigate('/admin/dashboard', { replace: true });
                 else if (role === 'artist') navigate('/artist', { replace: true });
                 else {
                     const pendingBooking = sessionStorage.getItem('pendingBooking');

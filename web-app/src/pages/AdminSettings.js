@@ -8,6 +8,8 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 
 function AdminSettings() {
+    const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+    const isSuperAdmin = currentUser?.is_superadmin === true;
     const [settings, setSettings] = useState({
         studio: {
             name: 'InkVistAR Studio',
@@ -140,6 +142,15 @@ function AdminSettings() {
 
     return (
         <div>
+            {!isSuperAdmin ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '16px', textAlign: 'center' }}>
+                    <Shield size={48} style={{ color: '#be9055', opacity: 0.5 }} />
+                    <h2 style={{ color: '#1e293b', margin: 0 }}>Access Restricted</h2>
+                    <p style={{ color: '#64748b', maxWidth: '400px', lineHeight: '1.6' }}>
+                        System Settings are restricted to the Super Admin only. Contact your system administrator if you need to make changes.
+                    </p>
+                </div>
+            ) : (
             <div className="admin-st-77aa706a">
                 <button className="btn btn-primary" onClick={handleSave}>
                     <Save size={18} className="admin-st-7f4ee4f3"/> Save Changes
@@ -461,6 +472,7 @@ function AdminSettings() {
 
                 </div>
             </div>
+            )}
             <ConfirmModal {...confirmDialog} onClose={() => setConfirmDialog(prev => ({...prev, isOpen: false}))} />
         </div>
     );

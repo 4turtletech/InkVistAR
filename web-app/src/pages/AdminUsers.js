@@ -144,7 +144,7 @@ function AdminUsers() {
     };
     const closeAdminModal = () => {
         setUserModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => { setUserModal({ mounted: false, visible: false }); setSelectedUser(null); }, 400);
+        setTimeout(() => { setUserModal({ mounted: false, visible: false }); setSelectedUser(null); }, 200);
     };
 
     const openClientModalAnim = () => {
@@ -157,7 +157,7 @@ function AdminUsers() {
             setClientModal({ mounted: false, visible: false });
             setSelectedClient(null);
             setExpandedRecordId(null);
-        }, 400);
+        }, 200);
     };
 
     const openArtistModalAnim = () => {
@@ -166,7 +166,7 @@ function AdminUsers() {
     };
     const closeArtistModal = () => {
         setArtistModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => { setArtistModal({ mounted: false, visible: false }); setSelectedArtist(null); }, 400);
+        setTimeout(() => { setArtistModal({ mounted: false, visible: false }); setSelectedArtist(null); }, 200);
     };
 
     const openCreateModalAnim = () => {
@@ -184,7 +184,7 @@ function AdminUsers() {
             setCreatePasswordFocused(false);
             setCreatePasswordFeedback({ hasMinLength: false, hasUppercase: false, hasLowercase: false, hasNumber: false, hasSymbol: false });
             setProfileImagePreview(null);
-        }, 400);
+        }, 200);
     };
 
     const openEditWork = (work) => {
@@ -524,9 +524,6 @@ function AdminUsers() {
                     <input className="form-input admin-st-10bc60ad" type="text" value="30" disabled />
                 </div>
             </div>
-            <button className="btn btn-primary admin-st-194b571d" onClick={handleUpdateArtistProfile}>
-                <Save size={18} className="admin-st-7f4ee4f3" /> Save Changes
-            </button>
             <div className="stats-row admin-st-40088812">
                 <div className="stat-item">
                     <span className="stat-label">Total Appointments</span>
@@ -761,9 +758,10 @@ function AdminUsers() {
                 password: createFormData.password, type: createFormData.user_type,
                 phone: fullPhone, status: 'active',
                 profileImage: createFormData.profileImage || null,
-                age: createFormData.age ? parseInt(createFormData.age) : null
+                age: createFormData.age ? parseInt(createFormData.age) : null,
+                is_verified: 1
             });
-            showAlert("Success", "User added successfully! They will need to verify via OTP on first login.", "success");
+            showAlert("Success", "User account created and verified. They can log in immediately.", "success");
             fetchUsers();
             closeCreateModal();
         } catch (error) {
@@ -1486,7 +1484,12 @@ function AdminUsers() {
                                             onChange={(e) => setCreateFormData({ ...createFormData, user_type: e.target.value })} className="form-input">
                                             <option value="customer">Customer (Client)</option>
                                             <option value="artist">Artist (Staff)</option>
-                                            <option value="admin">System Admin</option>
+                                            {currentUser.is_superadmin && (
+                                                <>
+                                                    <option value="manager">Manager</option>
+                                                    <option value="admin">Admin</option>
+                                                </>
+                                            )}
                                         </select>
                                     </div>
                                 </div>

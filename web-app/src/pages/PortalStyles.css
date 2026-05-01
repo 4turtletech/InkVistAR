@@ -1215,7 +1215,10 @@ body.sidenav-collapsed .portal-layout .portal-container {
     padding: 1.5rem 2rem;
     border-top: 1px solid #f1f5f9;
     display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     justify-content: flex-end;
+    align-items: center;
     gap: 12px;
     background: #f8fafc;
     flex-shrink: 0;
@@ -1357,6 +1360,10 @@ body.sidenav-collapsed .portal-layout .portal-container {
 .close-btn:hover {
     background: #f1f5f9;
     color: #1e293b;
+}
+
+.close-btn:active {
+    transform: translateY(-50%) scale(1) !important;
 }
 
 .billing-details-btn {

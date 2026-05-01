@@ -418,7 +418,7 @@ db.getConnection((err, connection) => {
           const bcrypt = require('bcryptjs');
           bcrypt.hash('manager123', 10).then(hash => {
             db.query(
-              "INSERT INTO users (name, email, password_hash, user_type, is_verified, is_deleted, is_superadmin) VALUES (?, ?, ?, 'admin', 1, 0, 0)",
+              "INSERT INTO users (name, email, password_hash, user_type, is_verified, is_deleted, is_superadmin) VALUES (?, ?, ?, 'manager', 1, 0, 0)",
               ['Manager Admin', 'manager@inkvistar.com', hash],
               (insertErr) => {
                 if (!insertErr) console.log('[OK] Seeded admin account: manager@inkvistar.com');
@@ -7944,13 +7944,14 @@ app.get('/api/admin/users', (req, res) => {
 
 // Admin: Create User
 app.post('/api/admin/users', async (req, res) => {
-  const { name, email, password, type, phone, status, profileImage, age, gender } = req.body;
+  const { name, email, password, type, phone, status, profileImage, age, gender, is_verified } = req.body;
   try {
     const password_hash = await bcrypt.hash(password, 10);
     const isDeleted = (status === 'inactive' || status === 'suspended') ? 1 : 0;
-    const query = 'INSERT INTO users (name, email, password_hash, user_type, phone, is_deleted, is_verified) VALUES (?, ?, ?, ?, ?, ?, 0)';
+    const verifiedFlag = is_verified === 1 || is_verified === true ? 1 : 0;
+    const query = 'INSERT INTO users (name, email, password_hash, user_type, phone, is_deleted, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?)';
 
-    db.query(query, [name, email, password_hash, type, phone, isDeleted], (err, result) => {
+    db.query(query, [name, email, password_hash, type, phone, isDeleted, verifiedFlag], (err, result) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
 
       const newUserId = result.insertId;
