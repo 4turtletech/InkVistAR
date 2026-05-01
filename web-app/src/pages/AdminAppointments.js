@@ -14,6 +14,7 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 import { getDisplayCode, formatTime12Hour, formatStatus } from '../utils/formatters';
 import { filterName, filterDigits, clampNumber } from '../utils/validation';
+import CustomSelect from '../components/CustomSelect';
 import { generateReportHeader, downloadCsv, escapeCsv } from '../utils/csvExport';
 
 const formatDuration = (totalSeconds) => {
@@ -985,84 +986,90 @@ function AdminAppointments() {
     };
 
     const handleExport = () => {
-        const headerRows = generateReportHeader('Appointments Export', {
-            'Status': statusFilter !== 'all' ? statusFilter : null,
-            'Service': serviceFilter !== 'all' ? serviceFilter : null,
-            'Date': dateFilter || null,
-            'Search': searchTerm || null,
-            'View': viewMode
+        showConfirm('Confirm Export', 'Are you sure you want to download a CSV export of the currently filtered appointments?', () => {
+            const headerRows = generateReportHeader('Appointments Export', {
+                'Status': statusFilter !== 'all' ? statusFilter : null,
+                'Service': serviceFilter !== 'all' ? serviceFilter : null,
+                'Date': dateFilter || null,
+                'Search': searchTerm || null,
+                'View': viewMode
+            });
+
+            const columnHeaders = ['Appointment ID', 'Client Name', 'Artist', 'Service Type', 'Date', 'Time', 'Status', 'Price (₱)'];
+            const dataRows = filteredAppointments.map(a => [
+                a.id,
+                a.clientName,
+                a.artistName,
+                a.serviceType,
+                a.date,
+                a.time,
+                a.status,
+                a.price || 0
+            ]);
+
+            downloadCsv([...headerRows, columnHeaders, ...dataRows], 'appointments_export');
+            setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         });
-
-        const columnHeaders = ['Appointment ID', 'Client Name', 'Artist', 'Service Type', 'Date', 'Time', 'Status', 'Price (₱)'];
-        const dataRows = filteredAppointments.map(a => [
-            a.id,
-            a.clientName,
-            a.artistName,
-            a.serviceType,
-            a.date,
-            a.time,
-            a.status,
-            a.price || 0
-        ]);
-
-        downloadCsv([...headerRows, columnHeaders, ...dataRows], 'appointments_export');
     };
 
     const handlePrint = () => {
-        const printWindow = window.open('', '_blank');
-        const printData = filteredAppointments.map(a =>
-            `<tr>
-                <td>${a.clientName || 'N/A'}</td>
-                <td>${a.artistName || 'N/A'}</td>
-                <td>${a.serviceType || 'N/A'}</td>
-                <td>${a.date || 'N/A'}</td>
-                <td>${a.time || 'N/A'}</td>
-                <td>${(a.status || '').toUpperCase()}</td>
-                <td>₱${parseFloat(a.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            </tr>`
-        ).join('');
+        showConfirm('Confirm Print', 'Are you sure you want to generate a printable report of the currently filtered appointments?', () => {
+            const printWindow = window.open('', '_blank');
+            const printData = filteredAppointments.map(a =>
+                `<tr>
+                    <td>${a.clientName || 'N/A'}</td>
+                    <td>${a.artistName || 'N/A'}</td>
+                    <td>${a.serviceType || 'N/A'}</td>
+                    <td>${a.date || 'N/A'}</td>
+                    <td>${a.time || 'N/A'}</td>
+                    <td>${(a.status || '').toUpperCase()}</td>
+                    <td>₱${parseFloat(a.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>`
+            ).join('');
 
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Print Appointments</title>
-                    <style>
-                        body { font-family: sans-serif; padding: 20px; color: #333; }
-                        h1 { color: #1e293b; text-align: center; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; }
-                        th { background-color: #f1f5f9; color: #475569; }
-                    </style>
-                </head>
-                <body>
-                    <h1>Appointments Schedule</h1>
-                    <p style="text-align:center;">Generated on ${new Date().toLocaleString()}</p>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Client Name</th>
-                                <th>Artist</th>
-                                <th>Service Type</th>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Status</th>
-                                <th>Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${printData}
-                        </tbody>
-                    </table>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        // Slight delay to ensure rendering before printing
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 250);
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Print Appointments</title>
+                        <style>
+                            body { font-family: sans-serif; padding: 20px; color: #333; }
+                            h1 { color: #1e293b; text-align: center; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                            th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; }
+                            th { background-color: #f1f5f9; color: #475569; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Appointments Schedule</h1>
+                        <p style="text-align:center;">Generated on ${new Date().toLocaleString()}</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Client Name</th>
+                                    <th>Artist</th>
+                                    <th>Service Type</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${printData}
+                            </tbody>
+                        </table>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            // Slight delay to ensure rendering before printing
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+            }, 250);
+        });
     };
 
     const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
@@ -1097,28 +1104,31 @@ function AdminAppointments() {
                         <h1>Appointment Management</h1>
                     </div>
                     <div className="header-actions">
-                        <div className="view-toggle admin-flex-center admin-gap-10">
+                        <div className="modern-view-toggle">
+                            <div className="toggle-slider" style={{ transform: `translateX(${viewMode === 'calendar' ? '100%' : '0'})` }} />
                             <button
-                                className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'} admin-st-1b9ed2b3`}
+                                className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
                                 onClick={() => setViewMode('list')}
+                                title="List View"
                             >
-                                <List size={16} /> List
+                                <List size={16} /> <span>List</span>
                             </button>
                             <button
-                                className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'} admin-st-1b9ed2b3`}
+                                className={`toggle-btn ${viewMode === 'calendar' ? 'active' : ''}`}
                                 onClick={() => setViewMode('calendar')}
+                                title="Calendar View"
                             >
-                                <Calendar size={16} /> Calendar
+                                <Calendar size={16} /> <span>Calendar</span>
                             </button>
                         </div>
                         <button className="btn btn-primary" onClick={handleAddNew}>
                             + New Appointment
                         </button>
-                        <button className="btn btn-secondary" onClick={handleExport}>
-                            Export CSV
+                        <button className="btn btn-secondary icon-btn" onClick={handleExport} title="Export to CSV">
+                            <FileText size={18} />
                         </button>
-                        <button className="btn btn-secondary" onClick={handlePrint}>
-                            Print
+                        <button className="btn btn-secondary icon-btn" onClick={handlePrint} title="Print Appointments">
+                            <Printer size={18} />
                         </button>
                     </div>
                 </header>
@@ -1273,11 +1283,13 @@ function AdminAppointments() {
                             </span>
                         </div>
                         <div className="day-view-body">
-                            {getAppointmentsForDate(selectedDay || 1).map(apt => (
+                            {getAppointmentsForDate(selectedDay || 1).map((apt, index) => (
                                 <div
                                     key={apt.id}
-                                    className="glass-card day-view-apt-card"
+                                    className="glass-card day-view-apt-card waterfall-item"
+                                    style={{ animationDelay: `${index * 0.05}s` }}
                                     onClick={() => handleEdit(apt)}
+                                    title="View appointment details"
                                 >
                                     <div className="admin-st-a5c3808d">
                                         <div style={{
@@ -1400,74 +1412,69 @@ function AdminAppointments() {
                             </div>
 
                             <div className="premium-filters-row">
-                                <div className="premium-filter-item">
-                                    <Filter size={16} />
-                                    <span>Filter:</span>
-                                    <select
-                                        value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="premium-select-v2"
-                                    >
-                                        <option value="all">All Status</option>
-                                        <option value="confirmed">Confirmed</option>
-                                        <option value="scheduled">Scheduled</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="completed">Completed</option>
-                                        <option value="cancelled">Cancelled</option>
-                                        <option value="rejected">Rejected</option>
-                                    </select>
-                                </div>
+                                <CustomSelect 
+                                    value={statusFilter} 
+                                    onChange={setStatusFilter} 
+                                    icon={Filter}
+                                    label="Filter:"
+                                    options={[
+                                        { value: 'all', label: 'All Status' },
+                                        { value: 'confirmed', label: 'Confirmed' },
+                                        { value: 'scheduled', label: 'Scheduled' },
+                                        { value: 'pending', label: 'Pending' },
+                                        { value: 'completed', label: 'Completed' },
+                                        { value: 'cancelled', label: 'Cancelled' },
+                                        { value: 'rejected', label: 'Rejected' }
+                                    ]}
+                                />
 
-                                <div className="premium-filter-item">
-                                    <select
-                                        value={serviceFilter}
-                                        onChange={(e) => setServiceFilter(e.target.value)}
-                                        className="premium-select-v2"
-                                    >
-                                        <option value="all">All Services</option>
-                                        <option value="Tattoo Session">Tattoo Session</option>
-                                        <option value="Consultation">Consultation</option>
-                                        <option value="Piercing">Piercing</option>
-                                        <option value="Follow-up">Follow-up</option>
-                                        <option value="Touch-up">Touch-up</option>
-                                    </select>
-                                </div>
+                                <CustomSelect 
+                                    value={serviceFilter} 
+                                    onChange={setServiceFilter} 
+                                    options={[
+                                        { value: 'all', label: 'All Services' },
+                                        { value: 'Tattoo Session', label: 'Tattoo Session' },
+                                        { value: 'Consultation', label: 'Consultation' },
+                                        { value: 'Piercing', label: 'Piercing' },
+                                        { value: 'Follow-up', label: 'Follow-up' },
+                                        { value: 'Touch-up', label: 'Touch-up' }
+                                    ]}
+                                />
 
-                                <div className="premium-filter-item">
-                                    <Calendar size={16} />
-                                    <select
-                                        value={timePeriodFilter}
-                                        onChange={(e) => { setTimePeriodFilter(e.target.value); if (e.target.value !== 'all') setDateFilter(''); }}
-                                        className="premium-select-v2"
-                                    >
-                                        <option value="all">All Time</option>
-                                        <option value="weekly">This Week</option>
-                                        <option value="monthly">This Month</option>
-                                        <option value="yearly">This Year</option>
-                                    </select>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <CustomSelect 
+                                        value={timePeriodFilter} 
+                                        onChange={(val) => { setTimePeriodFilter(val); if (val !== 'all') setDateFilter(''); }} 
+                                        icon={Calendar}
+                                        options={[
+                                            { value: 'all', label: 'All Time' },
+                                            { value: 'weekly', label: 'This Week' },
+                                            { value: 'monthly', label: 'This Month' },
+                                            { value: 'yearly', label: 'This Year' }
+                                        ]}
+                                    />
                                     <input
                                         type="date"
                                         value={dateFilter}
                                         onChange={(e) => { setDateFilter(e.target.value); if (e.target.value) setTimePeriodFilter('all'); }}
-                                        className="premium-select-v2"
-                                        style={{ height: '38px', padding: '0 12px' }}
+                                        className="custom-select-trigger"
+                                        style={{ height: '38px', minWidth: '140px', color: dateFilter ? '#1e293b' : '#94a3b8' }}
+                                        title="Select specific date"
                                     />
                                 </div>
 
-                                <div className="premium-filter-item">
-                                    <SlidersHorizontal size={16} />
-                                    <span>Sort:</span>
-                                    <select
-                                        value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value)}
-                                        className="premium-select-v2"
-                                    >
-                                        <option value="date">Date</option>
-                                        <option value="client">Client</option>
-                                        <option value="artist">Artist</option>
-                                        <option value="status">Status</option>
-                                    </select>
-                                </div>
+                                <CustomSelect 
+                                    value={sortBy} 
+                                    onChange={setSortBy} 
+                                    icon={SlidersHorizontal}
+                                    label="Sort:"
+                                    options={[
+                                        { value: 'date', label: 'Date' },
+                                        { value: 'client', label: 'Client' },
+                                        { value: 'artist', label: 'Artist' },
+                                        { value: 'status', label: 'Status' }
+                                    ]}
+                                />
                             </div>
                         </div>
 
