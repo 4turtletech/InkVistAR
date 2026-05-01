@@ -463,19 +463,20 @@ function AdminBilling() {
                         <h1>Billing & Payments</h1>
                     </div>
                     <div className="header-actions">
-                         <button className={`btn ${activeTab === 'invoices' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('invoices')}>
-                            <FileText size={18} className="admin-st-c02c7d9c"/> Transaction Logs
-                        </button>
-
-                        <button className={`btn ${activeTab === 'payouts' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('payouts')}>
-                            <CreditCard size={18} className="admin-st-c02c7d9c"/> Artist Payouts
-                        </button>
+                        <div className="modern-view-toggle" style={{ margin: '0 8px' }}>
+                            <button className={`toggle-btn ${activeTab === 'invoices' ? 'active' : ''}`} onClick={() => setActiveTab('invoices')} title="Transaction Logs">
+                                <FileText size={16}/> <span>Transaction Logs</span>
+                            </button>
+                            <button className={`toggle-btn ${activeTab === 'payouts' ? 'active' : ''}`} onClick={() => setActiveTab('payouts')} title="Artist Payouts" style={{ color: activeTab === 'payouts' ? '#be9055' : '#1e293b' }}>
+                                <CreditCard size={16}/> <span>Artist Payouts</span>
+                            </button>
+                        </div>
                     </div>
                 </header>
                 <p className="header-subtitle">Manage studio revenue, invoices, and payment tracking</p>
 
                 {activeTab === 'invoices' ? (
-                        <>
+                        <div className="page-container-enter" key="invoices">
                         <div className="stats-row">
                             <div className="stat-item">
                                 <span className="stat-label">Total Revenue</span>
@@ -678,9 +679,9 @@ function AdminBilling() {
                                 unit="invoices"
                             />
                         </div>
-                    </>
+                    </div>
                 ) : activeTab === 'payouts' ? (
-                    <div className="payouts-container">
+                    <div className="payouts-container page-container-enter" key="payouts">
                         <div className="stats-row admin-st-2579959f">
                             <div className="stat-item glass-card">
                                 <span className="stat-label" >Total Paid to Artists</span>

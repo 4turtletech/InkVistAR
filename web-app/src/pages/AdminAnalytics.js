@@ -42,11 +42,33 @@ function AdminAnalytics() {
     const [isWidgetModalOpen, setIsWidgetModalOpen] = useState(false);
 
     const toggleWidget = (id) => {
-        setVisibleWidgets(prev => {
-            const next = prev.includes(id) ? prev.filter(w => w !== id) : [...prev, id];
-            localStorage.setItem('inkvistar_admin_analytics_widgets', JSON.stringify(next));
-            return next;
-        });
+        if (visibleWidgets.includes(id)) {
+            // Animate out
+            const el = document.getElementById(`widget-${id}`);
+            if (el) {
+                el.style.transform = 'scale(0.8)';
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    setVisibleWidgets(prev => {
+                        const next = prev.filter(w => w !== id);
+                        localStorage.setItem('inkvistar_admin_analytics_widgets', JSON.stringify(next));
+                        return next;
+                    });
+                }, 300);
+            } else {
+                setVisibleWidgets(prev => {
+                    const next = prev.filter(w => w !== id);
+                    localStorage.setItem('inkvistar_admin_analytics_widgets', JSON.stringify(next));
+                    return next;
+                });
+            }
+        } else {
+            setVisibleWidgets(prev => {
+                const next = [...prev, id];
+                localStorage.setItem('inkvistar_admin_analytics_widgets', JSON.stringify(next));
+                return next;
+            });
+        }
     };
 
     const [dateRange, setDateRange] = useState('month');
@@ -321,36 +343,45 @@ function AdminAnalytics() {
                                 </>
                             )}
                         </div>
-                        <div style={{ position: 'relative' }}>
+                        <div>
                             <button className="btn btn-secondary" onClick={() => setIsWidgetModalOpen(true)}><LayoutDashboard size={18} /> Layout</button>
                             {isWidgetModalOpen && (
-                                <>
-                                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }} onClick={() => setIsWidgetModalOpen(false)}></div>
-                                    <div style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 35px rgba(0,0,0,0.15)', zIndex: 100, width: '420px', padding: '16px', animation: 'fadeIn 0.2s ease' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
-                                            <h4 style={{ margin: 0, fontSize: '1rem', color: '#1e293b' }}>Dashboard Layout</h4>
-                                            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }} onClick={() => setIsWidgetModalOpen(false)}><X size={18} /></button>
+                                <div className="modal-overlay open" onClick={() => setIsWidgetModalOpen(false)}>
+                                    <div className="modal-content" style={{ maxWidth: '600px', width: '90%' }} onClick={e => e.stopPropagation()}>
+                                        <div className="modal-header">
+                                            <div className="admin-flex-center admin-gap-15">
+                                                <div className="admin-st-c911153f">
+                                                    <LayoutDashboard size={20} className="text-bronze" />
+                                                </div>
+                                                <div>
+                                                    <h2 className="admin-m-0">Dashboard Layout</h2>
+                                                    <p className="admin-st-925e4e02">Select widgets to display</p>
+                                                </div>
+                                            </div>
+                                            <button className="close-btn" onClick={() => setIsWidgetModalOpen(false)}><X size={24}/></button>
                                         </div>
-                                        <div className="grid-2col" style={{ gap: '8px', maxHeight: '350px', overflowY: 'auto' }}>
-                                            {WIDGET_OPTIONS.map(widget => {
-                                                const isVisible = visibleWidgets.includes(widget.id);
-                                                return (
-                                                    <div 
-                                                        key={widget.id} 
-                                                        onClick={() => toggleWidget(widget.id)}
-                                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: isVisible ? '#f8fafc' : 'transparent', border: `1px solid ${isVisible ? '#e2e8f0' : 'transparent'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
-                                                    >
-                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '4px', border: `2px solid ${isVisible ? '#be9055' : '#cbd5e1'}`, background: isVisible ? '#be9055' : 'transparent', flexShrink: 0 }}>
-                                                            {isVisible && <Check size={14} color="white" strokeWidth={3} />}
+                                        <div className="modal-body" style={{ padding: '20px 30px' }}>
+                                            <div className="grid-2col" style={{ gap: '15px' }}>
+                                                {WIDGET_OPTIONS.map(widget => {
+                                                    const isVisible = visibleWidgets.includes(widget.id);
+                                                    return (
+                                                        <div 
+                                                            key={widget.id} 
+                                                            onClick={() => toggleWidget(widget.id)}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 15px', background: isVisible ? '#f8fafc' : 'transparent', border: `1px solid ${isVisible ? '#be9055' : '#e2e8f0'}`, borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                        >
+                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', borderRadius: '6px', border: `2px solid ${isVisible ? '#be9055' : '#cbd5e1'}`, background: isVisible ? '#be9055' : 'transparent', flexShrink: 0 }}>
+                                                                {isVisible && <Check size={14} color="white" strokeWidth={3} />}
+                                                            </div>
+                                                            <div style={{ color: isVisible ? '#be9055' : '#94a3b8', display: 'flex', flexShrink: 0 }}>{widget.icon}</div>
+                                                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: isVisible ? '#1e293b' : '#64748b' }}>{widget.label}</span>
                                                         </div>
-                                                        <div style={{ color: isVisible ? '#be9055' : '#94a3b8', display: 'flex', flexShrink: 0 }}>{widget.icon}</div>
-                                                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isVisible ? '#1e293b' : '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{widget.label}</span>
-                                                    </div>
-                                                );
-                                            })}
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </div>
-                                </>
+                                </div>
                             )}
                         </div>
                         <button className="btn btn-secondary" onClick={handlePrint}><Printer size={18} /> Print</button>
@@ -372,7 +403,7 @@ function AdminAnalytics() {
                                     id: 'revenue_trend',
                                     widthInfo: 'wide',
                                     element: (
-                                        <div key="revenue_trend" className="card glass-card" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                        <div id="widget-revenue_trend" key="revenue_trend" className="card glass-card page-container-enter" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box', transition: 'all 0.3s ease' }}>
                                             <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Trend ({timeframeLabel})</h2>
                                             <div style={{ width: '100%', height: 280 }}>
                                                 <ResponsiveContainer>
@@ -416,7 +447,7 @@ function AdminAnalytics() {
                                     id: 'revenue_sources',
                                     widthInfo: 'narrow',
                                     element: (
-                                        <div key="revenue_sources" className="card glass-card" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                        <div id="widget-revenue_sources" key="revenue_sources" className="card glass-card page-container-enter" onClick={() => openAuditModal('revenue')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box', transition: 'all 0.3s ease' }}>
                                             <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Revenue Sources</h2>
                                             <div style={{ width: '100%', height: 280 }}>
                                                 {analytics.revenue.breakdown.length > 0 ? (
@@ -443,7 +474,7 @@ function AdminAnalytics() {
                                     element: (() => {
                                         const isFiltered = revenueTimeframe !== 'all';
                                         return (
-                                            <div key="popular_styles" className={`card glass-card ${isFiltered ? 'disabled-widget' : ''}`} onClick={() => !isFiltered && openAuditModal('styles')} style={{ cursor: isFiltered ? 'default' : 'pointer', width: '100%', boxSizing: 'border-box', backgroundColor: isFiltered ? '#f8fafc' : '', opacity: isFiltered ? 0.7 : 1, border: isFiltered ? '1px dashed #cbd5e1' : '' }}>
+                                            <div id="widget-popular_styles" key="popular_styles" className={`card glass-card page-container-enter ${isFiltered ? 'disabled-widget' : ''}`} onClick={() => !isFiltered && openAuditModal('styles')} style={{ cursor: isFiltered ? 'default' : 'pointer', width: '100%', boxSizing: 'border-box', backgroundColor: isFiltered ? '#f8fafc' : '', opacity: isFiltered ? 0.7 : 1, border: isFiltered ? '1px dashed #cbd5e1' : '', transition: 'all 0.3s ease' }}>
                                                 <h2><PieChartIcon size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Popular Styles</h2>
                                                 {isFiltered && (
                                                     <div style={{ margin: '-5px 0 15px', padding: '6px 10px', background: '#e2e8f0', borderRadius: '6px', fontSize: '0.75rem', color: '#475569', textAlign: 'center' }}>
@@ -474,7 +505,7 @@ function AdminAnalytics() {
                                     id: 'top_artists',
                                     widthInfo: 'wide',
                                     element: (
-                                        <div key="top_artists" className="card glass-card" onClick={() => openAuditModal('artists')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                        <div id="widget-top_artists" key="top_artists" className="card glass-card page-container-enter" onClick={() => openAuditModal('artists')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box', transition: 'all 0.3s ease' }}>
                                             <h2><BarChart3 size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Top Artists by Revenue</h2>
                                             <div style={{ width: '100%', height: 280 }}>
                                                 {analytics.artists.length > 0 ? (
@@ -501,7 +532,7 @@ function AdminAnalytics() {
                                     id: 'inventory',
                                     widthInfo: 'wide',
                                     element: (
-                                        <div key="inventory" className="card glass-card" onClick={() => openAuditModal('inventory')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                        <div id="widget-inventory" key="inventory" className="card glass-card page-container-enter" onClick={() => openAuditModal('inventory')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box', transition: 'all 0.3s ease' }}>
                                             <h2><Package size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Inventory Consumption</h2>
                                             <div style={{ width: '100%', height: 280 }}>
                                                 {analytics.inventory.length > 0 ? (
@@ -550,7 +581,7 @@ function AdminAnalytics() {
                                     id: 'appointments',
                                     widthInfo: 'narrow',
                                     element: (
-                                        <div key="appointments" className="card glass-card" onClick={() => openAuditModal('appointments')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box' }}>
+                                        <div id="widget-appointments" key="appointments" className="card glass-card page-container-enter" onClick={() => openAuditModal('appointments')} style={{ cursor: 'pointer', width: '100%', boxSizing: 'border-box', transition: 'all 0.3s ease' }}>
                                             <h2><Calendar size={18} style={{ verticalAlign: 'middle', marginRight: '8px', color: '#94a3b8' }} />Appointment Breakdown</h2>
                                             <div style={{ width: '100%', height: 280 }}>
                                                 <ResponsiveContainer>

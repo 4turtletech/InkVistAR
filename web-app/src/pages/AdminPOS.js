@@ -15,6 +15,7 @@ function AdminPOS() {
     const [inventory, setInventory] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [cart, setCart] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -47,6 +48,14 @@ function AdminPOS() {
         console.log("POS System Mounting...");
         fetchInventory();
         fetchCustomers();
+        
+        function handleClickOutside(event) {
+            if (searchInputRef.current && !searchInputRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     const fetchInventory = useCallback(async () => {
@@ -279,17 +288,39 @@ function AdminPOS() {
                         <h1>Studio POS</h1>
                     </div>
                             <div className="header-actions">
-                                <div className="pos-search">
+                                <div className="pos-search" ref={searchInputRef} style={{ position: 'relative' }}>
                                     <Search size={18} className="search-icon" />
                                     <input 
-                                        ref={searchInputRef}
                                         type="text" 
-                                        list="search-suggestions-pos"
                                         placeholder="Search products..." 
                                         value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onChange={(e) => {
+                                            setSearchTerm(e.target.value);
+                                            setShowSuggestions(true);
+                                        }}
+                                        onFocus={() => setShowSuggestions(true)}
                                         maxLength={100}
                                     />
+                                    {showSuggestions && searchTerm && searchSuggestions.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 && (
+                                        <div className="autocomplete-dropdown waterfall-dropdown">
+                                            {searchSuggestions
+                                                .filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+                                                .slice(0, 8)
+                                                .map((suggestion, index) => (
+                                                    <div 
+                                                        key={suggestion} 
+                                                        className="autocomplete-item waterfall-item"
+                                                        style={{ animationDelay: `${index * 0.05}s` }}
+                                                        onClick={() => {
+                                                            setSearchTerm(suggestion);
+                                                            setShowSuggestions(false);
+                                                        }}
+                                                    >
+                                                        {suggestion}
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <button className="refresh-pos-btn" onClick={fetchInventory} title="Refresh Inventory">
                                     <RefreshCw size={20} className={loading ? 'spinning' : ''} />

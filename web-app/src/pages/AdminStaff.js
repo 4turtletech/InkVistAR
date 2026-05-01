@@ -159,11 +159,8 @@ function AdminStaff() {
     };
 
     const closeModal = () => {
-        setArtistManagerModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => {
-            setArtistManagerModal({ mounted: false, visible: false });
-            setSelectedArtist(null);
-        }, 400); // Match CSS transition duration
+        setArtistManagerModal({ mounted: false, visible: false });
+        setSelectedArtist(null);
     };
 
     const openEditWork = (work) => {
@@ -180,8 +177,7 @@ function AdminStaff() {
     };
 
     const closeEditWork = () => {
-        setEditWorkModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => setEditWorkModal({ mounted: false, visible: false }), 400);
+        setEditWorkModal({ mounted: false, visible: false });
     };
 
     // --- Artist Management Functions ---

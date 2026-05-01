@@ -126,8 +126,7 @@ function AdminUsers() {
         setTimeout(() => setStatusModal(prev => ({ ...prev, visible: true })), 10);
     };
     const closeStatusModal = () => {
-        setStatusModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => setStatusModal({ mounted: false, visible: false, user: null }), 400);
+        setStatusModal({ mounted: false, visible: false, user: null });
     };
     const showAlert = (title, message, type = 'info') => {
         setConfirmDialog({
@@ -145,8 +144,8 @@ function AdminUsers() {
         setTimeout(() => setUserModal({ mounted: true, visible: true }), 10);
     };
     const closeAdminModal = () => {
-        setUserModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => { setUserModal({ mounted: false, visible: false }); setSelectedUser(null); }, 200);
+        setUserModal({ mounted: false, visible: false }); 
+        setSelectedUser(null);
     };
 
     const openClientModalAnim = () => {
@@ -154,12 +153,9 @@ function AdminUsers() {
         setTimeout(() => setClientModal({ mounted: true, visible: true }), 10);
     };
     const closeClientModal = () => {
-        setClientModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => {
-            setClientModal({ mounted: false, visible: false });
-            setSelectedClient(null);
-            setExpandedRecordId(null);
-        }, 200);
+        setClientModal({ mounted: false, visible: false });
+        setSelectedClient(null);
+        setExpandedRecordId(null);
     };
 
     const openArtistModalAnim = () => {
@@ -167,8 +163,8 @@ function AdminUsers() {
         setTimeout(() => setArtistModal({ mounted: true, visible: true }), 10);
     };
     const closeArtistModal = () => {
-        setArtistModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => { setArtistModal({ mounted: false, visible: false }); setSelectedArtist(null); }, 200);
+        setArtistModal({ mounted: false, visible: false }); 
+        setSelectedArtist(null);
     };
 
     const isArtistFormDirty = () => {
@@ -206,17 +202,14 @@ function AdminUsers() {
         setTimeout(() => setCreateModal({ mounted: true, visible: true }), 10);
     };
     const closeCreateModal = () => {
-        setCreateModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => {
-            setCreateModal({ mounted: false, visible: false });
-            setCreateFormData({ firstName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63', password: '', confirmPassword: '', user_type: 'customer', profileImage: '', age: '' });
-            setCreateErrors({});
-            setShowCreatePassword(false);
-            setShowCreateConfirmPassword(false);
-            setCreatePasswordFocused(false);
-            setCreatePasswordFeedback({ hasMinLength: false, hasUppercase: false, hasLowercase: false, hasNumber: false, hasSymbol: false });
-            setProfileImagePreview(null);
-        }, 200);
+        setCreateModal({ mounted: false, visible: false });
+        setCreateFormData({ firstName: '', lastName: '', suffix: '', email: '', phone: '', countryCode: '+63', password: '', confirmPassword: '', user_type: 'customer', profileImage: '', age: '' });
+        setCreateErrors({});
+        setShowCreatePassword(false);
+        setShowCreateConfirmPassword(false);
+        setCreatePasswordFocused(false);
+        setCreatePasswordFeedback({ hasMinLength: false, hasUppercase: false, hasLowercase: false, hasNumber: false, hasSymbol: false });
+        setProfileImagePreview(null);
     };
 
     const openEditWork = (work) => {
@@ -231,8 +224,7 @@ function AdminUsers() {
         setTimeout(() => setEditWorkModal({ mounted: true, visible: true }), 10);
     };
     const closeEditWork = () => {
-        setEditWorkModal(prev => ({ ...prev, visible: false }));
-        setTimeout(() => setEditWorkModal({ mounted: false, visible: false }), 400);
+        setEditWorkModal({ mounted: false, visible: false });
     };
 
     // ═══════════════════════════════════════════════════════════

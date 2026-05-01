@@ -12,6 +12,7 @@ import './AdminStyles.css';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import ImageCropper from '../components/ImageCropper';
+import CustomSelect from '../components/CustomSelect';
 import { API_URL } from '../config';
 import { generateReportHeader, downloadCsv } from '../utils/csvExport';
 
@@ -148,11 +149,8 @@ function AdminInventory() {
     };
 
     const closeModal = (setter) => {
-        setter(prev => ({ ...prev, visible: false }));
-        setTimeout(() => {
-            setter({ mounted: false, visible: false });
-            setSelectedItem(null); // Reset selected item when any modal closes
-        }, 400); // Must match CSS transition duration
+        setter({ mounted: false, visible: false });
+        setSelectedItem(null);
     };
 
     const showAlert = (title, message, type = 'info') => {
@@ -348,79 +346,101 @@ function AdminInventory() {
     const paginatedInventory = filteredInventory.slice(startIndex, endIndex);
 
     const handlePrint = () => {
-        const printWindow = window.open('', '_blank');
-        const printData = filteredInventory.map(item => 
-            `<tr>
-                <td>${item.name || 'N/A'}</td>
-                <td>${item.category || 'N/A'}</td>
-                <td>${item.currentStock || '0'}</td>
-                <td>${item.unit || 'N/A'}</td>
-                <td>₱${parseFloat(item.cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td>${getStockStatus(item.currentStock, item.minStock, item.maxStock)}</td>
-            </tr>`
-        ).join('');
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Confirm Print',
+            message: 'Are you sure you want to generate a printable report of the current inventory?',
+            confirmText: 'Print',
+            type: 'info',
+            isAlert: false,
+            onConfirm: () => {
+                const printWindow = window.open('', '_blank');
+                const printData = filteredInventory.map(item => 
+                    `<tr>
+                        <td>${item.name || 'N/A'}</td>
+                        <td>${item.category || 'N/A'}</td>
+                        <td>${item.currentStock || '0'}</td>
+                        <td>${item.unit || 'N/A'}</td>
+                        <td>₱${parseFloat(item.cost || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>${getStockStatus(item.currentStock, item.minStock, item.maxStock)}</td>
+                    </tr>`
+                ).join('');
 
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Print Inventory Status</title>
-                    <style>
-                        body { font-family: sans-serif; padding: 20px; color: #333; }
-                        h1 { color: #1e293b; text-align: center; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; }
-                        th { background-color: #f1f5f9; color: #475569; }
-                    </style>
-                </head>
-                <body>
-                    <h1>Inventory Status Report</h1>
-                    <p style="text-align:center;">Generated on ${new Date().toLocaleString()}</p>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Item Name</th>
-                                <th>Category</th>
-                                <th>Current Stock</th>
-                                <th>Unit</th>
-                                <th>Cost</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${printData}
-                        </tbody>
-                    </table>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 250);
+                printWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>Print Inventory Status</title>
+                            <style>
+                                body { font-family: sans-serif; padding: 20px; color: #333; }
+                                h1 { color: #1e293b; text-align: center; }
+                                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                                th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; }
+                                th { background-color: #f1f5f9; color: #475569; }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>Inventory Status Report</h1>
+                            <p style="text-align:center;">Generated on ${new Date().toLocaleString()}</p>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Item Name</th>
+                                        <th>Category</th>
+                                        <th>Current Stock</th>
+                                        <th>Unit</th>
+                                        <th>Cost</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${printData}
+                                </tbody>
+                            </table>
+                        </body>
+                    </html>
+                `);
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                }, 250);
+            }
+        });
     };
 
     const handleExportCSV = () => {
-        const headerRows = generateReportHeader('Inventory Status Report', {
-            'Category': categoryFilter !== 'all' ? categoryFilter : null,
-            'Stock Level': stockStatusFilter !== 'all' ? stockStatusFilter : null,
-            'Item Status': itemStatusFilter,
-            'Search': searchTerm || null,
-            'Sort By': sortBy
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Confirm Export',
+            message: 'Are you sure you want to download a CSV export of the current inventory?',
+            confirmText: 'Export',
+            type: 'info',
+            isAlert: false,
+            onConfirm: () => {
+                const headerRows = generateReportHeader('Inventory Status Report', {
+                    'Category': categoryFilter !== 'all' ? categoryFilter : null,
+                    'Stock Level': stockStatusFilter !== 'all' ? stockStatusFilter : null,
+                    'Item Status': itemStatusFilter,
+                    'Search': searchTerm || null,
+                    'Sort By': sortBy
+                });
+
+                const columnHeaders = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Cost (₱)', 'Status'];
+                const dataRows = filteredInventory.map(item => [
+                    item.name,
+                    item.category,
+                    item.currentStock,
+                    item.unit,
+                    item.cost,
+                    getStockStatus(item.currentStock, item.minStock, item.maxStock)
+                ]);
+
+                downloadCsv([...headerRows, columnHeaders, ...dataRows], 'inventory_export');
+                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+            }
         });
-
-        const columnHeaders = ['Item Name', 'Category', 'Current Stock', 'Unit', 'Cost (₱)', 'Status'];
-        const dataRows = filteredInventory.map(item => [
-            item.name,
-            item.category,
-            item.currentStock,
-            item.unit,
-            item.cost,
-            getStockStatus(item.currentStock, item.minStock, item.maxStock)
-        ]);
-
-        downloadCsv([...headerRows, columnHeaders, ...dataRows], 'inventory_export');
     };
 
     const getStockStatus = (current, min, max) => {
@@ -523,6 +543,18 @@ function AdminInventory() {
 
         if (!valid) {
             showAlert("Invalid Input", "Please correct the errors in the form.", "warning");
+            return;
+        }
+
+        // Check for duplicate item name
+        const isDuplicate = inventory.some(item => 
+            item.name.toLowerCase() === formData.name.trim().toLowerCase() && 
+            (!selectedItem || item.id !== selectedItem.id)
+        );
+
+        if (isDuplicate) {
+            showAlert("Duplicate Item", `An item with the name "${formData.name.trim()}" already exists in the inventory.`, "warning");
+            setIsSaving(false);
             return;
         }
 
@@ -682,18 +714,22 @@ function AdminInventory() {
                         <h1>Inventory Management</h1>
                     </div>
                 <div className="header-actions">
-                    <button className="btn btn-secondary" onClick={handlePrint} title="Print Report">
-                        <Printer size={18}/> Print
+                    <button className="btn btn-secondary icon-btn" onClick={handlePrint} title="Print Report">
+                        <Printer size={18}/>
                     </button>
-                    <button className="btn btn-secondary" onClick={handleExportCSV} title="Download CSV">
-                        <Download size={18}/> Export
+                    <button className="btn btn-secondary icon-btn" onClick={handleExportCSV} title="Download CSV">
+                        <Download size={18}/>
                     </button>
-                    <button className="btn btn-secondary" onClick={handleManageKits}>
-                        <Package size={18}/> Kits
-                    </button>
-                    <button className="btn btn-secondary" onClick={fetchHistory}>
-                        <History size={18}/> History
-                    </button>
+                    
+                    <div className="modern-view-toggle" style={{ margin: '0 8px' }}>
+                        <button className="toggle-btn active" onClick={fetchHistory} title="View Stock History">
+                            <History size={16}/> <span>History</span>
+                        </button>
+                        <button className="toggle-btn" onClick={handleManageKits} title="Manage Service Kits" style={{ color: '#1e293b' }}>
+                            <Package size={16}/> <span>Kits</span>
+                        </button>
+                    </div>
+
                     <button className="btn btn-primary" onClick={handleAddNew}>
                         <Plus size={18}/> Add Item
                     </button>
@@ -739,57 +775,57 @@ function AdminInventory() {
 
                     <div className="premium-filters-row">
                         <div className="premium-filter-item">
-                            <Filter size={16} />
-                            <span>Filter by:</span>
-                            <select
+                            <CustomSelect
                                 value={itemStatusFilter}
-                                onChange={(e) => setItemStatusFilter(e.target.value)}
-                                className="premium-select-v2"
-                            >
-                                <option value="active">Active Items</option>
-                                <option value="deleted">Deleted Items</option>
-                            </select>
+                                onChange={setItemStatusFilter}
+                                options={[
+                                    { value: 'active', label: 'Active Items' },
+                                    { value: 'deleted', label: 'Deleted Items' }
+                                ]}
+                                icon={Filter}
+                                width="160px"
+                            />
                         </div>
 
                         <div className="premium-filter-item">
-                            <select
+                            <CustomSelect
                                 value={categoryFilter}
-                                onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="premium-select-v2"
-                            >
-                                <option value="all">All Categories</option>
-                                {INVENTORY_CATEGORIES.map(cat => (
-                                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                                ))}
-                            </select>
+                                onChange={setCategoryFilter}
+                                options={[
+                                    { value: 'all', label: 'All Categories' },
+                                    ...INVENTORY_CATEGORIES
+                                ]}
+                                width="160px"
+                            />
                         </div>
 
                         <div className="premium-filter-item">
-                            <select
+                            <CustomSelect
                                 value={stockStatusFilter}
-                                onChange={(e) => setStockStatusFilter(e.target.value)}
-                                className="premium-select-v2"
-                            >
-                                <option value="all">All Stock Levels</option>
-                                <option value="out_of_stock">Out of Stock</option>
-                                <option value="low">Low Stock</option>
-                                <option value="optimal">Optimal</option>
-                                <option value="overstock">Overstock</option>
-                            </select>
+                                onChange={setStockStatusFilter}
+                                options={[
+                                    { value: 'all', label: 'All Stock Levels' },
+                                    { value: 'out_of_stock', label: 'Out of Stock' },
+                                    { value: 'low', label: 'Low Stock' },
+                                    { value: 'optimal', label: 'Optimal' },
+                                    { value: 'overstock', label: 'Overstock' }
+                                ]}
+                                width="160px"
+                            />
                         </div>
 
                         <div className="premium-filter-item">
-                            <SlidersHorizontal size={16} />
-                            <span>Sort:</span>
-                            <select
+                            <CustomSelect
                                 value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                                className="premium-select-v2"
-                            >
-                                <option value="name">Name</option>
-                                <option value="stock">Stock Level</option>
-                                <option value="category">Category</option>
-                            </select>
+                                onChange={setSortBy}
+                                options={[
+                                    { value: 'name', label: 'Name' },
+                                    { value: 'stock', label: 'Stock Level' },
+                                    { value: 'category', label: 'Category' }
+                                ]}
+                                icon={SlidersHorizontal}
+                                width="160px"
+                            />
                         </div>
                     </div>
                 </div>
@@ -919,6 +955,7 @@ function AdminInventory() {
                     unit="items"
                 />
             </div>
+            </div> {/* Closes .admin-page */}
 
             {/* Add/Edit Modal */}
             {addEditModal.mounted && (
@@ -1345,30 +1382,28 @@ function AdminInventory() {
                                 </div>
                                 <div className="form-group admin-st-185d793c">
                                     <label>Add Item to Kit</label>
-                                    <select 
-                                        className="form-input" 
-                                        onChange={(e) => {
-                                            const itemId = Number(e.target.value);
+                                    <CustomSelect
+                                        value=""
+                                        onChange={(val) => {
+                                            const itemId = Number(val);
                                             if (!itemId) return;
                                             const item = inventory.find(i => i.id === itemId);
                                             if (item && !editingKitMaterials.find(m => m.inventory_id === itemId)) {
                                                 setEditingKitMaterials([...editingKitMaterials, { inventory_id: item.id, item_name: item.name, default_quantity: 1, unit: item.unit }]);
                                             }
-                                            e.target.value = "";
                                         }}
-                                    >
-                                        <option value="">-- Select Inventory Item --</option>
-                                        {inventory.map(item => (
-                                            <option key={item.id} value={item.id}>{item.name} ({item.unit})</option>
-                                        ))}
-                                    </select>
+                                        options={[
+                                            { value: '', label: '-- Select Inventory Item --' },
+                                            ...inventory.map(item => ({ value: item.id, label: `${item.name} (${item.unit})` }))
+                                        ]}
+                                    />
                                 </div>
                                 
                                 {editingKitMaterials.length > 0 && (
                                     <div className="admin-st-988c5fa7">
                                         <label>Kit Items:</label>
                                         {editingKitMaterials.map((mat, idx) => (
-                                            <div key={idx} className="admin-st-57608dc7">
+                                            <div key={idx} className="admin-st-57608dc7 waterfall-item" style={{ animationDelay: `${idx * 0.05}s` }}>
                                                 <input 
                                                     type="number" 
                                                     min="1"
@@ -1430,27 +1465,25 @@ function AdminInventory() {
                                                 </div>
                                                 <div className="form-group admin-st-988c5fa7">
                                                     <label className="admin-st-a2d5e684">Add Supplies to Kit</label>
-                                                    <select 
-                                                        className="form-input" 
-                                                        onChange={(e) => {
-                                                            const itemId = Number(e.target.value);
+                                                    <CustomSelect
+                                                        value=""
+                                                        onChange={(val) => {
+                                                            const itemId = Number(val);
                                                             if (!itemId) return;
                                                             const item = inventory.find(i => i.id === itemId);
                                                             if (item && !editingKitMaterials.find(m => m.inventory_id === itemId)) {
                                                                 setEditingKitMaterials([...editingKitMaterials, { inventory_id: item.id, item_name: item.name, default_quantity: 1, unit: item.unit }]);
                                                             }
-                                                            e.target.value = "";
                                                         }}
-                                                    >
-                                                        <option value="">-- Select Inventory Item --</option>
-                                                        {inventory.map(item => (
-                                                            <option key={item.id} value={item.id}>{item.name} ({item.unit})</option>
-                                                        ))}
-                                                    </select>
+                                                        options={[
+                                                            { value: '', label: '-- Select Inventory Item --' },
+                                                            ...inventory.map(item => ({ value: item.id, label: `${item.name} (${item.unit})` }))
+                                                        ]}
+                                                    />
                                                 </div>
                                                 <div className="admin-st-f3877976">
                                                     {editingKitMaterials.map((mat, idx) => (
-                                                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0', borderBottom: idx === editingKitMaterials.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
+                                                        <div key={idx} className="waterfall-item" style={{ animationDelay: `${idx * 0.05}s`, display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0', borderBottom: idx === editingKitMaterials.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
                                                             <input 
                                                                 type="number" 
                                                                 min="1"
@@ -1543,7 +1576,6 @@ function AdminInventory() {
                     onCancel={handleCropCancel}
                 />
             )}
-            </div>
         </div>
     );
 }

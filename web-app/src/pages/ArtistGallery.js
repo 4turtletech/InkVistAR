@@ -50,11 +50,8 @@ function ArtistGallery() {
     };
 
     const closeModal = (setter) => {
-        setter(prev => ({ ...prev, visible: false }));
-        setTimeout(() => {
-            setter({ mounted: false, visible: false });
-            setSelectedWork(null);
-        }, 400); // Match CSS transition duration
+        setter({ mounted: false, visible: false });
+        setSelectedWork(null);
     };
 
     const openAddModal = () => {
@@ -83,8 +80,7 @@ function ArtistGallery() {
         
         // Close view modal if it's open
         if (viewWorkModal.visible) {
-            setViewWorkModal(prev => ({ ...prev, visible: false }));
-            setTimeout(() => setViewWorkModal({ mounted: false, visible: false }), 400);
+            setViewWorkModal({ mounted: false, visible: false });
         }
         
         openModal(setAddWorkModal);
