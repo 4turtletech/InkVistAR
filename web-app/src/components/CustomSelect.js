@@ -25,13 +25,14 @@ const CustomSelect = ({ value, onChange, options, icon: Icon, label }) => {
                     {Icon && <Icon size={16} />} <span>{label}</span>
                 </div>
             )}
-            <div 
-                className={`custom-select-trigger ${isOpen ? 'open' : ''}`}
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                <span>{selectedOption?.label}</span>
-                <ChevronDown size={16} className={`custom-select-arrow ${isOpen ? 'rotated' : ''}`} />
-            </div>
+            <div style={{ position: 'relative' }}>
+                <div 
+                    className={`custom-select-trigger ${isOpen ? 'open' : ''}`}
+                    onClick={() => setIsOpen(!isOpen)}
+                >
+                    <span>{selectedOption?.label}</span>
+                    <ChevronDown size={16} className={`custom-select-arrow ${isOpen ? 'rotated' : ''}`} />
+                </div>
             
             <div className={`custom-select-dropdown ${isOpen ? 'visible' : ''}`}>
                 {options.map((option, index) => (
@@ -47,6 +48,7 @@ const CustomSelect = ({ value, onChange, options, icon: Icon, label }) => {
                         {option.label}
                     </div>
                 ))}
+            </div>
             </div>
         </div>
     );

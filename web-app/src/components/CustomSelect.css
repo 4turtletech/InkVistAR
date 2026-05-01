@@ -1,10 +1,10 @@
 .custom-select-wrapper {
-    position: relative;
-    width: 100%;
-    min-width: 160px;
+    width: auto;
+    min-width: max-content;
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
 }
 
 .premium-filter-item-label {
@@ -30,6 +30,7 @@
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
+    min-width: 160px;
 }
 
 .custom-select-trigger:hover {
