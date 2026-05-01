@@ -395,7 +395,12 @@ function ArtistPortal() {
                                                 Today's Schedule
                                                 <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>({todaysAppointments.length} session{todaysAppointments.length !== 1 ? 's' : ''})</span>
                                             </h2>
-                                            <button className="btn btn-secondary" onClick={() => navigate('/artist/sessions')} style={{ fontSize: '0.8rem', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <button
+                                                onClick={() => navigate('/artist/sessions')}
+                                                style={{ padding: '6px 14px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.2)', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+                                                onMouseEnter={e => { e.currentTarget.style.background = '#3b82f6'; e.currentTarget.style.color = 'white'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)'; }}
+                                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'; e.currentTarget.style.color = '#3b82f6'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                                            >
                                                 Launch Session View <ArrowRight size={14} />
                                             </button>
                                         </div>
@@ -438,7 +443,12 @@ function ArtistPortal() {
                                                 Upcoming Sessions
                                                 <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>({upcomingAppointments.length} total)</span>
                                             </h2>
-                                            <button className="btn btn-secondary" onClick={() => navigate('/artist/appointments')} style={{ fontSize: '0.8rem', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <button
+                                                onClick={() => navigate('/artist/appointments')}
+                                                style={{ padding: '6px 14px', borderRadius: '8px', background: 'rgba(190, 144, 85, 0.1)', color: '#be9055', border: '1px solid rgba(190, 144, 85, 0.2)', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', whiteSpace: 'nowrap' }}
+                                                onMouseEnter={e => { e.currentTarget.style.background = '#be9055'; e.currentTarget.style.color = 'white'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(190, 144, 85, 0.2)'; }}
+                                                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(190, 144, 85, 0.1)'; e.currentTarget.style.color = '#be9055'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                                            >
                                                 View Full Schedule <ArrowRight size={14} />
                                             </button>
                                         </div>

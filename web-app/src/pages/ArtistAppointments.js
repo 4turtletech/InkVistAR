@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Axios from 'axios';
-import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox, Play, Plus, User, Download, Printer } from 'lucide-react';
+import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox, Play, Plus, User, Download, Printer, Search, Filter } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -20,6 +20,9 @@ function ArtistAppointments() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = React.useRef(null);
     const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', onConfirm: null });
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const [publishStatus, setPublishStatus] = useState({});
@@ -42,6 +45,16 @@ function ArtistAppointments() {
                 .catch(() => {});
         }
     }, [selectedAppointment]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Keyboard arrow-key navigation for calendar
     useEffect(() => {
@@ -110,10 +123,12 @@ function ArtistAppointments() {
     };
 
     const filteredAppointments = appointments.filter(apt => {
-        if (activeTab === 'pending') return apt.status === 'pending';
-        if (activeTab === 'upcoming') return ['confirmed', 'scheduled'].includes(apt.status);
-        if (activeTab === 'history') return ['completed', 'cancelled', 'incomplete'].includes(apt.status);
-        return true;
+        const matchesTab = activeTab === 'pending' ? apt.status === 'pending' : 
+                           activeTab === 'upcoming' ? ['confirmed', 'scheduled'].includes(apt.status) : 
+                           activeTab === 'history' ? ['completed', 'cancelled', 'incomplete'].includes(apt.status) : true;
+        const searchTarget = `${apt.client_name} ${apt.design_title} ${getDisplayCode(apt.booking_code, apt.id)}`.toLowerCase();
+        const matchesSearch = searchTarget.includes(searchTerm.toLowerCase());
+        return matchesTab && matchesSearch;
     });
 
     useEffect(() => {
@@ -344,46 +359,77 @@ function ArtistAppointments() {
                             </button>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(248, 250, 252, 0.7)', backdropFilter: 'blur(10px)', padding: '5px 6px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'flex', gap: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(248, 250, 252, 0.7)', backdropFilter: 'blur(10px)', padding: '5px 6px', borderRadius: '24px', border: '1px solid #e2e8f0', marginBottom: '10px' }}>
+                        <div className="modern-view-toggle" style={{ margin: 0, background: 'transparent', boxShadow: 'none' }}>
                             <button
-                                className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+                                className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
                                 onClick={() => setViewMode('list')}
-                                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.45rem 1rem', borderRadius: '10px', fontSize: '0.82rem', border: viewMode === 'list' ? 'none' : '1px solid transparent' }}
                             >
-                                <List size={14} /> List
+                                <List size={14} /> <span>List View</span>
                             </button>
                             <button
-                                className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+                                className={`toggle-btn ${viewMode === 'calendar' ? 'active' : ''}`}
                                 onClick={() => setViewMode('calendar')}
-                                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0.45rem 1rem', borderRadius: '10px', fontSize: '0.82rem', border: viewMode === 'calendar' ? 'none' : '1px solid transparent' }}
                             >
-                                <Calendar size={14} /> Calendar
+                                <Calendar size={14} /> <span>Calendar View</span>
                             </button>
                         </div>
-                        {viewMode === 'list' && (
-                            <div style={{ display: 'flex', gap: '4px' }}>
-                                {[{key: 'upcoming', label: 'Upcoming'}, {key: 'pending', label: 'Pending'}, {key: 'history', label: 'History'}].map(tab => (
-                                    <button
-                                        key={tab.key}
-                                        onClick={() => setActiveTab(tab.key)}
-                                        style={{
-                                            padding: '6px 16px', borderRadius: '10px', border: 'none',
-                                            background: activeTab === tab.key ? '#1e293b' : 'transparent',
-                                            color: activeTab === tab.key ? 'white' : '#64748b',
-                                            fontWeight: 600, cursor: 'pointer', transition: 'all 0.3s',
-                                            fontSize: '0.82rem'
-                                        }}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </header>
 
                 <div className="portal-content">
+                    {viewMode === 'list' && (
+                        <div className="premium-filter-bar premium-filter-bar--stacked" style={{ marginBottom: '20px' }}>
+                            <div className="premium-search-box premium-search-box--full" ref={searchRef} style={{ position: 'relative' }}>
+                                <Search size={16} className="premium-search-icon" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by client name, service, or booking ID..."
+                                    value={searchTerm}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setShowSuggestions(true);
+                                    }}
+                                    onFocus={() => setShowSuggestions(true)}
+                                    maxLength={100}
+                                />
+                                {showSuggestions && searchTerm && filteredAppointments.length > 0 && (
+                                    <div className="autocomplete-dropdown waterfall-dropdown">
+                                        {Array.from(new Set(filteredAppointments.map(a => a.client_name)))
+                                            .filter(s => s && s.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            .slice(0, 8)
+                                            .map((suggestion, index) => (
+                                                <div 
+                                                    key={suggestion} 
+                                                    className="autocomplete-item waterfall-item"
+                                                    style={{ animationDelay: `${index * 0.05}s` }}
+                                                    onClick={() => {
+                                                        setSearchTerm(suggestion);
+                                                        setShowSuggestions(false);
+                                                    }}
+                                                >
+                                                    {suggestion}
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="premium-filters-row">
+                                <div className="modern-view-toggle" style={{ margin: 0 }}>
+                                    <button className={`toggle-btn ${activeTab === 'upcoming' ? 'active' : ''}`} onClick={() => setActiveTab('upcoming')}>
+                                        Upcoming
+                                    </button>
+                                    <button className={`toggle-btn ${activeTab === 'pending' ? 'active' : ''}`} onClick={() => setActiveTab('pending')}>
+                                        Pending
+                                    </button>
+                                    <button className={`toggle-btn ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
+                                        History
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {loading ? <div className="no-data">Loading...</div> : (
                         <>
                             {viewMode === 'calendar' ? (
