@@ -5,6 +5,12 @@ import Footer from '../components/Footer';
 import { Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { API_URL } from '../config';
 
+// Helper to split content by newlines (handles both real \n and escaped \\n from DB)
+const splitLines = (text) => {
+    if (!text) return [];
+    return text.split(/\\n|\n/).filter(c => c.trim().length > 0);
+};
+
 function TermsPage() {
     const [expandedSection, setExpandedSection] = useState(null);
     const [settings, setSettings] = useState(null);
@@ -44,37 +50,44 @@ function TermsPage() {
     const defaultPolicySections = [
         {
             title: "Booking & Consultation Policy",
-            content: "All appointments begin with a free consultation, either in-person or online.\\nWalk-in consultations are welcome during studio hours (1:00 PM - 10:00 PM, Mon-Sun), subject to artist availability.\\nConfirmed bookings require a non-refundable downpayment to secure your slot.\\nClients are allowed a maximum of 2 pending consultation requests at a time."
+            content: "All appointments begin with a free consultation, either in-person or online.\nWalk-in consultations are welcome during studio hours (1:00 PM - 10:00 PM, Mon-Sun), subject to artist availability.\nConfirmed bookings require a non-refundable downpayment to secure your slot.\nClients are allowed a maximum of 2 pending consultation requests at a time."
         },
         {
             title: "Payment Policy",
-            content: "We accept online payments via PayMongo (GCash, Maya, Credit/Debit Card) and manual payments (Cash, GCash, Bank Transfer).\\nA downpayment is required before any tattoo session can begin.\\nFor multi-session tattoos, the reservation fee is applied and deducted from the total price on the final session.\\nInkvictus does not offer refunds on completed services."
+            content: "We accept online payments via PayMongo (GCash, Maya, Credit/Debit Card) and manual payments (Cash, GCash, Bank Transfer).\nA downpayment is required before any tattoo session can begin.\nFor multi-session tattoos, the reservation fee is applied and deducted from the total price on the final session.\nInkvictus does not offer refunds on completed services."
         },
         {
             title: "Cancellation & Rescheduling",
-            content: "Clients may cancel within the grace period after booking at no charge.\\nRescheduling requests are subject to studio approval and artist availability.\\nRepeated no-shows may result in future bookings requiring full prepayment."
+            content: "Clients may cancel within the grace period after booking at no charge.\nRescheduling requests are subject to studio approval and artist availability.\nRepeated no-shows may result in future bookings requiring full prepayment."
         },
         {
             title: "Health & Safety",
-            content: "All equipment is sterilized and single-use needles are used for every session.\\nClients must disclose any medical conditions, allergies, or medications before the procedure.\\nWe reserve the right to refuse service if we determine it may pose a health risk.\\nAftercare instructions will be provided after every session and must be followed to ensure proper healing."
+            content: "All equipment is sterilized and single-use needles are used for every session.\nClients must disclose any medical conditions, allergies, or medications before the procedure.\nWe reserve the right to refuse service if we determine it may pose a health risk.\nAftercare instructions will be provided after every session and must be followed to ensure proper healing."
         },
         {
             title: "Privacy & Data",
-            content: "Your personal information is stored securely and used only for booking management and communication.\\nWe do not share your data with third parties without your consent.\\nPhoto/video consent for portfolio use is optional and can be toggled during the booking process.\\nYou may request deletion of your account and data by contacting the studio."
+            content: "Your personal information is stored securely and used only for booking management and communication.\nWe do not share your data with third parties without your consent.\nPhoto/video consent for portfolio use is optional and can be toggled during the booking process.\nYou may request deletion of your account and data by contacting the studio."
         }
     ];
 
+    // Use dynamic settings from DB, fall back to defaults
     let waiverClauses = defaultWaiverClauses;
     let policySections = defaultPolicySections;
 
     if (settings && settings.policies) {
         if (settings.policies.waiverClauses) {
-            waiverClauses = settings.policies.waiverClauses.split('\\n').filter(c => c.trim().length > 0);
+            waiverClauses = splitLines(settings.policies.waiverClauses);
         }
         if (settings.policies.policySections && Array.isArray(settings.policies.policySections)) {
             policySections = settings.policies.policySections;
         }
     }
+
+    // Dynamic page text from settings, with fallbacks
+    const pageSubtitle = settings?.policies?.pageSubtitle || "Please review the following terms, policies, and service waiver before booking with Inkvictus Tattoo Studio.";
+    const lastUpdated = settings?.policies?.lastUpdated || "April 2026";
+    const waiverIntro = settings?.policies?.waiverIntro || "By proceeding with any tattoo or piercing service at Inkvictus Tattoo and Piercing shop, you acknowledge and agree to the following:";
+    const contactCTA = settings?.policies?.contactCTA || "Have questions about our terms or policies? We are happy to clarify.";
 
     return (
         <div style={{ backgroundColor: '#0D0D0D', minHeight: '100vh', color: '#fff' }}>
@@ -88,10 +101,10 @@ function TermsPage() {
                     </div>
                     <h1 style={{ color: '#be9055', fontFamily: '"Playfair Display", serif', fontSize: 'clamp(1.6rem, 4vw, 2.8rem)', margin: '0 0 12px 0', fontWeight: 700 }}>Terms & Conditions</h1>
                     <p style={{ color: '#94a3b8', fontSize: '1rem', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>
-                        Please review the following terms, policies, and service waiver before booking with Inkvictus Tattoo Studio.
+                        {pageSubtitle}
                     </p>
                     <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '12px' }}>
-                        Last updated: April 2026
+                        Last updated: {lastUpdated}
                     </p>
                 </header>
 
@@ -104,16 +117,16 @@ function TermsPage() {
                         </div>
                         <div style={{ padding: '24px 28px' }}>
                             <p style={{ color: '#94a3b8', lineHeight: '1.7', marginBottom: '24px', fontSize: '0.9rem' }}>
-                                By proceeding with any tattoo or piercing service at Inkvictus Tattoo and Piercing shop, you acknowledge and agree to the following:
+                                {waiverIntro}
                             </p>
-                            <ol style={{ paddingLeft: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <ul style={{ paddingLeft: '0', listStyle: 'none', margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 {waiverClauses.map((clause, index) => (
                                     <li key={index} style={{ color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '1.6', paddingLeft: '8px' }}>
                                         <span style={{ color: '#be9055', fontWeight: 700, marginRight: '8px' }}>{index + 1}.</span>
                                         {clause}
                                     </li>
                                 ))}
-                            </ol>
+                            </ul>
                         </div>
                     </div>
                 </section>
@@ -134,7 +147,7 @@ function TermsPage() {
                                 {expandedSection === index && (
                                     <div style={{ padding: '0 24px 20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                                         <ul style={{ paddingLeft: '20px', margin: '16px 0 0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                            {(typeof section.content === 'string' ? section.content.split('\\n') : section.content).map((item, i) => (
+                                            {splitLines(typeof section.content === 'string' ? section.content : '').map((item, i) => (
                                                 <li key={i} style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: '1.6' }}>{item}</li>
                                             ))}
                                         </ul>
@@ -148,7 +161,7 @@ function TermsPage() {
                 {/* Contact CTA */}
                 <section style={{ textAlign: 'center', padding: '32px', background: 'rgba(190, 144, 85, 0.05)', border: '1px solid rgba(190, 144, 85, 0.15)', borderRadius: '16px' }}>
                     <p style={{ color: '#94a3b8', fontSize: '0.95rem', margin: '0 0 16px', lineHeight: '1.6' }}>
-                        Have questions about our terms or policies? We are happy to clarify.
+                        {contactCTA}
                     </p>
                     <a href="/contact" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 28px', background: 'linear-gradient(135deg, #be9055, #a07840)', color: '#fff', fontSize: '0.9rem', fontWeight: 700, textDecoration: 'none', borderRadius: '10px', transition: 'all 0.3s', boxShadow: '0 4px 14px rgba(190, 144, 85, 0.25)' }}>
                         Contact Us

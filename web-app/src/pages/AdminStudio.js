@@ -9,7 +9,7 @@ import './AdminStyles.css';
 import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
 
-import AdminSettings from './AdminSettings';
+
 import AdminReviews from './AdminReviews';
 import AdminAftercare from './AdminAftercare';
 import AdminReports from './AdminReports';
@@ -325,7 +325,6 @@ function AdminStudio() {
                     {[
                         { key: 'branches', label: 'Branches Directory' },
                         { key: 'settings', label: 'System Preferences' },
-                        { key: 'policies', label: 'Terms & Policies' },
                         { key: 'reviews', label: 'Customer Reviews' },
                         { key: 'aftercare', label: 'Aftercare Schedule' },
                         { key: 'marketing', label: 'Marketing Emails' },
@@ -352,7 +351,7 @@ function AdminStudio() {
                         >
                             {tab.key === 'marketing' && <Mail size={16} />}
                             {tab.key === 'reports' && <MessageSquare size={16} />}
-                            {tab.key === 'policies' && <Shield size={16} />}
+                            {tab.key === 'settings' && <SlidersHorizontal size={16} />}
                             {tab.label}
                             {tab.key === 'reports' && unreadReportCount > 0 && (
                                 <span style={{
@@ -568,8 +567,6 @@ function AdminStudio() {
                 </>
                 ) : activeTab === 'settings' ? (
                     <AdminSettingsTab />
-                ) : activeTab === 'policies' ? (
-                    <AdminSettingsTab initialTab="policies" />
                 ) : activeTab === 'reviews' ? (
                     <AdminReviews />
                 ) : activeTab === 'aftercare' ? (
