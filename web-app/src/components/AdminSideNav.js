@@ -205,7 +205,6 @@ function AdminSideNav() {
         { label: 'Billing', icon: Receipt, path: '/admin/billing', description: 'Payments & Invoices' },
         { label: 'Studio', icon: Building2, path: '/admin/studio', description: 'Manage branches' },
         { label: 'Notifications', icon: Bell, path: '/admin/notifications', description: 'System alerts & updates' },
-        ...(isSuperAdmin ? [{ label: 'Settings', icon: Settings, path: '/admin/settings', description: 'System settings' }] : []),
     ];
 
     const handleLogout = () => {

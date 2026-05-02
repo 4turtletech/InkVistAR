@@ -1,12 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Shield, ChevronDown, ChevronUp } from 'lucide-react';
+import { API_URL } from '../config';
 
 function TermsPage() {
     const [expandedSection, setExpandedSection] = useState(null);
+    const [settings, setSettings] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    const waiverClauses = [
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await Axios.get(`${API_URL}/api/admin/settings`);
+                if (res.data && res.data.success && res.data.data) {
+                    setSettings(res.data.data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch settings for terms page:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSettings();
+    }, []);
+
+    const defaultWaiverClauses = [
         "I am at least 18 years old or have a legal guardian consent.",
         "I understand that this procedure is a permanent change to my skin and body.",
         "I consent to having photographs and/or videos taken by Inkvictus and be used in their portfolio. (Optional — you may opt out during booking.)",
@@ -21,52 +41,40 @@ function TermsPage() {
         "I understand and agree that once my tattoo session has started, the total payment for that session becomes due in full. Any reservation fee or down payment made will be applied and deducted on the final session. This policy applies only to tattoos requiring multiple or series of sessions."
     ];
 
-    const policySections = [
+    const defaultPolicySections = [
         {
             title: "Booking & Consultation Policy",
-            content: [
-                "All appointments begin with a free consultation, either in-person or online.",
-                "Walk-in consultations are welcome during studio hours (1:00 PM - 10:00 PM, Mon-Sun), subject to artist availability.",
-                "Confirmed bookings require a non-refundable downpayment to secure your slot.",
-                "Clients are allowed a maximum of 2 pending consultation requests at a time."
-            ]
+            content: "All appointments begin with a free consultation, either in-person or online.\\nWalk-in consultations are welcome during studio hours (1:00 PM - 10:00 PM, Mon-Sun), subject to artist availability.\\nConfirmed bookings require a non-refundable downpayment to secure your slot.\\nClients are allowed a maximum of 2 pending consultation requests at a time."
         },
         {
             title: "Payment Policy",
-            content: [
-                "We accept online payments via PayMongo (GCash, Maya, Credit/Debit Card) and manual payments (Cash, GCash, Bank Transfer).",
-                "A downpayment is required before any tattoo session can begin.",
-                "For multi-session tattoos, the reservation fee is applied and deducted from the total price on the final session.",
-                "Inkvictus does not offer refunds on completed services."
-            ]
+            content: "We accept online payments via PayMongo (GCash, Maya, Credit/Debit Card) and manual payments (Cash, GCash, Bank Transfer).\\nA downpayment is required before any tattoo session can begin.\\nFor multi-session tattoos, the reservation fee is applied and deducted from the total price on the final session.\\nInkvictus does not offer refunds on completed services."
         },
         {
             title: "Cancellation & Rescheduling",
-            content: [
-                "Clients may cancel within the grace period after booking at no charge.",
-                "Rescheduling requests are subject to studio approval and artist availability.",
-                "Repeated no-shows may result in future bookings requiring full prepayment."
-            ]
+            content: "Clients may cancel within the grace period after booking at no charge.\\nRescheduling requests are subject to studio approval and artist availability.\\nRepeated no-shows may result in future bookings requiring full prepayment."
         },
         {
             title: "Health & Safety",
-            content: [
-                "All equipment is sterilized and single-use needles are used for every session.",
-                "Clients must disclose any medical conditions, allergies, or medications before the procedure.",
-                "We reserve the right to refuse service if we determine it may pose a health risk.",
-                "Aftercare instructions will be provided after every session and must be followed to ensure proper healing."
-            ]
+            content: "All equipment is sterilized and single-use needles are used for every session.\\nClients must disclose any medical conditions, allergies, or medications before the procedure.\\nWe reserve the right to refuse service if we determine it may pose a health risk.\\nAftercare instructions will be provided after every session and must be followed to ensure proper healing."
         },
         {
             title: "Privacy & Data",
-            content: [
-                "Your personal information is stored securely and used only for booking management and communication.",
-                "We do not share your data with third parties without your consent.",
-                "Photo/video consent for portfolio use is optional and can be toggled during the booking process.",
-                "You may request deletion of your account and data by contacting the studio."
-            ]
+            content: "Your personal information is stored securely and used only for booking management and communication.\\nWe do not share your data with third parties without your consent.\\nPhoto/video consent for portfolio use is optional and can be toggled during the booking process.\\nYou may request deletion of your account and data by contacting the studio."
         }
     ];
+
+    let waiverClauses = defaultWaiverClauses;
+    let policySections = defaultPolicySections;
+
+    if (settings && settings.policies) {
+        if (settings.policies.waiverClauses) {
+            waiverClauses = settings.policies.waiverClauses.split('\\n').filter(c => c.trim().length > 0);
+        }
+        if (settings.policies.policySections && Array.isArray(settings.policies.policySections)) {
+            policySections = settings.policies.policySections;
+        }
+    }
 
     return (
         <div style={{ backgroundColor: '#0D0D0D', minHeight: '100vh', color: '#fff' }}>
@@ -126,7 +134,7 @@ function TermsPage() {
                                 {expandedSection === index && (
                                     <div style={{ padding: '0 24px 20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                                         <ul style={{ paddingLeft: '20px', margin: '16px 0 0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                            {section.content.map((item, i) => (
+                                            {(typeof section.content === 'string' ? section.content.split('\\n') : section.content).map((item, i) => (
                                                 <li key={i} style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: '1.6' }}>{item}</li>
                                             ))}
                                         </ul>
