@@ -99,7 +99,7 @@ function AppointmentPrintView() {
         <div style={styles.pageWrapper}>
             {/* Action bar — hidden when printing */}
             <div className="print-action-bar" style={styles.actionBar}>
-                <button onClick={() => navigate(-1)} style={styles.backBtn}>
+                <button onClick={() => navigate('/admin/appointments')} style={styles.backBtn} title="Return to Appointments list">
                     <ArrowLeft size={16} /> Back to Appointments
                 </button>
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -110,7 +110,7 @@ function AppointmentPrintView() {
             </div>
 
             {/* Printable Document */}
-            <div style={styles.document}>
+            <div id="printable-invoice" style={styles.document}>
                 {/* Header */}
                 <div style={styles.docHeader}>
                     <div>
@@ -334,10 +334,32 @@ function AppointmentPrintView() {
                 @media print {
                     body { background: white !important; margin: 0 !important; }
                     .print-action-bar { display: none !important; }
+                    #printable-invoice {
+                        position: fixed !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        margin: 0 !important;
+                        padding: 20px 30px !important;
+                        border-radius: 0 !important;
+                        box-shadow: none !important;
+                        border: none !important;
+                        background: white !important;
+                    }
+                    #printable-invoice, #printable-invoice * {
+                        visibility: visible !important;
+                        color-adjust: exact !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
                     @page {
                         size: A4;
                         margin: 15mm 12mm;
                     }
+                }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
                 }
             `}</style>
         </div>
