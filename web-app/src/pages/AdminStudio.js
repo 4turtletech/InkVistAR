@@ -13,6 +13,7 @@ import AdminSettings from './AdminSettings';
 import AdminReviews from './AdminReviews';
 import AdminAftercare from './AdminAftercare';
 import AdminReports from './AdminReports';
+import AdminSettingsTab from '../components/AdminSettingsTab';
 import './AdminUsers.css'; // Reusing styles
 
 function AdminStudio() {
@@ -566,9 +567,9 @@ function AdminStudio() {
                 )}
                 </>
                 ) : activeTab === 'settings' ? (
-                    <AdminSettings />
+                    <AdminSettingsTab />
                 ) : activeTab === 'policies' ? (
-                    <AdminSettings initialTab="policies" />
+                    <AdminSettingsTab initialTab="policies" />
                 ) : activeTab === 'reviews' ? (
                     <AdminReviews />
                 ) : activeTab === 'aftercare' ? (
