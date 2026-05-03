@@ -188,7 +188,7 @@ function Home() {
                 </section>
 
                 {/* 3. The Matrix / About Extravaganza */}
-                <section className="premium-section" ref={matrixRef}>
+                <section id="about" className="premium-section" ref={matrixRef}>
                     <div className="glass-card-premium matrix-grid fade-up stagger-1">
                         <div className="matrix-content">
                             <span className="section-subtitle">Our Philosophy</span>

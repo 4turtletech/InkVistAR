@@ -39,11 +39,27 @@ const Navbar = () => {
 
     const isActive = (path) => location.pathname === path;
 
+    const handleAboutClick = (e) => {
+        if (location.pathname === '/') {
+            e.preventDefault();
+            const aboutSection = document.getElementById('about');
+            if (aboutSection) {
+                const navHeight = 80; // Approximate navbar height
+                const targetPosition = aboutSection.getBoundingClientRect().top + window.scrollY - navHeight;
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        }
+        // If not on '/', the default <a href="/#about"> behavior will navigate normally
+    };
+
     return (
         <nav className={`home-nav ${isScrolled ? 'is-scrolled' : ''}`}>
             <Link to="/" className="home-logo">INKVICTUS</Link>
             <div className="home-nav-links">
-                <a href="/#about" className="nav-anchor">About</a>
+                <a href="/#about" className="nav-anchor" onClick={handleAboutClick}>About</a>
                 <Link to="/artists" className={isActive('/artists') ? 'active-link' : ''}>Artists</Link>
                 <Link to="/gallery" className={isActive('/gallery') ? 'active-link' : ''}>Gallery</Link>
                 <Link to="/book" className={isActive('/book') ? 'active-link' : ''}>Book Consultation</Link>
@@ -73,7 +89,7 @@ const Navbar = () => {
             {/* Mobile drawer */}
             {mobileOpen && (
                 <div className="mobile-drawer">
-                    <a href="/#about" className="nav-anchor" onClick={() => setMobileOpen(false)}>About</a>
+                    <a href="/#about" className="nav-anchor" onClick={(e) => { setMobileOpen(false); handleAboutClick(e); }}>About</a>
                     <Link to="/artists" onClick={() => setMobileOpen(false)}>Artists</Link>
                     <Link to="/gallery" onClick={() => setMobileOpen(false)}>Gallery</Link>
                     <Link to="/book" onClick={() => setMobileOpen(false)}>Book Consultation</Link>
