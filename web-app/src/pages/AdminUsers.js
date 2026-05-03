@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AdminSideNav from '../components/AdminSideNav';
@@ -111,6 +112,10 @@ function AdminUsers() {
     // ─── Status Management Modal ───
     const [statusModal, setStatusModal] = useState({ mounted: false, visible: false, user: null });
     const [statusFormData, setStatusFormData] = useState({ status: 'active', reason: '', adminNote: '', duration: '7 days' });
+
+    // ─── Destructive Delete Confirmation with Countdown ───
+    const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, title: '', message: '', onConfirm: null, countdown: 3 });
+    const deleteCountdownRef = useRef(null);
 
     const openStatusModalAnim = (user) => {
         setStatusModal({ mounted: true, visible: false, user });
@@ -370,27 +375,24 @@ function AdminUsers() {
             showAlert("Restricted", "Cannot delete the system super admin.", "danger");
             return;
         }
-        setConfirmDialog({
-            isOpen: true,
-            title: 'Soft Delete User',
-            message: `This will mark ${user.name}'s account as deleted. They will no longer be able to log in, but their data will be preserved. You can restore this account later.\n\nProceed?`,
-            type: 'warning',
-            confirmText: 'Yes, Soft Delete',
-            onConfirm: async () => {
-                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        openDestructiveConfirm(
+            'Soft Delete User',
+            `This will mark ${user.name}'s account as deleted. They will no longer be able to log in, but their data will be preserved. You can restore this account later.`,
+            async () => {
                 try {
                     const res = await Axios.delete(`${API_URL}/api/admin/users/${user.id}`, {
                         headers: { 'X-User-Email': currentUser.email || '' }
                     });
                     if (res.data.success) {
                         showAlert("Success", `${user.name} has been soft deleted. You can restore this account from the 'Soft Deleted' filter.`, "success");
+                        closeStatusModal();
                         fetchUsers();
                     }
                 } catch (error) {
                     showAlert("Error", error.response?.data?.message || 'Failed to soft delete user.', "danger");
                 }
             }
-        });
+        );
     };
 
     const handleRestoreUser = (user) => {
@@ -422,27 +424,45 @@ function AdminUsers() {
             showAlert("Restricted", "Cannot permanently delete the system super admin.", "danger");
             return;
         }
-        setConfirmDialog({
-            isOpen: true,
-            title: 'Permanently Delete User',
-            message: `WARNING: This action is IRREVERSIBLE. All data for ${user.name} (${user.email}) will be permanently erased from the database.\n\nThis includes their profile, appointments, payment records, and any associated data.\n\nAre you absolutely sure?`,
-            type: 'danger',
-            confirmText: 'Delete Permanently',
-            onConfirm: async () => {
-                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        openDestructiveConfirm(
+            'Permanently Delete User',
+            `WARNING: This action is IRREVERSIBLE. All data for ${user.name} (${user.email}) will be permanently erased from the database, including profile, appointments, and payment records.`,
+            async () => {
                 try {
                     const res = await Axios.delete(`${API_URL}/api/admin/users/${user.id}/permanent`, {
                         headers: { 'X-User-Email': currentUser.email || '' }
                     });
                     if (res.data.success) {
                         showAlert("Success", `${user.name} has been permanently deleted.`, "success");
+                        closeStatusModal();
                         fetchUsers();
                     }
                 } catch (error) {
                     showAlert("Error", error.response?.data?.message || 'Failed to permanently delete user.', "danger");
                 }
             }
-        });
+        );
+    };
+
+    // Opens the destructive confirm dialog with a 3-second countdown
+    const openDestructiveConfirm = (title, message, onConfirm) => {
+        setDeleteConfirm({ isOpen: true, title, message, onConfirm, countdown: 3 });
+        if (deleteCountdownRef.current) clearInterval(deleteCountdownRef.current);
+        let count = 3;
+        deleteCountdownRef.current = setInterval(() => {
+            count -= 1;
+            if (count <= 0) {
+                clearInterval(deleteCountdownRef.current);
+                setDeleteConfirm(prev => ({ ...prev, countdown: 0 }));
+            } else {
+                setDeleteConfirm(prev => ({ ...prev, countdown: count }));
+            }
+        }, 1000);
+    };
+
+    const closeDestructiveConfirm = () => {
+        if (deleteCountdownRef.current) clearInterval(deleteCountdownRef.current);
+        setDeleteConfirm({ isOpen: false, title: '', message: '', onConfirm: null, countdown: 3 });
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -1072,14 +1092,7 @@ function AdminUsers() {
                                                     <>
                                                         <button className="action-btn edit-btn" onClick={() => handleManage(user)}>Review</button>
                                                         {!user.is_superadmin && (
-                                                            <>
-                                                                <button className="action-btn manage-btn" onClick={() => handleManageStatusClick(user)}>Status</button>
-                                                                {(user.account_status === 'deactivated' || user.account_status === 'banned') && (
-                                                                    <button className="action-btn delete-btn" onClick={() => handleSoftDelete(user)} title="Soft delete this account">
-                                                                        <Trash2 size={14} style={{ marginRight: '4px' }} /> Delete
-                                                                    </button>
-                                                                )}
-                                                            </>
+                                                            <button className="action-btn manage-btn" onClick={() => handleManageStatusClick(user)}>Status</button>
                                                         )}
                                                     </>
                                                 )}
@@ -1860,18 +1873,90 @@ function AdminUsers() {
                                     </div>
                                 )}
                             </div>
-                            <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={closeStatusModal}>Cancel</button>
-                                <button 
-                                    className="btn btn-primary" 
-                                    onClick={submitStatusChange}
-                                    style={{ backgroundColor: statusFormData.status === 'banned' ? '#ef4444' : '#10b981', color: 'white' }}
-                                >
-                                    Confirm Status Change
-                                </button>
+                            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+                                <div>
+                                    {statusModal.user && !statusModal.user.is_superadmin && (
+                                        statusModal.user.is_deleted ? (
+                                            <button 
+                                                className="btn" 
+                                                onClick={() => handlePermanentDelete(statusModal.user)}
+                                                style={{ backgroundColor: '#ef4444', color: 'white', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                                title="Permanently erase this account"
+                                            >
+                                                <Trash2 size={16} /> Permanently Delete
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                className="btn" 
+                                                onClick={() => handleSoftDelete(statusModal.user)}
+                                                style={{ backgroundColor: '#dc2626', color: 'white', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                                title="Soft delete this account"
+                                            >
+                                                <Trash2 size={16} /> Delete Account
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button className="btn btn-secondary" onClick={closeStatusModal}>Cancel</button>
+                                    <button 
+                                        className="btn btn-primary" 
+                                        onClick={submitStatusChange}
+                                        style={{ backgroundColor: statusFormData.status === 'banned' ? '#ef4444' : '#10b981', color: 'white' }}
+                                    >
+                                        Confirm Status Change
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
+                )}
+
+                {/* Destructive Delete Confirmation with Countdown */}
+                {deleteConfirm.isOpen && ReactDOM.createPortal(
+                    <div className="modal-overlay open" style={{ zIndex: 10000 }} onClick={closeDestructiveConfirm}>
+                        <div className="modal-content" style={{ maxWidth: '480px', padding: '0', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+                            <div style={{ padding: '32px 24px', textAlign: 'center' }}>
+                                <div style={{ 
+                                    width: '64px', height: '64px', borderRadius: '50%', 
+                                    background: '#fee2e2', 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                    margin: '0 auto 16px', color: '#dc2626'
+                                }}>
+                                    <AlertTriangle size={32} />
+                                </div>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: '0 0 12px', color: '#1e293b' }}>{deleteConfirm.title}</h2>
+                                <p style={{ fontSize: '0.95rem', color: '#64748b', margin: '0', lineHeight: '1.6', whiteSpace: 'pre-line' }}>{deleteConfirm.message}</p>
+                            </div>
+                            <div style={{ display: 'flex', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                                <button 
+                                    onClick={closeDestructiveConfirm} 
+                                    style={{ flex: 1, padding: '16px', background: 'transparent', border: 'none', borderRight: '1px solid #f1f5f9', fontWeight: 600, color: '#64748b', cursor: 'pointer', transition: 'all 0.2s' }}
+                                    onMouseOver={e => e.target.style.background = '#f1f5f9'}
+                                    onMouseOut={e => e.target.style.background = 'transparent'}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={() => { if (deleteConfirm.countdown <= 0 && deleteConfirm.onConfirm) { closeDestructiveConfirm(); deleteConfirm.onConfirm(); } }}
+                                    disabled={deleteConfirm.countdown > 0}
+                                    style={{ 
+                                        flex: 1, padding: '16px', background: 'transparent', border: 'none', 
+                                        fontWeight: 700, 
+                                        color: deleteConfirm.countdown > 0 ? '#94a3b8' : '#dc2626', 
+                                        cursor: deleteConfirm.countdown > 0 ? 'not-allowed' : 'pointer', 
+                                        transition: 'all 0.2s',
+                                        opacity: deleteConfirm.countdown > 0 ? 0.6 : 1
+                                    }}
+                                    onMouseOver={e => { if (deleteConfirm.countdown <= 0) e.target.style.background = '#fee2e2'; }}
+                                    onMouseOut={e => e.target.style.background = 'transparent'}
+                                >
+                                    {deleteConfirm.countdown > 0 ? `Please wait (${deleteConfirm.countdown}s)` : 'Confirm Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
                 )}
 
             </div>
