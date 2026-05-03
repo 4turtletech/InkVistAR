@@ -266,6 +266,13 @@
     font-weight: 700;
 }
 
+.badge.status-deleted {
+    background-color: #e2e8f0;
+    color: #475569;
+    font-weight: 700;
+    font-style: italic;
+}
+
 .badge.status-scheduled {
     background-color: #ede9fe;
     color: #5b21b6;

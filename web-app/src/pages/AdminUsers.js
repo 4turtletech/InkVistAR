@@ -20,7 +20,7 @@ import { filterName, filterDigits, clampNumber } from '../utils/validation';
 import {
     Search, Filter, SlidersHorizontal, UserPlus, Users, Palette, UserCircle, CheckCircle, X,
     User, Calendar, Save, Trash2, Image, Shield, Clock, RotateCcw, FileText,
-    Eye, EyeOff, Camera, ChevronUp, ChevronDown
+    Eye, EyeOff, Camera, ChevronUp, ChevronDown, AlertTriangle
 } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
@@ -359,6 +359,90 @@ function AdminUsers() {
             console.error("Error updating status:", error);
             showAlert("Error", error.response?.data?.message || 'Error updating status.', "danger");
         }
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // SOFT DELETE / RESTORE / PERMANENT DELETE
+    // ═══════════════════════════════════════════════════════════
+
+    const handleSoftDelete = (user) => {
+        if (user.is_superadmin) {
+            showAlert("Restricted", "Cannot delete the system super admin.", "danger");
+            return;
+        }
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Soft Delete User',
+            message: `This will mark ${user.name}'s account as deleted. They will no longer be able to log in, but their data will be preserved. You can restore this account later.\n\nProceed?`,
+            type: 'warning',
+            confirmText: 'Yes, Soft Delete',
+            onConfirm: async () => {
+                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                try {
+                    const res = await Axios.delete(`${API_URL}/api/admin/users/${user.id}`, {
+                        headers: { 'X-User-Email': currentUser.email || '' }
+                    });
+                    if (res.data.success) {
+                        showAlert("Success", `${user.name} has been soft deleted. You can restore this account from the 'Soft Deleted' filter.`, "success");
+                        fetchUsers();
+                    }
+                } catch (error) {
+                    showAlert("Error", error.response?.data?.message || 'Failed to soft delete user.', "danger");
+                }
+            }
+        });
+    };
+
+    const handleRestoreUser = (user) => {
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Restore User Account',
+            message: `Restore ${user.name}'s account? They will be able to log in again with 'Active' status.`,
+            type: 'info',
+            confirmText: 'Restore Account',
+            onConfirm: async () => {
+                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                try {
+                    const res = await Axios.put(`${API_URL}/api/admin/users/${user.id}/restore`, {}, {
+                        headers: { 'X-User-Email': currentUser.email || '' }
+                    });
+                    if (res.data.success) {
+                        showAlert("Success", `${user.name}'s account has been restored.`, "success");
+                        fetchUsers();
+                    }
+                } catch (error) {
+                    showAlert("Error", error.response?.data?.message || 'Failed to restore user.', "danger");
+                }
+            }
+        });
+    };
+
+    const handlePermanentDelete = (user) => {
+        if (user.is_superadmin) {
+            showAlert("Restricted", "Cannot permanently delete the system super admin.", "danger");
+            return;
+        }
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Permanently Delete User',
+            message: `WARNING: This action is IRREVERSIBLE. All data for ${user.name} (${user.email}) will be permanently erased from the database.\n\nThis includes their profile, appointments, payment records, and any associated data.\n\nAre you absolutely sure?`,
+            type: 'danger',
+            confirmText: 'Delete Permanently',
+            onConfirm: async () => {
+                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                try {
+                    const res = await Axios.delete(`${API_URL}/api/admin/users/${user.id}/permanent`, {
+                        headers: { 'X-User-Email': currentUser.email || '' }
+                    });
+                    if (res.data.success) {
+                        showAlert("Success", `${user.name} has been permanently deleted.`, "success");
+                        fetchUsers();
+                    }
+                } catch (error) {
+                    showAlert("Error", error.response?.data?.message || 'Failed to permanently delete user.', "danger");
+                }
+            }
+        });
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -966,16 +1050,38 @@ function AdminUsers() {
                                             <td data-label="Phone">{user.phone || '-'}</td>
                                             <td data-label="Role"><span className={`badge role-${user.user_type}`}>{user.user_type}</span></td>
                                             <td data-label="Status">
-                                                <span className={`badge status-${user.account_status || (user.is_deleted ? 'inactive' : 'active')}`}>
-                                                    {user.account_status 
-                                                        ? user.account_status.charAt(0).toUpperCase() + user.account_status.slice(1) 
-                                                        : (user.is_deleted ? 'Deactivated' : 'Active')}
+                                                <span className={`badge status-${user.is_deleted ? 'deleted' : (user.account_status || 'active')}`}>
+                                                    {user.is_deleted 
+                                                        ? 'Soft Deleted'
+                                                        : (user.account_status 
+                                                            ? user.account_status.charAt(0).toUpperCase() + user.account_status.slice(1)
+                                                            : 'Active')}
                                                 </span>
                                             </td>
                                             <td data-label="Actions" className="actions-cell">
-                                                <button className="action-btn edit-btn" onClick={() => handleManage(user)}>Review</button>
-                                                {!user.is_superadmin && (
-                                                    <button className="action-btn manage-btn" onClick={() => handleManageStatusClick(user)}>Status</button>
+                                                {user.is_deleted ? (
+                                                    <>
+                                                        <button className="action-btn edit-btn" onClick={() => handleRestoreUser(user)} title="Restore this account">
+                                                            <RotateCcw size={14} style={{ marginRight: '4px' }} /> Restore
+                                                        </button>
+                                                        <button className="action-btn" onClick={() => handlePermanentDelete(user)} title="Permanently erase this account and all data" style={{ color: '#ef4444', borderColor: '#ef4444' }}>
+                                                            <Trash2 size={14} style={{ marginRight: '4px' }} /> Erase
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button className="action-btn edit-btn" onClick={() => handleManage(user)}>Review</button>
+                                                        {!user.is_superadmin && (
+                                                            <>
+                                                                <button className="action-btn manage-btn" onClick={() => handleManageStatusClick(user)}>Status</button>
+                                                                {(user.account_status === 'deactivated' || user.account_status === 'banned') && (
+                                                                    <button className="action-btn" onClick={() => handleSoftDelete(user)} title="Soft delete this account" style={{ color: '#f59e0b', borderColor: '#f59e0b' }}>
+                                                                        <AlertTriangle size={14} style={{ marginRight: '4px' }} /> Delete
+                                                                    </button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </>
                                                 )}
                                             </td>
                                         </tr>
