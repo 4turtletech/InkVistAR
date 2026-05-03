@@ -1075,8 +1075,8 @@ function AdminUsers() {
                                                             <>
                                                                 <button className="action-btn manage-btn" onClick={() => handleManageStatusClick(user)}>Status</button>
                                                                 {(user.account_status === 'deactivated' || user.account_status === 'banned') && (
-                                                                    <button className="action-btn" onClick={() => handleSoftDelete(user)} title="Soft delete this account" style={{ color: '#f59e0b', borderColor: '#f59e0b' }}>
-                                                                        <AlertTriangle size={14} style={{ marginRight: '4px' }} /> Delete
+                                                                    <button className="action-btn delete-btn" onClick={() => handleSoftDelete(user)} title="Soft delete this account">
+                                                                        <Trash2 size={14} style={{ marginRight: '4px' }} /> Delete
                                                                     </button>
                                                                 )}
                                                             </>
