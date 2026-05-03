@@ -198,200 +198,191 @@ h1, h2, h3, h4 {
     color: var(--accent-gold);
 }
 
-/* Featured Artists Carousel (State-Driven) */
-.home-slider-wrapper {
-    position: relative;
-    width: 100%;
-    overflow: visible;
+/* Ambient Background Glowing Orbs */
+.ambient-glow-1, .ambient-glow-2 {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.15;
+    transition: transform 0.1s linear;
 }
 
-.home-artists-viewport {
-    overflow: hidden;
-    border-radius: 16px;
+.ambient-glow-1 {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, var(--accent-gold-dark) 0%, transparent 70%);
+    top: 20%;
+    right: -200px;
 }
 
-.home-artists-track {
-    display: flex;
-    transition: transform 0.65s cubic-bezier(0.25, 1, 0.5, 1);
+.ambient-glow-2 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, #4a2f60 0%, transparent 70%);
+    bottom: -100px;
+    left: -150px;
+}
+
+/* Staggered Scroll Animations */
+.stagger-1 { transition-delay: 0.1s; }
+.stagger-2 { transition-delay: 0.2s; }
+.stagger-3 { transition-delay: 0.3s; }
+.stagger-4 { transition-delay: 0.4s; }
+.stagger-5 { transition-delay: 0.5s; }
+
+/* 3D Tilt Hover */
+.tilt-card {
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s ease;
     will-change: transform;
 }
-
-.home-artists-page {
-    display: flex;
-    gap: 2rem;
-    min-width: 100%;
-    width: 100%;
-    flex-shrink: 0;
-    padding: 1rem 0 1.5rem 0;
+.tilt-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 0 20px rgba(193, 154, 107, 0.15);
+    z-index: 5;
 }
 
-.home-artist-card {
-    flex: 1;
-    min-width: 0;
+/* --- "Signatures in Ink" Bento-Box Grid --- */
+.art-showcase-wrapper {
     position: relative;
-    border-radius: 16px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.art-showcase-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    grid-template-rows: repeat(2, 300px);
+    gap: 1.5rem;
+    width: 100%;
+    margin-bottom: 3rem;
+}
+
+.showcase-item {
+    position: relative;
+    border-radius: 12px;
     overflow: hidden;
-    aspect-ratio: 4/5;
+    background: #000;
     cursor: pointer;
-    background: rgba(38, 32, 34, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(183, 149, 78, 0.15);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border: 1px solid var(--border-light);
 }
 
-.home-artist-card:hover {
-    transform: translateY(-8px);
-    background: rgba(45, 38, 41, 0.95);
-    border-color: rgba(183, 149, 78, 0.4);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(183, 149, 78, 0.1);
+.showcase-hero {
+    grid-column: 1;
+    grid-row: 1 / span 2;
 }
 
-.home-artist-img {
+.showcase-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.8s cubic-bezier(0.25, 1, 1), filter 0.8s ease;
+    transition: transform 1s cubic-bezier(0.25, 1, 0.5, 1), filter 0.8s ease;
 }
 
-.home-artist-card:hover .home-artist-img {
+.showcase-item:hover .showcase-img {
     transform: scale(1.08);
+    filter: brightness(0.7);
 }
 
-.home-artist-overlay {
+.showcase-overlay {
     position: absolute;
-    bottom: 0; left: 0; right: 0;
-    padding: 2.5rem 2rem 2rem;
-    background: linear-gradient(to top, rgba(15, 13, 14, 0.95) 0%, rgba(23, 21, 22, 0.7) 60%, transparent 100%);
-    transform: translateY(15px);
-    opacity: 0.8;
-    transition: all 0.4s ease;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 2.5rem 2rem 1.5rem;
+    background: linear-gradient(to top, rgba(5, 5, 5, 0.95) 0%, rgba(5, 5, 5, 0.7) 50%, transparent 100%);
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    backdrop-filter: blur(4px);
 }
 
-.home-artist-card:hover .home-artist-overlay {
+.showcase-item:hover .showcase-overlay {
     transform: translateY(0);
     opacity: 1;
 }
 
-.home-artist-name {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.8rem;
-    color: #ffffff;
+.showcase-title {
+    color: #fff;
+    font-size: 1.5rem;
     margin-bottom: 0.5rem;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
-.home-artist-style {
+.showcase-artist {
+    color: var(--accent-gold);
     font-size: 0.85rem;
-    color: var(--accent-gold);
+    letter-spacing: 2px;
     text-transform: uppercase;
-    letter-spacing: 2.5px;
+    font-family: system-ui, -apple-system, sans-serif;
     font-weight: 600;
-}
-
-/* Tracking Chevrons */
-.home-slider-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: rgba(23, 21, 22, 0.8);
-    border: 1px solid rgba(183, 149, 78, 0.3);
-    color: var(--accent-gold);
     display: flex;
     align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    backdrop-filter: blur(8px);
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    gap: 8px;
 }
 
-.home-slider-btn:hover {
-    background: var(--accent-gold);
-    color: #000;
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 8px 25px rgba(183, 149, 78, 0.3);
-}
-
-.home-slider-btn.left {
-    left: -27px;
-}
-
-.home-slider-btn.right {
-    right: -27px;
-}
-
-/* Slider Bar Indicators */
-.artist-slider-indicators {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    margin-top: 2rem;
-    padding: 0 1rem;
-}
-
-.artist-slider-bar {
-    height: 4px;
-    border-radius: 4px;
-    border: none;
-    background: rgba(193, 154, 107, 0.2);
-    cursor: pointer;
-    padding: 0;
-    transition: all 0.45s cubic-bezier(0.25, 1, 0.5, 1);
-    width: 32px;
-    position: relative;
-    overflow: hidden;
-}
-
-.artist-slider-bar::after {
+.showcase-artist::before {
     content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--accent-gold), #d4b58e);
+    display: block;
+    width: 20px;
+    height: 1px;
+    background: var(--accent-gold);
+}
+
+/* Luxurious Outline Button */
+.btn-gold-outline {
+    background: transparent;
+    color: var(--accent-gold);
+    border: 1px solid var(--accent-gold);
+    padding: 1rem 3rem;
     border-radius: 4px;
-    transition: width 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.4s ease;
 }
 
-.artist-slider-bar.active {
-    width: 56px;
-    background: rgba(193, 154, 107, 0.15);
-    box-shadow: 0 0 12px rgba(193, 154, 107, 0.25);
-}
-
-.artist-slider-bar.active::after {
-    width: 100%;
-}
-
-.artist-slider-bar:hover:not(.active) {
-    background: rgba(193, 154, 107, 0.35);
-    width: 40px;
-}
-
-/* Disabled chevron state */
-.home-slider-btn.disabled {
-    opacity: 0.25;
-    cursor: not-allowed;
-    pointer-events: none;
+.btn-gold-outline:hover {
+    background: rgba(193, 154, 107, 0.1);
+    box-shadow: 0 0 20px rgba(193, 154, 107, 0.2);
+    transform: translateY(-2px);
 }
 
 @media (max-width: 1024px) {
-    .home-slider-btn { display: none; }
+    .art-showcase-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 400px 300px 300px;
+    }
+    .showcase-hero {
+        grid-column: 1 / span 2;
+        grid-row: 1;
+    }
 }
 
 @media (max-width: 768px) {
-    .home-artists-page { gap: 0; }
-    .artist-slider-indicators { margin-top: 1.5rem; gap: 8px; }
-    .artist-slider-bar { width: 24px; height: 3px; }
-    .artist-slider-bar.active { width: 44px; }
+    .art-showcase-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .showcase-item {
+        height: 350px;
+    }
+    .showcase-overlay {
+        opacity: 1;
+        transform: translateY(0);
+        padding: 2rem 1.5rem 1.2rem;
+        background: linear-gradient(to top, rgba(5,5,5,0.95) 0%, transparent 100%);
+    }
+    .ambient-glow-1, .ambient-glow-2 {
+        display: none;
+    }
 }
 
 /* Custom Work Matrix Grid (Replaces old About section) */

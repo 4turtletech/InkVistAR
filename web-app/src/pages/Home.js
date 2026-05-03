@@ -8,25 +8,37 @@ import ImageLightbox from '../components/ImageLightbox';
 import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone, Star } from 'lucide-react';
 import { API_URL } from '../config';
 
-// Dynamic Artist List
-const FEATURED_ARTISTS = [
-    { name: 'Troy', style: 'Black & Grey Realism', image: '/images/tattoos/media__1775672821008.jpg' },
-    { name: 'Lloid', style: 'Fine Line Geometry', image: '/images/tattoos/media__1775672821025.jpg' },
-    { name: 'Ken', style: 'Traditional Japanese', image: '/images/tattoos/media__1775672821057.jpg' },
-    { name: 'Mar', style: 'Neo-Traditional', image: '/images/tattoos/media__1775672821061.jpg' },
-    { name: 'Brian', style: 'Surrealism', image: '/images/tattoos/media__1775671277040.jpg' },
-    { name: 'JeaR', style: 'Dotwork & Mandala', image: '/images/tattoos/media__1775667820757.jpg' },
-    { name: 'Lem', style: 'Watercolor', image: '/images/tattoos/media__1775667820770.jpg' },
-    { name: 'Renz', style: 'Tribal / Polynesian', image: '/images/tattoos/media__1775667820781.jpg' },
-    { name: 'Carl', style: 'Minimalist', image: '/images/tattoos/media__1775667820747.jpg' }
-];
 
 function Home() {
     const navigate = useNavigate();
     const [lightboxSrc, setLightboxSrc] = useState(null);
+    const [scrollY, setScrollY] = useState(0);
+
+    // Deep Parallax Scroll Tracking
+    useEffect(() => {
+        const handleScroll = () => setScrollY(window.scrollY);
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Dynamic gallery works from API
+    const [showcaseWorks, setShowcaseWorks] = useState([]);
+
+    useEffect(() => {
+        fetch(`${API_URL}/api/gallery/works`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.works && data.works.length > 0) {
+                    // Randomize and take 4 pieces for the Bento-box grid
+                    const shuffled = [...data.works].sort(() => 0.5 - Math.random());
+                    setShowcaseWorks(shuffled.slice(0, 4));
+                }
+            })
+            .catch(err => console.error('Error fetching works for home showcase:', err));
+    }, []);
 
 
-    // Intersection Observer for scroll animations
+    // Intersection Observer for scroll animations (now handles staggered children)
     const useScrollFade = () => {
         const ref = useRef(null);
         useEffect(() => {
@@ -34,9 +46,12 @@ function Home() {
                 ([entry]) => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('visible');
+                        // Also trigger staggered children
+                        const staggers = entry.target.querySelectorAll('.fade-up');
+                        staggers.forEach(el => el.classList.add('visible'));
                     }
                 },
-                { threshold: 0.1 }
+                { threshold: 0.15 }
             );
             const currentRef = ref.current;
             if (currentRef) observer.observe(currentRef);
@@ -55,50 +70,6 @@ function Home() {
     // Testimonials State
     const [testimonials, setTestimonials] = useState([]);
     const [currentSlide, setCurrentSlide] = useState(0);
-
-    // Artists Carousel (state-driven)
-    const [artistPage, setArtistPage] = useState(0);
-    const [cardsPerPage, setCardsPerPage] = useState(3);
-    const totalArtistPages = Math.ceil(FEATURED_ARTISTS.length / cardsPerPage);
-    const artistAutoRef = useRef(null);
-
-    // Responsive cards-per-page
-    useEffect(() => {
-        const updateCardsPerPage = () => {
-            const w = window.innerWidth;
-            if (w <= 768) setCardsPerPage(1);
-            else if (w <= 1024) setCardsPerPage(2);
-            else setCardsPerPage(3);
-        };
-        updateCardsPerPage();
-        window.addEventListener('resize', updateCardsPerPage);
-        return () => window.removeEventListener('resize', updateCardsPerPage);
-    }, []);
-
-    // Reset page if it overflows after resize
-    useEffect(() => {
-        const maxPage = Math.ceil(FEATURED_ARTISTS.length / cardsPerPage) - 1;
-        if (artistPage > maxPage) setArtistPage(maxPage);
-    }, [cardsPerPage, artistPage]);
-
-    // Auto-advance artist carousel every 8 seconds
-    useEffect(() => {
-        const maxPage = Math.ceil(FEATURED_ARTISTS.length / cardsPerPage) - 1;
-        artistAutoRef.current = setInterval(() => {
-            setArtistPage(prev => prev >= maxPage ? 0 : prev + 1);
-        }, 8000);
-        return () => clearInterval(artistAutoRef.current);
-    }, [cardsPerPage]);
-
-    const goToArtistPage = useCallback((page) => {
-        setArtistPage(page);
-        // Reset auto-advance timer on manual interaction
-        clearInterval(artistAutoRef.current);
-        const maxPage = Math.ceil(FEATURED_ARTISTS.length / cardsPerPage) - 1;
-        artistAutoRef.current = setInterval(() => {
-            setArtistPage(prev => prev >= maxPage ? 0 : prev + 1);
-        }, 8000);
-    }, [cardsPerPage]);
 
     useEffect(() => {
         fetch(`${API_URL}/api/reviews`)
@@ -135,16 +106,25 @@ function Home() {
         <>
             <Navbar />
             <div className="home-container">
+                {/* Ambient Glowing Orbs */}
+                <div className="ambient-glow-1" style={{ transform: `translateY(${scrollY * -0.15}px)` }}></div>
+                <div className="ambient-glow-2" style={{ transform: `translateY(${scrollY * -0.2}px)` }}></div>
                 
                 {/* 1. Hero Section */}
                 <header className="hero-header">
-                    <div className="hero-parallax-bg">
+                    <div 
+                        className="hero-parallax-bg"
+                        style={{
+                            transform: `translateY(${scrollY * 0.4}px)`,
+                            filter: `blur(${Math.min(scrollY * 0.015, 8)}px) brightness(${Math.max(1 - scrollY * 0.001, 0.4)})`
+                        }}
+                    >
                         {/* Parallax effect grid leveraging dark high-res Unsplash ink images */}
                         <img className="hero-parallax-img" src="https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?auto=format&fit=crop&q=80&w=1000" alt="Tattoo Art 1" />
                         <img className="hero-parallax-img" src="https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&q=80&w=1000" alt="Tattoo Art 2" />
                         <img className="hero-parallax-img" src="https://images.unsplash.com/photo-1562962230-16e4623d36e6?auto=format&fit=crop&q=80&w=1000" alt="Tattoo Art 3" />
                     </div>
-                    <div className="hero-overlay"></div>
+                    <div className="hero-overlay" style={{ opacity: Math.min(0.6 + scrollY * 0.001, 0.9) }}></div>
                     
                     <div className="hero-content fade-up visible">
                         <span className="hero-tagline">BGC's Premier Studio</span>
@@ -160,92 +140,56 @@ function Home() {
 
                 </header>
 
-                {/* 2. Featured Artists */}
-                <section className="premium-section fade-up" ref={artistsRef}>
-                    <div className="section-header">
-                        <span className="section-subtitle">Our Talent</span>
-                        <h2 className="section-title">The Masters of Ink</h2>
+                {/* 2. Art First Showcase */}
+                <section className="premium-section" ref={artistsRef}>
+                    <div className="section-header fade-up stagger-1">
+                        <span className="section-subtitle">Portfolio Showcase</span>
+                        <h2 className="section-title">Signatures in Ink</h2>
                     </div>
 
-                    <div className="home-slider-wrapper">
-                        {/* Left Control */}
-                        {totalArtistPages > 1 && (
-                            <button 
-                                className={`home-slider-btn left ${artistPage === 0 ? 'disabled' : ''}`} 
-                                onClick={() => artistPage > 0 && goToArtistPage(artistPage - 1)}
-                                aria-label="Previous artists"
-                                disabled={artistPage === 0}
-                            >
-                                <ChevronLeft size={28} />
-                            </button>
-                        )}
-
-                        <div className="home-artists-viewport">
-                            <div 
-                                className="home-artists-track" 
-                                style={{ 
-                                    transform: `translateX(-${artistPage * 100}%)`,
-                                }}
-                            >
-                                {Array.from({ length: totalArtistPages }).map((_, pageIdx) => {
-                                    const start = pageIdx * cardsPerPage;
-                                    const pageArtists = FEATURED_ARTISTS.slice(start, start + cardsPerPage);
-                                    return (
-                                        <div key={pageIdx} className="home-artists-page">
-                                            {pageArtists.map((artist, cardIdx) => (
-                                                <div 
-                                                    key={start + cardIdx} 
-                                                    className="home-artist-card"
-                                                    onClick={() => navigate(`/artist/${start + cardIdx + 1}`)}
-                                                >
-                                                    <img 
-                                                        src={artist.image} 
-                                                        alt={artist.name} 
-                                                        className="home-artist-img" 
-                                                    />
-                                                    <div className="home-artist-overlay">
-                                                        <h4 className="home-artist-name">{artist.name}</h4>
-                                                        <span className="home-artist-style">{artist.style}</span>
-                                                    </div>
-                                                </div>
-                                            ))}
+                    <div className="art-showcase-wrapper fade-up stagger-2">
+                        {showcaseWorks.length > 0 ? (
+                            <>
+                                <div className="art-showcase-grid">
+                                    {showcaseWorks.map((work, idx) => (
+                                        <div 
+                                            key={work.id || idx} 
+                                            className={`showcase-item tilt-card ${idx === 0 ? 'showcase-hero' : ''}`}
+                                            onClick={() => work.artist_id && navigate(`/artist/${work.artist_id}`)}
+                                        >
+                                            <img 
+                                                src={work.image_url} 
+                                                alt={work.title || 'Tattoo Artwork'} 
+                                                className="showcase-img"
+                                                loading="lazy"
+                                            />
+                                            <div className="showcase-overlay">
+                                                <h3 className="showcase-title">{work.title || work.category || 'Custom Piece'}</h3>
+                                                {work.artist_name && (
+                                                    <span className="showcase-artist">Crafted by {work.artist_name}</span>
+                                                )}
+                                            </div>
                                         </div>
-                                    );
-                                })}
+                                    ))}
+                                </div>
+                                <div className="fade-up stagger-4" style={{ textAlign: 'center', marginTop: '1rem' }}>
+                                    <button onClick={() => navigate('/gallery')} className="btn-gold-outline">
+                                        Explore Full Gallery
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '4rem 0', opacity: 0.5 }}>
+                                <Sparkles size={48} color="var(--accent-gold)" style={{ marginBottom: '1rem' }} />
+                                <p style={{ fontSize: '1.2rem', letterSpacing: '1px' }}>Curating masterpieces...</p>
                             </div>
-                        </div>
-
-                        {/* Right Control */}
-                        {totalArtistPages > 1 && (
-                            <button 
-                                className={`home-slider-btn right ${artistPage >= totalArtistPages - 1 ? 'disabled' : ''}`} 
-                                onClick={() => artistPage < totalArtistPages - 1 && goToArtistPage(artistPage + 1)}
-                                aria-label="Next artists"
-                                disabled={artistPage >= totalArtistPages - 1}
-                            >
-                                <ChevronRight size={28} />
-                            </button>
                         )}
                     </div>
-
-                    {/* Slider Bar Indicators */}
-                    {totalArtistPages > 1 && (
-                        <div className="artist-slider-indicators">
-                            {Array.from({ length: totalArtistPages }).map((_, idx) => (
-                                <button
-                                    key={idx}
-                                    className={`artist-slider-bar ${idx === artistPage ? 'active' : ''}`}
-                                    onClick={() => goToArtistPage(idx)}
-                                    aria-label={`Go to page ${idx + 1}`}
-                                />
-                            ))}
-                        </div>
-                    )}
                 </section>
 
                 {/* 3. The Matrix / About Extravaganza */}
-                <section className="premium-section fade-up" ref={matrixRef}>
-                    <div className="glass-card-premium matrix-grid">
+                <section className="premium-section" ref={matrixRef}>
+                    <div className="glass-card-premium matrix-grid fade-up stagger-1">
                         <div className="matrix-content">
                             <span className="section-subtitle">Our Philosophy</span>
                             <h2 className="section-title" style={{ marginBottom: '2rem' }}>Crafting Timeless Art in BGC</h2>
@@ -274,23 +218,23 @@ function Home() {
                 </section>
 
                 {/* 4. Our Services */}
-                <section className="premium-section fade-up" ref={servicesRef}>
-                    <div className="section-header">
+                <section className="premium-section" ref={servicesRef}>
+                    <div className="section-header fade-up stagger-1">
                         <span className="section-subtitle">Expertise</span>
                         <h2 className="section-title">Specialized Services</h2>
                     </div>
                     <div className="services-container">
-                        <div className="service-item glass-card-premium">
+                        <div className="service-item glass-card-premium tilt-card fade-up stagger-2">
                             <div className="service-icon"><PenTool size={30} /></div>
                             <h3 className="service-title">Custom Tattoo Art</h3>
                             <p className="service-desc">From breathtaking hyper-realism and fine-line to bold traditional designs, our artists craft timeless ink tailored perfectly to your vision.</p>
                         </div>
-                        <div className="service-item glass-card-premium">
+                        <div className="service-item glass-card-premium tilt-card fade-up stagger-3">
                             <div className="service-icon"><Sparkles size={30} /></div>
                             <h3 className="service-title">Professional Piercing</h3>
                             <p className="service-desc">Safe, precise body and ear piercing performed in a strictly sterile environment, featuring a curated selection of premium, hypoallergenic jewelry.</p>
                         </div>
-                        <div className="service-item glass-card-premium">
+                        <div className="service-item glass-card-premium tilt-card fade-up stagger-4">
                             <div className="service-icon"><Smartphone size={30} /></div>
                             <h3 className="service-title">AR Tattoo Preview</h3>
                             <p className="service-desc">Eliminate the guesswork before getting inked. Visualize your custom tattoo directly on your skin using our exclusive augmented reality platform.</p>
@@ -300,16 +244,16 @@ function Home() {
 
                 {/* 5. Testimonials */}
                 <section 
-                    className="premium-section fade-up" 
+                    className="premium-section" 
                     ref={testimonialsRef}
                     style={testimonials.length === 0 ? { padding: '4rem 2rem 3rem' } : undefined}
                 >
-                    <div className="section-header" style={testimonials.length === 0 ? { marginBottom: '2rem' } : undefined}>
+                    <div className="section-header fade-up stagger-1" style={testimonials.length === 0 ? { marginBottom: '2rem' } : undefined}>
                         <span className="section-subtitle">Reputation</span>
                         <h2 className="section-title">The Experience</h2>
                     </div>
                     
-                    <div className="premium-carousel-container" style={{ marginBottom: '2rem' }}>
+                    <div className="premium-carousel-container fade-up stagger-2" style={{ marginBottom: '2rem' }}>
                         {testimonials.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '2rem 0', borderTop: '1px solid var(--border-glass)', borderBottom: '1px solid var(--border-glass)' }}>
                                 <PenTool size={32} color="var(--accent-gold)" style={{ opacity: 0.5, marginBottom: '1rem' }} />
