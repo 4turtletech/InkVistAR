@@ -2849,7 +2849,7 @@ app.post('/api/register', async (req, res) => {
         // Generate OTP at registration time so the user has it immediately
         // (avoids a second email when they try to login unverified)
         const reg_otp_code = Math.floor(100000 + Math.random() * 900000).toString();
-        const reg_otp_expires = new Date(Date.now() + 30 * 60 * 1000); // 30 min for registration OTP
+        const reg_otp_expires = new Date(Date.now() + 5 * 60 * 1000); // 5 min for registration OTP
         db.query('UPDATE users SET otp_code = ?, otp_expires = ? WHERE id = ?', [reg_otp_code, reg_otp_expires, newUserId]);
 
         // LOG VERIFICATION LINK (Fix for development/Gmail issues)
@@ -2865,7 +2865,7 @@ app.post('/api/register', async (req, res) => {
                   <span style="font-size:36px;font-weight:800;letter-spacing:12px;color:#C19A6B;font-family:'Courier New',monospace;">${reg_otp_code}</span>
                 </div>
               </td></tr></table>
-              <p style="margin:0 0 16px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">30 minutes</strong>.</p>
+              <p style="margin:0 0 16px;font-size:13px;color:#94a3b8;text-align:center;">This code expires in <strong style="color:#334155;">5 minutes</strong>.</p>
               <p style="margin:0 0 20px;font-size:12px;color:#555;text-align:center;">You can also verify by clicking the button below:</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
                 <a href="${verifyUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#C19A6B,#8a6c4a);color:#000;font-size:13px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.5px;text-transform:uppercase;">Verify via Link</a>
@@ -4718,6 +4718,42 @@ app.post('/api/admin/appointments', async (req, res) => {
               <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">— The InkVistAR Studio Team</p>
             `);
             sendResendEmail(guestEmail, `InkVistAR: Consultation Request [${bookingCode}] Received`, guestHtml);
+          } else {
+            // Logged-in customer — look up their email and send confirmation
+            db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (custErr, custRows) => {
+              if (!custErr && custRows && custRows.length > 0 && custRows[0].email) {
+                const custName = custRows[0].name || 'Valued Client';
+                const custHtml = buildEmailHtml(`
+                  <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
+                  <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">We're excited to help you on your next piece</p>
+                  <p style="margin:0 0 16px;">Hello ${custName},</p>
+                  <p style="margin:0 0 16px;">Thank you for submitting your consultation request through InkVistAR! We have received your details and our team is reviewing them now.</p>
+                  
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                    <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Ref Code:</strong> <span style="color:#C19A6B;font-family:monospace;font-weight:700;">${bookingCode}</span></p>
+                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Design Idea:</strong> <span style="color:#C19A6B;">${displayDesign}</span></p>
+                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Date:</strong> <span style="color:#C19A6B;">${appointmentDate}</span></p>
+                      <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Time:</strong> <span style="color:#C19A6B;">${appointmentTime}</span></p>
+                      <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Method:</strong> <span style="color:#C19A6B;">${displayMethod}</span></p>
+                    </div>
+                  </td></tr></table>
+
+                  ${waiverAcceptedAt ? `
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0 16px;">
+                    <div style="display:inline-block;padding:14px 20px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;width:100%;max-width:400px;box-sizing:border-box;text-align:left;">
+                      <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#10b981;">Service Waiver Signed</p>
+                      <p style="margin:0;font-size:13px;color:#94a3b8;">You electronically accepted the Service Waiver & Release of Liability on <strong style="color:#334155;">${new Date(waiverAcceptedAt).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}</strong>.</p>
+                    </div>
+                  </td></tr></table>
+                  ` : ''}
+
+                  <p style="margin:0 0 16px;line-height:1.6;">Our staff will reach out to you within the next <strong style="color:#C19A6B;">24 hours</strong> to confirm your appointment and discuss pricing. You can also track this booking in your <strong>My Bookings</strong> dashboard.</p>
+                  <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
+                `);
+                sendResendEmail(custRows[0].email, `InkVistAR: Consultation Request [${bookingCode}] Received`, custHtml);
+              }
+            });
           }
         } else {
           createNotification(customerId, 'Appointment Scheduled', `Your appointment [${bookingCode}] has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
