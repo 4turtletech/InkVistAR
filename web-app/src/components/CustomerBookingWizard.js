@@ -248,8 +248,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 captchaToken: token,
                 deviceId: deviceId,
                 consultationMethod: consultMethodStr,
-                guestEmail: !currentUser ? formData.email : undefined,
-                guestPhone: !currentUser ? `${formData.phoneCode || '+63'}${formData.phone}` : undefined,
+                guestEmail: !currentUser ? formData.email : null,
+                guestPhone: !currentUser ? `${formData.phoneCode || '+63'}${formData.phone}` : null,
                 waiverAcceptedAt: waiverAcceptedAt || new Date().toISOString(),
                 photoMarketingConsent: photoMarketingConsent
             });
@@ -1068,7 +1068,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             <UserPlus size={18} /> Create an Account
                         </button>
                         <button
-                            onClick={() => setShowExitModal(true)}
+                            onClick={() => setShowEmailConfirmModal(true)}
                             className="btn btn-secondary"
                             style={{
                                 padding: '12px 28px',

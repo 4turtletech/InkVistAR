@@ -4639,7 +4639,87 @@ app.post('/api/admin/appointments', async (req, res) => {
               const fbBookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType, fbResult.insertId);
               db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [fbBookingCode, fbResult.insertId]);
               if (isFromWizard) {
+                const fbClientName = customerName || 'a guest';
                 createNotification(customerId, 'Booking Request Received', `We have received your booking request [${fbBookingCode}] for ${date} and will calculate a quote for you shortly.`, 'appointment_request', fbResult.insertId);
+
+                // Notify ALL Admins/Managers
+                const fbGuestContact = [guestEmail, guestPhone].filter(Boolean).join(' | ') || 'No contact info';
+                db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (aErr, admins) => {
+                  if (!aErr && admins && admins.length > 0) {
+                    admins.forEach(admin => {
+                      createNotification(admin.id, 'Guest Consultation Request', `New ${serviceType || 'Consultation'} from ${fbClientName} (Guest). Idea: "${designTitle}". Contact: ${fbGuestContact}. Ref: [${fbBookingCode}]. Pending review.`, 'appointment_request', fbResult.insertId);
+                    });
+                  }
+                });
+
+                // Guest Email + SMS (mirrors primary path)
+                const fbAppointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const fbAppointmentTime = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD';
+                const fbDisplayDesign = designTitle || 'Consultation';
+                const fbDisplayMethod = consultationMethod || 'Face-to-Face';
+
+                if (guestPhone) {
+                  const smsBody = `InkVistAR: Hi ${fbClientName}! Your consultation request [${fbBookingCode}] for "${fbDisplayDesign}" on ${fbAppointmentDate} at ${fbAppointmentTime} has been received. We'll review and contact you within 24 hours. Thank you!`;
+                  sendSMS(guestPhone, smsBody);
+                }
+
+                if (guestEmail) {
+                  console.log(`[DEBUG] Fallback path — sending guest email to: ${guestEmail}`);
+                  const fbGuestHtml = buildEmailHtml(`
+                    <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
+                    <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">We're excited to help you on your next piece</p>
+                    <p style="margin:0 0 16px;">Hello ${fbClientName},</p>
+                    <p style="margin:0 0 16px;">Thank you for reaching out to InkVistAR Studio! We have received your consultation request and our team is reviewing the details.</p>
+                    
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                      <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                        <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Ref Code:</strong> <span style="color:#C19A6B;font-family:monospace;font-weight:700;">${fbBookingCode}</span></p>
+                        <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Design Idea:</strong> <span style="color:#C19A6B;">${fbDisplayDesign}</span></p>
+                        <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Date:</strong> <span style="color:#C19A6B;">${fbAppointmentDate}</span></p>
+                        <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Time:</strong> <span style="color:#C19A6B;">${fbAppointmentTime}</span></p>
+                        <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Method:</strong> <span style="color:#C19A6B;">${fbDisplayMethod}</span></p>
+                      </div>
+                    </td></tr></table>
+
+                    <p style="margin:0 0 16px;line-height:1.6;">Our staff will reach out to you within the next <strong style="color:#C19A6B;">24 hours</strong> to confirm your appointment and discuss pricing.</p>
+                    
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 16px;">
+                      <div style="display:inline-block;padding:12px 20px;background:rgba(193,154,107,0.1);border:1px solid rgba(193,154,107,0.2);border-radius:10px;">
+                        <p style="margin:0;font-size:13px;color:#94a3b8;">Tip: <strong style="color:#334155;">Create an InkVistAR account</strong> with this email to track your booking, receive updates, and manage future appointments.</p>
+                      </div>
+                    </td></tr></table>
+
+                    <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
+                  `);
+                  sendResendEmail(guestEmail, `InkVistAR: Consultation Request [${fbBookingCode}] Received`, fbGuestHtml);
+                } else {
+                  // Logged-in customer fallback — look up their email
+                  db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (custErr, custRows) => {
+                    if (!custErr && custRows && custRows.length > 0 && custRows[0].email) {
+                      const custName = custRows[0].name || 'Valued Client';
+                      const custHtml = buildEmailHtml(`
+                        <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
+                        <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">We're excited to help you on your next piece</p>
+                        <p style="margin:0 0 16px;">Hello ${custName},</p>
+                        <p style="margin:0 0 16px;">Thank you for submitting your consultation request! We have received your details and our team is reviewing them now.</p>
+                        
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
+                          <div style="text-align:left;display:inline-block;background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;width:100%;max-width:400px;box-sizing:border-box;">
+                            <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Ref Code:</strong> <span style="color:#C19A6B;font-family:monospace;font-weight:700;">${fbBookingCode}</span></p>
+                            <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Design Idea:</strong> <span style="color:#C19A6B;">${fbDisplayDesign}</span></p>
+                            <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Date:</strong> <span style="color:#C19A6B;">${fbAppointmentDate}</span></p>
+                            <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Time:</strong> <span style="color:#C19A6B;">${fbAppointmentTime}</span></p>
+                            <p style="margin:0;font-size:14px;color:#94a3b8;"><strong style="color:#334155;display:inline-block;width:100px;">Method:</strong> <span style="color:#C19A6B;">${fbDisplayMethod}</span></p>
+                          </div>
+                        </td></tr></table>
+
+                        <p style="margin:0 0 16px;line-height:1.6;">Our staff will reach out within <strong style="color:#C19A6B;">24 hours</strong> to confirm and discuss pricing. Track this booking in your <strong>My Bookings</strong> dashboard.</p>
+                        <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
+                      `);
+                      sendResendEmail(custRows[0].email, `InkVistAR: Consultation Request [${fbBookingCode}] Received`, custHtml);
+                    }
+                  });
+                }
               }
               return res.json({ success: true, message: 'Appointment created successfully', id: fbResult.insertId, bookingCode: fbBookingCode });
             });
@@ -4669,6 +4749,7 @@ app.post('/api/admin/appointments', async (req, res) => {
           });
 
           // ═══ Guest External Notifications (SMS + Email) ═══
+          console.log(`[DEBUG] Guest notification block — guestEmail: "${guestEmail}", guestPhone: "${guestPhone}", isFromWizard: ${isFromWizard}, customerId: ${customerId}`);
           const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
           const appointmentTime = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD';
           const displayDesign = designTitle || 'Consultation';
