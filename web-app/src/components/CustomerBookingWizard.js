@@ -16,6 +16,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [activeFeature, setActiveFeature] = useState(0);
     const [showExitModal, setShowExitModal] = useState(false);
     const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
+    const [conflictModal, setConflictModal] = useState({ show: false, title: '', message: '', returnToStep: null });
     const [waiverAccepted, setWaiverAccepted] = useState(false);
     const [showWaiverModal, setShowWaiverModal] = useState(false);
     const [waiverAcceptedAt, setWaiverAcceptedAt] = useState(null);
@@ -273,10 +274,33 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             }
         } catch (error) {
             console.error('Error finalizing booking:', error);
-            if (error.response?.status === 429) {
-                alert(error.response.data.message || 'You have reached the maximum number of pending consultation requests. Please wait for one to be confirmed.');
+            const status = error.response?.status;
+            const code = error.response?.data?.code;
+            const msg = error.response?.data?.message || '';
+
+            if (status === 409 || code === 'SLOT_TAKEN') {
+                // Slot conflict — show premium conflict modal and bounce back to scheduling
+                await fetchAvailability(); // Refresh calendar data
+                setConflictModal({
+                    show: true,
+                    title: 'Scheduling Conflict',
+                    message: 'This time slot was just booked by another client while you were completing your form. Please select a different time to continue.',
+                    returnToStep: 3
+                });
+            } else if (status === 429) {
+                setConflictModal({
+                    show: true,
+                    title: 'Booking Limit Reached',
+                    message: msg || 'You have reached the maximum number of pending consultation requests. Please wait for one to be confirmed before booking another.',
+                    returnToStep: null
+                });
             } else {
-                alert(error.response?.data?.message || 'Failed to submit booking request. Please try again.');
+                setConflictModal({
+                    show: true,
+                    title: 'Request Failed',
+                    message: msg || 'Something went wrong while submitting your booking. Please try again.',
+                    returnToStep: null
+                });
             }
         } finally {
             setLoading(false);
@@ -998,6 +1022,72 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         </div>
     );
 
+    const renderConflictModal = () => (
+        <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(6px)'
+        }}>
+            <div className="fade-in" style={{
+                backgroundColor: 'white', padding: '40px', borderRadius: '24px',
+                maxWidth: '460px', width: '90%', textAlign: 'center',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+            }}>
+                <div style={{
+                    backgroundColor: '#fef3c7', width: '68px', height: '68px', borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 20px', border: '2px solid #fde68a'
+                }}>
+                    <Clock size={32} color="#d97706" />
+                </div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b', marginBottom: '12px' }}>
+                    {conflictModal.title}
+                </h3>
+                <p style={{ color: '#64748b', marginBottom: '28px', lineHeight: '1.7', fontSize: '0.95rem' }}>
+                    {conflictModal.message}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {conflictModal.returnToStep && (
+                        <button
+                            onClick={() => {
+                                setFormData(prev => ({ ...prev, time: '' }));
+                                setStep(conflictModal.returnToStep);
+                                setConflictModal({ show: false, title: '', message: '', returnToStep: null });
+                            }}
+                            style={{
+                                width: '100%', padding: '14px 24px',
+                                background: '#be9055', color: '#fff', border: 'none',
+                                borderRadius: '12px', fontSize: '0.95rem', fontWeight: 700,
+                                cursor: 'pointer', transition: 'all 0.2s ease',
+                                boxShadow: '0 4px 12px rgba(193,154,107,0.3)',
+                                fontFamily: "'Inter', sans-serif"
+                            }}
+                            title="Go back to choose a different time slot"
+                        >
+                            Choose a Different Time
+                        </button>
+                    )}
+                    <button
+                        onClick={() => {
+                            setConflictModal({ show: false, title: '', message: '', returnToStep: null });
+                            if (!conflictModal.returnToStep) navigate('/');
+                        }}
+                        style={{
+                            width: '100%', padding: '12px 24px',
+                            background: 'transparent', color: '#64748b',
+                            border: '1px solid #e2e8f0', borderRadius: '12px',
+                            fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
+                            fontFamily: "'Inter', sans-serif"
+                        }}
+                        title={conflictModal.returnToStep ? 'Close this dialog' : 'Return to the homepage'}
+                    >
+                        {conflictModal.returnToStep ? 'Dismiss' : 'Back to Home'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
     const renderConsultationCompletedPage = () => (
         <div className="fade-in data-card" style={{
             border: 'none',
@@ -1201,6 +1291,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
 
             {showExitModal && renderExitModal()}
             {showEmailConfirmModal && renderEmailConfirmModal()}
+            {conflictModal.show && renderConflictModal()}
         </div>
     );
 
@@ -1322,6 +1413,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                     </button>
                 )}
             </div>
+            {conflictModal.show && renderConflictModal()}
         </div>
     );
 }

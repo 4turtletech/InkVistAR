@@ -4591,37 +4591,93 @@ app.post('/api/admin/appointments', async (req, res) => {
     const combinedTitle = serviceType && designTitle ? `${serviceType}: ${designTitle}` : (designTitle || serviceType || 'Appointment');
     const finalStatus = status || 'confirmed';
 
-    // Double Booking Check
-    const checkQuery = `
-      SELECT id FROM appointments 
-      WHERE appointment_date = ? AND start_time = ? AND status != 'cancelled' AND is_deleted = 0
-      AND (artist_id = ? OR customer_id = ?)
-    `;
+    // Sanitize split prices for dual-service bookings
+    const sanitizedTattooPrice = (serviceType === 'Tattoo + Piercing' && tattooPrice !== undefined && tattooPrice !== null) ? (parseFloat(tattooPrice) || 0) : null;
+    const sanitizedPiercingPrice = (serviceType === 'Tattoo + Piercing' && piercingPrice !== undefined && piercingPrice !== null) ? (parseFloat(piercingPrice) || 0) : null;
+    // Auto-compute total from split prices for dual-service
+    const finalPrice = (serviceType === 'Tattoo + Piercing' && sanitizedTattooPrice !== null && sanitizedPiercingPrice !== null)
+      ? sanitizedTattooPrice + sanitizedPiercingPrice
+      : (price || 0);
 
-    db.query(checkQuery, [date, startTime, artistId, customerId], (checkErr, results) => {
-      if (checkErr) {
-        console.error('[ERROR] Error checking double booking:', checkErr);
-        return res.status(500).json({ success: false, message: 'Database error' });
+    // ═══ TRANSACTION-BASED DOUBLE BOOKING PREVENTION ═══
+    // Uses SELECT ... FOR UPDATE to serialize concurrent requests at the DB level.
+    db.getConnection((connErr, connection) => {
+      if (connErr) {
+        console.error('[ERROR] Could not get DB connection for booking transaction:', connErr);
+        return res.status(500).json({ success: false, message: 'Server is busy. Please try again in a moment.' });
       }
 
-      if (results.length > 0) {
-        return res.status(400).json({ success: false, message: 'Scheduling Conflict: The artist or client already has an appointment at this date and time.' });
-      }
+      connection.beginTransaction((txErr) => {
+        if (txErr) {
+          connection.release();
+          console.error('[ERROR] Could not begin transaction:', txErr);
+          return res.status(500).json({ success: false, message: 'Server is busy. Please try again in a moment.' });
+        }
 
-      // Sanitize split prices for dual-service bookings
-      const sanitizedTattooPrice = (serviceType === 'Tattoo + Piercing' && tattooPrice !== undefined && tattooPrice !== null) ? (parseFloat(tattooPrice) || 0) : null;
-      const sanitizedPiercingPrice = (serviceType === 'Tattoo + Piercing' && piercingPrice !== undefined && piercingPrice !== null) ? (parseFloat(piercingPrice) || 0) : null;
-      // Auto-compute total from split prices for dual-service
-      const finalPrice = (serviceType === 'Tattoo + Piercing' && sanitizedTattooPrice !== null && sanitizedPiercingPrice !== null)
-        ? sanitizedTattooPrice + sanitizedPiercingPrice
-        : (price || 0);
+        // For wizard/consultation bookings: check total slot capacity (studio-wide)
+        // For admin-created bookings: check specific artist/customer collision
+        let checkQuery, checkParams;
 
-      const query = `
-        INSERT INTO appointments 
-          (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?)
-      `;
-      db.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, waiverAcceptedAt || null], (err, result) => {
+        if (isFromWizard) {
+          // Studio-wide capacity check: count ALL bookings at this date+time
+          checkQuery = `
+            SELECT COUNT(*) as slot_count FROM appointments
+            WHERE appointment_date = ? AND start_time = ? AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0
+            FOR UPDATE
+          `;
+          checkParams = [date, startTime];
+        } else {
+          // Admin booking: check specific artist or customer collision
+          checkQuery = `
+            SELECT id FROM appointments 
+            WHERE appointment_date = ? AND start_time = ? AND status != 'cancelled' AND is_deleted = 0
+            AND (artist_id = ? OR customer_id = ?)
+            FOR UPDATE
+          `;
+          checkParams = [date, startTime, artistId, customerId];
+        }
+
+        connection.query(checkQuery, checkParams, (checkErr, checkResults) => {
+          if (checkErr) {
+            return connection.rollback(() => {
+              connection.release();
+              console.error('[ERROR] Error checking double booking:', checkErr);
+              return res.status(500).json({ success: false, message: 'Database error' });
+            });
+          }
+
+          // Evaluate conflict
+          let hasConflict = false;
+          let conflictMessage = '';
+
+          if (isFromWizard) {
+            // For consultations: 7 slots per day (13:00-19:00), checked against total artists
+            const slotCount = checkResults[0]?.slot_count || 0;
+            if (slotCount >= 7) {
+              hasConflict = true;
+              conflictMessage = 'SLOT_TAKEN: This time slot was just booked by another client. Please select a different time.';
+            }
+          } else {
+            if (checkResults.length > 0) {
+              hasConflict = true;
+              conflictMessage = 'Scheduling Conflict: The artist or client already has an appointment at this date and time.';
+            }
+          }
+
+          if (hasConflict) {
+            return connection.rollback(() => {
+              connection.release();
+              return res.status(409).json({ success: false, message: conflictMessage, code: 'SLOT_TAKEN' });
+            });
+          }
+
+          // No conflict — proceed with INSERT inside the same transaction
+          const query = `
+            INSERT INTO appointments 
+              (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?)
+          `;
+          connection.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, waiverAcceptedAt || null], (err, result) => {
         if (err) {
           // Graceful fallback if waiver_accepted_at column doesn't exist yet
           if (err.code === 'ER_BAD_FIELD_ERROR' && err.message.includes('waiver_accepted_at')) {
@@ -4631,10 +4687,10 @@ app.post('/api/admin/appointments', async (req, res) => {
                 (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?)
             `;
-            return db.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null], (fbErr, fbResult) => {
+            return connection.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null], (fbErr, fbResult) => {
               if (fbErr) {
                 console.error('[ERROR] Fallback INSERT also failed:', fbErr);
-                return res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message });
+                return connection.rollback(() => { connection.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
               }
               const fbBookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType, fbResult.insertId);
               db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [fbBookingCode, fbResult.insertId]);
@@ -4721,11 +4777,11 @@ app.post('/api/admin/appointments', async (req, res) => {
                   });
                 }
               }
-              return res.json({ success: true, message: 'Appointment created successfully', id: fbResult.insertId, bookingCode: fbBookingCode });
+              return connection.commit((commitErr) => { connection.release(); if (commitErr) console.error('[WARN] Fallback commit error:', commitErr); res.json({ success: true, message: 'Appointment created successfully', id: fbResult.insertId, bookingCode: fbBookingCode }); });
             });
           }
           console.error('[ERROR] Error creating admin appointment:', err);
-          return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+          return connection.rollback(() => { connection.release(); res.status(500).json({ success: false, message: 'Database error: ' + err.message }); });
         }
 
         // Generate clean booking code using the auto-increment ID and UPDATE the row
@@ -4848,9 +4904,16 @@ app.post('/api/admin/appointments', async (req, res) => {
           }
         }
 
-        res.json({ success: true, message: 'Appointment created successfully', id: result.insertId, bookingCode: bookingCode });
+        // Commit the transaction and release the connection
+        connection.commit((commitErr) => {
+          connection.release();
+          if (commitErr) console.error('[WARN] Commit error (booking already inserted):', commitErr);
+          res.json({ success: true, message: 'Appointment created successfully', id: result.insertId, bookingCode: bookingCode });
+        });
       });
     });
+      }); // end connection.beginTransaction
+    }); // end db.getConnection
   });
 });
 
