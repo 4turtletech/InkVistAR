@@ -816,6 +816,17 @@ db.getConnection((err, connection) => {
           }
         });
 
+        // MIGRATION: Add piercing_jewelry JSON column for per-body-part jewelry selections
+        db.query("SHOW COLUMNS FROM appointments LIKE 'piercing_jewelry'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('[MIGRATE] Adding piercing_jewelry column to appointments...');
+            db.query("ALTER TABLE appointments ADD COLUMN piercing_jewelry JSON DEFAULT NULL AFTER selected_jewelry_name", (alterErr) => {
+              if (alterErr) console.error('[WARN] Could not add piercing_jewelry column:', alterErr.message);
+              else console.log('[OK] Added piercing_jewelry column to appointments');
+            });
+          }
+        });
+
         // FIX: Try to drop the specific problematic constraint if it exists
         db.query("ALTER TABLE appointments DROP FOREIGN KEY fk_appointments_artist", (err) => {
           if (!err) {
@@ -3515,9 +3526,9 @@ app.put('/api/customer/profile/:id', (req, res) => {
 // GET available jewelry items for piercing bookings (Public)
 app.get('/api/inventory/jewelry', (req, res) => {
   const query = `
-    SELECT id, name, category, cost, quantity, unit 
-    FROM inventory 
-    WHERE LOWER(category) = 'jewelry' AND is_deleted = 0 AND quantity > 0
+    SELECT id, name, category, cost, retail_price, current_stock, unit, image
+    FROM inventory
+    WHERE LOWER(category) = 'jewelry' AND current_stock > 0
     ORDER BY name ASC
   `;
   db.query(query, (err, results) => {
@@ -4525,7 +4536,7 @@ app.get('/api/admin/appointments/:id', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', async (req, res) => {
-  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, tattooPrice, piercingPrice, waiverAcceptedAt, photoMarketingConsent } = req.body;
+  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, tattooPrice, piercingPrice, waiverAcceptedAt, photoMarketingConsent, piercingJewelry } = req.body;
 
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
@@ -4672,22 +4683,34 @@ app.post('/api/admin/appointments', async (req, res) => {
           }
 
           // No conflict — proceed with INSERT inside the same transaction
+          // Sanitize piercingJewelry: must be an array of valid objects
+          let sanitizedJewelry = null;
+          if (piercingJewelry && Array.isArray(piercingJewelry) && piercingJewelry.length > 0) {
+            sanitizedJewelry = JSON.stringify(piercingJewelry.map(j => ({
+              bodyPart: String(j.bodyPart || '').substring(0, 100),
+              type: j.type === 'own' ? 'own' : 'studio',
+              itemId: j.itemId ? parseInt(j.itemId) : null,
+              itemName: String(j.itemName || '').substring(0, 255),
+              price: parseFloat(j.price) || 0
+            })));
+          }
+
           const query = `
             INSERT INTO appointments 
-              (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?)
+              (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at, piercing_jewelry)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
           `;
-          connection.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, waiverAcceptedAt || null], (err, result) => {
+          connection.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, waiverAcceptedAt || null, sanitizedJewelry || null], (err, result) => {
         if (err) {
           // Graceful fallback if waiver_accepted_at column doesn't exist yet
           if (err.code === 'ER_BAD_FIELD_ERROR' && err.message.includes('waiver_accepted_at')) {
             console.warn('[WARN] waiver_accepted_at column not found, retrying INSERT without it...');
             const fallbackQuery = `
               INSERT INTO appointments 
-                (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?)
+                (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, piercing_jewelry)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?)
             `;
-            return connection.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null], (fbErr, fbResult) => {
+            return connection.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null], (fbErr, fbResult) => {
               if (fbErr) {
                 console.error('[ERROR] Fallback INSERT also failed:', fbErr);
                 return connection.rollback(() => { connection.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
@@ -6214,6 +6237,66 @@ app.put('/api/appointments/:id/status', (req, res) => {
     const appointment = results[0];
 
     // INVENTORY LOGIC
+
+    // ═══ CONFIRMED: Auto-hold piercing jewelry selections ═══
+    if (status === 'confirmed' && appointment.status !== 'confirmed') {
+      let jewelrySelections = [];
+      try {
+        if (appointment.piercing_jewelry) {
+          jewelrySelections = typeof appointment.piercing_jewelry === 'string'
+            ? JSON.parse(appointment.piercing_jewelry)
+            : appointment.piercing_jewelry;
+        }
+      } catch (e) {
+        console.warn('[WARN] Could not parse piercing_jewelry JSON:', e.message);
+      }
+
+      // Hold each studio-selected jewelry item
+      const studioItems = (jewelrySelections || []).filter(j => j.type === 'studio' && j.itemId);
+      if (studioItems.length > 0) {
+        studioItems.forEach(jewSel => {
+          db.query(
+            'SELECT id, name, cost, current_stock FROM inventory WHERE id = ? AND current_stock > 0',
+            [jewSel.itemId],
+            (jewErr, jewRows) => {
+              if (!jewErr && jewRows.length > 0) {
+                const item = jewRows[0];
+                db.query(
+                  'UPDATE inventory SET current_stock = current_stock - 1 WHERE id = ? AND current_stock >= 1',
+                  [item.id],
+                  (updErr, updRes) => {
+                    if (!updErr && updRes.affectedRows > 0) {
+                      // Check if already held for this appointment to prevent double-holds
+                      db.query(
+                        'SELECT id FROM session_materials WHERE appointment_id = ? AND inventory_id = ? AND status = "hold"',
+                        [id, item.id],
+                        (chkErr, chkRows) => {
+                          if (!chkErr && chkRows.length === 0) {
+                            db.query(
+                              'INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, 1, "hold")',
+                              [id, item.id]
+                            );
+                            db.query(
+                              'INSERT INTO inventory_transactions (inventory_id, type, quantity, reason) VALUES (?, "out", 1, ?)',
+                              [item.id, `Held for piercing [${jewSel.bodyPart}] on appointment #${id}`]
+                            );
+                            console.log(`[OK] Jewelry held: "${item.name}" for ${jewSel.bodyPart} on appointment #${id}`);
+                          } else {
+                            // Already held — restore the stock we just decremented
+                            db.query('UPDATE inventory SET current_stock = current_stock + 1 WHERE id = ?', [item.id]);
+                          }
+                        }
+                      );
+                    }
+                  }
+                );
+              }
+            }
+          );
+        });
+      }
+    }
+
     if (status === 'in_progress' && appointment.status !== 'in_progress') {
       // 1. Session Started: Load kit and HOLD inventory
       const serviceType = appointment.service_type || 'General Session';
@@ -6233,26 +6316,6 @@ app.put('/api/appointments/:id/status', (req, res) => {
           });
         }
       });
-
-      // Auto-link selected jewelry if this is a piercing appointment (Task 3.1)
-      if (appointment.selected_jewelry_id) {
-        db.query('SELECT id, name, cost, quantity FROM inventory WHERE id = ? AND is_deleted = 0', [appointment.selected_jewelry_id], (jewErr, jewResults) => {
-          if (!jewErr && jewResults.length > 0 && jewResults[0].quantity > 0) {
-            const jewItem = jewResults[0];
-            // Deduct from inventory
-            db.query('UPDATE inventory SET quantity = quantity - 1 WHERE id = ? AND quantity >= 1', [jewItem.id], (updErr, updRes) => {
-              if (!updErr && updRes.affectedRows > 0) {
-                // Record as consumed (jewelry is immediately consumed, not held)
-                db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, 1, ?)',
-                  [id, jewItem.id, 'consumed']);
-                db.query('INSERT INTO inventory_transactions (inventory_id, type, quantity, reason) VALUES (?, ?, 1, ?)',
-                  [jewItem.id, 'out', `Pre-selected jewelry for piercing session #${id}`]);
-                console.log(`[OK] Auto-linked jewelry "${jewItem.name}" to session #${id}`);
-              }
-            });
-          }
-        });
-      }
     } else if (status === 'completed' && appointment.status === 'in_progress') {
       // 2. Session Completed: Finalize tracking and log material transaction out
       db.query('SELECT sm.id, sm.inventory_id, sm.quantity, i.cost, i.name FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ? AND sm.status = \'hold\'', [id], (matErr, mats) => {

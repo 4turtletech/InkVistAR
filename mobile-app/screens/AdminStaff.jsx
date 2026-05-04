@@ -10,17 +10,17 @@ import {
   RefreshControl, Image
 } from 'react-native';
 import {
-  Search, Users, Star, Scissors, Palette, ChevronLeft, ChevronRight, X
+  Search, Users, ChevronLeft, ChevronRight, X
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
-import { typography, spacing, borderRadius, shadows } from '../src/theme';
+import { typography, borderRadius, shadows } from '../src/theme';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { StaggerItem } from '../src/components/shared/StaggerItem';
 import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
-import { formatCurrency, getInitials } from '../src/utils/formatters';
+import { formatDate, getInitials } from '../src/utils/formatters';
 import { API_BASE_URL } from '../src/utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -185,6 +185,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
   headerSub: { ...typography.bodySmall, color: theme.gold, marginTop: 2 },
+  backBtn: { padding: 4 },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, margin: 16, paddingHorizontal: 14, paddingVertical: 12, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: theme.border, gap: 10 },
   searchInput: { flex: 1, ...typography.body, color: theme.textPrimary },
   listContent: { padding: 16, paddingTop: 0, paddingBottom: 80 },

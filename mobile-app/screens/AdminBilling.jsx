@@ -10,18 +10,18 @@ import {
   RefreshControl, KeyboardAvoidingView, Platform
 } from 'react-native';
 import {
-  Search, FileText, Banknote, Plus, X, Pencil, Trash2, CheckCircle, ChevronLeft, ChevronRight, DollarSign
+  Search, FileText, Banknote, Plus, X, ChevronLeft,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
-import { typography, spacing, borderRadius, shadows } from '../src/theme';
+import { typography, borderRadius, shadows } from '../src/theme';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { StaggerItem } from '../src/components/shared/StaggerItem';
 import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { ConfirmModal } from '../src/components/shared/ConfirmModal';
-import { formatCurrency, formatDate, getDisplayCode } from '../src/utils/formatters';
+import { formatCurrency, formatDate } from '../src/utils/formatters';
 import { API_BASE_URL } from '../src/utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -258,6 +258,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
   headerSub: { ...typography.bodySmall, color: theme.gold, marginTop: 2 },
+  backBtn: { padding: 4 },
   addBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.gold, justifyContent: 'center', alignItems: 'center' },
   tabContainer: { flexDirection: 'row', backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border },
   tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 8, borderBottomWidth: 2, borderBottomColor: 'transparent' },

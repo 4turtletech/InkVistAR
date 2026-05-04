@@ -52,7 +52,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
         onlinePlatform: '', // 'Messenger' or 'Instagram'
         placementNotes: '',
         referenceImage: null,
-        phoneCode: '+63'
+        phoneCode: '+63',
+        piercingJewelry: [] // [{ bodyPart, type: 'studio'|'own', itemId, itemName, price }]
     });
 
     // Toggle a value in/out of an array field
@@ -73,6 +74,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [bookedDates, setBookedDates] = useState({});
     const [studioCapacity, setStudioCapacity] = useState(1);
+    const [jewelryItems, setJewelryItems] = useState([]); // Available jewelry from inventory
 
     const [authView, setAuthView] = useState('register'); // 'login' or 'register'
     useEffect(() => {
@@ -133,6 +135,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
     useEffect(() => {
         // Fetch global capacity availability for the entire studio
         fetchAvailability();
+        // Fetch available jewelry items for piercing selection
+        fetchJewelryItems();
         
         // Handle incoming data from Gallery/Artists
         if (location.state && location.state.designTitle) {
@@ -142,6 +146,23 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
             }));
         }
     }, [location.state]);
+
+    const fetchJewelryItems = async () => {
+        try {
+            const res = await Axios.get(`${API_URL}/api/inventory/jewelry`);
+            if (res.data.success) setJewelryItems(res.data.items || []);
+        } catch (e) {
+            console.warn('[WARN] Could not load jewelry inventory:', e.message);
+        }
+    };
+
+    // Update a piercing jewelry selection for a specific body part
+    const setPiercingJewelryForPart = (bodyPart, selection) => {
+        setFormData(prev => {
+            const existing = (prev.piercingJewelry || []).filter(j => j.bodyPart !== bodyPart);
+            return { ...prev, piercingJewelry: selection ? [...existing, { bodyPart, ...selection }] : existing };
+        });
+    };
 
     const fetchAvailability = async () => {
         try {
@@ -252,7 +273,8 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 guestEmail: !currentUser ? formData.email : null,
                 guestPhone: !currentUser ? `${formData.phoneCode || '+63'}${formData.phone}` : null,
                 waiverAcceptedAt: waiverAcceptedAt || new Date().toISOString(),
-                photoMarketingConsent: photoMarketingConsent
+                photoMarketingConsent: photoMarketingConsent,
+                piercingJewelry: (formData.piercingJewelry && formData.piercingJewelry.length > 0) ? formData.piercingJewelry : undefined
             });
 
             if (response.data.success) {
@@ -700,6 +722,116 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                 />
                 {errors.placementNotes && <small style={{color: '#ef4444', display: 'block', marginTop: '4px', fontSize: '0.82rem'}}>{errors.placementNotes}</small>}
             </div>
+
+            {/* ═══ JEWELRY SELECTION SECTION ═══ */}
+            {formData.consultationFor.includes('piercing') && (() => {
+                const piercingSelected = formData.placement.filter(p => piercingBodyParts.includes(p));
+                if (piercingSelected.length === 0) return null;
+                return (
+                    <div style={{ marginTop: '20px', padding: '20px', background: 'linear-gradient(135deg, #fdf8f0 0%, #fef9f2 100%)', border: '2px solid rgba(190,144,85,0.25)', borderRadius: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                            <Gem size={20} color="#be9055" />
+                            <p style={{ fontWeight: '800', color: '#1e293b', margin: 0, fontSize: '1rem' }}>Jewelry Selection</p>
+                            <span style={{ fontSize: '0.72rem', background: '#be9055', color: 'white', padding: '2px 8px', borderRadius: '20px', fontWeight: '700' }}>Required</span>
+                        </div>
+                        <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '16px', marginTop: '4px' }}>
+                            Please select a jewelry preference for each piercing location. Studio jewelry is sourced from our curated, hypoallergenic inventory.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            {piercingSelected.map(bodyPart => {
+                                const currentSel = (formData.piercingJewelry || []).find(j => j.bodyPart === bodyPart);
+                                const isSelected = !!currentSel;
+                                return (
+                                    <div key={bodyPart} style={{
+                                        background: 'white', borderRadius: '12px', padding: '16px',
+                                        border: `1.5px solid ${errors.piercingJewelry ? '#ef4444' : (isSelected ? '#be9055' : '#e2e8f0')}`,
+                                        boxShadow: isSelected ? '0 2px 12px rgba(190,144,85,0.12)' : 'none',
+                                        transition: 'all 0.2s'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                            <Gem size={14} color="#be9055" />
+                                            <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.88rem' }}>{bodyPart}</span>
+                                            {isSelected && (
+                                                <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#16a34a', fontWeight: '700' }}>
+                                                    <Check size={12} /> {currentSel.type === 'own' ? "Client's own" : currentSel.itemName}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Studio jewelry options */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px', marginBottom: '10px' }}>
+                                            {jewelryItems.map(item => {
+                                                const isItemSel = currentSel?.type === 'studio' && currentSel?.itemId === item.id;
+                                                return (
+                                                    <button
+                                                        key={item.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setPiercingJewelryForPart(bodyPart, { type: 'studio', itemId: item.id, itemName: item.name, price: parseFloat(item.retail_price) || parseFloat(item.cost) || 0 });
+                                                            if (errors.piercingJewelry) setErrors(prev => ({ ...prev, piercingJewelry: '' }));
+                                                        }}
+                                                        title={`Select ${item.name} — ₱${parseFloat(item.retail_price || item.cost || 0).toFixed(2)}`}
+                                                        style={{
+                                                            padding: '10px 8px', borderRadius: '10px', textAlign: 'center', cursor: 'pointer',
+                                                            border: `2px solid ${isItemSel ? '#be9055' : '#e2e8f0'}`,
+                                                            background: isItemSel ? '#be905515' : '#f8fafc',
+                                                            transition: 'all 0.18s ease', position: 'relative'
+                                                        }}
+                                                    >
+                                                        {isItemSel && <Check size={12} color="#be9055" style={{ position: 'absolute', top: '5px', right: '5px' }} />}
+                                                        {item.image ? (
+                                                            <img src={item.image} alt={item.name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '8px', marginBottom: '6px', display: 'block', margin: '0 auto 6px' }} />
+                                                        ) : (
+                                                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f0e8da', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px' }}>
+                                                                <Gem size={18} color="#be9055" />
+                                                            </div>
+                                                        )}
+                                                        <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '700', color: '#1e293b', lineHeight: 1.2 }}>{item.name}</p>
+                                                        <p style={{ margin: '3px 0 0', fontSize: '0.7rem', color: '#be9055', fontWeight: '700' }}>
+                                                            ₱{parseFloat(item.retail_price || item.cost || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        </p>
+                                                        <p style={{ margin: '2px 0 0', fontSize: '0.65rem', color: '#94a3b8' }}>{item.current_stock} in stock</p>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Divider */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '8px 0' }}>
+                                            <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                                            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: '600' }}>OR</span>
+                                            <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                                        </div>
+
+                                        {/* Bring own jewelry option */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPiercingJewelryForPart(bodyPart, { type: 'own', itemId: null, itemName: "Client's own jewelry", price: 0 });
+                                                if (errors.piercingJewelry) setErrors(prev => ({ ...prev, piercingJewelry: '' }));
+                                            }}
+                                            title="I will bring my own jewelry or have a custom preference"
+                                            style={{
+                                                width: '100%', padding: '10px 14px', borderRadius: '10px', cursor: 'pointer',
+                                                border: `2px solid ${currentSel?.type === 'own' ? '#be9055' : '#e2e8f0'}`,
+                                                background: currentSel?.type === 'own' ? '#be905510' : '#f8fafc',
+                                                color: currentSel?.type === 'own' ? '#be9055' : '#64748b',
+                                                fontWeight: '700', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px',
+                                                transition: 'all 0.18s ease'
+                                            }}
+                                        >
+                                            {currentSel?.type === 'own' && <Check size={14} />}
+                                            <Sparkles size={14} />
+                                            I will bring my own jewelry / Custom preference
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {errors.piercingJewelry && <small style={{ color: '#ef4444', display: 'block', marginTop: '10px', fontSize: '0.82rem', textAlign: 'center' }}>{errors.piercingJewelry}</small>}
+                    </div>
+                );
+            })()}
 
             {errors.placement && <small style={{color: '#ef4444', display: 'block', marginTop: '10px', fontSize: '0.85rem', textAlign: 'center'}}>{errors.placement}</small>}
         </div>
@@ -1348,6 +1480,16 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                             else if (step === 2 && formData.consultationMethod === 'Online' && !formData.onlinePlatform) newErrors.placement = 'Please select your preferred messaging platform (Messenger or Instagram)';
                             else if (step === 2 && formData.placement.length === 0) newErrors.placement = 'Please select at least one placement area';
                             else if (step === 2 && formData.placement.includes('Other') && !formData.placementNotes.trim()) newErrors.placementNotes = 'Please describe the specific location since you selected "Other"';
+                            else if (step === 2 && formData.consultationFor.includes('piercing')) {
+                                // Validate jewelry selection: every piercing body part needs a selection
+                                const piercingParts = formData.placement.filter(p => piercingBodyParts.includes(p));
+                                const missingJewelry = piercingParts.filter(part =>
+                                    !(formData.piercingJewelry || []).some(j => j.bodyPart === part)
+                                );
+                                if (missingJewelry.length > 0) {
+                                    newErrors.piercingJewelry = `Please select a jewelry option for: ${missingJewelry.join(', ')}`;
+                                }
+                            }
                             if (step === 3 && (!formData.date || !formData.time)) newErrors.date = 'Please select a preferred date and time';
                             
                             if (Object.keys(newErrors).length > 0) {

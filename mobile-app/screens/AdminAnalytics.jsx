@@ -6,13 +6,13 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, RefreshControl, SafeAreaView,
+  View, Text, StyleSheet, ScrollView, Dimensions, RefreshControl, SafeAreaView,
 } from 'react-native';
-import { ArrowLeft, BarChart3, TrendingUp, Users, Calendar, Package, DollarSign } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Package, DollarSign } from 'lucide-react-native';
 import { BarChart, PieChart } from 'react-native-chart-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
-import { typography, spacing, borderRadius, shadows } from '../src/theme';
+import { typography, borderRadius, shadows } from '../src/theme';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { StaggerItem } from '../src/components/shared/StaggerItem';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
@@ -153,7 +153,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16,
+    paddingHorizontal: 16, paddingTop: (insets?.top || 0) + 12, paddingBottom: 16,
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   backBtn: { padding: 4 },

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle, Printer, ShieldCheck, RefreshCw, AlertTriangle, ClipboardList, Syringe, Wrench, Layers, Tag } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle, Printer, ShieldCheck, RefreshCw, AlertTriangle, ClipboardList, Syringe, Wrench, Layers, Tag, Gem } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -310,7 +310,8 @@ function AdminAppointments() {
                         discountAmount: parseFloat(apt.discount_amount) || 0,
                         discountType: apt.discount_type || null,
                         selectedJewelryId: apt.selected_jewelry_id || null,
-                        selectedJewelryName: apt.selected_jewelry_name || null
+                        selectedJewelryName: apt.selected_jewelry_name || null,
+                        piercingJewelry: apt.piercing_jewelry || null
                     };
                 });
                 setAppointments(mappedAppointments);
@@ -2299,8 +2300,52 @@ function AdminAppointments() {
                                             </div>
                                         </div>
 
+                                        {/* --- PIERCING JEWELRY SELECTIONS (read-only info panel) --- */}
+                                        {(() => {
+                                            let jewels = [];
+                                            try {
+                                                const raw = selectedAppointment?.piercingJewelry || selectedAppointment?.piercing_jewelry;
+                                                if (raw) jewels = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                                            } catch (e) { /* ignore */ }
+                                            if (!Array.isArray(jewels) || jewels.length === 0) return null;
+                                            return (
+                                                <div style={{ gridColumn: '1 / -1', marginTop: '4px', padding: '18px 20px', background: 'linear-gradient(135deg, rgba(190,144,85,0.06) 0%, rgba(190,144,85,0.02) 100%)', border: '1.5px solid rgba(190,144,85,0.25)', borderRadius: '14px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                                                        <Gem size={18} color="#be9055" />
+                                                        <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.9rem' }}>Piercing Jewelry Selections</span>
+                                                        <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '20px', background: 'rgba(190,144,85,0.15)', color: '#be9055', fontWeight: '700' }}>
+                                                            {jewels.filter(j => j.type === 'studio').length > 0
+                                                                ? `${jewels.filter(j => j.type === 'studio').length} studio item(s) — auto-held on confirm`
+                                                                : 'Client brings own jewelry'}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                                                        {jewels.map((j, idx) => (
+                                                            <div key={idx} style={{ background: 'white', borderRadius: '10px', padding: '12px 14px', border: `1.5px solid ${j.type === 'studio' ? 'rgba(190,144,85,0.3)' : '#e2e8f0'}`, display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '160px' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                                                    <Gem size={12} color="#be9055" />
+                                                                    <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#1e293b' }}>{j.bodyPart}</span>
+                                                                </div>
+                                                                {j.type === 'studio' ? (
+                                                                    <>
+                                                                        <span style={{ fontSize: '0.82rem', color: '#334155', fontWeight: '600' }}>{j.itemName}</span>
+                                                                        <span style={{ fontSize: '0.78rem', color: '#be9055', fontWeight: '700' }}>₱{parseFloat(j.price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                                                                        <span style={{ fontSize: '0.68rem', fontWeight: '700', marginTop: '2px', padding: '2px 6px', borderRadius: '6px', alignSelf: 'flex-start', background: ['confirmed','in_progress','completed'].includes(selectedAppointment?.status) ? '#f0fdf4' : '#fef9f2', color: ['confirmed','in_progress','completed'].includes(selectedAppointment?.status) ? '#166534' : '#92400e' }}>
+                                                                            {['confirmed','in_progress','completed'].includes(selectedAppointment?.status) ? 'Stock Held' : 'Pending Hold'}
+                                                                        </span>
+                                                                    </>
+                                                                ) : (
+                                                                    <span style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic' }}>Client will bring own jewelry</span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 )}
+
                                 {modalTab === 'pricing' && (
                                     /* Pricing Tab View */
                                     <div className="fade-in admin-st-9628d1ce">
