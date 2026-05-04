@@ -687,6 +687,23 @@ db.getConnection((err, connection) => {
       }
     });
 
+    // Create Slot Locks Table (used as a database-level mutex for concurrent booking requests)
+    db.query(`
+      CREATE TABLE IF NOT EXISTS slot_locks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        appointment_date DATE NOT NULL,
+        start_time TIME NOT NULL,
+        slot_index INT NOT NULL DEFAULT 0,
+        appointment_id INT NULL,
+        locked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_slot (appointment_date, start_time, slot_index),
+        INDEX idx_slot_date (appointment_date, start_time)
+      )
+    `, (err) => {
+      if (err) console.error('[WARN] Error creating slot_locks table:', err.message);
+      else console.log('[OK] Slot locks table ready');
+    });
+
     // Create Appointments Table
     const appointmentsTableQuery = `
       CREATE TABLE IF NOT EXISTS appointments (
@@ -4618,6 +4635,115 @@ app.post('/api/admin/appointments', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Server is busy. Please try again in a moment.' });
       }
 
+      // ─── doInsert: performs the actual appointment INSERT inside the open transaction ───
+      // acquiredLockId: the slot_locks row id to link back to (null for admin bookings)
+      const doInsert = (conn, acquiredLockId) => {
+        // Sanitize piercingJewelry: must be an array of valid objects
+        let sanitizedJewelry = null;
+        if (piercingJewelry && Array.isArray(piercingJewelry) && piercingJewelry.length > 0) {
+          sanitizedJewelry = JSON.stringify(piercingJewelry.map(j => ({
+            bodyPart: String(j.bodyPart || '').substring(0, 100),
+            type: j.type === 'own' ? 'own' : 'studio',
+            itemId: j.itemId ? parseInt(j.itemId) : null,
+            itemName: String(j.itemName || '').substring(0, 255),
+            price: parseFloat(j.price) || 0
+          })));
+        }
+
+        const query = `
+          INSERT INTO appointments 
+            (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at, piercing_jewelry)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
+        `;
+        conn.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, waiverAcceptedAt || null, sanitizedJewelry || null], (err, result) => {
+          if (err) {
+            // Graceful fallback if waiver_accepted_at column doesn't exist yet
+            if (err.code === 'ER_BAD_FIELD_ERROR' && err.message.includes('waiver_accepted_at')) {
+              console.warn('[WARN] waiver_accepted_at column not found, retrying INSERT without it...');
+              const fallbackQuery = `
+                INSERT INTO appointments 
+                  (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, piercing_jewelry)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?)
+              `;
+              return conn.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null], (fbErr, fbResult) => {
+                if (fbErr) {
+                  console.error('[ERROR] Fallback INSERT also failed:', fbErr);
+                  return conn.rollback(() => { conn.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
+                }
+                const fbBookingCode = generateBookingCode('O', serviceType, fbResult.insertId);
+                db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [fbBookingCode, fbResult.insertId]);
+                if (acquiredLockId) db.query('UPDATE slot_locks SET appointment_id = ? WHERE id = ?', [fbResult.insertId, acquiredLockId]);
+                _fireNotificationsAndCommit(conn, fbResult.insertId, fbBookingCode);
+              });
+            }
+            return conn.rollback(() => { conn.release(); res.status(500).json({ success: false, message: 'Database error: ' + err.message }); });
+          }
+
+          const bookingCode = generateBookingCode('O', serviceType, result.insertId);
+          db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [bookingCode, result.insertId]);
+          if (acquiredLockId) db.query('UPDATE slot_locks SET appointment_id = ? WHERE id = ?', [result.insertId, acquiredLockId]);
+          _fireNotificationsAndCommit(conn, result.insertId, bookingCode);
+        });
+      };
+
+      // ─── _fireNotificationsAndCommit: sends all post-booking notifications then commits ───
+      const _fireNotificationsAndCommit = (conn, appointmentId, bookingCode) => {
+        const clientNameStr = customerName || 'a guest';
+        const waiverNote = waiverAcceptedAt ? ' [WAIVER_SIGNED] Service waiver signed.' : '';
+        createNotification(customerId, 'Booking Request Received', `We have received your booking request [${bookingCode}] for ${date} and will calculate a quote for you shortly.${waiverNote}`, 'appointment_request', appointmentId);
+
+        const guestContactStr = [guestEmail, guestPhone].filter(Boolean).join(' | ') || 'No contact info';
+        db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (aErr, admins) => {
+          if (!aErr && admins && admins.length > 0) {
+            admins.forEach(a => {
+              const waiverStatus = waiverAcceptedAt ? ' [WAIVER_SIGNED]' : ' [NO_WAIVER]';
+              createNotification(a.id, 'Guest Consultation Request', `New ${serviceType || 'Consultation'} from ${clientNameStr}. Idea: "${designTitle}". Contact: ${guestContactStr}. Ref: [${bookingCode}].${waiverStatus} Pending review.`, 'appointment_request', appointmentId);
+            });
+          }
+        });
+
+        const apptDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const apptTime = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD';
+        const displayDesign = designTitle || 'Consultation';
+        const displayMethod = consultationMethod || 'Face-to-Face';
+
+        if (guestPhone) sendSMS(guestPhone, `InkVistAR: Hi ${clientNameStr}! Your consultation request [${bookingCode}] for "${displayDesign}" on ${apptDate} at ${apptTime} has been received. We'll review and contact you within 24 hours. Thank you!`);
+
+        const commitAndRespond = (emailAddr, htmlBody) => {
+          if (emailAddr && htmlBody) sendResendEmail(emailAddr, `InkVistAR: Consultation Request [${bookingCode}] Received`, htmlBody);
+          conn.commit((commitErr) => {
+            conn.release();
+            if (commitErr) console.error('[WARN] Commit error:', commitErr);
+            res.json({ success: true, message: 'Appointment created successfully', id: appointmentId, bookingCode });
+          });
+        };
+
+        const buildConfirmHtml = (name) => buildEmailHtml(`
+          <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
+          <p style="margin:0 0 16px;">Hello ${name},</p>
+          <p style="margin:0 0 16px;">Thank you for reaching out to InkVistAR Studio! We have received your consultation request and our team is reviewing the details.</p>
+          <div style="background-color:#faf8f5;border:1px solid #e2ddd5;border-radius:12px;padding:24px;margin-bottom:16px;">
+            <p style="margin:0 0 10px;font-size:14px;"><strong style="color:#334155;">Ref Code:</strong> <span style="color:#C19A6B;font-family:monospace;font-weight:700;">${bookingCode}</span></p>
+            <p style="margin:0 0 10px;font-size:14px;"><strong style="color:#334155;">Design Idea:</strong> ${displayDesign}</p>
+            <p style="margin:0 0 10px;font-size:14px;"><strong style="color:#334155;">Date:</strong> ${apptDate}</p>
+            <p style="margin:0 0 10px;font-size:14px;"><strong style="color:#334155;">Time:</strong> ${apptTime}</p>
+            <p style="margin:0;font-size:14px;"><strong style="color:#334155;">Method:</strong> ${displayMethod}</p>
+          </div>
+          <p style="margin:0 0 16px;line-height:1.6;">Our staff will reach out within <strong style="color:#C19A6B;">24 hours</strong> to confirm and discuss pricing.</p>
+          <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">— The InkVistAR Studio Team</p>
+        `);
+
+        if (guestEmail) {
+          commitAndRespond(guestEmail, buildConfirmHtml(clientNameStr));
+        } else {
+          db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (cErr, cRows) => {
+            const emailAddr = (!cErr && cRows && cRows.length > 0) ? cRows[0].email : null;
+            const custName = (!cErr && cRows && cRows.length > 0) ? (cRows[0].name || 'Valued Client') : clientNameStr;
+            commitAndRespond(emailAddr, emailAddr ? buildConfirmHtml(custName) : null);
+          });
+        }
+      };
+
       connection.beginTransaction((txErr) => {
         if (txErr) {
           connection.release();
@@ -4630,16 +4756,20 @@ app.post('/api/admin/appointments', async (req, res) => {
         let checkQuery, checkParams;
 
         if (isFromWizard) {
-          // Studio-wide capacity check: count ALL bookings at this date+time
+          // Studio-wide capacity check + per-customer self-conflict in one atomic query
+          const resolvedCustomerId = customerId;
           checkQuery = `
             SELECT 
               COUNT(*) as slot_count,
-              (SELECT COUNT(id) FROM users WHERE user_type = 'artist' AND is_deleted = 0) as artist_count
+              (SELECT COUNT(id) FROM users WHERE user_type = 'artist' AND is_deleted = 0) as artist_count,
+              (SELECT COUNT(id) FROM appointments 
+               WHERE customer_id = ? AND appointment_date = ? AND start_time = ?
+               AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0) as self_conflict
             FROM appointments
             WHERE appointment_date = ? AND start_time = ? AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0
             FOR UPDATE
           `;
-          checkParams = [date, startTime];
+          checkParams = [resolvedCustomerId, date, startTime, date, startTime];
         } else {
           // Admin booking: check specific artist or customer collision
           checkQuery = `
@@ -4664,19 +4794,117 @@ app.post('/api/admin/appointments', async (req, res) => {
           let hasConflict = false;
           let conflictMessage = '';
 
-          if (isFromWizard) {
-            const slotCount = checkResults[0]?.slot_count || 0;
-            const artistCount = Math.max(1, checkResults[0]?.artist_count || 1);
-            if (slotCount >= artistCount) {
-              hasConflict = true;
-              conflictMessage = 'SLOT_TAKEN: This time slot was just booked by another client. Please select a different time.';
+        if (isFromWizard) {
+          // ═══ SLOT LOCK ACQUISITION (atomic mutex via UNIQUE KEY on slot_locks table) ═══
+          // Step 1: Count how many artists are available (= max concurrent bookings per slot)
+          db.query(
+            `SELECT COUNT(id) as artist_count FROM users WHERE user_type = 'artist' AND is_deleted = 0`,
+            (acErr, acRows) => {
+              if (acErr) {
+                return connection.rollback(() => {
+                  connection.release();
+                  return res.status(500).json({ success: false, message: 'Database error checking capacity.' });
+                });
+              }
+
+              const artistCount = Math.max(1, acRows[0]?.artist_count || 1);
+
+              // Step 2: Per-customer self-conflict check for registered users
+              // Guests all share the same admin placeholder customer_id — skip for them
+              const isRegisteredCustomer = customerId && !isNaN(parseInt(customerId)) && parseInt(customerId) !== parseInt(artistId);
+
+              // Step 3: Check how many slot_lock rows already exist at this date+time
+              // Then attempt to INSERT a new lock at the next available slot_index
+              db.query(
+                `SELECT COUNT(*) as locked_count FROM slot_locks WHERE appointment_date = ? AND start_time = ?`,
+                [date, startTime],
+                (lcErr, lcRows) => {
+                  if (lcErr) {
+                    return connection.rollback(() => {
+                      connection.release();
+                      return res.status(500).json({ success: false, message: 'Database error reading slot locks.' });
+                    });
+                  }
+
+                  const lockedCount = lcRows[0]?.locked_count || 0;
+
+                  if (lockedCount >= artistCount) {
+                    // All slots are already locked — full capacity
+                    return connection.rollback(() => {
+                      connection.release();
+                      return res.status(409).json({ success: false, message: 'SLOT_TAKEN: This time slot was just booked by another client. Please select a different time.', code: 'SLOT_TAKEN' });
+                    });
+                  }
+
+                  // Step 4: Check per-customer self-conflict (registered only)
+                  const selfCheckQuery = isRegisteredCustomer
+                    ? `SELECT id FROM appointments WHERE customer_id = ? AND appointment_date = ? AND start_time = ? AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0 LIMIT 1`
+                    : null;
+
+                  const doSelfCheck = (callback) => {
+                    if (!selfCheckQuery) return callback(null, false);
+                    db.query(selfCheckQuery, [customerId, date, startTime], (scErr, scRows) => {
+                      if (scErr) return callback(scErr);
+                      callback(null, scRows.length > 0);
+                    });
+                  };
+
+                  doSelfCheck((scErr, hasSelfConflict) => {
+                    if (scErr) {
+                      return connection.rollback(() => {
+                        connection.release();
+                        return res.status(500).json({ success: false, message: 'Database error during self-conflict check.' });
+                      });
+                    }
+
+                    if (hasSelfConflict) {
+                      return connection.rollback(() => {
+                        connection.release();
+                        return res.status(409).json({ success: false, message: 'You already have a booking at this date and time. Please choose a different slot.', code: 'SLOT_TAKEN' });
+                      });
+                    }
+
+                    // Step 5: Attempt to atomically acquire the next available slot lock
+                    // INSERT IGNORE + UNIQUE KEY on (date, time, slot_index) ensures only one winner per slot
+                    const nextSlotIndex = lockedCount; // 0-indexed: if 1 lock exists, try slot_index 1
+                    connection.query(
+                      `INSERT IGNORE INTO slot_locks (appointment_date, start_time, slot_index) VALUES (?, ?, ?)`,
+                      [date, startTime, nextSlotIndex],
+                      (lockErr, lockResult) => {
+                        if (lockErr) {
+                          return connection.rollback(() => {
+                            connection.release();
+                            return res.status(500).json({ success: false, message: 'Database error acquiring slot lock.' });
+                          });
+                        }
+
+                        if (lockResult.affectedRows === 0) {
+                          // INSERT IGNORE silently failed — another request just grabbed this slot_index
+                          return connection.rollback(() => {
+                            connection.release();
+                            return res.status(409).json({ success: false, message: 'SLOT_TAKEN: This time slot was just booked by another client. Please select a different time.', code: 'SLOT_TAKEN' });
+                          });
+                        }
+
+                        // Lock acquired — record the slot_lock_id to link to the appointment after INSERT
+                        const acquiredLockId = lockResult.insertId;
+
+                        // Proceed with the appointment INSERT
+                        doInsert(connection, acquiredLockId);
+                      }
+                    );
+                  });
+                }
+              );
             }
-          } else {
-            if (checkResults.length > 0) {
-              hasConflict = true;
-              conflictMessage = 'Scheduling Conflict: The artist or client already has an appointment at this date and time.';
-            }
+          );
+          return; // doInsert() will call res.json() asynchronously
+        } else {
+          if (checkResults.length > 0) {
+            hasConflict = true;
+            conflictMessage = 'Scheduling Conflict: The artist or client already has an appointment at this date and time.';
           }
+        }
 
           if (hasConflict) {
             return connection.rollback(() => {
