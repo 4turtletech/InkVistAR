@@ -8,9 +8,9 @@ import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, Alert, Modal, KeyboardAvoidingView, Platform, SafeAreaView,
-  RefreshControl,
+  RefreshControl, ScrollView,
 } from 'react-native';
-import { Search, Plus, Pencil, Trash2, X, UserPlus, Shield, ChevronDown, ChevronLeft } from 'lucide-react-native';
+import { Search, Plus, Pencil, Trash2, X, UserPlus, Shield, ChevronDown, ChevronLeft, Users } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
 import { typography, spacing, borderRadius, shadows } from '../src/theme';
@@ -205,35 +205,35 @@ export const AdminUserManagement = ({ navigation }) => {
 
         {/* Search */}
         <View style={styles.searchBar}>
-        <Search size={18} color={theme.textTertiary} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search users..."
-          placeholderTextColor={theme.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
+          <Search size={18} color={theme.textTertiary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search users..."
+            placeholderTextColor={theme.textTertiary}
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
 
-      {/* Role Filters */}
-      <View style={styles.filterRow}>
-        {['all', 'customer', 'artist', 'admin', 'manager'].map(role => (
-          <AnimatedTouchable
-            key={role}
-            style={[styles.filterPill, roleFilter === role && styles.filterPillActive]}
-            onPress={() => setRoleFilter(role)}
-          >
-            <Text style={[styles.filterText, roleFilter === role && styles.filterTextActive]}>
-              {role.charAt(0).toUpperCase() + role.slice(1)}
-            </Text>
-          </AnimatedTouchable>
-        ))}
-      </View>
+        {/* Role Filters */}
+        <View style={styles.filterRow}>
+          {['all', 'customer', 'artist', 'admin', 'manager'].map(role => (
+            <AnimatedTouchable
+              key={role}
+              style={[styles.filterPill, roleFilter === role && styles.filterPillActive]}
+              onPress={() => setRoleFilter(role)}
+            >
+              <Text style={[styles.filterText, roleFilter === role && styles.filterTextActive]}>
+                {role.charAt(0).toUpperCase() + role.slice(1)}
+              </Text>
+            </AnimatedTouchable>
+          ))}
+        </View>
 
-      {/* User Count */}
-      <Text style={styles.countText}>{filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}</Text>
+        {/* User Count */}
+        <Text style={styles.countText}>{filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}</Text>
 
-      {/* List */}
+        {/* List */}
         {loading ? (
           <PremiumLoader message="Loading users..." />
         ) : (
