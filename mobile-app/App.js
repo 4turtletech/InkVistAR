@@ -30,6 +30,7 @@ import { CustomerTransactions } from './screens/CustomerTransactions.jsx';
 import { CustomerReview } from './screens/CustomerReview.jsx';
 import { CustomerReports } from './screens/CustomerReports.jsx';
 import { CustomerNotifications } from './screens/CustomerNotifications.jsx';
+import { CustomerAftercare } from './screens/CustomerAftercare.jsx';
 
 // Artist Screens
 import { ArtistDashboard } from './screens/ArtistDashboard.jsx';
@@ -420,6 +421,7 @@ function AppContent() {
                 <Stack.Screen name="customer-transactions" component={CustomerTransactions} />
                 <Stack.Screen name="customer-review" component={CustomerReview} />
                 <Stack.Screen name="CustomerReports" component={CustomerReports} />
+                <Stack.Screen name="CustomerAftercare" component={CustomerAftercare} />
               </>
             )
           ) : showOTP ? (

@@ -1574,7 +1574,7 @@ function sendReceiptEmail(customerEmail, invoiceData) {
   const amount = parseFloat(invoiceData.amount || 0);
   const changeGiven = parseFloat(invoiceData.changeGiven || 0);
   const remaining = parseFloat(invoiceData.remaining || 0);
-  
+
   const contentHtml = `
     <h2 style="margin:0 0 6px;font-size:22px;color:#C19A6B;font-weight:700;">Payment Receipt</h2>
     <p style="margin:0 0 24px;color:#94a3b8;font-size:13px;">Invoice ${invoiceData.id}</p>
@@ -2097,7 +2097,7 @@ app.post('/api/login', async (req, res) => {
           const lockoutUntilStr = new Date(Date.now() + cooldownMin * 60000).toISOString().slice(0, 19).replace('T', ' ');
           updateQuery += ', lockout_until = ?';
           queryParams.push(lockoutUntilStr);
-          
+
           lockoutResponse = {
             success: false,
             message: `Account temporarily locked due to too many failed attempts. Try again in ${cooldownMin} minute(s).`,
@@ -2108,13 +2108,13 @@ app.post('/api/login', async (req, res) => {
 
         updateQuery += ' WHERE id = ?';
         queryParams.push(user.id);
-        
+
         db.query(updateQuery, queryParams, (updateErr) => {
           if (updateErr) console.error('Error updating failed login attempts:', updateErr);
         });
 
         if (lockoutResponse) {
-            return res.status(403).json(lockoutResponse);
+          return res.status(403).json(lockoutResponse);
         }
 
         return res.status(401).json({
@@ -4318,7 +4318,6 @@ app.get('/api/gallery/works', (req, res) => {
     JOIN users u ON pw.artist_id = u.id
     LEFT JOIN artists a ON u.id = a.user_id
     WHERE pw.is_public = 1 AND (pw.is_deleted = 0 OR pw.is_deleted IS NULL)
-    AND pw.price_estimate IS NOT NULL AND pw.price_estimate > 0
   `;
   const params = [];
 
@@ -4797,117 +4796,117 @@ app.post('/api/admin/appointments', async (req, res) => {
           let hasConflict = false;
           let conflictMessage = '';
 
-        if (isFromWizard) {
-          // ═══ SLOT LOCK ACQUISITION (atomic mutex via UNIQUE KEY on slot_locks table) ═══
-          // Step 1: Count how many artists are available (= max concurrent bookings per slot)
-          db.query(
-            `SELECT COUNT(id) as artist_count FROM users WHERE user_type = 'artist' AND is_deleted = 0`,
-            (acErr, acRows) => {
-              if (acErr) {
-                return connection.rollback(() => {
-                  connection.release();
-                  return res.status(500).json({ success: false, message: 'Database error checking capacity.' });
-                });
-              }
-
-              const artistCount = Math.max(1, acRows[0]?.artist_count || 1);
-
-              // Step 2: Per-customer self-conflict check for registered users
-              // Guests all share the same admin placeholder customer_id — skip for them
-              const isRegisteredCustomer = customerId && !isNaN(parseInt(customerId)) && parseInt(customerId) !== parseInt(artistId);
-
-              // Step 3: Check how many slot_lock rows already exist at this date+time
-              // Then attempt to INSERT a new lock at the next available slot_index
-              db.query(
-                `SELECT COUNT(*) as locked_count FROM slot_locks WHERE appointment_date = ? AND start_time = ?`,
-                [date, startTime],
-                (lcErr, lcRows) => {
-                  if (lcErr) {
-                    return connection.rollback(() => {
-                      connection.release();
-                      return res.status(500).json({ success: false, message: 'Database error reading slot locks.' });
-                    });
-                  }
-
-                  const lockedCount = lcRows[0]?.locked_count || 0;
-
-                  if (lockedCount >= artistCount) {
-                    // All slots are already locked — full capacity
-                    return connection.rollback(() => {
-                      connection.release();
-                      return res.status(409).json({ success: false, message: 'SLOT_TAKEN: This time slot was just booked by another client. Please select a different time.', code: 'SLOT_TAKEN' });
-                    });
-                  }
-
-                  // Step 4: Check per-customer self-conflict (registered only)
-                  const selfCheckQuery = isRegisteredCustomer
-                    ? `SELECT id FROM appointments WHERE customer_id = ? AND appointment_date = ? AND start_time = ? AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0 LIMIT 1`
-                    : null;
-
-                  const doSelfCheck = (callback) => {
-                    if (!selfCheckQuery) return callback(null, false);
-                    db.query(selfCheckQuery, [customerId, date, startTime], (scErr, scRows) => {
-                      if (scErr) return callback(scErr);
-                      callback(null, scRows.length > 0);
-                    });
-                  };
-
-                  doSelfCheck((scErr, hasSelfConflict) => {
-                    if (scErr) {
-                      return connection.rollback(() => {
-                        connection.release();
-                        return res.status(500).json({ success: false, message: 'Database error during self-conflict check.' });
-                      });
-                    }
-
-                    if (hasSelfConflict) {
-                      return connection.rollback(() => {
-                        connection.release();
-                        return res.status(409).json({ success: false, message: 'You already have a booking at this date and time. Please choose a different slot.', code: 'SLOT_TAKEN' });
-                      });
-                    }
-
-                    // Step 5: Attempt to atomically acquire the next available slot lock
-                    // INSERT IGNORE + UNIQUE KEY on (date, time, slot_index) ensures only one winner per slot
-                    const nextSlotIndex = lockedCount; // 0-indexed: if 1 lock exists, try slot_index 1
-                    connection.query(
-                      `INSERT IGNORE INTO slot_locks (appointment_date, start_time, slot_index) VALUES (?, ?, ?)`,
-                      [date, startTime, nextSlotIndex],
-                      (lockErr, lockResult) => {
-                        if (lockErr) {
-                          return connection.rollback(() => {
-                            connection.release();
-                            return res.status(500).json({ success: false, message: 'Database error acquiring slot lock.' });
-                          });
-                        }
-
-                        if (lockResult.affectedRows === 0) {
-                          // INSERT IGNORE silently failed — another request just grabbed this slot_index
-                          return connection.rollback(() => {
-                            connection.release();
-                            return res.status(409).json({ success: false, message: 'SLOT_TAKEN: This time slot was just booked by another client. Please select a different time.', code: 'SLOT_TAKEN' });
-                          });
-                        }
-
-                        // Lock acquired — record the slot_lock_id to link to the appointment after INSERT
-                        const acquiredLockId = lockResult.insertId;
-
-                        // Proceed with the appointment INSERT
-                        doInsert(connection, acquiredLockId);
-                      }
-                    );
+          if (isFromWizard) {
+            // ═══ SLOT LOCK ACQUISITION (atomic mutex via UNIQUE KEY on slot_locks table) ═══
+            // Step 1: Count how many artists are available (= max concurrent bookings per slot)
+            db.query(
+              `SELECT COUNT(id) as artist_count FROM users WHERE user_type = 'artist' AND is_deleted = 0`,
+              (acErr, acRows) => {
+                if (acErr) {
+                  return connection.rollback(() => {
+                    connection.release();
+                    return res.status(500).json({ success: false, message: 'Database error checking capacity.' });
                   });
                 }
-              );
+
+                const artistCount = Math.max(1, acRows[0]?.artist_count || 1);
+
+                // Step 2: Per-customer self-conflict check for registered users
+                // Guests all share the same admin placeholder customer_id — skip for them
+                const isRegisteredCustomer = customerId && !isNaN(parseInt(customerId)) && parseInt(customerId) !== parseInt(artistId);
+
+                // Step 3: Check how many slot_lock rows already exist at this date+time
+                // Then attempt to INSERT a new lock at the next available slot_index
+                db.query(
+                  `SELECT COUNT(*) as locked_count FROM slot_locks WHERE appointment_date = ? AND start_time = ?`,
+                  [date, startTime],
+                  (lcErr, lcRows) => {
+                    if (lcErr) {
+                      return connection.rollback(() => {
+                        connection.release();
+                        return res.status(500).json({ success: false, message: 'Database error reading slot locks.' });
+                      });
+                    }
+
+                    const lockedCount = lcRows[0]?.locked_count || 0;
+
+                    if (lockedCount >= artistCount) {
+                      // All slots are already locked — full capacity
+                      return connection.rollback(() => {
+                        connection.release();
+                        return res.status(409).json({ success: false, message: 'SLOT_TAKEN: This time slot was just booked by another client. Please select a different time.', code: 'SLOT_TAKEN' });
+                      });
+                    }
+
+                    // Step 4: Check per-customer self-conflict (registered only)
+                    const selfCheckQuery = isRegisteredCustomer
+                      ? `SELECT id FROM appointments WHERE customer_id = ? AND appointment_date = ? AND start_time = ? AND status NOT IN ('cancelled', 'rejected') AND is_deleted = 0 LIMIT 1`
+                      : null;
+
+                    const doSelfCheck = (callback) => {
+                      if (!selfCheckQuery) return callback(null, false);
+                      db.query(selfCheckQuery, [customerId, date, startTime], (scErr, scRows) => {
+                        if (scErr) return callback(scErr);
+                        callback(null, scRows.length > 0);
+                      });
+                    };
+
+                    doSelfCheck((scErr, hasSelfConflict) => {
+                      if (scErr) {
+                        return connection.rollback(() => {
+                          connection.release();
+                          return res.status(500).json({ success: false, message: 'Database error during self-conflict check.' });
+                        });
+                      }
+
+                      if (hasSelfConflict) {
+                        return connection.rollback(() => {
+                          connection.release();
+                          return res.status(409).json({ success: false, message: 'You already have a booking at this date and time. Please choose a different slot.', code: 'SLOT_TAKEN' });
+                        });
+                      }
+
+                      // Step 5: Attempt to atomically acquire the next available slot lock
+                      // INSERT IGNORE + UNIQUE KEY on (date, time, slot_index) ensures only one winner per slot
+                      const nextSlotIndex = lockedCount; // 0-indexed: if 1 lock exists, try slot_index 1
+                      connection.query(
+                        `INSERT IGNORE INTO slot_locks (appointment_date, start_time, slot_index) VALUES (?, ?, ?)`,
+                        [date, startTime, nextSlotIndex],
+                        (lockErr, lockResult) => {
+                          if (lockErr) {
+                            return connection.rollback(() => {
+                              connection.release();
+                              return res.status(500).json({ success: false, message: 'Database error acquiring slot lock.' });
+                            });
+                          }
+
+                          if (lockResult.affectedRows === 0) {
+                            // INSERT IGNORE silently failed — another request just grabbed this slot_index
+                            return connection.rollback(() => {
+                              connection.release();
+                              return res.status(409).json({ success: false, message: 'SLOT_TAKEN: This time slot was just booked by another client. Please select a different time.', code: 'SLOT_TAKEN' });
+                            });
+                          }
+
+                          // Lock acquired — record the slot_lock_id to link to the appointment after INSERT
+                          const acquiredLockId = lockResult.insertId;
+
+                          // Proceed with the appointment INSERT
+                          doInsert(connection, acquiredLockId);
+                        }
+                      );
+                    });
+                  }
+                );
+              }
+            );
+            return; // doInsert() will call res.json() asynchronously
+          } else {
+            if (checkResults.length > 0) {
+              hasConflict = true;
+              conflictMessage = 'Scheduling Conflict: The artist or client already has an appointment at this date and time.';
             }
-          );
-          return; // doInsert() will call res.json() asynchronously
-        } else {
-          if (checkResults.length > 0) {
-            hasConflict = true;
-            conflictMessage = 'Scheduling Conflict: The artist or client already has an appointment at this date and time.';
           }
-        }
 
           if (hasConflict) {
             return connection.rollback(() => {
@@ -4935,50 +4934,50 @@ app.post('/api/admin/appointments', async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
           `;
           connection.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, waiverAcceptedAt || null, sanitizedJewelry || null], (err, result) => {
-        if (err) {
-          // Graceful fallback if waiver_accepted_at column doesn't exist yet
-          if (err.code === 'ER_BAD_FIELD_ERROR' && err.message.includes('waiver_accepted_at')) {
-            console.warn('[WARN] waiver_accepted_at column not found, retrying INSERT without it...');
-            const fallbackQuery = `
+            if (err) {
+              // Graceful fallback if waiver_accepted_at column doesn't exist yet
+              if (err.code === 'ER_BAD_FIELD_ERROR' && err.message.includes('waiver_accepted_at')) {
+                console.warn('[WARN] waiver_accepted_at column not found, retrying INSERT without it...');
+                const fallbackQuery = `
               INSERT INTO appointments 
                 (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, piercing_jewelry)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?)
             `;
-            return connection.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null], (fbErr, fbResult) => {
-              if (fbErr) {
-                console.error('[ERROR] Fallback INSERT also failed:', fbErr);
-                return connection.rollback(() => { connection.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
-              }
-              const fbBookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType, fbResult.insertId);
-              db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [fbBookingCode, fbResult.insertId]);
-              if (isFromWizard) {
-                const fbClientName = customerName || 'a guest';
-                createNotification(customerId, 'Booking Request Received', `We have received your booking request [${fbBookingCode}] for ${date} and will calculate a quote for you shortly.`, 'appointment_request', fbResult.insertId);
-
-                // Notify ALL Admins/Managers
-                const fbGuestContact = [guestEmail, guestPhone].filter(Boolean).join(' | ') || 'No contact info';
-                db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (aErr, admins) => {
-                  if (!aErr && admins && admins.length > 0) {
-                    admins.forEach(admin => {
-                      createNotification(admin.id, 'Guest Consultation Request', `New ${serviceType || 'Consultation'} from ${fbClientName} (Guest). Idea: "${designTitle}". Contact: ${fbGuestContact}. Ref: [${fbBookingCode}]. Pending review.`, 'appointment_request', fbResult.insertId);
-                    });
+                return connection.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null], (fbErr, fbResult) => {
+                  if (fbErr) {
+                    console.error('[ERROR] Fallback INSERT also failed:', fbErr);
+                    return connection.rollback(() => { connection.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
                   }
-                });
+                  const fbBookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType, fbResult.insertId);
+                  db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [fbBookingCode, fbResult.insertId]);
+                  if (isFromWizard) {
+                    const fbClientName = customerName || 'a guest';
+                    createNotification(customerId, 'Booking Request Received', `We have received your booking request [${fbBookingCode}] for ${date} and will calculate a quote for you shortly.`, 'appointment_request', fbResult.insertId);
 
-                // Guest Email + SMS (mirrors primary path)
-                const fbAppointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                const fbAppointmentTime = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD';
-                const fbDisplayDesign = designTitle || 'Consultation';
-                const fbDisplayMethod = consultationMethod || 'Face-to-Face';
+                    // Notify ALL Admins/Managers
+                    const fbGuestContact = [guestEmail, guestPhone].filter(Boolean).join(' | ') || 'No contact info';
+                    db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (aErr, admins) => {
+                      if (!aErr && admins && admins.length > 0) {
+                        admins.forEach(admin => {
+                          createNotification(admin.id, 'Guest Consultation Request', `New ${serviceType || 'Consultation'} from ${fbClientName} (Guest). Idea: "${designTitle}". Contact: ${fbGuestContact}. Ref: [${fbBookingCode}]. Pending review.`, 'appointment_request', fbResult.insertId);
+                        });
+                      }
+                    });
 
-                if (guestPhone) {
-                  const smsBody = `InkVistAR: Hi ${fbClientName}! Your consultation request [${fbBookingCode}] for "${fbDisplayDesign}" on ${fbAppointmentDate} at ${fbAppointmentTime} has been received. We'll review and contact you within 24 hours. Thank you!`;
-                  sendSMS(guestPhone, smsBody);
-                }
+                    // Guest Email + SMS (mirrors primary path)
+                    const fbAppointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    const fbAppointmentTime = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD';
+                    const fbDisplayDesign = designTitle || 'Consultation';
+                    const fbDisplayMethod = consultationMethod || 'Face-to-Face';
 
-                if (guestEmail) {
-                  console.log(`[DEBUG] Fallback path — sending guest email to: ${guestEmail}`);
-                  const fbGuestHtml = buildEmailHtml(`
+                    if (guestPhone) {
+                      const smsBody = `InkVistAR: Hi ${fbClientName}! Your consultation request [${fbBookingCode}] for "${fbDisplayDesign}" on ${fbAppointmentDate} at ${fbAppointmentTime} has been received. We'll review and contact you within 24 hours. Thank you!`;
+                      sendSMS(guestPhone, smsBody);
+                    }
+
+                    if (guestEmail) {
+                      console.log(`[DEBUG] Fallback path — sending guest email to: ${guestEmail}`);
+                      const fbGuestHtml = buildEmailHtml(`
                     <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
                     <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">We're excited to help you on your next piece</p>
                     <p style="margin:0 0 16px;">Hello ${fbClientName},</p>
@@ -5004,13 +5003,13 @@ app.post('/api/admin/appointments', async (req, res) => {
 
                     <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
                   `);
-                  sendResendEmail(guestEmail, `InkVistAR: Consultation Request [${fbBookingCode}] Received`, fbGuestHtml);
-                } else {
-                  // Logged-in customer fallback — look up their email
-                  db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (custErr, custRows) => {
-                    if (!custErr && custRows && custRows.length > 0 && custRows[0].email) {
-                      const custName = custRows[0].name || 'Valued Client';
-                      const custHtml = buildEmailHtml(`
+                      sendResendEmail(guestEmail, `InkVistAR: Consultation Request [${fbBookingCode}] Received`, fbGuestHtml);
+                    } else {
+                      // Logged-in customer fallback — look up their email
+                      db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (custErr, custRows) => {
+                        if (!custErr && custRows && custRows.length > 0 && custRows[0].email) {
+                          const custName = custRows[0].name || 'Valued Client';
+                          const custHtml = buildEmailHtml(`
                         <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
                         <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">We're excited to help you on your next piece</p>
                         <p style="margin:0 0 16px;">Hello ${custName},</p>
@@ -5029,54 +5028,54 @@ app.post('/api/admin/appointments', async (req, res) => {
                         <p style="margin:0 0 16px;line-height:1.6;">Our staff will reach out within <strong style="color:#C19A6B;">24 hours</strong> to confirm and discuss pricing. Track this booking in your <strong>My Bookings</strong> dashboard.</p>
                         <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
                       `);
-                      sendResendEmail(custRows[0].email, `InkVistAR: Consultation Request [${fbBookingCode}] Received`, custHtml);
+                          sendResendEmail(custRows[0].email, `InkVistAR: Consultation Request [${fbBookingCode}] Received`, custHtml);
+                        }
+                      });
                     }
+                  }
+                  return connection.commit((commitErr) => { connection.release(); if (commitErr) console.error('[WARN] Fallback commit error:', commitErr); res.json({ success: true, message: 'Appointment created successfully', id: fbResult.insertId, bookingCode: fbBookingCode }); });
+                });
+              }
+              console.error('[ERROR] Error creating admin appointment:', err);
+              return connection.rollback(() => { connection.release(); res.status(500).json({ success: false, message: 'Database error: ' + err.message }); });
+            }
+
+            // Generate clean booking code using the auto-increment ID and UPDATE the row
+            const bookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType, result.insertId);
+            db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [bookingCode, result.insertId]);
+            // If securely routed from the public frontend wizard, alert the Admin
+            if (isFromWizard) {
+              const clientNameStr = customerName || 'a guest';
+              const waiverNote = waiverAcceptedAt ? ' [WAIVER_SIGNED] Service waiver signed.' : '';
+              createNotification(customerId, 'Booking Request Received', `We have received your booking request [${bookingCode}] for ${date} and will calculate a quote for you shortly.${waiverNote}`, 'appointment_request', result.insertId);
+
+              // Notify ALL Admins/Managers about the guest consultation
+              const guestContactStr = [guestEmail, guestPhone].filter(Boolean).join(' | ') || 'No contact info';
+              db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (adminErr, admins) => {
+                if (!adminErr && admins && admins.length > 0) {
+                  admins.forEach(admin => {
+                    const waiverStatus = waiverAcceptedAt ? ' [WAIVER_SIGNED] Virtual waiver signed.' : ' [NO_WAIVER] No waiver on file.';
+                    createNotification(admin.id, 'Guest Consultation Request', `New ${serviceType || 'Consultation'} from ${clientNameStr} (Guest — no account). Idea: "${designTitle}". Contact: ${guestContactStr}. Ref: [${bookingCode}].${waiverStatus} Pending review.`, 'appointment_request', result.insertId);
                   });
                 }
-              }
-              return connection.commit((commitErr) => { connection.release(); if (commitErr) console.error('[WARN] Fallback commit error:', commitErr); res.json({ success: true, message: 'Appointment created successfully', id: fbResult.insertId, bookingCode: fbBookingCode }); });
-            });
-          }
-          console.error('[ERROR] Error creating admin appointment:', err);
-          return connection.rollback(() => { connection.release(); res.status(500).json({ success: false, message: 'Database error: ' + err.message }); });
-        }
-
-        // Generate clean booking code using the auto-increment ID and UPDATE the row
-        const bookingCode = generateBookingCode(isFromWizard ? 'O' : 'W', serviceType, result.insertId);
-        db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [bookingCode, result.insertId]);
-        // If securely routed from the public frontend wizard, alert the Admin
-        if (isFromWizard) {
-          const clientNameStr = customerName || 'a guest';
-          const waiverNote = waiverAcceptedAt ? ' [WAIVER_SIGNED] Service waiver signed.' : '';
-          createNotification(customerId, 'Booking Request Received', `We have received your booking request [${bookingCode}] for ${date} and will calculate a quote for you shortly.${waiverNote}`, 'appointment_request', result.insertId);
-
-          // Notify ALL Admins/Managers about the guest consultation
-          const guestContactStr = [guestEmail, guestPhone].filter(Boolean).join(' | ') || 'No contact info';
-          db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (adminErr, admins) => {
-            if (!adminErr && admins && admins.length > 0) {
-              admins.forEach(admin => {
-                const waiverStatus = waiverAcceptedAt ? ' [WAIVER_SIGNED] Virtual waiver signed.' : ' [NO_WAIVER] No waiver on file.';
-                createNotification(admin.id, 'Guest Consultation Request', `New ${serviceType || 'Consultation'} from ${clientNameStr} (Guest — no account). Idea: "${designTitle}". Contact: ${guestContactStr}. Ref: [${bookingCode}].${waiverStatus} Pending review.`, 'appointment_request', result.insertId);
               });
-            }
-          });
 
-          // ═══ Guest External Notifications (SMS + Email) ═══
-          console.log(`[DEBUG] Guest notification block — guestEmail: "${guestEmail}", guestPhone: "${guestPhone}", isFromWizard: ${isFromWizard}, customerId: ${customerId}`);
-          const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-          const appointmentTime = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD';
-          const displayDesign = designTitle || 'Consultation';
-          const displayMethod = consultationMethod || 'Face-to-Face';
+              // ═══ Guest External Notifications (SMS + Email) ═══
+              console.log(`[DEBUG] Guest notification block — guestEmail: "${guestEmail}", guestPhone: "${guestPhone}", isFromWizard: ${isFromWizard}, customerId: ${customerId}`);
+              const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+              const appointmentTime = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'TBD';
+              const displayDesign = designTitle || 'Consultation';
+              const displayMethod = consultationMethod || 'Face-to-Face';
 
-          // SMS — send if phone provided
-          if (guestPhone) {
-            const smsBody = `InkVistAR: Hi ${clientNameStr}! Your consultation request [${bookingCode}] for "${displayDesign}" on ${appointmentDate} at ${appointmentTime} has been received. We'll review and contact you within 24 hours. Thank you!`;
-            sendSMS(guestPhone, smsBody);
-          }
+              // SMS — send if phone provided
+              if (guestPhone) {
+                const smsBody = `InkVistAR: Hi ${clientNameStr}! Your consultation request [${bookingCode}] for "${displayDesign}" on ${appointmentDate} at ${appointmentTime} has been received. We'll review and contact you within 24 hours. Thank you!`;
+                sendSMS(guestPhone, smsBody);
+              }
 
-          // Email — send if email provided
-          if (guestEmail) {
-            const guestHtml = buildEmailHtml(`
+              // Email — send if email provided
+              if (guestEmail) {
+                const guestHtml = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
               <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">We're excited to help you on your next piece</p>
               <p style="margin:0 0 16px;">Hello ${clientNameStr},</p>
@@ -5111,13 +5110,13 @@ app.post('/api/admin/appointments', async (req, res) => {
 
               <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">— The InkVistAR Studio Team</p>
             `);
-            sendResendEmail(guestEmail, `InkVistAR: Consultation Request [${bookingCode}] Received`, guestHtml);
-          } else {
-            // Logged-in customer — look up their email and send confirmation
-            db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (custErr, custRows) => {
-              if (!custErr && custRows && custRows.length > 0 && custRows[0].email) {
-                const custName = custRows[0].name || 'Valued Client';
-                const custHtml = buildEmailHtml(`
+                sendResendEmail(guestEmail, `InkVistAR: Consultation Request [${bookingCode}] Received`, guestHtml);
+              } else {
+                // Logged-in customer — look up their email and send confirmation
+                db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (custErr, custRows) => {
+                  if (!custErr && custRows && custRows.length > 0 && custRows[0].email) {
+                    const custName = custRows[0].name || 'Valued Client';
+                    const custHtml = buildEmailHtml(`
                   <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Consultation Request Received!</h2>
                   <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">We're excited to help you on your next piece</p>
                   <p style="margin:0 0 16px;">Hello ${custName},</p>
@@ -5145,30 +5144,30 @@ app.post('/api/admin/appointments', async (req, res) => {
                   <p style="margin:0 0 16px;line-height:1.6;">Our staff will reach out to you within the next <strong style="color:#C19A6B;">24 hours</strong> to confirm your appointment and discuss pricing. You can also track this booking in your <strong>My Bookings</strong> dashboard.</p>
                   <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
                 `);
-                sendResendEmail(custRows[0].email, `InkVistAR: Consultation Request [${bookingCode}] Received`, custHtml);
+                    sendResendEmail(custRows[0].email, `InkVistAR: Consultation Request [${bookingCode}] Received`, custHtml);
+                  }
+                });
               }
-            });
-          }
-        } else {
-          createNotification(customerId, 'Appointment Scheduled', `Your appointment [${bookingCode}] has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
-          if (artistId) {
-            // Only notify if the artist is not an admin user
-            db.query('SELECT user_type FROM users WHERE id = ?', [artistId], (aErr, aRes) => {
-              if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
-                createNotification(artistId, 'New Session Assigned', `You have been scheduled for a new session [${bookingCode}] on ${date}.`, 'appointment_confirmed', result.insertId);
+            } else {
+              createNotification(customerId, 'Appointment Scheduled', `Your appointment [${bookingCode}] has been scheduled for ${date}.`, 'appointment_confirmed', result.insertId);
+              if (artistId) {
+                // Only notify if the artist is not an admin user
+                db.query('SELECT user_type FROM users WHERE id = ?', [artistId], (aErr, aRes) => {
+                  if (!aErr && aRes.length && aRes[0].user_type !== 'admin') {
+                    createNotification(artistId, 'New Session Assigned', `You have been scheduled for a new session [${bookingCode}] on ${date}.`, 'appointment_confirmed', result.insertId);
+                  }
+                });
               }
-            });
-          }
-        }
+            }
 
-        // Commit the transaction and release the connection
-        connection.commit((commitErr) => {
-          connection.release();
-          if (commitErr) console.error('[WARN] Commit error (booking already inserted):', commitErr);
-          res.json({ success: true, message: 'Appointment created successfully', id: result.insertId, bookingCode: bookingCode });
+            // Commit the transaction and release the connection
+            connection.commit((commitErr) => {
+              connection.release();
+              if (commitErr) console.error('[WARN] Commit error (booking already inserted):', commitErr);
+              res.json({ success: true, message: 'Appointment created successfully', id: result.insertId, bookingCode: bookingCode });
+            });
+          });
         });
-      });
-    });
       }); // end connection.beginTransaction
     }); // end db.getConnection
   });
@@ -6634,7 +6633,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
           }
         });
 
-      // ── CONFIRMED ──
+        // ── CONFIRMED ──
       } else if (status === 'confirmed') {
         createNotification(appointment.customer_id, 'Session Confirmed!', `Great news! Your appointment on ${dateStr} for "${designTitle}" is now officially confirmed. We look forward to seeing you!`, 'appointment_confirmed', id);
         createNotification(appointment.artist_id, 'Appointment Confirmed', `Appointment #${id} for ${designTitle} is now confirmed.`, 'appointment_confirmed', id);
@@ -6647,7 +6646,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
           createNotification(appointment.artist_id, 'Appointment Cancelled', `Appointment #${id} has been cancelled.`, 'appointment_cancelled', id);
         }
 
-      // ── SESSION COMPLETED ──
+        // ── SESSION COMPLETED ──
       } else if (status === 'completed') {
         if (isFullyComplete || isFullyComplete === undefined) {
           createNotification(appointment.customer_id, 'Tattoo Journey Complete!', `Your session for "${designTitle}" is finished! We hope you love your new ink.`, 'appointment_completed', id);
@@ -6739,7 +6738,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
                 const alertMsg = isUnquoted
                   ? `Appointment #${id} for "${designTitle}" has been completed but has NO PRICE SET. The artist cannot be compensated until a quote is finalized and payment is collected.`
                   : `Appointment #${id} for "${designTitle}" has been completed with an outstanding balance of ₱${(apptPrice - apptTotalPaid).toLocaleString()}. Immediate action is required to process artist compensation.`;
-                
+
                 db.query("SELECT id FROM users WHERE user_type IN ('admin', 'manager') AND is_deleted = 0", (aErr, aRes) => {
                   if (!aErr && aRes.length) {
                     aRes.forEach(admin => {
@@ -6759,7 +6758,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
         db.query('SELECT name FROM users WHERE id = ?', [appointment.customer_id], (uErr, uRes) => {
           const clientName = (!uErr && uRes.length) ? uRes[0].name : `Client #${appointment.customer_id}`;
           const currentPrice = price !== undefined ? Number(price) : Number(appointment.price) || 0;
-          
+
           // Generate sequential invoice number (same pattern as manual payment flow)
           db.query('SELECT MAX(CAST(SUBSTRING(invoice_number, 5) AS UNSIGNED)) as maxNum FROM invoices WHERE invoice_number IS NOT NULL', (invNumErr, invNumRes) => {
             const nextNum = (invNumErr || !invNumRes[0]?.maxNum) ? 1 : invNumRes[0].maxNum + 1;
@@ -6779,7 +6778,7 @@ app.put('/api/appointments/:id/status', (req, res) => {
           }
         });
 
-      // ── SESSION ABORTED / INCOMPLETE ──
+        // ── SESSION ABORTED / INCOMPLETE ──
       } else if (status === 'incomplete') {
         const abortReason = req.body.abortReason || '';
         createNotification(appointment.customer_id, 'Session Stopped Early', `Your session for "${designTitle}" on ${dateStr} was marked as incomplete by your artist.${abortReason ? ' Reason: ' + abortReason : ''} The studio will follow up with you to reschedule.`, 'session_incomplete', id);
@@ -7775,8 +7774,8 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
           const notifications = notifResults || [];
           const unreadCount = notifications.filter(n => !n.is_read).length;
 
-            // 4. Get Active Aftercare (most recent completed tattoo within 30 days)
-            const aftercareQuery = `
+          // 4. Get Active Aftercare (most recent completed tattoo within 30 days)
+          const aftercareQuery = `
               SELECT ap.id, ap.design_title, ap.appointment_date, ap.service_type,
                      DATEDIFF(CURDATE(), DATE(ap.appointment_date)) as days_since,
                      u.name as artist_name
@@ -7788,33 +7787,33 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
               ORDER BY ap.appointment_date DESC
               LIMIT 1
             `;
-            db.query(aftercareQuery, [customerId], (acErr, acRes) => {
-              let activeAftercare = null;
+          db.query(aftercareQuery, [customerId], (acErr, acRes) => {
+            let activeAftercare = null;
 
-              if (!acErr && acRes && acRes.length > 0) {
-                const acAppt = acRes[0];
-                const dayNum = Math.max(1, acAppt.days_since || 1);
-                const phase = dayNum <= 3 ? 'initial' : dayNum <= 14 ? 'peeling' : 'healing';
+            if (!acErr && acRes && acRes.length > 0) {
+              const acAppt = acRes[0];
+              const dayNum = Math.max(1, acAppt.days_since || 1);
+              const phase = dayNum <= 3 ? 'initial' : dayNum <= 14 ? 'peeling' : 'healing';
 
-                // Fetch today's template
-                db.query('SELECT title, message, tips FROM aftercare_templates WHERE day_number = ?', [dayNum], (tplErr, tplRes) => {
-                  const template = (!tplErr && tplRes.length) ? tplRes[0] : { title: 'Keep healing!', message: 'Continue your daily aftercare routine.', tips: '' };
+              // Fetch today's template
+              db.query('SELECT title, message, tips FROM aftercare_templates WHERE day_number = ?', [dayNum], (tplErr, tplRes) => {
+                const template = (!tplErr && tplRes.length) ? tplRes[0] : { title: 'Keep healing!', message: 'Continue your daily aftercare routine.', tips: '' };
 
-                  activeAftercare = {
-                    appointmentId: acAppt.id,
-                    designTitle: acAppt.design_title || 'Tattoo Session',
-                    artistName: acAppt.artist_name,
-                    completedDate: acAppt.appointment_date,
-                    currentDay: dayNum,
-                    totalDays: 30,
-                    phase,
-                    todayTitle: template.title,
-                    todayMessage: template.message,
-                    todayTips: template.tips
-                  };
+                activeAftercare = {
+                  appointmentId: acAppt.id,
+                  designTitle: acAppt.design_title || 'Tattoo Session',
+                  artistName: acAppt.artist_name,
+                  completedDate: acAppt.appointment_date,
+                  currentDay: dayNum,
+                  totalDays: 30,
+                  phase,
+                  todayTitle: template.title,
+                  todayMessage: template.message,
+                  todayTips: template.tips
+                };
 
-                  // 5. Get Active Pre-care (upcoming confirmed tattoo session with payment)
-                  const precareQuery = `
+                // 5. Get Active Pre-care (upcoming confirmed tattoo session with payment)
+                const precareQuery = `
                     SELECT ap.id, ap.design_title, ap.appointment_date, ap.service_type,
                            ap.price, ap.payment_status,
                            DATEDIFF(DATE(ap.appointment_date), CURDATE()) as days_until,
@@ -7830,55 +7829,10 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
                     LIMIT 1
                   `;
 
-                  db.query(precareQuery, [customerId], (pcErr, pcRes) => {
-                    let activePrecare = null;
-                    if (!pcErr && pcRes && pcRes.length > 0) {
-                      const pcAppt = pcRes[0];
-                      activePrecare = {
-                        appointmentId: pcAppt.id,
-                        designTitle: pcAppt.design_title || 'Tattoo Session',
-                        artistName: pcAppt.artist_name,
-                        appointmentDate: pcAppt.appointment_date,
-                        daysUntil: pcAppt.days_until,
-                        price: pcAppt.price,
-                        paymentStatus: pcAppt.payment_status
-                      };
-                    }
-
-                    res.json({
-                      success: true,
-                      customer,
-                      appointments: upcoming,
-                      stats,
-                      notifications,
-                      unreadCount,
-                      activeAftercare,
-                      activePrecare
-                    });
-                  });
-                });
-              } else {
-                // No aftercare — still check for pre-care
-                const precareQuery2 = `
-                  SELECT ap.id, ap.design_title, ap.appointment_date, ap.service_type,
-                         ap.price, ap.payment_status,
-                         DATEDIFF(DATE(ap.appointment_date), CURDATE()) as days_until,
-                         u.name as artist_name
-                  FROM appointments ap
-                  LEFT JOIN users u ON ap.artist_id = u.id
-                  WHERE ap.customer_id = ? AND ap.status = 'confirmed' AND ap.is_deleted = 0
-                    AND ap.service_type NOT LIKE '%Consultation%'
-                    AND ap.service_type NOT LIKE '%Piercing%'
-                    AND ap.payment_status IN ('downpayment_paid', 'paid')
-                    AND DATE(ap.appointment_date) >= CURDATE()
-                  ORDER BY ap.appointment_date ASC
-                  LIMIT 1
-                `;
-
-                db.query(precareQuery2, [customerId], (pcErr2, pcRes2) => {
+                db.query(precareQuery, [customerId], (pcErr, pcRes) => {
                   let activePrecare = null;
-                  if (!pcErr2 && pcRes2 && pcRes2.length > 0) {
-                    const pcAppt = pcRes2[0];
+                  if (!pcErr && pcRes && pcRes.length > 0) {
+                    const pcAppt = pcRes[0];
                     activePrecare = {
                       appointmentId: pcAppt.id,
                       designTitle: pcAppt.design_title || 'Tattoo Session',
@@ -7897,16 +7851,61 @@ app.get('/api/customer/dashboard/:customerId', (req, res) => {
                     stats,
                     notifications,
                     unreadCount,
-                    activeAftercare: null,
+                    activeAftercare,
                     activePrecare
                   });
                 });
-              }
-            });
+              });
+            } else {
+              // No aftercare — still check for pre-care
+              const precareQuery2 = `
+                  SELECT ap.id, ap.design_title, ap.appointment_date, ap.service_type,
+                         ap.price, ap.payment_status,
+                         DATEDIFF(DATE(ap.appointment_date), CURDATE()) as days_until,
+                         u.name as artist_name
+                  FROM appointments ap
+                  LEFT JOIN users u ON ap.artist_id = u.id
+                  WHERE ap.customer_id = ? AND ap.status = 'confirmed' AND ap.is_deleted = 0
+                    AND ap.service_type NOT LIKE '%Consultation%'
+                    AND ap.service_type NOT LIKE '%Piercing%'
+                    AND ap.payment_status IN ('downpayment_paid', 'paid')
+                    AND DATE(ap.appointment_date) >= CURDATE()
+                  ORDER BY ap.appointment_date ASC
+                  LIMIT 1
+                `;
+
+              db.query(precareQuery2, [customerId], (pcErr2, pcRes2) => {
+                let activePrecare = null;
+                if (!pcErr2 && pcRes2 && pcRes2.length > 0) {
+                  const pcAppt = pcRes2[0];
+                  activePrecare = {
+                    appointmentId: pcAppt.id,
+                    designTitle: pcAppt.design_title || 'Tattoo Session',
+                    artistName: pcAppt.artist_name,
+                    appointmentDate: pcAppt.appointment_date,
+                    daysUntil: pcAppt.days_until,
+                    price: pcAppt.price,
+                    paymentStatus: pcAppt.payment_status
+                  };
+                }
+
+                res.json({
+                  success: true,
+                  customer,
+                  appointments: upcoming,
+                  stats,
+                  notifications,
+                  unreadCount,
+                  activeAftercare: null,
+                  activePrecare
+                });
+              });
+            }
           });
         });
       });
     });
+  });
 });
 
 // ========== CUSTOMER AFTERCARE API ==========
@@ -8531,7 +8530,7 @@ app.put('/api/admin/users/:id/status', (req, res) => {
     }
     if (err) return res.status(500).json({ success: false, message: 'Database error checking user: ' + err.message });
     if (results.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
-    
+
     const targetUser = results[0];
     if (targetUser.is_superadmin) {
       return res.status(403).json({ success: false, message: 'Cannot change the status of the system super admin.' });
@@ -8545,7 +8544,7 @@ app.put('/api/admin/users/:id/status', (req, res) => {
     if (status === 'deactivated' && duration) {
       finalReason = `[Duration: ${duration}] ${finalReason}`;
     }
-    
+
     db.query(updateQuery, [status, finalReason, id], async (updateErr) => {
       if (updateErr && updateErr.code === 'ER_BAD_FIELD_ERROR' && !isRetry) {
         // Columns don't exist yet — run migration inline then retry
@@ -8581,15 +8580,15 @@ app.put('/api/admin/users/:id/status', (req, res) => {
         return;
       }
       if (updateErr) return res.status(500).json({ success: false, message: updateErr.message });
-      
+
       logAction(getAdminId(req), 'UPDATE_USER_STATUS', `Changed user ${id} status to ${status} (Reason: ${finalReason || 'N/A'})`, req.ip);
-      
+
       // Send Email Notification to the user if they were deactivated or banned
       if (status === 'deactivated' || status === 'banned') {
         const actionTitle = status === 'banned' ? 'Account Banned' : 'Account Deactivated';
         const actionColor = status === 'banned' ? '#ef4444' : '#f59e0b';
         const adminMessage = adminNote || reason || 'No specific reason provided.';
-        
+
         let appealInstruction = '';
         if (status === 'banned') {
           appealInstruction = `<p style="margin-top:20px; font-size:14px; color:#64748b;">If you believe this is an error, you may submit an appeal by contacting our support team at <a href="mailto:support@inkvictusstudio.com">support@inkvictusstudio.com</a>.</p>`;
@@ -8613,7 +8612,7 @@ app.put('/api/admin/users/:id/status', (req, res) => {
             <p style="color:#64748b; font-size:14px; line-height:1.6; margin-top:30px;">Best regards,<br>The InkVistAR Studio Team</p>
           </div>
         `;
-        
+
         try {
           await sendEmail(targetUser.email, `InkVistAR: Important Account Update - ${actionTitle}`, emailHtml);
         } catch (emailError) {
@@ -8993,7 +8992,7 @@ app.get('/api/admin/analytics', (req, res) => {
   const timeframe = req.query.timeframe || 'all'; // 'weekly', 'monthly', 'yearly', 'all', 'custom'
   const customStart = req.query.startDate || null;
   const customEnd = req.query.endDate || null;
-  
+
   // ─── UNIFIED DATE FILTERS ───
   // Build date filter clauses for EVERY table so all widgets respect the timeframe.
   // "All Time" is clamped to April 2026 (project start).
@@ -9009,7 +9008,7 @@ app.get('/api/admin/analytics', (req, res) => {
     const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     loopStart = new Date(today);
     loopStart.setDate(today.getDate() - mondayOffset);
-    loopStart.setHours(0,0,0,0);
+    loopStart.setHours(0, 0, 0, 0);
     loopEnd = new Date(today);
   } else if (timeframe === 'monthly') {
     isDaily = true;
@@ -9039,43 +9038,43 @@ app.get('/api/admin/analytics', (req, res) => {
   let revenueDateFilter = '';       // appointments via ap.appointment_date (for revenue)
 
   if (timeframe === 'weekly') {
-    apptDateFilter      = "AND ap.appointment_date >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
-    revenueDateFilter   = "AND ap.appointment_date >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
-    invTxDateFilter     = "AND t.created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+    apptDateFilter = "AND ap.appointment_date >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+    revenueDateFilter = "AND ap.appointment_date >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+    invTxDateFilter = "AND t.created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
     studioExpDateFilter = "AND created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
-    payoutsDateFilter   = "AND created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
-    invoiceDateFilter   = "AND created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+    payoutsDateFilter = "AND created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
+    invoiceDateFilter = "AND created_at >= DATE_SUB(CURDATE(), INTERVAL (WEEKDAY(CURDATE())) DAY)";
   } else if (timeframe === 'monthly') {
-    apptDateFilter      = "AND ap.appointment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')";
-    revenueDateFilter   = "AND ap.appointment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')";
-    invTxDateFilter     = "AND t.created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    apptDateFilter = "AND ap.appointment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    revenueDateFilter = "AND ap.appointment_date >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    invTxDateFilter = "AND t.created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
     studioExpDateFilter = "AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
-    payoutsDateFilter   = "AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
-    invoiceDateFilter   = "AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    payoutsDateFilter = "AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
+    invoiceDateFilter = "AND created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')";
   } else if (timeframe === 'yearly') {
-    apptDateFilter      = "AND YEAR(ap.appointment_date) = YEAR(NOW())";
-    revenueDateFilter   = "AND YEAR(ap.appointment_date) = YEAR(NOW())";
-    invTxDateFilter     = "AND YEAR(t.created_at) = YEAR(NOW())";
+    apptDateFilter = "AND YEAR(ap.appointment_date) = YEAR(NOW())";
+    revenueDateFilter = "AND YEAR(ap.appointment_date) = YEAR(NOW())";
+    invTxDateFilter = "AND YEAR(t.created_at) = YEAR(NOW())";
     studioExpDateFilter = "AND YEAR(created_at) = YEAR(NOW())";
-    payoutsDateFilter   = "AND YEAR(created_at) = YEAR(NOW())";
-    invoiceDateFilter   = "AND YEAR(created_at) = YEAR(NOW())";
+    payoutsDateFilter = "AND YEAR(created_at) = YEAR(NOW())";
+    invoiceDateFilter = "AND YEAR(created_at) = YEAR(NOW())";
   } else if (timeframe === 'custom' && customStart && customEnd) {
     const safeStart = db.escape(customStart);
     const safeEnd = db.escape(customEnd);
-    apptDateFilter      = `AND ap.appointment_date >= ${safeStart} AND ap.appointment_date <= ${safeEnd}`;
-    revenueDateFilter   = `AND ap.appointment_date >= ${safeStart} AND ap.appointment_date <= ${safeEnd}`;
-    invTxDateFilter     = `AND t.created_at >= ${safeStart} AND DATE(t.created_at) <= ${safeEnd}`;
+    apptDateFilter = `AND ap.appointment_date >= ${safeStart} AND ap.appointment_date <= ${safeEnd}`;
+    revenueDateFilter = `AND ap.appointment_date >= ${safeStart} AND ap.appointment_date <= ${safeEnd}`;
+    invTxDateFilter = `AND t.created_at >= ${safeStart} AND DATE(t.created_at) <= ${safeEnd}`;
     studioExpDateFilter = `AND created_at >= ${safeStart} AND DATE(created_at) <= ${safeEnd}`;
-    payoutsDateFilter   = `AND created_at >= ${safeStart} AND DATE(created_at) <= ${safeEnd}`;
-    invoiceDateFilter   = `AND created_at >= ${safeStart} AND DATE(created_at) <= ${safeEnd}`;
+    payoutsDateFilter = `AND created_at >= ${safeStart} AND DATE(created_at) <= ${safeEnd}`;
+    invoiceDateFilter = `AND created_at >= ${safeStart} AND DATE(created_at) <= ${safeEnd}`;
   } else {
     // 'all' — clamp to project start (April 2026)
-    apptDateFilter      = `AND ap.appointment_date >= '${ALL_TIME_START}'`;
-    revenueDateFilter   = `AND ap.appointment_date >= '${ALL_TIME_START}'`;
-    invTxDateFilter     = `AND t.created_at >= '${ALL_TIME_START}'`;
+    apptDateFilter = `AND ap.appointment_date >= '${ALL_TIME_START}'`;
+    revenueDateFilter = `AND ap.appointment_date >= '${ALL_TIME_START}'`;
+    invTxDateFilter = `AND t.created_at >= '${ALL_TIME_START}'`;
     studioExpDateFilter = `AND created_at >= '${ALL_TIME_START}'`;
-    payoutsDateFilter   = `AND created_at >= '${ALL_TIME_START}'`;
-    invoiceDateFilter   = `AND created_at >= '${ALL_TIME_START}'`;
+    payoutsDateFilter = `AND created_at >= '${ALL_TIME_START}'`;
+    invoiceDateFilter = `AND created_at >= '${ALL_TIME_START}'`;
   }
 
   // Removed unused trendDays variable
@@ -9374,7 +9373,7 @@ app.get('/api/admin/analytics', (req, res) => {
 
           db.query(inventoryTrendQuery, (err, trendInvRes) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
-            
+
             const buildTrendMap = (isDailyFormat) => {
               const map = {};
               const d = new Date(loopStart);
@@ -9409,7 +9408,7 @@ app.get('/api/admin/analytics', (req, res) => {
             // Expenses trend
             db.query(expensesTrendQuery, (err, expTrendRes) => {
               if (err) return res.status(500).json({ success: false, message: err.message });
-              
+
               const expensesTrendMap = buildTrendMap(isDaily);
 
               if (expTrendRes) {
@@ -9430,124 +9429,124 @@ app.get('/api/admin/analytics', (req, res) => {
               });
               response.expenses_trend = expTrendArr;
 
-            db.query(styleQuery, (err, styleRes) => {
-              if (err) return res.status(500).json({ success: false, message: err.message });
-              response.styles = styleRes;
-
-            db.query(trendQuery, (err, trendRes) => {
-              if (err) return res.status(500).json({ success: false, message: err.message });
-              const chartDataMap = {};
-              const d = new Date(loopStart);
-              while (d <= loopEnd) {
-                if (isDaily) {
-                  const sortKey = d.toISOString().split('T')[0];
-                  const monthStr = d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
-                  chartDataMap[sortKey] = { month: monthStr, sort_key: sortKey, appointments: 0, value: 0 };
-                  d.setDate(d.getDate() + 1);
-                } else {
-                  const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                  const monthStr = d.toLocaleString('en-US', { month: 'short' });
-                  chartDataMap[sortKey] = { month: monthStr, sort_key: sortKey, appointments: 0, value: 0 };
-                  d.setMonth(d.getMonth() + 1);
-                }
-              }
-
-              // Merge actual DB data
-              trendRes.forEach(t => {
-                const sk = typeof t.sort_key === 'string' ? t.sort_key : new Date(t.sort_key).toISOString().split('T')[0];
-                if (chartDataMap[sk]) {
-                  chartDataMap[sk] = {
-                    month: t.month,
-                    sort_key: sk,
-                    appointments: t.appointments || 0,
-                    value: Number(t.value) || 0
-                  };
-                }
-              });
-
-              // Convert back to array and sort chronologically
-              response.revenue.chart = Object.values(chartDataMap)
-                .sort((a, b) => a.sort_key.localeCompare(b.sort_key))
-                .map(t => ({ month: t.month, appointments: t.appointments, value: t.value }));
-
-              db.query(expensesQuery, (err, expRes) => {
+              db.query(styleQuery, (err, styleRes) => {
                 if (err) return res.status(500).json({ success: false, message: err.message });
-                const procurementTotal = Number(expRes[0].procurement_total) || 0;
-                const payoutsTotal = Number(expRes[0].payouts_total) || 0;
+                response.styles = styleRes;
 
-                response.expenses = {
-                  total: procurementTotal + payoutsTotal,
-                  breakdown: [
-                    { name: 'Inventory Procurements', value: procurementTotal },
-                    { name: 'Artist Payouts', value: payoutsTotal }
-                  ].filter(b => b.value > 0),
-                  payouts_audit: [],
-                  inventory_in_audit: []
-                };
-
-                db.query(overheadBreakdownQuery, (err, overheadRes) => {
-                  if (!err) {
-                    const overheadBreakdown = overheadRes.map(e => ({ name: e.category, value: Number(e.total) }));
-                    const overheadTotal = overheadBreakdown.reduce((sum, e) => sum + e.value, 0);
-                    response.overhead = { total: overheadTotal, breakdown: overheadBreakdown };
+                db.query(trendQuery, (err, trendRes) => {
+                  if (err) return res.status(500).json({ success: false, message: err.message });
+                  const chartDataMap = {};
+                  const d = new Date(loopStart);
+                  while (d <= loopEnd) {
+                    if (isDaily) {
+                      const sortKey = d.toISOString().split('T')[0];
+                      const monthStr = d.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+                      chartDataMap[sortKey] = { month: monthStr, sort_key: sortKey, appointments: 0, value: 0 };
+                      d.setDate(d.getDate() + 1);
+                    } else {
+                      const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                      const monthStr = d.toLocaleString('en-US', { month: 'short' });
+                      chartDataMap[sortKey] = { month: monthStr, sort_key: sortKey, appointments: 0, value: 0 };
+                      d.setMonth(d.getMonth() + 1);
+                    }
                   }
 
-                  // Fetch audit logs for expenses
-                  db.query(payoutsAuditQuery, (err, payoutsList) => {
-                    if (!err) response.expenses.payouts_audit = payoutsList;
-                    
-                    db.query(inventoryInAuditQuery, (err, invInList) => {
-                      if (!err) response.expenses.inventory_in_audit = invInList;
+                  // Merge actual DB data
+                  trendRes.forEach(t => {
+                    const sk = typeof t.sort_key === 'string' ? t.sort_key : new Date(t.sort_key).toISOString().split('T')[0];
+                    if (chartDataMap[sk]) {
+                      chartDataMap[sk] = {
+                        month: t.month,
+                        sort_key: sk,
+                        appointments: t.appointments || 0,
+                        value: Number(t.value) || 0
+                      };
+                    }
+                  });
 
-                      // Chain additional audit queries
-                      db.query(revenueAuditQuery, (err, revAudit) => {
-                        if (!err) response.revenue_audit = revAudit;
+                  // Convert back to array and sort chronologically
+                  response.revenue.chart = Object.values(chartDataMap)
+                    .sort((a, b) => a.sort_key.localeCompare(b.sort_key))
+                    .map(t => ({ month: t.month, appointments: t.appointments, value: t.value }));
 
-                        db.query(appointmentsAuditQuery, (err, apptAudit) => {
-                          if (!err) response.appointments_audit = apptAudit;
+                  db.query(expensesQuery, (err, expRes) => {
+                    if (err) return res.status(500).json({ success: false, message: err.message });
+                    const procurementTotal = Number(expRes[0].procurement_total) || 0;
+                    const payoutsTotal = Number(expRes[0].payouts_total) || 0;
 
-                          db.query(durationAuditQuery, (err, durAudit) => {
-                            if (!err) response.duration_audit = durAudit;
+                    response.expenses = {
+                      total: procurementTotal + payoutsTotal,
+                      breakdown: [
+                        { name: 'Inventory Procurements', value: procurementTotal },
+                        { name: 'Artist Payouts', value: payoutsTotal }
+                      ].filter(b => b.value > 0),
+                      payouts_audit: [],
+                      inventory_in_audit: []
+                    };
 
-                            db.query(inventoryOutAuditQuery, (err, invOutAudit) => {
-                              if (!err) response.inventory_out_audit = invOutAudit;
+                    db.query(overheadBreakdownQuery, (err, overheadRes) => {
+                      if (!err) {
+                        const overheadBreakdown = overheadRes.map(e => ({ name: e.category, value: Number(e.total) }));
+                        const overheadTotal = overheadBreakdown.reduce((sum, e) => sum + e.value, 0);
+                        response.overhead = { total: overheadTotal, breakdown: overheadBreakdown };
+                      }
 
-                              db.query(userStatsQuery, (err, userStats) => {
-                                if (!err && userStats[0]) {
-                                  response.users = {
-                                    total: Number(userStats[0].total) || 0,
-                                    artists: Number(userStats[0].artists) || 0,
-                                    customers: Number(userStats[0].customers) || 0,
-                                    admins: Number(userStats[0].admins) || 0
-                                  };
-                                }
+                      // Fetch audit logs for expenses
+                      db.query(payoutsAuditQuery, (err, payoutsList) => {
+                        if (!err) response.expenses.payouts_audit = payoutsList;
 
-                                db.query(usersAuditQuery, (err, usersAudit) => {
-                                  if (!err) response.users_audit = usersAudit;
-                                
-                                  // Attach overhead/manual expenses audit log to payload
-                                  db.query('SELECT se.*, COALESCE(u.name, "System Admin") as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC LIMIT 50', (err, overheadAudit) => {
-                                    if (!err) response.overhead.audit = overheadAudit;
+                        db.query(inventoryInAuditQuery, (err, invInList) => {
+                          if (!err) response.expenses.inventory_in_audit = invInList;
 
-                                    // Styles audit — individual portfolio works
-                                    db.query(stylesAuditQuery, (err, stylesAudit) => {
-                                      if (!err) response.styles_audit = stylesAudit;
-                                      res.json({ success: true, data: response });
-                                    });  // stylesAuditQuery
-                                  });  // overheadAudit inline
-                                });  // usersAuditQuery
-                              });  // userStatsQuery
-                            });  // inventoryOutAuditQuery
-                          });  // durationAuditQuery
-                        });  // appointmentsAuditQuery
-                      });  // revenueAuditQuery
-                    });  // inventoryInAuditQuery
-                  });  // payoutsAuditQuery
-                });  // overheadBreakdownQuery
-              });  // expensesQuery
-            });  // trendQuery
-          });  // styleQuery
-          });  // expensesTrendQuery
+                          // Chain additional audit queries
+                          db.query(revenueAuditQuery, (err, revAudit) => {
+                            if (!err) response.revenue_audit = revAudit;
+
+                            db.query(appointmentsAuditQuery, (err, apptAudit) => {
+                              if (!err) response.appointments_audit = apptAudit;
+
+                              db.query(durationAuditQuery, (err, durAudit) => {
+                                if (!err) response.duration_audit = durAudit;
+
+                                db.query(inventoryOutAuditQuery, (err, invOutAudit) => {
+                                  if (!err) response.inventory_out_audit = invOutAudit;
+
+                                  db.query(userStatsQuery, (err, userStats) => {
+                                    if (!err && userStats[0]) {
+                                      response.users = {
+                                        total: Number(userStats[0].total) || 0,
+                                        artists: Number(userStats[0].artists) || 0,
+                                        customers: Number(userStats[0].customers) || 0,
+                                        admins: Number(userStats[0].admins) || 0
+                                      };
+                                    }
+
+                                    db.query(usersAuditQuery, (err, usersAudit) => {
+                                      if (!err) response.users_audit = usersAudit;
+
+                                      // Attach overhead/manual expenses audit log to payload
+                                      db.query('SELECT se.*, COALESCE(u.name, "System Admin") as created_by_name FROM studio_expenses se LEFT JOIN users u ON se.created_by = u.id ORDER BY se.created_at DESC LIMIT 50', (err, overheadAudit) => {
+                                        if (!err) response.overhead.audit = overheadAudit;
+
+                                        // Styles audit — individual portfolio works
+                                        db.query(stylesAuditQuery, (err, stylesAudit) => {
+                                          if (!err) response.styles_audit = stylesAudit;
+                                          res.json({ success: true, data: response });
+                                        });  // stylesAuditQuery
+                                      });  // overheadAudit inline
+                                    });  // usersAuditQuery
+                                  });  // userStatsQuery
+                                });  // inventoryOutAuditQuery
+                              });  // durationAuditQuery
+                            });  // appointmentsAuditQuery
+                          });  // revenueAuditQuery
+                        });  // inventoryInAuditQuery
+                      });  // payoutsAuditQuery
+                    });  // overheadBreakdownQuery
+                  });  // expensesQuery
+                });  // trendQuery
+              });  // styleQuery
+            });  // expensesTrendQuery
           });  // inventoryTrendQuery
         });  // inventoryQuery
       });  // artistQuery
@@ -9567,12 +9566,12 @@ app.get('/api/admin/expenses', (req, res) => {
 app.post('/api/admin/expenses', (req, res) => {
   const { category, description, amount, userId } = req.body;
   if (!category || !amount) return res.status(400).json({ success: false, message: 'Category and amount are required.' });
-  db.query('INSERT INTO studio_expenses (category, description, amount, created_by, created_at) VALUES (?, ?, ?, ?, NOW())', 
+  db.query('INSERT INTO studio_expenses (category, description, amount, created_by, created_at) VALUES (?, ?, ?, ?, NOW())',
     [category, description || '', parseFloat(amount), userId || null], (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: err.message });
-    logAction(userId || null, 'CREATE_MANUAL_EXPENSE', `Logged manual expense: ${category} - ₱${amount}`, req.ip);
-    res.json({ success: true, message: 'Expense recorded', id: result.insertId });
-  });
+      if (err) return res.status(500).json({ success: false, message: err.message });
+      logAction(userId || null, 'CREATE_MANUAL_EXPENSE', `Logged manual expense: ${category} - ₱${amount}`, req.ip);
+      res.json({ success: true, message: 'Expense recorded', id: result.insertId });
+    });
 });
 
 // Admin: Delete Studio Expense (only within 1 hour of creation)
@@ -9611,10 +9610,10 @@ app.put('/api/admin/expenses/:id', (req, res) => {
     }
     db.query('UPDATE studio_expenses SET category = ?, description = ?, amount = ? WHERE id = ?',
       [category, description || '', parseFloat(amount), req.params.id], (err) => {
-      if (err) return res.status(500).json({ success: false, message: err.message });
-      logAction(getAdminId(req), 'EDIT_MANUAL_EXPENSE', `Edited manual expense ID ${req.params.id}: ${category} - ₱${amount}`, req.ip);
-      res.json({ success: true, message: 'Expense updated' });
-    });
+        if (err) return res.status(500).json({ success: false, message: err.message });
+        logAction(getAdminId(req), 'EDIT_MANUAL_EXPENSE', `Edited manual expense ID ${req.params.id}: ${category} - ₱${amount}`, req.ip);
+        res.json({ success: true, message: 'Expense updated' });
+      });
   });
 });
 
@@ -9915,72 +9914,184 @@ app.post('/api/chat', async (req, res) => {
 
   // Try Groq if key exists AND client was successfully initialized
   if (GROQ_API_KEY && groq) {
-    // Fetch settings from DB to build a dynamic context
-    db.query('SELECT * FROM app_settings', async (err, settingsResults) => {
-      if (err) {
-        console.error('[ERROR] Chatbot DB Error (falling back):', err.message);
-        const fallback = getFallbackResponse(message);
-        return res.json({ success: true, response: fallback });
-      }
-
-      try {
-        const settings = {};
-        settingsResults.forEach(row => {
-          try {
-            settings[row.section] = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-          } catch (e) { settings[row.section] = row.data; }
-        });
-
-        const studioInfo = settings.studio || {};
-        const billingInfo = settings.billing || {};
-        const careInfo = settings.care || {};
-        const policiesInfo = settings.policies || {};
-
-        const systemPrompt = `
-          You are InkVistAR, a friendly and helpful AI assistant for the tattoo studio "${studioInfo.name || 'InkVistAR'}". Your goal is to answer user questions based on the following studio information. Be concise and friendly.
-
-          - Studio Info:
-            - Name: ${studioInfo.name || 'InkVistAR'}
-            - Description: ${studioInfo.description || 'A premium tattoo studio.'}
-            - Address: ${studioInfo.address || 'not specified'}.
-            - Phone: ${studioInfo.phone || 'not specified'}.
-            - Hours: Open from ${studioInfo.openingTime || '1 PM'} to ${studioInfo.closingTime || '8 PM'}.
-
-          - Pricing & Booking:
-            - Base Rate: Our base rate is around ₱${Number(billingInfo.baseRate || 150).toLocaleString()} per hour, but this varies by artist and design complexity.
-            - Deposit Policy: ${policiesInfo.deposit || 'A deposit is required to book.'}
-            - Cancellation Policy: ${policiesInfo.cancellation || 'Please contact us at least 48 hours in advance to cancel or reschedule.'}
-            - How to Book: Tell users to browse artists and use the 'Booking' section of the app.
-
-          - Aftercare:
-            - Instructions: ${careInfo.instructions ? careInfo.instructions.split('\n').slice(0, 2).join(' ') : 'Keep it clean and moisturized, and avoid sun/swimming for 2 weeks.'}
-
-          - General Rules:
-            - IMPORTANT: Always end your response by directly asking the user a relevant, qualifying follow-up question. Your job is to keep the conversation going and help narrow down what they are looking for (e.g., asking about their preferred style, placement, or budget constraints).
-            - Keep your responses to 1-3 short paragraphs max to be conversational.
-            - If you don't know an answer, politely suggest they contact the studio directly at ${studioInfo.phone || 'our contact number'}.
-        `.trim().replace(/\s+/g, ' ');
-
-        const chatCompletion = await groq.chat.completions.create({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message }
-          ],
-          model: 'llama-3.3-70b-versatile',
-        });
-
-        const response = chatCompletion.choices[0].message.content;
-        console.log('[OK] Groq responded successfully.');
-        return res.json({ success: true, response: response });
-      } catch (error) {
-        // Surface the real error in logs so Railway logs show the actual cause
-        const errStatus = error?.status || error?.statusCode || 'unknown';
-        const errType = error?.error?.type || error?.code || error?.message || 'unknown';
-        console.error(`[ERROR] Groq API failed — HTTP ${errStatus} | type: ${errType}. Falling back to rule-based responses.`);
-        const fallback = getFallbackResponse(message);
-        res.json({ success: true, response: fallback });
-      }
+    // Promise wrapper for callback-based db.query
+    const queryAsync = (sql, params = []) => new Promise((resolve, reject) => {
+      db.query(sql, params, (err, results) => err ? reject(err) : resolve(results));
     });
+
+    try {
+      // Run parallel queries: studio settings + active artist roster
+      const [settingsRows, artistRows] = await Promise.all([
+        queryAsync('SELECT * FROM app_settings'),
+        queryAsync(`
+          SELECT u.name,
+                 COALESCE(a.specialization, 'General') as specialization,
+                 COALESCE(a.experience_years, 0) as experience_years,
+                 COALESCE(a.rating, 0) as rating,
+                 COALESCE(a.total_reviews, 0) as total_reviews,
+                 COALESCE(a.hourly_rate, 0) as hourly_rate
+          FROM users u
+          LEFT JOIN artists a ON u.id = a.user_id
+          WHERE u.user_type = 'artist' AND u.is_deleted = 0
+          ORDER BY a.rating DESC
+        `)
+      ]);
+
+      // Parse app_settings rows into a keyed object
+      const settings = {};
+      settingsRows.forEach(row => {
+        try {
+          settings[row.section] = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+        } catch (e) { settings[row.section] = row.data; }
+      });
+
+      const studio = settings.studio || {};
+      const billing = settings.billing || {};
+      const care = settings.care || {};
+      const policies = settings.policies || {};
+      // Admin-overridable chatbot config (add a "chatbot" section in Admin Settings to customize)
+      const botConfig = settings.chatbot || {};
+
+      // ── Build dynamic artist roster from DB ──
+      const artistRoster = artistRows.length > 0
+        ? artistRows.map(a => {
+            let line = `  - ${a.name}: ${a.specialization}`;
+            if (a.experience_years > 0) line += ` | ${a.experience_years} yrs experience`;
+            if (a.rating > 0) line += ` | Rating: ${Number(a.rating).toFixed(1)}/5`;
+            if (a.total_reviews > 0) line += ` (${a.total_reviews} reviews)`;
+            return line;
+          }).join('\n')
+        : '  - Artist roster is currently being updated. Please contact the studio for details.';
+
+      // ── Build pricing section (admin can override via settings.chatbot.pricing) ──
+      const pricingGuide = botConfig.pricing || `Pricing is case-to-case depending on size, placement, and design complexity:
+  - Small tattoos (wrist, finger, behind ear): Starts at around P2,000 - P5,000
+  - Medium tattoos (forearm, calf, shoulder): Around P5,000 - P15,000
+  - Large tattoos (half sleeve, thigh piece): P15,000 and above
+  - Per panel (sleeve segment): Approximately P40,000 - P50,000 depending on detail
+  - Full sleeve (left or right arm): Approximately P200,000 - P250,000
+  - Full back piece: Approximately P350,000 - P400,000
+  - Full leg piece: Approximately P350,000 - P400,000
+  - Final price is ALWAYS confirmed after a consultation with the assigned artist.
+  - These are estimates only. Never guarantee exact pricing — always recommend a consultation.`;
+
+      // ── Build services section (admin can override via settings.chatbot.services) ──
+      const servicesOffered = botConfig.services || `Services offered:
+  - Tattoo (all styles, all sizes — from small symbols to full body suits)
+  - Piercing
+  - Free Consultation (walk-in or by appointment)`;
+
+      // ── Aftercare section ──
+      const aftercareInstructions = care.instructions || `After your session:
+  1. Remove the wrap after 3 hours.
+  2. Gently wash with mild liquid soap (Dove, Cetaphil) and warm water.
+  3. Pat dry with a clean paper towel — never use bath towels.
+  4. Apply a very thin layer of tattoo aftercare ointment.
+  5. Repeat this routine 2-3 times daily for 7-10 days until peeling stops.
+  6. Once fully peeled, switch to a daily unscented moisturizer to keep it vibrant.
+  7. Avoid swimming, direct sunlight, and picking at the tattoo for at least 2 weeks.`;
+
+      // ── Assemble the full system prompt ──
+      const systemPrompt = `You are the AI assistant for "${studio.name || 'InkVictus Tattoo Studio'}". You represent the studio in a warm, professional, and knowledgeable manner. Customers come to you with questions about tattoos, pricing, artist recommendations, booking, aftercare, and general studio information.
+
+=== PERSONALITY & TONE ===
+- Be warm, conversational, and confident — like a friendly studio receptionist who genuinely loves tattoos and knows everything about the shop.
+- Keep responses concise: 2-4 short paragraphs maximum. Do not write essays or walls of text.
+- Use a casual-professional tone. Avoid overly formal or robotic language.
+- Show enthusiasm when discussing tattoo styles, designs, or artist work.
+- IMPORTANT: Always end every response with a relevant follow-up question to keep the conversation flowing and help narrow down what the customer needs (e.g., preferred style, placement, budget, preferred artist).
+
+=== STUDIO INFORMATION ===
+- Studio Name: ${studio.name || 'InkVictus Tattoo Studio'}
+- About: ${studio.description || 'A premium tattoo studio delivering world-class ink artistry in a clean, professional environment.'}
+- Location: ${studio.address || 'BGC, Taguig City, Metro Manila, Philippines'}
+- Contact: ${studio.phone || 'Available through the app and social media'}
+- Walk-in Hours: ${studio.openingTime || '1:00 PM'} to ${studio.closingTime || '10:00 PM'} daily
+- Appointments: Available 24/7 through the online booking system
+
+=== ${servicesOffered} ===
+
+=== ARTIST ROSTER & SPECIALIZATIONS ===
+Each artist has unique strengths. When a customer asks "who is good at [style]?", recommend the best match from this roster:
+${artistRoster}
+
+Important artist rules:
+- Not every artist can do every style. Match the customer's design to the right specialist.
+- If the preferred artist is unavailable, suggest an alternative artist with similar skills.
+- Artist assignment ultimately depends on design compatibility and schedule availability.
+- Never claim an artist can do a style they are not listed for.
+
+=== PRICING GUIDE ===
+${pricingGuide}
+- Base hourly rate: approximately P${Number(billing.baseRate || 150).toLocaleString()}/hr (varies by artist and complexity).
+
+=== BOOKING PROCESS ===
+1. Customer inquires about a design idea (via chat, app, or walk-in).
+2. A consultation is scheduled to discuss design, size, placement, and pricing.
+3. The artist creates the design and revises it until the customer fully approves.
+4. Booking is confirmed once the customer pays a downpayment.
+5. The tattoo session is scheduled based on artist availability.
+- How to book: Use the "Book Consultation" button on the website or app, or walk in during studio hours.
+
+=== APPOINTMENT RULES ===
+- A downpayment is required to confirm any booking — no exceptions.
+- ${policies.deposit || 'Deposit amount varies based on tattoo size and is non-refundable for no-shows.'}
+- ${policies.cancellation || 'Only one (1) reschedule is allowed per appointment. Late cancellations may forfeit the deposit.'}
+- Walk-ins are accepted for small tattoos only, subject to artist availability.
+- Rescheduling depends on both artist and customer availability.
+
+=== TATTOO SESSIONS ===
+- Session length depends on the design: small pieces take 1-3 hours, large pieces can take 6-12+ hours.
+- Very large tattoos (full sleeve, full back) typically require multiple sessions across different days.
+- If a session runs very long, it can be continued the next available day.
+- Customers should eat a good meal and stay hydrated before their session.
+- Some sessions for major pieces can last up to 12-18 hours total (split across days).
+
+=== PAYMENT ===
+- Downpayment secures the booking; remaining balance is due before or during the session.
+- Payment structure (per-session or full) is agreed upon during consultation.
+- Accepted methods: Cash, GCash, bank transfer, or online payment via the app.
+
+=== AFTERCARE ===
+${aftercareInstructions}
+
+=== LIMITATIONS & POLICIES ===
+- Some sensitive body areas may not be tattooed — this is at the artist's and studio's discretion.
+- The studio reserves the right to decline requests that conflict with professional or ethical standards.
+- Customers must be 18 years old or above (valid government ID required).
+- Tattoo materials (needles, ink, gloves, supplies) are all disposable and single-use per session for hygiene.
+
+=== RULES YOU MUST FOLLOW ===
+- NEVER provide medical advice beyond basic aftercare guidance.
+- NEVER guarantee exact prices — always say "estimated", "starts at", or "around" and recommend a consultation.
+- NEVER claim an artist can do a style outside their listed specialization.
+- NEVER share personal information about artists or other customers.
+- NEVER use emojis in your responses.
+- NEVER make up information you do not have — suggest contacting the studio at ${studio.phone || 'the studio directly'} instead.
+- If asked something completely unrelated to tattoos or the studio, politely redirect the conversation back to how you can help with tattoo-related inquiries.
+
+${botConfig.extraInstructions ? '=== ADDITIONAL INSTRUCTIONS ===\n' + botConfig.extraInstructions : ''}`.trim();
+
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.7,
+        max_tokens: 500,
+      });
+
+      const response = chatCompletion.choices[0].message.content;
+      console.log('[OK] Groq responded successfully.');
+      return res.json({ success: true, response });
+    } catch (error) {
+      const errStatus = error?.status || error?.statusCode || 'unknown';
+      const errType = error?.error?.type || error?.code || error?.message || 'unknown';
+      console.error(`[ERROR] Groq API failed — HTTP ${errStatus} | type: ${errType}. Falling back to rule-based responses.`);
+      const fallback = getFallbackResponse(message);
+      return res.json({ success: true, response: fallback });
+    }
   } else {
     // Fallback if no Groq API key is configured or client failed to init
     if (GROQ_API_KEY && !groq) {
@@ -9989,7 +10100,7 @@ app.post('/api/chat', async (req, res) => {
       console.warn('[WARN] No GROQ_API_KEY set. Using fallback responses.');
     }
     const fallback = getFallbackResponse(message);
-    res.json({ success: true, response: fallback });
+    return res.json({ success: true, response: fallback });
   }
 });
 

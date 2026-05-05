@@ -21,6 +21,8 @@ import { EmptyState } from '../src/components/shared/EmptyState';
 import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { getCustomerDashboard } from '../src/utils/api';
 import { getCustomerFavoriteWorks, getCustomerMyTattoos } from '../src/api/customerAPI';
+import { getGalleryWorks } from '../src/utils/api';
+import { Image } from 'react-native';
 
 // --- Animated Button Wrapper for "Bouncy" feel ---
 const AnimatedTouchable = ({ children, onPress, style, activeOpacity = 0.9 }) => {
@@ -45,6 +47,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
   const [dashboardData, setDashboardData] = useState(null);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [myTattoosCount, setMyTattoosCount] = useState(0);
+  const [trendingWorks, setTrendingWorks] = useState([]);
 
   const loadDashboard = async () => {
     if (!userId) return;
@@ -57,6 +60,12 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
 
       const tattoosResult = await getCustomerMyTattoos(userId);
       if (tattoosResult.success) setMyTattoosCount((tattoosResult.tattoos || []).length);
+
+      const galleryResult = await getGalleryWorks();
+      if (galleryResult.success && galleryResult.works?.length > 0) {
+        const shuffled = [...galleryResult.works].sort(() => 0.5 - Math.random());
+        setTrendingWorks(shuffled.slice(0, 5));
+      }
     } catch (e) { console.error('Dashboard error:', e); }
     finally { setLoading(false); setRefreshing(false); }
   };
@@ -94,13 +103,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
     { title: 'Gallery', subtitle: 'Browse designs', Icon: Images, screen: 'Gallery', color: colors.iconPurple, bg: colors.iconPurpleBg },
   ];
 
-  const trendingStyles = [
-    { name: 'Minimalist', Icon: Palette },
-    { name: 'Traditional', Icon: Palette },
-    { name: 'Watercolor', Icon: Palette },
-    { name: 'Geometric', Icon: Palette },
-    { name: 'Blackwork', Icon: Palette },
-  ];
+
 
   if (loading && !refreshing) {
     return (
@@ -179,7 +182,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Up Next</Text>
           {nextApt ? (
-            <AnimatedTouchable onPress={() => onNavigate('Appointments')} style={styles.heroCard}>
+            <AnimatedTouchable onPress={() => onNavigate('Appointments', { openAppointmentId: nextApt.id })} style={styles.heroCard}>
               <View style={styles.heroAccent} />
               <View style={styles.heroContent}>
                 <View style={{ flex: 1 }}>
@@ -214,7 +217,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
         {/* Healing Journey Tracker */}
         {myTattoosCount > 0 && (
           <View style={styles.section}>
-            <AnimatedTouchable style={styles.healingCard} onPress={() => onNavigate('Gallery', { initialViewMode: 'My Tattoos' })}>
+            <AnimatedTouchable style={styles.healingCard} onPress={() => onNavigate('CustomerAftercare')}>
               <View style={styles.healingHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Activity size={16} color={colors.gold} />
@@ -279,7 +282,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
               </TouchableOpacity>
             </View>
             {upcomingApts.map(apt => (
-              <AnimatedTouchable key={apt.id} style={styles.aptCard} onPress={() => onNavigate('Appointments')}>
+              <AnimatedTouchable key={apt.id} style={styles.aptCard} onPress={() => onNavigate('Appointments', { openAppointmentId: apt.id })}>
                 <View style={styles.aptDetails}>
                   <Text style={styles.aptType} numberOfLines={1}>{apt.type}</Text>
                   <Text style={styles.aptMeta}>{apt.artist} • {apt.date}</Text>
@@ -299,13 +302,13 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trendingScroll}>
-            {trendingStyles.map((s, i) => (
-              <AnimatedTouchable key={i} onPress={() => onNavigate('Gallery', { searchQuery: s.name })}>
+            {trendingWorks.map((work, i) => (
+              <AnimatedTouchable key={i} onPress={() => onNavigate('Gallery', { initialCategory: work.category })}>
                 <View style={styles.trendingCard}>
                   <View style={styles.trendingIconWrap}>
-                    <s.Icon size={20} color={colors.textSecondary} />
+                    <Image source={{ uri: work.image_url }} style={styles.trendingImage} />
                   </View>
-                  <Text style={styles.trendingText}>{s.name}</Text>
+                  <Text style={styles.trendingText} numberOfLines={1}>{work.category || 'Tattoo'}</Text>
                 </View>
               </AnimatedTouchable>
             ))}
@@ -476,10 +479,11 @@ const getStyles = (colors) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   trendingIconWrap: {
-    width: 32, height: 32, borderRadius: 8, backgroundColor: colors.darkBgSecondary,
-    justifyContent: 'center', alignItems: 'center',
+    width: 36, height: 36, borderRadius: 8, backgroundColor: colors.darkBgSecondary,
+    justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
   },
-  trendingText: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary },
+  trendingImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  trendingText: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary, maxWidth: 80 },
 
   // Action Row Cards (Feedback & AI)
   actionRowCard: {

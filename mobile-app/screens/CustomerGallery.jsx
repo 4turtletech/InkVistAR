@@ -34,10 +34,11 @@ export function CustomerGallery({ onBack, userId }) {
   const route = useRoute();
   const initialQuery = route.params?.searchQuery || '';
   const initialViewMode = route.params?.initialViewMode || 'All';
+  const initialCategory = route.params?.initialCategory || null;
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState(initialCategory ? [initialCategory] : []);
   const [sortOrder, setSortOrder] = useState('desc');
   const [works, setWorks] = useState([]);
   const [viewMode, setViewMode] = useState(initialViewMode);
@@ -57,7 +58,8 @@ export function CustomerGallery({ onBack, userId }) {
   useEffect(() => {
     if (route.params?.searchQuery) setSearchQuery(route.params.searchQuery);
     if (route.params?.initialViewMode && route.params.initialViewMode !== viewMode) setViewMode(route.params.initialViewMode);
-  }, [route.params?.searchQuery, route.params?.initialViewMode]);
+    if (route.params?.initialCategory) setSelectedCategories([route.params.initialCategory]);
+  }, [route.params?.searchQuery, route.params?.initialViewMode, route.params?.initialCategory]);
 
   const fetchWorks = async () => {
     setLoading(true);
