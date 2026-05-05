@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Animated, PanResponder, Dimensions
+  View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Animated, PanResponder, Dimensions, LayoutAnimation
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -64,7 +64,6 @@ const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, 
   const pan = useRef(new Animated.ValueXY()).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const itemHeight = useRef(new Animated.Value(100)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -87,9 +86,7 @@ const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, 
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dx < -SCREEN_WIDTH * 0.3) {
           Animated.timing(pan, { toValue: { x: -SCREEN_WIDTH, y: 0 }, duration: 200, useNativeDriver: false }).start(() => {
-            Animated.timing(itemHeight, { toValue: 0, duration: 200, useNativeDriver: false }).start(() => {
-              onDismiss(item.id);
-            });
+            onDismiss(item.id);
           });
         } else {
           Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
@@ -102,13 +99,13 @@ const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, 
   ).current;
 
   return (
-    <Animated.View style={{ height: itemHeight, overflow: 'hidden' }}>
-      <Animated.View style={{ opacity, transform: [{ translateY: slideAnim }], flex: 1 }}>
+    <View style={{ marginBottom: 8 }}>
+      <Animated.View style={{ opacity, transform: [{ translateY: slideAnim }] }}>
       <View style={styles.deleteBg}>
         <Trash2 size={24} color="#ffffff" />
         <Text style={styles.deleteText}>Delete</Text>
       </View>
-      <Animated.View {...panResponder.panHandlers} style={[pan.getLayout(), { flex: 1 }]}>
+      <Animated.View {...panResponder.panHandlers} style={[pan.getLayout()]}>
         <TouchableOpacity style={[styles.card, !item.is_read && styles.cardUnread]} onPress={() => onPress(item)} activeOpacity={0.9}>
           {!item.is_read && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(190,144,85,0.06)', borderRadius: borderRadius.xl }]} pointerEvents="none" />}
           <View style={[styles.iconWrap, { backgroundColor: cfg.bg || theme.surfaceLight }]}>
@@ -129,8 +126,7 @@ const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, 
           {!item.is_read && <View style={styles.unreadDot} />}
         </TouchableOpacity>
       </Animated.View>
-      </Animated.View>
-    </Animated.View>
+    </View>
   );
 };
 
@@ -188,6 +184,7 @@ export function CustomerNotifications({ onBack, userId }) {
   const onUnread = async (item) => { await markNotificationAsUnread(item.id); setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: false } : n)); };
   const onDismiss = async (id) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setNotifications(prev => prev.filter(n => n.id !== id));
     await deleteNotification(id);
   };
@@ -316,11 +313,11 @@ const getStyles = (theme) => StyleSheet.create({
   dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border },
   dropdownText: { ...typography.bodySmall, color: theme.textPrimary },
   listContent: { padding: 16 },
-  deleteBg: { position: 'absolute', right: 0, top: 0, bottom: 8, width: 80, backgroundColor: theme.error, borderRadius: borderRadius.xl, justifyContent: 'center', alignItems: 'center' },
+  deleteBg: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 80, backgroundColor: theme.error, borderRadius: borderRadius.xl, justifyContent: 'center', alignItems: 'center' },
   deleteText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700', marginTop: 4 },
   card: {
     flexDirection: 'row', backgroundColor: theme.surface, borderRadius: borderRadius.xl,
-    padding: 14, marginBottom: 8, alignItems: 'flex-start',
+    padding: 14, alignItems: 'flex-start',
     borderWidth: 1, borderColor: theme.border, ...shadows.subtle
   },
   cardUnread: { borderLeftWidth: 3, borderLeftColor: theme.gold },
