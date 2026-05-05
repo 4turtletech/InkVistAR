@@ -10,7 +10,7 @@ import {
   RefreshControl, KeyboardAvoidingView, Platform
 } from 'react-native';
 import {
-  Search, FileText, Banknote, Plus, X, ChevronLeft,
+  Search, FileText, Banknote, Plus, X, ChevronLeft, Eye, Filter, CheckCircle, Clock, AlertCircle,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
@@ -37,8 +37,28 @@ export const AdminBilling = ({ navigation }) => {
   const [artists, setArtists] = useState([]);
   const [search, setSearch] = useState('');
 
+  const [invoiceDetail, setInvoiceDetail] = useState(null);
+  const [periodFilter, setPeriodFilter] = useState('all'); // all | weekly | monthly | yearly
+  const [statusFilter, setStatusFilter] = useState('all');
   const [payoutModalVisible, setPayoutModalVisible] = useState(false);
   const [payoutForm, setPayoutForm] = useState({ artistId: '', amount: '', method: 'Cash', reference: '' });
+
+  const matchesPeriod = (dateStr) => {
+    if (periodFilter === 'all') return true;
+    const d = new Date(dateStr);
+    const now = new Date();
+    if (periodFilter === 'weekly') {
+      const dayOfWeek = now.getDay();
+      const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - mondayOffset);
+      weekStart.setHours(0, 0, 0, 0);
+      return d >= weekStart;
+    }
+    if (periodFilter === 'monthly') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    if (periodFilter === 'yearly') return d.getFullYear() === now.getFullYear();
+    return true;
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -46,29 +66,20 @@ export const AdminBilling = ({ navigation }) => {
       const token = await AsyncStorage.getItem('auth_token');
       const headers = { Authorization: `Bearer ${token}` };
 
-      // Try fetching stats to populate tables (simulating AdminBilling.js calls)
-      const resStats = await fetch(`${API_BASE_URL}/api/admin/billing/stats`, { headers });
-      const statsData = await resStats.json();
+      const [resInvoices, resPayouts, resArtists] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/invoices`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/payouts`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/users?role=artist`, { headers }),
+      ]);
 
-      if (statsData.success) {
-        // In a real scenario, these would be proper arrays from the backend.
-        // Assuming the backend has `/api/admin/billing/invoices` and `/api/admin/payouts`
-        
-        // Let's fetch invoices and payouts
-        const [resInvoices, resPayouts, resArtists] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/admin/billing/invoices`, { headers }),
-          fetch(`${API_BASE_URL}/api/admin/payouts`, { headers }),
-          fetch(`${API_BASE_URL}/api/admin/users?role=artist`, { headers })
-        ]);
-        
-        const invData = await resInvoices.json();
-        const payData = await resPayouts.json();
-        const artData = await resArtists.json();
-        
-        setInvoices(invData.success ? (invData.invoices || invData.data || []) : []);
-        setPayouts(payData.success ? (payData.payouts || payData.data || []) : []);
-        setArtists(artData.success ? (artData.users?.filter(u => u.user_type === 'artist') || []) : []);
-      }
+      const invData = await resInvoices.json().catch(() => ({}));
+      const payData = await resPayouts.json().catch(() => ({}));
+      const artData = await resArtists.json().catch(() => ({}));
+
+      setInvoices(invData.success ? (invData.data || invData.invoices || []) : []);
+      setPayouts(payData.success ? (payData.data || payData.payouts || []) : []);
+      const allArtUsers = artData.success ? (artData.users || artData.data || []) : [];
+      setArtists(allArtUsers.filter(u => u.user_type === 'artist' || u.role === 'artist'));
     } catch (e) {
       console.warn('AdminBilling fetch error:', e);
     } finally {
@@ -76,9 +87,26 @@ export const AdminBilling = ({ navigation }) => {
     }
   };
 
+  const loadArtists = async () => {
+    try {
+      const token = await AsyncStorage.getItem('auth_token');
+      const res = await fetch(`${API_BASE_URL}/api/admin/users?role=artist`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setArtists((data.users || data.data || []).filter(u => u.user_type === 'artist' || u.role === 'artist'));
+      }
+    } catch (e) {
+      console.warn('AdminBilling artists fetch error:', e);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadArtists();
   }, []);
+
 
   const handleRecordPayout = async () => {
     if (!payoutForm.artistId || !payoutForm.amount) {
@@ -114,17 +142,18 @@ export const AdminBilling = ({ navigation }) => {
 
   const renderInvoice = ({ item, index }) => (
     <StaggerItem index={index}>
-      <View style={styles.card}>
+      <AnimatedTouchable style={styles.card} onPress={() => setInvoiceDetail(item)}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{item.invoice_number || `INV-${item.id}`}</Text>
+          <Text style={styles.cardTitle}>{item.invoice_number || `INV-${String(item.id).padStart(6,'0')}`}</Text>
           <StatusBadge status={item.status || 'paid'} />
         </View>
-        <Text style={styles.cardSub}>Client: {item.client_name}</Text>
+        <Text style={styles.cardSub}>Client: {item.client_name || 'Walk-in Customer'}</Text>
+        {item.service_type ? <Text style={styles.cardSub}>Service: {item.service_type}</Text> : null}
         <View style={styles.cardFooter}>
           <Text style={styles.cardDate}>{formatDate(item.created_at || item.date)}</Text>
           <Text style={styles.cardAmount}>P{formatCurrency(item.amount)}</Text>
         </View>
-      </View>
+      </AnimatedTouchable>
     </StaggerItem>
   );
 
@@ -186,13 +215,80 @@ export const AdminBilling = ({ navigation }) => {
         />
       </View>
 
+      {/* Stats Row - Invoices */}
+      {activeTab === 'invoices' && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 10 }}>
+          <View style={[styles.statChip, { backgroundColor: theme.successBg || 'rgba(16,185,129,0.12)' }]}>
+            <CheckCircle size={14} color={theme.success} />
+            <Text style={[styles.statChipText, { color: theme.success }]}>
+              {invoices.filter(i => (i.status || '').toLowerCase() === 'paid').length} Paid
+            </Text>
+          </View>
+          <View style={[styles.statChip, { backgroundColor: theme.warningBg || 'rgba(245,158,11,0.12)' }]}>
+            <Clock size={14} color={theme.warning} />
+            <Text style={[styles.statChipText, { color: theme.warning }]}>
+              {invoices.filter(i => (i.status || '').toLowerCase() === 'pending').length} Pending
+            </Text>
+          </View>
+          <View style={[styles.statChip, { backgroundColor: theme.surfaceLight }]}>
+            <FileText size={14} color={theme.textSecondary} />
+            <Text style={[styles.statChipText, { color: theme.textSecondary }]}>{invoices.length} Total</Text>
+          </View>
+          <View style={[styles.statChip, { backgroundColor: 'rgba(190,144,85,0.12)' }]}>
+            <Text style={[styles.statChipText, { color: theme.gold, fontWeight: '800' }]}>
+              P{formatCurrency(invoices.filter(i => (i.status||'').toLowerCase() === 'paid').reduce((s,i) => s + parseFloat(i.amount||0), 0))}
+            </Text>
+          </View>
+        </ScrollView>
+      )}
+
+      {/* Period + Status Filters */}
+      <View style={styles.filtersRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}>
+          {['all', 'weekly', 'monthly', 'yearly'].map(p => (
+            <AnimatedTouchable
+              key={p}
+              style={[styles.filterPill, periodFilter === p && styles.filterPillActive]}
+              onPress={() => setPeriodFilter(p)}
+            >
+              <Text style={[styles.filterPillText, periodFilter === p && styles.filterPillTextActive]}>
+                {p === 'all' ? 'All Time' : p.charAt(0).toUpperCase() + p.slice(1)}
+              </Text>
+            </AnimatedTouchable>
+          ))}
+          {activeTab === 'invoices' && ['all', 'paid', 'pending', 'cancelled'].map(s => (
+            <AnimatedTouchable
+              key={s}
+              style={[styles.filterPill, statusFilter === s && styles.filterPillActive]}
+              onPress={() => setStatusFilter(s)}
+            >
+              <Text style={[styles.filterPillText, statusFilter === s && styles.filterPillTextActive]}>
+                {s === 'all' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}
+              </Text>
+            </AnimatedTouchable>
+          ))}
+        </ScrollView>
+      </View>
+
       {loading ? (
         <PremiumLoader message="Loading financials..." />
       ) : (
         <FlatList
-          data={activeTab === 'invoices' 
-            ? invoices.filter(i => (i.client_name||'').toLowerCase().includes(search.toLowerCase()) || (i.invoice_number||'').toLowerCase().includes(search.toLowerCase()))
-            : payouts.filter(p => (p.artist_name||'').toLowerCase().includes(search.toLowerCase()))}
+          data={activeTab === 'invoices'
+            ? invoices.filter(i => {
+                const q = search.toLowerCase();
+                const matchesSearch = (i.client_name||'').toLowerCase().includes(q) || (i.invoice_number||'').toLowerCase().includes(q) || (i.service_type||'').toLowerCase().includes(q);
+                const matchesStatus = statusFilter === 'all' || (i.status||'').toLowerCase() === statusFilter;
+                const matchesPer = matchesPeriod(i.created_at || i.date);
+                return matchesSearch && matchesStatus && matchesPer;
+              })
+            : payouts.filter(p => {
+                const q = search.toLowerCase();
+                const matchesSearch = (p.artist_name||'').toLowerCase().includes(q) || (p.reference_number||p.reference_no||'').toLowerCase().includes(q);
+                const matchesPer = matchesPeriod(p.created_at || p.payout_date);
+                return matchesSearch && matchesPer;
+              })
+          }
           renderItem={activeTab === 'invoices' ? renderInvoice : renderPayout}
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={styles.listContent}
@@ -200,6 +296,55 @@ export const AdminBilling = ({ navigation }) => {
           refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={theme.gold} />}
         />
       )}
+
+      {/* Invoice Detail Modal */}
+      <Modal visible={!!invoiceDetail} transparent animationType="slide" onRequestClose={() => setInvoiceDetail(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Invoice Detail</Text>
+              <AnimatedTouchable onPress={() => setInvoiceDetail(null)}>
+                <X size={22} color={theme.textSecondary} />
+              </AnimatedTouchable>
+            </View>
+            {invoiceDetail && (
+              <ScrollView style={styles.modalBody}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Invoice No.</Text>
+                  <Text style={styles.detailValue}>{invoiceDetail.invoice_number || `INV-${String(invoiceDetail.id).padStart(6,'0')}`}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Client</Text>
+                  <Text style={styles.detailValue}>{invoiceDetail.client_name || 'Walk-in Customer'}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Service</Text>
+                  <Text style={styles.detailValue}>{invoiceDetail.service_type || 'N/A'}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Date</Text>
+                  <Text style={styles.detailValue}>{formatDate(invoiceDetail.created_at || invoiceDetail.date)}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Amount</Text>
+                  <Text style={[styles.detailValue, { color: theme.success, fontWeight: '800' }]}>P{formatCurrency(invoiceDetail.amount)}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Status</Text>
+                  <StatusBadge status={invoiceDetail.status || 'paid'} />
+                </View>
+                {invoiceDetail.appointment_id && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Booking</Text>
+                    <Text style={styles.detailValue}>#{invoiceDetail.appointment_id}</Text>
+                  </View>
+                )}
+                <View style={{ height: 30 }} />
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Record Payout Modal */}
       <Modal visible={payoutModalVisible} transparent animationType="slide">
@@ -215,9 +360,15 @@ export const AdminBilling = ({ navigation }) => {
               <Text style={styles.inputLabel}>Select Artist</Text>
               <View style={styles.statusRow}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {artists.map(a => (
-                    <AnimatedTouchable key={a.id} style={[styles.statusBtn, payoutForm.artistId === a.id && styles.statusBtnActive]} onPress={() => setPayoutForm({...payoutForm, artistId: a.id})}>
-                      <Text style={[styles.statusBtnText, payoutForm.artistId === a.id && styles.statusBtnTextActive]}>{a.name}</Text>
+                  {artists.length === 0 ? (
+                    <Text style={styles.emptyArtistText}>No artists found. Please try again.</Text>
+                  ) : artists.map(a => (
+                    <AnimatedTouchable
+                      key={String(a.id)}
+                      style={[styles.statusBtn, String(payoutForm.artistId) === String(a.id) && styles.statusBtnActive]}
+                      onPress={() => setPayoutForm({...payoutForm, artistId: String(a.id)})}
+                    >
+                      <Text style={[styles.statusBtnText, String(payoutForm.artistId) === String(a.id) && styles.statusBtnTextActive]}>{a.name}</Text>
                     </AnimatedTouchable>
                   ))}
                 </ScrollView>
@@ -275,6 +426,19 @@ const getStyles = (theme, insets) => StyleSheet.create({
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 12 },
   cardDate: { ...typography.bodyXSmall, color: theme.textTertiary },
   cardAmount: { ...typography.h3, color: theme.success },
+  filtersRow: { borderBottomWidth: 1, borderBottomColor: theme.border },
+  filterPill: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+    backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border,
+  },
+  filterPillActive: { backgroundColor: theme.gold, borderColor: theme.gold },
+  filterPillText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '700' },
+  filterPillTextActive: { color: theme.backgroundDeep },
+  statChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20 },
+  statChipText: { ...typography.bodyXSmall, fontWeight: '700' },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.border },
+  detailLabel: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600', textTransform: 'uppercase' },
+  detailValue: { ...typography.body, color: theme.textPrimary, textAlign: 'right', fontWeight: '500', flex: 1, marginLeft: 12 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,13,14,0.7)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: theme.surface, borderTopLeftRadius: borderRadius.xxl, borderTopRightRadius: borderRadius.xxl, maxHeight: '85%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: theme.border },
@@ -289,4 +453,5 @@ const getStyles = (theme, insets) => StyleSheet.create({
   statusBtnTextActive: { color: theme.gold },
   saveBtn: { backgroundColor: theme.gold, padding: 16, borderRadius: borderRadius.lg, alignItems: 'center', marginTop: 10 },
   saveBtnText: { ...typography.body, color: theme.backgroundDeep, fontWeight: '700' },
+  emptyArtistText: { ...typography.bodySmall, color: theme.textTertiary, fontStyle: 'italic', padding: 8 },
 });

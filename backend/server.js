@@ -9806,7 +9806,7 @@ function getFallbackResponse(message) {
   if (msg.includes('care') || msg.includes('heal') || msg.includes('clean') || msg.includes('after') || msg.includes('peeling') || msg.includes('moisturize') || msg.includes('ointment') || msg.includes('wash') || msg.includes('dry') || msg.includes('aftercare') || msg.includes('after care') || msg.includes('tattoo care') || msg.includes('tattoo healing') || msg.includes('tattoo cleaning') || msg.includes('tattoo moisturizing')) {
     return "Keep your fresh ink clean, moisturized, and healing perfectly by following these daily steps:\n\n1. Unwrap: Remove the plastic wrap exactly 3 hours after your session.\n2. Wash Gently: Clean the area using warm water and a mild liquid soap, like Dove or Cetaphil.\n3. Pat Dry: Use only a clean paper towel or tissue to avoid bacteria or fuzz from bath towels.\n4. Apply Ointment: Wash your hands, then apply a very thin layer of tattoo aftercare ointment.\n5. Repeat Daily: Do this routine 2 to 3 times a day for 7 to 10 days until the peeling stops.\n6. Switch to Lotion: Once completely peeled, switch to a daily moisturizer to keep it vibrant.";
   }
-  return "I am currently unavailable due to token response limitations. Please try again later.";
+  return "I'm not sure about that one. For specific questions, please contact us directly or visit the studio. We'd love to help!";
 }
 
 // ========== AR FEATURES ==========
@@ -9908,8 +9908,8 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Message required' });
   }
 
-  // Try Groq if key exists
-  if (GROQ_API_KEY) {
+  // Try Groq if key exists AND client was successfully initialized
+  if (GROQ_API_KEY && groq) {
     // Fetch settings from DB to build a dynamic context
     db.query('SELECT * FROM app_settings', async (err, settingsResults) => {
       if (err) {
@@ -9965,15 +9965,24 @@ app.post('/api/chat', async (req, res) => {
         });
 
         const response = chatCompletion.choices[0].message.content;
+        console.log('[OK] Groq responded successfully.');
         return res.json({ success: true, response: response });
       } catch (error) {
-        console.error('[ERROR] Groq API error (Falling back to local):', error);
+        // Surface the real error in logs so Railway logs show the actual cause
+        const errStatus = error?.status || error?.statusCode || 'unknown';
+        const errType = error?.error?.type || error?.code || error?.message || 'unknown';
+        console.error(`[ERROR] Groq API failed — HTTP ${errStatus} | type: ${errType}. Falling back to rule-based responses.`);
         const fallback = getFallbackResponse(message);
         res.json({ success: true, response: fallback });
       }
     });
   } else {
-    // Fallback if no Groq API key is configured
+    // Fallback if no Groq API key is configured or client failed to init
+    if (GROQ_API_KEY && !groq) {
+      console.warn('[WARN] GROQ_API_KEY is set but groq client is null — client failed to initialize. Using fallback.');
+    } else {
+      console.warn('[WARN] No GROQ_API_KEY set. Using fallback responses.');
+    }
     const fallback = getFallbackResponse(message);
     res.json({ success: true, response: fallback });
   }

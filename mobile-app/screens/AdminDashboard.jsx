@@ -21,7 +21,7 @@ import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { formatCurrency, formatDate, formatTime, getDisplayCode } from '../src/utils/formatters';
 import {
   getAdminDashboard, getAdminAppointments, getAdminAnalytics,
-  updateAppointmentStatus
+  updateAppointmentStatus, getAdminInventory
 } from '../src/utils/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -47,6 +47,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
   const [appointments, setAppointments] = useState([]);
   const [artistStatus, setArtistStatus] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [inventoryAlerts, setInventoryAlerts] = useState({ outOfStock: [], lowStock: [] });
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,6 +87,23 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
 
       if (analyticsRes.success && analyticsRes.data) {
         processAnalyticsStats(analyticsRes.data);
+      }
+
+      // Inventory low-stock alerts
+      try {
+        const invRes = await getAdminInventory();
+        if (invRes.success) {
+          const items = invRes.data || invRes.inventory || invRes.items || [];
+          const outOfStock = items.filter(i => (i.quantity || i.stock || 0) <= 0);
+          const lowStock = items.filter(i => {
+            const qty = i.quantity || i.stock || 0;
+            const min = i.minimum_stock || i.reorder_level || 5;
+            return qty > 0 && qty <= min;
+          });
+          setInventoryAlerts({ outOfStock, lowStock });
+        }
+      } catch (e) {
+        console.warn('Inventory alert fetch error:', e);
       }
     } catch (e) {
       console.error('Dashboard fetch error:', e);
@@ -276,7 +294,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
           </StaggerItem>
         )}
 
-        {alerts.length > 0 && (
+        {(alerts.length > 0 || inventoryAlerts.outOfStock.length > 0 || inventoryAlerts.lowStock.length > 0) && (
           <StaggerItem index={3}>
             <View style={styles.card}>
               <View style={styles.cardHeader}>
@@ -284,11 +302,35 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
                 <Text style={styles.cardTitle}>Action Required</Text>
               </View>
               {alerts.map((alert, index) => (
-                <View key={`alert-${alert.id || index}`} style={styles.alertItem}>
+                <AnimatedTouchable
+                  key={`alert-${alert.id || index}`}
+                  style={styles.alertItem}
+                  onPress={() => {
+                    if (alert.type === 'appointment') navigation?.navigate?.('Bookings');
+                    else if (alert.type === 'inventory') navigation?.navigate?.('admin-inventory');
+                    else if (alert.type === 'inventory_out') navigation?.navigate?.('admin-inventory');
+                  }}
+                >
                   <Text style={styles.alertText}>{alert.message}</Text>
                   <ChevronRight size={16} color={theme.textTertiary} />
-                </View>
+                </AnimatedTouchable>
               ))}
+              {inventoryAlerts.outOfStock.length > 0 && (
+                <AnimatedTouchable style={[styles.alertItem, { borderLeftWidth: 3, borderLeftColor: theme.error }]} onPress={() => navigation?.navigate?.('admin-inventory')}>
+                  <Text style={[styles.alertText, { color: theme.error, fontWeight: '700' }]}>
+                    {inventoryAlerts.outOfStock.length} item{inventoryAlerts.outOfStock.length !== 1 ? 's' : ''} out of stock
+                  </Text>
+                  <ChevronRight size={16} color={theme.error} />
+                </AnimatedTouchable>
+              )}
+              {inventoryAlerts.lowStock.length > 0 && (
+                <AnimatedTouchable style={[styles.alertItem, { borderLeftWidth: 3, borderLeftColor: theme.warning }]} onPress={() => navigation?.navigate?.('admin-inventory')}>
+                  <Text style={[styles.alertText, { color: theme.warning, fontWeight: '700' }]}>
+                    {inventoryAlerts.lowStock.length} item{inventoryAlerts.lowStock.length !== 1 ? 's' : ''} running low
+                  </Text>
+                  <ChevronRight size={16} color={theme.warning} />
+                </AnimatedTouchable>
+              )}
             </View>
           </StaggerItem>
         )}

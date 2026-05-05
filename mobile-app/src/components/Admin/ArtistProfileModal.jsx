@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert, FlatList, Image } from 'react-native';
 import { X, User, Calendar, Save, Palette, DollarSign } from 'lucide-react-native';
-import { colors, typography, borderRadius, shadows } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
+import { typography, borderRadius, shadows } from '../../theme';
 import { fetchAPI } from '../../utils/api';
 import { StatusBadge } from '../shared/StatusBadge';
 import { formatDate, formatTime, formatCurrency } from '../../utils/formatters';
 import { PremiumLoader } from '../shared/PremiumLoader';
 
 export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers }) => {
+  const { theme: colors } = useTheme();
+  const styles = getStyles(colors);
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
   
@@ -86,15 +89,24 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
     </View>
   );
 
-  const renderPortfolioItem = ({ item }) => (
-    <View style={styles.portfolioItem}>
-      <Image source={{ uri: item.image_url }} style={styles.portfolioImage} />
-      <View style={styles.portfolioOverlay}>
-        <Text style={styles.portfolioTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.portfolioCategory} numberOfLines={1}>{item.category || 'Uncategorized'}</Text>
+  const renderPortfolioItem = ({ item }) => {
+    const imgUri = item.image_url || item.thumbnail_url || null;
+    return (
+      <View style={styles.portfolioItem}>
+        {imgUri ? (
+          <Image source={{ uri: imgUri }} style={styles.portfolioImage} resizeMode="cover" />
+        ) : (
+          <View style={[styles.portfolioImage, { backgroundColor: colors.surfaceLight, justifyContent: 'center', alignItems: 'center' }]}>
+            <Palette size={28} color={colors.textTertiary} />
+          </View>
+        )}
+        <View style={styles.portfolioOverlay}>
+          <Text style={styles.portfolioTitle} numberOfLines={1}>{item.title || 'Untitled'}</Text>
+          <Text style={styles.portfolioCategory} numberOfLines={1}>{item.category || 'Uncategorized'}</Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderEarningsItem = ({ item }) => {
     const commissionRate = artistData.profile.commission_rate || 0.3;
@@ -195,7 +207,7 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
                 <FlatList
                   data={artistData.portfolio}
                   renderItem={renderPortfolioItem}
-                  keyExtractor={item => item.id.toString()}
+                  keyExtractor={(item, index) => (item.id != null ? item.id.toString() : `portfolio-${index}`)}
                   numColumns={2}
                   columnWrapperStyle={{ justifyContent: 'space-between' }}
                   contentContainerStyle={{ paddingBottom: 20 }}
@@ -244,39 +256,39 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#ffffff', borderTopLeftRadius: borderRadius.xxl, borderTopRightRadius: borderRadius.xxl, maxHeight: '85%', minHeight: '50%', ...shadows.cardStrong },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+  modalCard: { backgroundColor: colors.surface || '#1f1f2e', borderTopLeftRadius: borderRadius.xxl, borderTopRightRadius: borderRadius.xxl, maxHeight: '90%', minHeight: '50%', ...shadows.cardStrong },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  headerIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.lightBgSecondary, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  headerIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   headerTitle: { ...typography.h3, color: colors.textPrimary },
   headerSubtitle: { ...typography.bodyXSmall, color: colors.textTertiary },
   closeBtn: { padding: 4 },
-  
-  tabContainer: { borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+
+  tabContainer: { borderBottomWidth: 1, borderBottomColor: colors.border },
   tabBtn: { paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 8, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabBtnActive: { borderBottomColor: colors.primary },
+  tabBtnActive: { borderBottomColor: colors.gold },
   tabText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
-  tabTextActive: { color: colors.primary },
-  
+  tabTextActive: { color: colors.gold },
+
   body: { flex: 1, padding: 20 },
   inputLabel: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600', marginBottom: 6 },
-  input: { backgroundColor: colors.lightBgSecondary, color: colors.textPrimary, padding: 12, borderRadius: borderRadius.md, marginBottom: 16, ...typography.body, borderWidth: 1, borderColor: colors.border },
-  inputDisabled: { opacity: 0.6, backgroundColor: '#e2e8f0' },
-  
+  input: { backgroundColor: colors.surfaceLight, color: colors.textPrimary, padding: 12, borderRadius: borderRadius.md, marginBottom: 16, ...typography.body, borderWidth: 1, borderColor: colors.border },
+  inputDisabled: { opacity: 0.6 },
+
   statsRow: { flexDirection: 'row', gap: 12, marginTop: 10 },
-  statBox: { flex: 1, backgroundColor: colors.lightBgSecondary, padding: 16, borderRadius: borderRadius.lg, alignItems: 'flex-start', borderWidth: 1, borderColor: colors.border },
+  statBox: { flex: 1, backgroundColor: colors.surfaceLight, padding: 16, borderRadius: borderRadius.lg, alignItems: 'flex-start', borderWidth: 1, borderColor: colors.border },
   statLabel: { ...typography.bodyXSmall, color: colors.textTertiary, textTransform: 'uppercase', marginBottom: 4 },
   statValue: { ...typography.h3, color: colors.textPrimary },
 
-  footer: { flexDirection: 'row', padding: 20, borderTopWidth: 1, borderTopColor: colors.borderLight, gap: 12 },
-  cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: borderRadius.md, backgroundColor: colors.lightBgSecondary, alignItems: 'center' },
+  footer: { flexDirection: 'row', padding: 20, borderTopWidth: 1, borderTopColor: colors.border, gap: 12 },
+  cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: borderRadius.md, backgroundColor: colors.surfaceLight, alignItems: 'center' },
   cancelBtnText: { ...typography.button, color: colors.textSecondary },
-  saveBtn: { flex: 2, flexDirection: 'row', paddingVertical: 14, borderRadius: borderRadius.md, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', ...shadows.button },
-  saveBtnText: { ...typography.button, color: '#ffffff' },
+  saveBtn: { flex: 2, flexDirection: 'row', paddingVertical: 14, borderRadius: borderRadius.md, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center', ...shadows.button },
+  saveBtnText: { ...typography.button, color: colors.backgroundDeep },
 
-  scheduleCard: { backgroundColor: '#ffffff', padding: 14, borderRadius: borderRadius.lg, marginBottom: 10, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  scheduleCard: { backgroundColor: colors.surfaceLight, padding: 14, borderRadius: borderRadius.lg, marginBottom: 10, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   scheduleLeft: { flex: 1 },
   scheduleDate: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary },
   scheduleTime: { ...typography.bodyXSmall, color: colors.textSecondary, marginTop: 2 },
@@ -284,13 +296,13 @@ const styles = StyleSheet.create({
   scheduleRight: { alignItems: 'flex-end', gap: 6 },
   scheduleService: { ...typography.bodyXSmall, color: colors.textTertiary },
 
-  portfolioItem: { width: '48%', aspectRatio: 1, marginBottom: 16, borderRadius: borderRadius.md, overflow: 'hidden', backgroundColor: colors.lightBgSecondary },
-  portfolioImage: { width: '100%', height: '100%', objectFit: 'cover' },
+  portfolioItem: { width: '48%', aspectRatio: 1, marginBottom: 16, borderRadius: borderRadius.md, overflow: 'hidden', backgroundColor: colors.surfaceLight },
+  portfolioImage: { width: '100%', height: '100%' },
   portfolioOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', padding: 8 },
   portfolioTitle: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
   portfolioCategory: { color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 },
 
-  earningCard: { flexDirection: 'row', justifyContent: 'space-between', padding: 14, backgroundColor: '#ffffff', borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.md, marginBottom: 10 },
+  earningCard: { flexDirection: 'row', justifyContent: 'space-between', padding: 14, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.md, marginBottom: 10 },
   earningLeft: { flex: 1 },
   earningDate: { ...typography.bodySmall, fontWeight: '600', color: colors.textPrimary },
   earningClient: { ...typography.bodyXSmall, color: colors.textSecondary, marginTop: 4 },
@@ -300,3 +312,4 @@ const styles = StyleSheet.create({
 
   noData: { ...typography.body, color: colors.textTertiary, textAlign: 'center', marginTop: 40 },
 });
+

@@ -3,14 +3,14 @@
  * Theme-aware, animated, gold accents. Filters, sort, calendar, appointment cards, detail & add modals.
  */
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Modal, TextInput, Animated, Pressable, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Modal, TextInput, Animated, Pressable, RefreshControl, Share } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-import {
-  ArrowLeft, Calendar, CheckCircle2, ArrowUpDown, ChevronLeft, ChevronRight,
-  Clock, User, X,
+import { ArrowLeft, Calendar, CheckCircle2, ArrowUpDown, ChevronLeft, ChevronRight,
+  Clock, User, X, Ban, Download, Printer, Lock, Unlock,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as FileSystem from 'expo-file-system';
 import { typography } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
@@ -36,6 +36,10 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
   const [newTime, setNewTime] = useState('10:00');
   const [newDesign, setNewDesign] = useState('');
   const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '' });
+
+  // Date blocking
+  const [blockedDates, setBlockedDates] = useState([]);
+  const [blockModal, setBlockModal] = useState({ visible: false, date: '' });
 
   // Detail modal animation
   const slideAnim = useRef(new Animated.Value(800)).current;
@@ -105,6 +109,48 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
     else { setAlertModal({ visible: true, title: 'Error', message: r.message || 'Failed to schedule' }); }
   };
 
+  const toggleBlockDate = (date) => {
+    setBlockedDates(prev =>
+      prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date]
+    );
+    setBlockModal({ visible: false, date: '' });
+  };
+
+  const exportToCSV = async () => {
+    if (appointments.length === 0) {
+      setAlertModal({ visible: true, title: 'No Data', message: 'There are no appointments to export.' });
+      return;
+    }
+    const header = 'Booking Code,Client,Date,Time,Service,Status,Price,Payment';
+    const rows = appointments.map(a =>
+      `"${a.booking_code || a.id}","${a.client_name || ''}","${(a.appointment_date || '').substring(0,10)}","${a.start_time || ''}","${a.design_title || ''}","${a.status || ''}","${a.price || 0}","${a.payment_status || ''}"`
+    );
+    const csv = [header, ...rows].join('\n');
+    const fileName = `schedule_${new Date().toISOString().split('T')[0]}.csv`;
+    const fileUri = FileSystem.documentDirectory + fileName;
+    try {
+      await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      await Share.share({
+        title: 'Schedule Export',
+        message: `Schedule CSV exported. File saved at:\n${fileUri}\n\n${csv.substring(0, 500)}...`,
+        url: fileUri,
+      });
+    } catch (e) {
+      setAlertModal({ visible: true, title: 'Error', message: 'Failed to export schedule.' });
+    }
+  };
+
+  const printScheduleSummary = () => {
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const upcoming = appointments
+      .filter(a => a.status !== 'cancelled' && a.status !== 'completed')
+      .slice(0, 10)
+      .map(a => `• ${(a.appointment_date || '').substring(0,10)} ${a.start_time || ''} — ${a.client_name || 'Unknown'} (${a.design_title || 'Session'})`)
+      .join('\n');
+    const summary = `SCHEDULE SUMMARY\nGenerated: ${today}\nArtist ID: ${artistId}\n\nUpcoming Sessions:\n${upcoming || 'None'}`;
+    setAlertModal({ visible: true, title: 'Schedule Summary', message: summary });
+  };
+
   const changeMonth = (inc) => { const d = new Date(currentMonth); d.setMonth(d.getMonth() + inc); setCurrentMonth(d); };
 
   const renderCalendar = () => {
@@ -126,9 +172,31 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
         else if (appsOnDay.some(a => a.status === 'cancelled')) dotColor = colors.error;
         else dotColor = colors.textTertiary;
       }
+      const isBlocked = blockedDates.includes(ds);
       days.push(
-        <AnimatedTouchable key={i} style={[styles.dayCell, isSel && styles.selectedDay, !isSel && dotColor && { backgroundColor: dotColor + '15', borderWidth: 1, borderColor: dotColor + '40' }]} onPress={() => { if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedDate(isSel ? null : ds); if (selectedFilter === 'today') setSelectedFilter('all'); }}>
-          <Text style={[styles.dayText, isSel && styles.selectedDayText, !isSel && dotColor && { color: dotColor, fontWeight: '800' }]}>{i}</Text>
+        <AnimatedTouchable key={i}
+          style={[
+            styles.dayCell,
+            isSel && styles.selectedDay,
+            isBlocked && styles.blockedDay,
+            !isSel && !isBlocked && dotColor && { backgroundColor: dotColor + '15', borderWidth: 1, borderColor: dotColor + '40' }
+          ]}
+          onPress={() => {
+            if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (isBlocked) {
+              setBlockModal({ visible: true, date: ds });
+            } else {
+              setSelectedDate(isSel ? null : ds);
+              if (selectedFilter === 'today') setSelectedFilter('all');
+            }
+          }}
+          onLongPress={() => setBlockModal({ visible: true, date: ds })}
+        >
+          {isBlocked ? (
+            <Ban size={14} color={colors.error} />
+          ) : (
+            <Text style={[styles.dayText, isSel && styles.selectedDayText, !isSel && dotColor && { color: dotColor, fontWeight: '800' }]}>{i}</Text>
+          )}
         </AnimatedTouchable>
       );
     }
@@ -173,6 +241,29 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
           <AnimatedTouchable onPress={onBack} style={styles.backBtn}><ArrowLeft size={20} color={colors.textPrimary} /></AnimatedTouchable>
           <Text style={styles.headerTitle}>My Schedule</Text>
           <View style={{ width: 40 }} />
+        </View>
+
+        {/* Action Toolbar */}
+        <View style={styles.toolbarRow}>
+          <AnimatedTouchable
+            style={styles.toolbarBtn}
+            onPress={() => {
+              const today = new Date();
+              const ds = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+              setBlockModal({ visible: true, date: ds });
+            }}
+          >
+            <Ban size={16} color={colors.error} />
+            <Text style={[styles.toolbarBtnText, { color: colors.error }]}>Block Date</Text>
+          </AnimatedTouchable>
+          <AnimatedTouchable style={styles.toolbarBtn} onPress={exportToCSV}>
+            <Download size={16} color={colors.gold} />
+            <Text style={[styles.toolbarBtnText, { color: colors.gold }]}>Export CSV</Text>
+          </AnimatedTouchable>
+          <AnimatedTouchable style={styles.toolbarBtn} onPress={printScheduleSummary}>
+            <Printer size={16} color={colors.textSecondary} />
+            <Text style={[styles.toolbarBtnText, { color: colors.textSecondary }]}>Print</Text>
+          </AnimatedTouchable>
         </View>
 
         {/* Stats */}
@@ -331,6 +422,37 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
           </View>
         </View>
       </Modal>
+
+      {/* Block Date Modal */}
+      <Modal visible={blockModal.visible} animationType="fade" transparent>
+        <View style={modalS.overlay}>
+          <View style={[modalS.content, { alignItems: 'center' }]}>
+            <Ban size={32} color={blockedDates.includes(blockModal.date) ? colors.success : colors.error} style={{ marginBottom: 12 }} />
+            <Text style={{ ...typography.h3, color: colors.textPrimary, marginBottom: 8 }}>
+              {blockedDates.includes(blockModal.date) ? 'Unblock Date' : 'Block Date'}
+            </Text>
+            <Text style={{ ...typography.body, color: colors.textSecondary, marginBottom: 20, textAlign: 'center' }}>
+              {blockedDates.includes(blockModal.date)
+                ? `Remove block from ${blockModal.date}? You will be available again on this date.`
+                : `Block ${blockModal.date}? No new appointments will be accepted on this day.`
+              }
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <AnimatedTouchable style={[modalS.saveBtn, { flex: 1, backgroundColor: colors.surfaceLight }]} onPress={() => setBlockModal({ visible: false, date: '' })}>
+                <Text style={[modalS.saveBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+              </AnimatedTouchable>
+              <AnimatedTouchable
+                style={[modalS.saveBtn, { flex: 1, backgroundColor: blockedDates.includes(blockModal.date) ? colors.success : colors.error }]}
+                onPress={() => toggleBlockDate(blockModal.date)}
+              >
+                <Text style={modalS.saveBtnText}>
+                  {blockedDates.includes(blockModal.date) ? 'Unblock' : 'Block'}
+                </Text>
+              </AnimatedTouchable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -421,6 +543,18 @@ const getStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
   },
   loadMoreText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
+  blockedDay: { backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.4)' },
+  toolbarRow: {
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.surface,
+    borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: 4,
+  },
+  toolbarBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border,
+  },
+  toolbarBtnText: { ...typography.bodyXSmall, fontWeight: '700' },
 });
 
 const getModalStyles = (colors) => StyleSheet.create({

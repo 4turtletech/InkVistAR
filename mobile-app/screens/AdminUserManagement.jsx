@@ -8,9 +8,10 @@ import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, Alert, Modal, KeyboardAvoidingView, Platform, SafeAreaView,
-  RefreshControl, ScrollView,
+  RefreshControl, ScrollView, Image,
 } from 'react-native';
-import { Search, Plus, Pencil, Trash2, X, UserPlus, Shield, ChevronDown, ChevronLeft, Users } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Search, Plus, Pencil, Trash2, X, UserPlus, Shield, ChevronDown, ChevronLeft, Users, Camera } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
 import { typography, spacing, borderRadius, shadows } from '../src/theme';
@@ -53,7 +54,8 @@ export const AdminUserManagement = ({ navigation }) => {
   // Modal
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', type: 'customer', password: '', phone: '', status: 'active' });
+  const [formData, setFormData] = useState({ name: '', email: '', type: 'customer', password: '', confirmPassword: '', phone: '', status: 'active' });
+  const [profileImage, setProfileImage] = useState(null); // base64 uri
 
   // Delete confirm
   const [deleteModal, setDeleteModal] = useState({ visible: false, userId: null, userName: '' });
@@ -77,9 +79,11 @@ export const AdminUserManagement = ({ navigation }) => {
         type: user.user_type || 'customer', password: '',
         phone: user.phone || '', status: user.is_deleted ? 'suspended' : 'active',
       });
+      setProfileImage(user.profile_image || null);
     } else {
       setEditingUser(null);
-      setFormData({ name: '', email: '', type: 'customer', password: '', phone: '', status: 'active' });
+      setFormData({ name: '', email: '', type: 'customer', password: '', confirmPassword: '', phone: '', status: 'active' });
+      setProfileImage(null);
     }
     setModalVisible(true);
   };
@@ -101,8 +105,17 @@ export const AdminUserManagement = ({ navigation }) => {
       Alert.alert('Validation Error', 'Password is required for new users');
       return;
     }
+    if (!editingUser && formData.password.length < 8) {
+      Alert.alert('Validation Error', 'Password must be at least 8 characters');
+      return;
+    }
+    if (!editingUser && formData.password !== formData.confirmPassword) {
+      Alert.alert('Validation Error', 'Passwords do not match. Please re-enter.');
+      return;
+    }
 
     const payload = { ...formData, name: sName, email: sEmail, phone: sPhone };
+    if (profileImage) payload.profile_image = profileImage;
 
     const result = editingUser
       ? await updateUserByAdmin(editingUser.id, payload)
@@ -137,6 +150,26 @@ export const AdminUserManagement = ({ navigation }) => {
     if (roleFilter !== 'all' && u.user_type !== roleFilter) return false;
     return true;
   });
+
+  const pickProfileImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow access to your photo library to set a profile picture.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+    if (!result.canceled && result.assets?.[0]) {
+      const asset = result.assets[0];
+      const base64 = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+      setProfileImage(base64);
+    }
+  };
 
   const renderUser = ({ item, index }) => {
     const roleColor = ROLE_COLORS[item.user_type] || ROLE_COLORS.customer;
@@ -274,6 +307,23 @@ export const AdminUserManagement = ({ navigation }) => {
               </AnimatedTouchable>
             </View>
 
+            {/* Avatar Picker */}
+            <View style={{ alignItems: 'center', marginVertical: 16 }}>
+              <AnimatedTouchable onPress={pickProfileImage} style={styles.avatarPickerBtn}>
+                {profileImage ? (
+                  <Image source={{ uri: profileImage }} style={styles.avatarPickerImage} />
+                ) : (
+                  <View style={styles.avatarPickerPlaceholder}>
+                    <Camera size={26} color={theme.textTertiary} />
+                  </View>
+                )}
+                <View style={styles.avatarCameraOverlay}>
+                  <Camera size={14} color="#fff" />
+                </View>
+              </AnimatedTouchable>
+              <Text style={{ ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 6 }}>Tap to set profile photo</Text>
+            </View>
+
             <TextInput
               style={styles.input}
               placeholder="Full Name"
@@ -340,14 +390,33 @@ export const AdminUserManagement = ({ navigation }) => {
 
             {/* Password (create only) */}
             {!editingUser && (
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={theme.textTertiary}
-                value={formData.password}
-                onChangeText={t => setFormData({ ...formData, password: t })}
-                secureTextEntry
-              />
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password (min. 8 characters)"
+                  placeholderTextColor={theme.textTertiary}
+                  value={formData.password}
+                  onChangeText={t => setFormData({ ...formData, password: t })}
+                  secureTextEntry
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    formData.confirmPassword && formData.confirmPassword !== formData.password
+                      && { borderColor: theme.error, borderWidth: 1.5 }
+                  ]}
+                  placeholder="Confirm Password"
+                  placeholderTextColor={theme.textTertiary}
+                  value={formData.confirmPassword}
+                  onChangeText={t => setFormData({ ...formData, confirmPassword: t })}
+                  secureTextEntry
+                />
+                {formData.confirmPassword && formData.confirmPassword !== formData.password ? (
+                  <Text style={{ color: theme.error, fontSize: 12, marginTop: -10, marginBottom: 10, paddingHorizontal: 2 }}>
+                    Passwords do not match.
+                  </Text>
+                ) : null}
+              </>
             )}
 
             {/* Actions */}
@@ -494,4 +563,18 @@ const getStyles = (theme, insets) => StyleSheet.create({
     ...shadows.button,
   },
   saveBtnText: { ...typography.button, color: theme.backgroundDeep },
+  avatarPickerBtn: {
+    width: 84, height: 84, borderRadius: 42, overflow: 'hidden',
+    borderWidth: 2, borderColor: theme.gold, position: 'relative',
+  },
+  avatarPickerImage: { width: 84, height: 84, borderRadius: 42 },
+  avatarPickerPlaceholder: {
+    width: 84, height: 84, borderRadius: 42,
+    backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center',
+  },
+  avatarCameraOverlay: {
+    position: 'absolute', bottom: 0, right: 0, width: 26, height: 26,
+    borderRadius: 13, backgroundColor: theme.gold,
+    justifyContent: 'center', alignItems: 'center',
+  },
 });

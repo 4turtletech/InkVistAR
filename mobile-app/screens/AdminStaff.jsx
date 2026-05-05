@@ -45,7 +45,11 @@ export const AdminStaff = ({ navigation }) => {
       });
       const data = await res.json();
       if (data.success) {
-        setStaff(data.users || data.data || []);
+        // Always filter client-side to ensure only artists are shown
+        // regardless of whether the ?role=artist param is honoured by the backend
+        const allUsers = data.users || data.data || [];
+        const artistsOnly = allUsers.filter(u => u.user_type === 'artist' || u.role === 'artist');
+        setStaff(artistsOnly);
       }
     } catch (e) {
       console.warn('AdminStaff fetch error:', e);
@@ -78,6 +82,9 @@ export const AdminStaff = ({ navigation }) => {
             <Text style={styles.cardName}>{item.name}</Text>
             <Text style={styles.cardEmail}>{item.email}</Text>
             <View style={styles.badgeRow}>
+              <View style={styles.roleLabelChip}>
+                <Text style={styles.roleLabelText}>ARTIST</Text>
+              </View>
               <StatusBadge status="active" />
               <View style={styles.commissionBadge}>
                 <Text style={styles.commissionText}>{((item.commission_rate || 0.3) * 100).toFixed(0)}% Commission</Text>
@@ -98,7 +105,7 @@ export const AdminStaff = ({ navigation }) => {
         </AnimatedTouchable>
         <View style={{ flex: 1, paddingLeft: 12 }}>
           <Text style={styles.headerTitle}>Staff Directory</Text>
-          <Text style={styles.headerSub}>{staff.length} Active Artists</Text>
+          <Text style={styles.headerSub}>{staff.length} Active Artist{staff.length !== 1 ? 's' : ''}</Text>
         </View>
       </View>
 
@@ -117,7 +124,12 @@ export const AdminStaff = ({ navigation }) => {
         <PremiumLoader message="Loading staff records..." />
       ) : (
         <FlatList
-          data={staff.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase()))}
+          data={staff.filter(s => {
+            const name = (s.name || '').toLowerCase();
+            const email = (s.email || '').toLowerCase();
+            const q = search.toLowerCase();
+            return name.includes(q) || email.includes(q);
+          })}
           renderItem={renderStaff}
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={styles.listContent}
@@ -200,6 +212,8 @@ const getStyles = (theme, insets) => StyleSheet.create({
   badgeRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   commissionBadge: { backgroundColor: theme.gold + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
   commissionText: { ...typography.bodyXSmall, color: theme.gold, fontWeight: '700' },
+  roleLabelChip: { backgroundColor: theme.iconPurpleBg || 'rgba(168,85,247,0.15)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+  roleLabelText: { fontSize: 10, fontWeight: '800', color: theme.iconPurple || '#a855f7', letterSpacing: 0.5 },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,13,14,0.7)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: theme.surface, borderTopLeftRadius: borderRadius.xxl, borderTopRightRadius: borderRadius.xxl, maxHeight: '85%' },

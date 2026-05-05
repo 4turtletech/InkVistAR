@@ -93,6 +93,9 @@ export const AdminClients = ({ navigation }) => {
             <Text style={styles.cardName}>{item.name}</Text>
             <Text style={styles.cardEmail}>{item.email}</Text>
             <View style={styles.badgeRow}>
+              <View style={styles.roleLabelChip}>
+                <Text style={styles.roleLabelText}>CUSTOMER</Text>
+              </View>
               <StatusBadge status="active" />
             </View>
           </View>
@@ -223,6 +226,8 @@ const getStyles = (theme, insets) => StyleSheet.create({
   cardName: { ...typography.body, fontWeight: '700', color: theme.textPrimary },
   cardEmail: { ...typography.bodySmall, color: theme.textSecondary, marginBottom: 6 },
   badgeRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  roleLabelChip: { backgroundColor: theme.iconBlueBg || 'rgba(59,130,246,0.15)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+  roleLabelText: { fontSize: 10, fontWeight: '800', color: theme.iconBlue || '#3b82f6', letterSpacing: 0.5 },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,13,14,0.7)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: theme.surface, borderTopLeftRadius: borderRadius.xxl, borderTopRightRadius: borderRadius.xxl, maxHeight: '85%' },

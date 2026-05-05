@@ -27,9 +27,9 @@ import { ConfirmModal } from '../src/components/shared/ConfirmModal';
 import { formatCurrency, formatDate, formatTime, getDisplayCode } from '../src/utils/formatters';
 import {
   getAdminAppointments, updateAppointmentByAdmin, deleteAppointmentByAdmin,
-  createAppointmentByAdmin, API_BASE_URL
+  createAppointmentByAdmin, API_BASE_URL, getAllUsersForAdmin
 } from '../src/utils/api';
-import { sanitizeNumeric } from '../src/utils/validators';
+import { sanitizeNumeric, sanitizeEmail, isValidEmail, sanitizeText } from '../src/utils/validators';
 
 export const AdminAppointmentManagement = ({ navigation }) => {
   const { theme, hapticsEnabled } = useTheme();
@@ -52,9 +52,105 @@ export const AdminAppointmentManagement = ({ navigation }) => {
   const [editPrice, setEditPrice] = useState('');
   const [editClientEmail, setEditClientEmail] = useState('');
   const [editDesignTitle, setEditDesignTitle] = useState('');
+  const [editArtistId, setEditArtistId] = useState('');
+
+  // Date picker
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+
+  // Artists for booking
+  const [artists, setArtists] = useState([]);
+
+  const loadArtists = async () => {
+    try {
+      const result = await getAllUsersForAdmin({ search: '' });
+      if (result.success) {
+        const all = result.data || result.users || [];
+        setArtists(all.filter(u => u.user_type === 'artist'));
+      }
+    } catch (e) { console.warn('loadArtists error', e); }
+  };
+
+  useEffect(() => { loadArtists(); }, []);
 
   // Delete confirm
   const [deleteModal, setDeleteModal] = useState({ visible: false });
+
+  // ── Validation state ──────────────────────────────────────────────────────
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const clearError = (field) => {
+    if (fieldErrors[field]) setFieldErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+  const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
+  const MIN_TATTOO_PRICE = 5000;
+
+  const validateForm = (isCreate) => {
+    const errs = {};
+
+    // ─ Client email (create only)
+    if (isCreate) {
+      const email = sanitizeEmail(editClientEmail);
+      if (!email) {
+        errs.clientEmail = 'Client email is required.';
+      } else if (!isValidEmail(email)) {
+        errs.clientEmail = 'Enter a valid email address.';
+      }
+    }
+
+    // ─ Date
+    const dateVal = (editDate || '').trim();
+    if (!dateVal) {
+      errs.date = 'Date is required.';
+    } else if (!DATE_REGEX.test(dateVal)) {
+      errs.date = 'Date must be in YYYY-MM-DD format.';
+    } else {
+      const inputDate = new Date(dateVal + 'T00:00:00');
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (inputDate < today) {
+        errs.date = 'Date cannot be in the past.';
+      }
+    }
+
+    // ─ Time — only validate if fully entered (5 chars = HH:MM)
+    const timeVal = (editTime || '').trim();
+    if (!timeVal) {
+      errs.time = 'Start time is required.';
+    } else if (timeVal.length === 5 && !TIME_REGEX.test(timeVal)) {
+      errs.time = 'Time must be in HH:MM format (e.g. 13:00).';
+    } else if (timeVal.length > 0 && timeVal.length < 5) {
+      errs.time = 'Please enter a complete time (HH:MM).';
+    }
+
+    // ─ Price
+    const priceNum = parseFloat(sanitizeNumeric(editPrice, true)) || 0;
+    if (priceNum < 0) {
+      errs.price = 'Price cannot be negative.';
+    } else if (priceNum > 0 && priceNum < MIN_TATTOO_PRICE) {
+      errs.price = `Minimum session price is ₱${MIN_TATTOO_PRICE.toLocaleString()}.`;
+    }
+
+    // ─ Status gate: cannot complete without a price
+    if (editStatus === 'completed' && priceNum <= 0) {
+      errs.price = 'A price must be set before marking this session as Completed.';
+    }
+
+    // ─ Design title: strip dangerous chars but allow empty
+    if (editDesignTitle && sanitizeText(editDesignTitle) !== editDesignTitle.trim()) {
+      errs.designTitle = 'Design title contains invalid characters.';
+    }
+
+    // ─ Artist required for create
+    if (isCreate && !editArtistId) {
+      errs.artistId = 'Please assign an artist to this session.';
+    }
+
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+  // ─────────────────────────────────────────────────────────────────────────
 
   const loadData = async () => {
     setLoading(true);
@@ -77,28 +173,40 @@ export const AdminAppointmentManagement = ({ navigation }) => {
     setEditPrice(appt ? String(appt.price || appt.total_price || '') : '');
     setEditClientEmail(appt ? appt.client_email || '' : '');
     setEditDesignTitle(appt ? appt.design_title || '' : '');
+    setEditArtistId(appt ? String(appt.artist_id || '') : '');
+    setCalendarMonth(new Date());
+    setShowDatePicker(false);
+    setFieldErrors({});
     setModalVisible(true);
   };
 
   const handleSave = async () => {
+    const isCreate = !selectedAppt;
+    if (!validateForm(isCreate)) {
+      Alert.alert(
+        'Validation Error',
+        'Please correct the highlighted fields before saving.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     const sPrice = parseFloat(sanitizeNumeric(editPrice, true)) || 0;
 
-    if (!selectedAppt) {
-      if (!editClientEmail || !editDate || !editTime) {
-        Alert.alert('Validation Error', 'Email, Date, and Time are required');
-        return;
-      }
+    if (isCreate) {
       const result = await createAppointmentByAdmin({
-        clientEmail: editClientEmail,
-        designTitle: editDesignTitle,
-        date: editDate,
-        startTime: editTime,
+        clientEmail: sanitizeEmail(editClientEmail),
+        designTitle: sanitizeText(editDesignTitle),
+        date: editDate.trim(),
+        startTime: editTime.trim(),
         price: sPrice,
         status: editStatus,
+        artistId: editArtistId || null,
       });
       if (result.success) {
         Alert.alert('Success', 'Appointment created');
         setModalVisible(false);
+        setFieldErrors({});
         loadData();
       } else {
         Alert.alert('Error', result.message || 'Failed to create');
@@ -108,13 +216,14 @@ export const AdminAppointmentManagement = ({ navigation }) => {
 
     const result = await updateAppointmentByAdmin(selectedAppt.id, {
       status: editStatus,
-      date: editDate,
-      startTime: editTime,
+      date: editDate.trim(),
+      startTime: editTime.trim(),
       price: sPrice,
     });
     if (result.success) {
       Alert.alert('Success', 'Appointment updated');
       setModalVisible(false);
+      setFieldErrors({});
       loadData();
     } else if (result.status === 409 || result.message?.toLowerCase().includes('conflict')) {
       Alert.alert('Scheduling Conflict', 'This artist already has an appointment at this time.');
@@ -308,10 +417,45 @@ export const AdminAppointmentManagement = ({ navigation }) => {
                 </View>
               ) : (
                 <View style={styles.infoSection}>
-                  <Text style={styles.inputLabel}>Client Email *</Text>
-                  <TextInput style={styles.input} value={editClientEmail} onChangeText={setEditClientEmail} keyboardType="email-address" autoCapitalize="none" />
-                  <Text style={styles.inputLabel}>Design Title</Text>
-                  <TextInput style={styles.input} value={editDesignTitle} onChangeText={setEditDesignTitle} />
+                  <Text style={styles.inputLabel}>Client Email <Text style={styles.requiredStar}>*</Text></Text>
+                  <TextInput
+                    style={[styles.input, fieldErrors.clientEmail && styles.inputError]}
+                    value={editClientEmail}
+                    onChangeText={t => { setEditClientEmail(t); clearError('clientEmail'); }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholder="client@email.com"
+                    placeholderTextColor={theme.textTertiary}
+                  />
+                  {fieldErrors.clientEmail ? <Text style={styles.errorText}>{fieldErrors.clientEmail}</Text> : null}
+
+                  <Text style={styles.inputLabel}>Design Title / Service</Text>
+                  <TextInput
+                    style={[styles.input, fieldErrors.designTitle && styles.inputError]}
+                    value={editDesignTitle}
+                    onChangeText={t => { setEditDesignTitle(t); clearError('designTitle'); }}
+                    placeholder="e.g. Floral Sleeve — Tattoo Session"
+                    placeholderTextColor={theme.textTertiary}
+                  />
+                  {fieldErrors.designTitle ? <Text style={styles.errorText}>{fieldErrors.designTitle}</Text> : null}
+
+                  <Text style={styles.inputLabel}>Assign Artist <Text style={styles.requiredStar}>*</Text></Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {artists.length === 0 ? (
+                        <Text style={styles.noArtistHint}>No artists available</Text>
+                      ) : artists.map(a => (
+                        <AnimatedTouchable
+                          key={String(a.id)}
+                          style={[styles.artistChip, String(editArtistId) === String(a.id) && styles.artistChipActive]}
+                          onPress={() => { setEditArtistId(String(a.id)); clearError('artistId'); }}
+                        >
+                          <Text style={[styles.artistChipText, String(editArtistId) === String(a.id) && styles.artistChipTextActive]}>{a.name}</Text>
+                        </AnimatedTouchable>
+                      ))}
+                    </View>
+                  </ScrollView>
+                  {fieldErrors.artistId ? <Text style={styles.errorText}>{fieldErrors.artistId}</Text> : null}
                 </View>
               )}
 
@@ -330,14 +474,56 @@ export const AdminAppointmentManagement = ({ navigation }) => {
               {/* Editable Fields */}
               <Text style={styles.sectionHeader}>Edit Details</Text>
 
-              <Text style={styles.inputLabel}>Date (YYYY-MM-DD)</Text>
-              <TextInput style={styles.input} value={editDate} onChangeText={setEditDate} placeholderTextColor={theme.textTertiary} />
+              <Text style={styles.inputLabel}>Date <Text style={styles.requiredStar}>*</Text></Text>
+              <AnimatedTouchable
+                style={[styles.datePickerBtn, fieldErrors.date && styles.inputError]}
+                onPress={() => { setShowDatePicker(v => !v); clearError('date'); }}
+              >
+                <Calendar size={16} color={editDate ? theme.gold : theme.textTertiary} />
+                <Text style={[styles.datePickerBtnText, !editDate && { color: theme.textTertiary }]}>
+                  {editDate || 'Select a date'}
+                </Text>
+                <ChevronDown size={14} color={theme.textTertiary} />
+              </AnimatedTouchable>
+              {fieldErrors.date ? <Text style={styles.errorText}>{fieldErrors.date}</Text> : null}
 
-              <Text style={styles.inputLabel}>Time (HH:MM)</Text>
-              <TextInput style={styles.input} value={editTime} onChangeText={setEditTime} placeholderTextColor={theme.textTertiary} />
+              {showDatePicker && (
+                <InlineCalendar
+                  theme={theme}
+                  styles={styles}
+                  month={calendarMonth}
+                  selectedDate={editDate}
+                  onSelectDate={d => { setEditDate(d); setShowDatePicker(false); clearError('date'); }}
+                  onPrevMonth={() => setCalendarMonth(m => { const n = new Date(m); n.setMonth(n.getMonth()-1); return n; })}
+                  onNextMonth={() => setCalendarMonth(m => { const n = new Date(m); n.setMonth(n.getMonth()+1); return n; })}
+                />
+              )}
+
+              <Text style={styles.inputLabel}>Start Time <Text style={styles.requiredStar}>*</Text></Text>
+              <View style={styles.timeSlotGrid}>
+                {['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'].map(t => (
+                  <AnimatedTouchable
+                    key={t}
+                    style={[styles.timeSlot, editTime === t && styles.timeSlotActive,
+                      fieldErrors.time && !editTime && styles.timeSlotError]}
+                    onPress={() => { setEditTime(t); clearError('time'); }}
+                  >
+                    <Text style={[styles.timeSlotText, editTime === t && styles.timeSlotTextActive]}>{t}</Text>
+                  </AnimatedTouchable>
+                ))}
+              </View>
+              {fieldErrors.time ? <Text style={styles.errorText}>{fieldErrors.time}</Text> : null}
 
               <Text style={styles.inputLabel}>Price (PHP)</Text>
-              <TextInput style={styles.input} value={editPrice} onChangeText={setEditPrice} keyboardType="numeric" placeholderTextColor={theme.textTertiary} />
+              <TextInput
+                style={[styles.input, fieldErrors.price && styles.inputError]}
+                value={editPrice}
+                onChangeText={t => { setEditPrice(t); clearError('price'); }}
+                keyboardType="numeric"
+                placeholder="Min. ₱5,000 for sessions"
+                placeholderTextColor={theme.textTertiary}
+              />
+              {fieldErrors.price ? <Text style={styles.errorText}>{fieldErrors.price}</Text> : null}
 
               <Text style={styles.inputLabel}>Status</Text>
               <View style={styles.statusRow}>
@@ -396,6 +582,56 @@ const InfoRow = ({ theme, label, value }) => {
     </View>
   );
 };
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAY_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+const InlineCalendar = ({ theme, styles, month, selectedDate, onSelectDate, onPrevMonth, onNextMonth }) => {
+  const year = month.getFullYear();
+  const mon = month.getMonth();
+  const firstDay = new Date(year, mon, 1).getDay();
+  const daysInMonth = new Date(year, mon + 1, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const fmt = (d) => `${year}-${String(mon+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const isPast = (d) => new Date(fmt(d) + 'T00:00:00') < today;
+
+  return (
+    <View style={styles.calendarContainer}>
+      <View style={styles.calendarHeader}>
+        <AnimatedTouchable onPress={onPrevMonth} style={styles.calMonthBtn}>
+          <ChevronLeft size={18} color={theme.textPrimary} />
+        </AnimatedTouchable>
+        <Text style={styles.calMonthText}>{MONTH_NAMES[mon]} {year}</Text>
+        <AnimatedTouchable onPress={onNextMonth} style={styles.calMonthBtn}>
+          <ChevronRight size={18} color={theme.textPrimary} />
+        </AnimatedTouchable>
+      </View>
+      <View style={styles.calDayRow}>
+        {DAY_LABELS.map(l => <Text key={l} style={styles.calDayLabel}>{l}</Text>)}
+      </View>
+      <View style={styles.calGrid}>
+        {cells.map((d, i) => d === null ? (
+          <View key={`e-${i}`} style={styles.calCell} />
+        ) : (
+          <AnimatedTouchable
+            key={d}
+            disabled={isPast(d)}
+            style={[styles.calCell, selectedDate === fmt(d) && styles.calCellSelected, isPast(d) && styles.calCellPast]}
+            onPress={() => onSelectDate(fmt(d))}
+          >
+            <Text style={[styles.calCellText, selectedDate === fmt(d) && styles.calCellTextSelected, isPast(d) && styles.calCellTextPast]}>{d}</Text>
+          </AnimatedTouchable>
+        ))}
+      </View>
+    </View>
+  );
+};
+
 
 const getStyles = (theme, insets) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
@@ -524,9 +760,22 @@ const getStyles = (theme, insets) => StyleSheet.create({
   inputLabel: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '600', marginBottom: 6 },
   input: {
     backgroundColor: theme.surfaceLight, color: theme.textPrimary,
-    padding: 14, borderRadius: borderRadius.md, marginBottom: 16,
+    padding: 14, borderRadius: borderRadius.md, marginBottom: 4,
     ...typography.body, borderWidth: 1, borderColor: theme.border,
   },
+  inputError: {
+    borderColor: theme.error,
+    borderWidth: 1.5,
+    backgroundColor: (theme.errorBg || 'rgba(239,68,68,0.06)'),
+  },
+  errorText: {
+    ...typography.bodyXSmall,
+    color: theme.error,
+    marginBottom: 12,
+    marginTop: 2,
+    paddingHorizontal: 2,
+  },
+  requiredStar: { color: theme.error, fontWeight: '700' },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   statusBtn: {
     paddingVertical: 10, paddingHorizontal: 14, borderRadius: borderRadius.md,
@@ -549,4 +798,51 @@ const getStyles = (theme, insets) => StyleSheet.create({
     ...shadows.button,
   },
   actionBtnText: { ...typography.button, color: theme.backgroundDeep, fontSize: 15 },
+
+  // Date picker button
+  datePickerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border,
+    borderRadius: borderRadius.md, padding: 14, marginBottom: 4,
+  },
+  datePickerBtnText: { ...typography.body, color: theme.textPrimary, flex: 1 },
+
+  // Inline Calendar
+  calendarContainer: {
+    backgroundColor: theme.surface, borderRadius: borderRadius.xl, padding: 12,
+    borderWidth: 1, borderColor: theme.borderLight, marginBottom: 16, ...shadows.subtle,
+  },
+  calendarHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  calMonthBtn: { padding: 6 },
+  calMonthText: { ...typography.body, fontWeight: '700', color: theme.textPrimary },
+  calDayRow: { flexDirection: 'row', marginBottom: 6 },
+  calDayLabel: { flex: 1, textAlign: 'center', ...typography.bodyXSmall, color: theme.textTertiary, fontWeight: '700' },
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 20 },
+  calCellSelected: { backgroundColor: theme.gold },
+  calCellPast: { opacity: 0.3 },
+  calCellText: { ...typography.bodySmall, color: theme.textPrimary, fontWeight: '500' },
+  calCellTextSelected: { color: theme.backgroundDeep, fontWeight: '700' },
+  calCellTextPast: { color: theme.textTertiary },
+
+  // Time Slot Grid
+  timeSlotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  timeSlot: {
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: borderRadius.md,
+    backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.borderLight,
+  },
+  timeSlotActive: { backgroundColor: theme.gold, borderColor: theme.gold },
+  timeSlotError: { borderColor: theme.error },
+  timeSlotText: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600' },
+  timeSlotTextActive: { color: theme.backgroundDeep },
+
+  // Artist Chip
+  artistChip: {
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: borderRadius.round,
+    backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.borderLight,
+  },
+  artistChipActive: { backgroundColor: theme.gold, borderColor: theme.gold },
+  artistChipText: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '600' },
+  artistChipTextActive: { color: theme.backgroundDeep },
+  noArtistHint: { ...typography.bodySmall, color: theme.textTertiary, fontStyle: 'italic', paddingVertical: 8 },
 });
