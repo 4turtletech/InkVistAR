@@ -7,7 +7,7 @@ import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView,
   KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Animated, ScrollView
 } from 'react-native';
-import { ArrowLeft, Flag, Sparkles, AlertTriangle, Bug } from 'lucide-react-native';
+import { ArrowLeft, Flag, Sparkles, AlertTriangle, Bug, CheckCircle } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../src/context/ThemeContext';
@@ -23,8 +23,11 @@ export const CustomerReports = ({ navigation }) => {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [success, setSuccess] = useState(false);
   
   const contentAnim = useRef(new Animated.Value(0)).current;
+  const successScale = useRef(new Animated.Value(0)).current;
+  const successOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(contentAnim, {
@@ -38,24 +41,46 @@ export const CustomerReports = ({ navigation }) => {
     if (!message.trim()) { Alert.alert('Missing Details', 'Please provide some details for your report.'); return; }
     try {
       setSubmitting(true);
-      const userStr = await AsyncStorage.getItem('user_data');
+      const userStr = await AsyncStorage.getItem('user_session');
       if (userStr) {
         const user = JSON.parse(userStr);
-        const res = await fetchAPI('/api/support_messages', {
+        const res = await fetchAPI('/reports', {
           method: 'POST',
-          body: JSON.stringify({ user_id: user.id, type: reportType, message })
+          body: JSON.stringify({
+            customer_id: user.id,
+            report_type: reportType,
+            category: 'other',
+            title: `${reportType.toUpperCase()} Report`,
+            description: message
+          })
         });
         
         if (res.success || res.status === 201 || res.status === 200) {
-          Alert.alert('Report Submitted', 'Thank you for your feedback. Our team will review it shortly.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+          triggerSuccessAnimation();
         } else {
-          Alert.alert('Success', 'Your report has been submitted.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+          Alert.alert('Error', res.message || 'Failed to submit report.');
         }
+      } else {
+        Alert.alert('Error', 'User session not found.');
       }
     } catch (e) {
-       Alert.alert('Report Submitted', 'Thank you for your feedback.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+       Alert.alert('Error', 'Failed to connect to the server.');
     }
     finally { setSubmitting(false); }
+  };
+
+  const triggerSuccessAnimation = () => {
+    setSuccess(true);
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(successOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(successScale, { toValue: 1, friction: 5, tension: 40, useNativeDriver: true })
+      ]),
+      Animated.delay(1500),
+      Animated.timing(successOpacity, { toValue: 0, duration: 300, useNativeDriver: true })
+    ]).start(() => {
+      navigation.goBack();
+    });
   };
 
   return (
@@ -120,15 +145,30 @@ export const CustomerReports = ({ navigation }) => {
             onPress={handleSubmit}
             disabled={submitting}
           >
-            {submitting ? <ActivityIndicator color={theme.backgroundDeep} /> : (
-              <>
-                <Flag size={18} color={theme.backgroundDeep} />
-                <Text style={styles.submitBtnText}>Submit Report</Text>
-              </>
-            )}
+            <View style={styles.submitBtnInner}>
+              {submitting ? <ActivityIndicator color={theme.backgroundDeep} /> : (
+                <>
+                  <Flag size={18} color={theme.backgroundDeep} />
+                  <Text style={styles.submitBtnText}>Submit Report</Text>
+                </>
+              )}
+            </View>
           </AnimatedTouchable>
           
         </Animated.ScrollView>
+
+        {/* Success Overlay Animation */}
+        {success && (
+          <Animated.View style={[styles.successOverlay, { opacity: successOpacity }]}>
+            <Animated.View style={[styles.successCard, { transform: [{ scale: successScale }] }]}>
+              <View style={styles.successIconBg}>
+                <CheckCircle size={48} color={theme.gold} />
+              </View>
+              <Text style={styles.successTitle}>Report Sent!</Text>
+              <Text style={styles.successDesc}>Thank you for your feedback.</Text>
+            </Animated.View>
+          </Animated.View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -164,8 +204,36 @@ const getStyles = (theme) => StyleSheet.create({
     borderWidth: 1, borderColor: theme.border,
   },
   submitBtn: {
-    backgroundColor: theme.gold, paddingVertical: 18, flexDirection: 'row', gap: 8,
-    borderRadius: borderRadius.lg, alignItems: 'center', justifyContent: 'center', ...shadows.subtle
+    backgroundColor: theme.gold, paddingVertical: 18,
+    borderRadius: borderRadius.lg, ...shadows.subtle
+  },
+  submitBtnInner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%'
   },
   submitBtnText: { ...typography.button, color: theme.backgroundDeep, fontSize: 16 },
+
+  successOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15,13,14,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  successCard: {
+    backgroundColor: theme.surface,
+    padding: 32,
+    borderRadius: borderRadius.xl,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.border,
+    ...shadows.medium,
+  },
+  successIconBg: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: `${theme.gold}20`,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 20,
+  },
+  successTitle: { ...typography.h2, color: theme.textPrimary, marginBottom: 8 },
+  successDesc: { ...typography.body, color: theme.textSecondary },
 });
