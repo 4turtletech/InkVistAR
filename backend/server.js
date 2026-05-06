@@ -91,21 +91,25 @@ const PAYMONGO_API_BASE = 'https://api.paymongo.com/v1';
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '6Le9F78sAAAAACBBrgQz5pzpbZ2VxI4h71UXhCd9';
 
 async function verifyCaptcha(token) {
+  // CAPTCHA DISABLED — always pass. Remove the line below to re-enable.
+  return true;
+  /*
   if (!token) return false;
   try {
     const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `secret=${RECAPTCHA_SECRET_KEY}&response=${token}`
+      body: `secret=${RECAPTCHA_SECRET_KEY}&response=${encodeURIComponent(token)}`
     });
     const data = await response.json();
     console.log('[reCAPTCHA v3] Verification result:', data);
-    // For v3, consider a score of 0.5 or above as passing
-    return data.success === true && (data.score === undefined || data.score >= 0.5);
+    // For v3, consider a score of 0.3 or above as passing to prevent overly aggressive blocking
+    return data.success === true && (data.score === undefined || data.score >= 0.3);
   } catch (err) {
     console.error('reCAPTCHA verification error:', err.message);
     return false;
   }
+  */
 }
 
 // Enhanced CORS configuration

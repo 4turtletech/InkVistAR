@@ -168,11 +168,11 @@ export const AdminNotifications = ({ navigation }) => {
     if (notif.type === 'payment_success' || notif.type === 'payout_processed') {
       try { navigation?.navigate?.('admin-billing'); } catch(e){}
     } else if (notif.type === 'appointment_request' || notif.type === 'action_required') {
-      try { navigation?.navigate?.('Bookings', { filter: 'pending' }); } catch(e){}
+      try { navigation?.navigate?.('admin-main', { screen: 'Bookings', params: { filter: 'pending' } }); } catch(e){}
     } else if (notif.type === 'appointment_confirmed') {
-      try { navigation?.navigate?.('Bookings', { filter: 'confirmed' }); } catch(e){}
+      try { navigation?.navigate?.('admin-main', { screen: 'Bookings', params: { filter: 'confirmed' } }); } catch(e){}
     } else if (notif.type?.startsWith('appointment_') || notif.type === 'system') {
-      try { navigation?.navigate?.('Bookings'); } catch(e){}
+      try { navigation?.navigate?.('admin-main', { screen: 'Bookings' }); } catch(e){}
     } else if (notif.type === 'inventory' || notif.type === 'inventory_out') {
       try { navigation?.navigate?.('admin-inventory'); } catch(e){}
     }

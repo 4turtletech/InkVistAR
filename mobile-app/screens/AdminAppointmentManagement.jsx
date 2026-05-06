@@ -52,6 +52,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
   const [editPrice, setEditPrice] = useState('');
   const [editClientEmail, setEditClientEmail] = useState('');
   const [editDesignTitle, setEditDesignTitle] = useState('');
+  const [editServiceType, setEditServiceType] = useState('Tattoo Session');
   const [editArtistId, setEditArtistId] = useState('');
 
   // Date picker
@@ -180,6 +181,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
     setEditPrice(appt ? String(appt.price || appt.total_price || '') : '');
     setEditClientEmail(appt ? appt.client_email || '' : '');
     setEditDesignTitle(appt ? appt.design_title || '' : '');
+    setEditServiceType(appt ? appt.service_type || 'Tattoo Session' : 'Tattoo Session');
     setEditArtistId(appt ? String(appt.artist_id || '') : '');
     setCalendarMonth(new Date());
     setShowDatePicker(false);
@@ -226,6 +228,9 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
       date: editDate.trim(),
       startTime: editTime.trim(),
       price: sPrice,
+      serviceType: editServiceType,
+      designTitle: sanitizeText(editDesignTitle),
+      artistId: editArtistId || null,
     });
     if (result.success) {
       Alert.alert('Success', 'Appointment updated');
@@ -418,8 +423,6 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                 <View style={styles.infoSection}>
                   <InfoRow theme={theme} label="Booking Code" value={getDisplayCode(selectedAppt.booking_code, selectedAppt.id)} />
                   <InfoRow theme={theme} label="Client" value={`${selectedAppt.client_name}${selectedAppt.client_email ? ` (${selectedAppt.client_email})` : ''}`} />
-                  <InfoRow theme={theme} label="Artist" value={selectedAppt.artist_name || 'Unassigned'} />
-                  <InfoRow theme={theme} label="Design" value={selectedAppt.design_title || 'Tattoo Session'} />
                   <InfoRow theme={theme} label="Notes" value={selectedAppt.notes || 'No notes'} />
                 </View>
               ) : (
@@ -435,51 +438,92 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                     placeholderTextColor={theme.textTertiary}
                   />
                   {fieldErrors.clientEmail ? <Text style={styles.errorText}>{fieldErrors.clientEmail}</Text> : null}
-
-                  <Text style={styles.inputLabel}>Design Title / Service</Text>
-                  <TextInput
-                    style={[styles.input, fieldErrors.designTitle && styles.inputError]}
-                    value={editDesignTitle}
-                    onChangeText={t => { setEditDesignTitle(t); clearError('designTitle'); }}
-                    placeholder="e.g. Floral Sleeve — Tattoo Session"
-                    placeholderTextColor={theme.textTertiary}
-                  />
-                  {fieldErrors.designTitle ? <Text style={styles.errorText}>{fieldErrors.designTitle}</Text> : null}
-
-                  <Text style={styles.inputLabel}>Assign Artist <Text style={styles.requiredStar}>*</Text></Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      {artists.length === 0 ? (
-                        <Text style={styles.noArtistHint}>No artists available</Text>
-                      ) : artists.map(a => (
-                        <AnimatedTouchable
-                          key={String(a.id)}
-                          style={[styles.artistChip, String(editArtistId) === String(a.id) && styles.artistChipActive]}
-                          onPress={() => { setEditArtistId(String(a.id)); clearError('artistId'); }}
-                        >
-                          <Text style={[styles.artistChipText, String(editArtistId) === String(a.id) && styles.artistChipTextActive]}>{a.name}</Text>
-                        </AnimatedTouchable>
-                      ))}
-                    </View>
-                  </ScrollView>
-                  {fieldErrors.artistId ? <Text style={styles.errorText}>{fieldErrors.artistId}</Text> : null}
                 </View>
               )}
 
-              {/* Reference Image */}
-              {selectedAppt?.before_photo && selectedAppt.before_photo.length > 10 && (
-                <View style={styles.imgContainer}>
-                  <Text style={styles.inputLabel}>Reference Image</Text>
-                  <Image
-                    source={{ uri: selectedAppt.before_photo.startsWith('data:') ? selectedAppt.before_photo : selectedAppt.before_photo.startsWith('http') ? selectedAppt.before_photo : `${API_BASE_URL}${selectedAppt.before_photo}` }}
-                    style={styles.refImage}
-                    resizeMode="contain"
-                  />
-                </View>
-              )}
+              {/* Image Assets */}
+              <View style={{ marginBottom: 16 }}>
+                {selectedAppt?.reference_image && selectedAppt.reference_image.length > 10 && (
+                  <View style={styles.imgContainer}>
+                    <Text style={styles.inputLabel}>Reference from Booking</Text>
+                    <Image
+                      source={{ uri: selectedAppt.reference_image.startsWith('data:') ? selectedAppt.reference_image : selectedAppt.reference_image.startsWith('http') ? selectedAppt.reference_image : `${API_BASE_URL}${selectedAppt.reference_image}` }}
+                      style={styles.refImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                )}
+                
+                {selectedAppt?.before_photo && selectedAppt.before_photo.length > 10 && (
+                  <View style={styles.imgContainer}>
+                    <Text style={styles.inputLabel}>Stage Photo (Before/Draft)</Text>
+                    <Image
+                      source={{ uri: selectedAppt.before_photo.startsWith('data:') ? selectedAppt.before_photo : selectedAppt.before_photo.startsWith('http') ? selectedAppt.before_photo : `${API_BASE_URL}${selectedAppt.before_photo}` }}
+                      style={styles.refImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                )}
+
+                {selectedAppt?.after_photo && selectedAppt.after_photo.length > 10 && (
+                  <View style={styles.imgContainer}>
+                    <Text style={styles.inputLabel}>Result Photo (After)</Text>
+                    <Image
+                      source={{ uri: selectedAppt.after_photo.startsWith('data:') ? selectedAppt.after_photo : selectedAppt.after_photo.startsWith('http') ? selectedAppt.after_photo : `${API_BASE_URL}${selectedAppt.after_photo}` }}
+                      style={styles.refImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                )}
+              </View>
 
               {/* Editable Fields */}
               <Text style={styles.sectionHeader}>Edit Details</Text>
+
+              <Text style={styles.inputLabel}>Service Type</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {['Tattoo Session', 'Piercing', 'Consultation'].map(s => (
+                    <AnimatedTouchable
+                      key={s}
+                      style={[styles.statusBtn, editServiceType === s && styles.statusBtnActive]}
+                      onPress={() => setEditServiceType(s)}
+                    >
+                      <Text style={[styles.statusBtnText, editServiceType === s && styles.statusBtnTextActive]}>
+                        {s}
+                      </Text>
+                    </AnimatedTouchable>
+                  ))}
+                </View>
+              </ScrollView>
+
+              <Text style={styles.inputLabel}>Design Title</Text>
+              <TextInput
+                style={[styles.input, fieldErrors.designTitle && styles.inputError]}
+                value={editDesignTitle}
+                onChangeText={t => { setEditDesignTitle(t); clearError('designTitle'); }}
+                placeholder="e.g. Floral Sleeve"
+                placeholderTextColor={theme.textTertiary}
+              />
+              {fieldErrors.designTitle ? <Text style={styles.errorText}>{fieldErrors.designTitle}</Text> : null}
+
+              <Text style={styles.inputLabel}>Assigned Artist</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {artists.length === 0 ? (
+                    <Text style={styles.noArtistHint}>No artists available</Text>
+                  ) : artists.map(a => (
+                    <AnimatedTouchable
+                      key={String(a.id)}
+                      style={[styles.artistChip, String(editArtistId) === String(a.id) && styles.artistChipActive]}
+                      onPress={() => { setEditArtistId(String(a.id)); clearError('artistId'); }}
+                    >
+                      <Text style={[styles.artistChipText, String(editArtistId) === String(a.id) && styles.artistChipTextActive]}>{a.name}</Text>
+                    </AnimatedTouchable>
+                  ))}
+                </View>
+              </ScrollView>
+              {fieldErrors.artistId ? <Text style={styles.errorText}>{fieldErrors.artistId}</Text> : null}
 
               <Text style={styles.inputLabel}>Date <Text style={styles.requiredStar}>*</Text></Text>
               <AnimatedTouchable
