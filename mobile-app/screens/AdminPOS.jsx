@@ -419,7 +419,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16,
+    paddingHorizontal: 16, paddingTop: (insets?.top || 0) + 16, paddingBottom: 16,
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   backBtn: { padding: 4 },

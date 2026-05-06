@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert, FlatList, Image } from 'react-native';
-import { X, User, Calendar, Save, Palette, DollarSign } from 'lucide-react-native';
+import { X, User, Calendar, Save, Palette, DollarSign, Globe, Lock } from 'lucide-react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { typography, borderRadius, shadows } from '../../theme';
 import { fetchAPI } from '../../utils/api';
@@ -16,6 +16,17 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
   
   const [artistData, setArtistData] = useState({ profile: {}, appointments: [], portfolio: [], stats: {} });
   const [formData, setFormData] = useState({ name: '', specialization: '', experience_years: '', commission_rate: '' });
+  
+  const [editingPortfolioItem, setEditingPortfolioItem] = useState(null);
+  const [portfolioFormData, setPortfolioFormData] = useState({ title: '', category: '', description: '', priceEstimate: '', isPublic: true });
+
+  const VisibilityToggle = ({ value, onToggle }) => (
+    <TouchableOpacity style={styles.visToggle} onPress={onToggle} activeOpacity={0.8}>
+      {value ? <Globe size={18} color={colors.gold} /> : <Lock size={18} color={colors.textTertiary} />}
+      <Text style={[styles.visText, value && styles.visTextActive]}>{value ? 'Public Portfolio' : 'Private Portfolio'}</Text>
+      <View style={[styles.toggleTrack, value && styles.toggleTrackActive]}><View style={[styles.toggleThumb, value && styles.toggleThumbActive]} /></View>
+    </TouchableOpacity>
+  );
 
   useEffect(() => {
     if (visible && artist) {
@@ -75,6 +86,54 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
     }
   };
 
+  const handleSavePortfolioItem = async () => {
+    if (!portfolioFormData.title.trim() || !portfolioFormData.category.trim()) {
+      Alert.alert("Validation Error", "Title and Category are required");
+      return;
+    }
+    try {
+      const res = await fetchAPI(`/artist/portfolio/${editingPortfolioItem.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ 
+          title: portfolioFormData.title, 
+          category: portfolioFormData.category,
+          description: portfolioFormData.description,
+          priceEstimate: portfolioFormData.priceEstimate,
+          isPublic: portfolioFormData.isPublic
+        })
+      });
+      if (res.success) {
+        Alert.alert("Success", "Portfolio item updated");
+        setEditingPortfolioItem(null);
+        loadArtistData();
+      } else {
+        Alert.alert("Error", res.message || "Failed to update item");
+      }
+    } catch(e) {
+      Alert.alert("Error", "An unexpected error occurred.");
+    }
+  };
+
+  const handleDeletePortfolioItem = () => {
+    Alert.alert("Delete", "Are you sure you want to delete this portfolio item?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: async () => {
+        try {
+          const res = await fetchAPI(`/artist/portfolio/${editingPortfolioItem.id}`, { method: 'DELETE' });
+          if (res.success) {
+            Alert.alert("Success", "Portfolio item deleted");
+            setEditingPortfolioItem(null);
+            loadArtistData();
+          } else {
+            Alert.alert("Error", res.message || "Failed to delete item");
+          }
+        } catch(e) {
+          Alert.alert("Error", "An unexpected error occurred.");
+        }
+      }}
+    ]);
+  };
+
   const renderScheduleItem = ({ item }) => (
     <View style={styles.scheduleCard}>
       <View style={styles.scheduleLeft}>
@@ -92,7 +151,19 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
   const renderPortfolioItem = ({ item }) => {
     const imgUri = item.image_url || item.thumbnail_url || null;
     return (
-      <View style={styles.portfolioItem}>
+      <TouchableOpacity 
+        style={styles.portfolioItem} 
+        onPress={() => {
+          setEditingPortfolioItem(item);
+          setPortfolioFormData({ 
+            title: item.title || '', 
+            category: item.category || '',
+            description: item.description || '',
+            priceEstimate: item.price_estimate ? String(item.price_estimate) : '',
+            isPublic: item.is_public === 1 || item.is_public === true
+          });
+        }}
+      >
         {imgUri ? (
           <Image source={{ uri: imgUri }} style={styles.portfolioImage} resizeMode="cover" />
         ) : (
@@ -104,7 +175,7 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
           <Text style={styles.portfolioTitle} numberOfLines={1}>{item.title || 'Untitled'}</Text>
           <Text style={styles.portfolioCategory} numberOfLines={1}>{item.category || 'Uncategorized'}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -145,30 +216,58 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
           </View>
 
           {/* Tabs */}
-          <View style={styles.tabContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
-              <TouchableOpacity style={[styles.tabBtn, activeTab === 'profile' && styles.tabBtnActive]} onPress={() => setActiveTab('profile')}>
-                <User size={16} color={activeTab === 'profile' ? colors.primary : colors.textSecondary} />
-                <Text style={[styles.tabText, activeTab === 'profile' && styles.tabTextActive]}>Profile</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.tabBtn, activeTab === 'schedule' && styles.tabBtnActive]} onPress={() => setActiveTab('schedule')}>
-                <Calendar size={16} color={activeTab === 'schedule' ? colors.primary : colors.textSecondary} />
-                <Text style={[styles.tabText, activeTab === 'schedule' && styles.tabTextActive]}>Schedule</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.tabBtn, activeTab === 'portfolio' && styles.tabBtnActive]} onPress={() => setActiveTab('portfolio')}>
-                <Palette size={16} color={activeTab === 'portfolio' ? colors.primary : colors.textSecondary} />
-                <Text style={[styles.tabText, activeTab === 'portfolio' && styles.tabTextActive]}>Portfolio</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.tabBtn, activeTab === 'earnings' && styles.tabBtnActive]} onPress={() => setActiveTab('earnings')}>
-                <DollarSign size={16} color={activeTab === 'earnings' ? colors.primary : colors.textSecondary} />
-                <Text style={[styles.tabText, activeTab === 'earnings' && styles.tabTextActive]}>Earnings</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
+          {!editingPortfolioItem && (
+            <View style={styles.tabContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+                <TouchableOpacity style={[styles.tabBtn, activeTab === 'profile' && styles.tabBtnActive]} onPress={() => setActiveTab('profile')}>
+                  <User size={16} color={activeTab === 'profile' ? colors.primary : colors.textSecondary} />
+                  <Text style={[styles.tabText, activeTab === 'profile' && styles.tabTextActive]}>Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.tabBtn, activeTab === 'schedule' && styles.tabBtnActive]} onPress={() => setActiveTab('schedule')}>
+                  <Calendar size={16} color={activeTab === 'schedule' ? colors.primary : colors.textSecondary} />
+                  <Text style={[styles.tabText, activeTab === 'schedule' && styles.tabTextActive]}>Schedule</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.tabBtn, activeTab === 'portfolio' && styles.tabBtnActive]} onPress={() => setActiveTab('portfolio')}>
+                  <Palette size={16} color={activeTab === 'portfolio' ? colors.primary : colors.textSecondary} />
+                  <Text style={[styles.tabText, activeTab === 'portfolio' && styles.tabTextActive]}>Portfolio</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.tabBtn, activeTab === 'earnings' && styles.tabBtnActive]} onPress={() => setActiveTab('earnings')}>
+                  <DollarSign size={16} color={activeTab === 'earnings' ? colors.primary : colors.textSecondary} />
+                  <Text style={[styles.tabText, activeTab === 'earnings' && styles.tabTextActive]}>Earnings</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          )}
 
           {/* Body */}
           <View style={styles.body}>
-            {loading ? <PremiumLoader message="Fetching performance metrics..." /> : (
+            {editingPortfolioItem ? (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <TouchableOpacity onPress={() => setEditingPortfolioItem(null)} style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ ...typography.bodySmall, color: colors.gold }}>← Back to Portfolio</Text>
+                </TouchableOpacity>
+                <Image source={{ uri: editingPortfolioItem.image_url || editingPortfolioItem.thumbnail_url }} style={{ width: '100%', height: 200, borderRadius: 12, marginBottom: 16 }} resizeMode="cover" />
+                <Text style={styles.inputLabel}>Title</Text>
+                <TextInput style={styles.input} value={portfolioFormData.title} onChangeText={t => setPortfolioFormData({ ...portfolioFormData, title: t })} />
+                <Text style={styles.inputLabel}>Category</Text>
+                <TextInput style={styles.input} value={portfolioFormData.category} onChangeText={t => setPortfolioFormData({ ...portfolioFormData, category: t })} />
+                <Text style={styles.inputLabel}>Description</Text>
+                <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={portfolioFormData.description} onChangeText={t => setPortfolioFormData({ ...portfolioFormData, description: t })} multiline />
+                <Text style={styles.inputLabel}>Price Estimate (P)</Text>
+                <TextInput style={styles.input} value={portfolioFormData.priceEstimate} onChangeText={t => setPortfolioFormData({ ...portfolioFormData, priceEstimate: t })} keyboardType="numeric" />
+                <Text style={styles.inputLabel}>Settings</Text>
+                <VisibilityToggle value={portfolioFormData.isPublic} onToggle={() => setPortfolioFormData({ ...portfolioFormData, isPublic: !portfolioFormData.isPublic })} />
+                
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 10 }}>
+                  <TouchableOpacity style={[styles.cancelBtn, { flex: 1, backgroundColor: colors.errorBg || 'rgba(239, 68, 68, 0.1)', borderColor: colors.error, borderWidth: 1 }]} onPress={handleDeletePortfolioItem}>
+                    <Text style={[styles.cancelBtnText, { color: colors.error }]}>Delete Post</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.saveBtn} onPress={handleSavePortfolioItem}>
+                    <Text style={styles.saveBtnText}>Save Changes</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            ) : loading ? <PremiumLoader message="Fetching performance metrics..." /> : (
               activeTab === 'profile' ? (
                 <ScrollView showsVerticalScrollIndicator={false}>
                   <Text style={styles.inputLabel}>Name</Text>
@@ -196,6 +295,7 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
                 </ScrollView>
               ) : activeTab === 'schedule' ? (
                 <FlatList
+                  key="list-schedule"
                   data={artistData.appointments}
                   renderItem={renderScheduleItem}
                   keyExtractor={item => item.id.toString()}
@@ -205,6 +305,7 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
                 />
               ) : activeTab === 'portfolio' ? (
                 <FlatList
+                  key="list-portfolio"
                   data={artistData.portfolio}
                   renderItem={renderPortfolioItem}
                   keyExtractor={(item, index) => (item.id != null ? item.id.toString() : `portfolio-${index}`)}
@@ -216,6 +317,7 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
                 />
               ) : (
                 <FlatList
+                  key="list-earnings"
                   data={artistData.appointments.filter(a => a.status === 'completed')}
                   renderItem={renderEarningsItem}
                   keyExtractor={item => item.id.toString()}
@@ -239,17 +341,19 @@ export const ArtistProfileModal = ({ visible, artist, onClose, onRefreshUsers })
           </View>
 
           {/* Footer */}
-          <View style={styles.footer}>
-            <TouchableOpacity style={[styles.cancelBtn, activeTab !== 'profile' && { flex: 1 }]} onPress={onClose}>
-              <Text style={styles.cancelBtnText}>Close</Text>
-            </TouchableOpacity>
-            {activeTab === 'profile' && (
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile}>
-                <Save size={18} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={styles.saveBtnText}>Sync Account Updates</Text>
+          {!editingPortfolioItem && (
+            <View style={styles.footer}>
+              <TouchableOpacity style={[styles.cancelBtn, activeTab !== 'profile' && { flex: 1 }]} onPress={onClose}>
+                <Text style={styles.cancelBtnText}>Close</Text>
               </TouchableOpacity>
-            )}
-          </View>
+              {activeTab === 'profile' && (
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile}>
+                  <Save size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                  <Text style={styles.saveBtnText}>Sync Account Updates</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -311,5 +415,13 @@ const getStyles = (colors) => StyleSheet.create({
   earningCommission: { ...typography.bodySmall, color: colors.success, fontWeight: '600', marginTop: 4 },
 
   noData: { ...typography.body, color: colors.textTertiary, textAlign: 'center', marginTop: 40 },
+
+  visToggle: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: colors.surfaceLight, borderRadius: 12, borderWidth: 1, borderColor: colors.border, marginBottom: 16 },
+  visText: { flex: 1, marginLeft: 10, ...typography.bodySmall, color: colors.textTertiary },
+  visTextActive: { color: colors.textPrimary, fontWeight: '600' },
+  toggleTrack: { width: 40, height: 22, backgroundColor: colors.surfaceLight, borderRadius: 11, padding: 2 },
+  toggleTrackActive: { backgroundColor: colors.gold },
+  toggleThumb: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#ffffff' },
+  toggleThumbActive: { transform: [{ translateX: 18 }] },
 });
 

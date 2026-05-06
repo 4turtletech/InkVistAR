@@ -348,7 +348,7 @@ const getStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
   scrollContent: { paddingBottom: 40 },
   header: {
-    padding: 16, paddingTop: 52, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 16, paddingTop: Platform.OS === 'ios' ? 20 : 52, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
   logoutBtn: { padding: 8 },

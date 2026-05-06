@@ -1,3 +1,4 @@
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
@@ -8,7 +9,7 @@ import {
   Users, Calendar, Palette, Package, BarChart3,
   Bell, AlertTriangle, CheckCircle, Search, ChevronLeft,
   ChevronRight, ShoppingCart, Settings, MessageSquare,
-  DollarSign, X, Activity
+  DollarSign, X, Activity, FileText
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { typography, borderRadius, shadows } from '../src/theme';
@@ -21,7 +22,7 @@ import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { formatCurrency, formatDate, formatTime, getDisplayCode } from '../src/utils/formatters';
 import {
   getAdminDashboard, getAdminAppointments, getAdminAnalytics,
-  updateAppointmentStatus, getAdminInventory
+  updateAppointmentStatus, getAdminInventory, getNotifications
 } from '../src/utils/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -50,6 +51,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
   const [inventoryAlerts, setInventoryAlerts] = useState({ outOfStock: [], lowStock: [] });
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
 
   const [appointmentSearch, setAppointmentSearch] = useState('');
   const [appointmentFilter, setAppointmentFilter] = useState('upcoming');
@@ -105,6 +107,15 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
       } catch (e) {
         console.warn('Inventory alert fetch error:', e);
       }
+
+      try {
+        const notifsRes = await getNotifications(1, { limit: 100 });
+        if (notifsRes.success && notifsRes.notifications) {
+          setUnreadNotifsCount(notifsRes.notifications.filter(n => !n.is_read).length);
+        }
+      } catch (e) {
+        console.warn('Notif error:', e);
+      }
     } catch (e) {
       console.error('Dashboard fetch error:', e);
     }
@@ -154,7 +165,11 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
     }
   };
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useFocusEffect(
+    useCallback(() => {
+      loadAll();
+    }, [loadAll])
+  );
 
   const filteredAppointments = appointments.filter(apt => {
     const matchSearch =
@@ -247,7 +262,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
         <View style={styles.headerActions}>
           <AnimatedTouchable style={styles.headerBtn} onPress={() => navigation?.navigate?.('admin-notifications')}>
             <Bell size={20} color={theme.textPrimary} />
-            {alerts.length > 0 && <View style={styles.badge} />}
+            {unreadNotifsCount > 0 && <View style={styles.badge} />}
           </AnimatedTouchable>
           <AnimatedTouchable style={styles.headerBtn} onPress={onLogout}>
             <Text style={styles.logoutText}>Log Out</Text>
@@ -274,7 +289,6 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActionsScroll} contentContainerStyle={styles.quickActionsContent}>
             <QuickAction icon={Calendar} label="Calendar" color={theme.gold} onPress={() => navigation?.navigate?.('Bookings')} />
             <QuickAction icon={Users} label="Users" color={theme.info} onPress={() => navigation?.navigate?.('Users')} />
-            <QuickAction icon={ShoppingCart} label="POS" color={theme.success} onPress={() => navigation?.navigate?.('admin-pos')} />
             <QuickAction icon={Package} label="Inventory" color={theme.warning} onPress={() => navigation?.navigate?.('admin-inventory')} />
             <QuickAction icon={BarChart3} label="Analytics" color={theme.textPrimary} onPress={() => navigation?.navigate?.('admin-analytics')} />
             <QuickAction icon={MessageSquare} label="Chat" color={theme.textSecondary} onPress={() => navigation?.navigate?.('admin-chat')} />
@@ -306,28 +320,34 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
                   key={`alert-${alert.id || index}`}
                   style={styles.alertItem}
                   onPress={() => {
-                    if (alert.type === 'appointment') navigation?.navigate?.('Bookings');
+                    if (alert.type === 'appointment') navigation?.navigate?.('Bookings', { filter: 'pending' });
                     else if (alert.type === 'inventory') navigation?.navigate?.('admin-inventory');
                     else if (alert.type === 'inventory_out') navigation?.navigate?.('admin-inventory');
                   }}
                 >
-                  <Text style={styles.alertText}>{alert.message}</Text>
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <Text style={styles.alertText} numberOfLines={1} ellipsizeMode="tail">{alert.message}</Text>
+                  </View>
                   <ChevronRight size={16} color={theme.textTertiary} />
                 </AnimatedTouchable>
               ))}
               {inventoryAlerts.outOfStock.length > 0 && (
                 <AnimatedTouchable style={[styles.alertItem, { borderLeftWidth: 3, borderLeftColor: theme.error }]} onPress={() => navigation?.navigate?.('admin-inventory')}>
-                  <Text style={[styles.alertText, { color: theme.error, fontWeight: '700' }]}>
-                    {inventoryAlerts.outOfStock.length} item{inventoryAlerts.outOfStock.length !== 1 ? 's' : ''} out of stock
-                  </Text>
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <Text style={[styles.alertText, { color: theme.error, fontWeight: '700' }]} numberOfLines={1} ellipsizeMode="tail">
+                      {inventoryAlerts.outOfStock.length} item{inventoryAlerts.outOfStock.length !== 1 ? 's' : ''} out of stock
+                    </Text>
+                  </View>
                   <ChevronRight size={16} color={theme.error} />
                 </AnimatedTouchable>
               )}
               {inventoryAlerts.lowStock.length > 0 && (
                 <AnimatedTouchable style={[styles.alertItem, { borderLeftWidth: 3, borderLeftColor: theme.warning }]} onPress={() => navigation?.navigate?.('admin-inventory')}>
-                  <Text style={[styles.alertText, { color: theme.warning, fontWeight: '700' }]}>
-                    {inventoryAlerts.lowStock.length} item{inventoryAlerts.lowStock.length !== 1 ? 's' : ''} running low
-                  </Text>
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <Text style={[styles.alertText, { color: theme.warning, fontWeight: '700' }]} numberOfLines={1} ellipsizeMode="tail">
+                      {inventoryAlerts.lowStock.length} item{inventoryAlerts.lowStock.length !== 1 ? 's' : ''} running low
+                    </Text>
+                  </View>
                   <ChevronRight size={16} color={theme.warning} />
                 </AnimatedTouchable>
               )}
@@ -362,6 +382,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
                   <View style={styles.aptHeader}>
                     <View style={styles.aptInfoWrapper}>
                       <Text style={styles.aptClient} numberOfLines={1}>{apt.client_name || 'N/A'}</Text>
+                      <Text style={styles.aptDesign} numberOfLines={1}>{apt.design_title || 'Tattoo Session'}</Text>
                       <Text style={styles.aptArtist} numberOfLines={1}>with {apt.artist_name || 'Unassigned'}</Text>
                     </View>
                     <StatusBadge status={apt.status} />
@@ -374,9 +395,15 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
                     
                     {apt.status === 'pending' && (
                       <View style={styles.aptActions}>
-                        <AnimatedTouchable style={[styles.aptActionBtn, { borderColor: theme.success }]} onPress={() => handleStatusUpdate(apt.id, 'confirmed')}>
-                          <CheckCircle size={18} color={theme.success} />
-                        </AnimatedTouchable>
+                        {(!apt.service_type || apt.service_type.toLowerCase() === 'consultation') ? (
+                          <AnimatedTouchable style={[styles.aptActionBtn, { borderColor: theme.success }]} onPress={() => handleStatusUpdate(apt.id, 'confirmed')}>
+                            <CheckCircle size={18} color={theme.success} />
+                          </AnimatedTouchable>
+                        ) : (
+                          <AnimatedTouchable style={[styles.aptActionBtn, { borderColor: theme.gold }]} onPress={() => navigation?.navigate?.('Bookings', { filter: 'pending' })}>
+                            <FileText size={18} color={theme.gold} />
+                          </AnimatedTouchable>
+                        )}
                         <AnimatedTouchable style={[styles.aptActionBtn, { borderColor: theme.error }]} onPress={() => handleStatusUpdate(apt.id, 'cancelled')}>
                           <X size={18} color={theme.error} />
                         </AnimatedTouchable>
@@ -417,7 +444,13 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
             {selectedAppointment && (
               <ScrollView style={styles.modalBody}>
                 <DetailRow theme={theme} label="Booking Code" value={getDisplayCode(selectedAppointment.booking_code, selectedAppointment.id)} />
-                <DetailRow theme={theme} label="Client" value={selectedAppointment.client_name} />
+                <DetailRow theme={theme} label="Client" value={selectedAppointment.client_name || selectedAppointment.guest_name || 'Guest'} />
+                {(selectedAppointment.client_phone || selectedAppointment.guest_phone) && (
+                  <DetailRow theme={theme} label="Phone" value={selectedAppointment.guest_phone || selectedAppointment.client_phone} />
+                )}
+                {(selectedAppointment.client_email || selectedAppointment.guest_email) && (
+                  <DetailRow theme={theme} label="Email" value={selectedAppointment.guest_email || selectedAppointment.client_email} />
+                )}
                 <DetailRow theme={theme} label="Artist" value={selectedAppointment.artist_name} />
                 <DetailRow theme={theme} label="Date" value={formatDate(selectedAppointment.appointment_date)} />
                 <DetailRow theme={theme} label="Time" value={formatTime(selectedAppointment.start_time)} />
@@ -466,8 +499,8 @@ const getStyles = (theme, insets) => StyleSheet.create({
   headerTitle: { ...typography.h2, color: theme.textPrimary },
   headerSubtitle: { ...typography.bodySmall, color: theme.gold, marginTop: 2 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerBtn: { padding: 8, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight },
-  badge: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: theme.error },
+  headerBtn: { padding: 8, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center' },
+  badge: { position: 'absolute', top: 6, right: 8, width: 10, height: 10, borderRadius: 5, backgroundColor: theme.error, borderWidth: 1.5, borderColor: theme.surfaceLight },
   logoutText: { ...typography.button, color: theme.error, fontSize: 13 },
   scrollContent: { padding: 16, paddingBottom: 60 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 },
@@ -507,6 +540,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   aptHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   aptInfoWrapper: { flex: 1, marginRight: 12 },
   aptClient: { ...typography.body, fontWeight: '700', color: theme.textPrimary },
+  aptDesign: { ...typography.bodySmall, color: theme.gold, marginTop: 4, fontWeight: '600' },
   aptArtist: { ...typography.bodySmall, color: theme.textSecondary, marginTop: 2 },
   
   aptFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
@@ -519,8 +553,8 @@ const getStyles = (theme, insets) => StyleSheet.create({
   pageBtn: { padding: 8, backgroundColor: theme.surfaceLight, borderRadius: borderRadius.md },
   pageBtnDisabled: { opacity: 0.3 },
   pageText: { ...typography.bodySmall, color: theme.textSecondary, fontWeight: '700' },
-  alertItem: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: borderRadius.md, marginBottom: 8, backgroundColor: `${theme.warning}15`, borderWidth: 1, borderColor: `${theme.warning}30` },
-  alertText: { ...typography.bodySmall, color: theme.warning, flex: 1, fontWeight: '600' },
+  alertItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 12, borderRadius: borderRadius.md, marginBottom: 8, backgroundColor: `${theme.warning}15`, borderWidth: 1, borderColor: `${theme.warning}30` },
+  alertText: { ...typography.bodySmall, color: theme.warning, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,13,14,0.7)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: theme.surface, borderTopLeftRadius: borderRadius.xxl, borderTopRightRadius: borderRadius.xxl, maxHeight: '85%', borderWidth: 1, borderColor: theme.border },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: theme.border },

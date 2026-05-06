@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Animated, PanResponder, Dimensions, RefreshControl
+  View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Animated, PanResponder, Dimensions, RefreshControl, Platform
 } from 'react-native';
 import {
   ArrowLeft, Bell, Calendar, CheckCircle, XCircle, Star,
-  AlertTriangle, CreditCard, Mail, ChevronDown, Trash2, Filter, MessageSquare, Info
+  AlertTriangle, CreditCard, Mail, MailOpen, ChevronDown, Trash2, Filter, MessageSquare, Info
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -52,13 +52,23 @@ const TYPE_FILTERS = [
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, onAction, theme, styles }) => {
+const SwipeableNotificationItem = ({ item, index, onPress, onToggleRead, onDismiss, onAction, theme, styles }) => {
   const ICON_MAP = getIconMap(theme);
   const cfg = ICON_MAP[item.type] || { Icon: Bell, color: theme.textTertiary, bg: theme.surfaceLight };
   const pan = useRef(new Animated.ValueXY()).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const itemHeight = useRef(new Animated.Value(item.type === 'action_required' && !item.is_read ? 140 : 100)).current;
+
+  // Store latest values in refs to avoid stale closures in PanResponder
+  const itemRef = useRef(item);
+  const onToggleReadRef = useRef(onToggleRead);
+  const onDismissRef = useRef(onDismiss);
+
+  useEffect(() => {
+    itemRef.current = item;
+    onToggleReadRef.current = onToggleRead;
+    onDismissRef.current = onDismiss;
+  }, [item, onToggleRead, onDismiss]);
 
   useEffect(() => {
     Animated.parallel([
@@ -74,16 +84,20 @@ const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, 
         return Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
       },
       onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dx < 0) {
-          pan.setValue({ x: gestureState.dx, y: 0 });
-        }
+        pan.setValue({ x: gestureState.dx, y: 0 });
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dx < -SCREEN_WIDTH * 0.3) {
+          // Swipe Left -> Delete
           Animated.timing(pan, { toValue: { x: -SCREEN_WIDTH, y: 0 }, duration: 200, useNativeDriver: false }).start(() => {
-            Animated.timing(itemHeight, { toValue: 0, duration: 200, useNativeDriver: false }).start(() => {
-              onDismiss(item.id);
-            });
+            onDismissRef.current(itemRef.current.id);
+          });
+        } else if (gestureState.dx > SCREEN_WIDTH * 0.3) {
+          // Swipe Right -> Toggle Read/Unread
+          Animated.timing(pan, { toValue: { x: SCREEN_WIDTH, y: 0 }, duration: 200, useNativeDriver: false }).start(() => {
+            onToggleReadRef.current(itemRef.current);
+            // Snap back
+            Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
           });
         } else {
           Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
@@ -96,14 +110,26 @@ const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, 
   ).current;
 
   return (
-    <Animated.View style={{ height: itemHeight, overflow: 'hidden' }}>
-      <Animated.View style={{ opacity, transform: [{ translateY: slideAnim }], flex: 1 }}>
-      <View style={styles.deleteBg}>
-        <Trash2 size={24} color="#ffffff" />
-        <Text style={styles.deleteText}>Delete</Text>
+    <View style={{ marginBottom: 8 }}>
+      <Animated.View style={{ opacity, transform: [{ translateY: slideAnim }] }}>
+      
+      {/* Background Actions */}
+      <View style={[StyleSheet.absoluteFill, { borderRadius: borderRadius.xl, overflow: 'hidden' }]}>
+        {/* Left Action (Swipe Right to Read) */}
+        <Animated.View style={[styles.readBg, { opacity: pan.x.interpolate({ inputRange: [0, 20], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
+          {item.is_read ? <Mail size={24} color="#ffffff" /> : <MailOpen size={24} color="#ffffff" />}
+          <Text style={styles.actionText}>{item.is_read ? 'Mark Unread' : 'Mark Read'}</Text>
+        </Animated.View>
+        
+        {/* Right Action (Swipe Left to Delete) */}
+        <Animated.View style={[styles.deleteBg, { opacity: pan.x.interpolate({ inputRange: [-20, 0], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
+          <Trash2 size={24} color="#ffffff" />
+          <Text style={styles.actionText}>Delete</Text>
+        </Animated.View>
       </View>
-      <Animated.View {...panResponder.panHandlers} style={[pan.getLayout(), { flex: 1 }]}>
-        <TouchableOpacity style={[styles.card, !item.is_read && styles.cardUnread]} onPress={() => onPress(item)} activeOpacity={0.9}>
+
+      <Animated.View {...panResponder.panHandlers} style={[pan.getLayout()]}>
+        <TouchableOpacity style={[styles.card, !item.is_read ? styles.cardUnread : styles.cardRead]} onPress={() => onPress(item)} activeOpacity={1}>
           {!item.is_read && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(190,144,85,0.06)', borderRadius: borderRadius.xl }]} pointerEvents="none" />}
           <View style={[styles.iconWrap, { backgroundColor: cfg.bg || theme.surfaceLight }]}>
             <cfg.Icon size={20} color={cfg.color || theme.textTertiary} />
@@ -114,30 +140,12 @@ const SwipeableNotificationItem = ({ item, index, onPress, onUnread, onDismiss, 
               <Text style={styles.cardTime}>{timeAgo(item.created_at)}</Text>
             </View>
             <Text style={styles.cardMsg} numberOfLines={2}>{item.message || ''}</Text>
-            
-            {item.type === 'action_required' && !item.is_read && (
-              <View style={styles.actionBtns}>
-                <TouchableOpacity style={styles.acceptBtn} onPress={() => onAction(item.id, item.related_id, 'accept')}>
-                  <CheckCircle size={14} color="#fff" />
-                  <Text style={styles.actionBtnText}>Accept</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.declineBtn} onPress={() => onAction(item.id, item.related_id, 'reject')}>
-                  <XCircle size={14} color="#fff" />
-                  <Text style={styles.actionBtnText}>Decline</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
-          {!!item.is_read && (
-            <TouchableOpacity style={{ padding: 4 }} onPress={() => onUnread(item)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Mail size={16} color={theme.gold} />
-            </TouchableOpacity>
-          )}
           {!item.is_read && <View style={styles.unreadDot} />}
         </TouchableOpacity>
       </Animated.View>
       </Animated.View>
-    </Animated.View>
+    </View>
   );
 };
 
@@ -185,18 +193,24 @@ export function ArtistNotifications({ onBack, userId }) {
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!item.is_read) { await markNotificationAsRead(item.id); setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: true } : n)); }
     
-    if (item.type === 'payment_success') {
+    if (item.type === 'payment_success' || item.type === 'payout_processed') {
       try { navigation.navigate('artist-earnings', { openTransactionId: item.related_id }); } catch(e){}
     } else if (item.type === 'appointment_request' || item.type === 'action_required') {
       try { navigation.navigate('artist-main', { screen: 'Sessions', params: { openAppointmentId: item.related_id } }); } catch(e){}
-    } else if (item.type?.startsWith('appointment_')) {
+    } else if (item.type?.startsWith('appointment_') || item.type === 'system') {
       try { navigation.navigate('artist-main', { screen: 'Schedule', params: { openAppointmentId: item.related_id } }); } catch(e){}
     }
   };
   
-  const onUnread = async (item) => { 
+  const onToggleRead = async (item) => {
     if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await markNotificationAsUnread(item.id); setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: false } : n)); 
+    if (item.is_read) {
+      await markNotificationAsUnread(item.id);
+      setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: false } : n));
+    } else {
+      await markNotificationAsRead(item.id);
+      setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: true } : n));
+    }
   };
   
   const onDismiss = async (id) => {
@@ -235,7 +249,7 @@ export function ArtistNotifications({ onBack, userId }) {
 
   const renderItem = ({ item, index }) => (
     <SwipeableNotificationItem
-      item={item} index={index} onPress={onPress} onUnread={onUnread} onDismiss={onDismiss} onAction={handleAction} theme={theme} styles={styles}
+      item={item} index={index} onPress={onPress} onToggleRead={onToggleRead} onDismiss={onDismiss} onAction={handleAction} theme={theme} styles={styles}
     />
   );
 
@@ -320,7 +334,7 @@ export function ArtistNotifications({ onBack, userId }) {
 
 const getStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
-  header: { padding: 20, paddingTop: 52, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border, ...shadows.subtle },
+  header: { padding: 20, paddingTop: Platform.OS === 'ios' ? 20 : 52, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border, ...shadows.subtle },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
@@ -344,13 +358,15 @@ const getStyles = (theme) => StyleSheet.create({
   dropdownItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border },
   dropdownText: { ...typography.bodySmall, color: theme.textPrimary },
   listContent: { padding: 16 },
-  deleteBg: { position: 'absolute', right: 0, top: 0, bottom: 8, width: 80, backgroundColor: theme.error, borderRadius: borderRadius.xl, justifyContent: 'center', alignItems: 'center' },
-  deleteText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700', marginTop: 4 },
+  deleteBg: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%', backgroundColor: theme.error, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 24 },
+  readBg: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '50%', backgroundColor: theme.info, justifyContent: 'center', alignItems: 'flex-start', paddingLeft: 24 },
+  actionText: { ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700', marginTop: 4 },
   card: {
     flexDirection: 'row', backgroundColor: theme.surface, borderRadius: borderRadius.xl,
-    padding: 14, marginBottom: 8, alignItems: 'flex-start',
+    padding: 14, alignItems: 'flex-start',
     borderWidth: 1, borderColor: theme.border, ...shadows.subtle
   },
+  cardRead: { borderLeftWidth: 3, borderLeftColor: 'transparent' },
   cardUnread: { borderLeftWidth: 3, borderLeftColor: theme.gold },
   iconWrap: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   cardContent: { flex: 1, marginRight: 8 },

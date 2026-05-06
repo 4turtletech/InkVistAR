@@ -16,10 +16,7 @@ import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { StaggerItem } from '../src/components/shared/StaggerItem';
 
 const getModules = (theme) => [
-  { id: 'admin-staff', title: 'Staff', Icon: Users, color: theme.iconPurple || '#a855f7', desc: 'Artist profiles' },
-  { id: 'admin-clients', title: 'Clients', Icon: Users, color: theme.iconBlue || '#3b82f6', desc: 'Customer CRM' },
   { id: 'admin-inventory', title: 'Inventory', Icon: Package, color: theme.iconBlue || '#3b82f6', desc: 'Session supplies' },
-  { id: 'admin-pos', title: 'Point of Sale', Icon: ShoppingCart, color: theme.gold || '#be9055', desc: 'Manual billing' },
   { id: 'admin-billing', title: 'Billing', Icon: Banknote, color: theme.success || '#10b981', desc: 'Invoices & Payouts' },
   { id: 'admin-chat', title: 'Live Chat', Icon: MessageSquare, color: theme.primary || '#3b82f6', desc: 'Customer support' },
   { id: 'admin-analytics', title: 'Analytics', Icon: BarChart3, color: theme.iconPurple || '#a855f7', desc: 'Studio performance' },
@@ -65,7 +62,7 @@ export function AdminStudio({ navigation }) {
 const getStyles = (theme, insets) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
   header: {
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20,
+    paddingHorizontal: 16, paddingTop: (insets?.top || 0) + 16, paddingBottom: 20,
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },

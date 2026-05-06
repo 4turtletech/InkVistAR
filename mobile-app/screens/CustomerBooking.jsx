@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-  ActivityIndicator, Alert, Image, Animated, Dimensions, Keyboard
+  ActivityIndicator, Alert, Image, Animated, Dimensions, Keyboard, SafeAreaView, Platform, StatusBar
 } from 'react-native';
 import { ArrowLeft, ChevronLeft, ChevronRight, Camera, CalendarCheck, MapPin, Check, Info, Star, CreditCard, Ticket, Clock, User, Plus, History } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,14 +13,15 @@ import { API_URL } from '../src/utils/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const tattooBodyParts = ["Face", "Neck", "Chest", "Back", "Left Shoulder", "Right Shoulder", "Left Arm", "Right Arm", "Left Forearm", "Right Forearm", "Left Hand", "Right Hand", "Left Thigh", "Right Thigh", "Left Calf", "Right Calf", "Other"];
+const tattooBodyParts = ["Face", "Neck", "Chest", "Back", "Left Shoulder", "Right Shoulder", "Left Upper Arm", "Right Upper Arm", "Left Forearm", "Right Forearm", "Left Wrist", "Right Wrist", "Left Hand", "Right Hand", "Left Ribs", "Right Ribs", "Left Hip", "Right Hip", "Left Thigh", "Right Thigh", "Left Calf", "Right Calf", "Left Ankle", "Right Ankle", "Other"];
+const piercingBodyParts = ["Left Ear Lobe", "Right Ear Lobe", "Left Helix", "Right Helix", "Left Tragus", "Right Tragus", "Left Conch", "Right Conch", "Left Industrial", "Right Industrial", "Left Nostril", "Right Nostril", "Septum", "Left Eyebrow", "Right Eyebrow", "Lip/Oral", "Navel", "Left Nipple", "Right Nipple", "Other"];
 
 export function CustomerBooking({ customerId, onBack, initialUser }) {
   const { theme: colors } = useTheme();
   const styles = getStyles(colors);
 
   const [step, setStep] = useState(1);
-  const TOTAL_STEPS = 6;
+  const TOTAL_STEPS = 5;
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [artists, setArtists] = useState([]);
@@ -210,11 +211,6 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
       if (!formData.date) newErrors.date = "Select a date.";
       const showTime = formData.selectedServices.includes('Consultation') || formData.selectedServices.includes('Piercing');
       if (showTime && !formData.time) newErrors.time = "Select a time.";
-    } else if (step === 5) {
-      if (!formData.firstName.match(/^[a-zA-Z\s-']+$/)) newErrors.firstName = "Invalid First Name.";
-      if (!formData.lastName.match(/^[a-zA-Z\s-']+$/)) newErrors.lastName = "Invalid Last Name.";
-      if (!formData.email.match(/^\S+@\S+\.\S+$/)) newErrors.email = "Invalid Email.";
-      if (!formData.phone.match(/^[0-9]{10,11}$/)) newErrors.phone = "Phone must be 10 or 11 digits.";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -441,26 +437,66 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
         />
         <Text style={styles.counter}>{formData.notes.length}/500</Text>
       </View>
+
+      <Text style={[styles.label, { marginTop: 8 }]}>Reference Image (Optional)</Text>
+      <TouchableOpacity style={styles.uploadZone} onPress={pickImage}>
+        {formData.referenceImage ? (
+          <Image source={{ uri: formData.referenceImage }} style={styles.uploadedImg} />
+        ) : (
+          <View style={styles.uploadInner}>
+            <Camera size={32} color={colors.goldMuted} />
+            <Text style={styles.uploadTxt}>Tap to upload inspiration</Text>
+          </View>
+        )}
+      </TouchableOpacity>
     </View>
   );
 
-  const renderStep3 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>3. Placement & References</Text>
-      
-      <Text style={styles.label}>Where is this going? <Text style={{color: colors.error}}>*</Text></Text>
-      <View style={styles.pillContainer}>
-        {tattooBodyParts.map(part => {
-          const isSelected = formData.placement.includes(part);
-          return (
-            <TouchableOpacity key={part} style={[styles.pill, isSelected && styles.pillActive]} onPress={() => toggleArrayField('placement', part)}>
-              {isSelected && <Check size={14} color={colors.backgroundDeep} style={{ marginRight: 4 }} />}
-              <Text style={[styles.pillTxt, isSelected && styles.pillTxtActive]}>{part}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-      {errors.placement && <Text style={styles.errorTxt}>{errors.placement}</Text>}
+  const renderStep3 = () => {
+    const showTattoo = formData.selectedServices.includes('Tattoo Session') || formData.selectedServices.includes('Consultation');
+    const showPiercing = formData.selectedServices.includes('Piercing');
+
+    return (
+      <View style={styles.stepContainer}>
+        <Text style={styles.stepTitle}>3. Placement</Text>
+        
+        <Text style={styles.label}>Where is this going? <Text style={{color: colors.error}}>*</Text></Text>
+        
+        {showTattoo && (
+          <>
+            {(showTattoo && showPiercing) && <Text style={[styles.label, { color: colors.gold, marginTop: 4, marginBottom: 8, textTransform: 'none' }]}>Tattoo Placement</Text>}
+            <View style={styles.pillContainer}>
+              {tattooBodyParts.map(part => {
+                const isSelected = formData.placement.includes(part);
+                return (
+                  <TouchableOpacity key={`tattoo-${part}`} style={[styles.pill, isSelected && styles.pillActive]} onPress={() => toggleArrayField('placement', part)}>
+                    {isSelected && <Check size={14} color={colors.backgroundDeep} style={{ marginRight: 4 }} />}
+                    <Text style={[styles.pillTxt, isSelected && styles.pillTxtActive]}>{part}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {showPiercing && (
+          <>
+            {(showTattoo && showPiercing) && <Text style={[styles.label, { color: colors.gold, marginTop: 16, marginBottom: 8, textTransform: 'none' }]}>Piercing Placement</Text>}
+            <View style={styles.pillContainer}>
+              {piercingBodyParts.map(part => {
+                const isSelected = formData.placement.includes(part);
+                return (
+                  <TouchableOpacity key={`piercing-${part}`} style={[styles.pill, isSelected && styles.pillActive]} onPress={() => toggleArrayField('placement', part)}>
+                    {isSelected && <Check size={14} color={colors.backgroundDeep} style={{ marginRight: 4 }} />}
+                    <Text style={[styles.pillTxt, isSelected && styles.pillTxtActive]}>{part}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        )}
+
+        {errors.placement && <Text style={styles.errorTxt}>{errors.placement}</Text>}
 
       {formData.placement.includes('Other') && (
         <View style={styles.inputWrap}>
@@ -477,20 +513,9 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
           {errors.placementNotes && <Text style={styles.errorTxt}>{errors.placementNotes}</Text>}
         </View>
       )}
-
-      <Text style={styles.label}>Reference Image</Text>
-      <TouchableOpacity style={styles.uploadZone} onPress={pickImage}>
-        {formData.referenceImage ? (
-          <Image source={{ uri: formData.referenceImage }} style={styles.uploadedImg} />
-        ) : (
-          <View style={styles.uploadInner}>
-            <Camera size={32} color={colors.goldMuted} />
-            <Text style={styles.uploadTxt}>Tap to upload inspiration</Text>
-          </View>
-        )}
-      </TouchableOpacity>
     </View>
-  );
+    );
+  };
 
   const renderStep4 = () => {
     const showTimeSelection = formData.selectedServices.includes('Consultation') || formData.selectedServices.includes('Piercing');
@@ -609,54 +634,6 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
 
   const renderStep5 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>5. Contact Verification</Text>
-      <Text style={styles.stepDesc}>We've pre-filled your details. Please verify your info so we can reach you.</Text>
-      
-      <View style={styles.infoBox}>
-        <Info size={16} color={colors.textTertiary} style={{ marginTop: 2, marginRight: 8 }} />
-        <Text style={styles.infoTxt}>Double-check these details. Staffs will use this exact info to contact you about your design.</Text>
-      </View>
-
-      <View style={[styles.inputWrap, { marginTop: 20 }]}>
-        <Text style={styles.label}>First Name <Text style={{color: colors.error}}>*</Text></Text>
-        <TextInput style={[styles.input, errors.firstName && styles.inputError]} value={formData.firstName} onChangeText={(v) => handleInput('firstName', v.replace(/[^a-zA-Z\s-']/g, ''))} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
-        {errors.firstName && <Text style={styles.errorTxt}>{errors.firstName}</Text>}
-      </View>
-      <View style={styles.inputWrap}>
-        <Text style={styles.label}>Last Name <Text style={{color: colors.error}}>*</Text></Text>
-        <TextInput style={[styles.input, errors.lastName && styles.inputError]} value={formData.lastName} onChangeText={(v) => handleInput('lastName', v.replace(/[^a-zA-Z\s-']/g, ''))} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
-        {errors.lastName && <Text style={styles.errorTxt}>{errors.lastName}</Text>}
-      </View>
-      <View style={styles.inputWrap}>
-        <Text style={styles.label}>Email Address <Text style={{color: colors.error}}>*</Text></Text>
-        <TextInput style={[styles.input, errors.email && styles.inputError]} keyboardType="email-address" value={formData.email} onChangeText={(v) => handleInput('email', v.replace(/\s/g, ''))} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
-        {errors.email && <Text style={styles.errorTxt}>{errors.email}</Text>}
-      </View>
-      <View style={styles.inputWrap}>
-        <Text style={styles.label}>Phone Number <Text style={{color: colors.error}}>*</Text></Text>
-        <View style={[styles.input, { flexDirection: 'row', alignItems: 'center', padding: 0 }, errors.phone && styles.inputError]}>
-           <TouchableOpacity 
-             style={{ paddingHorizontal: 16, paddingVertical: 14, borderRightWidth: 1, borderRightColor: colors.border, justifyContent: 'center' }}
-             onPress={() => { triggerFeedback(); setShowPhoneDropdown(true); }}
-           >
-             <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>{formData.phoneCode} ▾</Text>
-           </TouchableOpacity>
-           <TextInput 
-             style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 14, color: colors.textPrimary, fontSize: 14 }}
-             keyboardType="numbers-and-punctuation" 
-             value={formData.phone} 
-             onChangeText={(v) => handleInput('phone', v.replace(/\D/g, '').slice(0, 11))} 
-             returnKeyType="done" 
-             onSubmitEditing={Keyboard.dismiss} 
-           />
-        </View>
-        {errors.phone && <Text style={styles.errorTxt}>{errors.phone}</Text>}
-      </View>
-    </View>
-  );
-
-  const renderStep6 = () => (
-    <View style={styles.stepContainer}>
       <Animated.View style={[styles.ticket, { transform: [{ translateY: ticketSlide }] }]}>
         <View style={styles.ticketHeader}>
           <Text style={styles.ticketTitle}>Studio Ticket</Text>
@@ -692,7 +669,7 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}><ArrowLeft size={24} color={colors.textPrimary} /></TouchableOpacity>
         <Text style={styles.headerTitle}>Booking Journey</Text>
@@ -709,7 +686,6 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
         {step === 3 && renderStep3()}
         {step === 4 && renderStep4()}
         {step === 5 && renderStep5()}
-        {step === 6 && renderStep6()}
       </ScrollView>
 
       <View style={styles.bottomBar}>
@@ -736,13 +712,13 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
           </View>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 52, backgroundColor: colors.backgroundDeep },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 16, backgroundColor: colors.backgroundDeep },
   headerTitle: { ...typography.h2, color: colors.textPrimary },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.darkBgSecondary, justifyContent: 'center', alignItems: 'center' },
   progressTrack: { height: 4, backgroundColor: colors.border, marginHorizontal: 32, marginTop: 10, borderRadius: 2, overflow: 'hidden' },

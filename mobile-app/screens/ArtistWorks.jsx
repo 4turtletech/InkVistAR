@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, SafeAreaView, Image, Modal, ActivityIndicator, RefreshControl,
+  ScrollView, SafeAreaView, Image, Modal, ActivityIndicator, RefreshControl, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -64,7 +64,7 @@ export function ArtistWorks({ onBack, artistId }) {
   }, [newWorkTitle]);
 
   const loadPortfolio = async () => { if (!artistId) return; setLoading(true); const r = await getArtistPortfolio(artistId); if (r.success) setWorks(r.works || []); setLoading(false); };
-  
+
   const onRefresh = async () => { setRefreshing(true); await loadPortfolio(); setRefreshing(false); };
 
   const pickImage = async () => {
@@ -131,7 +131,7 @@ export function ArtistWorks({ onBack, artistId }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />}
       >
@@ -353,7 +353,7 @@ const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 20 : 52, paddingBottom: 16,
   },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   headerTitle: { ...typography.h2, color: colors.textPrimary },
@@ -396,7 +396,7 @@ const getStyles = (colors) => StyleSheet.create({
   toggleTrackActive: { backgroundColor: colors.gold },
   toggleThumb: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#ffffff' },
   toggleThumbActive: { transform: [{ translateX: 18 }] },
-  fab: { position: 'absolute', bottom: 28, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: colors.gold, justifyContent: 'center', alignItems: 'center' },
+  fab: { position: 'absolute', bottom: 90, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: colors.gold, justifyContent: 'center', alignItems: 'center' },
   alertOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   alertCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 20, width: '85%', borderWidth: 1, borderColor: colors.border },
   alertBtn: { backgroundColor: colors.gold, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },

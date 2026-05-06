@@ -174,7 +174,7 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
       };
     });
 
-  const recentWorks = works.slice(0, 4).map(w => ({
+  const recentWorks = [...works].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 4).map(w => ({
     id: w.id,
     title: w.title || 'Untitled',
     category: w.category || 'Portfolio',
@@ -429,7 +429,7 @@ const getStyles = (colors) => StyleSheet.create({
   // ── Header ──
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 52, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 20 : 52, paddingBottom: 16,
   },
   greeting: { ...typography.body, color: colors.textSecondary },
   userName: { ...typography.h1, color: colors.textPrimary, marginTop: 2 },

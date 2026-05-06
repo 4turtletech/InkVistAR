@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import {
   ArrowLeft, Calendar, Package, DollarSign, TrendingUp, Users,
-  X, ChevronRight, BarChart2, CheckCircle, XCircle, Clock, Filter,
+  X, ChevronRight, BarChart2, CheckCircle, XCircle, Clock, Filter, Home, Palette
 } from 'lucide-react-native';
 import { BarChart, PieChart } from 'react-native-chart-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -115,6 +115,30 @@ export const AdminAnalytics = ({ navigation }) => {
     datasets: [{ data: artists.length > 0 ? artists.slice(0, 5).map(a => parseFloat(a.revenue || 0)) : [0] }],
   };
 
+  const revenueTrendData = {
+    labels: data?.revenue?.chart?.length > 0 ? data.revenue.chart.map(d => d.month.substring(0, 3)) : ['None'],
+    datasets: [{ data: data?.revenue?.chart?.length > 0 ? data.revenue.chart.map(d => parseFloat(d.value)) : [0] }]
+  };
+
+  const revenueSourcesPie = (data?.revenue?.breakdown || [])
+    .filter(d => Number(d.value) > 0)
+    .map((d, i) => ({
+      name: d.name,
+      count: Number(d.value),
+      color: [theme.gold, theme.info || '#3b82f6', theme.success, theme.warning, theme.iconPurple || '#a855f7'][i % 5],
+      legendFontColor: theme.textSecondary, legendFontSize: 12
+    }));
+
+  const stylesPie = (data?.styles || [])
+    .filter(s => Number(s.count) > 0)
+    .slice(0, 5) // top 5
+    .map((s, i) => ({
+      name: s.name,
+      count: Number(s.count),
+      color: [theme.iconPurple || '#a855f7', theme.gold, theme.info || '#3b82f6', theme.error, theme.success][i % 5],
+      legendFontColor: theme.textSecondary, legendFontSize: 12
+    }));
+
   // ---------- Breakdown modals ----------
   const openRevenueBreakdown = () => setBreakdown({
     title: 'Revenue Breakdown',
@@ -160,6 +184,79 @@ export const AdminAnalytics = ({ navigation }) => {
     })),
   });
 
+  const openRevenueTrendBreakdown = () => setBreakdown({
+    title: 'Revenue Trend',
+    rows: (data?.revenue?.chart || []).map((c, i) => ({
+      label: c.month,
+      value: `P${formatCurrency(c.value)}`
+    }))
+  });
+
+  const openRevenueSourcesBreakdown = () => setBreakdown({
+    title: 'Revenue Sources',
+    rows: (data?.revenue?.breakdown || []).map((b, i) => ({
+      label: b.name,
+      value: `P${formatCurrency(b.value)}`,
+      color: i === 0 ? theme.gold : undefined,
+    }))
+  });
+
+  const formatDuration = (seconds) => {
+    if (!seconds) return 'N/A';
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return hrs > 0 ? `${hrs}h ${String(mins).padStart(2, '0')}m` : `${mins}m`;
+  };
+
+  const openExpensesBreakdown = () => setBreakdown({
+    title: 'Operations Expenses',
+    rows: (data?.expenses?.breakdown || []).map((b, i) => ({
+      label: b.name, value: `P${formatCurrency(b.value)}`, color: i === 0 ? theme.error : undefined
+    }))
+  });
+
+  const openOverheadBreakdown = () => setBreakdown({
+    title: 'Studio Overhead',
+    rows: (data?.overhead?.breakdown || []).map((b, i) => ({
+      label: b.category, value: `P${formatCurrency(b.total_amount)}`, color: i === 0 ? theme.warning : undefined
+    }))
+  });
+
+  const openUsersBreakdown = () => setBreakdown({
+    title: 'User Base',
+    rows: [
+      { label: 'Total', value: String(data?.users?.total || 0) },
+      { label: 'Customers', value: String(data?.users?.customers || 0) },
+      { label: 'Artists', value: String(data?.users?.artists || 0) },
+      { label: 'Admins', value: String(data?.users?.admins || 0) }
+    ]
+  });
+
+  const openCompletionBreakdown = () => setBreakdown({
+    title: 'Completion Rate',
+    rows: [
+      { label: 'Rate', value: `${data?.appointments?.completionRate || 0}%`, color: theme.gold },
+      { label: 'Completed', value: String(data?.appointments?.completed || 0), color: theme.success },
+      { label: 'Cancelled', value: String(data?.appointments?.cancelled || 0), color: theme.error }
+    ]
+  });
+
+  const openDurationBreakdown = () => setBreakdown({
+    title: 'Avg Session Duration',
+    rows: [
+      { label: 'Average Duration', value: formatDuration(data?.appointments?.avgDuration) }
+    ]
+  });
+
+  const openStylesBreakdown = () => setBreakdown({
+    title: 'Popular Styles',
+    rows: (data?.styles || []).map((s, i) => ({
+      label: s.name,
+      value: `${s.count} works`,
+      color: i === 0 ? theme.gold : undefined,
+    }))
+  });
+
   if (loading) return <View style={styles.loadingContainer}><PremiumLoader message="Loading analytics..." /></View>;
 
   return (
@@ -195,31 +292,63 @@ export const AdminAnalytics = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={theme.gold} />}
       >
-        {/* Stat Cards Row */}
+        {/* Stat Cards Grid */}
         <StaggerItem index={0}>
-          <View style={styles.statsRow}>
-            <AnimatedTouchable style={styles.statCard} onPress={openRevenueBreakdown}>
+          <View style={styles.statGrid}>
+            <AnimatedTouchable style={styles.statCardHalf} onPress={openRevenueBreakdown}>
               <View style={[styles.statIcon, { backgroundColor: theme.successBg || 'rgba(16,185,129,0.12)' }]}>
                 <DollarSign size={20} color={theme.success} />
               </View>
               <Text style={styles.statLabel}>Revenue</Text>
               <Text style={styles.statValue}>P{formatCurrency(revenue)}</Text>
-              <View style={styles.statFooter}>
-                <Text style={styles.statHint}>Tap for breakdown</Text>
-                <ChevronRight size={12} color={theme.textTertiary} />
-              </View>
             </AnimatedTouchable>
 
-            <AnimatedTouchable style={styles.statCard} onPress={openAppointmentsBreakdown}>
+            <AnimatedTouchable style={styles.statCardHalf} onPress={openExpensesBreakdown}>
+              <View style={[styles.statIcon, { backgroundColor: theme.errorBg || 'rgba(239,68,68,0.12)' }]}>
+                <DollarSign size={20} color={theme.error} />
+              </View>
+              <Text style={styles.statLabel}>Expenses</Text>
+              <Text style={styles.statValue}>P{formatCurrency(data?.expenses?.total || 0)}</Text>
+            </AnimatedTouchable>
+
+            <AnimatedTouchable style={styles.statCardHalf} onPress={openOverheadBreakdown}>
+              <View style={[styles.statIcon, { backgroundColor: theme.warningBg || 'rgba(245,158,11,0.12)' }]}>
+                <Home size={20} color={theme.warning} />
+              </View>
+              <Text style={styles.statLabel}>Overhead</Text>
+              <Text style={styles.statValue}>P{formatCurrency(data?.overhead?.total || 0)}</Text>
+            </AnimatedTouchable>
+
+            <AnimatedTouchable style={styles.statCardHalf} onPress={openAppointmentsBreakdown}>
               <View style={[styles.statIcon, { backgroundColor: theme.iconPurpleBg || 'rgba(168,85,247,0.12)' }]}>
                 <Calendar size={20} color={theme.iconPurple || '#a855f7'} />
               </View>
               <Text style={styles.statLabel}>Appointments</Text>
               <Text style={styles.statValue}>{appointments.total}</Text>
-              <View style={styles.statFooter}>
-                <Text style={styles.statHint}>Tap for breakdown</Text>
-                <ChevronRight size={12} color={theme.textTertiary} />
+            </AnimatedTouchable>
+
+            <AnimatedTouchable style={styles.statCardHalf} onPress={openUsersBreakdown}>
+              <View style={[styles.statIcon, { backgroundColor: theme.infoBg || 'rgba(59,130,246,0.12)' }]}>
+                <Users size={20} color={theme.info || '#3b82f6'} />
               </View>
+              <Text style={styles.statLabel}>Total Users</Text>
+              <Text style={styles.statValue}>{data?.users?.total || 0}</Text>
+            </AnimatedTouchable>
+
+            <AnimatedTouchable style={styles.statCardHalf} onPress={openCompletionBreakdown}>
+              <View style={[styles.statIcon, { backgroundColor: theme.surfaceLight }]}>
+                <CheckCircle size={20} color={theme.textPrimary} />
+              </View>
+              <Text style={styles.statLabel}>Completion Rate</Text>
+              <Text style={styles.statValue}>{data?.appointments?.completionRate || 0}%</Text>
+            </AnimatedTouchable>
+
+            <AnimatedTouchable style={styles.statCardHalf} onPress={openDurationBreakdown}>
+              <View style={[styles.statIcon, { backgroundColor: theme.surfaceLight }]}>
+                <Clock size={20} color={theme.textPrimary} />
+              </View>
+              <Text style={styles.statLabel}>Avg Duration</Text>
+              <Text style={[styles.statValue, { fontSize: 20 }]}>{formatDuration(data?.appointments?.avgDuration)}</Text>
             </AnimatedTouchable>
           </View>
         </StaggerItem>
@@ -269,8 +398,87 @@ export const AdminAnalytics = ({ navigation }) => {
           </AnimatedTouchable>
         </StaggerItem>
 
-        {/* Artist Revenue Bar */}
+        {/* Revenue Trend Bar */}
         <StaggerItem index={3}>
+          <AnimatedTouchable style={[styles.card, { alignItems: 'center' }]} onPress={openRevenueTrendBreakdown}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Revenue Trend</Text>
+              <View style={styles.tapHint}>
+                <TrendingUp size={14} color={theme.textTertiary} />
+                <Text style={styles.tapHintText}>Trend Info</Text>
+              </View>
+            </View>
+            {data?.revenue?.chart?.length > 0 ? (
+              <BarChart
+                data={revenueTrendData}
+                width={CHART_W}
+                height={220}
+                yAxisLabel="P"
+                chartConfig={{...chartConfig, color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`}}
+                style={{ borderRadius: 12 }}
+              />
+            ) : (
+              <EmptyState icon={TrendingUp} title="No trend data" />
+            )}
+          </AnimatedTouchable>
+        </StaggerItem>
+
+        {/* Revenue Sources Pie */}
+        <StaggerItem index={4}>
+          <AnimatedTouchable style={[styles.card, { alignItems: 'center' }]} onPress={openRevenueSourcesBreakdown}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Revenue Sources</Text>
+              <View style={styles.tapHint}>
+                <DollarSign size={14} color={theme.textTertiary} />
+                <Text style={styles.tapHintText}>Breakdown</Text>
+              </View>
+            </View>
+            {revenueSourcesPie.length > 0 ? (
+              <PieChart
+                data={revenueSourcesPie}
+                width={CHART_W}
+                height={180}
+                chartConfig={chartConfig}
+                accessor="count"
+                backgroundColor="transparent"
+                paddingLeft="15"
+                absolute
+              />
+            ) : (
+              <EmptyState icon={DollarSign} title="No source data" />
+            )}
+          </AnimatedTouchable>
+        </StaggerItem>
+
+        {/* Popular Styles Pie */}
+        <StaggerItem index={5}>
+          <AnimatedTouchable style={[styles.card, { alignItems: 'center' }]} onPress={openStylesBreakdown}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Popular Styles</Text>
+              <View style={styles.tapHint}>
+                <BarChart2 size={14} color={theme.textTertiary} />
+                <Text style={styles.tapHintText}>Top Styles</Text>
+              </View>
+            </View>
+            {stylesPie.length > 0 ? (
+              <PieChart
+                data={stylesPie}
+                width={CHART_W}
+                height={180}
+                chartConfig={chartConfig}
+                accessor="count"
+                backgroundColor="transparent"
+                paddingLeft="15"
+                absolute
+              />
+            ) : (
+              <EmptyState icon={BarChart2} title="No style data" />
+            )}
+          </AnimatedTouchable>
+        </StaggerItem>
+
+        {/* Artist Revenue Bar */}
+        <StaggerItem index={6}>
           <AnimatedTouchable style={[styles.card, { alignItems: 'center' }]} onPress={openArtistsBreakdown}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Top Artist Revenue</Text>
@@ -295,7 +503,7 @@ export const AdminAnalytics = ({ navigation }) => {
         </StaggerItem>
 
         {/* Top Consumed Inventory */}
-        <StaggerItem index={4}>
+        <StaggerItem index={7}>
           <AnimatedTouchable style={styles.card} onPress={openInventoryBreakdown}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Top Consumed Inventory</Text>
@@ -374,6 +582,11 @@ const getStyles = (theme, insets) => StyleSheet.create({
 
   scrollContent: { padding: 16 },
 
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 12 },
+  statCardHalf: {
+    width: '48%', backgroundColor: theme.surface, borderRadius: borderRadius.xl,
+    padding: 16, marginBottom: 16, borderWidth: 1, borderColor: theme.borderLight, ...shadows.subtle,
+  },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   statCard: {
     flex: 1, backgroundColor: theme.surface, borderRadius: borderRadius.xl,

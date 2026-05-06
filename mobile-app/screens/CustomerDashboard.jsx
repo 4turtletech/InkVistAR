@@ -6,11 +6,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, RefreshControl, Animated,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, RefreshControl, Animated, Platform
 } from 'react-native';
 import {
   Bell, User, Palette, Calendar, Heart, Sparkles,
-  MessageCircle, Images, Zap, Clock, ChevronRight, Lightbulb, ArrowRight,
+  MessageCircle, Images, Zap, Clock, ChevronRight, Lightbulb, ArrowRight, Star,
   Activity, Flag, CheckCircle,
 } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -149,7 +149,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
         <View style={styles.statsRow}>
           <TouchableOpacity style={styles.statPill} onPress={() => onNavigate('Appointments')} activeOpacity={0.7}>
             <View style={[styles.statIconWrap, { backgroundColor: colors.iconBlueBg }]}>
-              <Calendar size={14} color={colors.iconBlue} />
+              <Calendar size={18} color={colors.iconBlue} />
             </View>
             <View>
               <Text style={styles.statValue}>{allUpcoming.length}</Text>
@@ -159,7 +159,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
           
           <TouchableOpacity style={styles.statPill} onPress={() => onNavigate('Gallery', { initialViewMode: 'Favorites' })} activeOpacity={0.7}>
             <View style={[styles.statIconWrap, { backgroundColor: colors.iconRoseBg }]}>
-              <Heart size={14} color={colors.iconRose} />
+              <Heart size={18} color={colors.iconRose} />
             </View>
             <View>
               <Text style={styles.statValue}>{favoritesCount}</Text>
@@ -168,8 +168,8 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.statPill} onPress={() => onNavigate('Gallery', { initialViewMode: 'My Tattoos' })} activeOpacity={0.7}>
-            <View style={[styles.statIconWrap, { backgroundColor: colors.iconGreenBg }]}>
-              <Zap size={14} color={colors.iconGreen} />
+            <View style={[styles.statIconWrap, { backgroundColor: colors.iconPurpleBg }]}>
+              <Star size={18} color={colors.iconPurple} />
             </View>
             <View>
               <Text style={styles.statValue}>{myTattoosCount}</Text>
@@ -357,7 +357,7 @@ const getStyles = (colors) => StyleSheet.create({
   
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 20 : 52, paddingBottom: 24,
   },
   greeting: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: 2 },
   userName: { ...typography.h2, color: colors.textPrimary },
@@ -382,16 +382,16 @@ const getStyles = (colors) => StyleSheet.create({
   // Stats Row
   statsRow: {
     flexDirection: 'row', justifyContent: 'space-between',
-    paddingHorizontal: 20, marginBottom: 28, gap: 10,
+    paddingHorizontal: 20, marginBottom: 28, gap: 12,
   },
   statPill: {
-    flex: 1, backgroundColor: colors.surface, borderRadius: 12, padding: 12,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderWidth: 1, borderColor: colors.borderLight, ...shadows.subtle,
+    flex: 1, backgroundColor: colors.surface, borderRadius: 16, padding: 14,
+    alignItems: 'flex-start', justifyContent: 'space-between',
+    borderWidth: 1, borderColor: colors.borderLight, ...shadows.medium, height: 110
   },
-  statIconWrap: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  statValue: { ...typography.h4, color: colors.textPrimary, lineHeight: 22 },
-  statLabel: { ...typography.labelSmall, color: colors.textSecondary, fontSize: 10 },
+  statIconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  statValue: { ...typography.h3, color: colors.textPrimary, lineHeight: 24, fontWeight: '800' },
+  statLabel: { ...typography.bodyXSmall, color: colors.textSecondary, fontWeight: '600', marginTop: 2 },
 
   section: { paddingHorizontal: 20, marginBottom: 28 },
   sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 14 },

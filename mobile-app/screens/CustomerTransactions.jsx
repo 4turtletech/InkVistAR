@@ -51,7 +51,7 @@ const ExpandableTransactionCard = ({ item, theme, styles }) => {
       </View>
       <Text style={styles.title} numberOfLines={2}>{item.description}</Text>
       <View style={styles.footer}>
-        <Text style={styles.amount}>₱{formatCurrency(item.amount)}</Text>
+        <Text style={styles.amount}>₱{formatCurrency(item.amount / 100)}</Text>
         <View style={styles.footerRight}>
           <StatusBadge status={item.status || 'paid'} />
           <Animated.View style={{ transform: [{ rotate: rotateChevron }] }}>
@@ -69,15 +69,15 @@ const ExpandableTransactionCard = ({ item, theme, styles }) => {
           </View>
           <View style={styles.receiptRow}>
             <Text style={styles.receiptLabel}>Materials Used</Text>
-            <Text style={styles.receiptValue}>{item.materials_cost ? `₱${formatCurrency(item.materials_cost)}` : '₱0.00'}</Text>
+            <Text style={styles.receiptValue}>{item.materials_cost ? `₱${formatCurrency(item.materials_cost / 100)}` : '₱0.00'}</Text>
           </View>
           <View style={styles.receiptRow}>
             <Text style={styles.receiptLabel}>Downpayment</Text>
-            <Text style={styles.receiptValue}>{item.downpayment ? `-₱${formatCurrency(item.downpayment)}` : '₱0.00'}</Text>
+            <Text style={styles.receiptValue}>{item.downpayment ? `-₱${formatCurrency(item.downpayment / 100)}` : '₱0.00'}</Text>
           </View>
           <View style={[styles.receiptRow, { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 8, marginTop: 4 }]}>
             <Text style={[styles.receiptLabel, { fontWeight: '700', color: theme.textPrimary }]}>Total Paid</Text>
-            <Text style={[styles.receiptValue, { fontWeight: '800', color: theme.gold }]}>₱{formatCurrency(item.amount)}</Text>
+            <Text style={[styles.receiptValue, { fontWeight: '800', color: theme.gold }]}>₱{formatCurrency(item.amount / 100)}</Text>
           </View>
         </View>
       </Animated.View>

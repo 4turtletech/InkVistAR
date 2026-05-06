@@ -123,7 +123,6 @@ export const AdminSettings = ({ navigation }) => {
               <Text style={styles.sectionHeader}>App Configuration</Text>
               <SettingToggle theme={theme} icon={Bell} title="Push Notifications" subtitle="Send alerts to mobile devices" value={settings.push_notifications} onToggle={() => handleToggle('push_notifications')} disabled={saving} />
               <SettingToggle theme={theme} icon={Lock} title="Allow New Registrations" subtitle="Let new users create accounts" value={settings.allow_registrations} onToggle={() => handleToggle('allow_registrations')} disabled={saving} />
-              <SettingToggle theme={theme} icon={Wrench} title="Maintenance Mode" subtitle="Temporarily disable the platform" value={settings.maintenance_mode} onToggle={() => handleToggle('maintenance_mode')} disabled={saving} destructive />
             </>
           )}
 

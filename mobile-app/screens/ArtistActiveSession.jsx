@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, StyleSheet,
-  ScrollView, SafeAreaView, Image, ActivityIndicator, Modal, TouchableOpacity,
+  ScrollView, SafeAreaView, Image, ActivityIndicator, Modal, TouchableOpacity, Platform
 } from 'react-native';
 import {
   ArrowLeft, Play, CheckCircle2, Camera, Package, Palette,
@@ -94,17 +94,17 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     setLoading(true);
     try {
       if (newStatus === 'completed' && (sessionData.notes || sessionData.beforePhoto || sessionData.afterPhoto)) {
-        await fetch(`${API_URL}/appointments/${appointment.id}/details`, { 
-          method: 'PUT', 
-          headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ notes: sessionData.notes, beforePhoto: sessionData.beforePhoto, afterPhoto: sessionData.afterPhoto }) 
+        await fetch(`${API_URL}/appointments/${appointment.id}/details`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes: sessionData.notes, beforePhoto: sessionData.beforePhoto, afterPhoto: sessionData.afterPhoto })
         });
       }
 
-      const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/status`, { 
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ status: newStatus, isFullyComplete }) 
+      const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, isFullyComplete })
       })).json();
 
       if (r.success) {
@@ -367,7 +367,7 @@ const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 20 : 52, paddingBottom: 16,
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface,
@@ -425,7 +425,7 @@ const getStyles = (colors) => StyleSheet.create({
   },
   timerText: { fontSize: 44, fontWeight: '800', color: colors.gold, letterSpacing: 2, fontFamily: 'Georgia' },
   timerLabel: { ...typography.bodyXSmall, color: colors.textTertiary, letterSpacing: 2, marginTop: 4 },
-  
+
   // Tracker UI
   trackerBtn: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

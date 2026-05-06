@@ -260,7 +260,6 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const statItems = [
     { Icon: Palette, label: 'Tattoos', value: stats.tattoos },
     { Icon: Heart, label: 'Designs', value: stats.designs },
-    { Icon: Users, label: 'Artists', value: stats.artists },
   ];
 
   return (
@@ -613,7 +612,7 @@ const getStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
   scrollContent: { paddingBottom: 40, paddingHorizontal: 16 },
   header: {
-    paddingVertical: 16, paddingTop: 52, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 16, paddingTop: Platform.OS === 'ios' ? 16 : 52, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   headerTitle: { ...typography.h1, color: theme.textPrimary },
   logoutBtn: { padding: 8, backgroundColor: 'transparent' }, // Removed square red background!

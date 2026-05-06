@@ -70,7 +70,7 @@ import { registerForPushNotifications } from './src/utils/pushNotifications';
 
 // Theme & Global Contexts
 import { colors } from './src/theme';
-import { ThemeProvider } from './src/context/ThemeContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { ToastProvider } from './src/context/ToastContext';
 
 const Stack = createNativeStackNavigator();
@@ -81,19 +81,22 @@ const Tab = createBottomTabNavigator();
 // TAB NAVIGATORS (one per role)
 // ============================================================
 
-const CustomerTabs = ({ user, onLogout }) => (
+const CustomerTabs = ({ user, onLogout }) => {
+  const { theme } = useTheme();
+  return (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: colors.darkBgSecondary,
-        borderTopColor: colors.border,
-        height: 75,
-        paddingBottom: 14,
+        backgroundColor: theme.surface,
+        borderTopColor: theme.border,
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: Platform.OS === 'ios' ? 85 : 60,
+        paddingBottom: Platform.OS === 'ios' ? 24 : 10,
         paddingTop: 8,
       },
-      tabBarActiveTintColor: colors.tabActive,
-      tabBarInactiveTintColor: colors.tabInactive,
+      tabBarActiveTintColor: theme.gold,
+      tabBarInactiveTintColor: theme.textTertiary,
       tabBarIcon: ({ focused, color }) => {
         const icons = {
           Home: focused ? 'home' : 'home-outline',
@@ -126,21 +129,25 @@ const CustomerTabs = ({ user, onLogout }) => (
       {(props) => <CustomerProfilePage {...props} userName={user.name} userEmail={user.email} userId={user.id} onBack={() => props.navigation.navigate('Home')} onLogout={onLogout} />}
     </Tab.Screen>
   </Tab.Navigator>
-);
+  );
+};
 
-const ArtistTabs = ({ user, onLogout }) => (
+const ArtistTabs = ({ user, onLogout }) => {
+  const { theme } = useTheme();
+  return (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: colors.darkBgSecondary,
-        borderTopColor: colors.border,
-        height: 75,
-        paddingBottom: 14,
+        backgroundColor: theme.surface,
+        borderTopColor: theme.border,
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: Platform.OS === 'ios' ? 85 : 60,
+        paddingBottom: Platform.OS === 'ios' ? 24 : 10,
         paddingTop: 8,
       },
-      tabBarActiveTintColor: colors.tabActive,
-      tabBarInactiveTintColor: colors.tabInactive,
+      tabBarActiveTintColor: theme.gold,
+      tabBarInactiveTintColor: theme.textTertiary,
       tabBarIcon: ({ focused, color }) => {
         const icons = {
           Home: focused ? 'home' : 'home-outline',
@@ -169,27 +176,36 @@ const ArtistTabs = ({ user, onLogout }) => (
       {(props) => <ArtistProfile {...props} userId={user.id} userName={user.name} userEmail={user.email} onBack={() => props.navigation.navigate('Home')} onLogout={onLogout} />}
     </Tab.Screen>
   </Tab.Navigator>
-);
+  );
+};
 
-const AdminTabs = ({ user, onLogout }) => (
+const AdminTabs = ({ user, onLogout }) => {
+  const { theme } = useTheme();
+  return (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: colors.surface,
-        borderTopColor: colors.border,
-        height: 75,
-        paddingBottom: 14,
+        backgroundColor: theme.surface,
+        borderTopColor: theme.border,
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: Platform.OS === 'ios' ? 85 : 55,
+        paddingBottom: Platform.OS === 'ios' ? 24 : 5,
         paddingTop: 8,
+        elevation: 0,
+        borderTopWidth: 1,
       },
-      tabBarActiveTintColor: colors.gold,
-      tabBarInactiveTintColor: colors.tabInactive,
+      tabBarActiveTintColor: theme.gold,
+      tabBarInactiveTintColor: theme.textTertiary,
       tabBarIcon: ({ focused, color }) => {
-        if (route.name === 'Dashboard') return <Shield size={24} color={color} />;
+        let iconName = 'ellipse';
+        if (route.name === 'Dashboard') iconName = focused ? 'home' : 'home-outline';
         if (route.name === 'Users') return <Users size={24} color={color} />;
-        if (route.name === 'Bookings') return <CalendarIcon size={24} color={color} />;
-        if (route.name === 'Studio') return <Grid size={24} color={color} />;
-        return <Shield size={24} color={color} />;
+        if (route.name === 'Bookings') iconName = focused ? 'calendar' : 'calendar-outline';
+        if (route.name === 'Studio') iconName = focused ? 'business' : 'business-outline';
+        if (route.name === 'POS') return <Package size={24} color={color} />;
+        if (route.name === 'Profile') iconName = focused ? 'settings' : 'settings-outline';
+        return <Ionicons name={iconName} size={24} color={color} />;
       },
     })}
   >
@@ -200,38 +216,44 @@ const AdminTabs = ({ user, onLogout }) => (
     <Tab.Screen name="Bookings" component={AdminAppointmentManagement} />
     <Tab.Screen name="Studio" component={AdminStudio} />
   </Tab.Navigator>
-);
+  );};
 
-const ManagerTabs = ({ user, onLogout }) => (
+const ManagerTabs = ({ user, onLogout }) => {
+  const { theme } = useTheme();
+  return (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: colors.surface,
-        borderTopColor: colors.border,
-        height: 75,
-        paddingBottom: 14,
+        backgroundColor: theme.surface,
+        borderTopColor: theme.border,
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: Platform.OS === 'ios' ? 85 : 55,
+        paddingBottom: Platform.OS === 'ios' ? 24 : 5,
         paddingTop: 8,
+        elevation: 0,
+        borderTopWidth: 1,
       },
-      tabBarActiveTintColor: colors.gold,
-      tabBarInactiveTintColor: colors.tabInactive,
+      tabBarActiveTintColor: theme.gold,
+      tabBarInactiveTintColor: theme.textTertiary,
       tabBarIcon: ({ focused, color }) => {
         if (route.name === 'Dashboard') return <Shield size={24} color={color} />;
-        if (route.name === 'Users') return <Users size={24} color={color} />;
         if (route.name === 'Bookings') return <CalendarIcon size={24} color={color} />;
-        if (route.name === 'Inventory') return <Package size={24} color={color} />;
+        if (route.name === 'Studio') return <Grid size={24} color={color} />;
+        if (route.name === 'POS') return <Package size={24} color={color} />;
         return <Shield size={24} color={color} />;
       },
     })}
   >
     <Tab.Screen name="Dashboard">
-      {(props) => <AdminDashboard {...props} onLogout={onLogout} />}
+      {(props) => <AdminDashboard {...props} onLogout={onLogout} isManager={true} />}
     </Tab.Screen>
-    <Tab.Screen name="Users" component={AdminUserManagement} />
     <Tab.Screen name="Bookings" component={AdminAppointmentManagement} />
-    <Tab.Screen name="Inventory" component={AdminInventory} />
+    <Tab.Screen name="Studio" component={AdminStudio} />
+    <Tab.Screen name="POS" component={AdminPOS} />
   </Tab.Navigator>
-);
+  );
+};
 
 // ============================================================
 // MAIN APP

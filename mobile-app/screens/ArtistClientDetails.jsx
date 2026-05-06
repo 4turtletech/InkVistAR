@@ -151,7 +151,7 @@ export function ArtistClientDetails({ route, onBack }) {
 
 const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { paddingTop: 52, paddingHorizontal: 20 },
+  header: { paddingTop: Platform.OS === 'ios' ? 20 : 52, paddingHorizontal: 20 },
   backBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface,
     justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border,

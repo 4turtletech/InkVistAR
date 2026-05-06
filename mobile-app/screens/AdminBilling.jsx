@@ -42,6 +42,8 @@ export const AdminBilling = ({ navigation }) => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [payoutModalVisible, setPayoutModalVisible] = useState(false);
   const [payoutForm, setPayoutForm] = useState({ artistId: '', amount: '', method: 'Cash', reference: '' });
+  const [isEditingInvoice, setIsEditingInvoice] = useState(false);
+  const [payoutDetail, setPayoutDetail] = useState(null);
 
   const matchesPeriod = (dateStr) => {
     if (periodFilter === 'all') return true;
@@ -140,9 +142,35 @@ export const AdminBilling = ({ navigation }) => {
     }
   };
 
+  const handleUpdateInvoice = async () => {
+    try {
+      const token = await AsyncStorage.getItem('auth_token');
+      const res = await fetch(`${API_BASE_URL}/api/admin/invoices/${invoiceDetail.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          client: invoiceDetail.client_name,
+          type: invoiceDetail.service_type,
+          amount: invoiceDetail.amount,
+          status: invoiceDetail.status
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        Alert.alert('Success', 'Invoice updated successfully.');
+        setInvoiceDetail(null);
+        loadData();
+      } else {
+        Alert.alert('Error', data.message || 'Failed to update invoice');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network error.');
+    }
+  };
+
   const renderInvoice = ({ item, index }) => (
     <StaggerItem index={index}>
-      <AnimatedTouchable style={styles.card} onPress={() => setInvoiceDetail(item)}>
+      <AnimatedTouchable style={styles.card} onPress={() => { setInvoiceDetail(item); setIsEditingInvoice(false); }}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>{item.invoice_number || `INV-${String(item.id).padStart(6,'0')}`}</Text>
           <StatusBadge status={item.status || 'paid'} />
@@ -159,18 +187,18 @@ export const AdminBilling = ({ navigation }) => {
 
   const renderPayout = ({ item, index }) => (
     <StaggerItem index={index}>
-      <View style={styles.card}>
+      <AnimatedTouchable style={styles.card} onPress={() => setPayoutDetail(item)}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>{item.artist_name}</Text>
           <StatusBadge status={item.status || 'completed'} />
         </View>
-        <Text style={styles.cardSub}>Method: {item.payment_method}</Text>
-        {item.reference_number ? <Text style={styles.cardSub}>Ref: {item.reference_number}</Text> : null}
+        <Text style={styles.cardSub}>Method: {item.payment_method || item.payout_method || item.method || 'N/A'}</Text>
+        {item.reference_number || item.reference_no ? <Text style={styles.cardSub}>Ref: {item.reference_number || item.reference_no}</Text> : null}
         <View style={styles.cardFooter}>
           <Text style={styles.cardDate}>{formatDate(item.created_at || item.payout_date)}</Text>
           <Text style={styles.cardAmount}>P{formatCurrency(item.amount)}</Text>
         </View>
-      </View>
+      </AnimatedTouchable>
     </StaggerItem>
   );
 
@@ -217,7 +245,7 @@ export const AdminBilling = ({ navigation }) => {
 
       {/* Stats Row - Invoices */}
       {activeTab === 'invoices' && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 10 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingVertical: 12, gap: 10 }}>
           <View style={[styles.statChip, { backgroundColor: theme.successBg || 'rgba(16,185,129,0.12)' }]}>
             <CheckCircle size={14} color={theme.success} />
             <Text style={[styles.statChipText, { color: theme.success }]}>
@@ -239,10 +267,10 @@ export const AdminBilling = ({ navigation }) => {
               P{formatCurrency(invoices.filter(i => (i.status||'').toLowerCase() === 'paid').reduce((s,i) => s + parseFloat(i.amount||0), 0))}
             </Text>
           </View>
-        </ScrollView>
+        </View>
       )}
 
-      {/* Period + Status Filters */}
+      {/* Period Filters */}
       <View style={styles.filtersRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}>
           {['all', 'weekly', 'monthly', 'yearly'].map(p => (
@@ -256,19 +284,27 @@ export const AdminBilling = ({ navigation }) => {
               </Text>
             </AnimatedTouchable>
           ))}
-          {activeTab === 'invoices' && ['all', 'paid', 'pending', 'cancelled'].map(s => (
-            <AnimatedTouchable
-              key={s}
-              style={[styles.filterPill, statusFilter === s && styles.filterPillActive]}
-              onPress={() => setStatusFilter(s)}
-            >
-              <Text style={[styles.filterPillText, statusFilter === s && styles.filterPillTextActive]}>
-                {s === 'all' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}
-              </Text>
-            </AnimatedTouchable>
-          ))}
         </ScrollView>
       </View>
+
+      {/* Status Filters */}
+      {activeTab === 'invoices' && (
+        <View style={styles.filtersRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 8 }}>
+            {['all', 'paid', 'pending', 'cancelled'].map(s => (
+              <AnimatedTouchable
+                key={s}
+                style={[styles.filterPill, statusFilter === s && styles.filterPillActive]}
+                onPress={() => setStatusFilter(s)}
+              >
+                <Text style={[styles.filterPillText, statusFilter === s && styles.filterPillTextActive]}>
+                  {s === 'all' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}
+                </Text>
+              </AnimatedTouchable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {loading ? (
         <PremiumLoader message="Loading financials..." />
@@ -299,46 +335,150 @@ export const AdminBilling = ({ navigation }) => {
 
       {/* Invoice Detail Modal */}
       <Modal visible={!!invoiceDetail} transparent animationType="slide" onRequestClose={() => setInvoiceDetail(null)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Invoice Detail</Text>
+              <Text style={styles.modalTitle}>{isEditingInvoice ? 'Update Billing Record' : 'Invoice Detail'}</Text>
               <AnimatedTouchable onPress={() => setInvoiceDetail(null)}>
                 <X size={22} color={theme.textSecondary} />
               </AnimatedTouchable>
             </View>
             {invoiceDetail && (
               <ScrollView style={styles.modalBody}>
+                {!isEditingInvoice ? (
+                  <>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Invoice No.</Text>
+                      <Text style={styles.detailValue}>{invoiceDetail.invoice_number || `INV-${String(invoiceDetail.id).padStart(6,'0')}`}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Client</Text>
+                      <Text style={styles.detailValue}>{invoiceDetail.client_name || 'Walk-in Customer'}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Service</Text>
+                      <Text style={styles.detailValue}>{invoiceDetail.service_type || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Date</Text>
+                      <Text style={styles.detailValue}>{formatDate(invoiceDetail.created_at || invoiceDetail.date)}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Amount</Text>
+                      <Text style={[styles.detailValue, { color: theme.success, fontWeight: '800' }]}>P{formatCurrency(invoiceDetail.amount)}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Status</Text>
+                      <StatusBadge status={invoiceDetail.status || 'paid'} />
+                    </View>
+                    {invoiceDetail.appointment_id && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Booking</Text>
+                        <Text style={styles.detailValue}>#{invoiceDetail.appointment_id}</Text>
+                      </View>
+                    )}
+                    
+                    <AnimatedTouchable style={[styles.saveBtn, { marginTop: 20 }]} onPress={() => {
+                      setInvoiceDetail(prev => ({
+                        ...prev,
+                        amount: prev.amount ? parseFloat(prev.amount).toFixed(2) : ''
+                      }));
+                      setIsEditingInvoice(true);
+                    }}>
+                      <Text style={styles.saveBtnText}>Edit Invoice</Text>
+                    </AnimatedTouchable>
+                    <View style={{ height: 30 }} />
+                  </>
+                ) : (
+                  <>
+                    <View style={{ marginBottom: 20 }}>
+                      <Text style={{ ...typography.bodySmall, color: theme.textSecondary, marginBottom: 4 }}>Invoice Number</Text>
+                      <Text style={{ ...typography.h4, color: theme.gold }}>{invoiceDetail.invoice_number || `INV-${String(invoiceDetail.id).padStart(6,'0')}`}</Text>
+                    </View>
+
+                    <Text style={styles.inputLabel}>Client Name (Locked)</Text>
+                    <TextInput style={[styles.input, { backgroundColor: theme.surfaceLight, color: theme.textSecondary }]} value={invoiceDetail.client_name || 'Walk-in Customer'} editable={false} />
+
+                    <Text style={styles.inputLabel}>Service Type</Text>
+                    <View style={styles.statusRow}>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                        {['Tattoo Session', 'Consultation', 'Touch-up', 'Retail / POS', 'Other'].map(srv => (
+                          <AnimatedTouchable key={srv} style={[styles.statusBtn, invoiceDetail.service_type === srv && styles.statusBtnActive]} onPress={() => setInvoiceDetail({...invoiceDetail, service_type: srv})}>
+                            <Text style={[styles.statusBtnText, invoiceDetail.service_type === srv && styles.statusBtnTextActive]}>{srv}</Text>
+                          </AnimatedTouchable>
+                        ))}
+                      </ScrollView>
+                    </View>
+
+                    <Text style={[styles.inputLabel, { marginTop: 12 }]}>Amount (Locked)</Text>
+                    <TextInput 
+                      style={[styles.input, { backgroundColor: theme.surfaceLight, color: theme.textSecondary }]} 
+                      value={invoiceDetail.amount ? `P${parseFloat(invoiceDetail.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''} 
+                      editable={false} 
+                    />
+
+                    <Text style={styles.inputLabel}>Payment Status</Text>
+                    <View style={styles.statusRow}>
+                      {['Pending', 'Paid', 'Cancelled'].map(s => (
+                        <AnimatedTouchable key={s} style={[styles.statusBtn, invoiceDetail.status?.toLowerCase() === s.toLowerCase() && styles.statusBtnActive]} onPress={() => setInvoiceDetail({...invoiceDetail, status: s})}>
+                          <Text style={[styles.statusBtnText, invoiceDetail.status?.toLowerCase() === s.toLowerCase() && styles.statusBtnTextActive]}>{s}</Text>
+                        </AnimatedTouchable>
+                      ))}
+                    </View>
+
+                    <AnimatedTouchable style={styles.saveBtn} onPress={handleUpdateInvoice}>
+                      <Text style={styles.saveBtnText}>Update Record</Text>
+                    </AnimatedTouchable>
+                    <AnimatedTouchable style={[styles.saveBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.border, marginTop: 10 }]} onPress={() => { setIsEditingInvoice(false); loadData(); }}>
+                      <Text style={[styles.saveBtnText, { color: theme.textPrimary }]}>Cancel</Text>
+                    </AnimatedTouchable>
+                    <View style={{ height: 30 }} />
+                  </>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Payout Detail Modal (Read-Only) */}
+      <Modal visible={!!payoutDetail} transparent animationType="slide" onRequestClose={() => setPayoutDetail(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Payout Detail</Text>
+              <AnimatedTouchable onPress={() => setPayoutDetail(null)}>
+                <X size={22} color={theme.textSecondary} />
+              </AnimatedTouchable>
+            </View>
+            {payoutDetail && (
+              <ScrollView style={styles.modalBody}>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Invoice No.</Text>
-                  <Text style={styles.detailValue}>{invoiceDetail.invoice_number || `INV-${String(invoiceDetail.id).padStart(6,'0')}`}</Text>
+                  <Text style={styles.detailLabel}>Artist</Text>
+                  <Text style={styles.detailValue}>{payoutDetail.artist_name || 'Unknown Artist'}</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Client</Text>
-                  <Text style={styles.detailValue}>{invoiceDetail.client_name || 'Walk-in Customer'}</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Service</Text>
-                  <Text style={styles.detailValue}>{invoiceDetail.service_type || 'N/A'}</Text>
+                  <Text style={styles.detailLabel}>Method</Text>
+                  <Text style={styles.detailValue}>{payoutDetail.payment_method || payoutDetail.payout_method || payoutDetail.method || 'N/A'}</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Date</Text>
-                  <Text style={styles.detailValue}>{formatDate(invoiceDetail.created_at || invoiceDetail.date)}</Text>
+                  <Text style={styles.detailValue}>{formatDate(payoutDetail.created_at || payoutDetail.payout_date)}</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Amount</Text>
-                  <Text style={[styles.detailValue, { color: theme.success, fontWeight: '800' }]}>P{formatCurrency(invoiceDetail.amount)}</Text>
+                  <Text style={[styles.detailValue, { color: theme.success, fontWeight: '800' }]}>P{formatCurrency(payoutDetail.amount)}</Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Status</Text>
-                  <StatusBadge status={invoiceDetail.status || 'paid'} />
+                  <StatusBadge status={payoutDetail.status || 'completed'} />
                 </View>
-                {invoiceDetail.appointment_id && (
+                {(payoutDetail.reference_number || payoutDetail.reference_no) ? (
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Booking</Text>
-                    <Text style={styles.detailValue}>#{invoiceDetail.appointment_id}</Text>
+                    <Text style={styles.detailLabel}>Reference No.</Text>
+                    <Text style={styles.detailValue}>{payoutDetail.reference_number || payoutDetail.reference_no}</Text>
                   </View>
-                )}
+                ) : null}
                 <View style={{ height: 30 }} />
               </ScrollView>
             )}

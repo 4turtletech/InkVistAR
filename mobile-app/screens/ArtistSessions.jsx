@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, SafeAreaView, RefreshControl, Animated,
+  View, Text, StyleSheet, FlatList, SafeAreaView, RefreshControl, Animated, Platform
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
@@ -151,7 +151,7 @@ export const ArtistSessions = ({ artistId, onBack, navigation, route }) => {
 const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
-    padding: 20, paddingTop: 56, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 20, paddingTop: Platform.OS === 'ios' ? 20 : 52, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   headerTitle: { ...typography.h1, color: colors.textPrimary },

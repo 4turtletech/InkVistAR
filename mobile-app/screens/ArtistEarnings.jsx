@@ -196,7 +196,7 @@ const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 20 : 52, paddingBottom: 16,
   },
   headerBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface,

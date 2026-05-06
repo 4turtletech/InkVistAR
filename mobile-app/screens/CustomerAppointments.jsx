@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  SafeAreaView, ActivityIndicator, Modal, Platform, RefreshControl, Animated
+  SafeAreaView, ActivityIndicator, Modal, Platform, RefreshControl, Animated, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -19,7 +19,7 @@ import { useTheme } from '../src/context/ThemeContext';
 import { colors, typography, borderRadius, shadows } from '../src/theme';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
-import { getCustomerAppointments, updateAppointmentStatus, createCheckoutSession, getPaymentStatus } from '../src/utils/api';
+import { getCustomerAppointments, updateAppointmentStatus, createCheckoutSession, getPaymentStatus, getCustomerTransactions } from '../src/utils/api';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -69,7 +69,10 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '', buttons: [] });
+  const [modalTab, setModalTab] = useState('details');
+  const [apptTransactions, setApptTransactions] = useState([]);
   const fabPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -83,6 +86,23 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
 
   const customAlert = (title, message, buttons = []) => {
     setAlertModal({ visible: true, title, message, buttons });
+  };
+
+  const handleSelectAppointment = async (appt) => {
+    setSelectedAppointment(appt);
+    setModalTab('details');
+    if (!appt) return;
+    try {
+      const res = await getCustomerTransactions(customerId);
+      if (res.success && res.transactions) {
+        setApptTransactions(res.transactions.filter(t => t.appointment_id === appt.id));
+      } else {
+        setApptTransactions([]);
+      }
+    } catch (e) {
+      console.error('Error fetching appt transactions:', e);
+      setApptTransactions([]);
+    }
   };
 
   useEffect(() => { if (customerId) fetchAppointments(); }, [customerId]);
@@ -116,11 +136,23 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     }
   }, [route?.params?.openAppointmentId, appointments]);
 
-  const handlePayment = async () => {
+  const handlePaymentInit = () => {
     if (!selectedAppointment) return;
+    const isPending = ['pending', 'pending_schedule'].includes(selectedAppointment.status);
+    if (isPending) {
+      triggerPayment('deposit');
+    } else {
+      setShowPaymentOptions(true);
+    }
+  };
+
+  const triggerPayment = async (type, customAmt = null) => {
+    if (!selectedAppointment) return;
+    setShowPaymentOptions(false);
     setPaymentLoading(true);
     try {
-      const r = await createCheckoutSession(selectedAppointment.id, selectedAppointment.price);
+      const amount = type === 'custom' ? customAmt : selectedAppointment.price;
+      const r = await createCheckoutSession(selectedAppointment.id, amount, type, type === 'custom' ? amount : null);
       if (r.success && r.checkoutUrl) { setPaymentUrl(r.checkoutUrl); setShowPaymentModal(true); }
       else customAlert('Payment Error', r.message || 'Could not initiate payment.');
     } catch (e) { customAlert('Error', 'Failed to connect to payment gateway.'); }
@@ -204,7 +236,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
   };
 
   const renderItem = (item, index) => (
-    <AnimatedTouchable key={`appt-${item.id || index}`} style={styles.card} onPress={() => setSelectedAppointment(item)} activeOpacity={0.9}>
+    <AnimatedTouchable key={`appt-${item.id || index}`} style={styles.card} onPress={() => handleSelectAppointment(item)} activeOpacity={0.9}>
       <View style={styles.cardLeft}>
         <View style={styles.dateBox}>
           <Text style={styles.dateDay}>{new Date(item.appointment_date).getDate()}</Text>
@@ -239,9 +271,11 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
             <Info size={16} color={theme.textSecondary} />
           </AnimatedTouchable>
         </View>
-        <AnimatedTouchable onPress={() => setViewMode(v => v === 'list' ? 'calendar' : 'list')} style={styles.headerBtn}>
-          {viewMode === 'list' ? <Calendar size={20} color={theme.textPrimary} /> : <List size={20} color={theme.textPrimary} />}
-        </AnimatedTouchable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <AnimatedTouchable onPress={() => setViewMode(v => v === 'list' ? 'calendar' : 'list')} style={styles.headerBtn}>
+            {viewMode === 'list' ? <Calendar size={20} color={theme.textPrimary} /> : <List size={20} color={theme.textPrimary} />}
+          </AnimatedTouchable>
+        </View>
       </View>
 
       {/* Filter Tabs */}
@@ -253,7 +287,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
         ))}
       </View>
 
-      <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 100, paddingTop: 14 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}>
+      <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 20, paddingTop: 14 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.gold} />}>
         {/* Calendar View */}
         {viewMode === 'calendar' && (
           <View style={styles.calCard}>
@@ -291,25 +325,32 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
         )}
       </ScrollView>
 
-      {/* FAB */}
-      <Animated.View style={[styles.fabContainer, { transform: [{ scale: fabPulse }] }]}>
-        <AnimatedTouchable style={styles.fab} onPress={onBookNew} activeOpacity={0.8}>
-          <View style={styles.fabSolid}>
-            <Plus size={20} color={theme.backgroundDeep} />
-            <Text style={styles.fabText}>Book Session</Text>
-          </View>
+      {/* Docked Book Session Button */}
+      <View style={styles.dockedBar}>
+        <AnimatedTouchable style={styles.dockedBtn} onPress={onBookNew} activeOpacity={0.8}>
+          <Plus size={20} color={theme.backgroundDeep} />
+          <Text style={styles.dockedBtnText}>Book Session</Text>
         </AnimatedTouchable>
-      </Animated.View>
+      </View>
 
       {/* Detail Modal */}
-      <Modal visible={!!selectedAppointment} transparent animationType="slide" onRequestClose={() => setSelectedAppointment(null)}>
+      <Modal visible={!!selectedAppointment && !showPaymentModal && !alertModal.visible && !showPaymentOptions} transparent animationType="slide" onRequestClose={() => handleSelectAppointment(null)}>
         <View style={modalS.overlay}>
           <View style={modalS.content}>
-            <View style={modalS.header}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={modalS.title}>Appointment Details</Text>
-              <AnimatedTouchable onPress={() => setSelectedAppointment(null)}><X size={22} color={theme.textSecondary} /></AnimatedTouchable>
+              <AnimatedTouchable onPress={() => handleSelectAppointment(null)}><X size={22} color={theme.textSecondary} /></AnimatedTouchable>
             </View>
-            {selectedAppointment && (
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16, backgroundColor: theme.surfaceLight, padding: 4, borderRadius: 12 }}>
+              <AnimatedTouchable style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: modalTab === 'details' ? theme.surface : 'transparent', borderRadius: 8, ...shadows.subtle }} onPress={() => setModalTab('details')}>
+                <Text style={{ ...typography.bodySmall, fontWeight: modalTab === 'details' ? '700' : '500', color: modalTab === 'details' ? theme.textPrimary : theme.textSecondary }}>Details</Text>
+              </AnimatedTouchable>
+              <AnimatedTouchable style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: modalTab === 'transactions' ? theme.surface : 'transparent', borderRadius: 8, ...shadows.subtle }} onPress={() => setModalTab('transactions')}>
+                <Text style={{ ...typography.bodySmall, fontWeight: modalTab === 'transactions' ? '700' : '500', color: modalTab === 'transactions' ? theme.textPrimary : theme.textSecondary }}>Transactions</Text>
+              </AnimatedTouchable>
+            </View>
+
+            {modalTab === 'details' && selectedAppointment && (
               <ScrollView showsVerticalScrollIndicator={false}>
                 {[
                   ['Status', () => <View style={[modalS.badge, { backgroundColor: getStatusColor(selectedAppointment.status) + '20' }]}><Text style={[modalS.badgeText, { color: getStatusColor(selectedAppointment.status) }]}>{selectedAppointment.status?.toUpperCase()}</Text></View>],
@@ -319,27 +360,54 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
                   ['Price', () => <Text style={[modalS.value, { color: getDisplayPrice(selectedAppointment) === 'Pending Quote' ? theme.warning : theme.gold, fontWeight: '700' }]}>{getDisplayPrice(selectedAppointment)}</Text>],
                   ['Service / Design', () => <Text style={modalS.value}>{getDisplayTitle(selectedAppointment)}</Text>],
                   ...(selectedAppointment.notes ? [['Notes', () => <Text style={modalS.value}>{selectedAppointment.notes}</Text>]] : []),
+                  ...(selectedAppointment.reference_image ? [['Attached Photo', () => <Image source={{ uri: selectedAppointment.reference_image }} style={{ width: '100%', height: 200, borderRadius: 12, marginTop: 8 }} resizeMode="cover" />]] : []),
                 ].map(([label, render], i) => <View key={i} style={modalS.row}><Text style={modalS.label}>{label}</Text>{render()}</View>)}
               </ScrollView>
             )}
 
-            {(selectedAppointment?.status === 'confirmed' || selectedAppointment?.status === 'completed') && selectedAppointment?.payment_status !== 'paid' && (
-              <AnimatedTouchable style={modalS.payBtn} onPress={handlePayment} disabled={paymentLoading} activeOpacity={0.8}>
-                <LinearGradient colors={['#0f172a', theme.gold]} style={modalS.payGradient}>
-                  {paymentLoading ? <ActivityIndicator color="#fff" size="small" /> : (
-                    <><CreditCard size={18} color={theme.backgroundDeep} /><Text style={modalS.payText}>Pay Now (P{parseFloat(selectedAppointment?.price || 0).toLocaleString()})</Text></>
-                  )}
-                </LinearGradient>
+            {modalTab === 'transactions' && (
+              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 350 }}>
+                {apptTransactions.length > 0 ? apptTransactions.map((tx, idx) => (
+                  <View key={idx} style={{ backgroundColor: theme.surfaceLight, padding: 12, borderRadius: 12, marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <Text style={{ ...typography.bodyXSmall, color: theme.textSecondary }}>{new Date(tx.created_at).toLocaleDateString()}</Text>
+                      <Text style={{ ...typography.bodyXSmall, fontWeight: '700', color: theme.gold }}>{(tx.type || 'payment').toUpperCase()}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{ ...typography.bodySmall, color: theme.textPrimary, flex: 1 }} numberOfLines={1}>{tx.description}</Text>
+                      <Text style={{ ...typography.body, fontWeight: '800', color: theme.textPrimary }}>₱{(parseFloat(tx.amount || 0) / 100).toLocaleString('en-PH', {minimumFractionDigits: 2})}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tx.status === 'paid' ? theme.success : tx.status === 'failed' ? theme.error : theme.warning, marginRight: 6 }} />
+                      <Text style={{ ...typography.bodyXSmall, color: theme.textSecondary }}>{(tx.status || 'pending').toUpperCase()}</Text>
+                    </View>
+                  </View>
+                )) : (
+                  <EmptyState icon={CreditCard} title="No Transactions" subtitle="No payment history for this session" />
+                )}
+              </ScrollView>
+            )}
+
+            {modalTab === 'details' && ['pending', 'confirmed', 'completed', 'pending_schedule'].includes(selectedAppointment?.status) && selectedAppointment?.payment_status !== 'paid' && parseFloat(selectedAppointment?.price || 0) > 0 && (
+              <AnimatedTouchable style={[modalS.payBtn, { backgroundColor: theme.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 }]} onPress={handlePaymentInit} disabled={paymentLoading} activeOpacity={0.8}>
+                {paymentLoading ? <ActivityIndicator color="#fff" size="small" /> : (
+                  <><CreditCard size={18} color={theme.backgroundDeep} /><Text style={[modalS.payText, { color: theme.backgroundDeep }]}>{['pending', 'pending_schedule'].includes(selectedAppointment?.status) ? 'Pay to Confirm' : 'Pay Balance'} (P{parseFloat(selectedAppointment?.price || 0).toLocaleString()})</Text></>
+                )}
               </AnimatedTouchable>
             )}
 
-            {['pending', 'confirmed', 'pending_schedule'].includes(selectedAppointment?.status) && (
-              <AnimatedTouchable style={modalS.cancelBtn} onPress={() => handleCancel(selectedAppointment.id)}>
-                <Text style={modalS.cancelText}>Cancel Appointment</Text>
-              </AnimatedTouchable>
+            {modalTab === 'details' && ['pending', 'confirmed', 'pending_schedule'].includes(selectedAppointment?.status) && (
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border }]} onPress={() => { customAlert('Reschedule Request', 'To reschedule, please contact your artist directly or message the studio via the Chat portal.', [{ text: 'Go to Chat', onPress: () => { handleSelectAppointment(null); navigation.navigate('Chat'); } }, { text: 'Close', style: 'cancel' }]); }}>
+                  <Text style={[modalS.cancelText, { color: theme.textPrimary }]}>Reschedule</Text>
+                </AnimatedTouchable>
+                <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, marginTop: 0 }]} onPress={() => handleCancel(selectedAppointment.id)}>
+                  <Text style={modalS.cancelText}>Cancel</Text>
+                </AnimatedTouchable>
+              </View>
             )}
 
-            <AnimatedTouchable style={modalS.closeBtn} onPress={() => setSelectedAppointment(null)}>
+            <AnimatedTouchable style={modalS.closeBtn} onPress={() => handleSelectAppointment(null)}>
               <Text style={modalS.closeBtnText}>Close</Text>
             </AnimatedTouchable>
           </View>
@@ -347,7 +415,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
       </Modal>
 
       {/* Payment WebView Modal */}
-      <Modal visible={showPaymentModal} animationType="slide">
+      <Modal visible={showPaymentModal && !alertModal.visible} animationType="slide" onRequestClose={handlePaymentClose}>
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border }}>
             <AnimatedTouchable onPress={handlePaymentClose} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -395,13 +463,55 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
           </View>
         </View>
       </Modal>
+      {/* Payment Options Modal */}
+      <Modal visible={showPaymentOptions} animationType="fade" transparent onRequestClose={() => setShowPaymentOptions(false)}>
+        <View style={modalS.overlay}>
+          <View style={[modalS.content, { width: '85%' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={modalS.title}>Select Payment</Text>
+              <AnimatedTouchable onPress={() => setShowPaymentOptions(false)}><X size={22} color={theme.textSecondary} /></AnimatedTouchable>
+            </View>
+            <Text style={{ ...typography.body, color: theme.textSecondary, marginBottom: 16 }}>Choose how you'd like to pay for your session.</Text>
+            <AnimatedTouchable 
+              style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginBottom: 12, borderWidth: 1, borderColor: theme.border }}
+              onPress={() => triggerPayment('balance')}
+            >
+              <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Pay Full Balance</Text>
+              <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Settle the remaining amount for this session.</Text>
+            </AnimatedTouchable>
+            <AnimatedTouchable 
+              style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginBottom: 12, borderWidth: 1, borderColor: theme.border }}
+              onPress={() => triggerPayment('deposit')}
+            >
+              <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Pay Downpayment</Text>
+              <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Pay a standard ₱5,000 to secure or maintain your spot.</Text>
+            </AnimatedTouchable>
+            <AnimatedTouchable 
+              style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.border }}
+              onPress={() => {
+                setShowPaymentOptions(false);
+                customAlert('Custom Payment', 'Please enter the amount you wish to pay (Minimum ₱500).', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: '₱500', onPress: () => triggerPayment('custom', 500) },
+                  { text: '₱1,000', onPress: () => triggerPayment('custom', 1000) },
+                  { text: '₱2,500', onPress: () => triggerPayment('custom', 2500) }
+                ]);
+              }}
+            >
+              <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Custom Amount</Text>
+              <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Choose a specific partial amount to pay right now.</Text>
+            </AnimatedTouchable>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
 
 const getStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: Platform.OS === 'android' ? 52 : 16, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: Platform.OS === 'ios' ? 16 : 52, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
   headerBtn: { padding: 8 },
   tabs: { flexDirection: 'row', padding: 14, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border },
@@ -439,10 +549,9 @@ const getStyles = (theme) => StyleSheet.create({
   pagination: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderTopWidth: 1, borderTopColor: theme.border },
   pageBtn: { padding: 8, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight },
   pageInfo: { ...typography.bodySmall, color: theme.textTertiary },
-  fabContainer: { position: 'absolute', bottom: 24, right: 24, borderRadius: 32, ...shadows.button },
-  fab: { borderRadius: 32, overflow: 'hidden' },
-  fabSolid: { backgroundColor: theme.gold, flexDirection: 'row', paddingHorizontal: 20, height: 56, justifyContent: 'center', alignItems: 'center', gap: 8 },
-  fabText: { ...typography.button, color: theme.backgroundDeep, fontWeight: '700' },
+  dockedBar: { padding: 16, paddingBottom: Platform.OS === 'ios' ? 32 : 16, backgroundColor: theme.surface, borderTopWidth: 1, borderTopColor: theme.border },
+  dockedBtn: { backgroundColor: theme.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: borderRadius.xl, gap: 8 },
+  dockedBtnText: { ...typography.button, color: theme.backgroundDeep, fontSize: 16 },
 });
 
 const getModalStyles = (theme) => StyleSheet.create({

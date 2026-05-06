@@ -363,10 +363,10 @@ export const createCustomerAppointment = async (appointmentData) => {
 };
 
 // Customer: Create Checkout Session
-export const createCheckoutSession = async (appointmentId, amount) => {
+export const createCheckoutSession = async (appointmentId, amount, paymentType = 'full', customAmount = null) => {
   return fetchAPI('/payments/create-checkout-session', {
     method: 'POST',
-    body: JSON.stringify({ appointmentId, amount })
+    body: JSON.stringify({ appointmentId, price: amount, paymentType, customAmount })
   });
 };
 

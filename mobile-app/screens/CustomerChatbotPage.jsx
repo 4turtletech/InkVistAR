@@ -231,7 +231,7 @@ export function CustomerChatbotPage({ onBack, userId, userName }) {
 
 const getStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
-  header: { padding: 16, paddingTop: 52, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, backgroundColor: theme.surface, ...shadows.subtle },
+  header: { padding: 16, paddingTop: Platform.OS === 'ios' ? 16 : 52, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, backgroundColor: theme.surface, ...shadows.subtle },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   headerBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   headerIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center', marginRight: 10 },

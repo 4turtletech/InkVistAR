@@ -31,14 +31,14 @@ import {
 } from '../src/utils/api';
 import { sanitizeNumeric, sanitizeEmail, isValidEmail, sanitizeText } from '../src/utils/validators';
 
-export const AdminAppointmentManagement = ({ navigation }) => {
+export const AdminAppointmentManagement = ({ navigation, route }) => {
   const { theme, hapticsEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = getStyles(theme, insets);
 
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState(route?.params?.filter || 'all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 10;
@@ -72,6 +72,13 @@ export const AdminAppointmentManagement = ({ navigation }) => {
   };
 
   useEffect(() => { loadArtists(); }, []);
+
+  useEffect(() => {
+    if (route?.params?.filter) {
+      setFilter(route.params.filter);
+      setPage(1);
+    }
+  }, [route?.params?.filter]);
 
   // Delete confirm
   const [deleteModal, setDeleteModal] = useState({ visible: false });
@@ -639,7 +646,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16,
+    paddingHorizontal: 16, paddingTop: (insets?.top || 0) + 16, paddingBottom: 16,
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
@@ -673,7 +680,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   filterTextActive: { color: theme.backgroundDeep },
 
   // List
-  listContent: { paddingHorizontal: 16, paddingBottom: 16 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 100 },
 
   // Swipeable Card Wrapper
   swipeDeleteBg: {

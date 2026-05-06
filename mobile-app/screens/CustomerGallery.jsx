@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, StyleSheet, ScrollView,
+  View, Text, TextInput, StyleSheet, ScrollView, Platform,
   SafeAreaView, Image, TouchableOpacity, RefreshControl,
   Modal, Dimensions, Pressable, Animated
 } from 'react-native';
@@ -139,7 +139,7 @@ export function CustomerGallery({ onBack, userId }) {
     });
   };
 
-  const handleBookSimilar = () => { closeDetail(); navigation.navigate('booking-create', { prefillNote: `I'm interested in a design similar to "${selectedWork?.title}".` }); };
+  const handleBookSimilar = () => { closeDetail(); navigation.navigate('booking-create', { prefillNote: `I'm interested in a design similar to "${selectedWork?.title}".`, artistId: selectedWork?.artist_id, style: selectedWork?.category }); };
 
   const categories = ['All', 'Realism', 'Traditional', 'Japanese', 'Tribal', 'Fine Line', 'Watercolor', 'Minimalist', 'Blackwork'];
 
@@ -323,11 +323,9 @@ export function CustomerGallery({ onBack, userId }) {
                     </View>
                   ) : null}
                   <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
-                    <TouchableOpacity style={[modalS.actionBtn, { flex: 1.5 }]} onPress={handleBookSimilar} activeOpacity={0.8}>
-                      <LinearGradient colors={[colors.backgroundDeep, colors.gold]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={modalS.actionGradient}>
-                        <Calendar size={18} color="#ffffff" />
-                        <Text style={modalS.actionText}>Book Similar</Text>
-                      </LinearGradient>
+                    <TouchableOpacity style={[modalS.actionBtn, { flex: 1.5, backgroundColor: colors.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 }]} onPress={handleBookSimilar} activeOpacity={0.8}>
+                      <Calendar size={18} color={colors.backgroundDeep} />
+                      <Text style={[modalS.actionText, { color: colors.backgroundDeep }]}>Book Similar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={modalS.arBtn} onPress={() => alert('AR Viewer Initialization Placeholder')} activeOpacity={0.8}>
                       <Maximize2 size={18} color={colors.gold} />
@@ -356,7 +354,7 @@ export function CustomerGallery({ onBack, userId }) {
 
 const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 52, backgroundColor: colors.backgroundDeep, borderBottomWidth: 1, borderBottomColor: colors.border },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: Platform.OS === 'ios' ? 16 : 52, backgroundColor: colors.backgroundDeep, borderBottomWidth: 1, borderBottomColor: colors.border },
   headerTitle: { ...typography.h2, color: colors.textPrimary },
   headerBack: { ...typography.body, color: colors.goldMuted },
   content: { padding: 16 },

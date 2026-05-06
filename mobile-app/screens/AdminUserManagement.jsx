@@ -42,7 +42,11 @@ export const AdminUserManagement = ({ navigation }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
 
   const stats = {
     total: users.length,
@@ -70,6 +74,11 @@ export const AdminUserManagement = ({ navigation }) => {
   };
 
   useEffect(() => { loadUsers(); }, [search]);
+
+  useEffect(() => {
+    // Reset page when filters change
+    setPage(1);
+  }, [roleFilter, statusFilter, search]);
 
   const handleOpenModal = (user = null) => {
     if (user) {
@@ -148,8 +157,19 @@ export const AdminUserManagement = ({ navigation }) => {
   // Filter
   const filteredUsers = users.filter(u => {
     if (roleFilter !== 'all' && u.user_type !== roleFilter) return false;
+    if (statusFilter === 'active' && u.is_deleted === 1) return false;
+    if (statusFilter === 'suspended' && u.is_deleted !== 1) return false;
     return true;
   });
+
+  const paginatedUsers = filteredUsers.slice(0, page * itemsPerPage);
+
+  const getSuggestions = () => {
+    if (search.length < 2) return [];
+    const lower = search.toLowerCase();
+    return users.filter(u => u.name.toLowerCase().includes(lower) || u.email.toLowerCase().includes(lower)).slice(0, 5);
+  };
+  const suggestions = getSuggestions();
 
   const pickProfileImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -174,7 +194,7 @@ export const AdminUserManagement = ({ navigation }) => {
   const renderUser = ({ item, index }) => {
     const roleColor = ROLE_COLORS[item.user_type] || ROLE_COLORS.customer;
     return (
-      <StaggerItem index={index}>
+      <StaggerItem key={item.id || index} index={index}>
         <View style={styles.userCard}>
           <View style={styles.userLeft}>
             <View style={[styles.avatar, { backgroundColor: roleColor.bg }]}>
@@ -237,22 +257,52 @@ export const AdminUserManagement = ({ navigation }) => {
         </View>
 
         {/* Search */}
-        <View style={styles.searchBar}>
-          <Search size={18} color={theme.textTertiary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search users..."
-            placeholderTextColor={theme.textTertiary}
-            value={search}
-            onChangeText={setSearch}
-          />
+        <View style={{ zIndex: 10, position: 'relative', marginHorizontal: 20, marginBottom: 12 }}>
+          <View style={[styles.searchBar, { marginHorizontal: 0, marginBottom: 0 }]}>
+            <Search size={18} color={theme.textTertiary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search users..."
+              placeholderTextColor={theme.textTertiary}
+              value={search}
+              onChangeText={setSearch}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+            />
+            {search.length > 0 && (
+              <AnimatedTouchable onPress={() => setSearch('')}>
+                <X size={16} color={theme.textTertiary} />
+              </AnimatedTouchable>
+            )}
+          </View>
+          {searchFocused && search.length > 0 && suggestions.length > 0 && (
+            <View style={styles.dropdownWrap}>
+              {suggestions.map((s, i) => (
+                <TouchableOpacity 
+                  key={s.id} 
+                  style={styles.dropdownItem} 
+                  onPress={() => { 
+                    setSearch(s.name); 
+                    setSearchFocused(false); 
+                  }}
+                >
+                  <View style={{ marginRight: 8 }}><Search size={14} color={theme.textTertiary} /></View>
+                  <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.dropdownText}>{s.name}</Text>
+                    <Text style={styles.dropdownType}>{s.user_type}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Role Filters */}
-        <View style={styles.filterRow}>
-          {['all', 'customer', 'artist', 'admin', 'manager'].map(role => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          <Text style={{ ...typography.bodySmall, color: theme.textSecondary, alignSelf: 'center', marginRight: 8 }}>Role:</Text>
+          {['all', 'customer', 'artist', 'admin'].map(role => (
             <AnimatedTouchable
-              key={role}
+              key={`role-${role}`}
               style={[styles.filterPill, roleFilter === role && styles.filterPillActive]}
               onPress={() => setRoleFilter(role)}
             >
@@ -261,7 +311,23 @@ export const AdminUserManagement = ({ navigation }) => {
               </Text>
             </AnimatedTouchable>
           ))}
-        </View>
+        </ScrollView>
+
+        {/* Status Filters */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterRow, { marginTop: 0 }]}>
+          <Text style={{ ...typography.bodySmall, color: theme.textSecondary, alignSelf: 'center', marginRight: 8 }}>Status:</Text>
+          {['all', 'active', 'suspended'].map(status => (
+            <AnimatedTouchable
+              key={`status-${status}`}
+              style={[styles.filterPill, statusFilter === status && styles.filterPillActive]}
+              onPress={() => setStatusFilter(status)}
+            >
+              <Text style={[styles.filterText, statusFilter === status && styles.filterTextActive]}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Text>
+            </AnimatedTouchable>
+          ))}
+        </ScrollView>
 
         {/* User Count */}
         <Text style={styles.countText}>{filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}</Text>
@@ -271,10 +337,15 @@ export const AdminUserManagement = ({ navigation }) => {
           <PremiumLoader message="Loading users..." />
         ) : (
           <View style={styles.listContent}>
-            {filteredUsers.length === 0 ? (
+            {paginatedUsers.length === 0 ? (
               <EmptyState icon={Users} title="No users found" subtitle="Try adjusting your filters" />
             ) : (
-              filteredUsers.map((item, index) => renderUser({ item, index }))
+              paginatedUsers.map((item, index) => renderUser({ item, index }))
+            )}
+            {filteredUsers.length > paginatedUsers.length && (
+              <AnimatedTouchable style={styles.loadMoreBtn} onPress={() => setPage(page + 1)}>
+                <Text style={styles.loadMoreText}>Load More</Text>
+              </AnimatedTouchable>
             )}
           </View>
         )}
@@ -452,7 +523,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16,
+    paddingHorizontal: 16, paddingTop: (insets?.top || 0) + 16, paddingBottom: 16,
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
@@ -496,7 +567,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   },
 
   // List
-  listContent: { paddingHorizontal: 16, paddingBottom: 24 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 100 },
 
   // User Card
   userCard: {
@@ -577,4 +648,10 @@ const getStyles = (theme, insets) => StyleSheet.create({
     borderRadius: 13, backgroundColor: theme.gold,
     justifyContent: 'center', alignItems: 'center',
   },
+  dropdownWrap: { position: 'absolute', top: 52, left: 0, right: 0, backgroundColor: theme.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.border, paddingVertical: 4, zIndex: 20 },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.borderLight },
+  dropdownText: { ...typography.body, color: theme.textPrimary },
+  dropdownType: { ...typography.bodyXSmall, color: theme.gold },
+  loadMoreBtn: { padding: 14, backgroundColor: theme.surfaceLight, borderRadius: borderRadius.md, alignItems: 'center', marginTop: 10, borderWidth: 1, borderColor: theme.borderLight },
+  loadMoreText: { ...typography.bodySmall, color: theme.gold, fontWeight: '600' },
 });

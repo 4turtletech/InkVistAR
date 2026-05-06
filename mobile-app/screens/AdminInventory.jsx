@@ -7,13 +7,15 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput,
-  Alert, Modal, ScrollView, SafeAreaView, RefreshControl, KeyboardAvoidingView, Platform,
+  Alert, Modal, ScrollView, RefreshControl, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Search, Plus, Pencil, Trash2, X, Package, AlertTriangle,
   TrendingDown, TrendingUp, Archive, ChevronLeft, ChevronRight,
+  Printer, Download, History, Layers, Filter, Camera
 } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
 import { typography, spacing, borderRadius, shadows } from '../src/theme';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
@@ -42,8 +44,8 @@ export const AdminInventory = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState({
-    name: '', category: 'Supplies', unit: 'pcs',
-    current_stock: '', min_stock: '', cost_per_unit: '',
+    name: '', category: 'supplies', unit: 'pcs',
+    current_stock: '', min_stock: '', cost_per_unit: '', image: ''
   });
 
   // Transaction modal
@@ -55,6 +57,23 @@ export const AdminInventory = ({ navigation }) => {
 
   // Delete
   const [deleteModal, setDeleteModal] = useState({ visible: false, itemId: null, itemName: '' });
+
+  // Autocomplete & Filters
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [itemStatusFilter, setItemStatusFilter] = useState('active');
+  const [categoryFilter, setCategoryFilter] = useState([]);
+  const [stockStatusFilter, setStockStatusFilter] = useState([]);
+
+  // History & Kits
+  const [historyModal, setHistoryModal] = useState(false);
+  const [historyData, setHistoryData] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  
+  const [kitsModal, setKitsModal] = useState(false);
+  const [kitsData, setKitsData] = useState({});
+  const [kitsLoading, setKitsLoading] = useState(false);
+
+  const INVENTORY_CATEGORIES = ['all', 'ink', 'needles', 'jewelry', 'supplies', 'aftercare', 'machinery'];
 
   const loadData = async () => {
     setLoading(true);
@@ -71,17 +90,31 @@ export const AdminInventory = ({ navigation }) => {
     if (item) {
       setEditingItem(item);
       setForm({
-        name: item.name, category: item.category || 'Supplies',
+        name: item.name, category: item.category || 'supplies',
         unit: item.unit || 'pcs',
         current_stock: String(item.current_stock || 0),
         min_stock: String(item.min_stock || 0),
         cost_per_unit: String(item.cost_per_unit || 0),
+        image: item.image || ''
       });
     } else {
       setEditingItem(null);
-      setForm({ name: '', category: 'Supplies', unit: 'pcs', current_stock: '', min_stock: '', cost_per_unit: '' });
+      setForm({ name: '', category: 'supplies', unit: 'pcs', current_stock: '', min_stock: '', cost_per_unit: '', image: '' });
     }
     setModalVisible(true);
+  };
+
+  const handleImagePick = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+      base64: true,
+    });
+    if (!result.canceled && result.assets[0].base64) {
+      setForm({ ...form, image: `data:image/jpeg;base64,${result.assets[0].base64}` });
+    }
   };
 
   const handleSave = async () => {
@@ -156,16 +189,67 @@ export const AdminInventory = ({ navigation }) => {
     }
   };
 
-  // Filter
+  // Filter & Search
+  const searchSuggestions = Array.from(new Set([
+    ...items.map(i => (i.id || '').toString()),
+    ...items.map(i => (i.name || '').trim()),
+    ...items.map(i => (i.category || '').trim())
+  ])).filter(Boolean);
+
   const filtered = items.filter(item => {
-    const matchSearch = (item.name || '').toLowerCase().includes(search.toLowerCase());
-    if (filter === 'low') return matchSearch && item.current_stock <= item.min_stock && item.current_stock > 0;
-    if (filter === 'out') return matchSearch && item.current_stock <= 0;
-    return matchSearch;
+    const matchSearch = (item.name || '').toLowerCase().includes(search.toLowerCase()) || (item.category || '').toLowerCase().includes(search.toLowerCase());
+    
+    let matchCategory = true;
+    if (categoryFilter.length > 0) {
+      matchCategory = categoryFilter.includes((item.category || '').toLowerCase());
+    }
+    
+    let matchStock = true;
+    if (stockStatusFilter.length > 0) {
+      matchStock = false;
+      if (stockStatusFilter.includes('out') && item.current_stock <= 0) matchStock = true;
+      if (stockStatusFilter.includes('low') && item.current_stock > 0 && item.current_stock <= item.min_stock) matchStock = true;
+      if (stockStatusFilter.includes('optimal') && item.current_stock > item.min_stock && item.current_stock <= item.max_stock) matchStock = true;
+      if (stockStatusFilter.includes('overstock') && item.current_stock > item.max_stock) matchStock = true;
+    }
+
+    return matchSearch && matchCategory && matchStock;
   });
+
+  const toggleCategory = (cat) => {
+    if (categoryFilter.includes(cat)) {
+      setCategoryFilter(categoryFilter.filter(c => c !== cat));
+    } else {
+      setCategoryFilter([...categoryFilter, cat]);
+    }
+  };
+
+  const toggleStockStatus = (status) => {
+    if (stockStatusFilter.includes(status)) {
+      setStockStatusFilter(stockStatusFilter.filter(s => s !== status));
+    } else {
+      setStockStatusFilter([...stockStatusFilter, status]);
+    }
+  };
 
   const lowStockCount = items.filter(i => i.current_stock <= i.min_stock && i.current_stock > 0).length;
   const outOfStockCount = items.filter(i => i.current_stock <= 0).length;
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true);
+    setHistoryModal(true);
+    const result = await fetchAPI('/admin/inventory/transactions?page=1&limit=50');
+    if (result.success) setHistoryData(result.data || []);
+    setHistoryLoading(false);
+  };
+
+  const fetchKits = async () => {
+    setKitsLoading(true);
+    setKitsModal(true);
+    const result = await fetchAPI('/admin/service-kits');
+    if (result.success) setKitsData(result.data || {});
+    setKitsLoading(false);
+  };
 
   const renderItem = ({ item, index }) => {
     const isLow = item.current_stock <= item.min_stock && item.current_stock > 0;
@@ -234,6 +318,29 @@ export const AdminInventory = ({ navigation }) => {
         </AnimatedTouchable>
       </View>
 
+      {/* Header Actions */}
+      <View style={styles.actionRow}>
+        <View style={styles.actionGroup}>
+          <AnimatedTouchable style={styles.iconBtnHeader} onPress={() => Alert.alert('Print', 'Inventory report printing is optimized for the web portal.')}>
+            <Printer size={16} color={theme.textPrimary} />
+          </AnimatedTouchable>
+          <AnimatedTouchable style={styles.iconBtnHeader} onPress={() => Alert.alert('Export', 'CSV export is available in the web portal.')}>
+            <Download size={16} color={theme.textPrimary} />
+          </AnimatedTouchable>
+        </View>
+
+        <View style={styles.actionGroup}>
+          <AnimatedTouchable style={[styles.iconBtnHeader, { backgroundColor: theme.surfaceLight }]} onPress={fetchHistory}>
+            <History size={16} color={theme.textPrimary} />
+            <Text style={styles.iconBtnText}>History</Text>
+          </AnimatedTouchable>
+          <AnimatedTouchable style={[styles.iconBtnHeader, { backgroundColor: theme.surfaceLight }]} onPress={fetchKits}>
+            <Layers size={16} color={theme.textPrimary} />
+            <Text style={styles.iconBtnText}>Kits</Text>
+          </AnimatedTouchable>
+        </View>
+      </View>
+
       {/* Alert banner */}
       {(lowStockCount > 0 || outOfStockCount > 0) && (
         <View style={styles.alertBanner}>
@@ -246,19 +353,56 @@ export const AdminInventory = ({ navigation }) => {
         </View>
       )}
 
-      {/* Search */}
-      <View style={styles.searchBar}>
-        <Search size={18} color={theme.textTertiary} />
-        <TextInput style={styles.searchInput} placeholder="Search items..." placeholderTextColor={theme.textTertiary} value={search} onChangeText={setSearch} />
+      {/* Search & Autocomplete */}
+      <View style={{ zIndex: 10 }}>
+        <View style={styles.searchBar}>
+          <Search size={18} color={theme.textTertiary} />
+          <TextInput 
+            style={styles.searchInput} 
+            placeholder="Search items by name, category..." 
+            placeholderTextColor={theme.textTertiary} 
+            value={search} 
+            onChangeText={(t) => { setSearch(t); setShowSuggestions(true); }} 
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          />
+        </View>
+        {showSuggestions && search && searchSuggestions.filter(s => s.toLowerCase().includes(search.toLowerCase())).length > 0 && (
+          <View style={styles.waterfallDropdown}>
+            {searchSuggestions.filter(s => s.toLowerCase().includes(search.toLowerCase())).slice(0, 5).map((s, i) => (
+              <AnimatedTouchable key={s} style={styles.waterfallItem} onPress={() => { setSearch(s); setShowSuggestions(false); }}>
+                <Search size={14} color={theme.textTertiary} style={{ marginRight: 8 }} />
+                <Text style={styles.waterfallText}>{s}</Text>
+              </AnimatedTouchable>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Filters */}
       <View style={styles.filterRow}>
-        {[{ key: 'all', label: 'All' }, { key: 'low', label: 'Low Stock' }, { key: 'out', label: 'Out of Stock' }].map(f => (
-          <AnimatedTouchable key={f.key} style={[styles.filterPill, filter === f.key && styles.filterPillActive]} onPress={() => setFilter(f.key)}>
-            <Text style={[styles.filterText, filter === f.key && styles.filterTextActive]}>{f.label}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          <AnimatedTouchable style={[styles.filterPill, stockStatusFilter.length === 0 && styles.filterPillActive]} onPress={() => setStockStatusFilter([])}>
+             <Text style={[styles.filterText, stockStatusFilter.length === 0 && styles.filterTextActive]}>All Stock</Text>
           </AnimatedTouchable>
-        ))}
+          {['low', 'out', 'optimal', 'overstock'].map(f => (
+            <AnimatedTouchable key={f} style={[styles.filterPill, stockStatusFilter.includes(f) && styles.filterPillActive]} onPress={() => toggleStockStatus(f)}>
+              <Text style={[styles.filterText, stockStatusFilter.includes(f) && styles.filterTextActive]}>{f.charAt(0).toUpperCase() + f.slice(1)}</Text>
+            </AnimatedTouchable>
+          ))}
+        </ScrollView>
+      </View>
+      <View style={[styles.filterRow, { marginTop: 0 }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          <AnimatedTouchable style={[styles.filterPill, categoryFilter.length === 0 && styles.filterPillActive]} onPress={() => setCategoryFilter([])}>
+             <Text style={[styles.filterText, categoryFilter.length === 0 && styles.filterTextActive]}>All Categories</Text>
+          </AnimatedTouchable>
+          {INVENTORY_CATEGORIES.filter(c => c !== 'all').map(cat => (
+            <AnimatedTouchable key={cat} style={[styles.filterPill, categoryFilter.includes(cat) && styles.filterPillActive]} onPress={() => toggleCategory(cat)}>
+              <Text style={[styles.filterText, categoryFilter.includes(cat) && styles.filterTextActive]}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
+            </AnimatedTouchable>
+          ))}
+        </ScrollView>
       </View>
 
       {/* List */}
@@ -284,26 +428,33 @@ export const AdminInventory = ({ navigation }) => {
               </AnimatedTouchable>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                <AnimatedTouchable style={styles.imagePicker} onPress={handleImagePick}>
+                  {form.image ? (
+                    <Image source={{ uri: form.image }} style={styles.pickedImage} />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <Camera size={24} color={theme.textTertiary} />
+                      <Text style={styles.imagePlaceholderText}>Add Photo</Text>
+                    </View>
+                  )}
+                </AnimatedTouchable>
+              </View>
+
               <Text style={styles.inputLabel}>Item Name</Text>
               <TextInput style={styles.input} value={form.name} onChangeText={t => setForm({ ...form, name: t })} placeholder="e.g. Disposable Gloves" placeholderTextColor={theme.textTertiary} />
 
               <Text style={styles.inputLabel}>Category</Text>
               <View style={styles.typeRow}>
-                {['Supplies', 'Ink', 'Needles', 'Equipment', 'Other'].map(cat => (
+                {INVENTORY_CATEGORIES.filter(c => c !== 'all').map(cat => (
                   <AnimatedTouchable key={cat} style={[styles.typeBtn, form.category === cat && styles.typeBtnActive]} onPress={() => setForm({ ...form, category: cat })}>
-                    <Text style={[styles.typeText, form.category === cat && styles.typeTextActive]}>{cat}</Text>
+                    <Text style={[styles.typeText, form.category === cat && styles.typeTextActive]}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
                   </AnimatedTouchable>
                 ))}
               </View>
 
               <Text style={styles.inputLabel}>Unit</Text>
-              <View style={styles.typeRow}>
-                {['pcs', 'bottles', 'boxes', 'sets', 'ml', 'g'].map(u => (
-                  <AnimatedTouchable key={u} style={[styles.typeBtn, form.unit === u && styles.typeBtnActive]} onPress={() => setForm({ ...form, unit: u })}>
-                    <Text style={[styles.typeText, form.unit === u && styles.typeTextActive]}>{u}</Text>
-                  </AnimatedTouchable>
-                ))}
-              </View>
+              <TextInput style={styles.input} value={form.unit} onChangeText={t => setForm({ ...form, unit: t })} placeholder="e.g. pcs, bottles, sets" placeholderTextColor={theme.textTertiary} />
 
               <Text style={styles.inputLabel}>Current Stock</Text>
               <TextInput style={styles.input} value={form.current_stock} onChangeText={t => setForm({ ...form, current_stock: t })} keyboardType="numeric" />
@@ -372,6 +523,72 @@ export const AdminInventory = ({ navigation }) => {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* History Modal */}
+      <Modal visible={historyModal} animationType="slide" transparent>
+        <SafeAreaView style={styles.modalOverlayFull}>
+          <View style={styles.modalCardFull}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Stock History</Text>
+              <AnimatedTouchable onPress={() => setHistoryModal(false)} style={styles.closeBtn}>
+                <X size={20} color={theme.textSecondary} />
+              </AnimatedTouchable>
+            </View>
+            {historyLoading ? <PremiumLoader message="Loading history..." /> : (
+              <FlatList
+                data={historyData}
+                keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+                contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+                renderItem={({ item }) => (
+                  <View style={styles.historyCard}>
+                    <View style={styles.historyTop}>
+                      <Text style={styles.historyReason}>{item.reason || 'Transaction'}</Text>
+                      <Text style={styles.historyDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                    </View>
+                    <View style={styles.historyTop}>
+                      <Text style={styles.historyItem}>{item.item_name}</Text>
+                      <Text style={[styles.historyItem, { fontWeight: '700', color: item.type === 'in' ? theme.success : theme.error }]}>
+                        {item.type === 'in' ? '+' : '-'}{item.quantity}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                ListEmptyComponent={<EmptyState icon={History} title="No transaction history" />}
+              />
+            )}
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Service Kits Modal */}
+      <Modal visible={kitsModal} animationType="slide" transparent>
+        <SafeAreaView style={styles.modalOverlayFull}>
+          <View style={styles.modalCardFull}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Service Kits</Text>
+              <AnimatedTouchable onPress={() => setKitsModal(false)} style={styles.closeBtn}>
+                <X size={20} color={theme.textSecondary} />
+              </AnimatedTouchable>
+            </View>
+            {kitsLoading ? <PremiumLoader message="Loading kits..." /> : (
+              <FlatList
+                data={Object.keys(kitsData)}
+                keyExtractor={(item) => item}
+                contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+                renderItem={({ item }) => (
+                  <View style={styles.kitCard}>
+                    <Text style={styles.kitTitle}>{item}</Text>
+                    {(kitsData[item] || []).map((mat, i) => (
+                      <Text key={i} style={styles.kitMeta}>• {mat.name} ({mat.default_quantity} {mat.unit})</Text>
+                    ))}
+                  </View>
+                )}
+                ListEmptyComponent={<EmptyState icon={Layers} title="No service kits found" />}
+              />
+            )}
+          </View>
+        </SafeAreaView>
+      </Modal>
+
       {/* Delete Confirm */}
       <ConfirmModal
         visible={deleteModal.visible}
@@ -390,7 +607,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16,
+    paddingHorizontal: 16, paddingTop: (insets?.top || 0) + 16, paddingBottom: 16,
     backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border,
   },
   headerTitle: { ...typography.h2, color: theme.textPrimary },
@@ -422,7 +639,7 @@ const getStyles = (theme, insets) => StyleSheet.create({
   filterTextActive: { color: theme.backgroundDeep },
 
   // List
-  listContent: { paddingHorizontal: 16, paddingBottom: 24 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 100 },
 
   // Item Card
   itemCard: {
@@ -450,7 +667,9 @@ const getStyles = (theme, insets) => StyleSheet.create({
   // Modal shared
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 },
   modalCard: { backgroundColor: theme.surface, borderRadius: borderRadius.xxl, padding: 24, maxHeight: '85%', ...shadows.cardStrong, borderWidth: 1, borderColor: theme.borderLight },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalOverlayFull: { flex: 1, backgroundColor: theme.background },
+  modalCardFull: { flex: 1, backgroundColor: theme.surface },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingHorizontal: 20, paddingTop: 20 },
   modalTitle: { ...typography.h3, color: theme.textPrimary },
   closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center' },
   inputLabel: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '600', marginBottom: 6, marginTop: 6 },
@@ -473,4 +692,32 @@ const getStyles = (theme, insets) => StyleSheet.create({
   // TX modal
   txItemName: { ...typography.h4, color: theme.gold, marginBottom: 4 },
   txItemStock: { ...typography.bodySmall, color: theme.textSecondary, marginBottom: 16 },
+
+  // Image Picker
+  imagePicker: { width: 100, height: 100, borderRadius: borderRadius.xl, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
+  pickedImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  imagePlaceholder: { justifyContent: 'center', alignItems: 'center' },
+  imagePlaceholderText: { ...typography.bodyXSmall, color: theme.textTertiary, marginTop: 4 },
+
+  actionRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 8 },
+  actionGroup: { flexDirection: 'row', gap: 8 },
+  iconBtnHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, paddingHorizontal: 12, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.borderLight },
+  iconBtnText: { ...typography.bodyXSmall, fontWeight: '700', color: theme.textPrimary },
+
+  waterfallDropdown: {
+    position: 'absolute', top: 58, left: 16, right: 16, backgroundColor: theme.surface,
+    borderRadius: borderRadius.lg, borderWidth: 1, borderColor: theme.borderLight, ...shadows.cardStrong,
+  },
+  waterfallItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: theme.borderLight },
+  waterfallText: { ...typography.bodySmall, color: theme.textSecondary },
+
+  historyCard: { backgroundColor: theme.surfaceLight, padding: 12, borderRadius: borderRadius.md, marginBottom: 8, borderWidth: 1, borderColor: theme.borderLight },
+  historyTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  historyReason: { ...typography.bodySmall, color: theme.textPrimary, fontWeight: '600' },
+  historyDate: { ...typography.bodyXSmall, color: theme.textTertiary },
+  historyItem: { ...typography.bodyXSmall, color: theme.textSecondary },
+  
+  kitCard: { backgroundColor: theme.surfaceLight, padding: 12, borderRadius: borderRadius.md, marginBottom: 8, borderWidth: 1, borderColor: theme.borderLight },
+  kitTitle: { ...typography.body, color: theme.textPrimary, fontWeight: '700', marginBottom: 4 },
+  kitMeta: { ...typography.bodyXSmall, color: theme.textSecondary },
 });

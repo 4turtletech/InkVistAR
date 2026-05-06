@@ -163,7 +163,7 @@ export function CustomerArtistDirectory({ onBack, onNavigate }) {
 
 const getStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
-  header: { padding: 20, paddingTop: 52, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  header: { padding: 20, paddingTop: Platform.OS === 'ios' ? 20 : 52, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   headerTitle: { ...typography.h2, color: '#ffffff' },

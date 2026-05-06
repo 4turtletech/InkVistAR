@@ -178,7 +178,7 @@ const getStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, paddingTop: Platform.OS === 'android' ? 52 : 16, backgroundColor: theme.surface,
+    padding: 16, paddingTop: Platform.OS === 'ios' ? 16 : 52, backgroundColor: theme.surface,
     borderBottomWidth: 1, borderBottomColor: theme.border, ...shadows.subtle
   },
   backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.surfaceLight, justifyContent: 'center', alignItems: 'center' },

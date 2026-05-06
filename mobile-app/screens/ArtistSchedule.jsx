@@ -3,10 +3,11 @@
  * Theme-aware, animated, gold accents. Filters, sort, calendar, appointment cards, detail & add modals.
  */
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Modal, TextInput, Animated, Pressable, RefreshControl, Share } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Modal, TextInput, Animated, Pressable, RefreshControl, Share, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-import { ArrowLeft, Calendar, CheckCircle2, ArrowUpDown, ChevronLeft, ChevronRight,
+import {
+  ArrowLeft, Calendar, CheckCircle2, ArrowUpDown, ChevronLeft, ChevronRight,
   Clock, User, X, Ban, Download, Printer, Lock, Unlock,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -123,7 +124,7 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
     }
     const header = 'Booking Code,Client,Date,Time,Service,Status,Price,Payment';
     const rows = appointments.map(a =>
-      `"${a.booking_code || a.id}","${a.client_name || ''}","${(a.appointment_date || '').substring(0,10)}","${a.start_time || ''}","${a.design_title || ''}","${a.status || ''}","${a.price || 0}","${a.payment_status || ''}"`
+      `"${a.booking_code || a.id}","${a.client_name || ''}","${(a.appointment_date || '').substring(0, 10)}","${a.start_time || ''}","${a.design_title || ''}","${a.status || ''}","${a.price || 0}","${a.payment_status || ''}"`
     );
     const csv = [header, ...rows].join('\n');
     const fileName = `schedule_${new Date().toISOString().split('T')[0]}.csv`;
@@ -145,7 +146,7 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
     const upcoming = appointments
       .filter(a => a.status !== 'cancelled' && a.status !== 'completed')
       .slice(0, 10)
-      .map(a => `• ${(a.appointment_date || '').substring(0,10)} ${a.start_time || ''} — ${a.client_name || 'Unknown'} (${a.design_title || 'Session'})`)
+      .map(a => `• ${(a.appointment_date || '').substring(0, 10)} ${a.start_time || ''} — ${a.client_name || 'Unknown'} (${a.design_title || 'Session'})`)
       .join('\n');
     const summary = `SCHEDULE SUMMARY\nGenerated: ${today}\nArtist ID: ${artistId}\n\nUpcoming Sessions:\n${upcoming || 'None'}`;
     setAlertModal({ visible: true, title: 'Schedule Summary', message: summary });
@@ -232,7 +233,7 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />}
       >
@@ -243,33 +244,36 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
           <View style={{ width: 40 }} />
         </View>
 
-        {/* Action Toolbar */}
-        <View style={styles.toolbarRow}>
-          <AnimatedTouchable
-            style={styles.toolbarBtn}
-            onPress={() => {
-              const today = new Date();
-              const ds = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-              setBlockModal({ visible: true, date: ds });
-            }}
-          >
-            <Ban size={16} color={colors.error} />
-            <Text style={[styles.toolbarBtnText, { color: colors.error }]}>Block Date</Text>
-          </AnimatedTouchable>
-          <AnimatedTouchable style={styles.toolbarBtn} onPress={exportToCSV}>
-            <Download size={16} color={colors.gold} />
-            <Text style={[styles.toolbarBtnText, { color: colors.gold }]}>Export CSV</Text>
-          </AnimatedTouchable>
-          <AnimatedTouchable style={styles.toolbarBtn} onPress={printScheduleSummary}>
-            <Printer size={16} color={colors.textSecondary} />
-            <Text style={[styles.toolbarBtnText, { color: colors.textSecondary }]}>Print</Text>
-          </AnimatedTouchable>
-        </View>
+        {/* Stats & Actions */}
+        <View style={{ paddingHorizontal: 16, marginBottom: 4 }}>
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBadge}><Calendar size={14} color={colors.gold} /><Text style={styles.statText}>{appointments.length} Total</Text></View>
+            <View style={styles.statBadge}><CheckCircle2 size={14} color={colors.success} /><Text style={styles.statText}>{appointments.filter(a => a.status === 'confirmed').length} Confirmed</Text></View>
+          </View>
 
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <View style={styles.statBadge}><Calendar size={14} color={colors.gold} /><Text style={styles.statText}>{appointments.length} Total</Text></View>
-          <View style={styles.statBadge}><CheckCircle2 size={14} color={colors.success} /><Text style={styles.statText}>{appointments.filter(a => a.status === 'confirmed').length} Confirmed</Text></View>
+          {/* Action Toolbar */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolbarRow}>
+            <AnimatedTouchable
+              style={styles.toolbarBtn}
+              onPress={() => {
+                const today = new Date();
+                const ds = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                setBlockModal({ visible: true, date: ds });
+              }}
+            >
+              <Ban size={16} color={colors.error} />
+              <Text style={[styles.toolbarBtnText, { color: colors.error }]}>Block Date</Text>
+            </AnimatedTouchable>
+            <AnimatedTouchable style={styles.toolbarBtn} onPress={exportToCSV}>
+              <Download size={16} color={colors.gold} />
+              <Text style={[styles.toolbarBtnText, { color: colors.gold }]}>Export</Text>
+            </AnimatedTouchable>
+            <AnimatedTouchable style={styles.toolbarBtn} onPress={printScheduleSummary}>
+              <Printer size={16} color={colors.textSecondary} />
+              <Text style={[styles.toolbarBtnText, { color: colors.textSecondary }]}>Print</Text>
+            </AnimatedTouchable>
+          </ScrollView>
         </View>
 
         <View style={styles.content}>
@@ -461,25 +465,25 @@ const getStyles = (colors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 20 : 52, paddingBottom: 16,
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface,
     justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
   headerTitle: { ...typography.h2, color: colors.textPrimary },
-  statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 16 },
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   statBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: colors.surface, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
+    flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1, justifyContent: 'center',
+    backgroundColor: colors.surface, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 12,
     borderWidth: 1, borderColor: colors.border,
   },
   statText: { ...typography.bodySmall, color: colors.textPrimary, fontWeight: '600' },
-  content: { padding: 16, paddingBottom: 60 },
-  sortRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10 },
+  content: { paddingHorizontal: 16, paddingBottom: 60 },
+  sortRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10, marginTop: 4 },
   sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   sortText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
-  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   filterChip: {
     paddingHorizontal: 16, paddingVertical: 8, backgroundColor: colors.surface,
     borderRadius: 20, borderWidth: 1, borderColor: colors.border,
@@ -501,11 +505,11 @@ const getStyles = (colors) => StyleSheet.create({
   selectedDay: { backgroundColor: colors.gold },
   dayText: { ...typography.bodySmall, color: colors.textPrimary },
   selectedDayText: { color: colors.backgroundDeep, fontWeight: '700' },
-  legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border },
+  legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border, justifyContent: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { ...typography.bodyXSmall, color: colors.textTertiary },
-  clearDate: { marginTop: 10, alignItems: 'center', padding: 6 },
+  legendDot: { width: 6, height: 6, borderRadius: 3 },
+  legendText: { ...typography.bodyXSmall, color: colors.textTertiary, fontSize: 10 },
+  clearDate: { marginTop: 8, alignItems: 'center', padding: 4 },
   clearDateText: { ...typography.bodySmall, color: colors.gold, fontWeight: '600' },
   sectionTitle: { ...typography.h4, color: colors.textPrimary, marginBottom: 10 },
   aptCard: {
@@ -545,16 +549,14 @@ const getStyles = (colors) => StyleSheet.create({
   loadMoreText: { ...typography.bodySmall, color: colors.textSecondary, fontWeight: '600' },
   blockedDay: { backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.4)' },
   toolbarRow: {
-    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.surface,
-    borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: 4,
+    flexDirection: 'row', gap: 8, marginBottom: 4, paddingRight: 16
   },
   toolbarBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
     backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border,
   },
-  toolbarBtnText: { ...typography.bodyXSmall, fontWeight: '700' },
+  toolbarBtnText: { ...typography.bodySmall, fontWeight: '600' },
 });
 
 const getModalStyles = (colors) => StyleSheet.create({

@@ -4494,6 +4494,7 @@ app.get('/api/admin/appointments', (req, res) => {
       ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
       ap.manual_payment_method,
       cust.profile_image as client_avatar,
+      cust.phone as client_phone,
       (SELECT COALESCE(SUM(sm.quantity * i.cost), 0) FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ap.id AND sm.status != 'released') as total_material_cost,
       (SELECT COUNT(*) FROM reschedule_requests rr WHERE rr.appointment_id = ap.id AND rr.status = 'pending') as has_pending_reschedule_request
     FROM appointments ap
@@ -4528,7 +4529,8 @@ app.get('/api/admin/appointments/:id', (req, res) => {
       ar.commission_rate,
       ((SELECT COALESCE(SUM(amount), 0) FROM payments p WHERE p.appointment_id = ap.id AND p.status = 'paid') / 100) + COALESCE(ap.manual_paid_amount, 0) as total_paid,
       ap.manual_payment_method,
-      cust.profile_image as client_avatar
+      cust.profile_image as client_avatar,
+      cust.phone as client_phone
     FROM appointments ap
     JOIN users u_cust ON ap.customer_id = u_cust.id
     JOIN users u_art ON ap.artist_id = u_art.id
@@ -11419,6 +11421,24 @@ app.use((err, req, res, next) => {
   });
 });
 
+// ========== PENDING PAYMENTS EXPIRY CLEANUP ==========
+function startPendingPaymentsCleanup() {
+  // Run every 30 minutes to check for pending payments older than 2 hours
+  setInterval(() => {
+    const query = `
+      UPDATE payments 
+      SET status = 'failed'
+      WHERE status = 'pending' AND created_at < DATE_SUB(NOW(), INTERVAL 2 HOUR)
+    `;
+    db.query(query, (err, results) => {
+      if (err) console.error('[ERROR] Error expiring pending payments:', err);
+      else if (results.affectedRows > 0) {
+        console.log(`[INFO] Expired ${results.affectedRows} pending payment(s) older than 2 hours.`);
+      }
+    });
+  }, 1000 * 60 * 30);
+}
+
 // ========== START SERVER ==========
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
@@ -11442,4 +11462,5 @@ server.listen(PORT, '0.0.0.0', () => {
   startAftercareCron();
   startPayoutReminders();
   startRescheduleRequestExpiry();
+  startPendingPaymentsCleanup();
 });
