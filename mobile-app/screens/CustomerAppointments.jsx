@@ -159,6 +159,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
     finally { setPaymentLoading(false); }
   };
 
+  const handlePaymentSuccess = () => { setShowPaymentModal(false); setPaymentUrl(null); fetchAppointments(); };
   const handlePaymentClose = () => { setShowPaymentModal(false); setPaymentUrl(null); setSelectedAppointment(null); fetchAppointments(); };
   const onRefresh = () => { setRefreshing(true); fetchAppointments(); };
   const changeMonth = (inc) => { const d = new Date(currentMonth); d.setMonth(d.getMonth() + inc); setCurrentMonth(d); };
@@ -342,10 +343,10 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
               <AnimatedTouchable onPress={() => handleSelectAppointment(null)}><X size={22} color={theme.textSecondary} /></AnimatedTouchable>
             </View>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16, backgroundColor: theme.surfaceLight, padding: 4, borderRadius: 12 }}>
-              <AnimatedTouchable style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: modalTab === 'details' ? theme.surface : 'transparent', borderRadius: 8, ...shadows.subtle }} onPress={() => setModalTab('details')}>
+              <AnimatedTouchable style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: modalTab === 'details' ? theme.surface : 'transparent', borderRadius: 8, ...(modalTab === 'details' ? shadows.subtle : {}) }} onPress={() => setModalTab('details')}>
                 <Text style={{ ...typography.bodySmall, fontWeight: modalTab === 'details' ? '700' : '500', color: modalTab === 'details' ? theme.textPrimary : theme.textSecondary }}>Details</Text>
               </AnimatedTouchable>
-              <AnimatedTouchable style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: modalTab === 'transactions' ? theme.surface : 'transparent', borderRadius: 8, ...shadows.subtle }} onPress={() => setModalTab('transactions')}>
+              <AnimatedTouchable style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: modalTab === 'transactions' ? theme.surface : 'transparent', borderRadius: 8, ...(modalTab === 'transactions' ? shadows.subtle : {}) }} onPress={() => setModalTab('transactions')}>
                 <Text style={{ ...typography.bodySmall, fontWeight: modalTab === 'transactions' ? '700' : '500', color: modalTab === 'transactions' ? theme.textPrimary : theme.textSecondary }}>Transactions</Text>
               </AnimatedTouchable>
             </View>
@@ -423,14 +424,26 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
               <Text style={{ marginLeft: 8, ...typography.body, fontWeight: '700', color: theme.textPrimary }}>Close Checkout</Text>
             </AnimatedTouchable>
           </View>
-          {paymentUrl && <WebView source={{ uri: paymentUrl }} style={{ flex: 1 }} startInLoadingState renderLoading={() => <ActivityIndicator style={{ position: 'absolute', top: '50%', left: '50%' }} size="large" color={theme.gold} />} />}
+          {paymentUrl && (
+            <WebView 
+              source={{ uri: paymentUrl }} 
+              style={{ flex: 1 }} 
+              startInLoadingState 
+              renderLoading={() => <ActivityIndicator style={{ position: 'absolute', top: '50%', left: '50%' }} size="large" color={theme.gold} />} 
+              onNavigationStateChange={(navState) => {
+                if (navState.url && navState.url.includes('booking-confirmation')) {
+                  handlePaymentSuccess();
+                }
+              }}
+            />
+          )}
         </SafeAreaView>
       </Modal>
 
       {/* Custom Alert Modal */}
       <Modal visible={alertModal.visible} animationType="fade" transparent>
-        <View style={modalS.overlay}>
-          <View style={[modalS.content, { alignItems: 'center', width: '85%' }]}>
+        <View style={[modalS.overlay, { justifyContent: 'center', alignItems: 'center' }]}>
+          <View style={[modalS.content, { alignItems: 'center', width: '90%', borderRadius: borderRadius.xl }]}>
             <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: `${theme.gold}20`, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
               <ShieldAlert size={24} color={theme.gold} />
             </View>
@@ -465,8 +478,8 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
       </Modal>
       {/* Payment Options Modal */}
       <Modal visible={showPaymentOptions} animationType="fade" transparent onRequestClose={() => setShowPaymentOptions(false)}>
-        <View style={modalS.overlay}>
-          <View style={[modalS.content, { width: '85%' }]}>
+        <View style={[modalS.overlay, { justifyContent: 'center', alignItems: 'center' }]}>
+          <View style={[modalS.content, { width: '90%', borderRadius: borderRadius.xl }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={modalS.title}>Select Payment</Text>
               <AnimatedTouchable onPress={() => setShowPaymentOptions(false)}><X size={22} color={theme.textSecondary} /></AnimatedTouchable>

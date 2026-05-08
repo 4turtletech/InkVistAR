@@ -91,9 +91,6 @@ const PAYMONGO_API_BASE = 'https://api.paymongo.com/v1';
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '6Le9F78sAAAAACBBrgQz5pzpbZ2VxI4h71UXhCd9';
 
 async function verifyCaptcha(token) {
-  // CAPTCHA DISABLED — always pass. Remove the line below to re-enable.
-  return true;
-  /*
   if (!token) return false;
   try {
     const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
@@ -109,7 +106,6 @@ async function verifyCaptcha(token) {
     console.error('reCAPTCHA verification error:', err.message);
     return false;
   }
-  */
 }
 
 // Enhanced CORS configuration
@@ -3156,38 +3152,43 @@ app.get('/api/artist/dashboard/:artistId', (req, res) => {
         return aptDate.getMonth() === now.getMonth() && aptDate.getFullYear() === now.getFullYear();
       }).reduce((sum, apt) => sum + (parseFloat(apt.price || 0) * commissionRate), 0);
 
-      // Fetch notifications for dashboard
-      db.query('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20', [artistId], (notifErr, notifResults) => {
-        const notifications = notifResults || [];
-        const unreadCount = notifications.filter(n => !n.is_read).length;
+      // Fetch portfolio works
+      db.query('SELECT * FROM portfolio_works WHERE artist_id = ? AND is_deleted = 0 ORDER BY created_at DESC LIMIT 10', [artistId], (worksErr, worksResults) => {
+        const works = worksResults || [];
 
-        // Return success with calculated stats
-        res.json({
-          success: true,
-          artist: {
-            id: artist.id,
-            name: artist.name,
-            email: artist.email,
-            phone: artist.phone,
-            studio_name: artist.studio_name,
-            experience_years: artist.experience_years,
-            specialization: artist.specialization,
-            hourly_rate: artist.hourly_rate,
-            commission_rate: artist.commission_rate,
-            rating: Number(artist.rating),
-            total_reviews: artist.total_reviews,
-            profile_image: artist.profile_image
-          },
-          appointments: appointments,
-          works: [],
-          stats: {
-            total_appointments: appointments.length,
-            total_earnings: totalEarnings,
-            monthly_earnings: currentMonthEarnings,
-            avg_rating: Number(artist.rating)
-          },
-          notifications: notifications,
-          unreadCount: unreadCount
+        // Fetch notifications for dashboard
+        db.query('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20', [artistId], (notifErr, notifResults) => {
+          const notifications = notifResults || [];
+          const unreadCount = notifications.filter(n => !n.is_read).length;
+
+          // Return success with calculated stats
+          res.json({
+            success: true,
+            artist: {
+              id: artist.id,
+              name: artist.name,
+              email: artist.email,
+              phone: artist.phone,
+              studio_name: artist.studio_name,
+              experience_years: artist.experience_years,
+              specialization: artist.specialization,
+              hourly_rate: artist.hourly_rate,
+              commission_rate: artist.commission_rate,
+              rating: Number(artist.rating),
+              total_reviews: artist.total_reviews,
+              profile_image: artist.profile_image
+            },
+            appointments: appointments,
+            works: works,
+            stats: {
+              total_appointments: appointments.length,
+              total_earnings: totalEarnings,
+              monthly_earnings: currentMonthEarnings,
+              avg_rating: Number(artist.rating)
+            },
+            notifications: notifications,
+            unreadCount: unreadCount
+          });
         });
       });
     });
@@ -7139,12 +7140,13 @@ app.post('/api/appointments/:id/release-material', (req, res) => {
 // Update appointment details (Notes, Supplies, Photos)
 app.put('/api/appointments/:id/details', (req, res) => {
   const { id } = req.params;
-  const { notes, beforePhoto, afterPhoto } = req.body;
+  const { notes, beforePhoto, afterPhoto, draftImage } = req.body;
 
   console.log(`[INFO] Saving details for appointment ${id}`);
   console.log(`   - Notes: ${notes ? notes.substring(0, 50) + '...' : 'empty'}`);
   console.log(`   - Before Photo: ${beforePhoto ? beforePhoto.substring(0, 50) + '...' : 'none'}`);
   console.log(`   - After Photo: ${afterPhoto ? afterPhoto.substring(0, 50) + '...' : 'none'}`);
+  console.log(`   - Draft Image: ${draftImage ? draftImage.substring(0, 50) + '...' : 'none'}`);
 
   let query = 'UPDATE appointments SET notes = ?';
   let params = [notes];
@@ -7157,6 +7159,11 @@ app.put('/api/appointments/:id/details', (req, res) => {
   if (afterPhoto !== undefined && afterPhoto !== null && afterPhoto.length > 0) {
     query += ', after_photo = ?';
     params.push(afterPhoto);
+  }
+
+  if (draftImage !== undefined && draftImage !== null && draftImage.length > 0) {
+    query += ', draft_image = ?';
+    params.push(draftImage);
   }
 
   query += ' WHERE id = ?';

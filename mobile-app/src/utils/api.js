@@ -258,6 +258,14 @@ export const updateAppointmentStatus = async (appointmentId, status) => {
   });
 };
 
+// Update Appointment Details (Notes, Photos, Draft)
+export const updateAppointmentDetails = async (appointmentId, details) => {
+  return fetchAPI(`/appointments/${appointmentId}/details`, {
+    method: 'PUT',
+    body: JSON.stringify(details)
+  });
+};
+
 // Artist: Change Password
 export const changeArtistPassword = async (artistId, currentPassword, newPassword) => {
   return fetchAPI('/artist/change-password', {

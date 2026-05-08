@@ -543,8 +543,8 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
       {/* Custom Alert Modal */}
       <Modal visible={alertModal.visible} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { alignItems: 'center', width: '85%' }]}>
+        <View style={[styles.modalOverlay, { alignItems: 'center' }]}>
+          <View style={[styles.modalCard, { alignItems: 'center', width: '90%' }]}>
             <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: `${theme.gold}20`, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
               <ShieldAlert size={24} color={theme.gold} />
             </View>
@@ -580,8 +580,8 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
       {/* Logout Confirmation Modal */}
       <Modal visible={logoutConfirmVisible} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { alignItems: 'center', width: '85%' }]}>
+        <View style={[styles.modalOverlay, { alignItems: 'center' }]}>
+          <View style={[styles.modalCard, { alignItems: 'center', width: '90%' }]}>
             <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: `${theme.error}20`, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
               <LogOut size={24} color={theme.error} />
             </View>

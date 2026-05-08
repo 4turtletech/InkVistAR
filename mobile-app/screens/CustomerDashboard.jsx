@@ -23,6 +23,7 @@ import { getCustomerDashboard } from '../src/utils/api';
 import { getCustomerFavoriteWorks, getCustomerMyTattoos } from '../src/api/customerAPI';
 import { getGalleryWorks } from '../src/utils/api';
 import { Image } from 'react-native';
+import { CustomerPaymentAlertOverlay } from '../src/components/shared/CustomerPaymentAlertOverlay';
 
 // --- Animated Button Wrapper for "Bouncy" feel ---
 const AnimatedTouchable = ({ children, onPress, style, activeOpacity = 0.9 }) => {
@@ -348,6 +349,19 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
         </View>
 
       </ScrollView>
+
+      {/* Global Payment Overlay */}
+      <CustomerPaymentAlertOverlay 
+        customerId={userId} 
+        onPayOnline={(alert) => {
+          // If the app has a specific flow for payment, redirect to it.
+          // Mobile usually redirects to a payment link.
+          // Since there is a web endpoint for pay-mongo, we can open webview or navigate to a payment screen if it exists.
+          // The web app redirects to `/pay-mongo?appointmentId=...`
+          // Assuming `onNavigate` can go to a payment portal or Appointments list.
+          onNavigate('Appointments', { openAppointmentId: alert.id });
+        }}
+      />
     </SafeAreaView>
   );
 }

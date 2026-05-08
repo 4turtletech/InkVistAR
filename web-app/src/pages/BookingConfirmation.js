@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
 import { CheckCircle, Clock, ArrowRight, CreditCard, Calendar, AlertTriangle } from 'lucide-react';
@@ -9,9 +9,19 @@ import './PortalStyles.css';
 
 const BookingConfirmation = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const [appointmentId, setAppointmentId] = useState(null);
     const [bookingDisplayCode, setBookingDisplayCode] = useState(null);
     const [verificationStatus, setVerificationStatus] = useState('verifying');
+
+    useEffect(() => {
+        if (verificationStatus === 'success' && appointmentId) {
+            const timer = setTimeout(() => {
+                navigate('/customer/bookings', { state: { openAppointmentId: appointmentId } });
+            }, 3000); // 3 seconds delay so user can read the success message
+            return () => clearTimeout(timer);
+        }
+    }, [verificationStatus, appointmentId, navigate]);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -256,7 +266,7 @@ const BookingConfirmation = () => {
 
                             {/* Actions */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <Link to="/customer/bookings" style={{
+                                <Link to="/customer/bookings" state={{ openAppointmentId: appointmentId }} style={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',

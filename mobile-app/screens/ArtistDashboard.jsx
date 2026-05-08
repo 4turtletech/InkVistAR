@@ -132,7 +132,7 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
     );
   }
 
-  const { artist = {}, appointments = [], works = [], stats = {} } = dashboardData || {};
+  const { artist = {}, appointments = [], works = [], stats = {}, notifications = [] } = dashboardData || {};
   const artistName = artist?.name || userName;
   const artistSpecialization = artist?.specialization || 'Tattoo Artist';
   const artistExperience = artist?.experience_years || '0';
@@ -184,7 +184,44 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
 
   const initials = getInitials(artistName);
 
-  return (
+  // Compute monthly earnings trend
+  const monthMap = {};
+  const nowForChart = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(nowForChart.getFullYear(), nowForChart.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = d.toLocaleString('en-US', { month: 'short' });
+    monthMap[key] = { month: label, sortKey: key, earned: 0 };
+  }
+  const commRate = artist.commission_rate || 0.30;
+  appointments.forEach(apt => {
+    if ((apt.status || '').toLowerCase() !== 'completed') return;
+    if ((apt.payment_status || '').toLowerCase() !== 'paid') return;
+    if (!apt.appointment_date) return;
+    const d = new Date(apt.appointment_date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (monthMap[key]) {
+      monthMap[key].earned += (parseFloat(apt.price || 0) * commRate);
+    }
+  });
+  const monthlyEarningsTrend = Object.values(monthMap).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+  const maxEarning = Math.max(...monthlyEarningsTrend.map(m => m.earned), 1);
+
+  const relativeTime = (dateStr) => {
+    if (!dateStr) return '';
+    const now = new Date();
+    const d = new Date(dateStr);
+    const diffMins = Math.floor((now - d) / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    const diffDays = Math.floor(diffHrs / 24);
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };  return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -379,7 +416,7 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
                   <View style={styles.addWorkIcon}>
                     <Plus size={24} color={colors.gold} />
                   </View>
-                  <Text style={styles.addWorkText}>Add Work</Text>
+                  <Text style={styles.addWorkText}>Add More Work</Text>
                 </View>
               </AnimatedTouchable>
             </ScrollView>
@@ -394,22 +431,65 @@ export function ArtistDashboard({ userName, userEmail, userId, onNavigate, onLog
           )}
         </StaggerItem>
 
-        {/* ── Art of the Day ── */}
+        {/* ── Recent Activity ── */}
         <StaggerItem index={6}>
-          <Text style={styles.sectionTitle}>Art of the Day</Text>
-          {loadingArt ? (
-            <View style={{ height: 200, justifyContent: 'center' }}><PremiumLoader /></View>
-          ) : artOfTheDay ? (
-            <View style={styles.artCard}>
-              <Image source={{ uri: artOfTheDay.image_url }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-              <View style={styles.artOverlay}>
-                <Text style={styles.artTitle}>{artOfTheDay.title}</Text>
-                <Text style={styles.artArtist}>by {artOfTheDay.artist_name}</Text>
-              </View>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            {notifications.length > 0 && (
+              <AnimatedTouchable onPress={() => { triggerFeedback(); onNavigate('artist-notifications'); }}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </AnimatedTouchable>
+            )}
+          </View>
+          <View style={styles.activityContainer}>
+            {notifications.length > 0 ? notifications.slice(0, 3).map(notif => (
+              <AnimatedTouchable 
+                key={notif.id} 
+                style={[styles.activityItem, !notif.is_read && styles.activityUnread]}
+                onPress={() => { triggerFeedback(); onNavigate('artist-notifications'); }}
+              >
+                <View style={styles.activityIconWrap}>
+                  <Activity size={16} color={!notif.is_read ? colors.gold : colors.textTertiary} />
+                </View>
+                <View style={styles.activityContent}>
+                  <Text style={[styles.activityTitle, !notif.is_read && { color: colors.gold }]} numberOfLines={1}>{notif.title}</Text>
+                  <Text style={styles.activityMsg} numberOfLines={1}>{notif.message}</Text>
+                </View>
+                <Text style={styles.activityTime}>{relativeTime(notif.created_at)}</Text>
+              </AnimatedTouchable>
+            )) : (
+              <EmptyState icon={Activity} title="No recent activity" />
+            )}
+          </View>
+        </StaggerItem>
+
+        {/* ── Earnings Trend ── */}
+        <StaggerItem index={7}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Earnings Trend</Text>
+            <AnimatedTouchable onPress={() => { triggerFeedback(); onNavigate('artist-earnings'); }}>
+              <Text style={styles.viewAllText}>Details</Text>
+            </AnimatedTouchable>
+          </View>
+          <View style={styles.trendContainer}>
+            <View style={styles.chartArea}>
+              {monthlyEarningsTrend.map((m, i) => {
+                const heightPercent = maxEarning > 0 ? (m.earned / maxEarning) * 100 : 0;
+                const isCurrent = i === monthlyEarningsTrend.length - 1;
+                return (
+                  <View key={i} style={styles.barWrap}>
+                    <Text style={styles.barLabelTop} numberOfLines={1}>
+                      {m.earned > 0 ? `₱${(m.earned / 1000).toFixed(0)}k` : ''}
+                    </Text>
+                    <View style={styles.barTrack}>
+                      <View style={[styles.barFill, { height: `${Math.max(heightPercent, 3)}%` }, isCurrent && { backgroundColor: colors.gold }]} />
+                    </View>
+                    <Text style={[styles.barLabel, isCurrent && { color: colors.gold, fontWeight: '700' }]}>{m.month}</Text>
+                  </View>
+                );
+              })}
             </View>
-          ) : (
-            <EmptyState icon={ImageIcon} title="No featured art today" subtitle="Upload a public piece to be featured" />
-          )}
+          </View>
         </StaggerItem>
 
         <View style={{ height: 20 }} />
@@ -545,22 +625,39 @@ const getStyles = (colors) => StyleSheet.create({
   },
   addFirstBtnText: { ...typography.bodySmall, color: colors.backgroundDeep, fontWeight: '700' },
 
-  // ── Art of Day ──
-  artCard: {
-    height: 220, marginHorizontal: 20, borderRadius: 16, overflow: 'hidden',
-    backgroundColor: colors.surfaceLight, justifyContent: 'flex-end',
+  // ── Recent Activity ──
+  activityContainer: {
+    marginHorizontal: 20, backgroundColor: colors.surface, borderRadius: 16,
+    borderWidth: 1, borderColor: colors.border, overflow: 'hidden', padding: 8,
   },
-  artOverlay: {
-    padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+  activityItem: {
+    flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12,
   },
-  artTitle: {
-    ...typography.h2, color: '#ffffff',
-    textShadowColor: 'rgba(0,0,0,0.75)', textShadowOffset: { width: -1, height: 1 }, textShadowRadius: 10,
-    marginBottom: 4,
+  activityUnread: { backgroundColor: colors.surfaceLight },
+  activityIconWrap: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: colors.iconGoldBg,
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
   },
-  artArtist: {
-    ...typography.body, color: 'rgba(255,255,255,0.9)',
-    textShadowColor: 'rgba(0,0,0,0.75)', textShadowOffset: { width: -1, height: 1 }, textShadowRadius: 10,
+  activityContent: { flex: 1, marginRight: 8 },
+  activityTitle: { ...typography.bodySmall, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
+  activityMsg: { ...typography.bodyXSmall, color: colors.textSecondary },
+  activityTime: { ...typography.bodyXSmall, color: colors.textTertiary, fontSize: 10 },
+
+  // ── Earnings Trend ──
+  trendContainer: {
+    marginHorizontal: 20, backgroundColor: colors.surface, borderRadius: 16,
+    borderWidth: 1, borderColor: colors.border, padding: 16, height: 200,
   },
+  chartArea: {
+    flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
+    paddingTop: 20, paddingBottom: 24,
+  },
+  barWrap: { alignItems: 'center', flex: 1 },
+  barTrack: {
+    width: 12, flex: 1, backgroundColor: colors.surfaceLight, borderRadius: 6,
+    justifyContent: 'flex-end', overflow: 'hidden', marginVertical: 6,
+  },
+  barFill: { width: '100%', backgroundColor: colors.info, borderRadius: 6 },
+  barLabelTop: { ...typography.bodyXSmall, color: colors.textSecondary, fontSize: 9, height: 12 },
+  barLabel: { ...typography.bodyXSmall, color: colors.textTertiary, fontSize: 10, position: 'absolute', bottom: -20 },
 });

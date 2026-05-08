@@ -3,7 +3,7 @@
  * Theme-aware, animated, gold accents. Filters, sort, calendar, appointment cards, detail & add modals.
  */
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Modal, TextInput, Animated, Pressable, RefreshControl, Share, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, Modal, TextInput, Animated, Pressable, RefreshControl, Share, Platform, Image, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import {
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import { typography } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
@@ -37,6 +38,7 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
   const [newTime, setNewTime] = useState('10:00');
   const [newDesign, setNewDesign] = useState('');
   const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '' });
+  const [uploadingDraft, setUploadingDraft] = useState(false);
 
   // Date blocking
   const [blockedDates, setBlockedDates] = useState([]);
@@ -138,6 +140,42 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
       });
     } catch (e) {
       setAlertModal({ visible: true, title: 'Error', message: 'Failed to export schedule.' });
+    }
+  };
+
+  const handleUploadDraft = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'You need to allow access to your photos to upload a draft.');
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets[0]) {
+        setUploadingDraft(true);
+        const base64Img = `data:image/jpeg;base64,${pickerResult.assets[0].base64}`;
+        
+        const response = await updateAppointmentDetails(selectedAppointment.id, { draftImage: base64Img, notes: selectedAppointment.notes });
+        
+        if (response.success) {
+          setSelectedAppointment({ ...selectedAppointment, draft_image: base64Img });
+          setAppointments(prev => prev.map(a => a.id === selectedAppointment.id ? { ...a, draft_image: base64Img } : a));
+          if (hapticsEnabled) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          Alert.alert('Upload Failed', response.message || 'Failed to upload draft.');
+        }
+        setUploadingDraft(false);
+      }
+    } catch (error) {
+      setUploadingDraft(false);
+      Alert.alert('Error', 'Something went wrong while uploading.');
     }
   };
 
@@ -396,18 +434,91 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
           <Pressable style={StyleSheet.absoluteFill} onPress={closeDetail} />
           <Animated.View style={[modalS.content, { transform: [{ translateY: slideAnim }] }]}>
             <View style={modalS.handle}><View style={modalS.handleBar} /></View>
-            <View style={modalS.header}><Text style={modalS.title}>Appointment Details</Text><TouchableOpacity onPress={closeDetail}><X size={22} color={colors.textPrimary} /></TouchableOpacity></View>
+            <View style={modalS.header}>
+              <Text style={modalS.title}>Appointment {selectedAppointment?.booking_code || selectedAppointment?.id}</Text>
+              <TouchableOpacity onPress={closeDetail}><X size={22} color={colors.textPrimary} /></TouchableOpacity>
+            </View>
             {selectedAppointment && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {[
-                  ['Client', () => <><Text style={modalS.value}>{selectedAppointment.client_name}</Text><Text style={modalS.subValue}>{selectedAppointment.client_email}</Text></>],
-                  ['Date & Time', () => <Text style={modalS.value}>{new Date(selectedAppointment.appointment_date).toDateString()} at {selectedAppointment.start_time}</Text>],
-                  ['Service', () => <Text style={modalS.value}>{selectedAppointment.design_title}</Text>],
-                  ['Price', () => <Text style={[modalS.value, { fontWeight: '700', color: colors.gold }]}>P{parseFloat(selectedAppointment.price || 0).toLocaleString()}</Text>],
-                  ['Status', () => <Text style={[modalS.value, { color: colors.gold, fontWeight: '700' }]}>{selectedAppointment.status?.toUpperCase()}</Text>],
-                  ['Payment', () => <Text style={[modalS.value, { color: getPaymentColor(selectedAppointment.payment_status), fontWeight: '700' }]}>{(selectedAppointment.payment_status || 'unpaid').toUpperCase()}</Text>],
-                  ...(selectedAppointment.notes ? [['Notes', () => <Text style={modalS.value}>{selectedAppointment.notes}</Text>]] : []),
-                ].map(([label, render], i) => <View key={i} style={modalS.row}><Text style={modalS.label}>{label}</Text>{render()}</View>)}
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+                <View style={modalS.clientRow}>
+                  <View style={modalS.colHalf}>
+                    <Text style={modalS.label}>Client</Text>
+                    <Text style={modalS.valueBold}>{selectedAppointment.client_name}</Text>
+                  </View>
+                  <View style={modalS.colHalf}>
+                    <Text style={[modalS.label, { textAlign: 'right' }]}>Date & Time</Text>
+                    <Text style={[modalS.valueBold, { textAlign: 'right' }]}>{new Date(selectedAppointment.appointment_date).toLocaleDateString()} at {selectedAppointment.start_time}</Text>
+                  </View>
+                </View>
+
+                <View style={modalS.serviceCard}>
+                  <Text style={[modalS.label, { textAlign: 'center' }]}>Service Requested</Text>
+                  <Text style={[modalS.valueBold, { textAlign: 'center', marginBottom: 16 }]}>Tattoo Session: {selectedAppointment.design_title}</Text>
+
+                  <View style={modalS.serviceStatsRow}>
+                    <View style={modalS.statItem}>
+                      <Text style={modalS.labelSmall}>Status</Text>
+                      <View style={[modalS.statusPill, { backgroundColor: getStatusStyle(selectedAppointment.status).bg }]}>
+                        <Text style={[modalS.statusPillText, { color: getStatusStyle(selectedAppointment.status).color }]}>
+                          {selectedAppointment.status ? selectedAppointment.status.charAt(0).toUpperCase() + selectedAppointment.status.slice(1) : 'Pending'}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={modalS.statItem}>
+                      <Text style={modalS.labelSmall}>Price</Text>
+                      <Text style={modalS.valueBoldPrice}>₱{parseFloat(selectedAppointment.price || 0).toLocaleString()}</Text>
+                    </View>
+                    <View style={modalS.statItem}>
+                      <Text style={modalS.labelSmall}>Your Cut (30%)</Text>
+                      <Text style={modalS.valueBoldCut}>₱{((parseFloat(selectedAppointment.price || 0) * 0.3)).toLocaleString()}</Text>
+                    </View>
+                  </View>
+
+                  <View style={modalS.paymentRow}>
+                    <Text style={modalS.labelSmall}>Payment</Text>
+                    <View style={[modalS.statusPill, { backgroundColor: selectedAppointment.payment_status === 'paid' ? colors.successBg : colors.warningBg, marginTop: 4, alignSelf: 'flex-start' }]}>
+                      <Text style={[modalS.statusPillText, { color: getPaymentColor(selectedAppointment.payment_status) }]}>
+                        {selectedAppointment.payment_status ? selectedAppointment.payment_status.toUpperCase() : 'UNPAID'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <Text style={[modalS.label, { textAlign: 'center', marginTop: 8, marginBottom: 8 }]}>Notes & Description</Text>
+                <View style={modalS.notesBox}>
+                  <Text style={modalS.notesText}>{selectedAppointment.notes || 'Placement: Face, Neck Details:'}</Text>
+                </View>
+
+                <Text style={[modalS.label, { textAlign: 'center', marginTop: 4, marginBottom: 8 }]}>Reference Image</Text>
+                <View style={modalS.imageContainer}>
+                  {selectedAppointment.reference_image ? (
+                    <Image source={{ uri: selectedAppointment.reference_image }} style={modalS.referenceImage} resizeMode="cover" />
+                  ) : (
+                    <View style={modalS.placeholderImage}>
+                      <Text style={modalS.placeholderText}>No reference image</Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={modalS.draftCard}>
+                  <View style={modalS.draftHeader}>
+                    <Text style={modalS.draftTitle}>Artist Draft Design</Text>
+                    <AnimatedTouchable style={modalS.uploadBtn} onPress={handleUploadDraft} disabled={uploadingDraft}>
+                      {uploadingDraft ? (
+                        <ActivityIndicator size="small" color={colors.gold} />
+                      ) : (
+                        <Text style={modalS.uploadBtnText}>Upload Draft</Text>
+                      )}
+                    </AnimatedTouchable>
+                  </View>
+                  {selectedAppointment.draft_image ? (
+                    <Image source={{ uri: selectedAppointment.draft_image }} style={modalS.draftImage} resizeMode="cover" />
+                  ) : (
+                    <View style={modalS.draftPlaceholder}>
+                      <Text style={modalS.placeholderText}>No draft uploaded yet. Attach your design mockups here.</Text>
+                    </View>
+                  )}
+                </View>
               </ScrollView>
             )}
           </Animated.View>
@@ -566,10 +677,38 @@ const getModalStyles = (colors) => StyleSheet.create({
   handleBar: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
   title: { ...typography.h3, color: colors.textPrimary },
-  label: { ...typography.bodySmall, fontWeight: '600', marginBottom: 6, color: colors.textSecondary },
-  value: { ...typography.body, color: colors.textPrimary, marginBottom: 10 },
-  subValue: { ...typography.bodySmall, color: colors.textTertiary, marginBottom: 10 },
-  row: { marginBottom: 4 },
+  label: { ...typography.bodySmall, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 },
+  labelSmall: { ...typography.bodyXSmall, fontWeight: '600', color: colors.textSecondary },
+  valueBold: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
+
+  clientRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  colHalf: { flex: 1 },
+
+  serviceCard: { backgroundColor: colors.surfaceLight, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border },
+  serviceStatsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  statItem: { alignItems: 'center' },
+  statusPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginTop: 4 },
+  statusPillText: { ...typography.bodyXSmall, fontWeight: '700' },
+  valueBoldPrice: { ...typography.body, fontWeight: '700', color: colors.textPrimary, marginTop: 4 },
+  valueBoldCut: { ...typography.body, fontWeight: '700', color: colors.success, marginTop: 4 },
+  paymentRow: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 },
+
+  imageContainer: { backgroundColor: colors.surfaceLight, borderRadius: 16, overflow: 'hidden', height: 200, borderWidth: 1, borderColor: colors.border, marginBottom: 20 },
+  referenceImage: { width: '100%', height: '100%' },
+  placeholderImage: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+  placeholderText: { ...typography.bodySmall, color: colors.textTertiary, textAlign: 'center', paddingHorizontal: 20 },
+
+  notesBox: { backgroundColor: colors.surfaceLight, borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: colors.border },
+  notesText: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
+
+  draftCard: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, marginTop: 4 },
+  draftHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  draftTitle: { ...typography.body, fontWeight: '700', color: colors.textPrimary },
+  uploadBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: colors.gold },
+  uploadBtnText: { ...typography.bodySmall, fontWeight: '600', color: colors.gold },
+  draftPlaceholder: { borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', borderRadius: 12, padding: 30, justifyContent: 'center', alignItems: 'center' },
+  draftImage: { width: '100%', height: 150, borderRadius: 12 },
+
   input: {
     borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 14,
     ...typography.body, color: colors.textPrimary, backgroundColor: colors.surfaceLight,

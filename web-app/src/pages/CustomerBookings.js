@@ -308,15 +308,24 @@ function CustomerBookings(){
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        const appointmentId = params.get('appointment');
-        if (appointmentId && appointments.length > 0) {
-            const target = appointments.find(a => a.id.toString() === appointmentId);
+        const appointmentIdQuery = params.get('appointment');
+        const stateAppointmentId = location.state?.openAppointmentId;
+        const targetId = appointmentIdQuery || stateAppointmentId;
+        
+        if (targetId && appointments.length > 0) {
+            const target = appointments.find(a => a.id.toString() === targetId.toString());
             if (target) {
                 handleViewDetails(target);
-                window.history.replaceState({}, '', '/customer/bookings');
+                if (appointmentIdQuery) {
+                    window.history.replaceState({}, '', '/customer/bookings');
+                }
+                if (stateAppointmentId) {
+                    // Clear the state so it doesn't reopen on refresh
+                    navigate(location.pathname, { replace: true, state: {} });
+                }
             }
         }
-    }, [appointments]);
+    }, [appointments, location.state, location.pathname, navigate]);
 
     const handleViewDetails = async (appt) => {
         setSelectedApt(appt);
@@ -1118,22 +1127,20 @@ function CustomerBookings(){
                         <div className="modal-header">
                             <div>
                                 <h3 style={{ margin: 0 }}>Appointment Details</h3>
-                                <div className="modal-tabs" style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+                                <div className="modern-view-toggle" style={{ marginTop: '10px' }}>
                                     <button 
                                         type="button"
-                                        className={`modal-tab-btn ${modalTab === 'details' ? 'active' : ''}`} 
+                                        className={`toggle-btn ${modalTab === 'details' ? 'active' : ''}`} 
                                         onClick={() => setModalTab('details')}
-                                        style={{ background: 'none', border: 'none', borderBottom: modalTab==='details' ? '2px solid #6366f1' : 'none', padding: '8px 12px', cursor: 'pointer', fontWeight: modalTab==='details'?'bold':'normal', color: modalTab==='details'?'#6366f1':'#64748b', display: 'flex', alignItems: 'center' }}
                                     >
-                                        <Info size={14} style={{ marginRight: '5px' }}/> Details
+                                        <Info size={14} /> Details
                                     </button>
                                     <button 
                                         type="button"
-                                        className={`modal-tab-btn ${modalTab === 'transactions' ? 'active' : ''}`} 
+                                        className={`toggle-btn ${modalTab === 'transactions' ? 'active' : ''}`} 
                                         onClick={() => setModalTab('transactions')}
-                                        style={{ background: 'none', border: 'none', borderBottom: modalTab==='transactions' ? '2px solid #6366f1' : 'none', padding: '8px 12px', cursor: 'pointer', fontWeight: modalTab==='transactions'?'bold':'normal', color: modalTab==='transactions'?'#6366f1':'#64748b', display: 'flex', alignItems: 'center' }}
                                     >
-                                        <Receipt size={14} style={{ marginRight: '5px' }}/> Transactions
+                                        <Receipt size={14} /> Transactions
                                     </button>
                                 </div>
                             </div>

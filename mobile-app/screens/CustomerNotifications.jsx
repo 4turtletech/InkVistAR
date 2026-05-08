@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Animated, PanResponder, Dimensions, LayoutAnimation
+  View, Text, StyleSheet, TouchableOpacity, FlatList, SafeAreaView, ScrollView, Animated, PanResponder, Dimensions, LayoutAnimation, Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -118,43 +118,43 @@ const SwipeableNotificationItem = ({ item, index, onPress, onToggleRead, onDismi
   return (
     <View style={{ marginBottom: 8 }}>
       <Animated.View style={{ opacity, transform: [{ translateY: slideAnim }] }}>
-      
-      {/* Background Actions */}
-      <View style={[StyleSheet.absoluteFill, { borderRadius: borderRadius.xl, overflow: 'hidden' }]}>
-        {/* Left Action (Swipe Right to Read) */}
-        <Animated.View style={[styles.readBg, { opacity: pan.x.interpolate({ inputRange: [0, 20], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
-          {item.is_read ? <Mail size={24} color="#ffffff" /> : <MailOpen size={24} color="#ffffff" />}
-          <Text style={styles.actionText}>{item.is_read ? 'Mark Unread' : 'Mark Read'}</Text>
-        </Animated.View>
-        
-        {/* Right Action (Swipe Left to Delete) */}
-        <Animated.View style={[styles.deleteBg, { opacity: pan.x.interpolate({ inputRange: [-20, 0], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
-          <Trash2 size={24} color="#ffffff" />
-          <Text style={styles.actionText}>Delete</Text>
-        </Animated.View>
-      </View>
 
-      <Animated.View {...panResponder.panHandlers} style={[pan.getLayout()]}>
-        <TouchableOpacity style={[styles.card, !item.is_read ? styles.cardUnread : styles.cardRead]} onPress={() => onPress(item)} activeOpacity={1}>
-          {!item.is_read && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(190,144,85,0.06)', borderRadius: borderRadius.xl }]} pointerEvents="none" />}
-          <View style={[styles.iconWrap, { backgroundColor: cfg.bg || theme.surfaceLight }]}>
-            <cfg.Icon size={20} color={cfg.color || theme.textTertiary} />
-          </View>
-          <View style={styles.cardContent}>
-            <View style={styles.cardTop}>
-              <Text style={[styles.cardTitle, !item.is_read && styles.cardTitleBold]} numberOfLines={2}>{item.title || ''}</Text>
-              <Text style={styles.cardTime}>{timeAgo(item.created_at)}</Text>
+        {/* Background Actions */}
+        <View style={[StyleSheet.absoluteFill, { borderRadius: borderRadius.xl, overflow: 'hidden' }]}>
+          {/* Left Action (Swipe Right to Read) */}
+          <Animated.View style={[styles.readBg, { opacity: pan.x.interpolate({ inputRange: [0, 20], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
+            {item.is_read ? <Mail size={24} color="#ffffff" /> : <MailOpen size={24} color="#ffffff" />}
+            <Text style={styles.actionText}>{item.is_read ? 'Mark Unread' : 'Mark Read'}</Text>
+          </Animated.View>
+
+          {/* Right Action (Swipe Left to Delete) */}
+          <Animated.View style={[styles.deleteBg, { opacity: pan.x.interpolate({ inputRange: [-20, 0], outputRange: [1, 0], extrapolate: 'clamp' }) }]}>
+            <Trash2 size={24} color="#ffffff" />
+            <Text style={styles.actionText}>Delete</Text>
+          </Animated.View>
+        </View>
+
+        <Animated.View {...panResponder.panHandlers} style={[pan.getLayout()]}>
+          <TouchableOpacity style={[styles.card, !item.is_read ? styles.cardUnread : styles.cardRead]} onPress={() => onPress(item)} activeOpacity={1}>
+            {!item.is_read && <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(190,144,85,0.06)', borderRadius: borderRadius.xl }]} pointerEvents="none" />}
+            <View style={[styles.iconWrap, { backgroundColor: cfg.bg || theme.surfaceLight }]}>
+              <cfg.Icon size={20} color={cfg.color || theme.textTertiary} />
             </View>
-            <Text style={styles.cardMsg} numberOfLines={2}>{item.message}</Text>
-          </View>
-          {!!item.is_read && (
-            <TouchableOpacity style={{ padding: 4 }} onPress={() => onToggleRead(item)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Mail size={16} color={theme.gold} />
-            </TouchableOpacity>
-          )}
-          {!item.is_read && <View style={styles.unreadDot} />}
-        </TouchableOpacity>
-      </Animated.View>
+            <View style={styles.cardContent}>
+              <View style={styles.cardTop}>
+                <Text style={[styles.cardTitle, !item.is_read && styles.cardTitleBold]} numberOfLines={2}>{item.title || ''}</Text>
+                <Text style={styles.cardTime}>{timeAgo(item.created_at)}</Text>
+              </View>
+              <Text style={styles.cardMsg} numberOfLines={2}>{item.message}</Text>
+            </View>
+            {!!item.is_read && (
+              <TouchableOpacity style={{ padding: 4 }} onPress={() => onToggleRead(item)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Mail size={16} color={theme.gold} />
+              </TouchableOpacity>
+            )}
+            {!item.is_read && <View style={styles.unreadDot} />}
+          </TouchableOpacity>
+        </Animated.View>
       </Animated.View>
     </View>
   );
@@ -180,11 +180,11 @@ export function CustomerNotifications({ onBack, userId }) {
     setLoading(true);
     try {
       const opts = { page: p, limit: 20 };
-      
+
       // Main Filters
       if (filterType === 'unread') opts.is_read = false;
       if (filterType === 'read') opts.is_read = true;
-      
+
       // Type Filters
       if (subFilter !== 'all_types') opts.type = subFilter;
 
@@ -204,13 +204,13 @@ export function CustomerNotifications({ onBack, userId }) {
 
   const onPress = async (item) => {
     if (!item.is_read) { await markNotificationAsRead(item.id); setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: true } : n)); }
-    
+
     if (item.type === 'payment_success') {
-      try { navigation.navigate('customer-transactions', { openTransactionId: item.related_id }); } catch (e) {}
+      try { navigation.navigate('customer-transactions', { openTransactionId: item.related_id }); } catch (e) { }
     } else if (item.type?.startsWith('aftercare_')) {
-      try { navigation.navigate('CustomerAftercare'); } catch (e) {}
+      try { navigation.navigate('CustomerAftercare'); } catch (e) { }
     } else if (item.type?.startsWith('appointment_') || item.type === 'review_prompt' || item.type === 'system') {
-      try { navigation.navigate('customer-main', { screen: 'Appointments', params: { openAppointmentId: item.related_id } }); } catch (e) {}
+      try { navigation.navigate('customer-main', { screen: 'Appointments', params: { openAppointmentId: item.related_id } }); } catch (e) { }
     }
   };
   const onToggleRead = async (item) => {
@@ -275,8 +275,8 @@ export function CustomerNotifications({ onBack, userId }) {
               <Text style={[styles.chipText, filterType === f.key && styles.chipTextActive]}>{f.label}</Text>
             </TouchableOpacity>
           ))}
-          <TouchableOpacity 
-            style={[styles.chip, { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 10, borderColor: showDropdown ? theme.gold : theme.border, backgroundColor: showDropdown ? theme.surface : theme.surfaceLight }]} 
+          <TouchableOpacity
+            style={[styles.chip, { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 10, borderColor: showDropdown ? theme.gold : theme.border, backgroundColor: showDropdown ? theme.surface : theme.surfaceLight }]}
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowDropdown(!showDropdown); }}
           >
             <Filter size={12} color={showDropdown ? theme.gold : theme.textSecondary} />
