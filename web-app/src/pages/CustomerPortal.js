@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package, RefreshCw, Sparkles, AlertTriangle, Droplets, Palette, PenTool, Gem, ArrowRight, Shield, MessageSquare } from 'lucide-react';
+import { Calendar, Heart, Award, Users, Clock, LogOut, Plus, Bell, X, Package, RefreshCw, Sparkles, Activity, AlertTriangle, Droplets, Palette, PenTool, Gem, ArrowRight, Shield, MessageSquare } from 'lucide-react';
 import './PortalStyles.css';
 import CustomerSideNav from '../components/CustomerSideNav';
 import { API_URL } from '../config';
@@ -249,7 +249,7 @@ function CustomerPortal() {
                                         {/* Header */}
                                         <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(190,144,85,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <Sparkles size={18} color="#be9055" />
+                                                <Activity size={18} color="#be9055" />
                                                 <h2 style={{ color: '#e8d5b8', margin: 0, fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Healing Journey Tracker</h2>
                                             </div>
                                             <button onClick={() => navigate('/customer/aftercare')} style={{ 
@@ -578,19 +578,19 @@ function CustomerPortal() {
             {/* Pre-Care Conditioning Plan Modal */}
             {showPreCareModal && activePrecare && (
                 <div className="modal-overlay open" onClick={() => setShowPreCareModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', background: '#0f1117', border: '1px solid rgba(99,102,241,0.2)' }}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', background: '#ffffff', border: '1px solid rgba(99,102,241,0.2)' }}>
                         <div className="modal-header" style={{ borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <Shield size={20} color="#6366f1" />
-                                <h3 style={{ margin: 0, color: '#c7d2fe' }}>Pre-Session Conditioning Plan</h3>
+                                <h3 style={{ margin: 0, color: '#312e81' }}>Pre-Session Conditioning Plan</h3>
                             </div>
                             <button className="close-btn" onClick={() => setShowPreCareModal(false)}><X size={20} /></button>
                         </div>
                         <div className="modal-body" style={{ padding: '24px' }}>
                             {/* Session info */}
                             <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '12px', padding: '16px', marginBottom: '20px', textAlign: 'center' }}>
-                                <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', color: '#e2e8f0', fontFamily: "'Playfair Display', serif" }}>{activePrecare.designTitle}</h4>
-                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+                                <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', color: '#1e1b4b', fontFamily: "'Playfair Display', serif" }}>{activePrecare.designTitle}</h4>
+                                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
                                     with {activePrecare.artistName} · {new Date(activePrecare.appointmentDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                                 </p>
                                 <span style={{ display: 'inline-block', marginTop: '8px', background: 'rgba(99,102,241,0.15)', color: '#818cf8', padding: '4px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
@@ -598,8 +598,8 @@ function CustomerPortal() {
                                 </span>
                             </div>
 
-                            <p style={{ margin: '0 0 18px', fontSize: '0.9rem', color: '#94a3b8', lineHeight: '1.6', textAlign: 'center' }}>
-                                Follow these <strong style={{ color: '#c7d2fe' }}>6 essential steps</strong> before your session for the best possible results.
+                            <p style={{ margin: '0 0 18px', fontSize: '0.9rem', color: '#64748b', lineHeight: '1.6', textAlign: 'center' }}>
+                                Follow these <strong style={{ color: '#312e81' }}>6 essential steps</strong> before your session for the best possible results.
                             </p>
 
                             {/* Pre-care steps */}
@@ -624,14 +624,14 @@ function CustomerPortal() {
                                         {step.emoji}
                                     </div>
                                     <div>
-                                        <p style={{ margin: '0 0 4px', fontSize: '0.9rem', fontWeight: 700, color: '#e2e8f0' }}>{step.title}</p>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8', lineHeight: '1.5' }}>{step.desc}</p>
+                                        <p style={{ margin: '0 0 4px', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>{step.title}</p>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: '1.5' }}>{step.desc}</p>
                                     </div>
                                 </div>
                             ))}
 
-                            <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', textAlign: 'center' }}>
-                                <p style={{ margin: 0, fontSize: '0.82rem', color: '#6ee7b7' }}>
+                            <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', textAlign: 'center' }}>
+                                <p style={{ margin: 0, fontSize: '0.82rem', color: '#059669' }}>
                                     Following these steps helps ensure <strong>better ink retention</strong>, <strong>less bleeding</strong>, and a <strong>smoother healing</strong> experience.
                                 </p>
                             </div>

@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  SafeAreaView, ActivityIndicator, Modal, Platform, RefreshControl, Animated, Image
+  SafeAreaView, ActivityIndicator, Modal, Platform, RefreshControl, Animated, Image, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -70,7 +70,6 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
   const [paymentUrl, setPaymentUrl] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
-  const [alertModal, setAlertModal] = useState({ visible: false, title: '', message: '', buttons: [] });
   const [modalTab, setModalTab] = useState('details');
   const [apptTransactions, setApptTransactions] = useState([]);
   const fabPulse = useRef(new Animated.Value(1)).current;
@@ -83,10 +82,6 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
       ])
     ).start();
   }, []);
-
-  const customAlert = (title, message, buttons = []) => {
-    setAlertModal({ visible: true, title, message, buttons });
-  };
 
   const handleSelectAppointment = async (appt) => {
     setSelectedAppointment(appt);
@@ -138,41 +133,86 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
 
   const handlePaymentInit = () => {
     if (!selectedAppointment) return;
-    const isPending = ['pending', 'pending_schedule'].includes(selectedAppointment.status);
-    if (isPending) {
-      triggerPayment('deposit');
-    } else {
-      setShowPaymentOptions(true);
-    }
+    setShowPaymentOptions(true);
   };
 
   const triggerPayment = async (type, customAmt = null) => {
     if (!selectedAppointment) return;
-    setShowPaymentOptions(false);
+    const appt = selectedAppointment; // capture ref before any state changes
     setPaymentLoading(true);
     try {
-      const amount = type === 'custom' ? customAmt : selectedAppointment.price;
-      const r = await createCheckoutSession(selectedAppointment.id, amount, type, type === 'custom' ? amount : null);
-      if (r.success && r.checkoutUrl) { setPaymentUrl(r.checkoutUrl); setShowPaymentModal(true); }
-      else customAlert('Payment Error', r.message || 'Could not initiate payment.');
-    } catch (e) { customAlert('Error', 'Failed to connect to payment gateway.'); }
-    finally { setPaymentLoading(false); }
+      const amount = type === 'custom' ? customAmt : appt.price;
+      const r = await createCheckoutSession(appt.id, amount, type, type === 'custom' ? amount : null);
+      if (r.success && r.checkoutUrl) {
+        // Close options and open WebView in the same render batch
+        setShowPaymentOptions(false);
+        setPaymentUrl(r.checkoutUrl);
+        setShowPaymentModal(true);
+      } else {
+        setShowPaymentOptions(false);
+        setPaymentLoading(false);
+        setTimeout(() => Alert.alert('Payment Error', r.message || 'Could not initiate payment.'), 350);
+        return;
+      }
+    } catch (e) {
+      setShowPaymentOptions(false);
+      setPaymentLoading(false);
+      setTimeout(() => Alert.alert('Error', 'Failed to connect to payment gateway.'), 350);
+      return;
+    }
+    setPaymentLoading(false);
   };
 
-  const handlePaymentSuccess = () => { setShowPaymentModal(false); setPaymentUrl(null); fetchAppointments(); };
-  const handlePaymentClose = () => { setShowPaymentModal(false); setPaymentUrl(null); setSelectedAppointment(null); fetchAppointments(); };
+  const handlePaymentSuccess = async () => {
+    const paidApptId = selectedAppointment?.id;
+    setShowPaymentModal(false);
+    setPaymentUrl(null);
+    try {
+      const r = await getCustomerAppointments(customerId);
+      if (r.success) {
+        const freshList = r.appointments || [];
+        setAppointments(freshList);
+        // Reopen the detail modal with updated data so customer sees "Paid"
+        if (paidApptId) {
+          const updated = freshList.find(a => a.id === paidApptId);
+          if (updated) {
+            handleSelectAppointment(updated);
+            setTimeout(() => Alert.alert('Payment Successful', 'Your payment has been received. Thank you!'), 400);
+          }
+        }
+      }
+    } catch (e) { console.log('Refresh error:', e); }
+  };
+  const handlePaymentClose = async () => {
+    const closedApptId = selectedAppointment?.id;
+    setShowPaymentModal(false);
+    setPaymentUrl(null);
+    try {
+      const r = await getCustomerAppointments(customerId);
+      if (r.success) {
+        const freshList = r.appointments || [];
+        setAppointments(freshList);
+        // Reopen with fresh data in case payment completed before closing
+        if (closedApptId) {
+          const updated = freshList.find(a => a.id === closedApptId);
+          if (updated) { handleSelectAppointment(updated); return; }
+        }
+      }
+    } catch (e) { console.log('Refresh error:', e); }
+    setSelectedAppointment(null);
+  };
   const onRefresh = () => { setRefreshing(true); fetchAppointments(); };
   const changeMonth = (inc) => { const d = new Date(currentMonth); d.setMonth(d.getMonth() + inc); setCurrentMonth(d); };
 
   const handleCancel = (id) => {
-    customAlert('Cancel Appointment', 'Are you sure?', [
+    Alert.alert('Cancel Appointment', 'Are you sure?', [
       { text: 'No', style: 'cancel' },
       { text: 'Yes, Cancel', onPress: async () => {
         try {
           const r = await updateAppointmentStatus(id, 'cancelled');
-          if (r.success) { customAlert('Cancelled', 'Your appointment has been cancelled.'); setSelectedAppointment(null); fetchAppointments(); }
-          else customAlert('Error', r.message || 'Failed.');
-        } catch (e) { customAlert('Error', 'Could not connect.'); }
+          if (r.success) { Alert.alert('Cancelled', 'Your appointment has been cancelled.'); setSelectedAppointment(null); fetchAppointments(); }
+          else Alert.alert('Error', r.message || 'Failed.');
+        } catch (e) { Alert.alert('Error', 'Could not connect.'); }
       }},
     ]);
   };
@@ -335,7 +375,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
       </View>
 
       {/* Detail Modal */}
-      <Modal visible={!!selectedAppointment && !showPaymentModal && !alertModal.visible && !showPaymentOptions} transparent animationType="slide" onRequestClose={() => handleSelectAppointment(null)}>
+      <Modal visible={!!selectedAppointment && !showPaymentModal && !showPaymentOptions && !paymentLoading} transparent animationType="slide" onRequestClose={() => handleSelectAppointment(null)}>
         <View style={modalS.overlay}>
           <View style={modalS.content}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -399,7 +439,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
 
             {modalTab === 'details' && ['pending', 'confirmed', 'pending_schedule'].includes(selectedAppointment?.status) && (
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-                <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border }]} onPress={() => { customAlert('Reschedule Request', 'To reschedule, please contact your artist directly or message the studio via the Chat portal.', [{ text: 'Go to Chat', onPress: () => { handleSelectAppointment(null); navigation.navigate('Chat'); } }, { text: 'Close', style: 'cancel' }]); }}>
+                <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border }]} onPress={() => { Alert.alert('Reschedule Request', 'To reschedule, please contact your artist directly or message the studio via the Chat portal.', [{ text: 'Go to Chat', onPress: () => { handleSelectAppointment(null); navigation.navigate('Chat'); } }, { text: 'Close', style: 'cancel' }]); }}>
                   <Text style={[modalS.cancelText, { color: theme.textPrimary }]}>Reschedule</Text>
                 </AnimatedTouchable>
                 <AnimatedTouchable style={[modalS.cancelBtn, { flex: 1, marginTop: 0 }]} onPress={() => handleCancel(selectedAppointment.id)}>
@@ -416,7 +456,7 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
       </Modal>
 
       {/* Payment WebView Modal */}
-      <Modal visible={showPaymentModal && !alertModal.visible} animationType="slide" onRequestClose={handlePaymentClose}>
+      <Modal visible={showPaymentModal} animationType="slide" onRequestClose={handlePaymentClose}>
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border }}>
             <AnimatedTouchable onPress={handlePaymentClose} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -440,80 +480,56 @@ export function CustomerAppointments({ customerId, onBack, onBookNew, navigation
         </SafeAreaView>
       </Modal>
 
-      {/* Custom Alert Modal */}
-      <Modal visible={alertModal.visible} animationType="fade" transparent>
-        <View style={[modalS.overlay, { justifyContent: 'center', alignItems: 'center' }]}>
-          <View style={[modalS.content, { alignItems: 'center', width: '90%', borderRadius: borderRadius.xl }]}>
-            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: `${theme.gold}20`, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-              <ShieldAlert size={24} color={theme.gold} />
-            </View>
-            <Text style={{ ...typography.h3, color: theme.textPrimary, marginBottom: 8, textAlign: 'center' }}>{alertModal.title}</Text>
-            <Text style={{ ...typography.body, color: theme.textSecondary, marginBottom: 24, textAlign: 'center' }}>{alertModal.message}</Text>
-            
-            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
-              {alertModal.buttons?.length > 0 ? (
-                alertModal.buttons.map((btn, idx) => (
-                  <AnimatedTouchable 
-                    key={idx} 
-                    style={[{ flex: 1, backgroundColor: btn.style === 'cancel' ? theme.surfaceLight : theme.gold, paddingVertical: 14, borderRadius: borderRadius.md, alignItems: 'center' }]}
-                    onPress={() => {
-                      setAlertModal({ ...alertModal, visible: false });
-                      if (btn.onPress) btn.onPress();
-                    }}
-                  >
-                    <Text style={{ ...typography.button, color: btn.style === 'cancel' ? theme.textPrimary : theme.backgroundDeep }}>{btn.text}</Text>
-                  </AnimatedTouchable>
-                ))
-              ) : (
-                <AnimatedTouchable 
-                  style={[{ flex: 1, backgroundColor: theme.gold, paddingVertical: 14, borderRadius: borderRadius.md, alignItems: 'center' }]}
-                  onPress={() => setAlertModal({ ...alertModal, visible: false })}
-                >
-                  <Text style={{ ...typography.button, color: theme.backgroundDeep }}>OK</Text>
-                </AnimatedTouchable>
-              )}
-            </View>
-          </View>
-        </View>
-      </Modal>
       {/* Payment Options Modal */}
-      <Modal visible={showPaymentOptions} animationType="fade" transparent onRequestClose={() => setShowPaymentOptions(false)}>
+      <Modal visible={showPaymentOptions} animationType="fade" transparent onRequestClose={() => { if (!paymentLoading) setShowPaymentOptions(false); }}>
         <View style={[modalS.overlay, { justifyContent: 'center', alignItems: 'center' }]}>
           <View style={[modalS.content, { width: '90%', borderRadius: borderRadius.xl }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <Text style={modalS.title}>Select Payment</Text>
-              <AnimatedTouchable onPress={() => setShowPaymentOptions(false)}><X size={22} color={theme.textSecondary} /></AnimatedTouchable>
+              {!paymentLoading && <AnimatedTouchable onPress={() => setShowPaymentOptions(false)}><X size={22} color={theme.textSecondary} /></AnimatedTouchable>}
             </View>
-            <Text style={{ ...typography.body, color: theme.textSecondary, marginBottom: 16 }}>Choose how you'd like to pay for your session.</Text>
-            <AnimatedTouchable 
-              style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginBottom: 12, borderWidth: 1, borderColor: theme.border }}
-              onPress={() => triggerPayment('balance')}
-            >
-              <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Pay Full Balance</Text>
-              <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Settle the remaining amount for this session.</Text>
-            </AnimatedTouchable>
-            <AnimatedTouchable 
-              style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginBottom: 12, borderWidth: 1, borderColor: theme.border }}
-              onPress={() => triggerPayment('deposit')}
-            >
-              <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Pay Downpayment</Text>
-              <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Pay a standard ₱5,000 to secure or maintain your spot.</Text>
-            </AnimatedTouchable>
-            <AnimatedTouchable 
-              style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.border }}
-              onPress={() => {
-                setShowPaymentOptions(false);
-                customAlert('Custom Payment', 'Please enter the amount you wish to pay (Minimum ₱500).', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: '₱500', onPress: () => triggerPayment('custom', 500) },
-                  { text: '₱1,000', onPress: () => triggerPayment('custom', 1000) },
-                  { text: '₱2,500', onPress: () => triggerPayment('custom', 2500) }
-                ]);
-              }}
-            >
-              <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Custom Amount</Text>
-              <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Choose a specific partial amount to pay right now.</Text>
-            </AnimatedTouchable>
+
+            {paymentLoading ? (
+              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                <ActivityIndicator size="large" color={theme.gold} />
+                <Text style={{ ...typography.body, color: theme.textSecondary, marginTop: 16 }}>Connecting to payment gateway...</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={{ ...typography.body, color: theme.textSecondary, marginBottom: 16 }}>Choose how you'd like to pay for your session.</Text>
+                <AnimatedTouchable 
+                  style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginBottom: 12, borderWidth: 1, borderColor: theme.border }}
+                  onPress={() => triggerPayment('balance')}
+                >
+                  <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Pay Full Balance</Text>
+                  <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Settle the remaining amount for this session.</Text>
+                </AnimatedTouchable>
+                <AnimatedTouchable 
+                  style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginBottom: 12, borderWidth: 1, borderColor: theme.border }}
+                  onPress={() => triggerPayment('deposit')}
+                >
+                  <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Pay Downpayment</Text>
+                  <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Pay a standard ₱5,000 to secure or maintain your spot.</Text>
+                </AnimatedTouchable>
+                <AnimatedTouchable 
+                  style={{ backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, borderWidth: 1, borderColor: theme.border }}
+                  onPress={() => {
+                    setShowPaymentOptions(false);
+                    setTimeout(() => {
+                      Alert.alert('Custom Payment', 'Please select the amount you wish to pay.', [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: '\u20b1500', onPress: () => triggerPayment('custom', 500) },
+                        { text: '\u20b11,000', onPress: () => triggerPayment('custom', 1000) },
+                        { text: '\u20b12,500', onPress: () => triggerPayment('custom', 2500) }
+                      ]);
+                    }, 350);
+                  }}
+                >
+                  <Text style={{ ...typography.h4, color: theme.textPrimary, marginBottom: 4 }}>Custom Amount</Text>
+                  <Text style={{ ...typography.bodySmall, color: theme.textSecondary }}>Choose a specific partial amount to pay right now.</Text>
+                </AnimatedTouchable>
+              </>
+            )}
           </View>
         </View>
       </Modal>

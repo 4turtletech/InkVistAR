@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import {
   Bell, User, Palette, Calendar, Heart, Sparkles,
-  MessageCircle, Images, Zap, Clock, ChevronRight, Lightbulb, ArrowRight, Star,
+  MessageCircle, Images, Zap, Clock, ChevronRight, Lightbulb, ArrowRight, Medal, Shield,
   Activity, Flag, CheckCircle,
 } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,7 +19,7 @@ import { useTheme } from '../src/context/ThemeContext';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { StatusBadge } from '../src/components/shared/StatusBadge';
-import { getCustomerDashboard } from '../src/utils/api';
+import { getCustomerDashboard, getCustomerProfile } from '../src/utils/api';
 import { getCustomerFavoriteWorks, getCustomerMyTattoos } from '../src/api/customerAPI';
 import { getGalleryWorks } from '../src/utils/api';
 import { Image } from 'react-native';
@@ -49,12 +49,18 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [myTattoosCount, setMyTattoosCount] = useState(0);
   const [trendingWorks, setTrendingWorks] = useState([]);
+  const [profileImage, setProfileImage] = useState(null);
+  const [activePrecare, setActivePrecare] = useState(null);
+  const [showPreCareModal, setShowPreCareModal] = useState(false);
 
   const loadDashboard = async () => {
     if (!userId) return;
     try {
       const result = await getCustomerDashboard(userId);
-      if (result.success) setDashboardData(result);
+      if (result.success) {
+        setDashboardData(result);
+        setActivePrecare(result.activePrecare || null);
+      }
 
       const favResult = await getCustomerFavoriteWorks(userId);
       if (favResult.success) setFavoritesCount((favResult.favorites || []).length);
@@ -66,6 +72,12 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
       if (galleryResult.success && galleryResult.works?.length > 0) {
         const shuffled = [...galleryResult.works].sort(() => 0.5 - Math.random());
         setTrendingWorks(shuffled.slice(0, 5));
+      }
+
+      // Fetch profile image
+      const profileResult = await getCustomerProfile(userId);
+      if (profileResult.success && profileResult.profile?.profile_image) {
+        setProfileImage(profileResult.profile.profile_image);
       }
     } catch (e) { console.error('Dashboard error:', e); }
     finally { setLoading(false); setRefreshing(false); }
@@ -141,7 +153,11 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
               )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.profileBtn} onPress={() => onNavigate('Profile')}>
-              <User size={22} color={colors.textPrimary} />
+              {profileImage ? (
+                <Image source={{ uri: profileImage }} style={styles.profileImg} />
+              ) : (
+                <User size={22} color={colors.textPrimary} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -170,7 +186,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
           
           <TouchableOpacity style={styles.statPill} onPress={() => onNavigate('Gallery', { initialViewMode: 'My Tattoos' })} activeOpacity={0.7}>
             <View style={[styles.statIconWrap, { backgroundColor: colors.iconPurpleBg }]}>
-              <Star size={18} color={colors.iconPurple} />
+              <Medal size={18} color={colors.iconPurple} />
             </View>
             <View>
               <Text style={styles.statValue}>{myTattoosCount}</Text>
@@ -181,7 +197,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
 
         {/* Hero Appointment Card */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Up Next</Text>
+          <Text style={styles.sectionTitle}>Today's Session</Text>
           {nextApt ? (
             <AnimatedTouchable onPress={() => onNavigate('Appointments', { openAppointmentId: nextApt.id })} style={styles.heroCard}>
               <View style={styles.heroAccent} />
@@ -277,7 +293,7 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
         {upcomingApts.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Later</Text>
+              <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
               <TouchableOpacity onPress={() => onNavigate('Appointments')}>
                 <Text style={styles.viewAllText}>View All</Text>
               </TouchableOpacity>
@@ -291,6 +307,35 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
                 <StatusBadge status={apt.status} />
               </AnimatedTouchable>
             ))}
+          </View>
+        )}
+
+        {/* Pre-Session Conditioning Plan */}
+        {activePrecare && (
+          <View style={styles.section}>
+            <AnimatedTouchable style={styles.precareCard} onPress={() => setShowPreCareModal(true)}>
+              <View style={styles.precareHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Shield size={16} color="#6366f1" />
+                  <Text style={styles.precareTitle}>Pre-Session Conditioning Plan</Text>
+                </View>
+                <View style={styles.precareBadge}>
+                  <Text style={styles.precareBadgeText}>
+                    {activePrecare.daysUntil === 0 ? 'Today!' : activePrecare.daysUntil === 1 ? 'Tomorrow' : `${activePrecare.daysUntil} days away`}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.precareBody}>
+                <View style={styles.precareIconBox}>
+                  <Shield size={28} color="#6366f1" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.precareDesign}>{activePrecare.designTitle}</Text>
+                  <Text style={styles.precareArtist}>with {activePrecare.artistName}</Text>
+                  <Text style={styles.precareCta}>Tap to view your 6-step preparation guide</Text>
+                </View>
+              </View>
+            </AnimatedTouchable>
           </View>
         )}
 
@@ -350,6 +395,68 @@ export function CustomerDashboard({ userName, userId, onNavigate, onLogout }) {
 
       </ScrollView>
 
+      {/* Pre-Care Modal */}
+      {showPreCareModal && activePrecare && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.precareModal}>
+            <View style={styles.precareModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Shield size={18} color="#6366f1" />
+                <Text style={{ ...typography.h4, color: colors.textPrimary }}>Pre-Session Plan</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowPreCareModal(false)}>
+                <Text style={{ color: '#6366f1', fontWeight: '700' }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 480 }} showsVerticalScrollIndicator={false}>
+              <View style={styles.precareModalInfo}>
+                <Text style={{ ...typography.body, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 }}>{activePrecare.designTitle}</Text>
+                <Text style={{ ...typography.bodySmall, color: colors.textSecondary }}>with {activePrecare.artistName}</Text>
+                <View style={styles.precareModalBadge}>
+                  <Text style={{ color: '#818cf8', fontSize: 11, fontWeight: '700' }}>
+                    {activePrecare.daysUntil === 0 ? 'Today!' : activePrecare.daysUntil === 1 ? 'Tomorrow' : `${activePrecare.daysUntil} days away`}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={{ ...typography.bodySmall, color: colors.textSecondary, textAlign: 'center', marginBottom: 16, paddingHorizontal: 16 }}>
+                Follow these 6 essential steps before your session for the best possible results.
+              </Text>
+
+              {[
+                { num: '1', title: 'Hydrate Thoroughly', desc: 'Drink plenty of water 24-48 hours before. Well-hydrated skin holds ink more evenly.', color: '#3b82f6' },
+                { num: '2', title: 'Eat a Full Meal', desc: 'Have a balanced meal 1-2 hours before arriving. Keeps blood sugar stable.', color: '#10b981' },
+                { num: '3', title: 'Avoid Alcohol & Blood Thinners', desc: 'No alcohol for 24 hours. Avoid ibuprofen and aspirin.', color: '#ef4444' },
+                { num: '4', title: 'Moisturize (Not Day-Of)', desc: 'Moisturize daily before session, but NOT on the day of. Avoid sunburns!', color: '#f59e0b' },
+                { num: '5', title: 'Get Good Rest', desc: 'Aim for 7-8 hours of sleep. Proper rest improves pain tolerance.', color: '#8b5cf6' },
+                { num: '6', title: 'Wear Loose Clothing', desc: 'Choose clothes with easy access to the tattoo area. Prevents irritation.', color: '#6366f1' },
+              ].map((step, idx) => (
+                <View key={idx} style={[styles.precareStep, idx % 2 === 0 ? { backgroundColor: 'rgba(99,102,241,0.06)' } : {}]}>
+                  <View style={[styles.precareStepNum, { backgroundColor: step.color + '20' }]}>
+                    <Text style={{ color: step.color, fontWeight: '800', fontSize: 15 }}>{step.num}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ ...typography.bodySmall, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 }}>{step.title}</Text>
+                    <Text style={{ ...typography.bodyXSmall, color: colors.textSecondary, lineHeight: 18 }}>{step.desc}</Text>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.precareModalTip}>
+                <Text style={{ ...typography.bodyXSmall, color: '#10b981', textAlign: 'center' }}>
+                  Following these steps ensures better ink retention, less bleeding, and smoother healing.
+                </Text>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity style={styles.precareModalBtn} onPress={() => { setShowPreCareModal(false); onNavigate('Appointments'); }}>
+              <Text style={styles.precareModalBtnText}>View My Booking</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       {/* Global Payment Overlay */}
       <CustomerPaymentAlertOverlay 
         customerId={userId} 
@@ -387,6 +494,12 @@ const getStyles = (colors) => StyleSheet.create({
     borderWidth: 2, borderColor: colors.background,
   },
   notifDotText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+  profileBtn: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.gold,
+    overflow: 'hidden',
+  },
+  profileImg: { width: 44, height: 44, borderRadius: 22 },
   avatarWrap: {
     width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface,
     justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.gold,
@@ -515,4 +628,64 @@ const getStyles = (colors) => StyleSheet.create({
   actionRowTextWrap: { flex: 1, paddingRight: 8 },
   actionRowTitle: { ...typography.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
   actionRowDesc: { ...typography.bodyXSmall, color: colors.textSecondary },
+
+  // Pre-Care Conditioning Plan
+  precareCard: {
+    backgroundColor: colors.surface, borderRadius: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(99,102,241,0.2)', ...shadows.subtle,
+  },
+  precareHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(99,102,241,0.12)',
+  },
+  precareTitle: { ...typography.bodySmall, fontWeight: '700', color: '#c7d2fe', letterSpacing: 0.3 },
+  precareBadge: { backgroundColor: 'rgba(99,102,241,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  precareBadgeText: { fontSize: 11, fontWeight: '700', color: '#818cf8' },
+  precareBody: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
+  precareIconBox: {
+    width: 52, height: 52, borderRadius: 14, backgroundColor: 'rgba(99,102,241,0.12)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  precareDesign: { ...typography.body, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
+  precareArtist: { ...typography.bodyXSmall, color: colors.textSecondary, marginBottom: 4 },
+  precareCta: { ...typography.bodyXSmall, color: '#6366f1', fontWeight: '600' },
+
+  // Pre-Care Modal
+  modalOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center',
+    padding: 20, zIndex: 999,
+  },
+  precareModal: {
+    backgroundColor: colors.surface, borderRadius: 20, width: '100%', maxWidth: 420,
+    borderWidth: 1, borderColor: 'rgba(99,102,241,0.25)', overflow: 'hidden',
+  },
+  precareModalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  precareModalInfo: {
+    backgroundColor: 'rgba(99,102,241,0.08)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)',
+    borderRadius: 12, padding: 16, margin: 16, alignItems: 'center',
+  },
+  precareModalBadge: {
+    backgroundColor: 'rgba(99,102,241,0.15)', paddingHorizontal: 14, paddingVertical: 4,
+    borderRadius: 20, marginTop: 8,
+  },
+  precareStep: {
+    flexDirection: 'row', gap: 14, padding: 14, marginHorizontal: 16,
+    borderRadius: 10, marginBottom: 4, alignItems: 'flex-start',
+  },
+  precareStepNum: {
+    width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
+  },
+  precareModalTip: {
+    margin: 16, padding: 12, backgroundColor: 'rgba(16,185,129,0.08)',
+    borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)', borderRadius: 10,
+  },
+  precareModalBtn: {
+    backgroundColor: '#6366f1', margin: 16, marginTop: 0, paddingVertical: 14,
+    borderRadius: 12, alignItems: 'center',
+  },
+  precareModalBtnText: { ...typography.button, color: '#ffffff', fontSize: 15 },
 });

@@ -11,7 +11,7 @@ import { colors, typography, borderRadius } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { getInitials } from '../src/utils/formatters';
-import { getCustomerDashboard, updateCustomerProfile } from '../src/utils/api';
+import { getCustomerDashboard, updateCustomerProfile, getCustomerProfile } from '../src/utils/api';
 import { changePassword, sendOtp, verifyOtp } from '../src/api/authAPI';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -85,6 +85,15 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
         });
         if (res.customer.medicalNotes) setMedicalNotes(res.customer.medicalNotes);
       }
+      // Also fetch profile endpoint to load medical notes from the 'notes' column
+      const profileRes = await getCustomerProfile(userId);
+      if (profileRes.success && profileRes.profile?.notes) {
+        try {
+          const parsed = JSON.parse(profileRes.profile.notes);
+          if (parsed.medicalNotes) setMedicalNotes(parsed.medicalNotes);
+          else if (parsed.allergies || parsed.skinConditions) setMedicalNotes(parsed);
+        } catch (e) { /* notes is plain text, not medical JSON */ }
+      }
     } catch (e) { console.error('Profile error:', e); }
     finally { setLoading(false); }
   };
@@ -124,16 +133,18 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const handleMedicalSave = async () => {
     setLoading(true);
     try {
-      const payload = { ...profile, medicalNotes: medicalForm };
+      // Serialize medical data as JSON into the 'notes' column
+      const medicalJson = JSON.stringify({ medicalNotes: medicalForm });
+      const payload = { notes: medicalJson };
       const res = await updateCustomerProfile(userId, payload);
       if (res.success) {
         setMedicalNotes(medicalForm); setMedicalVisible(false);
+        Alert.alert('Saved', 'Health profile updated successfully.');
       } else {
-        // Optimistic UI update
-        setMedicalNotes(medicalForm); setMedicalVisible(false);
+        Alert.alert('Error', res.message || 'Failed to save health profile.');
       }
     } catch (e) {
-      setMedicalNotes(medicalForm); setMedicalVisible(false);
+      Alert.alert('Error', 'Could not save health profile.');
     }
     finally { setLoading(false); }
   };

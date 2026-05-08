@@ -7184,6 +7184,20 @@ app.put('/api/appointments/:id/details', (req, res) => {
 
 // ========== PAYMENT ENDPOINTS (PayMongo Checkout) ==========
 
+// Get appointment details (images, notes) - lightweight fetch for active session
+app.get('/api/appointments/:id/details', (req, res) => {
+  const { id } = req.params;
+  db.query(
+    'SELECT id, draft_image, reference_image, before_photo, after_photo, notes FROM appointments WHERE id = ?',
+    [id],
+    (err, results) => {
+      if (err) return res.status(500).json({ success: false, message: 'Database error' });
+      if (results.length === 0) return res.status(404).json({ success: false, message: 'Appointment not found' });
+      res.json({ success: true, appointment: results[0] });
+    }
+  );
+});
+
 // Create a PayMongo Checkout Session
 app.post('/api/payments/create-checkout-session', async (req, res) => {
   const { appointmentId, price: providedPrice, paymentType, customAmount } = req.body; // paymentType: 'full', 'deposit', or 'custom'

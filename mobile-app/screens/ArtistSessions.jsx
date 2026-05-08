@@ -136,8 +136,8 @@ export const ArtistSessions = ({ artistId, onBack, navigation, route }) => {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <EmptyState icon={Calendar} title="Your board is clear" subtitle="No sessions scheduled for today" />
-              <AnimatedTouchable style={styles.scheduleLink} onPress={() => navigation?.navigate?.('Schedule')}>
-                <Text style={styles.scheduleLinkText}>View Full Schedule</Text>
+              <AnimatedTouchable style={styles.scheduleLink} innerStyle={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }} onPress={() => navigation?.navigate?.('Schedule')}>
+                <Text style={styles.scheduleLinkText} numberOfLines={1}>View Full Schedule</Text>
                 <ChevronRight size={16} color={colors.gold} />
               </AnimatedTouchable>
             </View>
@@ -191,8 +191,8 @@ const getStyles = (colors) => StyleSheet.create({
   manageBtnText: { ...typography.button, color: colors.backgroundDeep },
   emptyWrap: { alignItems: 'center', marginTop: 60 },
   scheduleLink: {
-    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 20,
-    paddingVertical: 12, paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 20,
+    paddingVertical: 12, paddingHorizontal: 20, minWidth: 200, alignSelf: 'center',
     backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
   },
   scheduleLinkText: { ...typography.body, color: colors.gold, fontWeight: '600' },

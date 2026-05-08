@@ -590,7 +590,6 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
                   disabled={isDisabled}
                 >
                   <Text style={[styles.dayText, { color: txtColor }, isSelected && styles.dayTextActive]}>{i + 1}</Text>
-                  {!isPast && !isTooFar && <View style={[styles.dayDot, { backgroundColor: dotColor }]} />}
                 </TouchableOpacity>
               );
             })}

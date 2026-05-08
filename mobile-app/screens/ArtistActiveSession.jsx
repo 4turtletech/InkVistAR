@@ -2,14 +2,14 @@
  * ArtistActiveSession.jsx -- Live Tattoo Session Manager (Gilded Noir v2)
  * Theme-aware, animated, haptic feedback. Materials tracking, photos, notes, status transitions.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, StyleSheet,
-  ScrollView, SafeAreaView, Image, ActivityIndicator, Modal, TouchableOpacity, Platform
+  View, Text, TextInput, StyleSheet, Keyboard,
+  ScrollView, SafeAreaView, Image, ActivityIndicator, Modal, TouchableOpacity, Platform, Dimensions
 } from 'react-native';
 import {
   ArrowLeft, Play, CheckCircle2, Camera, Package, Palette,
-  XCircle, Briefcase, Zap, Plus, Save, Clock, ChevronUp
+  XCircle, Briefcase, Zap, Plus, Save, Clock, ChevronUp, ShieldAlert
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -34,8 +34,69 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', onConfirm: null });
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [trackerVisible, setTrackerVisible] = useState(false);
+  const [medicalNotes, setMedicalNotes] = useState(null);
+  const [draftImage, setDraftImage] = useState(null);
+  const [refImage, setRefImage] = useState(null);
+  const [keyboardPadding, setKeyboardPadding] = useState(0);
+  const scrollViewRef = useRef(null);
+  const notesRef = useRef(null);
 
-  useEffect(() => { fetchInventory(); fetchServiceKits(); if (status === 'in_progress') fetchSessionMaterials(); }, [appointment?.id, status]);
+  useEffect(() => { 
+    fetchInventory(); 
+    fetchServiceKits(); 
+    fetchCustomerHealth();
+    fetchSessionImages();
+    if (status === 'in_progress') fetchSessionMaterials(); 
+  }, [appointment?.id, status]);
+
+  // Keyboard handling for notes field
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardPadding(e.endCoordinates.height);
+        setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 150);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardPadding(0)
+    );
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
+  const fetchCustomerHealth = async () => {
+    if (!appointment?.customer_id) return;
+    try {
+      const r = await (await fetch(`${API_URL}/customer/profile/${appointment.customer_id}`)).json();
+      if (r.success && r.profile?.notes) {
+        try {
+          const parsed = JSON.parse(r.profile.notes);
+          // Check if it has medical sub-object OR top-level medical fields
+          if (parsed.medicalNotes) {
+            setMedicalNotes(parsed.medicalNotes);
+          } else if (parsed.allergies || parsed.skinConditions) {
+            setMedicalNotes(parsed);
+          }
+        } catch (e) { /* notes is plain text, not medical JSON */ }
+      }
+    } catch (e) { console.error('Error fetching customer health:', e); }
+  };
+
+  const fetchSessionImages = async () => {
+    if (!appointment?.id) return;
+    try {
+      const r = await (await fetch(`${API_URL}/appointments/${appointment.id}/details`)).json();
+      if (r.success && r.appointment) {
+        if (r.appointment.draft_image) setDraftImage(r.appointment.draft_image);
+        if (r.appointment.reference_image) setRefImage(r.appointment.reference_image);
+      }
+    } catch (e) {
+      // Fallback: try from the passed prop (may work for small images)
+      if (appointment?.draft_image) setDraftImage(appointment.draft_image);
+      if (appointment?.reference_image) setRefImage(appointment.reference_image);
+    }
+  };
 
   // Timer logic
   useEffect(() => {
@@ -173,7 +234,7 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: keyboardPadding > 0 ? keyboardPadding + 40 : 0 }}>
         {/* Header */}
         <View style={styles.header}>
           <AnimatedTouchable onPress={onBack} style={styles.backBtn}><ArrowLeft size={20} color={colors.textPrimary} /></AnimatedTouchable>
@@ -229,6 +290,43 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
             {loading && <ActivityIndicator color={colors.gold} style={{ marginTop: 10 }} />}
           </View>
+
+          {/* Health & Safety Banner */}
+          {medicalNotes && (
+            <View style={styles.medicalBanner}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <ShieldAlert size={18} color={colors.error} style={{ marginRight: 6 }} />
+                <Text style={styles.medicalBannerTitle}>Client Medical Alerts</Text>
+              </View>
+              {medicalNotes.allergies ? (
+                <Text style={styles.medicalText}><Text style={{ fontWeight: '700' }}>Allergies:</Text> {medicalNotes.allergies}</Text>
+              ) : null}
+              {medicalNotes.skinConditions ? (
+                <Text style={styles.medicalText}><Text style={{ fontWeight: '700' }}>Skin Conditions:</Text> {medicalNotes.skinConditions}</Text>
+              ) : null}
+            </View>
+          )}
+
+          {/* Reference & Draft Images */}
+          {(draftImage || refImage) && (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={styles.sectionTitle}>Reference Artwork</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                {draftImage && (
+                  <View style={styles.artworkBox}>
+                    <Image source={{ uri: draftImage }} style={styles.artworkImage} />
+                    <Text style={styles.artworkLabel}>Approved Draft</Text>
+                  </View>
+                )}
+                {refImage && (
+                  <View style={styles.artworkBox}>
+                    <Image source={{ uri: refImage }} style={styles.artworkImage} />
+                    <Text style={styles.artworkLabel}>Reference Image</Text>
+                  </View>
+                )}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Photos */}
           <Text style={styles.sectionTitle}>Session Media</Text>
@@ -442,4 +540,12 @@ const getStyles = (colors) => StyleSheet.create({
   modalCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 24, width: '85%', borderWidth: 1, borderColor: colors.border },
   modalBtn: { backgroundColor: colors.gold, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   modalBtnText: { ...typography.button, color: colors.backgroundDeep, fontSize: 16 },
+
+  medicalBanner: { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)', borderRadius: 12, padding: 16, marginBottom: 24 },
+  medicalBannerTitle: { ...typography.bodySmall, fontWeight: '700', color: colors.error },
+  medicalText: { ...typography.bodySmall, color: colors.textPrimary, marginBottom: 4 },
+  
+  artworkBox: { width: 160, height: 200, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  artworkImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  artworkLabel: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', paddingVertical: 6, textAlign: 'center', ...typography.bodyXSmall, color: '#ffffff', fontWeight: '700' },
 });
