@@ -87,6 +87,25 @@ function Register() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
+  // Health & Safety (optional, non-blocking)
+  const PRESET_CONDITIONS = ['Diabetes', 'Hypertension', 'Heart Condition', 'Blood Disorder', 'Epilepsy', 'Pregnancy', 'Skin Condition', 'Immunocompromised'];
+  const PRESET_ALLERGENS = ['Latex', 'Nickel', 'Ink / Dye', 'Adhesive / Tape', 'Lidocaine', 'Iodine', 'Antibiotics'];
+  const [showHealthSection, setShowHealthSection] = useState(false);
+  const [selectedConditions, setSelectedConditions] = useState([]);
+  const [customCondition, setCustomCondition] = useState('');
+  const [selectedAllergens, setSelectedAllergens] = useState([]);
+  const [customAllergen, setCustomAllergen] = useState('');
+
+  const toggleTag = (list, setList, tag) => {
+    setList(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  };
+
+  const addCustomTag = (list, setList, value, setValue) => {
+    const trimmed = value.trim().slice(0, 60);
+    if (trimmed && !list.includes(trimmed)) setList(prev => [...prev, trimmed]);
+    setValue('');
+  };
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -204,6 +223,11 @@ function Register() {
       
       const orphanAppointmentId = sessionStorage.getItem('orphanAppointmentId');
       let rawPhone = formData.phone.trim().replace(/^0+/, '');
+
+      // Compile final health arrays (presets + custom items)
+      const finalConditions = [...selectedConditions];
+      const finalAllergens = [...selectedAllergens];
+
       const response = await Axios.post(`${API_URL}/api/register`, {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
@@ -214,7 +238,9 @@ function Register() {
         orphanAppointmentId: orphanAppointmentId,
         photo_marketing_consent: photoMarketingConsent,
         email_promo_consent: emailPromoConsent,
-        captchaToken: token
+        captchaToken: token,
+        health_conditions: finalConditions,
+        allergens: finalAllergens
       });
 
       if (response.data.success) {
@@ -349,6 +375,118 @@ function Register() {
               <PasswordStrengthMeter feedback={passwordFeedback} />
             </div>
 
+
+            {/* Health & Safety — Optional Collapsible Section */}
+            <div style={{ margin: '4px 0 16px', border: '1px solid rgba(190,144,85,0.25)', borderRadius: '12px', overflow: 'hidden', transition: 'all 0.3s ease' }}>
+              <button
+                type="button"
+                id="health-section-toggle"
+                aria-expanded={showHealthSection}
+                aria-controls="health-section-body"
+                onClick={() => setShowHealthSection(p => !p)}
+                title="Optionally disclose health conditions or allergens relevant to your tattoo session"
+                style={{
+                  width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '12px 16px', background: 'rgba(190,144,85,0.08)', border: 'none',
+                  cursor: 'pointer', color: '#be9055', fontWeight: 600, fontSize: '0.85rem', textAlign: 'left'
+                }}
+              >
+                <span>Health &amp; Safety Information <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.78rem' }}>(Optional — helps your artist prepare)</span></span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                  style={{ transform: showHealthSection ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease', flexShrink: 0 }}>
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {showHealthSection && (
+                <div id="health-section-body" style={{ padding: '16px', background: 'rgba(255,255,255,0.03)' }}>
+                  <p style={{ margin: '0 0 12px', fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.6 }}>
+                    This information is private, shared only with your assigned artist to ensure a safe session.
+                    Disclosing it now saves time during your consultation.
+                  </p>
+
+                  {/* Health Conditions */}
+                  <p style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 600, color: '#e2e8f0' }}>Known Health Conditions</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                    {PRESET_CONDITIONS.map(tag => (
+                      <button
+                        key={tag} type="button"
+                        title={`Toggle: ${tag}`}
+                        onClick={() => toggleTag(selectedConditions, setSelectedConditions, tag)}
+                        style={{
+                          padding: '5px 12px', borderRadius: '20px', fontSize: '0.78rem', cursor: 'pointer',
+                          border: selectedConditions.includes(tag) ? '1.5px solid #be9055' : '1.5px solid rgba(255,255,255,0.12)',
+                          background: selectedConditions.includes(tag) ? 'rgba(190,144,85,0.18)' : 'transparent',
+                          color: selectedConditions.includes(tag) ? '#be9055' : '#94a3b8',
+                          transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)', fontWeight: selectedConditions.includes(tag) ? 600 : 400
+                        }}
+                      >{tag}</button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '18px' }}>
+                    <input
+                      type="text" id="custom-condition-input"
+                      placeholder="Other condition..."
+                      value={customCondition}
+                      onChange={e => setCustomCondition(e.target.value.replace(/[<>]/g, '').slice(0, 60))}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(selectedConditions, setSelectedConditions, customCondition, setCustomCondition); } }}
+                      aria-label="Add a custom health condition"
+                      style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '0.82rem' }}
+                    />
+                    <button type="button" onClick={() => addCustomTag(selectedConditions, setSelectedConditions, customCondition, setCustomCondition)}
+                      title="Add custom condition"
+                      style={{ padding: '8px 14px', borderRadius: '8px', border: '1.5px solid rgba(190,144,85,0.4)', background: 'rgba(190,144,85,0.1)', color: '#be9055', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>Add</button>
+                  </div>
+                  {selectedConditions.filter(c => !PRESET_CONDITIONS.includes(c)).map(c => (
+                    <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', margin: '0 4px 6px 0', padding: '4px 10px', borderRadius: '20px', fontSize: '0.78rem', background: 'rgba(190,144,85,0.18)', border: '1.5px solid #be9055', color: '#be9055' }}>
+                      {c}
+                      <button type="button" onClick={() => setSelectedConditions(p => p.filter(x => x !== c))} aria-label={`Remove ${c}`}
+                        style={{ background: 'none', border: 'none', color: '#be9055', cursor: 'pointer', padding: 0, fontSize: '1rem', lineHeight: 1 }}>×</button>
+                    </span>
+                  ))}
+
+                  {/* Allergens */}
+                  <p style={{ margin: '8px 0 8px', fontSize: '0.8rem', fontWeight: 600, color: '#e2e8f0' }}>Known Allergens</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                    {PRESET_ALLERGENS.map(tag => (
+                      <button
+                        key={tag} type="button"
+                        title={`Toggle: ${tag}`}
+                        onClick={() => toggleTag(selectedAllergens, setSelectedAllergens, tag)}
+                        style={{
+                          padding: '5px 12px', borderRadius: '20px', fontSize: '0.78rem', cursor: 'pointer',
+                          border: selectedAllergens.includes(tag) ? '1.5px solid #f97316' : '1.5px solid rgba(255,255,255,0.12)',
+                          background: selectedAllergens.includes(tag) ? 'rgba(249,115,22,0.15)' : 'transparent',
+                          color: selectedAllergens.includes(tag) ? '#f97316' : '#94a3b8',
+                          transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)', fontWeight: selectedAllergens.includes(tag) ? 600 : 400
+                        }}
+                      >{tag}</button>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                    <input
+                      type="text" id="custom-allergen-input"
+                      placeholder="Other allergen..."
+                      value={customAllergen}
+                      onChange={e => setCustomAllergen(e.target.value.replace(/[<>]/g, '').slice(0, 60))}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(selectedAllergens, setSelectedAllergens, customAllergen, setCustomAllergen); } }}
+                      aria-label="Add a custom allergen"
+                      style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '0.82rem' }}
+                    />
+                    <button type="button" onClick={() => addCustomTag(selectedAllergens, setSelectedAllergens, customAllergen, setCustomAllergen)}
+                      title="Add custom allergen"
+                      style={{ padding: '8px 14px', borderRadius: '8px', border: '1.5px solid rgba(249,115,22,0.4)', background: 'rgba(249,115,22,0.1)', color: '#f97316', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>Add</button>
+                  </div>
+                  {selectedAllergens.filter(a => !PRESET_ALLERGENS.includes(a)).map(a => (
+                    <span key={a} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', margin: '0 4px 6px 0', padding: '4px 10px', borderRadius: '20px', fontSize: '0.78rem', background: 'rgba(249,115,22,0.15)', border: '1.5px solid #f97316', color: '#f97316' }}>
+                      {a}
+                      <button type="button" onClick={() => setSelectedAllergens(p => p.filter(x => x !== a))} aria-label={`Remove ${a}`}
+                        style={{ background: 'none', border: 'none', color: '#f97316', cursor: 'pointer', padding: 0, fontSize: '1rem', lineHeight: 1 }}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Consent Checkboxes */}
             <div style={{ margin: '16px 0 20px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>

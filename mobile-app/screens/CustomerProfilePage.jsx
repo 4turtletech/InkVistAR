@@ -40,7 +40,25 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
 
   const [profile, setProfile] = useState({ name: userName || '', email: userEmail || '', phone: '', location: '' });
   const [stats, setStats] = useState({ tattoos: 0, designs: 0, artists: 0 });
-  const [medicalNotes, setMedicalNotes] = useState({ allergies: '', skinConditions: '', emergencyContact: '' });
+
+  // Structured health data (new system)
+  const [selectedConditions, setSelectedConditions] = useState([]);
+  const [selectedAllergens, setSelectedAllergens] = useState([]);
+  const [customCondition, setCustomCondition] = useState('');
+  const [customAllergen, setCustomAllergen] = useState('');
+
+  const PRESET_CONDITIONS = ['Diabetes','Hypertension','Heart Condition','Epilepsy','HIV/AIDS','Hepatitis B/C','Hemophilia','Keloid-prone Skin','Psoriasis','Eczema','Pregnancy','Immunocompromised','Blood Thinners Medication'];
+  const PRESET_ALLERGENS  = ['Latex','Nickel','Tattoo Ink (certain pigments)','Penicillin','Aspirin','Ibuprofen','Adhesive/Bandage'];
+
+  const toggleTag = (arr, setArr, tag) => {
+    setArr(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  };
+
+  const addCustomTag = (val, arr, setArr, setInput) => {
+    const trimmed = val.trim();
+    if (trimmed && !arr.includes(trimmed)) setArr(prev => [...prev, trimmed]);
+    setInput('');
+  };
 
   const [isEditProfileVisible, setEditProfileVisible] = useState(false);
   const [isPasswordVisible, setPasswordVisible] = useState(false);
@@ -85,14 +103,12 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
         });
         if (res.customer.medicalNotes) setMedicalNotes(res.customer.medicalNotes);
       }
-      // Also fetch profile endpoint to load medical notes from the 'notes' column
+      // Fetch structured health fields from profile endpoint
       const profileRes = await getCustomerProfile(userId);
-      if (profileRes.success && profileRes.profile?.notes) {
-        try {
-          const parsed = JSON.parse(profileRes.profile.notes);
-          if (parsed.medicalNotes) setMedicalNotes(parsed.medicalNotes);
-          else if (parsed.allergies || parsed.skinConditions) setMedicalNotes(parsed);
-        } catch (e) { /* notes is plain text, not medical JSON */ }
+      if (profileRes.success && profileRes.profile) {
+        const p = profileRes.profile;
+        setSelectedConditions(Array.isArray(p.health_conditions) ? p.health_conditions : []);
+        setSelectedAllergens(Array.isArray(p.allergens) ? p.allergens : []);
       }
     } catch (e) { console.error('Profile error:', e); }
     finally { setLoading(false); }
@@ -133,20 +149,20 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
   const handleMedicalSave = async () => {
     setLoading(true);
     try {
-      // Serialize medical data as JSON into the 'notes' column
-      const medicalJson = JSON.stringify({ medicalNotes: medicalForm });
-      const payload = { notes: medicalJson };
+      const payload = {
+        health_conditions: selectedConditions,
+        allergens: selectedAllergens
+      };
       const res = await updateCustomerProfile(userId, payload);
       if (res.success) {
-        setMedicalNotes(medicalForm); setMedicalVisible(false);
+        setMedicalVisible(false);
         Alert.alert('Saved', 'Health profile updated successfully.');
       } else {
         Alert.alert('Error', res.message || 'Failed to save health profile.');
       }
     } catch (e) {
       Alert.alert('Error', 'Could not save health profile.');
-    }
-    finally { setLoading(false); }
+    } finally { setLoading(false); }
   };
 
   const handleOtpMethodSelect = (method) => {
@@ -201,7 +217,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
     if (profile.email) score += 20;
     if (profile.phone) score += 20;
     if (profile.location) score += 20;
-    if (medicalNotes.allergies || medicalNotes.skinConditions) score += 20;
+    if (selectedConditions.length > 0 || selectedAllergens.length > 0) score += 20;
     return score;
   };
   const completionScore = calculateCompletion();
@@ -334,7 +350,7 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
           </View>
         </View>
 
-        {/* Medical & Safety Profile (NEW UX FEATURE) */}
+        {/* Health & Safety Profile */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Health & Safety Profile</Text>
           <View style={styles.detailsContainer}>
@@ -343,16 +359,41 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
                 <ShieldAlert size={18} color={theme.warning} />
                 <Text style={styles.medicalHeaderTitle}>Studio Medical Record</Text>
               </View>
-              <TouchableOpacity onPress={handleMedicalEdit}>
+              <TouchableOpacity onPress={() => setMedicalVisible(true)}>
                 <Text style={{ color: theme.gold, ...typography.bodySmall, fontWeight: '700' }}>Update</Text>
               </TouchableOpacity>
             </View>
             <View style={{ padding: 16 }}>
-              <Text style={styles.medicalLabel}>Known Allergies</Text>
-              <Text style={styles.medicalValue}>{medicalNotes.allergies || 'None reported'}</Text>
-
-              <Text style={[styles.medicalLabel, { marginTop: 12 }]}>Skin Conditions / Sensitivities</Text>
-              <Text style={styles.medicalValue}>{medicalNotes.skinConditions || 'None reported'}</Text>
+              {selectedConditions.length === 0 && selectedAllergens.length === 0 ? (
+                <Text style={styles.medicalValue}>No health data on file. Tap Update to add.</Text>
+              ) : (
+                <>
+                  {selectedConditions.length > 0 && (
+                    <>
+                      <Text style={styles.medicalLabel}>Health Conditions</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                        {selectedConditions.map(c => (
+                          <View key={c} style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: `${theme.gold}18`, borderWidth: 1.5, borderColor: `${theme.gold}50` }}>
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: theme.gold }}>{c}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  )}
+                  {selectedAllergens.length > 0 && (
+                    <>
+                      <Text style={styles.medicalLabel}>Known Allergens</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {selectedAllergens.map(a => (
+                          <View key={a} style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1.5, borderColor: 'rgba(239,68,68,0.35)' }}>
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: '#dc2626' }}>{a}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  )}
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -508,40 +549,98 @@ export function CustomerProfilePage({ userId, userName, userEmail, onLogout }) {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Edit Medical Notes Modal */}
+      {/* Health & Safety Edit Modal — chip multi-select */}
       <Modal visible={isMedicalVisible} animationType="fade" transparent>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Health & Safety</Text>
-              <TouchableOpacity onPress={() => setMedicalVisible(false)}>
+              <TouchableOpacity onPress={() => setMedicalVisible(false)} accessibilityLabel="Close modal">
                 <X size={24} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={{ ...typography.bodySmall, color: theme.textSecondary, marginBottom: 16 }}>
-                Your safety is our priority. Please list any medical notes your artist should be aware of before your session.
+              <Text style={{ ...typography.bodySmall, color: theme.textSecondary, marginBottom: 16, lineHeight: 20 }}>
+                Your safety is our priority. This information helps your artist prepare for your session.
               </Text>
 
-              <Text style={styles.inputLabel}>Known Allergies (Latex, specific inks, etc.)</Text>
-              <TextInput
-                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                multiline
-                value={medicalForm.allergies || ''}
-                onChangeText={t => setMedicalForm({ ...medicalForm, allergies: t })}
-                placeholder="List any allergies..."
-                placeholderTextColor={theme.textTertiary}
-              />
+              {/* Health Conditions */}
+              <Text style={styles.inputLabel}>Health Conditions</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                {PRESET_CONDITIONS.map(c => {
+                  const active = selectedConditions.includes(c);
+                  return (
+                    <TouchableOpacity
+                      key={c}
+                      onPress={() => toggleTag(selectedConditions, setSelectedConditions, c)}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5,
+                        borderColor: active ? theme.gold : theme.border,
+                        backgroundColor: active ? `${theme.gold}18` : theme.backgroundDeep
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: active ? theme.gold : theme.textSecondary }}>{c}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {/* Custom condition input */}
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+                <TextInput
+                  style={[styles.input, { flex: 1, height: 44 }]}
+                  placeholder="Add other condition..."
+                  placeholderTextColor={theme.textTertiary}
+                  value={customCondition}
+                  onChangeText={setCustomCondition}
+                  onSubmitEditing={() => addCustomTag(customCondition, selectedConditions, setSelectedConditions, setCustomCondition)}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: theme.gold, justifyContent: 'center', alignItems: 'center' }}
+                  onPress={() => addCustomTag(customCondition, selectedConditions, setSelectedConditions, setCustomCondition)}
+                >
+                  <Check size={18} color={theme.backgroundDeep} />
+                </TouchableOpacity>
+              </View>
 
-              <Text style={styles.inputLabel}>Skin Conditions (Eczema, Keloids, etc.)</Text>
-              <TextInput
-                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                multiline
-                value={medicalForm.skinConditions || ''}
-                onChangeText={t => setMedicalForm({ ...medicalForm, skinConditions: t })}
-                placeholder="List any skin conditions..."
-                placeholderTextColor={theme.textTertiary}
-              />
+              {/* Allergens */}
+              <Text style={styles.inputLabel}>Known Allergens</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                {PRESET_ALLERGENS.map(a => {
+                  const active = selectedAllergens.includes(a);
+                  return (
+                    <TouchableOpacity
+                      key={a}
+                      onPress={() => toggleTag(selectedAllergens, setSelectedAllergens, a)}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5,
+                        borderColor: active ? '#dc2626' : theme.border,
+                        backgroundColor: active ? 'rgba(239,68,68,0.1)' : theme.backgroundDeep
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#dc2626' : theme.textSecondary }}>{a}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {/* Custom allergen input */}
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
+                <TextInput
+                  style={[styles.input, { flex: 1, height: 44 }]}
+                  placeholder="Add other allergen..."
+                  placeholderTextColor={theme.textTertiary}
+                  value={customAllergen}
+                  onChangeText={setCustomAllergen}
+                  onSubmitEditing={() => addCustomTag(customAllergen, selectedAllergens, setSelectedAllergens, setCustomAllergen)}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: '#dc2626', justifyContent: 'center', alignItems: 'center' }}
+                  onPress={() => addCustomTag(customAllergen, selectedAllergens, setSelectedAllergens, setCustomAllergen)}
+                >
+                  <Check size={18} color="#fff" />
+                </TouchableOpacity>
+              </View>
 
               <AnimatedTouchable style={styles.saveBtn} onPress={handleMedicalSave}>
                 <Text style={styles.saveBtnText}>Securely Save</Text>

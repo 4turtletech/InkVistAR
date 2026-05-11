@@ -34,7 +34,10 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', onConfirm: null });
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [trackerVisible, setTrackerVisible] = useState(false);
-  const [medicalNotes, setMedicalNotes] = useState(null);
+  // Structured health data
+  const [healthConditions, setHealthConditions] = useState([]);
+  const [healthAllergens, setHealthAllergens] = useState([]);
+  const [showHealthPanel, setShowHealthPanel] = useState(false);
   const [draftImage, setDraftImage] = useState(null);
   const [refImage, setRefImage] = useState(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -87,24 +90,25 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const fetchCustomerHealth = async () => {
     if (!appointment?.customer_id) return;
     try {
-      // Primary: fetch profile which has the 'notes' column
       const r = await (await fetch(`${API_URL}/customer/profile/${appointment.customer_id}`)).json();
-      if (r.success && r.profile?.notes) {
-        try {
-          const parsed = JSON.parse(r.profile.notes);
-          if (parsed.medicalNotes) {
-            setMedicalNotes(parsed.medicalNotes);
-            return;
-          } else if (parsed.allergies || parsed.skinConditions) {
-            setMedicalNotes(parsed);
-            return;
-          }
-        } catch (e) { /* notes is plain text, not medical JSON */ }
-      }
-      // Fallback: try the dashboard endpoint which may also return medicalNotes
-      const d = await (await fetch(`${API_URL}/customer/${appointment.customer_id}/dashboard`)).json();
-      if (d.success && d.customer?.medicalNotes) {
-        setMedicalNotes(d.customer.medicalNotes);
+      if (r.success && r.profile) {
+        // Primary: new structured columns
+        const conditions = Array.isArray(r.profile.health_conditions) ? r.profile.health_conditions : [];
+        const allergens  = Array.isArray(r.profile.allergens)          ? r.profile.allergens          : [];
+        if (conditions.length > 0 || allergens.length > 0) {
+          setHealthConditions(conditions);
+          setHealthAllergens(allergens);
+          return;
+        }
+        // Fallback: legacy notes JSON
+        if (r.profile?.notes) {
+          try {
+            const parsed = JSON.parse(r.profile.notes);
+            const src = parsed.medicalNotes || parsed;
+            if (src.skinConditions) setHealthConditions([src.skinConditions]);
+            if (src.allergies)      setHealthAllergens([src.allergies]);
+          } catch (e) { /* plain text notes — ignore */ }
+        }
       }
     } catch (e) { console.error('Error fetching customer health:', e); }
   };
@@ -334,19 +338,59 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
             {loading && <ActivityIndicator color={colors.gold} style={{ marginTop: 10 }} />}
           </View>
 
-          {/* Health & Safety Banner */}
-          {medicalNotes && (
-            <View style={styles.medicalBanner}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <ShieldAlert size={18} color={colors.error} style={{ marginRight: 6 }} />
-                <Text style={styles.medicalBannerTitle}>Client Medical Alerts</Text>
-              </View>
-              {medicalNotes.allergies ? (
-                <Text style={styles.medicalText}><Text style={{ fontWeight: '700' }}>Allergies:</Text> {medicalNotes.allergies}</Text>
-              ) : null}
-              {medicalNotes.skinConditions ? (
-                <Text style={styles.medicalText}><Text style={{ fontWeight: '700' }}>Skin Conditions:</Text> {medicalNotes.skinConditions}</Text>
-              ) : null}
+          {/* Collapsible Health Alert Panel */}
+          {(healthConditions.length > 0 || healthAllergens.length > 0) && (
+            <View style={{ marginBottom: 24 }}>
+              <TouchableOpacity
+                onPress={() => setShowHealthPanel(p => !p)}
+                accessibilityLabel={showHealthPanel ? 'Collapse health alert' : 'View client health and safety'}
+                style={[
+                  styles.healthToggleBtn,
+                  showHealthPanel && { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
+                ]}
+                activeOpacity={0.85}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ShieldAlert size={15} color="#ea580c" />
+                  <Text style={styles.healthToggleLabel}>CLIENT HEALTH & SAFETY</Text>
+                  <View style={styles.healthCountBadge}>
+                    <Text style={styles.healthCountText}>{healthConditions.length + healthAllergens.length}</Text>
+                  </View>
+                </View>
+                <Text style={{ color: '#ea580c', fontSize: 16, lineHeight: 20 }}>{showHealthPanel ? '−' : '+'}</Text>
+              </TouchableOpacity>
+
+              {showHealthPanel && (
+                <View style={styles.healthPanel}>
+                  <Text style={styles.healthPanelNote}>
+                    Review the following disclosures before beginning the procedure.
+                  </Text>
+                  {healthConditions.length > 0 && (
+                    <>
+                      <Text style={styles.healthSubLabel}>HEALTH CONDITIONS</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                        {healthConditions.map(c => (
+                          <View key={c} style={styles.conditionChip}>
+                            <Text style={styles.conditionChipText}>{c}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  )}
+                  {healthAllergens.length > 0 && (
+                    <>
+                      <Text style={styles.healthSubLabel}>KNOWN ALLERGENS</Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                        {healthAllergens.map(a => (
+                          <View key={a} style={styles.allergenChip}>
+                            <Text style={styles.allergenChipText}>{a}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -604,6 +648,27 @@ const getStyles = (colors) => StyleSheet.create({
   medicalBanner: { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)', borderRadius: 12, padding: 16, marginBottom: 24 },
   medicalBannerTitle: { ...typography.bodySmall, fontWeight: '700', color: colors.error },
   medicalText: { ...typography.bodySmall, color: colors.textPrimary, marginBottom: 4 },
+
+  // Health Alert Panel (A-M3)
+  healthToggleBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12,
+    backgroundColor: '#fff7ed', borderWidth: 1.5, borderColor: '#fed7aa'
+  },
+  healthToggleLabel: { fontSize: 11, fontWeight: '700', color: '#9a3412', letterSpacing: 0.5 },
+  healthCountBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, backgroundColor: '#fed7aa' },
+  healthCountText: { fontSize: 11, fontWeight: '700', color: '#9a3412' },
+  healthPanel: {
+    padding: 14, backgroundColor: '#fff7ed',
+    borderWidth: 1.5, borderTopWidth: 0, borderColor: '#fed7aa',
+    borderBottomLeftRadius: 12, borderBottomRightRadius: 12
+  },
+  healthPanelNote: { ...typography.bodyXSmall, color: '#b45309', marginBottom: 12, lineHeight: 18 },
+  healthSubLabel: { fontSize: 10, fontWeight: '700', color: '#9a3412', letterSpacing: 0.5, marginBottom: 6 },
+  conditionChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(190,144,85,0.15)', borderWidth: 1.5, borderColor: 'rgba(190,144,85,0.5)' },
+  conditionChipText: { fontSize: 12, fontWeight: '600', color: '#92400e' },
+  allergenChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1.5, borderColor: 'rgba(239,68,68,0.35)' },
+  allergenChipText: { fontSize: 12, fontWeight: '600', color: '#b91c1c' },
   
   artworkBox: { width: 160, height: 200, backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   artworkImage: { width: '100%', height: '100%', resizeMode: 'cover' },

@@ -2,7 +2,7 @@ import './CustomerStyles.css';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Axios from 'axios';
-import { User, Mail, Phone, MapPin, Save, Edit2, X, FileText, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Camera } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Save, Edit2, X, FileText, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Camera, Heart, ShieldAlert } from 'lucide-react';
 import './PortalStyles.css';
 import { API_URL } from '../config';
 import CustomerSideNav from '../components/CustomerSideNav';
@@ -79,6 +79,23 @@ function CustomerProfile() {
     const navigate = useNavigate();
     const [cropperImage, setCropperImage] = useState(null);
 
+    // Health & Safety state
+    const PRESET_CONDITIONS = ['Diabetes', 'Hypertension', 'Heart Condition', 'Blood Disorder', 'Epilepsy', 'Pregnancy', 'Skin Condition', 'Immunocompromised'];
+    const PRESET_ALLERGENS  = ['Latex', 'Nickel', 'Ink / Dye', 'Adhesive / Tape', 'Lidocaine', 'Iodine', 'Antibiotics'];
+    const [selectedConditions, setSelectedConditions] = useState([]);
+    const [customCondition, setCustomCondition]       = useState('');
+    const [selectedAllergens,  setSelectedAllergens]  = useState([]);
+    const [customAllergen,  setCustomAllergen]        = useState('');
+
+    const toggleTag = (list, setList, tag) =>
+        setList(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+
+    const addCustomTag = (list, setList, value, setValue) => {
+        const trimmed = value.trim().replace(/[<>]/g, '').slice(0, 60);
+        if (trimmed && !list.includes(trimmed)) setList(prev => [...prev, trimmed]);
+        setValue('');
+    };
+
     const validateProfileField = (name, value) => {
         let errorMsg = '';
         if (name === 'name') {
@@ -113,6 +130,9 @@ function CustomerProfile() {
                         preferences: res.data.profile.notes || '',
                         profile_image: res.data.profile.profile_image || ''
                     });
+                    // Populate health state from backend (already parsed as arrays by server)
+                    setSelectedConditions(Array.isArray(res.data.profile.health_conditions) ? res.data.profile.health_conditions : []);
+                    setSelectedAllergens(Array.isArray(res.data.profile.allergens) ? res.data.profile.allergens : []);
                 }
                 setLoading(false);
             } catch (e) {
@@ -198,11 +218,13 @@ function CustomerProfile() {
         }
 
         try {
-            // Update profile details
+            // Update profile details including health data
             await Axios.put(`${API_URL}/api/customer/profile/${customerId}`, {
                 ...profile,
                 notes: profile.preferences,
-                profileImage: profile.profile_image
+                profileImage: profile.profile_image,
+                health_conditions: selectedConditions,
+                allergens: selectedAllergens
             });
 
             // Change password if requested and new password is provided
@@ -283,6 +305,43 @@ function CustomerProfile() {
                                                 <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>{profile.preferences || 'No preferences listed'}</p>
                                             </div>
                                         </div>
+
+                                        {/* Health & Safety — View Mode */}
+                                        {(selectedConditions.length > 0 || selectedAllergens.length > 0) && (
+                                            <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '16px', marginBottom: '16px' }}>
+                                                <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Heart size={20} color="#be9055" /> Health &amp; Safety
+                                                </h3>
+                                                {selectedConditions.length > 0 && (
+                                                    <div style={{ marginBottom: '12px' }}>
+                                                        <p style={{ margin: '0 0 8px', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Health Conditions</p>
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                            {selectedConditions.map(c => (
+                                                                <span key={c} style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.82rem', background: 'rgba(190,144,85,0.1)', border: '1.5px solid rgba(190,144,85,0.35)', color: '#be9055', fontWeight: 600 }}>{c}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {selectedAllergens.length > 0 && (
+                                                    <div>
+                                                        <p style={{ margin: '0 0 8px', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Known Allergens</p>
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                            {selectedAllergens.map(a => (
+                                                                <span key={a} style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.82rem', background: 'rgba(249,115,22,0.1)', border: '1.5px solid rgba(249,115,22,0.35)', color: '#f97316', fontWeight: 600 }}>{a}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {selectedConditions.length === 0 && selectedAllergens.length === 0 && (
+                                            <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '16px', marginBottom: '16px' }}>
+                                                <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Heart size={20} color="#be9055" /> Health &amp; Safety
+                                                </h3>
+                                                <p style={{ margin: 0, fontSize: '0.88rem', color: '#94a3b8' }}>No health conditions or allergens on file. Click Edit Profile to add them.</p>
+                                            </div>
+                                        )}
                                         {message.text && (
                                             <div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: message.type === 'success' ? '#dcfce7' : '#fee2e2', color: message.type === 'success' ? '#166534' : '#991b1b', border: `1px solid ${message.type === 'success' ? '#86efac' : '#fca5a5'}` }}>
                                                 {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
@@ -377,7 +436,99 @@ function CustomerProfile() {
                                             </div>
                                         </div>
 
-                                        {/* Section 2: Password & Security */}
+                                        {/* Section 2: Health & Safety (Edit Mode) */}
+                                        <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '20px', marginBottom: '20px' }}>
+                                            <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Heart size={20} color="#be9055" /> Health &amp; Safety
+                                            </h3>
+                                            <p style={{ margin: '0 0 14px', fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.6 }}>
+                                                This information is private and shared only with your assigned artist to ensure a safe session.
+                                            </p>
+
+                                            {/* Health Conditions */}
+                                            <p style={{ margin: '0 0 8px', fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>Known Health Conditions</p>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                                                {PRESET_CONDITIONS.map(tag => (
+                                                    <button key={tag} type="button" title={`Toggle: ${tag}`}
+                                                        onClick={() => toggleTag(selectedConditions, setSelectedConditions, tag)}
+                                                        style={{
+                                                            padding: '5px 14px', borderRadius: '20px', fontSize: '0.8rem', cursor: 'pointer',
+                                                            border: selectedConditions.includes(tag) ? '1.5px solid #be9055' : '1.5px solid #e2e8f0',
+                                                            background: selectedConditions.includes(tag) ? 'rgba(190,144,85,0.12)' : '#f8fafc',
+                                                            color: selectedConditions.includes(tag) ? '#be9055' : '#64748b',
+                                                            transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+                                                            fontWeight: selectedConditions.includes(tag) ? 600 : 400
+                                                        }}
+                                                    >{tag}</button>
+                                                ))}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                                                <input type="text" id="profile-custom-condition"
+                                                    placeholder="Other condition..."
+                                                    value={customCondition}
+                                                    onChange={e => setCustomCondition(e.target.value.replace(/[<>]/g, '').slice(0, 60))}
+                                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(selectedConditions, setSelectedConditions, customCondition, setCustomCondition); } }}
+                                                    aria-label="Add a custom health condition"
+                                                    className="form-input artist-profile-input"
+                                                    style={{ flex: 1 }}
+                                                />
+                                                <button type="button" title="Add custom condition"
+                                                    onClick={() => addCustomTag(selectedConditions, setSelectedConditions, customCondition, setCustomCondition)}
+                                                    style={{ padding: '8px 14px', borderRadius: '8px', border: '1.5px solid rgba(190,144,85,0.4)', background: 'rgba(190,144,85,0.08)', color: '#be9055', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>Add</button>
+                                            </div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '18px' }}>
+                                                {selectedConditions.filter(c => !PRESET_CONDITIONS.includes(c)).map(c => (
+                                                    <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', fontSize: '0.78rem', background: 'rgba(190,144,85,0.12)', border: '1.5px solid #be9055', color: '#be9055' }}>
+                                                        {c}
+                                                        <button type="button" onClick={() => setSelectedConditions(p => p.filter(x => x !== c))} aria-label={`Remove ${c}`}
+                                                            style={{ background: 'none', border: 'none', color: '#be9055', cursor: 'pointer', padding: 0, fontSize: '1rem', lineHeight: 1 }}>×</button>
+                                                    </span>
+                                                ))}
+                                            </div>
+
+                                            {/* Allergens */}
+                                            <p style={{ margin: '0 0 8px', fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>Known Allergens</p>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                                                {PRESET_ALLERGENS.map(tag => (
+                                                    <button key={tag} type="button" title={`Toggle: ${tag}`}
+                                                        onClick={() => toggleTag(selectedAllergens, setSelectedAllergens, tag)}
+                                                        style={{
+                                                            padding: '5px 14px', borderRadius: '20px', fontSize: '0.8rem', cursor: 'pointer',
+                                                            border: selectedAllergens.includes(tag) ? '1.5px solid #f97316' : '1.5px solid #e2e8f0',
+                                                            background: selectedAllergens.includes(tag) ? 'rgba(249,115,22,0.1)' : '#f8fafc',
+                                                            color: selectedAllergens.includes(tag) ? '#f97316' : '#64748b',
+                                                            transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+                                                            fontWeight: selectedAllergens.includes(tag) ? 600 : 400
+                                                        }}
+                                                    >{tag}</button>
+                                                ))}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                                                <input type="text" id="profile-custom-allergen"
+                                                    placeholder="Other allergen..."
+                                                    value={customAllergen}
+                                                    onChange={e => setCustomAllergen(e.target.value.replace(/[<>]/g, '').slice(0, 60))}
+                                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(selectedAllergens, setSelectedAllergens, customAllergen, setCustomAllergen); } }}
+                                                    aria-label="Add a custom allergen"
+                                                    className="form-input artist-profile-input"
+                                                    style={{ flex: 1 }}
+                                                />
+                                                <button type="button" title="Add custom allergen"
+                                                    onClick={() => addCustomTag(selectedAllergens, setSelectedAllergens, customAllergen, setCustomAllergen)}
+                                                    style={{ padding: '8px 14px', borderRadius: '8px', border: '1.5px solid rgba(249,115,22,0.4)', background: 'rgba(249,115,22,0.08)', color: '#f97316', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>Add</button>
+                                            </div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                {selectedAllergens.filter(a => !PRESET_ALLERGENS.includes(a)).map(a => (
+                                                    <span key={a} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', fontSize: '0.78rem', background: 'rgba(249,115,22,0.1)', border: '1.5px solid #f97316', color: '#f97316' }}>
+                                                        {a}
+                                                        <button type="button" onClick={() => setSelectedAllergens(p => p.filter(x => x !== a))} aria-label={`Remove ${a}`}
+                                                            style={{ background: 'none', border: 'none', color: '#f97316', cursor: 'pointer', padding: 0, fontSize: '1rem', lineHeight: 1 }}>×</button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Section 3: Password & Security */}
                                         <div style={{ marginBottom: '24px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                                 <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>

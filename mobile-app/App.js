@@ -325,8 +325,8 @@ function AppContent() {
     setUser(null);
   }, []);
 
-  const handleRegister = useCallback(async (name, email, password, phone, userType, orphanAppointmentId, navigation) => {
-    const result = await registerUser(name, email, password, userType, phone, orphanAppointmentId);
+  const handleRegister = useCallback(async (name, email, password, phone, userType, orphanAppointmentId, navigation, healthConditions = [], healthAllergens = []) => {
+    const result = await registerUser(name, email, password, userType, phone, orphanAppointmentId, healthConditions, healthAllergens);
     if (result.success && result.message) {
       if (navigation) {
         navigation.navigate('login', { prefillEmail: email, message: result.message });
@@ -481,8 +481,8 @@ function AppContent() {
                 {(props) => (
                   <RegisterPage
                     {...props}
-                    onRegister={(name, email, password, phone, userType, orphanAppointmentId) =>
-                      handleRegister(name, email, password, phone, userType, orphanAppointmentId, props.navigation)
+                    onRegister={(name, email, password, phone, userType, orphanAppointmentId, healthConditions, healthAllergens) =>
+                      handleRegister(name, email, password, phone, userType, orphanAppointmentId, props.navigation, healthConditions, healthAllergens)
                     }
                     onSwitchToLogin={() => props.navigation.navigate('login')}
                   />

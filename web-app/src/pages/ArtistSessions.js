@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { PenTool, Play, Pause, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive, AlertTriangle, List } from 'lucide-react';
+import { PenTool, Play, Pause, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive, AlertTriangle, List, Heart, ShieldAlert } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -50,6 +50,7 @@ function ArtistSessions() {
     const [viewingApt, setViewingApt] = useState(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [showHealthAlert, setShowHealthAlert] = useState(false);
     const [lightboxSrc, setLightboxSrc] = useState(null);
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
@@ -346,6 +347,7 @@ function ArtistSessions() {
         }
         setSessionTab('overview');
         setPaymentInfo(null);
+        setShowHealthAlert(false); // Always start collapsed
         openSessionModal();
     };
 
@@ -846,6 +848,88 @@ function ArtistSessions() {
                         </div>
 
                         <div className="modal-body" style={{ padding: '24px' }}>
+
+                            {/* Health Alert Panel — collapsible, shown only when health data exists */}
+                            {(() => {
+                                const rawConditions = activeSession.health_conditions || activeSession.client_health_conditions;
+                                const rawAllergens  = activeSession.allergens || activeSession.client_allergens;
+                                const conditions = Array.isArray(rawConditions) ? rawConditions : [];
+                                const allergens  = Array.isArray(rawAllergens)  ? rawAllergens  : [];
+                                const hasHealthData = conditions.length > 0 || allergens.length > 0;
+                                if (!hasHealthData) return null;
+                                return (
+                                    <div style={{ marginBottom: '16px' }}>
+                                        <button
+                                            type="button"
+                                            id="health-alert-toggle"
+                                            aria-expanded={showHealthAlert}
+                                            aria-controls="health-alert-body"
+                                            title={showHealthAlert ? 'Collapse health alert panel' : 'View client health & safety information'}
+                                            onClick={() => setShowHealthAlert(p => !p)}
+                                            style={{
+                                                width: '100%', display: 'flex', justifyContent: 'space-between',
+                                                alignItems: 'center', padding: '10px 16px',
+                                                borderRadius: showHealthAlert ? '12px 12px 0 0' : '12px',
+                                                border: '1.5px solid #fed7aa',
+                                                background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+                                                cursor: 'pointer', transition: 'border-radius 0.2s ease'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <ShieldAlert size={15} color="#ea580c" />
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#9a3412', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                    Client Health &amp; Safety
+                                                </span>
+                                                <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 700, background: '#fed7aa', color: '#9a3412' }}>
+                                                    {conditions.length + allergens.length} item{conditions.length + allergens.length !== 1 ? 's' : ''}
+                                                </span>
+                                            </div>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2.5"
+                                                style={{ transform: showHealthAlert ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease', flexShrink: 0 }}>
+                                                <polyline points="6 9 12 15 18 9" />
+                                            </svg>
+                                        </button>
+
+                                        {showHealthAlert && (
+                                            <div
+                                                id="health-alert-body"
+                                                style={{
+                                                    padding: '14px 16px',
+                                                    borderRadius: '0 0 12px 12px',
+                                                    background: '#fff7ed',
+                                                    border: '1.5px solid #fed7aa',
+                                                    borderTop: 'none'
+                                                }}
+                                            >
+                                                <p style={{ margin: '0 0 12px', fontSize: '0.78rem', color: '#b45309', lineHeight: 1.6 }}>
+                                                    The following health information was disclosed by this client. Please review before beginning the procedure.
+                                                </p>
+                                                {conditions.length > 0 && (
+                                                    <div style={{ marginBottom: '10px' }}>
+                                                        <p style={{ margin: '0 0 6px', fontSize: '0.72rem', fontWeight: 700, color: '#9a3412', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Health Conditions</p>
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                                            {conditions.map(c => (
+                                                                <span key={c} style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, background: 'rgba(190,144,85,0.15)', border: '1.5px solid rgba(190,144,85,0.5)', color: '#92400e' }}>{c}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {allergens.length > 0 && (
+                                                    <div>
+                                                        <p style={{ margin: '0 0 6px', fontSize: '0.72rem', fontWeight: 700, color: '#9a3412', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Known Allergens</p>
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                                            {allergens.map(a => (
+                                                                <span key={a} style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, background: 'rgba(239,68,68,0.1)', border: '1.5px solid rgba(239,68,68,0.35)', color: '#b91c1c' }}>{a}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
                             {/* Session Tabs */}
                             <div style={{ display: 'flex', gap: '4px', padding: '0 0 16px 0', borderBottom: '1px solid #e2e8f0', marginBottom: '20px' }}>
                                 {[{id:'overview',label:'Overview'},{id:'documentation',label:'Documentation'},{id:'supplies',label:'Supplies'},{id:'auditlog',label:'Audit Log'}].map(tab => (

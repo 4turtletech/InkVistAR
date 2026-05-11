@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle, Printer, ShieldCheck, RefreshCw, AlertTriangle, ClipboardList, Syringe, Wrench, Layers, Tag, Gem } from 'lucide-react';
+import { Calendar, List, ChevronLeft, ChevronRight, Search, Filter, SlidersHorizontal, Plus, Check, X, User, CreditCard, Info, FileText, Image, Clock, Package, CheckCircle, Printer, ShieldCheck, RefreshCw, AlertTriangle, ClipboardList, Syringe, Wrench, Layers, Tag, Gem, Heart, ShieldAlert } from 'lucide-react';
 import PhilippinePeso from '../components/PhilippinePeso';
 
 import AdminSideNav from '../components/AdminSideNav';
@@ -98,6 +98,9 @@ function AdminAppointments() {
     // Archive mode: when viewing a completed appointment, show the read-only Archive Record modal
     const [archiveMode, setArchiveMode] = useState(false);
     const [archiveMaterials, setArchiveMaterials] = useState({ materials: [], totalCost: 0 });
+
+    // Health data for the selected client (fetched on-demand in create mode)
+    const [clientHealthData, setClientHealthData] = useState({ conditions: [], allergens: [], loaded: false, loading: false });
 
     // Reschedule Request state (admin decision panel)
     const [pendingRescheduleRequest, setPendingRescheduleRequest] = useState(null);
@@ -244,6 +247,39 @@ function AdminAppointments() {
         fetchUsers();
     }, []);
 
+    // In create mode: fetch the selected client's health profile on-demand
+    useEffect(() => {
+        if (selectedAppointment) {
+            // Edit mode — health data is already embedded in selectedAppointment from the list fetch
+            setClientHealthData({ conditions: [], allergens: [], loaded: false, loading: false });
+            return;
+        }
+        if (!formData.clientId) {
+            setClientHealthData({ conditions: [], allergens: [], loaded: false, loading: false });
+            return;
+        }
+        let cancelled = false;
+        setClientHealthData(prev => ({ ...prev, loading: true, loaded: false }));
+        Axios.get(`${API_URL}/api/customer/profile/${formData.clientId}`)
+            .then(res => {
+                if (cancelled) return;
+                if (res.data.success) {
+                    setClientHealthData({
+                        conditions: Array.isArray(res.data.profile.health_conditions) ? res.data.profile.health_conditions : [],
+                        allergens:  Array.isArray(res.data.profile.allergens)           ? res.data.profile.allergens           : [],
+                        loaded: true,
+                        loading: false
+                    });
+                } else {
+                    setClientHealthData({ conditions: [], allergens: [], loaded: true, loading: false });
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setClientHealthData({ conditions: [], allergens: [], loaded: true, loading: false });
+            });
+        return () => { cancelled = true; };
+    }, [formData.clientId, selectedAppointment]);
+
     const fetchUsers = async () => {
         try {
             const response = await Axios.get(`${API_URL}/api/debug/users`);
@@ -311,7 +347,9 @@ function AdminAppointments() {
                         discountType: apt.discount_type || null,
                         selectedJewelryId: apt.selected_jewelry_id || null,
                         selectedJewelryName: apt.selected_jewelry_name || null,
-                        piercingJewelry: apt.piercing_jewelry || null
+                        piercingJewelry: apt.piercing_jewelry || null,
+                        clientHealthConditions: Array.isArray(apt.client_health_conditions) ? apt.client_health_conditions : [],
+                        clientAllergens: Array.isArray(apt.client_allergens) ? apt.client_allergens : []
                     };
                 });
                 setAppointments(mappedAppointments);
@@ -2064,6 +2102,113 @@ function AdminAppointments() {
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {/* Health & Safety — EDIT MODE: client has data */}
+                                            {selectedAppointment && (selectedAppointment.clientHealthConditions?.length > 0 || selectedAppointment.clientAllergens?.length > 0) && (
+                                                <div style={{
+                                                    marginTop: '12px', padding: '14px 16px', borderRadius: '12px',
+                                                    background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+                                                    border: '1.5px solid #fed7aa', boxShadow: '0 2px 8px rgba(249,115,22,0.1)'
+                                                }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                                        <ShieldAlert size={16} color="#ea580c" />
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#9a3412', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Health &amp; Safety</span>
+                                                    </div>
+                                                    {selectedAppointment.clientHealthConditions?.length > 0 && (
+                                                        <div style={{ marginBottom: '8px' }}>
+                                                            <p style={{ margin: '0 0 6px', fontSize: '0.72rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Health Conditions</p>
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                                                {selectedAppointment.clientHealthConditions.map(c => (
+                                                                    <span key={c} style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600, background: 'rgba(190,144,85,0.15)', border: '1.5px solid rgba(190,144,85,0.4)', color: '#92400e' }}>{c}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {selectedAppointment.clientAllergens?.length > 0 && (
+                                                        <div>
+                                                            <p style={{ margin: '0 0 6px', fontSize: '0.72rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Known Allergens</p>
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                                                {selectedAppointment.clientAllergens.map(a => (
+                                                                    <span key={a} style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600, background: 'rgba(239,68,68,0.1)', border: '1.5px solid rgba(239,68,68,0.3)', color: '#b91c1c' }}>{a}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Health & Safety — EDIT MODE: client has no data on file */}
+                                            {selectedAppointment && selectedAppointment.clientHealthConditions?.length === 0 && selectedAppointment.clientAllergens?.length === 0 && formData.clientId && (
+                                                <div style={{
+                                                    marginTop: '12px', padding: '10px 14px', borderRadius: '10px',
+                                                    background: '#f8fafc', border: '1px dashed #cbd5e1',
+                                                    display: 'flex', alignItems: 'center', gap: '8px'
+                                                }}>
+                                                    <Heart size={14} color="#94a3b8" />
+                                                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>No health or allergy data on file for this client.</span>
+                                                </div>
+                                            )}
+
+                                            {/* Health & Safety — CREATE MODE: fetched data display or reminder */}
+                                            {!selectedAppointment && formData.clientId && clientHealthData.loaded && (
+                                                clientHealthData.conditions.length > 0 || clientHealthData.allergens.length > 0 ? (
+                                                    // Client has health data — show it as an alert
+                                                    <div style={{
+                                                        marginTop: '12px', padding: '14px 16px', borderRadius: '12px',
+                                                        background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+                                                        border: '1.5px solid #fed7aa', boxShadow: '0 2px 8px rgba(249,115,22,0.1)'
+                                                    }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                                            <ShieldAlert size={16} color="#ea580c" />
+                                                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#9a3412', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Health &amp; Safety</span>
+                                                        </div>
+                                                        {clientHealthData.conditions.length > 0 && (
+                                                            <div style={{ marginBottom: '8px' }}>
+                                                                <p style={{ margin: '0 0 6px', fontSize: '0.72rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Health Conditions</p>
+                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                                                    {clientHealthData.conditions.map(c => (
+                                                                        <span key={c} style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600, background: 'rgba(190,144,85,0.15)', border: '1.5px solid rgba(190,144,85,0.4)', color: '#92400e' }}>{c}</span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {clientHealthData.allergens.length > 0 && (
+                                                            <div>
+                                                                <p style={{ margin: '0 0 6px', fontSize: '0.72rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Known Allergens</p>
+                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                                                    {clientHealthData.allergens.map(a => (
+                                                                        <span key={a} style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600, background: 'rgba(239,68,68,0.1)', border: '1.5px solid rgba(239,68,68,0.3)', color: '#b91c1c' }}>{a}</span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    // No health data on file — show a soft reminder to ask verbally
+                                                    <div style={{
+                                                        marginTop: '12px', padding: '12px 14px', borderRadius: '10px',
+                                                        background: 'linear-gradient(135deg, #fffbeb 0%, #fef9c3 100%)',
+                                                        border: '1.5px solid #fde68a',
+                                                        display: 'flex', alignItems: 'flex-start', gap: '10px'
+                                                    }}>
+                                                        <Heart size={15} color="#d97706" style={{ flexShrink: 0, marginTop: '1px' }} />
+                                                        <div>
+                                                            <p style={{ margin: '0 0 3px', fontSize: '0.8rem', fontWeight: 700, color: '#92400e' }}>Health Reminder</p>
+                                                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#b45309', lineHeight: 1.5 }}>
+                                                                This client has no health or allergy data on file. Please verbally ask them about any known conditions or allergens before scheduling.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            )}
+
+                                            {/* Loading state while fetching */}
+                                            {!selectedAppointment && formData.clientId && clientHealthData.loading && (
+                                                <div style={{ marginTop: '10px', padding: '8px 12px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Heart size={14} color="#94a3b8" />
+                                                    <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Checking health profile...</span>
+                                                </div>
+                                            )}
 
                                             <div>
                                                 <label className="premium-input-label">Service Details</label>

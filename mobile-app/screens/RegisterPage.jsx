@@ -63,6 +63,15 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
   const [submitted, setSubmitted] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
 
+  // Health info (optional, collapsible)
+  const [healthExpanded, setHealthExpanded] = useState(false);
+  const [selectedConditions, setSelectedConditions] = useState([]);
+  const [selectedAllergens, setSelectedAllergens] = useState([]);
+
+  const PRESET_CONDITIONS = ['Diabetes','Hypertension','Heart Condition','Epilepsy','Keloid-prone Skin','Psoriasis','Eczema','Hemophilia','Pregnancy','Immunocompromised','Blood Thinners Medication'];
+  const PRESET_ALLERGENS  = ['Latex','Nickel','Tattoo Ink','Penicillin','Aspirin','Ibuprofen','Adhesive/Bandage'];
+  const toggleTag = (setArr, tag) => setArr(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+
   const [showPhoneDropdown, setShowPhoneDropdown] = useState(false);
   const countryCodes = [
     { code: '+63', label: '🇵🇭 Philippines (+63)' },
@@ -195,7 +204,10 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
       }
       const fullPhone = `${form.phoneCode} ${rawPhone}`;
       const fullName = [form.firstName.trim(), form.lastName.trim(), form.suffix.trim()].filter(Boolean).join(' ');
-      const result = await onRegister(fullName, form.email.toLowerCase().trim(), form.password, fullPhone, 'customer', orphanId);
+      const result = await onRegister(
+        fullName, form.email.toLowerCase().trim(), form.password, fullPhone, 'customer', orphanId,
+        selectedConditions, selectedAllergens
+      );
       if (result && !result.success) setSubmitted(false);
     } catch (e) { showToast(e.message || 'Registration Failed', 'error'); setSubmitted(false); }
   };
@@ -364,6 +376,71 @@ export function RegisterPage({ onRegister, onSwitchToLogin }) {
               </Text>
             </TouchableOpacity>
             {errors.terms ? <Text style={[styles.errorText, { marginTop: -8, marginBottom: 12 }]}>{errors.terms}</Text> : null}
+
+            {/* Optional Health Info section */}
+            <TouchableOpacity
+              onPress={() => setHealthExpanded(p => !p)}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12,
+                backgroundColor: theme.darkBgSecondary, borderWidth: 1, borderColor: theme.border, marginBottom: 14
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Shield size={15} color={theme.gold} />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textSecondary }}>Health Info (Optional)</Text>
+                {(selectedConditions.length + selectedAllergens.length) > 0 && (
+                  <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, backgroundColor: `${theme.gold}25` }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: theme.gold }}>{selectedConditions.length + selectedAllergens.length}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={{ color: theme.textTertiary, fontSize: 18, lineHeight: 22 }}>{healthExpanded ? '−' : '+'}</Text>
+            </TouchableOpacity>
+
+            {healthExpanded && (
+              <View style={{ marginBottom: 14 }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: theme.textTertiary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Health Conditions</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 16 }}>
+                  {PRESET_CONDITIONS.map(c => {
+                    const active = selectedConditions.includes(c);
+                    return (
+                      <TouchableOpacity
+                        key={c}
+                        onPress={() => toggleTag(setSelectedConditions, c)}
+                        style={{
+                          paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20, borderWidth: 1.5,
+                          borderColor: active ? theme.gold : 'rgba(150,150,150,0.3)',
+                          backgroundColor: active ? `${theme.gold}18` : 'transparent'
+                        }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: active ? theme.gold : theme.textSecondary }}>{c}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: theme.textTertiary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Known Allergens</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 4 }}>
+                  {PRESET_ALLERGENS.map(a => {
+                    const active = selectedAllergens.includes(a);
+                    return (
+                      <TouchableOpacity
+                        key={a}
+                        onPress={() => toggleTag(setSelectedAllergens, a)}
+                        style={{
+                          paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20, borderWidth: 1.5,
+                          borderColor: active ? '#dc2626' : 'rgba(150,150,150,0.3)',
+                          backgroundColor: active ? 'rgba(239,68,68,0.1)' : 'transparent'
+                        }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: active ? '#dc2626' : theme.textSecondary }}>{a}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
 
             {/* Submit */}
             <Animated.View style={{ transform: [{ scale: buttonScale }] }}>

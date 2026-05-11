@@ -465,6 +465,22 @@ db.getConnection((err, connection) => {
           db.query("ALTER TABLE customers ADD COLUMN age INT NULL");
         }
       });
+
+      // MIGRATION: Add health_conditions column (Feature A)
+      db.query("SHOW COLUMNS FROM customers LIKE 'health_conditions'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('[MIGRATE] Migrating customers table: Adding health_conditions column...');
+          db.query("ALTER TABLE customers ADD COLUMN health_conditions TEXT NULL");
+        }
+      });
+
+      // MIGRATION: Add allergens column (Feature A)
+      db.query("SHOW COLUMNS FROM customers LIKE 'allergens'", (err, results) => {
+        if (!err && results.length === 0) {
+          console.log('[MIGRATE] Migrating customers table: Adding allergens column...');
+          db.query("ALTER TABLE customers ADD COLUMN allergens TEXT NULL");
+        }
+      });
     });
 
     // Create Portfolio Table if not exists (Ensuring category and visibility support)
@@ -1020,7 +1036,38 @@ db.getConnection((err, connection) => {
             console.log('[OK] Added piercing_price column to appointments');
           }
         });
+
+        // MIGRATION: Add project_id column to appointments (Feature B — Multi-session timeline)
+        db.query("SHOW COLUMNS FROM appointments LIKE 'project_id'", (err, results) => {
+          if (!err && results.length === 0) {
+            console.log('[MIGRATE] Migrating appointments: Adding project_id column...');
+            db.query("ALTER TABLE appointments ADD COLUMN project_id INT NULL DEFAULT NULL", (alterErr) => {
+              if (alterErr) console.error('[WARN] Could not add project_id column:', alterErr.message);
+              else console.log('[OK] Added project_id column to appointments');
+            });
+          }
+        });
       }
+    });
+
+    // Create Tattoo Projects Table (Feature B — Multi-session timeline grouping)
+    db.query(`
+      CREATE TABLE IF NOT EXISTS tattoo_projects (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        customer_id INT NOT NULL,
+        artist_id INT NOT NULL,
+        design_title VARCHAR(255),
+        total_sessions_planned INT NOT NULL DEFAULT 1,
+        total_sessions_actual INT NULL,
+        status ENUM('active','completed','completed_early') DEFAULT 'active',
+        notes TEXT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `, (err) => {
+      if (err) console.error('[WARN] Error checking tattoo_projects table:', err.message);
+      else console.log('[OK] Tattoo Projects table ready');
     });
 
     // Create Reschedule Requests Table (for admin-approval reschedule flow)
@@ -2804,7 +2851,7 @@ app.post('/api/register', async (req, res) => {
     console.log('\n[INFO] ========== REGISTER REQUEST ==========');
     console.log('[DEBUG] Request body:', req.body);
 
-    const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken } = req.body;
+    const { firstName, lastName, suffix, name, email, password, type, phone, preferences, orphanAppointmentId, photo_marketing_consent, email_promo_consent, captchaToken, health_conditions, allergens } = req.body;
 
     // Verify reCAPTCHA
     const captchaValid = await verifyCaptcha(captchaToken);
@@ -2922,9 +2969,11 @@ app.post('/api/register', async (req, res) => {
             sendSuccessResponse(newUserId);
           });
         } else if (type === 'customer') {
-          // Create customer profile with phone and preferences (stored in notes)
-          const customerQuery = 'INSERT INTO customers (user_id, phone, notes) VALUES (?, ?, ?)';
-          db.query(customerQuery, [newUserId, phone || '', preferences || ''], (custErr) => {
+          // Create customer profile with phone, preferences, and optional health data
+          const safeHealthConditions = Array.isArray(health_conditions) ? JSON.stringify(health_conditions) : '[]';
+          const safeAllergens = Array.isArray(allergens) ? JSON.stringify(allergens) : '[]';
+          const customerQuery = 'INSERT INTO customers (user_id, phone, notes, health_conditions, allergens) VALUES (?, ?, ?, ?, ?)';
+          db.query(customerQuery, [newUserId, phone || '', preferences || '', safeHealthConditions, safeAllergens], (custErr) => {
             if (custErr) {
               console.error('[ERROR] Error creating customer profile:', custErr.message);
             } else {
@@ -3209,11 +3258,16 @@ app.get('/api/artist/:artistId/appointments', (req, res) => {
 
   let query = `
     SELECT 
-      ap.*, 
-      u.name as client_name, 
-      u.email as client_email, 
+      ap.*,
+      u.name as client_name,
+      u.email as client_email,
       ar.commission_rate,
+      cust.health_conditions as client_health_conditions,
+      cust.allergens as client_allergens,
       (SELECT COALESCE(SUM(sm.quantity * i.cost), 0) FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ap.id AND sm.status != 'released') as total_material_cost,
+      tp.status as project_status,
+      tp.total_sessions_planned as project_sessions_planned,
+      tp.total_sessions_actual as project_sessions_actual,
       CASE
         WHEN ap.artist_id = ? AND ap.secondary_artist_id = ? THEN 'both'
         WHEN ap.artist_id = ? THEN 'tattoo'
@@ -3223,6 +3277,8 @@ app.get('/api/artist/:artistId/appointments', (req, res) => {
     FROM appointments ap
     JOIN users u ON ap.customer_id = u.id
     LEFT JOIN artists ar ON ap.artist_id = ar.user_id
+    LEFT JOIN customers cust ON ap.customer_id = cust.user_id
+    LEFT JOIN tattoo_projects tp ON ap.project_id = tp.id
     WHERE (ap.artist_id = ? OR ap.secondary_artist_id = ?) AND ap.is_deleted = 0
   `;
 
@@ -3245,9 +3301,71 @@ app.get('/api/artist/:artistId/appointments', (req, res) => {
       console.error('[ERROR] Error fetching appointments:', err);
       return res.status(500).json({ success: false, message: 'DB Error (Get Appts): ' + err.message });
     }
-
+    // Parse health JSON arrays on each row
+    results.forEach(row => {
+      try { row.client_health_conditions = JSON.parse(row.client_health_conditions || '[]'); } catch { row.client_health_conditions = []; }
+      try { row.client_allergens = JSON.parse(row.client_allergens || '[]'); } catch { row.client_allergens = []; }
+    });
     res.json({ success: true, appointments: results });
   });
+});
+
+// GET project timeline — all sessions in a project (used by Admin + Artist views)
+app.get('/api/appointments/:id/project-timeline', (req, res) => {
+  const { id } = req.params;
+
+  // First, get the project_id for this appointment
+  db.query('SELECT project_id FROM appointments WHERE id = ? AND is_deleted = 0', [id], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, message: 'DB Error' });
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Appointment not found' });
+
+    const projectId = rows[0].project_id;
+    if (!projectId) {
+      return res.json({ success: true, project: null, sessions: [] });
+    }
+
+    // Fetch project metadata
+    db.query('SELECT * FROM tattoo_projects WHERE id = ?', [projectId], (projErr, projRows) => {
+      if (projErr) return res.status(500).json({ success: false, message: 'DB Error (project)' });
+      const project = projRows[0] || null;
+
+      // Fetch all sessions in this project ordered by session_number
+      const sessionsQuery = `
+        SELECT ap.id, ap.session_number, ap.status, ap.appointment_date, ap.start_time,
+               ap.booking_code, u_art.name as artist_name
+        FROM appointments ap
+        JOIN users u_art ON ap.artist_id = u_art.id
+        WHERE ap.project_id = ? AND ap.is_deleted = 0
+        ORDER BY ap.session_number ASC, ap.appointment_date ASC
+      `;
+      db.query(sessionsQuery, [projectId], (sessErr, sessions) => {
+        if (sessErr) return res.status(500).json({ success: false, message: 'DB Error (sessions)' });
+        res.json({ success: true, project, sessions });
+      });
+    });
+  });
+});
+
+// PUT mark a tattoo project as completed early
+app.put('/api/projects/:projectId/complete-early', (req, res) => {
+  const { projectId } = req.params;
+  const { completedAtSession } = req.body;
+
+  if (!completedAtSession || isNaN(parseInt(completedAtSession))) {
+    return res.status(400).json({ success: false, message: 'completedAtSession is required and must be a number' });
+  }
+
+  db.query(
+    `UPDATE tattoo_projects SET status = 'completed_early', total_sessions_actual = ? WHERE id = ? AND status = 'active'`,
+    [parseInt(completedAtSession), projectId],
+    (err, result) => {
+      if (err) return res.status(500).json({ success: false, message: 'DB Error: ' + err.message });
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: 'Project not found or already completed' });
+      }
+      res.json({ success: true, message: 'Project marked as completed early' });
+    }
+  );
 });
 
 // Get artist's clients
@@ -3491,7 +3609,8 @@ app.delete('/api/artist/clients/:id', (req, res) => {
 app.get('/api/customer/profile/:id', (req, res) => {
   const { id } = req.params;
   const query = `
-    SELECT u.name, u.email, c.profile_image, c.phone, c.location, c.notes
+    SELECT u.name, u.email, c.profile_image, c.phone, c.location, c.notes,
+           c.health_conditions, c.allergens
     FROM users u
     LEFT JOIN customers c ON u.id = c.user_id
     WHERE u.id = ?
@@ -3499,17 +3618,19 @@ app.get('/api/customer/profile/:id', (req, res) => {
   db.query(query, [id], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'DB Error' });
     if (results.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
-    res.json({ success: true, profile: results[0] });
+    const profile = results[0];
+    // Parse JSON arrays stored as TEXT
+    try { profile.health_conditions = JSON.parse(profile.health_conditions || '[]'); } catch { profile.health_conditions = []; }
+    try { profile.allergens = JSON.parse(profile.allergens || '[]'); } catch { profile.allergens = []; }
+    res.json({ success: true, profile });
   });
 });
 
 // Update Customer Profile
 app.put('/api/customer/profile/:id', (req, res) => {
   const { id } = req.params;
-  const { name, phone, location, notes, profileImage } = req.body;
+  const { name, phone, location, notes, profileImage, health_conditions, allergens } = req.body;
 
-  // This logic is improved to handle partial updates correctly and prevent data loss.
-  // It also fixes the bug where updating only the name would incorrectly show an error.
   const updateUserPromise = new Promise((resolve, reject) => {
     if (name === undefined) return resolve();
     db.query('UPDATE users SET name = ? WHERE id = ?', [name, id], (err) => {
@@ -3519,13 +3640,12 @@ app.put('/api/customer/profile/:id', (req, res) => {
   });
 
   const updateCustomerPromise = new Promise((resolve, reject) => {
-    const hasCustomerFields = phone !== undefined || location !== undefined || notes !== undefined || profileImage !== undefined;
+    const hasCustomerFields = phone !== undefined || location !== undefined || notes !== undefined ||
+      profileImage !== undefined || health_conditions !== undefined || allergens !== undefined;
     if (!hasCustomerFields) return resolve();
 
-    const customerQuery = 'INSERT INTO customers (user_id, phone, location, notes, profile_image) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE phone = VALUES(phone), location = VALUES(location), notes = VALUES(notes), profile_image = VALUES(profile_image)';
-
     // Fetch existing data to avoid overwriting fields with null if they aren't provided.
-    db.query('SELECT phone, location, notes, profile_image FROM customers WHERE user_id = ?', [id], (selectErr, results) => {
+    db.query('SELECT phone, location, notes, profile_image, health_conditions, allergens FROM customers WHERE user_id = ?', [id], (selectErr, results) => {
       if (selectErr) return reject({ message: 'DB Error (Customer Select)' });
 
       const existing = results[0] || {};
@@ -3533,9 +3653,23 @@ app.put('/api/customer/profile/:id', (req, res) => {
       const finalLocation = location !== undefined ? location : existing.location;
       const finalNotes = notes !== undefined ? notes : existing.notes;
       const finalProfileImage = profileImage !== undefined ? profileImage : existing.profile_image;
+      // Serialize arrays to JSON string for storage
+      const finalHealthConditions = health_conditions !== undefined
+        ? JSON.stringify(Array.isArray(health_conditions) ? health_conditions : [])
+        : existing.health_conditions;
+      const finalAllergens = allergens !== undefined
+        ? JSON.stringify(Array.isArray(allergens) ? allergens : [])
+        : existing.allergens;
 
-      db.query(customerQuery, [id, finalPhone, finalLocation, finalNotes, finalProfileImage], (upsertErr) => {
-        if (upsertErr) return reject({ message: 'DB Error (Customer Upsert)' });
+      const customerQuery = `INSERT INTO customers (user_id, phone, location, notes, profile_image, health_conditions, allergens)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          phone = VALUES(phone), location = VALUES(location), notes = VALUES(notes),
+          profile_image = VALUES(profile_image), health_conditions = VALUES(health_conditions),
+          allergens = VALUES(allergens)`;
+
+      db.query(customerQuery, [id, finalPhone, finalLocation, finalNotes, finalProfileImage, finalHealthConditions, finalAllergens], (upsertErr) => {
+        if (upsertErr) return reject({ message: 'DB Error (Customer Upsert): ' + upsertErr.message });
         resolve();
       });
     });
@@ -4495,8 +4629,8 @@ app.delete('/api/admin/service-kits/:service_type', (req, res) => {
 app.get('/api/admin/appointments', (req, res) => {
   const query = `
     SELECT 
-      ap.*, 
-      u_cust.name as client_name, 
+      ap.*,
+      u_cust.name as client_name,
       u_cust.email as client_email,
       u_art.name as artist_name,
       u_sec.name as secondary_artist_name,
@@ -4505,14 +4639,20 @@ app.get('/api/admin/appointments', (req, res) => {
       ap.manual_payment_method,
       cust.profile_image as client_avatar,
       cust.phone as client_phone,
+      cust.health_conditions as client_health_conditions,
+      cust.allergens as client_allergens,
       (SELECT COALESCE(SUM(sm.quantity * i.cost), 0) FROM session_materials sm JOIN inventory i ON sm.inventory_id = i.id WHERE sm.appointment_id = ap.id AND sm.status != 'released') as total_material_cost,
-      (SELECT COUNT(*) FROM reschedule_requests rr WHERE rr.appointment_id = ap.id AND rr.status = 'pending') as has_pending_reschedule_request
+      (SELECT COUNT(*) FROM reschedule_requests rr WHERE rr.appointment_id = ap.id AND rr.status = 'pending') as has_pending_reschedule_request,
+      tp.status as project_status,
+      tp.total_sessions_planned as project_sessions_planned,
+      tp.total_sessions_actual as project_sessions_actual
     FROM appointments ap
     JOIN users u_cust ON ap.customer_id = u_cust.id
     JOIN users u_art ON ap.artist_id = u_art.id
     LEFT JOIN users u_sec ON ap.secondary_artist_id = u_sec.id
     LEFT JOIN artists ar ON ap.artist_id = ar.user_id
     LEFT JOIN customers cust ON ap.customer_id = cust.user_id
+    LEFT JOIN tattoo_projects tp ON ap.project_id = tp.id
     WHERE ap.is_deleted = 0
     ORDER BY ap.appointment_date DESC, ap.start_time DESC
   `;
@@ -4522,6 +4662,11 @@ app.get('/api/admin/appointments', (req, res) => {
       console.error('[ERROR] Error fetching all appointments:', err);
       return res.status(500).json({ success: false, message: 'Database error' });
     }
+    // Parse health JSON arrays on each row
+    results.forEach(row => {
+      try { row.client_health_conditions = JSON.parse(row.client_health_conditions || '[]'); } catch { row.client_health_conditions = []; }
+      try { row.client_allergens = JSON.parse(row.client_allergens || '[]'); } catch { row.client_allergens = []; }
+    });
     res.json({ success: true, data: results });
   });
 });
