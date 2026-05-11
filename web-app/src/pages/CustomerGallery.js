@@ -267,58 +267,62 @@ function CustomerGallery(){
                                     </select>
                                 </div>
 
-                                {/* Price Range Toggle */}
-                                <button
-                                    onClick={() => setShowPriceFilter(!showPriceFilter)}
-                                    style={{
-                                        padding: '8px 16px', borderRadius: '10px', border: showPriceFilter ? '1px solid #be9055' : '1px solid rgba(0,0,0,0.12)',
-                                        background: showPriceFilter ? 'rgba(193, 154, 107, 0.1)' : 'rgba(255,255,255,0.85)', color: showPriceFilter ? '#be9055' : '#1e293b',
-                                        fontSize: '0.88rem', fontWeight: '600', cursor: 'pointer', outline: 'none', transition: 'all 0.2s',
-                                    }}
-                                >
-                                    PRICE RANGE
-                                </button>
-                            </div>
+                                {/* Price Range Container */}
+                                <div style={{ position: 'relative' }}>
+                                    {/* Price Range Toggle */}
+                                    <button
+                                        onClick={() => setShowPriceFilter(!showPriceFilter)}
+                                        style={{
+                                            padding: '8px 16px', borderRadius: '10px', border: showPriceFilter ? '1px solid #be9055' : '1px solid rgba(0,0,0,0.12)',
+                                            background: showPriceFilter ? 'rgba(193, 154, 107, 0.1)' : 'rgba(255,255,255,0.85)', color: showPriceFilter ? '#be9055' : '#1e293b',
+                                            fontSize: '0.88rem', fontWeight: '600', cursor: 'pointer', outline: 'none', transition: 'all 0.2s',
+                                        }}
+                                    >
+                                        PRICE RANGE
+                                    </button>
 
-                            {/* Price Slider UI */}
-                            {showPriceFilter && (
-                                <div style={{ 
-                                    background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '12px', padding: '16px',
-                                    maxWidth: '400px'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '0.85rem', fontWeight: 'bold', color: '#334155' }}>
-                                        <span>ESTIMATED PRICE</span>
-                                        <span style={{ color: '#be9055' }}>
-                                            ₱{priceRange.min.toLocaleString()} - ₱{priceRange.max.toLocaleString()}{priceRange.max >= 500000 ? '+' : ''}
-                                        </span>
-                                    </div>
-                                    <div style={{ position: 'relative', height: '30px', display: 'flex', alignItems: 'center' }}>
-                                        <div style={{ position: 'absolute', width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px' }} />
+                                    {/* Price Slider UI */}
+                                    {showPriceFilter && (
                                         <div style={{ 
-                                            position: 'absolute', height: '4px', background: '#be9055', borderRadius: '2px',
-                                            left: `${(priceRange.min / 500000) * 100}%`, width: `${((priceRange.max - priceRange.min) / 500000) * 100}%`
-                                        }} />
-                                        <input
-                                            type="range" min="0" max="500000" step="5000" value={priceRange.min}
-                                            onChange={(e) => {
-                                                const val = Math.min(parseInt(e.target.value), priceRange.max - 5000);
-                                                setPriceRange({ ...priceRange, min: val });
-                                            }}
-                                            style={{ position: 'absolute', width: '100%', appearance: 'none', pointerEvents: 'none', background: 'transparent', zIndex: priceRange.min > 400000 ? 5 : 3 }}
-                                            className="custom-range-slider"
-                                        />
-                                        <input
-                                            type="range" min="0" max="500000" step="5000" value={priceRange.max}
-                                            onChange={(e) => {
-                                                const val = Math.max(parseInt(e.target.value), priceRange.min + 5000);
-                                                setPriceRange({ ...priceRange, max: val });
-                                            }}
-                                            style={{ position: 'absolute', width: '100%', appearance: 'none', pointerEvents: 'none', background: 'transparent', zIndex: 4 }}
-                                            className="custom-range-slider"
-                                        />
-                                    </div>
+                                            position: 'absolute', top: '100%', left: '0', zIndex: 20, marginTop: '8px',
+                                            background: 'rgba(255,255,255,0.95)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '12px', padding: '16px',
+                                            width: '350px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', backdropFilter: 'blur(10px)'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '0.85rem', fontWeight: 'bold', color: '#334155' }}>
+                                                <span>ESTIMATED PRICE</span>
+                                                <span style={{ color: '#be9055' }}>
+                                                    ₱{priceRange.min.toLocaleString()} - ₱{priceRange.max.toLocaleString()}{priceRange.max >= 500000 ? '+' : ''}
+                                                </span>
+                                            </div>
+                                            <div style={{ position: 'relative', height: '30px', display: 'flex', alignItems: 'center' }}>
+                                                <div style={{ position: 'absolute', width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px' }} />
+                                                <div style={{ 
+                                                    position: 'absolute', height: '4px', background: '#be9055', borderRadius: '2px',
+                                                    left: `${(priceRange.min / 500000) * 100}%`, width: `${((priceRange.max - priceRange.min) / 500000) * 100}%`
+                                                }} />
+                                                <input
+                                                    type="range" min="0" max="500000" step="5000" value={priceRange.min}
+                                                    onChange={(e) => {
+                                                        const val = Math.min(parseInt(e.target.value), priceRange.max - 5000);
+                                                        setPriceRange({ ...priceRange, min: val });
+                                                    }}
+                                                    style={{ position: 'absolute', width: '100%', appearance: 'none', pointerEvents: 'none', background: 'transparent', zIndex: priceRange.min > 400000 ? 5 : 3 }}
+                                                    className="custom-range-slider"
+                                                />
+                                                <input
+                                                    type="range" min="0" max="500000" step="5000" value={priceRange.max}
+                                                    onChange={(e) => {
+                                                        const val = Math.max(parseInt(e.target.value), priceRange.min + 5000);
+                                                        setPriceRange({ ...priceRange, max: val });
+                                                    }}
+                                                    style={{ position: 'absolute', width: '100%', appearance: 'none', pointerEvents: 'none', background: 'transparent', zIndex: 4 }}
+                                                    className="custom-range-slider"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
                     )}
 
