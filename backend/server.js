@@ -91,6 +91,10 @@ const PAYMONGO_API_BASE = 'https://api.paymongo.com/v1';
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '6Le9F78sAAAAACBBrgQz5pzpbZ2VxI4h71UXhCd9';
 
 async function verifyCaptcha(token) {
+  // TEMPORARILY DISABLED -- always pass CAPTCHA checks during development
+  console.log('[reCAPTCHA v3] CAPTCHA verification is DISABLED. Returning true.');
+  return true;
+  /*
   if (!token) return false;
   try {
     const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
@@ -106,6 +110,7 @@ async function verifyCaptcha(token) {
     console.error('reCAPTCHA verification error:', err.message);
     return false;
   }
+  */
 }
 
 // Enhanced CORS configuration

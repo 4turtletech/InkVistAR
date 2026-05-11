@@ -11,7 +11,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { Shield, Users, Calendar as CalendarIcon, Grid, Package } from 'lucide-react-native';
+import { Shield, Users, Calendar as CalendarIcon, Grid, Package, PenTool } from 'lucide-react-native';
 
 // Auth Screens
 import { LoginPage } from './screens/LoginPage.jsx';
@@ -149,10 +149,10 @@ const ArtistTabs = ({ user, onLogout }) => {
       tabBarActiveTintColor: theme.gold,
       tabBarInactiveTintColor: theme.textTertiary,
       tabBarIcon: ({ focused, color }) => {
+        if (route.name === 'Sessions') return <PenTool size={24} color={color} />;
         const icons = {
           Home: focused ? 'home' : 'home-outline',
           Schedule: focused ? 'calendar' : 'calendar-outline',
-          Sessions: focused ? 'flash' : 'flash-outline',
           Works: focused ? 'images' : 'images-outline',
           Profile: focused ? 'person' : 'person-outline',
         };
