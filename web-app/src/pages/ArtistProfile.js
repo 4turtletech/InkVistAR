@@ -468,7 +468,7 @@ function ArtistProfile() {
                                                             style={{ flex: 1 }}
                                                             value={currentNo}
                                                             onChange={e => {
-                                                                const digits = filterDigits(e.target.value).slice(0, 11);
+                                                                const digits = filterDigits(e.target.value).replace(/^0+/, '').slice(0, 11);
                                                                 const { code: currentCode } = getPhoneParts(profile.phone);
                                                                 setProfile({ ...profile, phone: currentCode + digits });
                                                             }}

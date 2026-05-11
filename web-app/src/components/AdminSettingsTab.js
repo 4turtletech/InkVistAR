@@ -260,7 +260,7 @@ function AdminSettingsTab({ initialTab = 'studio' }) {
                                         <input
                                             type="tel"
                                             value={settings.studio.phone}
-                                            onChange={(e) => handleChangeWithValidation('studio', 'phone', filterDigits(e.target.value).slice(0, 15))}
+                                            onChange={(e) => handleChangeWithValidation('studio', 'phone', filterDigits(e.target.value).replace(/^0+/, '').slice(0, 15))}
                                             className={`form-input ${errors.studio_phone ? 'error' : ''}`}
                                             maxLength={15}
                                         />
