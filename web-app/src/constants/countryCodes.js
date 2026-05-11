@@ -936,10 +936,9 @@ export const getPhoneParts = (fullPhone) => {
     const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
     
     const matchedCode = sortedCodes.find(c => fullPhone.startsWith(c.code))?.code || '+63';
-    let currentNo = fullPhone.startsWith(matchedCode) 
+    const currentNo = fullPhone.startsWith(matchedCode) 
         ? fullPhone.substring(matchedCode.length) 
         : fullPhone;
         
-    currentNo = currentNo.replace(/^0+/, '');
-    return { code: matchedCode, currentNo };
+    return { code: matchedCode, currentNo: currentNo.replace(/^0+/, '') };
 };

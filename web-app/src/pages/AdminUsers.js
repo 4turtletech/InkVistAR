@@ -1667,7 +1667,7 @@ function AdminUsers() {
                                                 onChange={(code) => setCreateFormData({ ...createFormData, countryCode: code })}
                                             />
                                             <input type="tel" className={`form-input ${createErrors.phone ? 'error' : ''}`}
-                                                style={{ flex: 1 }} placeholder="09XXXXXXXXX" value={createFormData.phone}
+                                                style={{ flex: 1 }} placeholder="9XXXXXXXXX" value={createFormData.phone}
                                                 onChange={(e) => handleCreateFieldChange('phone', e.target.value.replace(/^0+/, ''))}
                                                 onBlur={() => handleCreateBlur('phone')} maxLength={11} />
                                         </div>

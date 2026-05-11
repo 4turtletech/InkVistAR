@@ -7,7 +7,6 @@ import { API_URL } from '../config';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { getDisplayCode, formatStatus } from '../utils/formatters';
-import { getPhoneParts } from '../constants/countryCodes';
 import './AdminUsers.css';
 import { User, Calendar, FileText, Edit2, Trash2, Save, X, RotateCcw, Search, Filter, SlidersHorizontal, Users, UserCheck, UserMinus, Clock } from 'lucide-react';
 
@@ -136,10 +135,7 @@ function AdminClients() {
             const combinedHistory = [...appointments, ...posSales].sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date));
 
             setClientDetails({ profile, appointments: combinedHistory, notes: profile.notes || '' });
-            setFormData({
-                ...profile,
-                phone: profile.phone ? getPhoneParts(profile.phone).currentNo : ''
-            });
+            setFormData(profile);
             setErrors({});
 
         } catch (error) {

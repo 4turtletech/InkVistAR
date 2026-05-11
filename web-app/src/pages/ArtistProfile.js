@@ -459,7 +459,7 @@ function ArtistProfile() {
                                                             value={code}
                                                             onChange={newCode => {
                                                                 const { currentNo: num } = getPhoneParts(profile.phone);
-                                                                setProfile({ ...profile, phone: newCode + num });
+                                                                setProfile({ ...profile, phone: newCode + num.replace(/^0+/, '') });
                                                             }}
                                                         />
                                                         <input
