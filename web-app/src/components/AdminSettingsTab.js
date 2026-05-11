@@ -112,8 +112,11 @@ function AdminSettingsTab({ initialTab = 'studio' }) {
         try {
             const res = await Axios.get(`${API_URL}/api/admin/settings`);
             if (res.data.success && res.data.data) {
-                // Merge fetched settings with defaults
-                setSettings(prev => ({ ...prev, ...res.data.data }));
+                const fetchedData = res.data.data;
+                if (fetchedData.studio && fetchedData.studio.phone) {
+                    fetchedData.studio.phone = fetchedData.studio.phone.replace(/^0+/, '');
+                }
+                setSettings(prev => ({ ...prev, ...fetchedData }));
             }
         } catch (error) {
             console.error("Error fetching settings:", error);

@@ -192,7 +192,7 @@ function AdminStudio() {
         setFormData({
             name: branch.name,
             address: branch.address,
-            phone: branch.phone,
+            phone: branch.phone ? branch.phone.replace(/^0+/, '') : '',
             operating_hours: branch.operating_hours,
             capacity: branch.capacity
         });
