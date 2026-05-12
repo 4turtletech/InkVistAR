@@ -371,6 +371,8 @@ function AdminAppointments() {
                         waiverAcceptedAt: apt.waiver_accepted_at || null,
                         sessionNumber: apt.session_number || null,
                         totalSessions: apt.total_sessions || null,
+                        project_id: apt.project_id || null,
+                        projectStatus: apt.project_status || null,
                         discountAmount: parseFloat(apt.discount_amount) || 0,
                         discountType: apt.discount_type || null,
                         selectedJewelryId: apt.selected_jewelry_id || null,
