@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Axios from 'axios';
-import { Printer, Download, Package, RefreshCw, TrendingUp, AlertTriangle, Box, Tag, DollarSign, Activity } from 'lucide-react';
+import { Printer, Download, Package, RefreshCw, TrendingUp, AlertTriangle, Box, Tag, DollarSign, Activity, Search } from 'lucide-react';
 import AdminSideNav from '../components/AdminSideNav';
 import { API_URL } from '../config';
 import './PortalStyles.css';
@@ -17,6 +17,7 @@ function AdminBusinessReports() {
         const d = new Date();
         return d.toISOString().split('T')[0];
     });
+    const [searchTerm, setSearchTerm] = useState('');
     
     const [loading, setLoading] = useState(false);
     
@@ -330,44 +331,106 @@ function AdminBusinessReports() {
                 </header>
                 <p className="header-subtitle" style={{ marginTop: '-15px', marginBottom: '24px' }}>Generate aggregated insights for Sales and Inventory management.</p>
 
-                <div className="premium-filter-bar glass-card">
-                    <div className="modern-view-toggle">
-                        <button 
-                            className={`toggle-btn ${reportType === 'sales' ? 'active' : ''}`}
-                            onClick={() => setReportType('sales')}
-                        >
-                            <TrendingUp size={16} /> Sales & Revenue
-                        </button>
-                        <button 
-                            className={`toggle-btn ${reportType === 'inventory' ? 'active' : ''}`}
-                            onClick={() => setReportType('inventory')}
-                        >
-                            <Package size={16} /> Inventory Assets
-                        </button>
+                {loading ? null : reportType === 'sales' && salesReport ? (
+                    <div className="analytics-dashboard-layout" style={{ marginBottom: '24px' }}>
+                        <div className="card glass-card">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <div style={{ padding: '8px', background: '#ecfdf5', borderRadius: '8px', color: '#10b981' }}><DollarSign size={20} /></div>
+                                <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Net Revenue</h3>
+                            </div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>₱{salesReport.netRevenue.toLocaleString("en-PH", {minimumFractionDigits:2})}</div>
+                        </div>
+                        <div className="card glass-card">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <div style={{ padding: '8px', background: '#eff6ff', borderRadius: '8px', color: '#3b82f6' }}><Activity size={20} /></div>
+                                <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Transactions</h3>
+                            </div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>{salesReport.totalTransactions}</div>
+                        </div>
+                        <div className="card glass-card">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <div style={{ padding: '8px', background: '#f5f3ff', borderRadius: '8px', color: '#8b5cf6' }}><Tag size={20} /></div>
+                                <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Avg Transaction Val</h3>
+                            </div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>₱{salesReport.atv.toLocaleString("en-PH", {minimumFractionDigits:2})}</div>
+                        </div>
+                    </div>
+                ) : reportType === 'inventory' && inventoryReport ? (
+                    <div className="analytics-dashboard-layout" style={{ marginBottom: '24px' }}>
+                        <div className="card glass-card">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <div style={{ padding: '8px', background: '#fef3c7', borderRadius: '8px', color: '#d97706' }}><Box size={20} /></div>
+                                <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Total Stock Value</h3>
+                            </div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>₱{inventoryReport.totalValue.toLocaleString("en-PH", {minimumFractionDigits:2})}</div>
+                        </div>
+                        <div className="card glass-card">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <div style={{ padding: '8px', background: '#f1f5f9', borderRadius: '8px', color: '#475569' }}><Package size={20} /></div>
+                                <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Total Items on Hand</h3>
+                            </div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>{inventoryReport.totalItems}</div>
+                        </div>
+                        <div className="card glass-card">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <div style={{ padding: '8px', background: '#fef2f2', borderRadius: '8px', color: '#ef4444' }}><AlertTriangle size={20} /></div>
+                                <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Low Stock Alerts</h3>
+                            </div>
+                            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: inventoryReport.lowStockCount > 0 ? '#ef4444' : '#10b981' }}>{inventoryReport.lowStockCount}</div>
+                        </div>
+                    </div>
+                ) : null}
+
+                <div className="premium-filter-bar premium-filter-bar--stacked glass-card">
+                    <div className="premium-search-box--full">
+                        <Search size={18} className="search-icon" />
+                        <input 
+                            type="text" 
+                            placeholder="Search records or products..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
                     
-                    <div className="filter-group" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        <div className="date-picker-wrapper">
-                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginRight: '8px' }}>From</label>
-                            <input 
-                                type="date" 
-                                className="premium-date-input" 
-                                value={startDate} 
-                                onChange={(e) => setStartDate(e.target.value)}
-                            />
+                    <div className="premium-filters-row">
+                        <div className="modern-view-toggle">
+                            <button 
+                                className={`toggle-btn ${reportType === 'sales' ? 'active' : ''}`}
+                                onClick={() => { setReportType('sales'); setSearchTerm(''); }}
+                            >
+                                <TrendingUp size={16} /> Sales & Revenue
+                            </button>
+                            <button 
+                                className={`toggle-btn ${reportType === 'inventory' ? 'active' : ''}`}
+                                onClick={() => { setReportType('inventory'); setSearchTerm(''); }}
+                            >
+                                <Package size={16} /> Inventory Assets
+                            </button>
                         </div>
-                        <div className="date-picker-wrapper">
-                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginRight: '8px' }}>To</label>
-                            <input 
-                                type="date" 
-                                className="premium-date-input" 
-                                value={endDate} 
-                                onChange={(e) => setEndDate(e.target.value)}
-                            />
+                        
+                        <div className="filter-group" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <div className="date-picker-wrapper">
+                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginRight: '8px' }}>From</label>
+                                <input 
+                                    type="date" 
+                                    className="premium-date-input" 
+                                    value={startDate} 
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                />
+                            </div>
+                            <div className="date-picker-wrapper">
+                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginRight: '8px' }}>To</label>
+                                <input 
+                                    type="date" 
+                                    className="premium-date-input" 
+                                    value={endDate} 
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                />
+                            </div>
+                            <button className="icon-btn-v2" onClick={fetchData} title="Refresh Data">
+                                <RefreshCw size={18} className={loading ? 'spinning' : ''} />
+                            </button>
                         </div>
-                        <button className="icon-btn-v2" onClick={fetchData} title="Refresh Data">
-                            <RefreshCw size={18} className={loading ? 'spinning' : ''} />
-                        </button>
                     </div>
                 </div>
 
@@ -378,32 +441,6 @@ function AdminBusinessReports() {
                     </div>
                 ) : reportType === 'sales' && salesReport ? (
                     <div className="dashboard-grid fade-in" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        
-                        {/* KPI Cards */}
-                        <div className="analytics-dashboard-layout">
-                            <div className="card glass-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                    <div style={{ padding: '8px', background: '#ecfdf5', borderRadius: '8px', color: '#10b981' }}><DollarSign size={20} /></div>
-                                    <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Net Revenue</h3>
-                                </div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>₱{salesReport.netRevenue.toLocaleString("en-PH", {minimumFractionDigits:2})}</div>
-                            </div>
-                            <div className="card glass-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                    <div style={{ padding: '8px', background: '#eff6ff', borderRadius: '8px', color: '#3b82f6' }}><Activity size={20} /></div>
-                                    <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Transactions</h3>
-                                </div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>{salesReport.totalTransactions}</div>
-                            </div>
-                            <div className="card glass-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                    <div style={{ padding: '8px', background: '#f5f3ff', borderRadius: '8px', color: '#8b5cf6' }}><Tag size={20} /></div>
-                                    <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Avg Transaction Val</h3>
-                                </div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>₱{salesReport.atv.toLocaleString("en-PH", {minimumFractionDigits:2})}</div>
-                            </div>
-                        </div>
-
                         {/* Mix Table */}
                         <div className="grid-2col" style={{ gap: '24px' }}>
                             <div className="glass-card">
@@ -413,15 +450,17 @@ function AdminBusinessReports() {
                                 <table className="premium-table">
                                     <thead><tr><th>Product</th><th>Qty Sold</th><th>Revenue</th></tr></thead>
                                     <tbody>
-                                        {salesReport.topProducts.map((p, i) => (
-                                            <tr key={i}>
-                                                <td style={{ fontWeight: 600 }}>{p.name}</td>
-                                                <td>{p.quantity}</td>
-                                                <td style={{ fontWeight: 600, color: '#10b981' }}>₱{p.revenue.toLocaleString()}</td>
-                                            </tr>
-                                        ))}
-                                        {salesReport.topProducts.length === 0 && (
-                                            <tr><td colSpan="3" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No retail data for this period.</td></tr>
+                                        {salesReport.topProducts
+                                            .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            .map((p, i) => (
+                                                <tr key={i}>
+                                                    <td style={{ fontWeight: 600 }}>{p.name}</td>
+                                                    <td>{p.quantity}</td>
+                                                    <td style={{ fontWeight: 600, color: '#10b981' }}>₱{p.revenue.toLocaleString()}</td>
+                                                </tr>
+                                            ))}
+                                        {salesReport.topProducts.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                                            <tr><td colSpan="3" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No retail data matches your search.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -451,31 +490,6 @@ function AdminBusinessReports() {
                     </div>
                 ) : reportType === 'inventory' && inventoryReport ? (
                     <div className="dashboard-grid fade-in" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        
-                        <div className="analytics-dashboard-layout">
-                            <div className="card glass-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                    <div style={{ padding: '8px', background: '#fef3c7', borderRadius: '8px', color: '#d97706' }}><Box size={20} /></div>
-                                    <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Total Stock Value</h3>
-                                </div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>₱{inventoryReport.totalValue.toLocaleString("en-PH", {minimumFractionDigits:2})}</div>
-                            </div>
-                            <div className="card glass-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                    <div style={{ padding: '8px', background: '#f1f5f9', borderRadius: '8px', color: '#475569' }}><Package size={20} /></div>
-                                    <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Total Items on Hand</h3>
-                                </div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>{inventoryReport.totalItems}</div>
-                            </div>
-                            <div className="card glass-card">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                    <div style={{ padding: '8px', background: '#fef2f2', borderRadius: '8px', color: '#ef4444' }}><AlertTriangle size={20} /></div>
-                                    <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#64748b' }}>Low Stock Alerts</h3>
-                                </div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 700, color: inventoryReport.lowStockCount > 0 ? '#ef4444' : '#10b981' }}>{inventoryReport.lowStockCount}</div>
-                            </div>
-                        </div>
-
                         <div className="grid-2col" style={{ gap: '24px' }}>
                             <div className="glass-card">
                                 <div className="card-header-v2">
@@ -484,15 +498,17 @@ function AdminBusinessReports() {
                                 <table className="premium-table">
                                     <thead><tr><th>Item Name</th><th>Consumed</th><th>Restocked</th></tr></thead>
                                     <tbody>
-                                        {inventoryReport.topConsumed.map((p, i) => (
-                                            <tr key={i}>
-                                                <td style={{ fontWeight: 600 }}>{p.name}</td>
-                                                <td style={{ fontWeight: 600, color: '#f59e0b' }}>-{p.consumed}</td>
-                                                <td style={{ color: '#10b981' }}>+{p.added}</td>
-                                            </tr>
-                                        ))}
-                                        {inventoryReport.topConsumed.length === 0 && (
-                                            <tr><td colSpan="3" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No consumption recorded.</td></tr>
+                                        {inventoryReport.topConsumed
+                                            .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            .map((p, i) => (
+                                                <tr key={i}>
+                                                    <td style={{ fontWeight: 600 }}>{p.name}</td>
+                                                    <td style={{ fontWeight: 600, color: '#f59e0b' }}>-{p.consumed}</td>
+                                                    <td style={{ color: '#10b981' }}>+{p.added}</td>
+                                                </tr>
+                                            ))}
+                                        {inventoryReport.topConsumed.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                                            <tr><td colSpan="3" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No consumption matches your search.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -505,15 +521,17 @@ function AdminBusinessReports() {
                                 <table className="premium-table">
                                     <thead><tr><th>Item Name</th><th>Current Stock</th><th>Min Threshold</th></tr></thead>
                                     <tbody>
-                                        {inventoryReport.lowStockItems.map((p, i) => (
-                                            <tr key={i}>
-                                                <td style={{ fontWeight: 600 }}>{p.name}</td>
-                                                <td style={{ fontWeight: 700, color: '#ef4444' }}>{p.quantity}</td>
-                                                <td>{p.min_stock_level}</td>
-                                            </tr>
-                                        ))}
-                                        {inventoryReport.lowStockItems.length === 0 && (
-                                            <tr><td colSpan="3" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>All stock levels are healthy!</td></tr>
+                                        {inventoryReport.lowStockItems
+                                            .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                                            .map((p, i) => (
+                                                <tr key={i}>
+                                                    <td style={{ fontWeight: 600 }}>{p.name}</td>
+                                                    <td style={{ fontWeight: 700, color: '#ef4444' }}>{p.quantity}</td>
+                                                    <td>{p.min_stock_level}</td>
+                                                </tr>
+                                            ))}
+                                        {inventoryReport.lowStockItems.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                                            <tr><td colSpan="3" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No low stock alerts match your search.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
