@@ -790,6 +790,12 @@ function AdminAppointments() {
     const handleRebookNextSession = (appointment) => {
         showConfirm(`Are you sure you want to Rebook a next session for this project?`, () => {
             const nextSessionNumber = (appointment.sessionNumber || appointment.session_number || 1) + 1;
+            
+            // Calculate remaining balance from previous session
+            const previousPrice = parseFloat(appointment.price) || 0;
+            const previousPaid = parseFloat(appointment.totalPaid) || 0;
+            const remainingBalance = Math.max(0, previousPrice - previousPaid);
+            
             setSelectedAppointment(null);
             setConfirmDialog(prev => ({ ...prev, isOpen: false }));
             setArchiveMode(false);
@@ -804,11 +810,11 @@ function AdminAppointments() {
                 date: new Date().toISOString().split('T')[0],
                 time: '13:00',
                 status: 'pending',
-                paymentStatus: 'unpaid',
+                paymentStatus: remainingBalance <= 0 ? 'paid' : 'unpaid',
                 notes: `Continuation of project: ${appointment.designTitle || appointment.design_title}`,
-                price: appointment.price || 0,
-                tattooPrice: appointment.tattooPrice || appointment.tattoo_price || 0,
-                piercingPrice: appointment.piercingPrice || appointment.piercing_price || 0,
+                price: remainingBalance,
+                tattooPrice: remainingBalance,
+                piercingPrice: 0,
                 beforePhoto: null,
                 referenceImage: appointment.referenceImage || '',
                 manualPaidAmount: 0,
