@@ -825,7 +825,7 @@ function AdminAppointments() {
                 rescheduleReason: '',
                 projectId: appointment.project_id || appointment.projectId || null,
                 sessionNumber: nextSessionNumber,
-                totalSessions: appointment.totalSessions || appointment.total_sessions || '',
+                totalSessions: Math.max(nextSessionNumber, parseInt(appointment.totalSessions || appointment.total_sessions) || 2),
                 discountAmount: 0,
                 discountType: 'flat',
                 quotedPrice: appointment.quotedPrice || appointment.quoted_price || previousPrice,
@@ -878,7 +878,9 @@ function AdminAppointments() {
         const finalPrice = (!priceValue || priceValue < 0) ? 0 : priceValue;
 
         // Dual-service split price validation
-        if (isDualService && !isCancellingOrRejecting) {
+        // Skip for subsequent sessions (rebooks) where both amounts are 0 — the project was already fully paid
+        const isSubsequentSession = (parseInt(formData.sessionNumber) || 1) > 1;
+        if (isDualService && !isCancellingOrRejecting && !isSubsequentSession) {
             const tp = Number(formData.tattooPrice) || 0;
             const pp = Number(formData.piercingPrice) || 0;
             const newErrors = {};
@@ -893,6 +895,7 @@ function AdminAppointments() {
         }
 
         // Block completing a tattoo session without staff + price
+        // For subsequent sessions (session 2+), a price of 0 is valid (fully paid in prior session)
         if (isTattooSession && formData.status === 'completed') {
             if (hasNoArtist) {
                 setModalTab('details');
@@ -904,14 +907,12 @@ function AdminAppointments() {
                 showAlert('Cannot Complete', 'Both staff members must be assigned before marking a dual-service session as completed.', 'warning');
                 return;
             }
-            if (finalPrice <= 0) {
+            if (finalPrice <= 0 && !isSubsequentSession) {
                 setModalTab('pricing');
                 showAlert('Cannot Complete', 'A price must be set before marking this session as completed.', 'warning');
                 return;
             }
         }
-
-        const isSubsequentSession = (parseInt(formData.sessionNumber) || 1) > 1;
 
         if (isTattooSession && finalPrice <= 0 && !isCancellingOrRejecting && !isSubsequentSession) {
             setModalTab('pricing');
