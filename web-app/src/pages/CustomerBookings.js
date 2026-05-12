@@ -889,11 +889,14 @@ function CustomerBookings(){
         const days = [];
         const today = new Date();
         today.setHours(0,0,0,0);
-        const oneWeekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        
+        const now = new Date();
+        const twelveHoursFromNow = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+        twelveHoursFromNow.setHours(0,0,0,0);
+
         const maxDate = new Date();
         maxDate.setMonth(today.getMonth() + 3);
 
-        // The current appointment date — customer can only move FORWARD from this
         const currentApptDate = selectedApt ? new Date(selectedApt.appointment_date) : null;
         if (currentApptDate) currentApptDate.setHours(0,0,0,0);
 
@@ -916,9 +919,9 @@ function CustomerBookings(){
             const dateStr = `${rescheduleMonth.getFullYear()}-${String(rescheduleMonth.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             const dateObj = new Date(rescheduleMonth.getFullYear(), rescheduleMonth.getMonth(), i);
             const isSelected = rescheduleDate === dateStr;
-            const isPast = dateObj < oneWeekFromNow;
+            const isPast = dateObj < twelveHoursFromNow;
             const isTooFar = dateObj > maxDate;
-            const isBeforeOrSameAsCurrentAppt = currentApptDate ? dateObj <= currentApptDate : false;
+            const isSameAsCurrentAppt = currentApptDate ? dateObj.getTime() === currentApptDate.getTime() : false;
             const isAlreadyBooked = bookedDateSet.has(dateStr);
             
             const dateData = bookedDates[dateStr] || { consultationTimes: [], piercingTimes: [], sessionCount: 0 };
@@ -940,13 +943,13 @@ function CustomerBookings(){
                 isBusy = dateData.sessionCount >= Math.max(1, studioCapacity - 1);
             }
 
-            const isDisabled = isPast || isTooFar || isBeforeOrSameAsCurrentAppt || isAlreadyBooked || isFull;
+            const isDisabled = isPast || isTooFar || isSameAsCurrentAppt || isAlreadyBooked || isFull;
 
             let bgColor = 'white';
             let textColor = '#1e293b';
             let borderColor = '#e2e8f0';
 
-            if (isPast || isTooFar || isBeforeOrSameAsCurrentAppt) {
+            if (isPast || isTooFar || isSameAsCurrentAppt) {
                 bgColor = '#f8fafc';
                 textColor = '#cbd5e1';
                 borderColor = 'transparent';
@@ -970,9 +973,9 @@ function CustomerBookings(){
 
             days.push(
                 <div key={i} className={`calendar-day ${isDisabled ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
-                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #be9055' : `1px solid ${borderColor}`, opacity: isPast || isTooFar || isBeforeOrSameAsCurrentAppt ? 0.4 : (isAlreadyBooked || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
+                    style={{ backgroundColor: bgColor, color: textColor, border: isSelected ? '2px solid #be9055' : `1px solid ${borderColor}`, opacity: isPast || isTooFar || isSameAsCurrentAppt ? 0.4 : (isAlreadyBooked || isFull ? 0.65 : 1), boxShadow: isSelected ? '0 0 0 3px rgba(193, 154, 107, 0.2)' : 'none' }}
                     onClick={() => { if (!isDisabled) setRescheduleDate(dateStr); }}
-                    title={isAlreadyBooked ? 'You already have a session on this date' : isBeforeOrSameAsCurrentAppt ? 'You can only reschedule to a later date' : isFull ? 'This date is fully booked' : ''}
+                    title={isAlreadyBooked ? 'You already have a session on this date' : isSameAsCurrentAppt ? 'This is the current appointment date' : isFull ? 'This date is fully booked' : ''}
                 >
                     <span style={{ fontWeight: isSelected ? '700' : '500' }}>{i}</span>
                 </div>
@@ -1603,13 +1606,18 @@ function CustomerBookings(){
                                                 const firstDay = new Date(year, month, 1).getDay();
                                                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                                                 const today = new Date(); today.setHours(0,0,0,0);
+                                                
+                                                const now = new Date();
+                                                const twelveHoursFromNow = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+                                                twelveHoursFromNow.setHours(0,0,0,0);
+
                                                 const cells = [];
                                                 for (let i = 0; i < firstDay; i++) cells.push(<div key={`empty-${i}`} />);
                                                 for (let day = 1; day <= daysInMonth; day++) {
                                                     const dateObj = new Date(year, month, day);
                                                     dateObj.setHours(0,0,0,0);
                                                     const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                                                    const isPast = dateObj <= today;
+                                                    const isPast = dateObj < twelveHoursFromNow;
                                                     const isSelected = rescheduleRequestData.date === dateStr;
                                                     cells.push(
                                                         <div
