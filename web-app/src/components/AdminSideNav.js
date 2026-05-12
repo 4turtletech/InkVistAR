@@ -21,7 +21,8 @@ import {
     ChevronDown,
     ChevronUp,
     AppWindow,
-    Bell
+    Bell,
+    FileText
 } from 'lucide-react';
 import io from 'socket.io-client';
 import Axios from 'axios';
@@ -201,6 +202,7 @@ function AdminSideNav() {
         { label: 'Chat', icon: MessageSquare, path: '/admin/chat', description: 'Chat with customers' },
         { label: 'Inventory', icon: Package, path: '/admin/inventory', description: 'Manage inventory' },
         { label: 'POS System', icon: ShoppingCart, path: '/admin/pos', description: 'Point of Sale' },
+        { label: 'Reports', icon: FileText, path: '/admin/reports', description: 'Generate Reports' },
         { label: 'Analytics', icon: BarChart3, path: '/admin/analytics', description: 'View reports' },
         { label: 'Billing', icon: Receipt, path: '/admin/billing', description: 'Payments & Invoices' },
         { label: 'Studio', icon: Building2, path: '/admin/studio', description: 'Manage branches' },
