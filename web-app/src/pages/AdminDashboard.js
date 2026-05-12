@@ -98,12 +98,13 @@ function AdminDashboard() {
         try {
             setLoading(true);
             const user = JSON.parse(localStorage.getItem('user') || '{}');
-            const [usersResponse, appointmentsResponse, logsResponse, inventoryResponse, notificationsResponse] = await Promise.all([
+            const [usersResponse, appointmentsResponse, logsResponse, inventoryResponse, notificationsResponse, payoutAlertsResponse] = await Promise.all([
                 Axios.get(`${API_URL}/api/debug/users`),
                 Axios.get(`${API_URL}/api/admin/appointments`),
                 Axios.get(`${API_URL}/api/admin/audit-logs?limit=20`), // Fetch enough logs for dashboard activity feed
                 Axios.get(`${API_URL}/api/admin/inventory?status=active`),
-                user.id ? Axios.get(`${API_URL}/api/notifications/${user.id}`) : Promise.resolve({ data: { unreadCount: 0 } })
+                user.id ? Axios.get(`${API_URL}/api/notifications/${user.id}`) : Promise.resolve({ data: { unreadCount: 0 } }),
+                Axios.get(`${API_URL}/api/admin/payout-alerts`).catch(() => ({ data: { success: true, alerts: [] } }))
             ]);
 
             if (usersResponse.data.success) {
@@ -241,6 +242,17 @@ function AdminDashboard() {
                         type: 'appointment', // Changed to 'appointment' for consistency with AdminNotifications
                         message: `You have ${pendingAppointments.length} pending appointment requests.`,
                         severity: 'medium'
+                    });
+                }
+
+                // 3. Payout Alert (15th and 30th)
+                if (payoutAlertsResponse.data && payoutAlertsResponse.data.success && payoutAlertsResponse.data.alerts && payoutAlertsResponse.data.alerts.length > 0) {
+                    const count = payoutAlertsResponse.data.alerts.length;
+                    generatedAlerts.push({
+                        id: alertId++,
+                        type: 'payout',
+                        message: `Payout Day! ${count} artist${count > 1 ? 's' : ''} have unpaid commissions to settle today.`,
+                        severity: 'high'
                     });
                 }
 

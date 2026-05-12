@@ -7432,6 +7432,45 @@ app.post('/api/admin/payouts', (req, res) => {
   });
 });
 
+// GET Payout Alerts (Admin Only)
+// Returns artists that are due for payout if today is the 15th or 30th (or last day of month)
+app.get('/api/admin/payout-alerts', (req, res) => {
+  const today = new Date();
+  const day = today.getDate();
+  const isLastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() === day;
+  const isPayoutDay = (day === 15) || (day === 30) || isLastDayOfMonth;
+
+  if (!isPayoutDay) {
+    return res.json({ success: true, alerts: [] });
+  }
+
+  const query = `
+    SELECT u.id as artist_id, u.name as artist_name,
+      COALESCE((
+        SELECT SUM(
+          CASE 
+            WHEN a.commission_split IS NOT NULL AND a.secondary_artist_id = u.id 
+              THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30 * ((100 - a.commission_split) / 100)
+            WHEN a.commission_split IS NOT NULL AND a.artist_id = u.id 
+              THEN ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30 * (a.commission_split / 100)
+            ELSE ((COALESCE((SELECT COALESCE(SUM(amount),0) FROM payments WHERE appointment_id = a.id AND status = 'paid'), 0) / 100) + COALESCE(a.manual_paid_amount, 0)) * 0.30
+          END
+        )
+        FROM appointments a
+        WHERE (a.artist_id = u.id OR a.secondary_artist_id = u.id)
+          AND a.is_deleted = 0 AND a.status IN ('confirmed', 'completed')
+      ), 0) - COALESCE((SELECT SUM(amount) FROM payouts WHERE artist_id = u.id), 0) as unclaimed_balance
+    FROM users u
+    WHERE u.user_type = 'artist' AND u.is_deleted = 0
+    HAVING unclaimed_balance > 0
+  `;
+
+  db.query(query, (err, artists) => {
+    if (err) return res.status(500).json({ success: false, message: 'Database error calculating payouts' });
+    res.json({ success: true, alerts: artists });
+  });
+});
+
 // POST Release/Return individual material to inventory
 app.post('/api/appointments/:id/release-material', (req, res) => {
   const appointmentId = parseInt(req.params.id, 10);
