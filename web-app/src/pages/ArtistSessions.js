@@ -346,9 +346,22 @@ function ArtistSessions() {
                 confirmText: 'Discard Changes',
                 cancelText: 'Cancel',
                 type: 'warning',
-                onConfirm: () => {
-                    forceCloseSessionModal();
+                onConfirm: async () => {
                     setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                    
+                    // The user wants "Discard Changes" to truly start over, 
+                    // which means reverting the supplies back to inventory.
+                    if (sessionMaterials && sessionMaterials.length > 0) {
+                        for (const mat of sessionMaterials) {
+                            try {
+                                await Axios.post(`${API_URL}/api/appointments/${activeSession.id}/release-material`, { materialId: mat.id });
+                            } catch (e) {
+                                console.error('Failed to release material on discard', e);
+                            }
+                        }
+                    }
+
+                    forceCloseSessionModal();
                 },
                 onClose: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
             });
