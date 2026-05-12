@@ -6781,17 +6781,34 @@ app.post('/api/appointments/:id/materials', (req, res) => {
 
       console.log(`[OK] Deducted ${quantity} from inventory ${inventory_id}`);
 
-      db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
-        [id, inventory_id, quantity, 'hold'], (insErr) => {
-          if (insErr) {
-            console.error('[ERROR] Error inserting session material:', insErr);
+      // Try to update existing hold first
+      db.query('UPDATE session_materials SET quantity = quantity + ? WHERE appointment_id = ? AND inventory_id = ? AND status = "hold"',
+        [quantity, id, inventory_id], (updErr, updResult) => {
+          if (updErr) {
+            console.error('[ERROR] Error updating session material:', updErr);
             // Rollback stock
             db.query('UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [quantity, inventory_id]);
-            return res.status(500).json({ success: false, message: 'Failed to record material usage: ' + insErr.message });
+            return res.status(500).json({ success: false, message: 'Failed to update material usage: ' + updErr.message });
           }
-          console.log(`[OK] Added session material as HOLD status`);
-          res.json({ success: true, message: 'Material added to session' });
-        });
+
+          if (updResult.affectedRows > 0) {
+            console.log(`[OK] Incremented session material quantity`);
+            return res.json({ success: true, message: 'Material quantity incremented' });
+          } else {
+            // Insert new row if no hold exists
+            db.query('INSERT INTO session_materials (appointment_id, inventory_id, quantity, status) VALUES (?, ?, ?, ?)',
+              [id, inventory_id, quantity, 'hold'], (insErr) => {
+                if (insErr) {
+                  console.error('[ERROR] Error inserting session material:', insErr);
+                  // Rollback stock
+                  db.query('UPDATE inventory SET current_stock = current_stock + ? WHERE id = ?', [quantity, inventory_id]);
+                  return res.status(500).json({ success: false, message: 'Failed to record material usage: ' + insErr.message });
+                }
+                console.log(`[OK] Added session material as HOLD status`);
+                res.json({ success: true, message: 'Material added to session' });
+              });
+          }
+      });
     });
 });
 
