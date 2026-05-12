@@ -749,6 +749,7 @@ function AdminAppointments() {
     };
 
     const handleAddNew = (prefilledDate = null) => {
+        const safeDate = (typeof prefilledDate === 'string') ? prefilledDate : new Date().toISOString().split('T')[0];
         setSelectedAppointment(null);
         setModalTab('details');
         setFormData({
@@ -757,7 +758,7 @@ function AdminAppointments() {
             secondaryArtistId: '',
             commissionSplit: 50,
             serviceType: '',
-            date: prefilledDate || new Date().toISOString().split('T')[0],
+            date: safeDate,
             time: '13:00',
             status: 'pending',
             paymentStatus: 'unpaid',
@@ -780,7 +781,7 @@ function AdminAppointments() {
             discountType: 'flat'
         });
         setClientSearch('');
-        initialFormDataRef.current = { ...formData, clientId: '', artistId: '', secondaryArtistId: '', commissionSplit: 50, serviceType: '', date: prefilledDate || new Date().toISOString().split('T')[0], time: '13:00', status: 'pending', paymentStatus: 'unpaid', notes: '', price: 0, tattooPrice: 0, piercingPrice: 0, beforePhoto: null, referenceImage: null, manualPaidAmount: 0, manualPaymentMethod: 'Cash', rejectionReason: '', rescheduleReason: '', isReferral: false };
+        initialFormDataRef.current = { ...formData, clientId: '', artistId: '', secondaryArtistId: '', commissionSplit: 50, serviceType: '', date: safeDate, time: '13:00', status: 'pending', paymentStatus: 'unpaid', notes: '', price: 0, tattooPrice: 0, piercingPrice: 0, beforePhoto: null, referenceImage: null, manualPaidAmount: 0, manualPaymentMethod: 'Cash', rejectionReason: '', rescheduleReason: '', isReferral: false };
         openModal();
     };
 
