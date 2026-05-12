@@ -91,7 +91,7 @@ function CustomerProfile() {
         setList(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
 
     const handleAddHealthCondition = () => {
-        const trimmed = customCondition.trim().replace(/[<>]/g, '');
+        const trimmed = customCondition.trim().replace(/[^a-zA-Z\s]/g, '');
         if (!trimmed) {
             setErrors(prev => ({ ...prev, customCondition: 'Please enter a health condition.' }));
             return;
@@ -110,7 +110,7 @@ function CustomerProfile() {
     };
 
     const handleAddAllergen = () => {
-        const trimmed = customAllergen.trim().replace(/[<>]/g, '');
+        const trimmed = customAllergen.trim().replace(/[^a-zA-Z\s]/g, '');
         if (!trimmed) {
             setErrors(prev => ({ ...prev, customAllergen: 'Please enter an allergen.' }));
             return;
@@ -509,7 +509,7 @@ function CustomerProfile() {
                                                     placeholder="Other condition..."
                                                     value={customCondition}
                                                     maxLength={60}
-                                                    onChange={e => { setCustomCondition(e.target.value.replace(/[<>]/g, '')); if(errors.customCondition) setErrors(prev => ({ ...prev, customCondition: '' })); }}
+                                                    onChange={e => { setCustomCondition(e.target.value.replace(/[^a-zA-Z\s]/g, '')); if(errors.customCondition) setErrors(prev => ({ ...prev, customCondition: '' })); }}
                                                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddHealthCondition(); } }}
                                                     aria-label="Add a custom health condition"
                                                     className="form-input artist-profile-input"
@@ -555,7 +555,7 @@ function CustomerProfile() {
                                                     placeholder="Other allergen..."
                                                     value={customAllergen}
                                                     maxLength={60}
-                                                    onChange={e => { setCustomAllergen(e.target.value.replace(/[<>]/g, '')); if(errors.customAllergen) setErrors(prev => ({ ...prev, customAllergen: '' })); }}
+                                                    onChange={e => { setCustomAllergen(e.target.value.replace(/[^a-zA-Z\s]/g, '')); if(errors.customAllergen) setErrors(prev => ({ ...prev, customAllergen: '' })); }}
                                                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddAllergen(); } }}
                                                     aria-label="Add a custom allergen"
                                                     className="form-input artist-profile-input"
