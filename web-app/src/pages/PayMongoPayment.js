@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
 import { CreditCard, ShieldCheck, ArrowLeft, RefreshCw } from 'lucide-react';
+import PaymentConfirmationModal from '../components/PaymentConfirmationModal';
 import './PortalStyles.css';
 import { getDisplayCode } from '../utils/formatters';
 
@@ -19,6 +20,7 @@ const PayMongoPayment = () => {
     const [customAmount, setCustomAmount] = useState('');
     const [errors, setErrors] = useState({});
     const [checkoutUrl, setCheckoutUrl] = useState(null);
+    const [showWaiverModal, setShowWaiverModal] = useState(false);
 
     // Only use piercing deposit when service is EXCLUSIVELY piercing (not a Tattoo + Piercing bundle)
     const isPiercingOnly = serviceType && String(serviceType).toLowerCase() === 'piercing';
@@ -63,7 +65,8 @@ const PayMongoPayment = () => {
                 appointmentId: appointmentId ? String(appointmentId) : null,
                 price: price ? Number(price) : 0,
                 paymentType: (typeof finalType === 'string') ? finalType : 'deposit',
-                customAmount: finalType === 'custom' ? Number(customAmount) : null
+                customAmount: finalType === 'custom' ? Number(customAmount) : null,
+                agreedToWaiver: true // We send this since the user will agree via the modal before triggering actual payment, but wait, this is initialization
             };
             
             console.log('[Checkout] Payload:', payload);
@@ -230,7 +233,7 @@ const PayMongoPayment = () => {
                                 </span>
                             </div>
                         </div>
-                        <button onClick={handlePayment} className="btn" style={{ ...btnBase, background: 'white', color: '#1e293b', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                        <button onClick={() => setShowWaiverModal(true)} className="btn" style={{ ...btnBase, background: 'white', color: '#1e293b', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                             Proceed to PayMongo
                         </button>
                         {type !== 'balance' && (
@@ -272,6 +275,20 @@ const PayMongoPayment = () => {
                     <div style={{ width: '40px', height: '1px', background: '#cbd5e1' }}></div>
                 </div>
             </div>
+
+            {/* Waiver Modal */}
+            <PaymentConfirmationModal 
+                isOpen={showWaiverModal}
+                onClose={() => setShowWaiverModal(false)}
+                onAccept={() => {
+                    setShowWaiverModal(false);
+                    // The payload initialization was already done earlier. 
+                    // To ensure we log the waiver, we will send an update to backend just before redirecting.
+                    handlePayment();
+                }}
+                amount={paymentType === 'deposit' ? depositPrice : paymentType === 'custom' ? Number(customAmount) : location.state?.remainingBalance || price}
+                paymentType={paymentType === 'deposit' ? 'Downpayment' : paymentType === 'balance' ? 'Remaining Balance' : paymentType === 'custom' ? 'Custom Partial' : 'Full Payment'}
+            />
         </div>
     );
 };

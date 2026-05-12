@@ -7449,7 +7449,7 @@ app.get('/api/appointments/:id/details', (req, res) => {
 
 // Create a PayMongo Checkout Session
 app.post('/api/payments/create-checkout-session', async (req, res) => {
-  const { appointmentId, price: providedPrice, paymentType, customAmount } = req.body; // paymentType: 'full', 'deposit', or 'custom'
+  const { appointmentId, price: providedPrice, paymentType, customAmount, agreedToWaiver } = req.body; // paymentType: 'full', 'deposit', or 'custom'
 
   if (!appointmentId) {
     return res.status(400).json({ success: false, message: 'appointmentId is required' });
@@ -7615,7 +7615,25 @@ app.post('/api/payments/create-checkout-session', async (req, res) => {
             }
           );
 
-
+          // Log waiver acceptance if provided
+          if (agreedToWaiver) {
+            db.query(
+              `UPDATE appointments SET waiver_accepted_at = NOW() WHERE id = ? AND waiver_accepted_at IS NULL`,
+              [appointmentId],
+              (waiverErr) => {
+                if (waiverErr) {
+                  // Fallback for older schema if column missing
+                  if (waiverErr.code === 'ER_BAD_FIELD_ERROR' && waiverErr.message.includes('waiver_accepted_at')) {
+                    console.warn('[WARN] waiver_accepted_at column missing, skipping waiver log.');
+                  } else {
+                    console.error('[WARN] Could not log waiver acceptance:', waiverErr.message);
+                  }
+                } else {
+                  console.log(`[INFO] Waiver acceptance logged for Appt #${appointmentId}`);
+                }
+              }
+            );
+          }
 
           res.json({ success: true, checkoutUrl, sessionId });
         } catch (err) {

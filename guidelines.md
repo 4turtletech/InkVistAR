@@ -8,13 +8,13 @@ This document serves as the primary ground truth for the InkVistAR project. When
 - **Read Before Modifying:** Always use `view_file` to read the target code before writing an update. Do not guess the structure of a component.
 - **Soft Deletes Only:** Never DELETE rows from the database. Always use the `is_deleted` flag for appointments, portfolio_works, inventory, and users. For Admin appointments, the 'Delete' UI action is officially deprecated; strictly use the notification-driven 'Reschedule' workflow.
 - **System Flow Accuracy:** Refer to the `Updated_Activity_Diagram.md` for the correct booking, payment, and scheduling flows.
-- **Mandatory Guidelines Sync:** Whenever you create or modify database tables, add new API endpoints, change important patterns, or introduce new system features, you **MUST** update this `guidelines.md` file in the same changeset. This ensures this document remains the single source of truth and prevents future hallucinations.
-
+- **Mandatory Auto-Documentation & Self-Updating Guidelines (Gemini/Agent Rule):** The AI Agent MUST automatically update this `guidelines.md` file whenever it modifies database schemas, API endpoints, core UI patterns, or system logic. Do not wait for the user to ask you to document changes. The AI must treat this file as a living document and seamlessly update it in the *same changeset* as the code modifications.
+`
 ### 2. Theming & UI Standards (Web App)
 - **Primary Colors:** 
   - Dark Background: `#171516`
   - Dark Surface/Card: `#262022`
-  - Brand Gold: `#b7954e`
+  - Brand Gold: `#be9055`
   - Slate Dark (Text/Headings): `#1e293b` or `#0f172a`
   - Slate Muted (Subtext): `#64748b`
   - Status Colors: Success (`#10b981`), Warning (`#f59e0b`), Danger (`#ef4444`), Info (`#3b82f6`)
