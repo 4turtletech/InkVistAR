@@ -952,30 +952,38 @@ function AdminAppointments() {
                     payload.paymentStatus = formData.paymentStatus;
                 }
 
+                // Feature B: Auto-create a tattoo_project when totalSessions > 1 and no project yet
+                const totalSessNum = parseInt(formData.totalSessions) || 0;
+                const hasExistingProject = !!formData.projectId;
+                let resolvedProjectId = formData.projectId || null;
+
+                if (totalSessNum > 1 && !hasExistingProject) {
+                    try {
+                        const projRes = await Axios.post(`${API_URL}/api/projects`, {
+                            customer_id: formData.clientId,
+                            artist_id: formData.artistId,
+                            design_title: formData.designTitle || 'Multi-Session Project',
+                            total_sessions_planned: totalSessNum,
+                            notes: formData.notes || null
+                        });
+                        if (projRes.data.success) resolvedProjectId = projRes.data.project_id;
+                    } catch (projErr) {
+                        console.error('[B-2] Failed to auto-create project:', projErr.message);
+                    }
+                }
+
+                payload.projectId = resolvedProjectId;
+
                 if (selectedAppointment) {
                     await Axios.put(`${API_URL}/api/admin/appointments/${selectedAppointment.id}`, payload);
-                } else {
-                    // Feature B: Auto-create a tattoo_project when totalSessions > 1 and no project yet
-                    const totalSessNum = parseInt(formData.totalSessions) || 0;
-                    const hasExistingProject = !!formData.projectId;
-                    let resolvedProjectId = formData.projectId || null;
-
-                    if (totalSessNum > 1 && !hasExistingProject) {
-                        try {
-                            const projRes = await Axios.post(`${API_URL}/api/projects`, {
-                                customer_id: formData.clientId,
-                                artist_id: formData.artistId,
-                                design_title: formData.designTitle || 'Multi-Session Project',
-                                total_sessions_planned: totalSessNum,
-                                notes: formData.notes || null
-                            });
-                            if (projRes.data.success) resolvedProjectId = projRes.data.project_id;
-                        } catch (projErr) {
-                            console.error('[B-2] Failed to auto-create project:', projErr.message);
-                        }
+                    
+                    if (resolvedProjectId && !hasExistingProject) {
+                        Axios.put(`${API_URL}/api/projects/${resolvedProjectId}/link-session`, {
+                            appointment_id: selectedAppointment.id,
+                            session_number: parseInt(formData.sessionNumber) || 1
+                        }).catch(e => console.warn('[B-2] Could not link session to project:', e.message));
                     }
-
-                    payload.projectId = resolvedProjectId;
+                } else {
                     const aptRes = await Axios.post(`${API_URL}/api/admin/appointments`, payload);
 
                     // Link the seed appointment to the project (session 1)

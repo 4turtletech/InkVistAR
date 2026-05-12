@@ -5596,6 +5596,10 @@ app.put('/api/admin/appointments/:id', (req, res) => {
     const ts = body.totalSessions === '' || body.totalSessions === null ? null : parseInt(body.totalSessions);
     updates.push('total_sessions = ?'); params.push(ts);
   }
+  if (body.projectId !== undefined) {
+    const pid = body.projectId === '' || body.projectId === null ? null : parseInt(body.projectId);
+    updates.push('project_id = ?'); params.push(pid);
+  }
 
   // Special discount (Task 1.3)
   if (body.discountAmount !== undefined) {
