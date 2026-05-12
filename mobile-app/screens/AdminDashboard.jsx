@@ -378,7 +378,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
             {displayedAppointments.length > 0 ? (
               displayedAppointments.map((apt, index) => (
                 <AnimatedTouchable key={`apt-${apt.id || index}`} style={styles.appointmentRow} onPress={() => { setSelectedAppointment(apt); setDetailModalVisible(true); }} activeOpacity={0.8}>
-                  
+
                   <View style={styles.aptHeader}>
                     <View style={styles.aptInfoWrapper}>
                       <Text style={styles.aptClient} numberOfLines={1}>{apt.client_name || 'N/A'}</Text>
@@ -392,7 +392,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
                     <Text style={styles.aptDate}>
                       {formatDate(apt.appointment_date)} {apt.start_time ? `at ${formatTime(apt.start_time)}` : ''}
                     </Text>
-                    
+
                     {apt.status === 'pending' && (
                       <View style={styles.aptActions}>
                         {(!apt.service_type || apt.service_type.toLowerCase() === 'consultation') ? (
@@ -459,7 +459,7 @@ export const AdminDashboard = ({ onLogout, navigation }) => {
                 <DetailRow theme={theme} label="Payment" value={selectedAppointment.payment_status || 'N/A'} isStatus />
                 <DetailRow theme={theme} label="Total Price" value={`P${formatCurrency(selectedAppointment.total_price || selectedAppointment.price || 0)}`} />
                 {selectedAppointment.notes && <DetailRow theme={theme} label="Notes" value={selectedAppointment.notes} />}
-                <View style={{height:40}}/>
+                <View style={{ height: 40 }} />
               </ScrollView>
             )}
           </View>
@@ -535,20 +535,20 @@ const getStyles = (theme, insets) => StyleSheet.create({
   filterPillTextActive: { color: theme.backgroundDeep },
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.surfaceLight, borderRadius: borderRadius.md, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16, borderWidth: 1, borderColor: theme.border },
   searchInput: { flex: 1, ...typography.bodySmall, color: theme.textPrimary },
-  
+
   appointmentRow: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border },
   aptHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   aptInfoWrapper: { flex: 1, marginRight: 12 },
   aptClient: { ...typography.body, fontWeight: '700', color: theme.textPrimary },
   aptDesign: { ...typography.bodySmall, color: theme.gold, marginTop: 4, fontWeight: '600' },
   aptArtist: { ...typography.bodySmall, color: theme.textSecondary, marginTop: 2 },
-  
+
   aptFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   aptDate: { ...typography.bodyXSmall, color: theme.textTertiary, flex: 1 },
-  
+
   aptActions: { flexDirection: 'row', gap: 8 },
   aptActionBtn: { padding: 8, borderRadius: borderRadius.sm, borderWidth: 1, backgroundColor: theme.surfaceLight, alignItems: 'center', justifyContent: 'center' },
-  
+
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 16 },
   pageBtn: { padding: 8, backgroundColor: theme.surfaceLight, borderRadius: borderRadius.md },
   pageBtnDisabled: { opacity: 0.3 },
