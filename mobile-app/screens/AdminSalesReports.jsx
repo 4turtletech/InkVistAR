@@ -6,7 +6,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  RefreshControl, SafeAreaView, Platform, Share, Alert, ActivityIndicator,
+  RefreshControl, SafeAreaView, Platform, Share, Alert, ActivityIndicator, ActionSheetIOS,
 } from 'react-native';
 import {
   ChevronLeft, TrendingUp, Package, DollarSign, Activity, Tag,
@@ -21,6 +21,7 @@ import { EmptyState } from '../src/components/shared/EmptyState';
 import { formatCurrency } from '../src/utils/formatters';
 import { API_BASE_URL } from '../src/utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { generateCSV, exportCSV, buildReportHTML, printOrSharePDF, sharePDF } from '../src/utils/exportHelpers';
 
 const toDateStr = (d) => d.toISOString().split('T')[0];
 const fmtPeso = (v) => `P${parseFloat(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -177,22 +178,127 @@ export const AdminSalesReports = ({ navigation }) => {
   }, [inventory, transactions, startDate, endDate, reportType]);
 
   /* ═══ SHARE / EXPORT ═══ */
-  const handleShare = async () => {
-    let text = `InkVistAR ${reportType === 'sales' ? 'Sales' : 'Inventory'} Report\nPeriod: ${startDate} to ${endDate}\nGenerated: ${new Date().toLocaleString()}\n\n`;
-    if (reportType === 'sales' && salesReport) {
-      text += `Net Revenue: ${fmtPeso(salesReport.net)}\nTransactions: ${salesReport.count}\nAvg Transaction: ${fmtPeso(salesReport.atv)}\nService Revenue: ${fmtPeso(salesReport.service)}\nRetail Revenue: ${fmtPeso(salesReport.retail)}\nDiscounts: ${fmtPeso(salesReport.discounts)}\n`;
-      if (salesReport.top.length > 0) {
-        text += '\nTop Products:\n';
-        salesReport.top.forEach(p => { text += `  ${p.name}: ${p.qty} sold, ${fmtPeso(p.rev)}\n`; });
+  const handleExport = () => {
+    const options = ['Share as Text', 'Export as CSV', 'Print Report', 'Share PDF', 'Cancel'];
+    const cancelIndex = 4;
+
+    const doAction = (index) => {
+      if (index === 0) {
+        // Original text share
+        let text = `InkVistAR ${reportType === 'sales' ? 'Sales' : 'Inventory'} Report\nPeriod: ${startDate} to ${endDate}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+        if (reportType === 'sales' && salesReport) {
+          text += `Net Revenue: ${fmtPeso(salesReport.net)}\nTransactions: ${salesReport.count}\nAvg Transaction: ${fmtPeso(salesReport.atv)}\nService Revenue: ${fmtPeso(salesReport.service)}\nRetail Revenue: ${fmtPeso(salesReport.retail)}\nDiscounts: ${fmtPeso(salesReport.discounts)}\n`;
+          if (salesReport.top.length > 0) {
+            text += '\nTop Products:\n';
+            salesReport.top.forEach(p => { text += `  ${p.name}: ${p.qty} sold, ${fmtPeso(p.rev)}\n`; });
+          }
+        } else if (reportType === 'inventory' && invReport) {
+          text += `Stock Value: ${fmtPeso(invReport.totalVal)}\nItems on Hand: ${invReport.totalQty}\nLow Stock Alerts: ${invReport.lowCount}\n`;
+          if (invReport.topConsumed.length > 0) {
+            text += '\nTop Consumed:\n';
+            invReport.topConsumed.forEach(p => { text += `  ${p.name}: -${p.consumed} consumed, +${p.added} added\n`; });
+          }
+        }
+        Share.share({ message: text, title: 'Business Report' }).catch(() => {});
+      } else if (index === 1) {
+        // CSV Export
+        if (reportType === 'sales') {
+          const sD = new Date(startDate);
+          const eD = new Date(endDate); eD.setHours(23, 59, 59, 999);
+          const period = invoices.filter(inv => {
+            const d = new Date(inv.created_at || inv.issue_date);
+            return d >= sD && d <= eD && (inv.status || '').toLowerCase() === 'paid';
+          });
+          const columns = [
+            { key: 'created_at', label: 'Date' },
+            { key: 'client', label: 'Client' },
+            { key: 'service_type', label: 'Type' },
+            { key: 'amount', label: 'Amount' },
+            { key: 'discount_amount', label: 'Discount' },
+            { key: 'status', label: 'Status' },
+          ];
+          const csv = generateCSV(period, columns);
+          exportCSV(csv, `sales_report_${startDate}_to_${endDate}`);
+        } else {
+          const columns = [
+            { key: 'name', label: 'Item' },
+            { key: 'category', label: 'Category' },
+            { key: 'quantity', label: 'Stock' },
+            { key: 'min_stock_level', label: 'Min Stock' },
+            { key: 'cost', label: 'Unit Cost' },
+            { key: 'retail_price', label: 'Retail Price' },
+          ];
+          const csv = generateCSV(inventory, columns);
+          exportCSV(csv, `inventory_report_${startDate}_to_${endDate}`);
+        }
+      } else if (index === 2 || index === 3) {
+        // Print or Share PDF
+        const html = reportType === 'sales' && salesReport
+          ? buildReportHTML({
+              title: 'Sales & Revenue Report',
+              subtitle: `Period: ${startDate} to ${endDate}`,
+              metrics: [
+                { label: 'Net Revenue', value: fmtPeso(salesReport.net) },
+                { label: 'Transactions', value: String(salesReport.count) },
+                { label: 'Avg Transaction', value: fmtPeso(salesReport.atv) },
+                { label: 'Discounts', value: fmtPeso(salesReport.discounts) },
+              ],
+              tables: [
+                {
+                  title: 'Revenue by Source',
+                  headers: ['Source', 'Amount', '% Share'],
+                  rows: [
+                    ['Tattoo Services', fmtPeso(salesReport.service), salesReport.net > 0 ? `${((salesReport.service / salesReport.net) * 100).toFixed(1)}%` : '0%'],
+                    ['Retail POS', fmtPeso(salesReport.retail), salesReport.net > 0 ? `${((salesReport.retail / salesReport.net) * 100).toFixed(1)}%` : '0%'],
+                  ],
+                },
+                {
+                  title: 'Bestselling Retail Products',
+                  headers: ['Product', 'Qty Sold', 'Revenue'],
+                  rows: salesReport.top.map(p => [p.name, String(p.qty), fmtPeso(p.rev)]),
+                },
+              ],
+            })
+          : buildReportHTML({
+              title: 'Inventory Report',
+              subtitle: `Period: ${startDate} to ${endDate}`,
+              metrics: [
+                { label: 'Stock Value', value: fmtPeso(invReport?.totalVal || 0) },
+                { label: 'Items on Hand', value: String(invReport?.totalQty || 0) },
+                { label: 'Low Stock Alerts', value: `${invReport?.lowCount || 0} items` },
+              ],
+              tables: [
+                {
+                  title: 'Highest Turnover (Consumed)',
+                  headers: ['Item', 'Used', 'Restocked'],
+                  rows: (invReport?.topConsumed || []).map(p => [p.name, `-${p.consumed}`, `+${p.added}`]),
+                },
+                {
+                  title: 'Low Stock / Reorder Alerts',
+                  headers: ['Item', 'Current Stock', 'Minimum'],
+                  rows: (invReport?.lowItems || []).map(p => [p.name, String(p.quantity), String(p.min_stock_level)]),
+                },
+              ],
+            });
+        if (index === 2) printOrSharePDF(html);
+        else sharePDF(html, `${reportType}_report_${startDate}_to_${endDate}`);
       }
-    } else if (reportType === 'inventory' && invReport) {
-      text += `Stock Value: ${fmtPeso(invReport.totalVal)}\nItems on Hand: ${invReport.totalQty}\nLow Stock Alerts: ${invReport.lowCount}\n`;
-      if (invReport.topConsumed.length > 0) {
-        text += '\nTop Consumed:\n';
-        invReport.topConsumed.forEach(p => { text += `  ${p.name}: -${p.consumed} consumed, +${p.added} added\n`; });
-      }
+    };
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: cancelIndex, title: 'Export Report' },
+        doAction
+      );
+    } else {
+      Alert.alert('Export Report', 'Choose an export format:', [
+        { text: 'Share Text', onPress: () => doAction(0) },
+        { text: 'CSV File', onPress: () => doAction(1) },
+        { text: 'Print Report', onPress: () => doAction(2) },
+        { text: 'Share PDF', onPress: () => doAction(3) },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
     }
-    try { await Share.share({ message: text, title: 'Business Report' }); } catch (_) {}
   };
 
   /* ═══ KPI CARD ═══ */
@@ -228,7 +334,7 @@ export const AdminSalesReports = ({ navigation }) => {
           <Text style={s.headerTitle}>Business Reports</Text>
           <Text style={s.headerSub}>Sales & Inventory Insights</Text>
         </View>
-        <AnimatedTouchable onPress={handleShare} style={s.shareBtn} title="Share Report">
+        <AnimatedTouchable onPress={handleExport} style={s.shareBtn} title="Export Report">
           <Share2 size={18} color={theme.gold} />
         </AnimatedTouchable>
         <AnimatedTouchable onPress={fetchData} style={[s.shareBtn, { marginLeft: 8 }]} title="Refresh">

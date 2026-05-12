@@ -470,8 +470,8 @@ export function ArtistSchedule({ onBack, artistId, navigation, route }) {
                       <Text style={modalS.valueBoldPrice}>₱{parseFloat(selectedAppointment.price || 0).toLocaleString()}</Text>
                     </View>
                     <View style={modalS.statItem}>
-                      <Text style={modalS.labelSmall}>Your Cut (30%)</Text>
-                      <Text style={modalS.valueBoldCut}>₱{((parseFloat(selectedAppointment.price || 0) * 0.3)).toLocaleString()}</Text>
+                      <Text style={modalS.labelSmall}>Your Cut ({((parseFloat(selectedAppointment.commission_rate) || 0.30) * 100).toFixed(0)}%)</Text>
+                      <Text style={modalS.valueBoldCut}>₱{((parseFloat(selectedAppointment.price || 0) * (parseFloat(selectedAppointment.commission_rate) || 0.30))).toLocaleString()}</Text>
                     </View>
                   </View>
 

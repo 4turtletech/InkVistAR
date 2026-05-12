@@ -67,7 +67,9 @@ export const ArtistSessions = ({ artistId, onBack, navigation, route }) => {
   const onRefresh = () => { setRefreshing(true); fetchTodaySessions(); };
 
   const renderSession = ({ item, index }) => {
-    const commission = (item.price || 0) * 0.3;
+    const rate = parseFloat(item.commission_rate) || 0.30;
+    const commission = (item.price || 0) * rate;
+    const rateLabel = `${(rate * 100).toFixed(0)}%`;
     return (
       <StaggerItem index={index}>
         <View style={styles.card}>
@@ -90,7 +92,7 @@ export const ArtistSessions = ({ artistId, onBack, navigation, route }) => {
               </View>
             </View>
             <View style={styles.priceSection}>
-              <Text style={styles.priceLabel}>Earnings (30%)</Text>
+              <Text style={styles.priceLabel}>Earnings ({rateLabel})</Text>
               <Text style={styles.priceValue}>P{formatCurrency(commission)}</Text>
             </View>
           </View>

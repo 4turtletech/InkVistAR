@@ -16,8 +16,10 @@ import { typography, spacing, borderRadius, shadows } from '../src/theme';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { StaggerItem } from '../src/components/shared/StaggerItem';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
+import { EmptyState } from '../src/components/shared/EmptyState';
 import { SuccessCheckmark } from '../src/components/shared/SuccessCheckmark';
 import { getAdminInventory, getAllUsersForAdmin, createAdminInvoice, processInventoryTransaction } from '../src/utils/api';
+import { printOrSharePDF, sharePDF } from '../src/utils/exportHelpers';
 
 export const AdminPOS = ({ navigation }) => {
   const { theme, hapticsEnabled } = useTheme();
@@ -191,6 +193,8 @@ export const AdminPOS = ({ navigation }) => {
       setSelectedCustomer('');
       setAmountTendered('');
       setPaymentMethod('Cash');
+      setDiscountType('none');
+      setCustomDiscount('');
     }
   };
 
@@ -199,6 +203,37 @@ export const AdminPOS = ({ navigation }) => {
     { key: 'Card', icon: CreditCard, color: '#6366f1' },
     { key: 'GCash', icon: Smartphone, color: '#3b82f6' },
   ];
+
+  // Build a styled receipt HTML for print/share
+  const buildReceiptHTML = (order) => `
+    <!DOCTYPE html>
+    <html><head><meta charset="utf-8"><title>Receipt</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Courier New', monospace; color: #1e293b; padding: 24px; max-width: 320px; margin: 0 auto; }
+      .center { text-align: center; }
+      .logo { font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 4px; }
+      .sub { font-size: 10px; color: #64748b; margin-bottom: 16px; }
+      .divider { border-top: 1px dashed #94a3b8; margin: 12px 0; }
+      .row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+      .total .row { font-size: 14px; font-weight: bold; }
+      .footer { text-align: center; font-size: 10px; color: #94a3b8; margin-top: 16px; }
+    </style></head><body>
+      <div class="center"><div class="logo">INKVICTUSSTUDIO</div><div class="sub">Official Receipt</div></div>
+      <div class="divider"></div>
+      <div class="row"><span>Invoice</span><span>${order.orderId}</span></div>
+      <div class="row"><span>Date</span><span>${new Date().toLocaleDateString()}</span></div>
+      <div class="row"><span>Payment</span><span>${order.paymentMethod}</span></div>
+      <div class="divider"></div>
+      <div class="total"><div class="row"><span>TOTAL</span><span>P${order.total.toLocaleString()}</span></div></div>
+      ${order.paymentMethod === 'Cash' ? `
+        <div class="row"><span>Tendered</span><span>P${(order.total + order.changeGiven).toLocaleString()}</span></div>
+        <div class="row"><span>Change</span><span>P${order.changeGiven.toLocaleString()}</span></div>
+      ` : ''}
+      <div class="divider"></div>
+      <div class="footer"><p>Thank you for your purchase!</p><p>InkVistAR Studio</p></div>
+    </body></html>
+  `;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -337,6 +372,63 @@ export const AdminPOS = ({ navigation }) => {
                   ))}
                 </ScrollView>
 
+                {/* Discount Controls */}
+                <Text style={styles.inputLabel}>Apply Discount</Text>
+                <View style={styles.discountRow}>
+                  {[
+                    { key: 'none', label: 'None', color: theme.textSecondary },
+                    { key: 'pwd_senior', label: 'PWD / Senior (20%)', color: '#6366f1' },
+                    { key: 'promo_10', label: 'Promo (10%)', color: '#f59e0b' },
+                    { key: 'custom', label: 'Custom %', color: '#10b981' },
+                  ].map(d => (
+                    <AnimatedTouchable
+                      key={d.key}
+                      style={[styles.discountBtn, discountType === d.key && { borderColor: d.color, backgroundColor: `${d.color}12` }]}
+                      onPress={() => { setDiscountType(d.key); if (d.key !== 'custom') setCustomDiscount(''); }}
+                    >
+                      <Tag size={14} color={discountType === d.key ? d.color : theme.textTertiary} />
+                      <Text style={[styles.discountBtnText, discountType === d.key && { color: d.color }]} numberOfLines={1}>{d.label}</Text>
+                    </AnimatedTouchable>
+                  ))}
+                </View>
+                {discountType === 'custom' && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <TextInput
+                      style={[styles.amountInput, { flex: 1, textAlign: 'center', fontSize: 18, marginBottom: 0 }]}
+                      keyboardType="numeric"
+                      placeholder="Enter %"
+                      placeholderTextColor={theme.textTertiary}
+                      value={customDiscount}
+                      onChangeText={(v) => {
+                        const num = parseFloat(v);
+                        if (v === '' || (num >= 0 && num <= 100)) setCustomDiscount(v);
+                      }}
+                      maxLength={5}
+                    />
+                    <Text style={{ ...typography.h3, color: theme.textSecondary }}>%</Text>
+                  </View>
+                )}
+
+                {/* Order Summary */}
+                <View style={styles.orderSummary}>
+                  <View style={styles.summaryLine}>
+                    <Text style={styles.summaryLineLabel}>Subtotal</Text>
+                    <Text style={styles.summaryLineValue}>P{cartSubtotal.toLocaleString()}</Text>
+                  </View>
+                  {discountAmount > 0 && (
+                    <View style={styles.summaryLine}>
+                      <Text style={[styles.summaryLineLabel, { color: theme.error }]}>
+                        Discount ({discountType === 'pwd_senior' ? '20%' : discountType === 'promo_10' ? '10%' : `${customDiscount}%`})
+                      </Text>
+                      <Text style={[styles.summaryLineValue, { color: theme.error }]}>-P{discountAmount.toLocaleString()}</Text>
+                    </View>
+                  )}
+                  <View style={[styles.summaryLine, { borderTopWidth: 2, borderTopColor: theme.borderLight, paddingTop: 12, marginTop: 8 }]}>
+                    <Text style={[styles.summaryLineLabel, { fontWeight: '800', fontSize: 16 }]}>Total Due</Text>
+                    <Text style={[styles.summaryLineValue, { fontWeight: '800', fontSize: 20, color: theme.success }]}>P{cartTotal.toLocaleString()}</Text>
+                  </View>
+                </View>
+
                 <Text style={styles.inputLabel}>Payment Method</Text>
                 <View style={styles.methodRow}>
                   {methods.map(m => (
@@ -385,7 +477,7 @@ export const AdminPOS = ({ navigation }) => {
                 <Text style={{ ...typography.h3, color: theme.textPrimary, marginTop: 20 }}>Transaction Complete</Text>
                 <Text style={{ color: theme.textSecondary, marginTop: 8 }}>Invoice {lastOrder.orderId}</Text>
                 
-                <View style={{ width: '100%', backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginTop: 20, marginBottom: 30 }}>
+                <View style={{ width: '100%', backgroundColor: theme.surfaceLight, padding: 16, borderRadius: borderRadius.md, marginTop: 20, marginBottom: 16 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text style={{ color: theme.textSecondary }}>Total Paid</Text>
                     <Text style={{ fontWeight: 'bold', color: theme.textPrimary }}>P{lastOrder.total.toLocaleString()}</Text>
@@ -400,6 +492,32 @@ export const AdminPOS = ({ navigation }) => {
                       <Text style={{ fontWeight: 'bold', color: theme.success }}>P{lastOrder.changeGiven.toLocaleString()}</Text>
                     </View>
                   )}
+                </View>
+
+                {/* Receipt Actions */}
+                <View style={{ flexDirection: 'row', gap: 10, width: '100%', marginBottom: 16 }}>
+                  <AnimatedTouchable
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border }}
+                    onPress={() => {
+                      const html = buildReceiptHTML(lastOrder);
+                      printOrSharePDF(html);
+                    }}
+                    title="Print receipt"
+                  >
+                    <Tag size={16} color={theme.textSecondary} />
+                    <Text style={{ color: theme.textSecondary, fontWeight: '600', fontSize: 13 }}>Print Receipt</Text>
+                  </AnimatedTouchable>
+                  <AnimatedTouchable
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: borderRadius.md, backgroundColor: theme.surfaceLight, borderWidth: 1, borderColor: theme.border }}
+                    onPress={() => {
+                      const html = buildReceiptHTML(lastOrder);
+                      sharePDF(html, `receipt_${lastOrder.orderId}`);
+                    }}
+                    title="Share receipt as PDF"
+                  >
+                    <ShoppingCart size={16} color={theme.textSecondary} />
+                    <Text style={{ color: theme.textSecondary, fontWeight: '600', fontSize: 13 }}>Share PDF</Text>
+                  </AnimatedTouchable>
                 </View>
 
                 <AnimatedTouchable style={styles.processBtn} onPress={closeCart}>
@@ -523,4 +641,19 @@ const getStyles = (theme, insets) => StyleSheet.create({
 
   processBtn: { backgroundColor: theme.gold, paddingVertical: 16, borderRadius: borderRadius.md, alignItems: 'center', width: '100%', ...shadows.button },
   processBtnText: { ...typography.button, color: theme.backgroundDeep, fontSize: 16 },
+
+  discountRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  discountBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 10, borderRadius: borderRadius.md,
+    backgroundColor: theme.surfaceLight, borderWidth: 1.5, borderColor: theme.borderLight,
+  },
+  discountBtnText: { ...typography.bodyXSmall, color: theme.textSecondary, fontWeight: '700' },
+  orderSummary: {
+    backgroundColor: theme.surfaceLight, borderRadius: borderRadius.lg,
+    padding: 16, marginBottom: 16, borderWidth: 1, borderColor: theme.border,
+  },
+  summaryLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  summaryLineLabel: { ...typography.body, color: theme.textSecondary, fontWeight: '600' },
+  summaryLineValue: { ...typography.body, color: theme.textPrimary, fontWeight: '700' },
 });

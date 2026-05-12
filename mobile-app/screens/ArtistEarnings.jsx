@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, SafeAreaView, RefreshControl, Animated, Platform,
+  View, Text, StyleSheet, ScrollView, SafeAreaView, RefreshControl, Animated, Platform, ActionSheetIOS, Alert,
 } from 'react-native';
 import {
   ArrowLeft, Download, Clock, CheckCircle, Wallet, TrendingUp, DollarSign
@@ -18,6 +18,7 @@ import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { formatCurrency } from '../src/utils/formatters';
 import { getArtistEarningsLedger } from '../src/utils/api';
+import { generateCSV, exportCSV, buildReportHTML, printOrSharePDF, sharePDF } from '../src/utils/exportHelpers';
 
 const StaggerItem = ({ index, children }) => {
   const anim = useRef(new Animated.Value(0)).current;
@@ -113,6 +114,91 @@ export function ArtistEarnings({ onBack, artistId }) {
 
   const periodLabel = timeFilter === 'week' ? 'This Week' : timeFilter === 'month' ? 'This Month' : timeFilter === 'year' ? 'This Year' : 'All Time';
 
+  // ── Export Handler ──
+  const handleExport = () => {
+    const options = ['Export as CSV', 'Print Report', 'Share as PDF', 'Cancel'];
+    const cancelIndex = 3;
+
+    const doAction = (index) => {
+      const dataSource = activeTab === 'sessions' ? filteredSessions : filteredPayouts;
+
+      if (index === 0) {
+        // CSV Export
+        const columns = activeTab === 'sessions'
+          ? [
+              { key: 'appointment_date', label: 'Date' },
+              { key: 'client_name', label: 'Client' },
+              { key: 'design_title', label: 'Design' },
+              { key: 'price', label: 'Session Price' },
+              { key: 'artistShare', label: 'Artist Share' },
+              { key: 'payment_status', label: 'Payment Status' },
+            ]
+          : [
+              { key: 'created_at', label: 'Date' },
+              { key: 'payout_method', label: 'Method' },
+              { key: 'reference_no', label: 'Reference' },
+              { key: 'amount', label: 'Amount' },
+              { key: 'status', label: 'Status' },
+            ];
+        const csv = generateCSV(dataSource, columns);
+        exportCSV(csv, `artist_${activeTab}_${periodLabel.replace(/\s/g, '_')}`);
+      } else if (index === 1 || index === 2) {
+        // Print or Share PDF
+        const fmtPeso = (v) => `P${parseFloat(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const html = buildReportHTML({
+          title: `Artist Earnings -- ${activeTab === 'sessions' ? 'Sessions' : 'Payouts'}`,
+          subtitle: `Period: ${periodLabel} | Commission Rate: ${commissionRate}%`,
+          metrics: [
+            { label: 'Total Earned', value: fmtPeso(metrics.totalEarned) },
+            { label: 'Pending (Unpaid)', value: fmtPeso(metrics.pendingUnpaid) },
+            { label: 'Paid Out', value: fmtPeso(metrics.totalPaidOut) },
+            { label: 'Balance Due', value: fmtPeso(metrics.balanceDue) },
+          ],
+          tables: activeTab === 'sessions'
+            ? [{
+                title: `Session Earnings (${filteredSessions.length})`,
+                headers: ['Date', 'Client', 'Design', 'Share', 'Status'],
+                rows: filteredSessions.map(s => [
+                  new Date(s.appointment_date).toLocaleDateString(),
+                  s.client_name || 'Client',
+                  s.design_title || '--',
+                  fmtPeso(s.artistShare),
+                  (s.effectivePaymentStatus || s.payment_status) === 'paid' ? 'Paid' : 'Unpaid',
+                ]),
+              }]
+            : [{
+                title: `Payout History (${filteredPayouts.length})`,
+                headers: ['Date', 'Method', 'Reference', 'Amount', 'Status'],
+                rows: filteredPayouts.map(p => [
+                  new Date(p.created_at).toLocaleDateString(),
+                  p.payout_method || 'Payout',
+                  p.reference_no || '--',
+                  fmtPeso(p.amount),
+                  p.status || 'completed',
+                ]),
+              }],
+        });
+        if (index === 1) printOrSharePDF(html);
+        else sharePDF(html, `artist_earnings_${periodLabel.replace(/\s/g, '_')}`);
+      }
+    };
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: cancelIndex, title: 'Export Earnings Data' },
+        doAction
+      );
+    } else {
+      // Android fallback: simple Alert with buttons
+      Alert.alert('Export Earnings Data', 'Choose an export format:', [
+        { text: 'CSV File', onPress: () => doAction(0) },
+        { text: 'Print Report', onPress: () => doAction(1) },
+        { text: 'Share PDF', onPress: () => doAction(2) },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.gold} />}>
@@ -122,9 +208,9 @@ export function ArtistEarnings({ onBack, artistId }) {
             <ArrowLeft size={20} color={colors.textPrimary} />
           </AnimatedTouchable>
           <Text style={styles.headerTitle}>Earnings & Payouts</Text>
-          <View style={styles.headerBtn}>
+          <AnimatedTouchable onPress={handleExport} style={styles.headerBtn} title="Export earnings data">
             <Download size={20} color={colors.textTertiary} />
-          </View>
+          </AnimatedTouchable>
         </View>
 
         {/* Filter Pills */}
