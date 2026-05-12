@@ -1138,6 +1138,28 @@ db.getConnection((err, connection) => {
       else console.log('[OK] Tattoo Projects table ready');
     });
 
+    // MIGRATION: Add session_number column to appointments
+    db.query("SHOW COLUMNS FROM appointments LIKE 'session_number'", (err, results) => {
+      if (!err && results.length === 0) {
+        console.log('[MIGRATE] Adding session_number column to appointments...');
+        db.query("ALTER TABLE appointments ADD COLUMN session_number INT DEFAULT 1", (alterErr) => {
+          if (alterErr) console.error('[WARN] Could not add session_number:', alterErr.message);
+          else console.log('[OK] Added session_number column to appointments');
+        });
+      }
+    });
+
+    // MIGRATION: Add total_sessions column to appointments
+    db.query("SHOW COLUMNS FROM appointments LIKE 'total_sessions'", (err, results) => {
+      if (!err && results.length === 0) {
+        console.log('[MIGRATE] Adding total_sessions column to appointments...');
+        db.query("ALTER TABLE appointments ADD COLUMN total_sessions INT DEFAULT 1", (alterErr) => {
+          if (alterErr) console.error('[WARN] Could not add total_sessions:', alterErr.message);
+          else console.log('[OK] Added total_sessions column to appointments');
+        });
+      }
+    });
+
     // Create Reschedule Requests Table (for admin-approval reschedule flow)
     const rescheduleRequestsTableQuery = `
       CREATE TABLE IF NOT EXISTS reschedule_requests (
@@ -4824,7 +4846,7 @@ app.get('/api/admin/appointments/:id', (req, res) => {
 
 // POST create a new appointment (Admin)
 app.post('/api/admin/appointments', async (req, res) => {
-  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, tattooPrice, piercingPrice, waiverAcceptedAt, photoMarketingConsent, piercingJewelry } = req.body;
+  let { customerId, artistId, secondaryArtistId, commissionSplit, serviceType, designTitle, date, startTime, status, notes, price, manualPaidAmount, referenceImage, isFromWizard, customerName, captchaToken, deviceId, consultationMethod, guestEmail, guestPhone, tattooPrice, piercingPrice, waiverAcceptedAt, photoMarketingConsent, piercingJewelry, totalSessions, sessionNumber, projectId } = req.body;
 
   // Verify reCAPTCHA for public wizard submissions only
   if (isFromWizard) {
@@ -4950,40 +4972,72 @@ app.post('/api/admin/appointments', async (req, res) => {
           })));
         }
 
-        const query = `
-          INSERT INTO appointments 
-            (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at, piercing_jewelry, is_guest_placeholder)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?)
-        `;
-        conn.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedWaiverAt, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (err, result) => {
-          if (err) {
-            // Graceful fallback if waiver_accepted_at column doesn't exist yet
-            if (err.code === 'ER_BAD_FIELD_ERROR' && err.message.includes('waiver_accepted_at')) {
-              console.warn('[WARN] waiver_accepted_at column not found, retrying INSERT without it...');
-              const fallbackQuery = `
-                INSERT INTO appointments 
-                  (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, piercing_jewelry, is_guest_placeholder)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
-              `;
-              return conn.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (fbErr, fbResult) => {
-                if (fbErr) {
-                  console.error('[ERROR] Fallback INSERT also failed:', fbErr);
-                  return conn.rollback(() => { conn.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
-                }
-                const fbBookingCode = generateBookingCode('O', serviceType, fbResult.insertId);
-                db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [fbBookingCode, fbResult.insertId]);
-                if (acquiredLockId) db.query('UPDATE slot_locks SET appointment_id = ? WHERE id = ?', [fbResult.insertId, acquiredLockId]);
-                _fireNotificationsAndCommit(conn, fbResult.insertId, fbBookingCode);
-              });
-            }
-            return conn.rollback(() => { conn.release(); res.status(500).json({ success: false, message: 'Database error: ' + err.message }); });
-          }
+        // Sanitize multi-session fields
+        const sanitizedTotalSessions = Math.max(1, Math.min(parseInt(totalSessions) || 1, 20));
+        const sanitizedSessionNumber = Math.max(1, Math.min(parseInt(sessionNumber) || 1, sanitizedTotalSessions));
+        const sanitizedProjectId = projectId ? parseInt(projectId) : null;
 
-          const bookingCode = generateBookingCode('O', serviceType, result.insertId);
-          db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [bookingCode, result.insertId]);
-          if (acquiredLockId) db.query('UPDATE slot_locks SET appointment_id = ? WHERE id = ?', [result.insertId, acquiredLockId]);
-          _fireNotificationsAndCommit(conn, result.insertId, bookingCode);
-        });
+        // ─── _performInsert: executes the actual SQL INSERT with a resolved project ID ───
+        const _performInsert = (resolvedProjectId) => {
+          const query = `
+            INSERT INTO appointments 
+              (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, waiver_accepted_at, piercing_jewelry, is_guest_placeholder, project_id, session_number, total_sessions)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          conn.query(query, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedWaiverAt, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0, resolvedProjectId, sanitizedSessionNumber, sanitizedTotalSessions], (err, result) => {
+            if (err) {
+              // Graceful fallback if new columns don't exist yet (first deploy)
+              if (err.code === 'ER_BAD_FIELD_ERROR') {
+                console.warn('[WARN] New columns not found, retrying INSERT without project/session fields...');
+                const fallbackQuery = `
+                  INSERT INTO appointments 
+                    (customer_id, artist_id, secondary_artist_id, commission_split, appointment_date, start_time, design_title, service_type, status, notes, price, tattoo_price, piercing_price, manual_paid_amount, payment_status, is_deleted, before_photo, booking_code, device_id, consultation_method, guest_email, guest_phone, piercing_jewelry, is_guest_placeholder)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unpaid', 0, ?, 'PENDING', ?, ?, ?, ?, ?, ?)
+                `;
+                return conn.query(fallbackQuery, [customerId, artistId, secondaryArtistId || null, commissionSplit || 50, date, startTime || null, combinedTitle, serviceType || 'General Session', finalStatus, notes || '', finalPrice, sanitizedTattooPrice, sanitizedPiercingPrice, manualPaidAmount || 0, referenceImage || null, deviceId || null, consultationMethod || null, guestEmail || null, guestPhone || null, sanitizedJewelry || null, isGuestPlaceholder ? 1 : 0], (fbErr, fbResult) => {
+                  if (fbErr) {
+                    console.error('[ERROR] Fallback INSERT also failed:', fbErr);
+                    return conn.rollback(() => { conn.release(); res.status(500).json({ success: false, message: 'Database error: ' + fbErr.message }); });
+                  }
+                  const fbBookingCode = generateBookingCode('O', serviceType, fbResult.insertId);
+                  db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [fbBookingCode, fbResult.insertId]);
+                  if (acquiredLockId) db.query('UPDATE slot_locks SET appointment_id = ? WHERE id = ?', [fbResult.insertId, acquiredLockId]);
+                  _fireNotificationsAndCommit(conn, fbResult.insertId, fbBookingCode);
+                });
+              }
+              return conn.rollback(() => { conn.release(); res.status(500).json({ success: false, message: 'Database error: ' + err.message }); });
+            }
+
+            const bookingCode = generateBookingCode('O', serviceType, result.insertId);
+            db.query('UPDATE appointments SET booking_code = ? WHERE id = ?', [bookingCode, result.insertId]);
+            if (acquiredLockId) db.query('UPDATE slot_locks SET appointment_id = ? WHERE id = ?', [result.insertId, acquiredLockId]);
+
+            // If this is a rebook (projectId provided), update the project's session count
+            if (resolvedProjectId && sanitizedSessionNumber > 1) {
+              db.query('UPDATE tattoo_projects SET total_sessions_actual = ? WHERE id = ?', [sanitizedSessionNumber, resolvedProjectId]);
+            }
+
+            _fireNotificationsAndCommit(conn, result.insertId, bookingCode);
+          });
+        };
+
+        // ═══ Multi-Session Project Auto-Creation ═══
+        // If totalSessions > 1 and no existing projectId, create a new tattoo_project first
+        if (sanitizedTotalSessions > 1 && !sanitizedProjectId) {
+          const projQuery = `INSERT INTO tattoo_projects (customer_id, artist_id, design_title, total_sessions_planned, status) VALUES (?, ?, ?, ?, 'active')`;
+          conn.query(projQuery, [customerId, artistId, designTitle || 'Untitled Project', sanitizedTotalSessions], (projErr, projResult) => {
+            if (projErr) {
+              console.error('[ERROR] Could not create tattoo_project:', projErr.message);
+              // Non-fatal: proceed with null project_id
+              return _performInsert(null);
+            }
+            console.log(`[OK] Created tattoo_project #${projResult.insertId} for ${sanitizedTotalSessions} sessions`);
+            _performInsert(projResult.insertId);
+          });
+        } else {
+          // Single session OR rebook with existing projectId
+          _performInsert(sanitizedProjectId);
+        }
       };
 
       // ─── _fireNotificationsAndCommit: sends all post-booking notifications then commits ───

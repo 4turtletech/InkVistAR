@@ -378,7 +378,11 @@ function AdminAppointments() {
                         piercingJewelry: apt.piercing_jewelry || null,
                         clientHealthConditions: Array.isArray(apt.client_health_conditions) ? apt.client_health_conditions : [],
                         clientAllergens: Array.isArray(apt.client_allergens) ? apt.client_allergens : [],
-                        isGuestPlaceholder: !!apt.is_guest_placeholder
+                        isGuestPlaceholder: !!apt.is_guest_placeholder,
+                        project_id: apt.project_id || null,
+                        projectStatus: apt.project_status || null,
+                        projectSessionsPlanned: apt.project_sessions_planned || null,
+                        projectSessionsActual: apt.project_sessions_actual || null
                     };
                 });
                 setAppointments(mappedAppointments);
@@ -646,6 +650,9 @@ function AdminAppointments() {
             setArchiveMaterials(materialsData);
             setArchiveMode(true);
             openModal();
+            // Feature B: Load project timeline in archive mode too
+            setProjectTimeline(null);
+            if (appointment.project_id) fetchProjectTimeline(appointment.project_id);
             return;
         }
 
@@ -1792,6 +1799,16 @@ function AdminAppointments() {
                             </div>
 
                             <div className="modal-body admin-st-92565e46">
+                                {/* Feature B: Project Timeline in Archive View */}
+                                {selectedAppointment?.project_id && (
+                                    <SessionTimeline
+                                        project={projectTimeline}
+                                        currentSessionId={selectedAppointment.id}
+                                        isAdmin={true}
+                                        loading={projectTimelineLoading}
+                                        onProjectUpdated={() => fetchProjectTimeline(selectedAppointment.project_id)}
+                                    />
+                                )}
                                 <div className="admin-st-232d6dae">
                                     {/* Left Column: Visual Archive & Notes */}
                                     <div className="admin-st-14907636">
@@ -1988,6 +2005,19 @@ function AdminAppointments() {
                                         </button>
                                     )}
                                 </div>
+                                {/* Feature B: Rebook Next Session button for project-linked completed sessions */}
+                                {selectedAppointment?.project_id && selectedAppointment?.totalSessions && (
+                                    (selectedAppointment.sessionNumber || 1) < (selectedAppointment.totalSessions) 
+                                ) && selectedAppointment?.projectStatus !== 'completed' && selectedAppointment?.projectStatus !== 'completed_early' && (
+                                    <button
+                                        className="btn"
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(99,102,241,0.06))', color: '#6366f1', borderColor: 'rgba(99,102,241,0.3)', fontWeight: 600 }}
+                                        onClick={() => handleRebookNextSession(selectedAppointment)}
+                                        title="Create the next session for this multi-session project"
+                                    >
+                                        <Layers size={16} /> Rebook Next Session ({(selectedAppointment.sessionNumber || 1) + 1} of {selectedAppointment.totalSessions})
+                                    </button>
+                                )}
                                 <button className="btn btn-primary admin-st-6948e5f9" onClick={() => closeModal(true)}>Done Reviewing</button>
                             </div>
                         </div>
