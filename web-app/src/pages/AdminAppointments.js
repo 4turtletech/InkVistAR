@@ -691,6 +691,7 @@ function AdminAppointments() {
             quotedPrice: appointment.quotedPrice || '',
             sessionNumber: appointment.sessionNumber || '',
             totalSessions: appointment.totalSessions || '',
+            projectId: appointment.project_id || null,
             discountAmount: appointment.discountAmount || 0,
             discountType: appointment.discountType || 'flat'
         });
@@ -721,6 +722,7 @@ function AdminAppointments() {
             quotedPrice: appointment.quotedPrice || '',
             sessionNumber: appointment.sessionNumber || '',
             totalSessions: appointment.totalSessions || '',
+            projectId: appointment.project_id || null,
             discountAmount: appointment.discountAmount || 0,
             discountType: appointment.discountType || 'flat'
         };
@@ -1980,7 +1982,12 @@ function AdminAppointments() {
                                                 rescheduleReason: '',
                                                 isReferral: !!selectedAppointment.isReferral,
                                                 consultationNotes: selectedAppointment.consultationNotes || '',
-                                                quotedPrice: selectedAppointment.quotedPrice || ''
+                                                quotedPrice: selectedAppointment.quotedPrice || '',
+                                                sessionNumber: selectedAppointment.sessionNumber || '',
+                                                totalSessions: selectedAppointment.totalSessions || '',
+                                                projectId: selectedAppointment.project_id || null,
+                                                discountAmount: selectedAppointment.discountAmount || 0,
+                                                discountType: selectedAppointment.discountType || 'flat'
                                             });
                                             setClientSearch(selectedAppointment.clientName);
                                             initialFormDataRef.current = null;
