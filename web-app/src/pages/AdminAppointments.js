@@ -792,6 +792,7 @@ function AdminAppointments() {
             const nextSessionNumber = (appointment.sessionNumber || appointment.session_number || 1) + 1;
             setSelectedAppointment(null);
             setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+            setArchiveMode(false);
             setModalTab('details');
             setFormData({
                 clientId: appointment.clientId || appointment.customer_id,
