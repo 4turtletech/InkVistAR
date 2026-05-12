@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Axios from 'axios';
-import { PenTool, Play, Pause, CheckCircle, Upload, Save, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive, AlertTriangle, List, Heart, ShieldAlert } from 'lucide-react';
+import { PenTool, Play, Pause, CheckCircle, Upload, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive, AlertTriangle, List, Heart, ShieldAlert } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -337,20 +337,34 @@ function ArtistSessions() {
 
     const closeSessionModal = () => {
         if (hasUnsavedChanges()) {
+            // Show custom 3-option dialog: Save & Close, Discard, or Cancel
             setConfirmModal({
                 isOpen: true,
-                title: 'Unsaved Changes',
+                title: 'Save Session Progress?',
                 message: activeSession?.status === 'in_progress'
-                    ? 'The tattoo session is still in progress. Are you sure you want to close? Unsaved timer progress will be lost.'
-                    : 'You have unsaved changes in your documentation. Are you sure you want to close? Your changes will be lost.',
-                confirmText: 'Discard Changes',
-                cancelText: 'Cancel',
-                type: 'warning',
+                    ? 'The tattoo session is still in progress. Would you like to save your current documentation (notes, photos) before closing?'
+                    : 'You have unsaved changes to your documentation. Would you like to save them before closing?',
+                confirmText: 'Save & Close',
+                cancelText: 'Discard Changes',
+                type: 'info',
                 onConfirm: async () => {
+                    // Save & Close: auto-save notes/photos then close
                     setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                    
-                    // The user wants "Discard Changes" to truly start over, 
-                    // which means reverting the supplies back to inventory.
+                    try {
+                        await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/details`, {
+                            notes: sessionData.notes,
+                            beforePhoto: sessionData.beforePhoto,
+                            afterPhoto: sessionData.afterPhoto
+                        });
+                    } catch (e) {
+                        console.error('Auto-save on close failed:', e);
+                    }
+                    forceCloseSessionModal();
+                },
+                onClose: async () => {
+                    // Discard Changes: revert supplies and close
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+
                     if (sessionMaterials && sessionMaterials.length > 0) {
                         for (const mat of sessionMaterials) {
                             try {
@@ -362,8 +376,7 @@ function ArtistSessions() {
                     }
 
                     forceCloseSessionModal();
-                },
-                onClose: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
+                }
             });
             return;
         }
@@ -1353,11 +1366,6 @@ function ArtistSessions() {
                                 {isCompletingSession && (
                                     <button className="btn btn-secondary" style={{ padding: '10px 20px' }} onClick={() => setIsCompletingSession(false)}>
                                         Cancel
-                                    </button>
-                                )}
-                                {activeSession.status !== 'completed' && (
-                                    <button className="btn btn-primary" style={{ padding: '10px 24px' }} onClick={handleSaveDetails} disabled={isSaving}>
-                                        <Save size={16} /> {isSaving ? 'Saving...' : 'Sync Progress'}
                                     </button>
                                 )}
                                 {activeSession.status === 'completed' && (

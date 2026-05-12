@@ -2062,17 +2062,23 @@ function AdminAppointments() {
                                         </button>
                                     )}
                                 </div>
-                                {/* Feature B: Rebook Next Session button for project-linked completed sessions */}
-                                {selectedAppointment?.project_id && selectedAppointment?.totalSessions && (
-                                    (selectedAppointment.sessionNumber || 1) < (selectedAppointment.totalSessions)
-                                ) && selectedAppointment?.projectStatus !== 'completed' && selectedAppointment?.projectStatus !== 'completed_early' && (
+                                {/* Feature B: Rebook Next Session — available for any completed session (not just project-linked) */}
+                                {selectedAppointment?.status === 'completed' && selectedAppointment?.serviceType !== 'Consultation' && (
+                                    // Show if: (a) no project yet (standalone completed session), OR
+                                    //           (b) project exists, still active, and not all sessions done
+                                    (!selectedAppointment.project_id || (
+                                        selectedAppointment.projectStatus !== 'completed' &&
+                                        selectedAppointment.projectStatus !== 'completed_early' &&
+                                        (selectedAppointment.sessionNumber || 1) < (selectedAppointment.totalSessions || 999)
+                                    ))
+                                ) && (
                                         <button
                                             className="btn"
                                             style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(99,102,241,0.06))', color: '#6366f1', borderColor: 'rgba(99,102,241,0.3)', fontWeight: 600 }}
                                             onClick={() => handleRebookNextSession(selectedAppointment)}
-                                            title="Create the next session for this multi-session project"
+                                            title="Create a follow-up session for this client"
                                         >
-                                            <Layers size={16} /> Rebook Next Session ({(selectedAppointment.sessionNumber || 1) + 1} of {selectedAppointment.totalSessions})
+                                            <Layers size={16} /> Rebook Next Session
                                         </button>
                                     )}
                                 <button className="btn btn-primary admin-st-6948e5f9" onClick={() => closeModal(true)}>Done Reviewing</button>
@@ -2602,13 +2608,11 @@ function AdminAppointments() {
                                                                     <input type="date" value={formData.date} onChange={(e) => handleInputChange('date', e.target.value)} className={`premium-input-v2 ${errors.date ? 'border-red-500 bg-red-50' : ''}`} />
                                                                     {errors.date && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.date}</span>}
                                                                 </div>
-                                                                {formData.serviceType === 'Consultation' && (
-                                                                    <div className="premium-input-group">
-                                                                        <label className={`admin-st-b8618eb2 ${errors.time ? 'text-red-500' : ''}`}>Time *</label>
-                                                                        <input type="time" value={formData.time} onChange={(e) => handleInputChange('time', e.target.value)} className={`premium-input-v2 ${errors.time ? 'border-red-500 bg-red-50' : ''}`} />
-                                                                        {errors.time && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.time}</span>}
-                                                                    </div>
-                                                                )}
+                                                                <div className="premium-input-group">
+                                                                    <label className={`admin-st-b8618eb2 ${errors.time ? 'text-red-500' : ''}`}>Time {formData.serviceType === 'Consultation' ? '*' : '(Optional)'}</label>
+                                                                    <input type="time" value={formData.time} onChange={(e) => handleInputChange('time', e.target.value)} className={`premium-input-v2 ${errors.time ? 'border-red-500 bg-red-50' : ''}`} />
+                                                                    {errors.time && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.time}</span>}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     )}
