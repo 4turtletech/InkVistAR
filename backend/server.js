@@ -1955,6 +1955,27 @@ function createDefaultUsers() {
       } catch (e) { console.error(e); }
     }
   });
+
+  // 4. System Guest (for unauthenticated public bookings)
+  const checkGuest = "SELECT * FROM users WHERE email = 'guest@inkvistar.com' LIMIT 1";
+  db.query(checkGuest, async (err, results) => {
+    if (!err && results.length === 0) {
+      console.log('[WARN] No System Guest found. Creating System Guest account for public bookings...');
+      try {
+        const guestPass = await bcrypt.hash(Math.random().toString(36).substring(7), 10);
+        const createGuest = "INSERT INTO users (name, email, password_hash, user_type, is_verified, is_deleted) VALUES ('System Guest', 'guest@inkvistar.com', ?, 'customer', 1, 0)";
+        db.query(createGuest, [guestPass], (err, result) => {
+          if (!err && result.insertId) {
+            const customerId = result.insertId;
+            const createProfile = "INSERT INTO customers (user_id, notes) VALUES (?, 'System account for unauthenticated guest bookings')";
+            db.query(createProfile, [customerId], () => {
+              console.log('[OK] Default System Guest Created: guest@inkvistar.com');
+            });
+          }
+        });
+      } catch (e) { console.error(e); }
+    }
+  });
 }
 
 // ========== GENERATIVE AI CHATBOT SETUP (Groq) ==========
@@ -4858,12 +4879,23 @@ app.post('/api/admin/appointments', async (req, res) => {
     if (customerId === 'admin' || artistId === 'admin') {
       db.query("SELECT id FROM users WHERE user_type = 'admin' ORDER BY id ASC LIMIT 1", (err, results) => {
         const actualAdminId = (results && results.length > 0) ? results[0].id : 1;
-        if (customerId === 'admin') {
-          customerId = actualAdminId;
-          isGuestPlaceholder = true; // Flag: this customer_id is a placeholder, not a real customer
-        }
+        
         if (artistId === 'admin') artistId = actualAdminId;
-        callback();
+
+        if (customerId === 'admin') {
+          // B1 Patch: Resolve guest bookings to the dedicated system guest account instead of the Admin's ID
+          db.query("SELECT id FROM users WHERE email = 'guest@inkvistar.com' LIMIT 1", (gErr, gResults) => {
+            if (!gErr && gResults && gResults.length > 0) {
+              customerId = gResults[0].id;
+            } else {
+              customerId = actualAdminId; // Absolute fallback just in case
+            }
+            isGuestPlaceholder = true; // Flag: this customer_id is a placeholder, not a real customer
+            callback();
+          });
+        } else {
+          callback();
+        }
       });
     } else {
       callback();
