@@ -323,6 +323,9 @@ function ArtistSessions() {
 
     const hasUnsavedChanges = () => {
         if (!activeSession) return false;
+        
+        if (activeSession.status === 'in_progress') return true;
+
         const origNotes = activeSession.notes || '';
         const origBefore = activeSession.before_photo || null;
         const origAfter = activeSession.after_photo || null;
@@ -337,7 +340,9 @@ function ArtistSessions() {
             setConfirmModal({
                 isOpen: true,
                 title: 'Unsaved Changes',
-                message: 'You have unsaved changes in your documentation. Are you sure you want to close? Your changes will be lost.',
+                message: activeSession?.status === 'in_progress'
+                    ? 'The tattoo session is still in progress. Are you sure you want to close? Unsaved timer progress will be lost.'
+                    : 'You have unsaved changes in your documentation. Are you sure you want to close? Your changes will be lost.',
                 confirmText: 'Discard Changes',
                 cancelText: 'Cancel',
                 type: 'warning',
@@ -545,6 +550,12 @@ function ArtistSessions() {
                     beforePhoto: sessionData.beforePhoto,
                     afterPhoto: sessionData.afterPhoto
                 });
+                setActiveSession(prev => ({
+                    ...prev,
+                    notes: sessionData.notes,
+                    before_photo: sessionData.beforePhoto,
+                    after_photo: sessionData.afterPhoto
+                }));
             }
 
             const payload = {
@@ -616,6 +627,12 @@ function ArtistSessions() {
             console.log('Response:', res.data);
             if (res.data.success) {
                 showAlert("Saved", "Session details saved successfully!", "success");
+                setActiveSession(prev => ({
+                    ...prev,
+                    notes: sessionData.notes,
+                    before_photo: sessionData.beforePhoto,
+                    after_photo: sessionData.afterPhoto
+                }));
                 fetchSessions();
             } else {
                 showAlert("Error", "Failed to save session details. " + res.data.message, "danger");
