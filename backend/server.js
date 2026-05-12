@@ -11805,44 +11805,6 @@ app.post('/api/reports/:id/reply', (req, res) => {
   });
 });
 
-// ========== 404 HANDLER ==========
-app.use((req, res) => {
-  console.log(`\u274c 404: ${req.method} ${req.url} not found`);
-  res.status(404).json({
-    success: false,
-    message: 'Endpoint not found'
-  });
-});
-
-
-// ========== ERROR HANDLER ==========
-app.use((err, req, res, next) => {
-  console.error('[ERROR] Unhandled error:', err);
-  res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-    error: err.message
-  });
-});
-
-// ========== PENDING PAYMENTS EXPIRY CLEANUP ==========
-function startPendingPaymentsCleanup() {
-  // Run every 30 minutes to check for pending payments older than 2 hours
-  setInterval(() => {
-    const query = `
-      UPDATE payments 
-      SET status = 'failed'
-      WHERE status = 'pending' AND created_at < DATE_SUB(NOW(), INTERVAL 2 HOUR)
-    `;
-    db.query(query, (err, results) => {
-      if (err) console.error('[ERROR] Error expiring pending payments:', err);
-      else if (results.affectedRows > 0) {
-        console.log(`[INFO] Expired ${results.affectedRows} pending payment(s) older than 2 hours.`);
-      }
-    });
-  }, 1000 * 60 * 30);
-}
-
 // ========== FEATURE B: TATTOO PROJECT TIMELINE API ==========
 
 // POST /api/projects — Create a new tattoo project and link a seed appointment to it
@@ -11973,6 +11935,43 @@ app.put('/api/projects/:id/link-session', (req, res) => {
     );
   });
 });
+
+// ========== 404 HANDLER ==========
+app.use((req, res) => {
+  console.log(`\u274c 404: ${req.method} ${req.url} not found`);
+  res.status(404).json({
+    success: false,
+    message: 'Endpoint not found'
+  });
+});
+
+// ========== ERROR HANDLER ==========
+app.use((err, req, res, next) => {
+  console.error('[ERROR] Unhandled error:', err);
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error: err.message
+  });
+});
+
+// ========== PENDING PAYMENTS EXPIRY CLEANUP ==========
+function startPendingPaymentsCleanup() {
+  // Run every 30 minutes to check for pending payments older than 2 hours
+  setInterval(() => {
+    const query = `
+      UPDATE payments 
+      SET status = 'failed'
+      WHERE status = 'pending' AND created_at < DATE_SUB(NOW(), INTERVAL 2 HOUR)
+    `;
+    db.query(query, (err, results) => {
+      if (err) console.error('[ERROR] Error expiring pending payments:', err);
+      else if (results.affectedRows > 0) {
+        console.log(`[INFO] Expired ${results.affectedRows} pending payment(s) older than 2 hours.`);
+      }
+    });
+  }, 1000 * 60 * 30);
+}
 
 // ========== START SERVER ==========
 const PORT = process.env.PORT || 3001;
