@@ -10806,6 +10806,7 @@ app.post('/api/emergency-login', (req, res) => {
 
 // ========== SOCKET.IO REAL-TIME CHAT ==========
 const activeSupportSessions = {};
+const activeSessionPeers = {}; // Dual-artist session sync: { 'session_123': { socketId: { artistId, artistName } } }
 
 io.on('connection', (socket) => {
   console.log('[OK] A user connected to chat:', socket.id);
@@ -10815,6 +10816,63 @@ io.on('connection', (socket) => {
     socket.join(room);
     console.log(`User ${socket.id} joined room: ${room}`);
   });
+
+  // ═══════════ DUAL-ARTIST SESSION SYNC ═══════════
+  // Tracks which artists are actively viewing each session modal
+  socket.on('join_session', (data) => {
+    const { appointmentId, artistId, artistName } = data || {};
+    if (!appointmentId) return;
+    const room = `session_${appointmentId}`;
+    socket.join(room);
+    // Store artist info on the socket for cleanup on disconnect
+    socket.sessionRoom = room;
+    socket.sessionArtist = { artistId, artistName };
+
+    // Track peers per room
+    if (!activeSessionPeers[room]) activeSessionPeers[room] = {};
+    activeSessionPeers[room][socket.id] = { artistId, artistName };
+
+    // Notify existing peers in the room that a new artist joined
+    socket.to(room).emit('peer_joined', { artistId, artistName });
+
+    // Send existing peers to the joiner (so they know who's already there)
+    const existingPeers = Object.values(activeSessionPeers[room]).filter(p => p.artistId !== artistId);
+    if (existingPeers.length > 0) {
+      socket.emit('peer_joined', existingPeers[0]); // There's at most one other artist in dual-artist
+    }
+    console.log(`[Session Sync] Artist ${artistName} (${artistId}) joined ${room}`);
+  });
+
+  socket.on('leave_session', (data) => {
+    const { appointmentId } = data || {};
+    if (!appointmentId) return;
+    const room = `session_${appointmentId}`;
+    const artist = socket.sessionArtist || {};
+    socket.leave(room);
+
+    // Cleanup peer tracking
+    if (activeSessionPeers[room]) {
+      delete activeSessionPeers[room][socket.id];
+      if (Object.keys(activeSessionPeers[room]).length === 0) delete activeSessionPeers[room];
+    }
+
+    // Notify remaining peers
+    socket.to(room).emit('peer_left', { artistId: artist.artistId, artistName: artist.artistName });
+    socket.sessionRoom = null;
+    socket.sessionArtist = null;
+    console.log(`[Session Sync] Artist ${artist.artistName || 'unknown'} left ${room}`);
+  });
+
+  // Broadcast session updates (notes, photos, status, materials, timer) to the partner
+  socket.on('session_update', (payload) => {
+    const { appointmentId } = payload || {};
+    if (!appointmentId) return;
+    const room = `session_${appointmentId}`;
+    // Broadcast to all OTHER sockets in the room (excludes sender)
+    socket.to(room).emit('session_update', payload);
+  });
+
+  // ═══════════ END DUAL-ARTIST SESSION SYNC ═══════════
 
   // Customer initiates a live support session
   socket.on('start_support_session', (data) => {
@@ -10938,9 +10996,19 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle disconnection
+  // Handle disconnection (merged: dual-artist session cleanup + general logging)
   socket.on('disconnect', () => {
-    console.log('[ERROR] User disconnected:', socket.id);
+    // Dual-artist session peer cleanup
+    if (socket.sessionRoom && activeSessionPeers[socket.sessionRoom]) {
+      const artist = socket.sessionArtist || {};
+      delete activeSessionPeers[socket.sessionRoom][socket.id];
+      if (Object.keys(activeSessionPeers[socket.sessionRoom]).length === 0) {
+        delete activeSessionPeers[socket.sessionRoom];
+      }
+      socket.to(socket.sessionRoom).emit('peer_left', { artistId: artist.artistId, artistName: artist.artistName });
+      console.log(`[Session Sync] Artist ${artist.artistName || socket.id} disconnected from ${socket.sessionRoom}`);
+    }
+    console.log('[INFO] User disconnected:', socket.id);
   });
 });
 
