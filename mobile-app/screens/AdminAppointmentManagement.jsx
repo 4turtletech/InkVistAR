@@ -14,7 +14,7 @@ import {
   Search, Calendar, User, Palette, Clock, X, Plus,
   CheckCircle, AlertTriangle, FileText, Trash2, Save,
   ChevronLeft, ChevronRight, Filter, ChevronDown,
-  ShieldCheck, List, Archive, LayoutGrid,
+  ShieldCheck, List, Archive, LayoutGrid, Layers,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/context/ThemeContext';
@@ -25,6 +25,7 @@ import { StatusBadge } from '../src/components/shared/StatusBadge';
 import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { EmptyState } from '../src/components/shared/EmptyState';
 import { ConfirmModal } from '../src/components/shared/ConfirmModal';
+import { HealthAlertPanel } from '../src/components/shared/HealthAlertPanel';
 import { formatCurrency, formatDate, formatTime, getDisplayCode } from '../src/utils/formatters';
 import {
   getAdminAppointments, updateAppointmentByAdmin, deleteAppointmentByAdmin,
@@ -57,6 +58,12 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
   const [editDesignTitle, setEditDesignTitle] = useState('');
   const [editServiceType, setEditServiceType] = useState('Tattoo Session');
   const [editArtistId, setEditArtistId] = useState('');
+  
+  const [editSessionNumber, setEditSessionNumber] = useState(null);
+  const [editTotalSessions, setEditTotalSessions] = useState(null);
+  const [editProjectId, setEditProjectId] = useState(null);
+  const [editOriginalSessionId, setEditOriginalSessionId] = useState(null);
+  const [editIsMultiSession, setEditIsMultiSession] = useState(false);
 
   // Date picker
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -267,6 +274,11 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
     setEditDesignTitle(appt ? appt.design_title || '' : '');
     setEditServiceType(appt ? appt.service_type || 'Tattoo Session' : 'Tattoo Session');
     setEditArtistId(appt ? String(appt.artist_id || '') : '');
+    setEditSessionNumber(appt?.session_number || null);
+    setEditTotalSessions(appt?.total_sessions || null);
+    setEditProjectId(appt?.project_id || null);
+    setEditOriginalSessionId(null);
+    setEditIsMultiSession(!!(appt?.total_sessions && appt.total_sessions > 1));
     setCalendarMonth(new Date());
     setShowDatePicker(false);
     setFieldErrors({});
@@ -297,6 +309,11 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
         price: sPrice,
         status: editStatus,
         artistId: editArtistId || null,
+        serviceType: editServiceType,
+        sessionNumber: editIsMultiSession ? (editSessionNumber || 1) : null,
+        totalSessions: editIsMultiSession ? (editTotalSessions || 2) : null,
+        projectId: editProjectId,
+        originalSessionId: editOriginalSessionId
       });
       if (result.success) {
         Alert.alert('Success', 'Appointment created');
@@ -344,6 +361,47 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
     } else {
       Alert.alert('Error', 'Failed to delete appointment');
     }
+  };
+
+  const handleRebookNextSession = (appt) => {
+    Alert.alert(
+      'Rebook Next Session',
+      'Are you sure you want to Rebook a next session for this project?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Rebook', 
+          onPress: () => {
+            const nextSessionNumber = (appt.session_number || 1) + 1;
+            const previousPrice = parseFloat(appt.price) || parseFloat(appt.total_price) || 0;
+            const previousPaid = parseFloat(appt.total_paid) || parseFloat(appt.amount_paid) || 0;
+            const remainingBalance = Math.max(0, previousPrice - previousPaid);
+            
+            setSelectedAppt(null); // creation mode
+            setArchiveMode(false);
+            setEditDate(new Date().toISOString().split('T')[0]);
+            setEditTime('13:00');
+            setEditStatus('pending');
+            setEditPrice(String(remainingBalance));
+            setEditDiscountType('flat');
+            setEditDiscountAmount('');
+            setEditClientEmail(appt.client_email || appt.customer_email || '');
+            setEditDesignTitle(appt.design_title || '');
+            setEditServiceType(appt.service_type || 'Tattoo Session');
+            setEditArtistId(String(appt.artist_id || ''));
+            
+            setEditSessionNumber(nextSessionNumber);
+            setEditTotalSessions(appt.total_sessions || Math.max(nextSessionNumber, 2));
+            setEditProjectId(appt.project_id || null);
+            setEditOriginalSessionId(appt.id);
+            setEditIsMultiSession(true);
+            
+            setModalVisible(true);
+            setFieldErrors({});
+          }
+        }
+      ]
+    );
   };
 
   // Filter & paginate (P2-7: calendar day filter when calSelectedDay is set)
@@ -603,9 +661,16 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>
-                  {archiveMode ? 'Archive Record' : selectedAppt ? 'Manage Session' : 'New Session'}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <Text style={styles.modalTitle}>
+                    {archiveMode ? 'Archive Record' : selectedAppt ? 'Manage Session' : 'New Session'}
+                  </Text>
+                  {selectedAppt?.session_number ? (
+                    <View style={{ backgroundColor: 'rgba(190,144,85,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                      <Text style={{ fontSize: 10, color: theme.gold, fontWeight: '700' }}>Session {selectedAppt.session_number} {selectedAppt.total_sessions ? `of ${selectedAppt.total_sessions}` : ''}</Text>
+                    </View>
+                  ) : null}
+                </View>
                 {/* P2-7: Waiver badge in modal header */}
                 {selectedAppt?.waiver_accepted_at ? (
                   <View style={[styles.waiverBadge, { marginTop: 4 }]}>
@@ -647,6 +712,14 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                     ) : null}
                     {selectedAppt.notes ? <InfoRow theme={theme} label="Notes" value={selectedAppt.notes} /> : null}
                   </View>
+
+                  {/* Client Health & Safety */}
+                  <HealthAlertPanel
+                    conditions={Array.isArray(selectedAppt?.client_health_conditions) ? selectedAppt.client_health_conditions : []}
+                    allergens={Array.isArray(selectedAppt?.client_allergens) ? selectedAppt.client_allergens : []}
+                    compact
+                  />
+
                   {/* Material cost table */}
                   <Text style={styles.archiveSectionTitle}>Logistics & Consumables</Text>
                   {archiveLoading ? (
@@ -673,6 +746,16 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                       </View>
                     </View>
                   )}
+                  {/* Rebook Button */}
+                  <View style={{ marginTop: 20 }}>
+                    <AnimatedTouchable 
+                      style={styles.rebookBtn}
+                      onPress={() => handleRebookNextSession(selectedAppt)}
+                    >
+                      <Layers size={18} color="#6366f1" />
+                      <Text style={styles.rebookBtnText}>Rebook Next Session</Text>
+                    </AnimatedTouchable>
+                  </View>
                 </View>
               ) : (
                 <>{/* ─── Standard editable modal content below ─────────────────── */}
@@ -728,7 +811,19 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                   <InfoRow theme={theme} label="Client" value={`${selectedAppt.client_name}${selectedAppt.client_email ? ` (${selectedAppt.client_email})` : ''}`} />
                   <InfoRow theme={theme} label="Notes" value={selectedAppt.notes || 'No notes'} />
                 </View>
-              ) : (
+              ) : null}
+
+              {/* Client Health & Safety — shown when editing an existing appointment */}
+              {selectedAppt && selectedAppt.id && (
+                <HealthAlertPanel
+                  conditions={Array.isArray(selectedAppt?.client_health_conditions) ? selectedAppt.client_health_conditions : []}
+                  allergens={Array.isArray(selectedAppt?.client_allergens) ? selectedAppt.client_allergens : []}
+                  compact
+                />
+              )}
+
+              {/* Client email input — only shown when creating a new appointment */}
+              {!selectedAppt?.id && (
                 <View style={styles.infoSection}>
                   <Text style={styles.inputLabel}>Client Email <Text style={styles.requiredStar}>*</Text></Text>
                   <TextInput
@@ -960,6 +1055,88 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                       })()}
                       <Text style={styles.discountPreviewWas}>{` (was ₱${parseFloat(editPrice).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`}</Text>
                     </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* ── Multi-Session Project Toggle ──────────────────────── */}
+              <View style={styles.multiSessionCard}>
+                <View style={styles.multiSessionHeader}>
+                  <View style={styles.multiSessionLabelRow}>
+                    <Layers size={16} color="#6366f1" />
+                    <Text style={styles.multiSessionTitle}>Multi-Session Project</Text>
+                  </View>
+                  {/* Custom Toggle Switch */}
+                  <AnimatedTouchable
+                    style={[styles.toggleTrack, editIsMultiSession && styles.toggleTrackActive]}
+                    onPress={() => {
+                      const next = !editIsMultiSession;
+                      setEditIsMultiSession(next);
+                      if (next) {
+                        setEditSessionNumber(editSessionNumber || 1);
+                        setEditTotalSessions(editTotalSessions || 2);
+                      } else {
+                        setEditSessionNumber(null);
+                        setEditTotalSessions(null);
+                      }
+                    }}
+                    title={editIsMultiSession ? 'Disable multi-session' : 'Enable multi-session'}
+                  >
+                    <View style={[styles.toggleThumb, editIsMultiSession && styles.toggleThumbActive]} />
+                  </AnimatedTouchable>
+                </View>
+
+                {editIsMultiSession && (
+                  <View style={styles.multiSessionControls}>
+                    {/* Session # stepper */}
+                    <View style={styles.multiSessionField}>
+                      <Text style={styles.multiSessionFieldLabel}>Session #</Text>
+                      <View style={styles.stepperRow}>
+                        <AnimatedTouchable
+                          style={styles.stepperBtn}
+                          onPress={() => setEditSessionNumber(Math.max(1, (editSessionNumber || 1) - 1))}
+                          title="Decrease session number"
+                        >
+                          <Text style={styles.stepperBtnText}>-</Text>
+                        </AnimatedTouchable>
+                        <Text style={styles.stepperValue}>{editSessionNumber || 1}</Text>
+                        <AnimatedTouchable
+                          style={styles.stepperBtn}
+                          onPress={() => setEditSessionNumber(Math.min(editTotalSessions || 10, (editSessionNumber || 1) + 1))}
+                          title="Increase session number"
+                        >
+                          <Text style={styles.stepperBtnText}>+</Text>
+                        </AnimatedTouchable>
+                      </View>
+                    </View>
+
+                    <Text style={styles.multiSessionSeparator}>of</Text>
+
+                    {/* Total Sessions stepper */}
+                    <View style={styles.multiSessionField}>
+                      <Text style={styles.multiSessionFieldLabel}>Total Sessions</Text>
+                      <View style={styles.stepperRow}>
+                        <AnimatedTouchable
+                          style={styles.stepperBtn}
+                          onPress={() => {
+                            const val = Math.max(2, (editTotalSessions || 2) - 1);
+                            setEditTotalSessions(val);
+                            setEditSessionNumber(Math.min(editSessionNumber || 1, val));
+                          }}
+                          title="Decrease total sessions"
+                        >
+                          <Text style={styles.stepperBtnText}>-</Text>
+                        </AnimatedTouchable>
+                        <Text style={styles.stepperValue}>{editTotalSessions || 2}</Text>
+                        <AnimatedTouchable
+                          style={styles.stepperBtn}
+                          onPress={() => setEditTotalSessions(Math.min(10, (editTotalSessions || 2) + 1))}
+                          title="Increase total sessions"
+                        >
+                          <Text style={styles.stepperBtnText}>+</Text>
+                        </AnimatedTouchable>
+                      </View>
+                    </View>
                   </View>
                 )}
               </View>
@@ -1421,4 +1598,77 @@ const getStyles = (theme, insets) => StyleSheet.create({
   rescheduleBtnApprove: { backgroundColor: '#059669' },
   rescheduleBtnReject: { backgroundColor: '#dc2626' },
   rescheduleBtnText: { ...typography.button, color: '#fff', fontSize: 13 },
+  
+  // Rebook Button
+  rebookBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 14, borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(99,102,241,0.1)', borderWidth: 1, borderColor: 'rgba(99,102,241,0.3)',
+  },
+  rebookBtnText: { ...typography.button, color: '#6366f1', fontSize: 14 },
+
+  // ── Multi-Session Toggle Card ────────────────────────────────────────────
+  multiSessionCard: {
+    marginTop: 20, marginBottom: 8, padding: 16,
+    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1, borderColor: 'rgba(99, 102, 241, 0.2)',
+  },
+  multiSessionHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  multiSessionLabelRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  multiSessionTitle: {
+    ...typography.bodySmall, fontWeight: '800', color: '#4f46e5', letterSpacing: 0.3,
+  },
+  // iOS-style Toggle Switch
+  toggleTrack: {
+    width: 46, height: 26, borderRadius: 13,
+    backgroundColor: theme.border,
+    justifyContent: 'center', paddingHorizontal: 3,
+    transition: 'background-color 0.3s',
+  },
+  toggleTrackActive: {
+    backgroundColor: '#6366f1',
+  },
+  toggleThumb: {
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.25, shadowRadius: 2, elevation: 3,
+    alignSelf: 'flex-start',
+  },
+  toggleThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  // Session Number / Total steppers
+  multiSessionControls: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginTop: 18, gap: 8,
+  },
+  multiSessionField: { flex: 1, alignItems: 'center' },
+  multiSessionFieldLabel: {
+    ...typography.bodyXSmall, color: '#6d7280', marginBottom: 8, fontWeight: '600',
+  },
+  multiSessionSeparator: {
+    ...typography.body, fontWeight: '700', color: theme.textTertiary, paddingTop: 24,
+  },
+  stepperRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 0,
+    backgroundColor: theme.surfaceLight,
+    borderRadius: borderRadius.md,
+    borderWidth: 1, borderColor: theme.border, overflow: 'hidden',
+  },
+  stepperBtn: {
+    width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.surfaceLight,
+  },
+  stepperBtnText: {
+    fontSize: 20, fontWeight: '700', color: '#6366f1', lineHeight: 22,
+  },
+  stepperValue: {
+    minWidth: 36, textAlign: 'center',
+    ...typography.body, fontWeight: '800', color: theme.textPrimary,
+  },
 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Axios from 'axios';
-import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox, PenTool, Plus, User, Download, Printer, Search, Filter } from 'lucide-react';
+import { Check, X, Calendar, List, ChevronLeft, ChevronRight, Inbox, PenTool, Plus, User, Download, Printer, Search, Filter, ShieldAlert } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -780,6 +780,46 @@ function ArtistAppointments() {
                                                                     </div>
                                                                 </div>
                                                             )}
+
+                                                            {/* Client Health & Safety */}
+                                                            {(() => {
+                                                                const conditions = Array.isArray(selectedAppointment?.client_health_conditions) ? selectedAppointment.client_health_conditions : [];
+                                                                const allergens  = Array.isArray(selectedAppointment?.client_allergens)          ? selectedAppointment.client_allergens          : [];
+                                                                if (conditions.length === 0 && allergens.length === 0) return null;
+                                                                return (
+                                                                    <div style={{
+                                                                        padding: '14px 16px', borderRadius: '12px',
+                                                                        background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+                                                                        border: '1.5px solid #fed7aa',
+                                                                        boxShadow: '0 2px 8px rgba(249,115,22,0.1)'
+                                                                    }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
+                                                                            <ShieldAlert size={15} color="#ea580c" />
+                                                                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#9a3412', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Health & Safety</span>
+                                                                        </div>
+                                                                        {conditions.length > 0 && (
+                                                                            <div style={{ marginBottom: allergens.length > 0 ? '10px' : 0 }}>
+                                                                                <p style={{ margin: '0 0 6px', fontSize: '0.72rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Health Conditions</p>
+                                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                                                                    {conditions.map(c => (
+                                                                                        <span key={c} style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600, background: 'rgba(190,144,85,0.15)', border: '1.5px solid rgba(190,144,85,0.4)', color: '#92400e' }}>{c}</span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                        {allergens.length > 0 && (
+                                                                            <div>
+                                                                                <p style={{ margin: '0 0 6px', fontSize: '0.72rem', fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Known Allergens</p>
+                                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                                                                                    {allergens.map(a => (
+                                                                                        <span key={a} style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600, background: 'rgba(239,68,68,0.1)', border: '1.5px solid rgba(239,68,68,0.35)', color: '#991b1b' }}>{a}</span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
 
                                                         {/* RIGHT COLUMN: Images & Audit */}

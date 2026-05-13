@@ -342,9 +342,34 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
       {formData.bookingType === 'new' && (
         <View style={styles.animDrop}>
           {renderServicesSelection()}
+          <View style={{ marginTop: 24, marginBottom: 8 }}>
+            <Text style={styles.label}>Preferred Artist (Optional)</Text>
+            {artists.length === 0 ? (
+              <ActivityIndicator color={colors.gold} style={{ alignSelf: 'flex-start', marginVertical: 10 }} />
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 10 }}>
+                {artists.map(artist => {
+                  const isSelected = formData.artistId === artist.id;
+                  return (
+                    <TouchableOpacity 
+                      key={artist.id} 
+                      style={[styles.artistCard, isSelected && styles.artistCardActive]} 
+                      onPress={() => { triggerFeedback(); handleInput('artistId', isSelected ? null : artist.id); }}
+                    >
+                      <View style={styles.artistAvatar}>
+                        <User size={24} color={isSelected ? colors.backgroundDeep : colors.textSecondary} />
+                      </View>
+                      <Text style={[styles.artistName, isSelected && styles.artistNameActive]} numberOfLines={1}>{artist.name}</Text>
+                      <Text style={[styles.artistSpec, isSelected && styles.artistSpecActive]} numberOfLines={1}>{artist.specialization}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
           <View style={styles.infoBox}>
             <Info size={16} color={colors.textTertiary} style={{ marginTop: 2, marginRight: 8 }} />
-            <Text style={styles.infoTxt}>Artist Assignment: Our studio management will review your design and assign the best-suited resident artist for your style and complexity.</Text>
+            <Text style={styles.infoTxt}>If you don't select a preferred artist, our studio management will review your design and assign the best-suited resident artist for your style.</Text>
           </View>
         </View>
       )}

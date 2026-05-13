@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import {
   ArrowLeft, Phone, Mail, MessageSquare, Tag, Clock, FileText,
-  MapPin, Calendar, Pencil,
+  MapPin, Calendar, Pencil, ShieldAlert,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { typography } from '../src/theme';
@@ -18,6 +18,7 @@ import { PremiumLoader } from '../src/components/shared/PremiumLoader';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { getInitials, formatCurrency } from '../src/utils/formatters';
 import { fetchAPI } from '../src/utils/api';
+import { HealthAlertPanel } from '../src/components/shared/HealthAlertPanel';
 
 export function ArtistClientDetails({ route, onBack }) {
   const { theme: colors, hapticsEnabled } = useTheme();
@@ -113,6 +114,27 @@ export function ArtistClientDetails({ route, onBack }) {
               </View>
             </View>
           )}
+
+          {/* Health & Safety */}
+          {(() => {
+            const conditions = Array.isArray(details?.health_conditions) ? details.health_conditions : [];
+            const allergens  = Array.isArray(details?.allergens)         ? details.allergens         : [];
+            if (conditions.length === 0 && allergens.length === 0) return null;
+            return (
+              <View style={styles.section}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <ShieldAlert size={16} color="#ea580c" />
+                  <Text style={[styles.sectionTitle, { marginBottom: 0, color: '#9a3412' }]}>Health & Safety</Text>
+                </View>
+                <HealthAlertPanel
+                  conditions={conditions}
+                  allergens={allergens}
+                  initialOpen
+                  compact
+                />
+              </View>
+            );
+          })()}
 
           {/* Contact */}
           <View style={styles.section}>

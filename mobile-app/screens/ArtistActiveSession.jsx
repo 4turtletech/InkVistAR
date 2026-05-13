@@ -8,7 +8,7 @@ import {
   ScrollView, SafeAreaView, Image, ActivityIndicator, Modal, TouchableOpacity, Platform, Dimensions
 } from 'react-native';
 import {
-  ArrowLeft, Play, CheckCircle2, Camera, Package, Palette,
+  ArrowLeft, Play, Pause, CheckCircle2, Camera, Package, Palette,
   XCircle, Briefcase, Zap, Plus, Save, Clock, ChevronUp, ShieldAlert, X, Layers, CheckCircle, Circle
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,6 +17,7 @@ import { typography } from '../src/theme';
 import { useTheme } from '../src/context/ThemeContext';
 import { AnimatedTouchable } from '../src/components/shared/AnimatedTouchable';
 import { API_BASE_URL, API_URL } from '../src/utils/api';
+import { HealthAlertPanel } from '../src/components/shared/HealthAlertPanel';
 
 export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const { theme: colors, hapticsEnabled } = useTheme();
@@ -34,13 +35,10 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', onConfirm: null });
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [trackerVisible, setTrackerVisible] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [auditLog, setAuditLog] = useState([]);
   const [abortModalVisible, setAbortModalVisible] = useState(false);
   const [abortReason, setAbortReason] = useState('');
-  // Structured health data
-  const [healthConditions, setHealthConditions] = useState([]);
-  const [healthAllergens, setHealthAllergens] = useState([]);
-  const [showHealthPanel, setShowHealthPanel] = useState(false);
   const [draftImage, setDraftImage] = useState(null);
   const [refImage, setRefImage] = useState(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -177,11 +175,11 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
   // Timer logic
   useEffect(() => {
     let interval;
-    if (status === 'in_progress') {
+    if (status === 'in_progress' && !isPaused) {
       interval = setInterval(() => setElapsedSeconds(p => p + 1), 1000);
     }
     return () => clearInterval(interval);
-  }, [status]);
+  }, [status, isPaused]);
 
   const formatTime = (totalSecs) => {
     const h = Math.floor(totalSecs / 3600);
@@ -348,6 +346,59 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
     } catch (e) { showAlert('Error', 'Connection failed'); } finally { setLoading(false); }
   };
 
+  const handlePauseResume = () => {
+    if (hapticsEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isPaused) {
+      setAuditLog(prev => [...prev, { timestamp: new Date().toISOString(), event: 'Session Resumed', note: 'Artist resumed the session.' }]);
+      setIsPaused(false);
+    } else {
+      setAuditLog(prev => [...prev, { timestamp: new Date().toISOString(), event: 'Session Paused', note: 'Artist paused the session.' }]);
+      setIsPaused(true);
+    }
+  };
+
+  const hasUnsavedChanges = () => {
+    if (status === 'in_progress') return true;
+    const origNotes = appointment?.notes || '';
+    return sessionData.notes !== origNotes || sessionData.beforePhoto !== null || sessionData.afterPhoto !== null;
+  };
+
+  const handleBackIntercept = () => {
+    if (hasUnsavedChanges()) {
+      setConfirmModal({
+        visible: true,
+        title: 'Save Session Progress?',
+        message: status === 'in_progress'
+          ? 'The tattoo session is still in progress. Would you like to save your current documentation (notes, photos) before closing?'
+          : 'You have unsaved changes to your documentation. Would you like to save them before closing?',
+        confirmText: 'Save & Close',
+        cancelText: 'Discard Changes',
+        onConfirm: async () => {
+          await handleSaveDetails();
+          onBack();
+        },
+        onCancel: async () => {
+          if (sessionMaterials && sessionMaterials.length > 0) {
+            for (const mat of sessionMaterials) {
+              try {
+                await fetch(`${API_URL}/appointments/${appointment.id}/release-material`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ materialId: mat.id })
+                });
+              } catch (e) {
+                console.error('Failed to release material on discard', e);
+              }
+            }
+          }
+          onBack();
+        }
+      });
+    } else {
+      onBack();
+    }
+  };
+
   const getStatusBg = (s) => { switch (s) { case 'confirmed': return colors.info; case 'in_progress': return colors.gold; case 'completed': return colors.success; default: return colors.textTertiary; } };
 
   return (
@@ -355,8 +406,15 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
       <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: keyboardVisible ? 340 : 0 }}>
         {/* Header */}
         <View style={styles.header}>
-          <AnimatedTouchable onPress={onBack} style={styles.backBtn}><ArrowLeft size={20} color={colors.textPrimary} /></AnimatedTouchable>
-          <Text style={styles.headerTitle}>Active Session</Text>
+          <AnimatedTouchable onPress={handleBackIntercept} style={styles.backBtn}><ArrowLeft size={20} color={colors.textPrimary} /></AnimatedTouchable>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={styles.headerTitle}>Active Session</Text>
+            {appointment?.session_number ? (
+              <View style={{ backgroundColor: 'rgba(190,144,85,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginTop: 4 }}>
+                <Text style={{ fontSize: 10, color: colors.gold, fontWeight: '700' }}>Session {appointment.session_number} {appointment.total_sessions ? `of ${appointment.total_sessions}` : ''}</Text>
+              </View>
+            ) : null}
+          </View>
           <View style={{ width: 40 }} />
         </View>
 
@@ -386,14 +444,25 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
 
             {status === 'in_progress' && (
               <View style={styles.timerContainer}>
-                <View style={styles.statusRing}>
-                  <Text style={styles.timerText}>{formatTime(elapsedSeconds)}</Text>
-                  <Text style={styles.timerLabel}>SESSION DURATION</Text>
+                <View style={[styles.statusRing, isPaused && { borderColor: colors.gold }]}>
+                  <Text style={[styles.timerText, isPaused && { color: colors.gold }]}>{formatTime(elapsedSeconds)}</Text>
+                  <Text style={styles.timerLabel}>{isPaused ? 'SESSION PAUSED' : 'SESSION DURATION'}</Text>
                 </View>
-                <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: colors.success, marginTop: 24 }]} onPress={() => handleUpdateStatus('completed')} disabled={loading}>
-                  <View style={{ marginRight: 10 }}><CheckCircle2 size={18} color="#ffffff" /></View>
-                  <Text style={styles.actionBtnText}>Complete Session</Text>
-                </AnimatedTouchable>
+
+                {/* Pause/Resume and Complete Buttons Row */}
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                  <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: isPaused ? colors.gold : colors.surfaceLight, borderWidth: 1, borderColor: colors.gold }]} onPress={handlePauseResume} disabled={loading}>
+                    <View style={{ marginRight: 10 }}>
+                      {isPaused ? <Play size={18} color={colors.backgroundDeep} /> : <Pause size={18} color={colors.gold} />}
+                    </View>
+                    <Text style={[styles.actionBtnText, { color: isPaused ? colors.backgroundDeep : colors.gold }]}>{isPaused ? 'Resume' : 'Pause'}</Text>
+                  </AnimatedTouchable>
+                  
+                  <AnimatedTouchable style={[styles.actionBtn, { flex: 1, backgroundColor: colors.success }]} onPress={() => handleUpdateStatus('completed')} disabled={loading}>
+                    <View style={{ marginRight: 10 }}><CheckCircle2 size={18} color="#ffffff" /></View>
+                    <Text style={styles.actionBtnText}>Complete</Text>
+                  </AnimatedTouchable>
+                </View>
                 
                 <AnimatedTouchable style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.error, marginTop: 12 }]} onPress={handleAbortSession} disabled={loading}>
                   <View style={{ marginRight: 10 }}><XCircle size={18} color={colors.error} /></View>
@@ -427,61 +496,12 @@ export function ArtistActiveSession({ appointment, onBack, onComplete }) {
             {loading && <ActivityIndicator color={colors.gold} style={{ marginTop: 10 }} />}
           </View>
 
-          {/* Collapsible Health Alert Panel */}
-          {(healthConditions.length > 0 || healthAllergens.length > 0) && (
-            <View style={{ marginBottom: 24 }}>
-              <TouchableOpacity
-                onPress={() => setShowHealthPanel(p => !p)}
-                accessibilityLabel={showHealthPanel ? 'Collapse health alert' : 'View client health and safety'}
-                style={[
-                  styles.healthToggleBtn,
-                  showHealthPanel && { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }
-                ]}
-                activeOpacity={0.85}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <ShieldAlert size={15} color="#ea580c" />
-                  <Text style={styles.healthToggleLabel}>CLIENT HEALTH & SAFETY</Text>
-                  <View style={styles.healthCountBadge}>
-                    <Text style={styles.healthCountText}>{healthConditions.length + healthAllergens.length}</Text>
-                  </View>
-                </View>
-                <Text style={{ color: '#ea580c', fontSize: 16, lineHeight: 20 }}>{showHealthPanel ? '−' : '+'}</Text>
-              </TouchableOpacity>
-
-              {showHealthPanel && (
-                <View style={styles.healthPanel}>
-                  <Text style={styles.healthPanelNote}>
-                    Review the following disclosures before beginning the procedure.
-                  </Text>
-                  {healthConditions.length > 0 && (
-                    <>
-                      <Text style={styles.healthSubLabel}>HEALTH CONDITIONS</Text>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                        {healthConditions.map(c => (
-                          <View key={c} style={styles.conditionChip}>
-                            <Text style={styles.conditionChipText}>{c}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </>
-                  )}
-                  {healthAllergens.length > 0 && (
-                    <>
-                      <Text style={styles.healthSubLabel}>KNOWN ALLERGENS</Text>
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                        {healthAllergens.map(a => (
-                          <View key={a} style={styles.allergenChip}>
-                            <Text style={styles.allergenChipText}>{a}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </>
-                  )}
-                </View>
-              )}
-            </View>
-          )}
+          {/* Client Health & Safety */}
+          <HealthAlertPanel
+            conditions={Array.isArray(appointment?.client_health_conditions) ? appointment.client_health_conditions : []}
+            allergens={Array.isArray(appointment?.client_allergens) ? appointment.client_allergens : []}
+            initialOpen
+          />
 
           {/* B-M1: Project Timeline */}
           {(projectTimeline || projectTimelineLoading) && (
