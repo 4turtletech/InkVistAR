@@ -3921,14 +3921,50 @@ app.get('/api/public/calendar-availability', (req, res) => {
 // Customer book appointment
 app.post('/api/customer/appointments', async (req, res) => {
   console.log('[INFO] Customer booking request:', req.body);
-  let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price, serviceType, consultationMethod } = req.body;
+  let { customerId, artistId, date, startTime, endTime, designTitle, notes, referenceImage, price, serviceType, consultationMethod, customerName, guestEmail, guestPhone } = req.body;
+
+  // --- Validate Customer ID & Handle Guests ---
+  let finalCustomerId = customerId;
+  let isGuest = 0;
+
+  if (customerId) {
+    const userExists = await new Promise((resolve) => {
+      db.query("SELECT id FROM users WHERE id = ?", [customerId], (err, results) => {
+        resolve(!err && results.length > 0);
+      });
+    });
+
+    if (!userExists) {
+      if (guestEmail) {
+        // Fallback to guest mode
+        isGuest = 1;
+        finalCustomerId = null;
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: 'Session invalid. Your account was not found. Please log out and log back in.'
+        });
+      }
+    }
+  } else {
+    isGuest = 1;
+  }
+
+  if (isGuest) {
+    // Get default admin ID to hold the guest appointment
+    finalCustomerId = await new Promise((resolve) => {
+      db.query("SELECT id FROM users WHERE user_type = 'admin' ORDER BY id ASC LIMIT 1", (err, adminRes) => {
+        resolve(adminRes && adminRes.length > 0 ? adminRes[0].id : 1);
+      });
+    });
+  }
 
   // ═══ Rolling Booking Limit: max 2 pending appointments per customer ═══
-  if (customerId) {
+  if (!isGuest && finalCustomerId) {
     const limitCheck = await new Promise((resolve) => {
       db.query(
         `SELECT COUNT(*) as pending FROM appointments WHERE customer_id = ? AND status = 'pending' AND is_deleted = 0`,
-        [customerId],
+        [finalCustomerId],
         (err, results) => {
           if (err) return resolve({ allowed: true });
           const pendingCount = results[0]?.pending || 0;
@@ -4012,7 +4048,7 @@ app.post('/api/customer/appointments', async (req, res) => {
       }
 
       checkQuery += ` customer_id = ? ) `;
-      queryParams.push(customerId);
+      queryParams.push(isGuest ? null : finalCustomerId);
 
       db.query(checkQuery, queryParams, (checkErr, checkResults) => {
         if (checkErr) {
@@ -4033,11 +4069,11 @@ app.post('/api/customer/appointments', async (req, res) => {
     function insertAppointment() {
       const query = `
     INSERT INTO appointments 
-    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type, booking_code, consultation_method)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, 'PENDING', ?)
+    (customer_id, artist_id, appointment_date, start_time, end_time, design_title, notes, reference_image, status, price, service_type, booking_code, consultation_method, is_guest_placeholder, guest_email, guest_phone)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, 'PENDING', ?, ?, ?, ?)
   `;
 
-      db.query(query, [customerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation', consultationMethod || null], (err, result) => {
+      db.query(query, [finalCustomerId, currentArtistId, date, finalStartTime, finalEndTime, designTitle || (serviceType ? serviceType + ' Request' : 'Booking Request'), notes, referenceImage, serviceType || 'Consultation', consultationMethod || null, isGuest, guestEmail || null, guestPhone || null], (err, result) => {
         if (err) {
           console.error('[ERROR] Error booking appointment:', err);
           return res.status(500).json({ success: false, message: 'Database error: ' + err.message });
@@ -4053,7 +4089,10 @@ app.post('/api/customer/appointments', async (req, res) => {
         const displayDesign = designTitle || 'Tattoo Request';
         const appointmentDate = new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const appointmentTime = finalStartTime ? new Date(`2000-01-01T${finalStartTime}`).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'a time to be determined';
-        createNotification(customerId, 'Booking Request Received', `Your request [${bookingCode}] for a ${displayDesign} session on ${appointmentDate} at ${appointmentTime} has been received. We will review it shortly! Expect a call from our staff in the next 24 hours.`, 'appointment_request', result.insertId);
+        
+        if (!isGuest) {
+          createNotification(finalCustomerId, 'Booking Request Received', `Your request [${bookingCode}] for a ${displayDesign} session on ${appointmentDate} at ${appointmentTime} has been received. We will review it shortly! Expect a call from our staff in the next 24 hours.`, 'appointment_request', result.insertId);
+        }
 
         // Notify all Admins/Managers (1 notification each)
         db.query('SELECT id FROM users WHERE user_type IN (?, ?)', ['admin', 'manager'], (adminErr, admins) => {
@@ -4069,12 +4108,14 @@ app.post('/api/customer/appointments', async (req, res) => {
           createNotification(artistId, 'New Booking Request', `A client has requested a ${displayDesign} session with you on ${appointmentDate} at ${appointmentTime}. The admin is reviewing this request.`, 'appointment_request', result.insertId);
         }
 
-        db.query('SELECT email, name FROM users WHERE id = ?', [customerId], (err, users) => {
-          if (!err && users && users.length > 0 && users[0].email) {
+        db.query('SELECT email, name FROM users WHERE id = ?', [finalCustomerId], (err, users) => {
+          const targetEmail = guestEmail || (users && users.length > 0 ? users[0].email : null);
+          if (targetEmail) {
+            const clientName = (isGuest ? customerName : (users && users.length > 0 ? users[0].name : 'Guest')) || 'Guest';
             const html = buildEmailHtml(`
               <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#C19A6B;text-align:center;">Booking Request Received!</h2>
               <p style="margin:0 0 20px;font-size:13px;color:#64748b;text-align:center;">Your request is being reviewed</p>
-              <p style="margin:0 0 16px;">Hello ${users[0].name},</p>
+              <p style="margin:0 0 16px;">Hello ${clientName},</p>
               <p style="margin:0 0 16px;">We have successfully received your request <strong>[${bookingCode}]</strong> and our team is currently reviewing your details.</p>
               
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:10px 0 20px;">
@@ -4088,7 +4129,7 @@ app.post('/api/customer/appointments', async (req, res) => {
               <p style="margin:0 0 16px;line-height:1.6;">Our team will get back to you shortly to assist with next steps and confirm pricing. Expect a call or email from our staff within the next 24 hours.</p>
               <p style="margin:0;font-size:14px;color:#94a3b8;text-align:center;">- The InkVistAR Studio Team</p>
             `);
-            sendResendEmail(users[0].email, 'InkVistAR: Booking Request Received', html);
+            sendResendEmail(targetEmail, 'InkVistAR: Booking Request Received', html);
           }
         });
 

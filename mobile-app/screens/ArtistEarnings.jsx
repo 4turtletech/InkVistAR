@@ -319,8 +319,6 @@ export function ArtistEarnings({ onBack, artistId }) {
                         </View>
                         <Text style={[styles.metricValue, { color: colors.gold }]}>P{formatCurrency(metrics.balanceDue)}</Text>
                     </View>
-                        <Text style={[styles.metricValue, { color: colors.gold }]}>P{formatCurrency(metrics.balanceDue)}</Text>
-                    </View>
                 </ScrollView>
             </StaggerItem>
 
