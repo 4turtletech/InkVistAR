@@ -4979,7 +4979,13 @@ app.post('/api/admin/appointments', async (req, res) => {
   };
 
   resolveAdminIds(() => {
-    const combinedTitle = serviceType && designTitle ? `${serviceType}: ${designTitle}` : (designTitle || serviceType || 'Appointment');
+    let cleanDesignTitle = designTitle || '';
+    if (serviceType) {
+      const escapedService = serviceType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const prefixRegex = new RegExp(`^(${escapedService}\\s*:\\s*)+`, 'i');
+      cleanDesignTitle = cleanDesignTitle.replace(prefixRegex, '');
+    }
+    const combinedTitle = serviceType && cleanDesignTitle ? `${serviceType}: ${cleanDesignTitle}` : (cleanDesignTitle || serviceType || 'Appointment');
     const finalStatus = status || 'confirmed';
 
     // Sanitize split prices for dual-service bookings
@@ -5599,7 +5605,13 @@ app.put('/api/admin/appointments/:id', (req, res) => {
   const startTime = body.startTime === '' ? null : body.startTime;
   const rescheduleReason = body.rescheduleReason;
 
-  const combinedTitle = serviceType && designTitle ? `${serviceType}: ${designTitle}` : (designTitle || serviceType || null);
+  let cleanDesignTitle = designTitle || '';
+  if (serviceType) {
+    const escapedService = serviceType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const prefixRegex = new RegExp(`^(${escapedService}\\s*:\\s*)+`, 'i');
+    cleanDesignTitle = cleanDesignTitle.replace(prefixRegex, '');
+  }
+  const combinedTitle = serviceType && cleanDesignTitle ? `${serviceType}: ${cleanDesignTitle}` : (cleanDesignTitle || serviceType || null);
 
   let query = 'UPDATE appointments SET ';
   const params = [];

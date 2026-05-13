@@ -339,6 +339,9 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
       artistId: editArtistId || null,
       discountAmount: discountAmt,
       discountType: discountTypeVal,
+      sessionNumber: editIsMultiSession ? (editSessionNumber || 1) : null,
+      totalSessions: editIsMultiSession ? (editTotalSessions || 2) : null,
+      projectId: editIsMultiSession ? editProjectId : null,
     });
     if (result.success) {
       Alert.alert('Success', 'Appointment updated');

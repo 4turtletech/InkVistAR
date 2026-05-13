@@ -23,7 +23,7 @@ export function HealthAlertPanel({ conditions = [], allergens = [], initialOpen 
   if (total === 0) return null;
 
   return (
-    <View style={styles.wrapper} accessibilityRole="region" accessibilityLabel="Client health and safety information">
+    <View style={styles.wrapper} accessibilityLabel="Client health and safety information">
       {/* Header / Collapse toggle */}
       <TouchableOpacity
         style={styles.header}

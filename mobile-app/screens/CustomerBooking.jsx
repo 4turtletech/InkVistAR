@@ -24,7 +24,6 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
   const TOTAL_STEPS = 5;
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [artists, setArtists] = useState([]);
   const [completedAppointments, setCompletedAppointments] = useState([]);
 
   // Form Data
@@ -97,22 +96,9 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
   };
 
   useEffect(() => { 
-    fetchArtists(); 
     fetchCompletedAppointments();
     fetchAvailability();
   }, []);
-
-  const fetchArtists = async () => {
-    try {
-      const r = await (await fetch(`${API_URL}/customer/artists`)).json();
-      if (r.success) setArtists(r.artists);
-    } catch (e) {
-      setArtists([
-        { id: 1, name: 'Mike Chen', specialization: 'Realism', hourly_rate: 150 },
-        { id: 2, name: 'Sarah Jones', specialization: 'Traditional', hourly_rate: 120 },
-      ]);
-    }
-  };
 
   const fetchCompletedAppointments = async () => {
     try {
@@ -342,35 +328,6 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
       {formData.bookingType === 'new' && (
         <View style={styles.animDrop}>
           {renderServicesSelection()}
-          <View style={{ marginTop: 24, marginBottom: 8 }}>
-            <Text style={styles.label}>Preferred Artist (Optional)</Text>
-            {artists.length === 0 ? (
-              <ActivityIndicator color={colors.gold} style={{ alignSelf: 'flex-start', marginVertical: 10 }} />
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 10 }}>
-                {artists.map(artist => {
-                  const isSelected = formData.artistId === artist.id;
-                  return (
-                    <TouchableOpacity 
-                      key={artist.id} 
-                      style={[styles.artistCard, isSelected && styles.artistCardActive]} 
-                      onPress={() => { triggerFeedback(); handleInput('artistId', isSelected ? null : artist.id); }}
-                    >
-                      <View style={styles.artistAvatar}>
-                        <User size={24} color={isSelected ? colors.backgroundDeep : colors.textSecondary} />
-                      </View>
-                      <Text style={[styles.artistName, isSelected && styles.artistNameActive]} numberOfLines={1}>{artist.name}</Text>
-                      <Text style={[styles.artistSpec, isSelected && styles.artistSpecActive]} numberOfLines={1}>{artist.specialization}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            )}
-          </View>
-          <View style={styles.infoBox}>
-            <Info size={16} color={colors.textTertiary} style={{ marginTop: 2, marginRight: 8 }} />
-            <Text style={styles.infoTxt}>If you don't select a preferred artist, our studio management will review your design and assign the best-suited resident artist for your style.</Text>
-          </View>
         </View>
       )}
 
@@ -672,9 +629,6 @@ export function CustomerBooking({ customerId, onBack, initialUser }) {
           
           <Text style={styles.tLabel}>Session Schedule</Text>
           <Text style={styles.tValue}>{formData.date} {formData.time ? `at ${formData.time}` : '(1:00 PM - 8:00 PM)'}</Text>
-
-          <Text style={styles.tLabel}>Artist</Text>
-          <Text style={styles.tValue}>{formData.artistId ? artists.find(a => a.id === formData.artistId)?.name : 'Auto-Assigned'}</Text>
         </View>
         <View style={styles.ticketDivider}>
           <View style={styles.ticketHoleLeft} />
@@ -806,14 +760,6 @@ const getStyles = (colors) => StyleSheet.create({
   uploadInner: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   uploadTxt: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 12 },
   uploadedImg: { width: '100%', height: '100%', resizeMode: 'cover' },
-  
-  artistCard: { width: 140, padding: 16, borderRadius: borderRadius.lg, backgroundColor: colors.darkBgSecondary, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
-  artistCardActive: { borderColor: colors.gold, backgroundColor: colors.gold },
-  artistAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  artistName: { ...typography.bodySmall, color: colors.textPrimary, fontWeight: '700', textAlign: 'center' },
-  artistNameActive: { color: colors.backgroundDeep },
-  artistSpec: { ...typography.bodyXSmall, color: colors.textSecondary, textAlign: 'center', marginTop: 4 },
-  artistSpecActive: { color: 'rgba(0,0,0,0.6)' },
   
   calCard: { backgroundColor: colors.darkBgSecondary, borderRadius: borderRadius.lg, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: colors.border },
   calHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
