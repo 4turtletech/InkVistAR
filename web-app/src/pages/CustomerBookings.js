@@ -9,7 +9,7 @@ import CustomerSideNav from '../components/CustomerSideNav';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import ImageLightbox from '../components/ImageLightbox';
-import { getDisplayCode } from '../utils/formatters';
+import { getDisplayCode, formatTime12Hour } from '../utils/formatters';
 const BodyModelViewer = lazy(() => import('../components/BodyModelViewer'));
 
 function CustomerBookings(){
@@ -2437,7 +2437,7 @@ function CustomerBookings(){
                                                                     opacity: isDisabled ? 0.6 : 1
                                                                 }}
                                                             >
-                                                                {parseInt(t) > 12 ? (parseInt(t)-12) + ':00 PM' : t + ':00 PM'}
+                                                                {formatTime12Hour(t)}
                                                             </div>
                                                             );
                                                         })}

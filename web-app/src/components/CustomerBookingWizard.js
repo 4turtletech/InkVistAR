@@ -6,6 +6,7 @@ import { API_URL, SOCKET_URL } from '../config';
 import io from 'socket.io-client';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import WaiverFormModal from './WaiverFormModal';
+import { formatTime12Hour } from '../utils/formatters';
 const BodyModelViewer = lazy(() => import('./BodyModelViewer'));
 
 export default function CustomerBookingWizard({ customerId, onBack, isPublic = false }) {
@@ -944,8 +945,7 @@ export default function CustomerBookingWizard({ customerId, onBack, isPublic = f
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                {t === '12:00' ? '12:00 PM' : 
-                                 parseInt(t) > 12 ? `${parseInt(t) - 12}:00 PM` : `${t} PM`}
+                                {formatTime12Hour(t)}
                             </button>
                             );
                         })}

@@ -2214,7 +2214,7 @@ function AdminAppointments() {
                                                 <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Requested Date</div>
                                                 <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
                                                     {new Date(pendingRescheduleRequest.requested_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                                                    {pendingRescheduleRequest.requested_time && ` at ${pendingRescheduleRequest.requested_time}`}
+                                                    {pendingRescheduleRequest.requested_time && ` at ${formatTime12Hour(pendingRescheduleRequest.requested_time)}`}
                                                 </div>
                                             </div>
                                             <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.8)', border: '1px solid #fde68a' }}>
@@ -2633,7 +2633,7 @@ function AdminAppointments() {
                                                                     }}>
                                                                         <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Time Slot</span>
                                                                         <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#1e293b' }}>
-                                                                            {(() => { const [h, m] = formData.time.split(':'); const hr = parseInt(h); return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`; })()}
+                                                                            {formatTime12Hour(formData.time)}
                                                                         </span>
                                                                     </div>
                                                                 )}
