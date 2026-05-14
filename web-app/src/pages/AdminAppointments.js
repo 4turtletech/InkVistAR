@@ -2693,6 +2693,64 @@ function AdminAppointments() {
                                                         )}
                                                     </div>
                                                 </div>
+
+                                                {/* Multi-Session Project Toggle (Task 1.2) */}
+                                                <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(99, 102, 241, 0.04)', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.15)' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: formData.totalSessions ? '14px' : 0 }}>
+                                                        <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <Layers size={16} style={{ color: '#6366f1' }} />
+                                                            Multi-Session Project
+                                                        </label>
+                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!!formData.totalSessions}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setFormData({ ...formData, totalSessions: 2, sessionNumber: 1 });
+                                                                    } else {
+                                                                        setFormData({ ...formData, totalSessions: '', sessionNumber: '' });
+                                                                    }
+                                                                }}
+                                                                style={{ width: '18px', height: '18px', accentColor: '#6366f1' }}
+                                                            />
+                                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Enabled</span>
+                                                        </label>
+                                                    </div>
+                                                    {!!formData.totalSessions && (
+                                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                            <div style={{ flex: 1 }}>
+                                                                <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Session #</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    max={formData.totalSessions || 10}
+                                                                    value={formData.sessionNumber || 1}
+                                                                    onChange={(e) => setFormData({ ...formData, sessionNumber: Math.min(Math.max(1, parseInt(e.target.value) || 1), parseInt(formData.totalSessions) || 10) })}
+                                                                    className="premium-input-v2"
+                                                                    style={{ textAlign: 'center' }}
+                                                                />
+                                                            </div>
+                                                            <span style={{ fontSize: '1.1rem', color: '#94a3b8', fontWeight: 700, paddingTop: '18px' }}>of</span>
+                                                            <div style={{ flex: 1 }}>
+                                                                <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Total Sessions</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="2"
+                                                                    max="10"
+                                                                    value={formData.totalSessions || 2}
+                                                                    onChange={(e) => {
+                                                                        const val = Math.min(Math.max(2, parseInt(e.target.value) || 2), 10);
+                                                                        setFormData({ ...formData, totalSessions: val, sessionNumber: Math.min(parseInt(formData.sessionNumber) || 1, val) });
+                                                                    }}
+                                                                    className="premium-input-v2"
+                                                                    style={{ textAlign: 'center' }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
                                             </div>
 
                                             {/* --- PIERCING JEWELRY SELECTIONS (read-only info panel) --- */}
@@ -2973,63 +3031,6 @@ function AdminAppointments() {
                                                         : "Add any notes about this new appointment — placement preferences, client requests, design specifics, scheduling notes, etc."
                                                     }
                                                 />
-                                            </div>
-
-                                            {/* Multi-Session Project Toggle (Task 1.2) */}
-                                            <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(99, 102, 241, 0.04)', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.15)' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: formData.totalSessions ? '14px' : 0 }}>
-                                                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        <Layers size={16} style={{ color: '#6366f1' }} />
-                                                        Multi-Session Project
-                                                    </label>
-                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={!!formData.totalSessions}
-                                                            onChange={(e) => {
-                                                                if (e.target.checked) {
-                                                                    setFormData({ ...formData, totalSessions: 2, sessionNumber: 1 });
-                                                                } else {
-                                                                    setFormData({ ...formData, totalSessions: '', sessionNumber: '' });
-                                                                }
-                                                            }}
-                                                            style={{ width: '18px', height: '18px', accentColor: '#6366f1' }}
-                                                        />
-                                                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Enabled</span>
-                                                    </label>
-                                                </div>
-                                                {!!formData.totalSessions && (
-                                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                        <div style={{ flex: 1 }}>
-                                                            <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Session #</label>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                max={formData.totalSessions || 10}
-                                                                value={formData.sessionNumber || 1}
-                                                                onChange={(e) => setFormData({ ...formData, sessionNumber: Math.min(Math.max(1, parseInt(e.target.value) || 1), parseInt(formData.totalSessions) || 10) })}
-                                                                className="premium-input-v2"
-                                                                style={{ textAlign: 'center' }}
-                                                            />
-                                                        </div>
-                                                        <span style={{ fontSize: '1.1rem', color: '#94a3b8', fontWeight: 700, paddingTop: '18px' }}>of</span>
-                                                        <div style={{ flex: 1 }}>
-                                                            <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Total Sessions</label>
-                                                            <input
-                                                                type="number"
-                                                                min="2"
-                                                                max="10"
-                                                                value={formData.totalSessions || 2}
-                                                                onChange={(e) => {
-                                                                    const val = Math.min(Math.max(2, parseInt(e.target.value) || 2), 10);
-                                                                    setFormData({ ...formData, totalSessions: val, sessionNumber: Math.min(parseInt(formData.sessionNumber) || 1, val) });
-                                                                }}
-                                                                className="premium-input-v2"
-                                                                style={{ textAlign: 'center' }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
                                             </div>
 
                                             {/* Special Discount Section (Task 1.3) */}
