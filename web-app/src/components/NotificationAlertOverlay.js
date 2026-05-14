@@ -89,12 +89,12 @@ function NotificationAlertOverlay() {
             cursor: 'pointer'
         }} onClick={handleClick}>
             <div style={{
-                background: isChatNotif ? '#eff6ff' : '#f8fafc',
+                background: isChatNotif ? 'rgba(190, 144, 85, 0.08)' : '#f8fafc',
                 borderRadius: '10px', padding: '10px', display: 'flex', flexShrink: 0,
-                border: `1px solid ${isChatNotif ? '#bfdbfe' : '#e2e8f0'}`
+                border: `1px solid ${isChatNotif ? 'rgba(190, 144, 85, 0.2)' : '#e2e8f0'}`
             }}>
                 {isChatNotif
-                    ? <MessageSquare size={20} color="#3b82f6" />
+                    ? <MessageSquare size={20} color="#be9055" />
                     : <Bell size={20} color="#be9055" />
                 }
             </div>
@@ -109,7 +109,7 @@ function NotificationAlertOverlay() {
                     {isChatNotif && role === 'admin' && (
                         <button onClick={handleTakeAction} style={{
                             padding: '5px 12px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700,
-                            background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: '#fff',
+                            background: 'linear-gradient(135deg, #be9055, #a67c52)', color: '#fff',
                             border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
                             transition: 'opacity 0.2s'
                         }}>

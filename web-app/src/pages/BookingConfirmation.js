@@ -113,7 +113,7 @@ const BookingConfirmation = () => {
                         {/* Top accent */}
                         <div style={{
                             height: '4px',
-                            background: isPending ? 'linear-gradient(90deg, #6366f1, #818cf8)' :
+                            background: isPending ? 'linear-gradient(90deg, #be9055, #d4af37)' :
                                         isTimeout ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' :
                                         'linear-gradient(90deg, #10b981, #34d399)',
                         }} />
@@ -126,13 +126,14 @@ const BookingConfirmation = () => {
                                     width: '80px', height: '80px',
                                     margin: '0 auto 28px',
                                     borderRadius: '50%',
-                                    background: '#eef2ff',
+                                    background: '#fdfaf6',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    border: '1px solid #f3e8d6',
                                 }}>
                                     <div style={{
                                         width: '36px', height: '36px',
-                                        border: '3px solid #e0e7ff',
-                                        borderTop: '3px solid #6366f1',
+                                        border: '3px solid #f3e8d6',
+                                        borderTop: '3px solid #be9055',
                                         borderRadius: '50%',
                                         animation: 'spin 1s linear infinite',
                                     }} />
@@ -241,7 +242,7 @@ const BookingConfirmation = () => {
                                         <span style={{
                                             fontSize: '1.05rem',
                                             fontWeight: '700',
-                                            color: '#6366f1',
+                                            color: '#be9055',
                                             letterSpacing: '0.03em',
                                             fontFamily: 'monospace',
                                         }}>{bookingDisplayCode || `#${appointmentId}`}</span>
@@ -272,14 +273,14 @@ const BookingConfirmation = () => {
                                     justifyContent: 'center',
                                     gap: '8px',
                                     padding: '14px 24px',
-                                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                    background: 'linear-gradient(135deg, #be9055, #a67c46)',
                                     color: 'white',
                                     borderRadius: '10px',
                                     textDecoration: 'none',
                                     fontWeight: '600',
                                     fontSize: '0.92rem',
                                     border: 'none',
-                                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+                                    boxShadow: '0 4px 12px rgba(190, 144, 85, 0.25)',
                                     transition: 'all 0.2s ease',
                                 }}>
                                     Manage My Bookings <ArrowRight size={16} />

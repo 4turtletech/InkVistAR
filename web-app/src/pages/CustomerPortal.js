@@ -314,24 +314,24 @@ function CustomerPortal() {
                                         style={{
                                             marginBottom: '24px', background: '#12141a', color: '#fff', borderRadius: '16px',
                                             overflow: 'hidden', position: 'relative', cursor: 'pointer',
-                                            border: '1px solid rgba(99,102,241,0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                                            border: '1px solid rgba(190,144,85,0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
                                             transition: 'all 0.3s ease'
                                         }}
-                                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(190,144,85,0.5)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(190,144,85,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                                     >
                                         {/* Decorative glows */}
-                                        <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-                                        <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+                                        <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(190,144,85,0.12) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+                                        <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(190,144,85,0.06) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
 
                                         {/* Header */}
-                                        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(99,102,241,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                                        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(190,144,85,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 2 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <Shield size={18} color="#6366f1" />
-                                                <h2 style={{ color: '#c7d2fe', margin: 0, fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Pre-Session Conditioning Plan</h2>
+                                                <Shield size={18} color="#be9055" />
+                                                <h2 style={{ color: '#e8d5b8', margin: 0, fontSize: '1rem', fontWeight: 700, letterSpacing: '-0.01em' }}>Pre-Session Conditioning Plan</h2>
                                             </div>
                                             <span style={{
-                                                background: 'rgba(99,102,241,0.15)', color: '#818cf8',
+                                                background: 'rgba(190,144,85,0.15)', color: '#be9055',
                                                 padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600
                                             }}>
                                                 {activePrecare.daysUntil === 0 ? 'Today!' : activePrecare.daysUntil === 1 ? 'Tomorrow' : `${activePrecare.daysUntil} days away`}
@@ -340,8 +340,8 @@ function CustomerPortal() {
 
                                         {/* Body */}
                                         <div style={{ padding: '18px 20px', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', position: 'relative', zIndex: 2 }}>
-                                            <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <Shield size={28} color="#6366f1" />
+                                            <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(190,144,85,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <Shield size={28} color="#be9055" />
                                             </div>
                                             <div style={{ flex: 1, minWidth: '180px' }}>
                                                 <h3 style={{ fontSize: '1rem', margin: '0 0 4px 0', color: '#e2e8f0', fontFamily: "'Playfair Display', serif" }}>
@@ -350,7 +350,7 @@ function CustomerPortal() {
                                                 <p style={{ color: '#94a3b8', margin: '0 0 2px 0', fontSize: '0.82rem' }}>
                                                     with {activePrecare.artistName} · {sessionDate}
                                                 </p>
-                                                <p style={{ color: '#6366f1', margin: 0, fontSize: '0.78rem', fontWeight: 600 }}>
+                                                <p style={{ color: '#be9055', margin: 0, fontSize: '0.78rem', fontWeight: 600 }}>
                                                     Tap to view your 6-step preparation guide →
                                                 </p>
                                             </div>
@@ -578,22 +578,22 @@ function CustomerPortal() {
             {/* Pre-Care Conditioning Plan Modal */}
             {showPreCareModal && activePrecare && (
                 <div className="modal-overlay open" onClick={() => setShowPreCareModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', background: '#ffffff', border: '1px solid rgba(99,102,241,0.2)' }}>
-                        <div className="modal-header" style={{ borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', background: '#ffffff', border: '1px solid rgba(190,144,85,0.2)' }}>
+                        <div className="modal-header" style={{ borderBottom: '1px solid rgba(190,144,85,0.15)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Shield size={20} color="#6366f1" />
-                                <h3 style={{ margin: 0, color: '#312e81' }}>Pre-Session Conditioning Plan</h3>
+                                <Shield size={20} color="#be9055" />
+                                <h3 style={{ margin: 0, color: '#be9055' }}>Pre-Session Conditioning Plan</h3>
                             </div>
                             <button className="close-btn" onClick={() => setShowPreCareModal(false)}><X size={20} /></button>
                         </div>
                         <div className="modal-body" style={{ padding: '24px' }}>
                             {/* Session info */}
-                            <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '12px', padding: '16px', marginBottom: '20px', textAlign: 'center' }}>
+                            <div style={{ background: 'rgba(190,144,85,0.08)', border: '1px solid rgba(190,144,85,0.15)', borderRadius: '12px', padding: '16px', marginBottom: '20px', textAlign: 'center' }}>
                                 <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', color: '#1e1b4b', fontFamily: "'Playfair Display', serif" }}>{activePrecare.designTitle}</h4>
                                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
                                     with {activePrecare.artistName} · {new Date(activePrecare.appointmentDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                                 </p>
-                                <span style={{ display: 'inline-block', marginTop: '8px', background: 'rgba(99,102,241,0.15)', color: '#818cf8', padding: '4px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
+                                <span style={{ display: 'inline-block', marginTop: '8px', background: 'rgba(190,144,85,0.15)', color: '#be9055', padding: '4px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
                                     {activePrecare.daysUntil === 0 ? 'Today!' : activePrecare.daysUntil === 1 ? 'Tomorrow' : `${activePrecare.daysUntil} days away`}
                                 </span>
                             </div>
@@ -613,7 +613,7 @@ function CustomerPortal() {
                             ].map((step, idx) => (
                                 <div key={idx} style={{
                                     display: 'flex', gap: '14px', padding: '14px',
-                                    background: idx % 2 === 0 ? 'rgba(99,102,241,0.04)' : 'transparent',
+                                    background: idx % 2 === 0 ? 'rgba(190,144,85,0.04)' : 'transparent',
                                     borderRadius: '10px', marginBottom: '4px', alignItems: 'flex-start'
                                 }}>
                                     <div style={{
@@ -636,7 +636,7 @@ function CustomerPortal() {
                                 </p>
                             </div>
                         </div>
-                        <div className="modal-footer" style={{ borderTop: '1px solid rgba(99,102,241,0.15)' }}>
+                        <div className="modal-footer" style={{ borderTop: '1px solid rgba(190,144,85,0.15)' }}>
                             <button className="btn btn-secondary" onClick={() => setShowPreCareModal(false)}>Got It!</button>
                             <button className="btn btn-primary" onClick={() => { setShowPreCareModal(false); navigate('/customer/bookings'); }}>View My Booking</button>
                         </div>

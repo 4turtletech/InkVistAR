@@ -26,14 +26,14 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                     <ResponsiveContainer width="60%" height="100%">
                         <PieChart>
                             <Pie data={analytics.revenue.breakdown} cx="50%" cy="50%" innerRadius={25} outerRadius={50} paddingAngle={2} dataKey="value">
-                                {analytics.revenue.breakdown.map((_, i) => <Cell key={i} fill={['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4]} />)}
+                                {analytics.revenue.breakdown.map((_, i) => <Cell key={i} fill={['#10b981', '#be9055', '#f59e0b', '#ec4899'][i % 4]} />)}
                             </Pie>
                             <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
                         {analytics.revenue.breakdown.map((b, i) => (
-                            <div key={i}><span style={{ color: ['#10b981', '#3b82f6', '#f59e0b', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> {b.name}</div>
+                            <div key={i}><span style={{ color: ['#10b981', '#be9055', '#f59e0b', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> {b.name}</div>
                         ))}
                     </div>
                 </div>
@@ -78,14 +78,14 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                     <ResponsiveContainer width="60%" height="100%">
                         <PieChart>
                             <Pie data={analytics.overhead.breakdown} cx="50%" cy="50%" innerRadius={25} outerRadius={50} paddingAngle={2} dataKey="value">
-                                {analytics.overhead.breakdown.map((_, i) => <Cell key={i} fill={['#8b5cf6', '#a855f7', '#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'][i % 8]} />)}
+                                {analytics.overhead.breakdown.map((_, i) => <Cell key={i} fill={['#8b5cf6', '#a855f7', '#be9055', '#ec4899', '#f59e0b', '#10b981', '#d4af37', '#ef4444'][i % 8]} />)}
                             </Pie>
                             <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </PieChart>
                     </ResponsiveContainer>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
                         {analytics.overhead.breakdown.slice(0, 4).map((b, i) => (
-                            <div key={i}><span style={{ color: ['#8b5cf6', '#a855f7', '#6366f1', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> {b.name}</div>
+                            <div key={i}><span style={{ color: ['#8b5cf6', '#a855f7', '#be9055', '#ec4899'][i % 4], fontWeight: 700 }}>₱{Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> {b.name}</div>
                         ))}
                     </div>
                 </div>
@@ -96,8 +96,8 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
         {
             type: 'appointments',
             icon: <Calendar size={22} />,
-            colorClass: 'blue',
-            colorHex: '#3b82f6',
+            colorClass: 'gold',
+            colorHex: '#be9055',
             label: 'Total Appointments',
             value: analytics.appointments?.total || 0,
             hint: 'Click for status breakdown →',
@@ -111,7 +111,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                                 { name: 'Cancelled', value: Number(analytics.appointments?.cancelled) || 0 }
                             ].filter(d => d.value > 0)} cx="50%" cy="50%" outerRadius={50} paddingAngle={2} dataKey="value">
                                 <Cell fill="#10b981" />
-                                <Cell fill="#3b82f6" />
+                                <Cell fill="#be9055" />
                                 <Cell fill="#ef4444" />
                             </Pie>
                             <Tooltip formatter={(v, name) => [v, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
@@ -119,7 +119,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                     </ResponsiveContainer>
                     <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
                         <div><span style={{ color: '#10b981', fontWeight: 700 }}>{analytics.appointments?.completed || 0}</span> completed</div>
-                        <div><span style={{ color: '#3b82f6', fontWeight: 700 }}>{analytics.appointments?.scheduled || 0}</span> scheduled</div>
+                        <div><span style={{ color: '#be9055', fontWeight: 700 }}>{analytics.appointments?.scheduled || 0}</span> scheduled</div>
                         <div><span style={{ color: '#ef4444', fontWeight: 700 }}>{analytics.appointments?.cancelled || 0}</span> cancelled</div>
                     </div>
                 </div>
@@ -128,8 +128,8 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
         {
             type: 'users',
             icon: <Users size={22} />,
-            colorClass: 'blue',
-            colorHex: '#3b82f6',
+            colorClass: 'gold',
+            colorHex: '#be9055',
             label: 'Total Users',
             value: analytics.users?.total || 0,
             hint: 'Click for user audit →',
@@ -143,7 +143,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                         ]} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                             <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
                             <Bar dataKey="count" name="Users" radius={[4, 4, 0, 0]} barSize={36}>
-                                <Cell fill="#3b82f6" />
+                                <Cell fill="#be9055" />
                                 <Cell fill="#a855f7" />
                                 <Cell fill="#f59e0b" />
                             </Bar>
@@ -151,7 +151,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                         </BarChart>
                     </ResponsiveContainer>
                     <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.8, flex: 1 }}>
-                        <div><span style={{ color: '#3b82f6', fontWeight: 700 }}>{analytics.users?.customers || 0}</span> Customers</div>
+                        <div><span style={{ color: '#be9055', fontWeight: 700 }}>{analytics.users?.customers || 0}</span> Customers</div>
                         <div><span style={{ color: '#a855f7', fontWeight: 700 }}>{analytics.users?.artists || 0}</span> Artists</div>
                         <div><span style={{ color: '#f59e0b', fontWeight: 700 }}>{analytics.users?.admins || 0}</span> Admins</div>
                     </div>
@@ -171,7 +171,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                     <ResponsiveContainer>
                         <BarChart data={analytics.artists.slice(0, 5)} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                             <Bar dataKey="revenue" name="Revenue" radius={[4, 4, 0, 0]}>
-                                {analytics.artists.slice(0, 5).map((_, i) => <Cell key={i} fill={['#f97316', '#a855f7', '#3b82f6', '#10b981', '#ec4899'][i % 5]} />)}
+                                {analytics.artists.slice(0, 5).map((_, i) => <Cell key={i} fill={['#f97316', '#a855f7', '#be9055', '#10b981', '#ec4899'][i % 5]} />)}
                             </Bar>
                             <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} contentStyle={{ fontSize: '0.75rem', borderRadius: '8px' }} />
                         </BarChart>
@@ -226,8 +226,8 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
         {
             type: 'duration',
             icon: <Clock size={22} />,
-            colorClass: 'blue',
-            colorHex: '#3b82f6',
+            colorClass: 'gold',
+            colorHex: '#be9055',
             label: 'Avg Session Duration',
             value: formatDuration(analytics.appointments?.avgDuration),
             hint: 'Per completed session →',
@@ -235,8 +235,8 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                 <div style={{ width: '100%', height: CHART_HEIGHT, marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ position: 'relative', width: '90px', height: '90px' }}>
                         <svg width="90" height="90" viewBox="0 0 90 90">
-                            <circle cx="45" cy="45" r="38" fill="none" stroke="#e0e7ff" strokeWidth="6" />
-                            <circle cx="45" cy="45" r="38" fill="none" stroke="#3b82f6" strokeWidth="6"
+                            <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(190, 144, 85, 0.1)" strokeWidth="6" />
+                            <circle cx="45" cy="45" r="38" fill="none" stroke="#be9055" strokeWidth="6"
                                 strokeDasharray={`${Math.min(((analytics.appointments?.avgDuration || 0) / 14400) * 238.76, 238.76)} 238.76`}
                                 strokeLinecap="round" transform="rotate(-90 45 45)" />
                         </svg>
@@ -249,12 +249,13 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
         }
     ];
 
-    const visibleCards = activeMetrics 
-        ? cards.filter(c => activeMetrics.includes(c.type)) 
+    const visibleCards = activeMetrics
+        ? cards.filter(c => activeMetrics.includes(c.type))
         : cards.filter(c => ['revenue', 'appointments', 'users', 'artists'].includes(c.type));
 
     const getIconColorStyle = (colorClass) => {
         switch (colorClass) {
+            case 'gold': return { background: 'rgba(190, 144, 85, 0.1)', color: '#be9055' };
             case 'blue': return { background: '#eff6ff', color: '#3b82f6' };
             case 'purple': return { background: '#f5f3ff', color: '#8b5cf6' };
             case 'green': return { background: '#f0fdf4', color: '#22c55e' };
@@ -266,7 +267,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
     return (
         <>
             <style>
-            {`
+                {`
                 .metric-cards-grid {
                     display: grid;
                     grid-template-columns: repeat(3, 1fr);
@@ -340,7 +341,7 @@ function AnalyticsMetricCards({ analytics, onCardClick, formatDuration, activeMe
                                     <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.value}</h3>
                                 </div>
                             </div>
-                            
+
                             {card.chart}
 
                             <div style={{ marginTop: 'auto', paddingTop: '12px', fontSize: '0.75rem', fontWeight: 600, color: card.colorHex }}>

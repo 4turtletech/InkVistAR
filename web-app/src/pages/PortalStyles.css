@@ -1264,9 +1264,9 @@ body.sidenav-collapsed .portal-layout .portal-container {
     display: flex;
     align-items: center;
     gap: 6px;
-    border: 1px solid #6366f1;
-    color: #6366f1;
-    background: #eef2ff;
+    border: 1px solid #be9055;
+    color: #be9055;
+    background: #fdfaf6;
     cursor: pointer;
 }
 

@@ -260,7 +260,7 @@ function ArtistEarnings() {
                             {[
                                 { label: 'Total Earned', value: formatCurrency(metrics.totalEarned), icon: <PhilippinePeso size={28} />, color: '#10b981', sub: `From ${filteredSessions.filter(s => (s.effectivePaymentStatus || s.payment_status) === 'paid').length} paid session${filteredSessions.filter(s => (s.effectivePaymentStatus || s.payment_status) === 'paid').length !== 1 ? 's' : ''}` },
                                 { label: 'Pending (Unpaid)', value: formatCurrency(metrics.pendingUnpaid), icon: <Clock size={28} />, color: '#f59e0b', sub: `${filteredSessions.filter(s => (s.effectivePaymentStatus || s.payment_status) !== 'paid').length} unpaid session${filteredSessions.filter(s => (s.effectivePaymentStatus || s.payment_status) !== 'paid').length !== 1 ? 's' : ''}` },
-                                { label: 'Paid Out', value: formatCurrency(metrics.totalPaidOut), icon: <CheckCircle size={28} />, color: '#3b82f6', sub: `${filteredPayouts.length} payout${filteredPayouts.length !== 1 ? 's' : ''} disbursed` },
+                                { label: 'Paid Out', value: formatCurrency(metrics.totalPaidOut), icon: <CheckCircle size={28} />, color: '#be9055', sub: `${filteredPayouts.length} payout${filteredPayouts.length !== 1 ? 's' : ''} disbursed` },
                                 { label: 'Pending Earning', value: formatCurrency(metrics.balanceDue), icon: <Wallet size={28} />, color: metrics.balanceDue > 0 ? '#be9055' : '#10b981', sub: `Commission rate: ${commissionRate}%` },
                             ].map((m, i) => (
                                 <div key={i} className="metric-card glass-card" style={{ transition: 'transform 0.3s, box-shadow 0.3s' }}
@@ -361,7 +361,7 @@ function ArtistEarnings() {
                                                 <XAxis dataKey="month" tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
                                                 <YAxis tick={{ fill: '#1e293b', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
                                                 <Tooltip
-                                                    cursor={{ fill: 'rgba(59, 130, 246, 0.06)' }}
+                                                    cursor={{ fill: 'rgba(190, 144, 85, 0.06)' }}
                                                     contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '10px 14px', fontSize: '0.85rem' }}
                                                     formatter={(value) => [formatCurrency(value), 'Payout Amount']}
                                                     labelFormatter={(label, payload) => {
@@ -369,7 +369,7 @@ function ArtistEarnings() {
                                                         return `${label} — ${count} payout${count !== 1 ? 's' : ''}`;
                                                     }}
                                                 />
-                                                <Bar dataKey="amount" name="Payout Amount" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={48}>
+                                                <Bar dataKey="amount" name="Payout Amount" fill="#be9055" radius={[8, 8, 0, 0]} barSize={48}>
                                                     {payoutTrendData.map((_, index) => (
                                                         <Cell key={`payout-${index}`} fill={RAINBOW_PALETTE[index % RAINBOW_PALETTE.length]} />
                                                     ))}
@@ -380,7 +380,7 @@ function ArtistEarnings() {
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', fontSize: '0.95rem' }}>No payout data for this period</div>
                                     )}
                                 </div>
-                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#6366f1' }}>
+                                <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#be9055' }}>
                                     {payoutTrendData.length > 0 ? `${filteredPayouts.length} payout${filteredPayouts.length !== 1 ? 's' : ''} total` : ''}
                                 </div>
                             </div>

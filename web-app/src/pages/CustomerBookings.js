@@ -1609,7 +1609,7 @@ function CustomerBookings(){
                 <div className="modal-overlay" onClick={() => { setIsRescheduleModalOpen(false); setShowRescheduleConfirm(false); }}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
                         <div className="modal-header">
-                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><CalendarDays size={20} color="#6366f1" /> Reschedule Appointment</h3>
+                            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><CalendarDays size={20} color="#be9055" /> Reschedule Appointment</h3>
                             <button className="close-btn" onClick={() => { setIsRescheduleModalOpen(false); setShowRescheduleConfirm(false); }}><X size={20} /></button>
                         </div>
                         <div className="modal-body" style={{ padding: '20px' }}>
