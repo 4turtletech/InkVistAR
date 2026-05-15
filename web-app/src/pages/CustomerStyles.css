@@ -905,7 +905,7 @@
     border: none;
     background: none;
     cursor: pointer;
-    color: #6366f1;
+    color: #be9055;
 }
 
 .customer-st-9262b8cd {
@@ -1537,7 +1537,7 @@
 .customer-portal::after {
     width: 600px;
     height: 600px;
-    background: rgba(99, 102, 241, 0.08); /* Indigo tint */
+    background: rgba(190, 144, 85, 0.08); /* Gold tint */
     bottom: -200px;
     right: -100px;
     animation-delay: -5s;

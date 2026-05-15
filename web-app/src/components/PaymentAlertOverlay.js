@@ -379,7 +379,7 @@ function PaymentAlertOverlay() {
                                 </button>
                             )}
                             <button onClick={() => handleGoToAppointment(selectedAlert)} style={{
-                                padding: '10px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                                padding: '10px 20px', background: 'linear-gradient(135deg, #be9055, #a67c52)',
                                 border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer',
                                 color: '#fff', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px'
                             }}>
@@ -466,8 +466,8 @@ function PaymentAlertOverlay() {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                                     {[
                                         { key: 'Cash', icon: <Banknote size={18} />, color: '#10b981' },
-                                        { key: 'GCash', icon: <Wallet size={18} />, color: '#3b82f6' },
-                                        { key: 'Bank Transfer', icon: <CreditCard size={18} />, color: '#6366f1' }
+                                        { key: 'GCash', icon: <Wallet size={18} />, color: '#be9055' },
+                                        { key: 'Bank Transfer', icon: <CreditCard size={18} />, color: '#a67c52' }
                                     ].map(m => (
                                         <div
                                             key={m.key}
@@ -692,14 +692,14 @@ function PaymentAlertOverlay() {
                                 }}>
                                     <Download size={14} /> Download
                                 </button>
-                                <button 
-                                    onClick={handleSendReceipt} 
+                                <button
+                                    onClick={handleSendReceipt}
                                     disabled={isSendingReceipt}
                                     style={{
-                                        padding: '10px 16px', background: isSendingReceipt ? '#94a3b8' : '#fff', 
+                                        padding: '10px 16px', background: isSendingReceipt ? '#94a3b8' : '#fff',
                                         border: '1px solid #e2e8f0', borderRadius: '10px',
-                                        fontWeight: 600, cursor: isSendingReceipt ? 'not-allowed' : 'pointer', 
-                                        color: isSendingReceipt ? '#fff' : '#6366f1', fontSize: '0.85rem',
+                                        fontWeight: 600, cursor: isSendingReceipt ? 'not-allowed' : 'pointer',
+                                        color: isSendingReceipt ? '#fff' : '#be9055', fontSize: '0.85rem',
                                         display: 'flex', alignItems: 'center', gap: '6px'
                                     }}
                                 >

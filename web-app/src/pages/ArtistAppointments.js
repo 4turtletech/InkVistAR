@@ -449,7 +449,7 @@ function ArtistAppointments() {
                                                     style={{
                                                         width: '30px', height: '30px', borderRadius: '50%',
                                                         border: '1.5px solid #cbd5e1',
-                                                        background: showCalendarLegend ? '#6366f1' : 'white',
+                                                        background: showCalendarLegend ? '#be9055' : 'white',
                                                         color: showCalendarLegend ? 'white' : '#64748b',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                         cursor: 'pointer', fontWeight: 800, fontSize: '0.85rem',
@@ -522,13 +522,13 @@ function ArtistAppointments() {
                                                         {dayAppts.length > 0 && (
                                                             <div style={{
                                                                 position: 'absolute', top: '6px', right: '6px',
-                                                                background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+                                                                background: 'linear-gradient(135deg, #be9055, #d4af37)',
                                                                 color: '#fff',
                                                                 fontSize: '0.62rem', fontWeight: 800,
                                                                 minWidth: '18px', height: '18px',
                                                                 padding: '0 5px', borderRadius: '9px',
                                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                boxShadow: '0 2px 6px rgba(99,102,241,0.45)',
+                                                                boxShadow: '0 2px 6px rgba(190, 144, 85, 0.45)',
                                                                 lineHeight: 1, letterSpacing: '-0.3px',
                                                                 pointerEvents: 'none'
                                                             }}>
@@ -600,7 +600,7 @@ function ArtistAppointments() {
                                                         <span className={`badge status-${getStatusColor(apt.status)}`} style={{ padding: '4px 8px', fontSize: '0.75rem', margin: 0 }}>
                                                             {formatStatus(apt.status)}
                                                         </span>
-                                                        <span style={{ color: '#6366f1', fontWeight: '600', fontSize: '0.85rem' }}>{formatTime12Hour(apt.start_time || apt.time) || 'N/A'}</span>
+                                                        <span style={{ color: '#be9055', fontWeight: '600', fontSize: '0.85rem' }}>{formatTime12Hour(apt.start_time || apt.time) || 'N/A'}</span>
                                                     </div>
                                                 </div>
                                             ))}
@@ -627,7 +627,7 @@ function ArtistAppointments() {
                                                                 <td data-label="Booking ID">
                                                                     <span style={{ fontFamily: 'monospace', fontWeight: '600', color: '#1e293b', fontSize: '0.85rem' }}>{getDisplayCode(a.booking_code, a.id)}</span>
                                                                     {a.total_sessions > 1 && (
-                                                                        <span style={{ display: 'inline-block', marginLeft: '6px', fontSize: '0.65rem', fontWeight: 700, background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', padding: '2px 6px', borderRadius: '6px', verticalAlign: 'middle' }}>
+                                                                        <span style={{ display: 'inline-block', marginLeft: '6px', fontSize: '0.65rem', fontWeight: 700, background: 'linear-gradient(135deg, #be9055, #d4af37)', color: '#fff', padding: '2px 6px', borderRadius: '6px', verticalAlign: 'middle' }}>
                                                                             {a.session_number || 1}/{a.total_sessions}
                                                                         </span>
                                                                     )}
@@ -699,7 +699,7 @@ function ArtistAppointments() {
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                         <h3 style={{ margin: 0, color: '#1e293b' }}>Appointment {getDisplayCode(selectedAppointment.booking_code, selectedAppointment.id)}</h3>
                                                         {selectedAppointment.total_sessions > 1 && (
-                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, #be9055, #d4af37)', color: '#fff', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.02em' }}>
                                                                 Session {selectedAppointment.session_number || 1} of {selectedAppointment.total_sessions}
                                                             </span>
                                                         )}

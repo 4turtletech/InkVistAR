@@ -232,8 +232,9 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
       errs.price = `Minimum session price is ₱${MIN_TATTOO_PRICE.toLocaleString()}.`;
     }
 
-    // ─ Status gate: cannot complete without a price
-    if (editStatus === 'completed' && priceNum <= 0) {
+    // ─ Status gate: cannot complete without a price (skip for already-paid follow-ups)
+    const isAlreadyPaid = selectedAppt && selectedAppt.payment_status === 'paid';
+    if (editStatus === 'completed' && priceNum <= 0 && !isAlreadyPaid) {
       errs.price = 'A price must be set before marking this session as Completed.';
     }
 
@@ -726,7 +727,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                 {selectedAppt?.waiver_accepted_at ? (
                   <View style={[styles.waiverBadge, { marginTop: 4 }]}>
                     <ShieldCheck size={11} color="#047857" />
-                    <Text style={styles.waiverBadgeText}>Waiver signed {new Date(selectedAppt.waiver_accepted_at).toLocaleDateString()}</Text>
+                    <Text style={styles.waiverBadgeText}>Waiver signed {new Date(selectedAppt.waiver_accepted_at.replace(' ', 'T') + '+08:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' })}</Text>
                   </View>
                 ) : null}
               </View>
@@ -839,7 +840,7 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                       <Text style={styles.reschedulePanelTitle}>Pending Reschedule Request</Text>
                     </View>
                     <Text style={styles.reschedulePanelDetail}>
-                      Requested: {pendingReschedule.requested_date || 'N/A'}{pendingReschedule.requested_time ? ` at ${pendingReschedule.requested_time}` : ''}
+                      Requested: {pendingReschedule.requested_date || 'N/A'}{pendingReschedule.requested_time ? ` at ${formatTime(pendingReschedule.requested_time)}` : ''}
                     </Text>
                     {pendingReschedule.reason ? (
                       <Text style={styles.reschedulePanelReason}>"{pendingReschedule.reason}"</Text>
@@ -1028,25 +1029,48 @@ export const AdminAppointmentManagement = ({ navigation, route }) => {
                       fieldErrors.time && !editTime && styles.timeSlotError]}
                     onPress={() => { setEditTime(t); clearError('time'); }}
                   >
-                    <Text style={[styles.timeSlotText, editTime === t && styles.timeSlotTextActive]}>{t}</Text>
+                    <Text style={[styles.timeSlotText, editTime === t && styles.timeSlotTextActive]}>
+                      {formatTime(t)}
+                    </Text>
                   </AnimatedTouchable>
                 ))}
               </View>
               {fieldErrors.time ? <Text style={styles.errorText}>{fieldErrors.time}</Text> : null}
 
+              {/* ── Pricing Lock: prevent modification of fully-paid appointments ── */}
+              {(() => {
+                const isPricingLocked = selectedAppt && (
+                  selectedAppt.payment_status === 'paid'
+                  || (parseFloat(selectedAppt.price || selectedAppt.total_price || 0) > 0
+                    && parseFloat(selectedAppt.total_paid || selectedAppt.amount_paid || 0) >= parseFloat(selectedAppt.price || selectedAppt.total_price || 0))
+                );
+                if (isPricingLocked) {
+                  return (
+                    <View style={{ marginTop: 8, padding: 14, borderRadius: 12, backgroundColor: 'rgba(16,185,129,0.08)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <CheckCircle size={18} color="#10b981" />
+                      <Text style={{ flex: 1, color: '#065f46', fontSize: 13, fontWeight: '600', lineHeight: 18 }}>Pricing is locked — this appointment has been fully paid. No further changes are permitted.</Text>
+                    </View>
+                  );
+                }
+                return null;
+              })()}
+
               <Text style={styles.inputLabel}>Price (PHP)</Text>
               <TextInput
-                style={[styles.input, fieldErrors.price && styles.inputError]}
+                style={[styles.input, fieldErrors.price && styles.inputError,
+                  selectedAppt && (selectedAppt.payment_status === 'paid' || (parseFloat(selectedAppt.price || selectedAppt.total_price || 0) > 0 && parseFloat(selectedAppt.total_paid || selectedAppt.amount_paid || 0) >= parseFloat(selectedAppt.price || selectedAppt.total_price || 0))) && { opacity: 0.5 }
+                ]}
                 value={editPrice}
                 onChangeText={t => { setEditPrice(t); clearError('price'); }}
                 keyboardType="numeric"
                 placeholder="Min. ₱5,000 for sessions"
                 placeholderTextColor={theme.textTertiary}
+                editable={!(selectedAppt && (selectedAppt.payment_status === 'paid' || (parseFloat(selectedAppt.price || selectedAppt.total_price || 0) > 0 && parseFloat(selectedAppt.total_paid || selectedAppt.amount_paid || 0) >= parseFloat(selectedAppt.price || selectedAppt.total_price || 0))))}
               />
               {fieldErrors.price ? <Text style={styles.errorText}>{fieldErrors.price}</Text> : null}
 
               {/* P2-15: Special Discount Section */}
-              <View style={styles.discountSection}>
+              <View style={[styles.discountSection, selectedAppt && (selectedAppt.payment_status === 'paid' || (parseFloat(selectedAppt.price || selectedAppt.total_price || 0) > 0 && parseFloat(selectedAppt.total_paid || selectedAppt.amount_paid || 0) >= parseFloat(selectedAppt.price || selectedAppt.total_price || 0))) && { opacity: 0.4 }]} pointerEvents={selectedAppt && (selectedAppt.payment_status === 'paid' || (parseFloat(selectedAppt.price || selectedAppt.total_price || 0) > 0 && parseFloat(selectedAppt.total_paid || selectedAppt.amount_paid || 0) >= parseFloat(selectedAppt.price || selectedAppt.total_price || 0))) ? 'none' : 'auto'}>
                 <Text style={styles.discountTitle}>Special Discount</Text>
                 {/* Preset quick-apply buttons */}
                 <View style={styles.discountPresets}>

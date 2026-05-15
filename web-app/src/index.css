@@ -79,7 +79,7 @@ code {
 .premium-search-box:focus-within {
   background: white;
   border-color: var(--admin-primary);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 4px rgba(190, 144, 85, 0.1);
 }
 
 .premium-search-box input {
@@ -117,8 +117,8 @@ code {
 }
 
 .premium-select-v2:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  border-color: #be9055;
+  box-shadow: 0 0 0 4px rgba(190, 144, 85, 0.1);
   outline: none;
 }
 
@@ -230,7 +230,7 @@ select option {
 
 .autocomplete-item:hover {
     background: #f1f5f9;
-    color: #6366f1;
+    color: #be9055;
 }
 
 .waterfall-item {

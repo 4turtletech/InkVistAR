@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Axios from 'axios';
-import { PenTool, Play, Pause, CheckCircle, Upload, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive, AlertTriangle, List, Heart, ShieldAlert } from 'lucide-react';
+import io from 'socket.io-client';
+import { PenTool, Play, Pause, CheckCircle, Upload, X, Package, FileText, Image as ImageIcon, Clock, Search, Calendar, Plus, Archive, AlertTriangle, List, Heart, ShieldAlert, Wifi } from 'lucide-react';
 import ArtistSideNav from '../components/ArtistSideNav';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
@@ -8,7 +9,7 @@ import ImageLightbox from '../components/ImageLightbox';
 import SessionTimeline from '../components/SessionTimeline';
 import './PortalStyles.css';
 import './ArtistStyles.css';
-import { API_URL } from '../config';
+import { API_URL, SOCKET_URL } from '../config';
 import { getSessionPaymentStatus, shouldShowInQueue } from '../utils/sessionPayment';
 import { formatTime12Hour, formatStatus, getStatusColor } from '../utils/formatters';
 
@@ -56,6 +57,11 @@ function ArtistSessions() {
     const [projectTimeline, setProjectTimeline] = useState(null);
     const [projectTimelineLoading, setProjectTimelineLoading] = useState(false);
     const [lightboxSrc, setLightboxSrc] = useState(null);
+    // Dual-artist live sync state
+    const socketRef = React.useRef(null);
+    const [peerArtist, setPeerArtist] = useState(null); // { artistId, artistName }
+    const [syncToast, setSyncToast] = useState(null); // brief notification string
+    const syncToastTimerRef = React.useRef(null);
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
         title: '',
@@ -180,11 +186,114 @@ function ArtistSessions() {
         if (isSessionPaused) {
             addAuditEntry('Session Resumed');
             setIsSessionPaused(false);
+            emitSessionUpdate('timer_action', { action: 'resume', elapsed: sessionElapsed });
         } else {
             addAuditEntry('Session Paused');
             setIsSessionPaused(true);
+            emitSessionUpdate('timer_action', { action: 'pause', elapsed: sessionElapsed });
         }
     };
+
+    // ═══════════ DUAL-ARTIST LIVE SYNC ═══════════
+    const showSyncToast = (msg) => {
+        setSyncToast(msg);
+        if (syncToastTimerRef.current) clearTimeout(syncToastTimerRef.current);
+        syncToastTimerRef.current = setTimeout(() => setSyncToast(null), 4000);
+    };
+
+    const emitSessionUpdate = useCallback((type, data) => {
+        if (!socketRef.current || !activeSession) return;
+        socketRef.current.emit('session_update', {
+            appointmentId: activeSession.id,
+            type,
+            data,
+            senderId: artistId
+        });
+    }, [activeSession?.id, artistId]);
+
+    // Socket lifecycle: join/leave session rooms for dual-artist appointments
+    useEffect(() => {
+        if (!activeSession || !activeSession.secondary_artist_id) return;
+
+        const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+        socketRef.current = socket;
+
+        socket.emit('join_session', {
+            appointmentId: activeSession.id,
+            artistId,
+            artistName: user?.name || 'Artist'
+        });
+
+        socket.on('peer_joined', (data) => {
+            setPeerArtist(data);
+            showSyncToast(`${data.artistName || 'Partner'} is now viewing this session`);
+        });
+
+        socket.on('peer_left', () => {
+            setPeerArtist(null);
+            showSyncToast('Partner disconnected from session');
+        });
+
+        socket.on('session_update', (payload) => {
+            if (payload.senderId === artistId) return; // Safety: ignore own events
+            handleIncomingSync(payload);
+        });
+
+        return () => {
+            socket.emit('leave_session', { appointmentId: activeSession.id });
+            socket.disconnect();
+            socketRef.current = null;
+            setPeerArtist(null);
+        };
+    }, [activeSession?.id, activeSession?.secondary_artist_id]);
+
+    // Handle incoming sync events from the partner artist
+    const handleIncomingSync = useCallback((payload) => {
+        const { type, data } = payload;
+        switch (type) {
+            case 'status_change':
+                setActiveSession(prev => prev ? { ...prev, status: data.status } : prev);
+                addAuditEntry(`Partner updated status → ${formatStatus(data.status)}`);
+                showSyncToast(`Partner changed status to ${formatStatus(data.status)}`);
+                if (data.status === 'in_progress') {
+                    setSessionElapsed(0);
+                    setIsSessionPaused(false);
+                }
+                if (data.status === 'completed' || data.status === 'incomplete') {
+                    if (timerRef.current) clearInterval(timerRef.current);
+                }
+                fetchSessions();
+                break;
+
+            case 'notes_updated':
+                setSessionData(prev => ({ ...prev, notes: data.notes }));
+                showSyncToast('Partner updated notes');
+                break;
+
+            case 'photo_uploaded':
+                setSessionData(prev => ({ ...prev, [data.photoType]: data.photoUrl }));
+                showSyncToast(`Partner uploaded ${data.photoType === 'beforePhoto' ? 'Before' : 'After'} photo`);
+                break;
+
+            case 'material_added':
+            case 'material_released':
+                if (activeSession?.id) fetchSessionMaterials(activeSession.id);
+                showSyncToast(type === 'material_added'
+                    ? `Partner added ${data.itemName || 'material'}`
+                    : 'Partner released a material');
+                break;
+
+            case 'timer_action':
+                setSessionElapsed(data.elapsed || 0);
+                setIsSessionPaused(data.action === 'pause');
+                showSyncToast(`Partner ${data.action === 'pause' ? 'paused' : 'resumed'} the timer`);
+                break;
+
+            default:
+                break;
+        }
+    }, [activeSession?.id]);
+    // ═══════════ END DUAL-ARTIST LIVE SYNC ═══════════
 
     const fetchInventory = async () => {
         try {
@@ -222,6 +331,7 @@ function ArtistSessions() {
             });
             if (res.data.success) {
                 showAlert("Success", "Item returned to inventory successfully", "success");
+                emitSessionUpdate('material_released', { materialId: Number(materialId) });
             } else {
                 showAlert("Error", res.data.message || 'Failed to release material.', "warning");
             }
@@ -255,7 +365,9 @@ function ArtistSessions() {
             });
             if (res.data.success) {
                 fetchSessionMaterials(activeSession.id);
-                addAuditEntry(`Added ${quantity}x ${inventoryItems.find(i => i.id === inventoryId)?.name || 'item'}`);
+                const itemName = inventoryItems.find(i => i.id === inventoryId)?.name || 'item';
+                addAuditEntry(`Added ${quantity}x ${itemName}`);
+                emitSessionUpdate('material_added', { materialId: inventoryId, itemName, quantity });
             } else {
                 showAlert("Inventory Error", res.data.message || 'Failed to add material. Check stock.', "warning");
             }
@@ -484,12 +596,19 @@ function ArtistSessions() {
                 const resizedBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% quality jpeg
                     setSessionData(prev => ({ ...prev, [type]: resizedBase64 }));
                     addAuditEntry(`Uploaded ${type === 'beforePhoto' ? 'Before' : 'After'} Photo`);
+                    // Sync photo to partner in dual-artist sessions
+                    emitSessionUpdate('photo_uploaded', { photoType: type, photoUrl: resizedBase64 });
                 };
                 img.src = reader.result;
             };
             reader.readAsDataURL(file);
         }
     };
+
+    // Emit photo sync after upload completes (called from handlePhotoUpload's onload)
+    const emitPhotoSync = useCallback((photoType, photoUrl) => {
+        emitSessionUpdate('photo_uploaded', { photoType, photoUrl });
+    }, [emitSessionUpdate]);
 
     const handleUpdateStatus = async (newStatus) => {
         if (newStatus === 'in_progress') {
@@ -597,6 +716,8 @@ function ArtistSessions() {
             const res = await Axios.put(`${API_URL}/api/appointments/${activeSession.id}/status`, payload);
             if (res.data.success) {
                 setActiveSession(prev => ({ ...prev, status: newStatus }));
+                // Sync status change to partner
+                emitSessionUpdate('status_change', { status: newStatus });
                 if (timerRef.current) clearInterval(timerRef.current);
 
                 if (newStatus === 'completed') {
@@ -653,6 +774,8 @@ function ArtistSessions() {
             console.log('Response:', res.data);
             if (res.data.success) {
                 showAlert("Saved", "Session details saved successfully!", "success");
+                // Sync notes to partner in dual-artist sessions
+                emitSessionUpdate('notes_updated', { notes: sessionData.notes });
                 setActiveSession(prev => ({
                     ...prev,
                     notes: sessionData.notes,
@@ -690,6 +813,7 @@ function ArtistSessions() {
             });
             if (res.data.success) {
                 setActiveSession(prev => ({ ...prev, status: 'incomplete' }));
+                emitSessionUpdate('status_change', { status: 'incomplete' });
                 setShowAbortModal(false);
                 setAbortReason('');
                 showAlert('Session Stopped', 'The session has been marked as incomplete. The customer and studio have been notified.', 'info');
@@ -941,6 +1065,82 @@ function ArtistSessions() {
                             </div>
                         </div>
 
+                        {/* Dual-Artist Peer Presence Indicator */}
+                        {isDual && (
+                            <div style={{ padding: '0 24px' }}>
+                                {peerArtist ? (
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: '10px',
+                                        padding: '10px 16px', borderRadius: '10px',
+                                        background: 'linear-gradient(135deg, #ecfdf5, #f0fdf4)',
+                                        border: '1px solid #86efac',
+                                        marginTop: '12px',
+                                        animation: 'fadeIn 0.3s ease'
+                                    }}>
+                                        <span style={{
+                                            width: '10px', height: '10px', borderRadius: '50%',
+                                            background: '#22c55e', display: 'inline-block',
+                                            boxShadow: '0 0 0 3px rgba(34,197,94,0.25)',
+                                            animation: 'pulse-dot 2s infinite'
+                                        }} />
+                                        <Wifi size={14} style={{ color: '#16a34a' }} />
+                                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#15803d' }}>
+                                            {peerArtist.artistName || 'Partner'} is viewing this session
+                                        </span>
+                                        <span style={{ fontSize: '0.7rem', color: '#4ade80', marginLeft: 'auto', fontWeight: 500 }}>Live Sync Active</span>
+                                    </div>
+                                ) : (
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: '10px',
+                                        padding: '10px 16px', borderRadius: '10px',
+                                        background: '#f8fafc',
+                                        border: '1px dashed #cbd5e1',
+                                        marginTop: '12px'
+                                    }}>
+                                        <span style={{
+                                            width: '10px', height: '10px', borderRadius: '50%',
+                                            background: '#94a3b8', display: 'inline-block'
+                                        }} />
+                                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#94a3b8' }}>
+                                            Dual-Artist Session — partner not connected
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Sync Toast Notification */}
+                        {syncToast && (
+                            <div style={{
+                                margin: '8px 24px 0',
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                background: 'linear-gradient(135deg, #eff6ff, #f0f9ff)',
+                                border: '1px solid #93c5fd',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                color: '#1d4ed8',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                animation: 'fadeIn 0.25s ease'
+                            }}>
+                                <Wifi size={13} />
+                                {syncToast}
+                            </div>
+                        )}
+
+                        <style>{`
+                            @keyframes pulse-dot {
+                                0%, 100% { box-shadow: 0 0 0 3px rgba(34,197,94,0.25); }
+                                50% { box-shadow: 0 0 0 6px rgba(34,197,94,0.1); }
+                            }
+                            @keyframes fadeIn {
+                                from { opacity: 0; transform: translateY(-4px); }
+                                to { opacity: 1; transform: translateY(0); }
+                            }
+                        `}</style>
+
                         <div className="modal-body" style={{ padding: '24px' }}>
 
                             {/* Health Alert Panel — collapsible, shown only when health data exists */}
@@ -1104,20 +1304,135 @@ function ArtistSessions() {
                                         <label style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <FileText size={14}/> Procedure Notes & Observations
                                         </label>
-                                        <textarea
-                                            className="form-input"
-                                            name="notes"
-                                            rows="8"
-                                            value={sessionData.notes}
-                                            onChange={handleSessionFormChange}
-                                            placeholder="Document procedure details, pigment choices, or client skin response..."
-                                            style={{ 
-                                                borderRadius: '16px', 
-                                                minHeight: '200px',
-                                                border: errors.notes ? '1px solid #ef4444' : '1px solid #e2e8f0',
-                                                boxShadow: errors.notes ? '0 0 0 1px #ef4444' : 'inset 0 1px 3px rgba(0,0,0,0.02)'
-                                            }}
-                                        />
+
+                                        {isDual ? (() => {
+                                            // ═══ DUAL-ARTIST SPLIT NOTES ═══
+                                            // Parse notes into role-based sections using delimiters
+                                            const TATTOO_DELIM = '[Tattoo Artist]:';
+                                            const PIERCING_DELIM = '[Piercing Artist]:';
+                                            const rawNotes = sessionData.notes || '';
+
+                                            // Determine which section I own vs read-only
+                                            const myDelim = isPiercingRole ? PIERCING_DELIM : TATTOO_DELIM;
+                                            const partnerDelim = isPiercingRole ? TATTOO_DELIM : PIERCING_DELIM;
+                                            const myLabel = isPiercingRole ? 'Piercing Artist Notes' : 'Tattoo Artist Notes';
+                                            const partnerLabel = isPiercingRole ? 'Tattoo Artist Notes' : 'Piercing Artist Notes';
+
+                                            // Extract sections from stored notes
+                                            const extractSection = (notes, delim) => {
+                                                const idx = notes.indexOf(delim);
+                                                if (idx === -1) return '';
+                                                const afterDelim = notes.substring(idx + delim.length);
+                                                // Find the next delimiter (if any) to stop
+                                                const nextTattoo = afterDelim.indexOf(TATTOO_DELIM);
+                                                const nextPiercing = afterDelim.indexOf(PIERCING_DELIM);
+                                                const ends = [nextTattoo, nextPiercing].filter(i => i > 0);
+                                                const endIdx = ends.length > 0 ? Math.min(...ends) : afterDelim.length;
+                                                return afterDelim.substring(0, endIdx).trim();
+                                            };
+
+                                            // If notes don't have delimiters yet (legacy single-artist notes), treat as tattoo artist's
+                                            const hasDelimiters = rawNotes.includes(TATTOO_DELIM) || rawNotes.includes(PIERCING_DELIM);
+                                            let myNotes, partnerNotes;
+                                            if (hasDelimiters) {
+                                                myNotes = extractSection(rawNotes, myDelim);
+                                                partnerNotes = extractSection(rawNotes, partnerDelim);
+                                            } else {
+                                                // Legacy: assign all existing notes to the tattoo artist section
+                                                myNotes = isPiercingRole ? '' : rawNotes;
+                                                partnerNotes = isPiercingRole ? rawNotes : '';
+                                            }
+
+                                            // Merge function: rebuild combined notes string
+                                            const mergeNotes = (myText) => {
+                                                const tattooSection = isPiercingRole ? partnerNotes : myText;
+                                                const piercingSection = isPiercingRole ? myText : partnerNotes;
+                                                return `${TATTOO_DELIM}\n${tattooSection}\n\n${PIERCING_DELIM}\n${piercingSection}`.trim();
+                                            };
+
+                                            return (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                    {/* My Editable Section */}
+                                                    <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '14px', border: '1px solid #bbf7d0' }}>
+                                                        <label style={{ fontWeight: 700, fontSize: '0.72rem', color: '#16a34a', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <PenTool size={12}/> {myLabel} (You)
+                                                        </label>
+                                                        <textarea
+                                                            className="form-input"
+                                                            rows="5"
+                                                            value={myNotes}
+                                                            onChange={(e) => {
+                                                                const merged = mergeNotes(e.target.value);
+                                                                setSessionData(prev => ({ ...prev, notes: merged }));
+                                                            }}
+                                                            placeholder={isPiercingRole
+                                                                ? 'Document piercing placement, jewelry details, aftercare instructions...'
+                                                                : 'Document procedure details, pigment choices, or client skin response...'}
+                                                            style={{
+                                                                borderRadius: '12px',
+                                                                minHeight: '120px',
+                                                                border: errors.notes ? '1px solid #ef4444' : '1px solid #86efac',
+                                                                boxShadow: errors.notes ? '0 0 0 1px #ef4444' : 'inset 0 1px 3px rgba(0,0,0,0.02)',
+                                                                background: '#fff'
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    {/* Partner's Read-Only Section */}
+                                                    <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '14px', border: '1px solid #e2e8f0', opacity: 0.85 }}>
+                                                        <label style={{ fontWeight: 700, fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <FileText size={12}/> {partnerLabel} (Read-Only)
+                                                        </label>
+                                                        {partnerNotes ? (
+                                                            <div style={{
+                                                                background: '#fff',
+                                                                borderRadius: '12px',
+                                                                padding: '12px 14px',
+                                                                border: '1px solid #e2e8f0',
+                                                                fontSize: '0.85rem',
+                                                                color: '#475569',
+                                                                whiteSpace: 'pre-wrap',
+                                                                minHeight: '60px',
+                                                                lineHeight: '1.6'
+                                                            }}>
+                                                                {partnerNotes}
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{
+                                                                background: '#fff',
+                                                                borderRadius: '12px',
+                                                                padding: '20px',
+                                                                border: '1px dashed #cbd5e1',
+                                                                textAlign: 'center',
+                                                                color: '#94a3b8',
+                                                                fontSize: '0.82rem',
+                                                                fontStyle: 'italic'
+                                                            }}>
+                                                                Partner hasn't added notes yet
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })() : (
+                                            /* Single-artist: original textarea */
+                                            <>
+                                                <textarea
+                                                    className="form-input"
+                                                    name="notes"
+                                                    rows="8"
+                                                    value={sessionData.notes}
+                                                    onChange={handleSessionFormChange}
+                                                    placeholder="Document procedure details, pigment choices, or client skin response..."
+                                                    style={{
+                                                        borderRadius: '16px',
+                                                        minHeight: '200px',
+                                                        border: errors.notes ? '1px solid #ef4444' : '1px solid #e2e8f0',
+                                                        boxShadow: errors.notes ? '0 0 0 1px #ef4444' : 'inset 0 1px 3px rgba(0,0,0,0.02)'
+                                                    }}
+                                                />
+                                            </>
+                                        )}
                                         {errors.notes && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '6px', display: 'block' }}>{errors.notes}</span>}
                                     </div>
                                 </div>

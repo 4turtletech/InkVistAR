@@ -3,8 +3,8 @@ import { X, BarChart3, Plus, Trash2, Edit3, Check, Search, ChevronLeft, ChevronR
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 
 /* ═══════════════ SHARED CONSTANTS ═══════════════ */
-const RAINBOW_PALETTE = ['#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#84cc16', '#6366f1', '#14b8a6'];
-const EXPENSE_COLORS = { Inventory: '#f59e0b', Marketing: '#3b82f6', Bills: '#ef4444', Payouts: '#a855f7', Equipment: '#10b981', Licensing: '#06b6d4', Maintenance: '#ec4899', Extras: '#84cc16' };
+const RAINBOW_PALETTE = ['#be9055', '#ef4444', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#84cc16', '#a67c52', '#14b8a6'];
+const EXPENSE_COLORS = { Inventory: '#f59e0b', Marketing: '#be9055', Bills: '#ef4444', Payouts: '#a855f7', Equipment: '#10b981', Licensing: '#06b6d4', Maintenance: '#ec4899', Extras: '#84cc16' };
 const EXPENSE_CATEGORIES = ['Inventory', 'Marketing', 'Bills', 'Payouts', 'Equipment', 'Licensing', 'Maintenance', 'Extras'];
 const renderPieLabel = ({ name, percent }) => percent > 0.05 ? `${name} ${(percent * 100).toFixed(0)}%` : '';
 const ITEMS_PER_PAGE = 8;
@@ -225,7 +225,7 @@ function AnalyticsAuditModal({
                                         <td>{new Date(row.appointment_date).toLocaleDateString()}</td>
                                         <td style={{ fontWeight: 600 }}>{row.client_name || 'Walk-in'}</td>
                                         <td>{row.artist_name}</td>
-                                        <td style={{ fontWeight: 700, color: '#3b82f6' }}>{fmtDuration(row.session_duration)}</td>
+                                        <td style={{ fontWeight: 700, color: '#be9055' }}>{fmtDuration(row.session_duration)}</td>
                                         <td style={{ fontSize: '0.75rem', color: textSecondary }}>
                                             {parseAuditLog(row.audit_log).length > 0 ? (
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -311,224 +311,224 @@ function AnalyticsAuditModal({
                             </button>
                         )}
                     </div>
-                    
+
                     <div style={{ padding: '0 24px 20px 24px' }}>
                         {modalTab === 'summary' && (
                             <>
 
-                    {/* General breakdown pie + list (Revenue/Appointments/Completion/Users) */}
-                    {auditModal.data?.breakdown && auditModal.type !== 'expenses' && (
-                        <>
-                            <div style={{ width: '100%', height: 350, marginBottom: '16px' }}>
-                                <ResponsiveContainer>
-                                    <PieChart>
-                                        <Pie data={auditModal.data.breakdown} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={3} dataKey="value" label={renderPieLabel} labelLine={true}>
-                                            {auditModal.data.breakdown.map((entry, i) => (
-                                                <Cell key={i} fill={RAINBOW_PALETTE[i % RAINBOW_PALETTE.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip formatter={(v, name) => ['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? [v, name] : [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} />
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <table className="data-table" style={{ fontSize: '0.85rem' }}>
-                                <thead><tr><th>Category</th><th style={{ textAlign: 'right' }}>Value</th></tr></thead>
-                                <tbody>
-                                    {auditModal.data.breakdown.map((b, i) => (
-                                        <tr key={i}>
-                                            <td style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: RAINBOW_PALETTE[i % RAINBOW_PALETTE.length], display: 'inline-block' }}></span>
-                                                {b.name}
-                                            </td>
-                                            <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                                                {['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? `${b.value} bookings` : `₱${Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                {auditModal.data.total !== undefined && (
-                                    <tfoot>
-                                        <tr>
-                                            <td style={{ fontWeight: 700 }}>Total</td>
-                                            <td style={{ textAlign: 'right', fontWeight: 700, color: brandColor }}>
-                                                {['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? auditModal.data.total : `₱${Number(auditModal.data.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                            </td>
-                                        </tr>
-                                    </tfoot>
-                                )}
-                            </table>
-                        </>
-                    )}
-
-                    {/* Audited EXPENSES View */}
-                    {auditModal.type === 'expenses' && (
-                        <>
-                            <h3 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>Recent Artist Payouts</h3>
-                            <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '24px' }}>
-                                <table className="data-table" style={{ fontSize: '0.8rem' }}>
-                                    <thead><tr><th>Date</th><th>Artist</th><th>Method</th><th style={{ textAlign: 'right' }}>Amount</th></tr></thead>
-                                    <tbody>
-                                        {auditModal.data.payouts_audit?.length > 0 ? auditModal.data.payouts_audit.map((p, i) => (
-                                            <tr key={i}>
-                                                <td>{new Date(p.created_at).toLocaleDateString()}</td>
-                                                <td style={{ fontWeight: 600 }}>{p.artist_name || 'System Artist'}</td>
-                                                <td><span className={`status-badge ${p.status === 'paid' ? 'success' : 'pending'}`}>{p.payout_method}</span></td>
-                                                <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(p.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            </tr>
-                                        )) : <tr><td colSpan="4" style={{ textAlign: 'center', color: textMuted }}>No payouts history</td></tr>}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <h3 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>Recent Inventory Procurements (Stock In)</h3>
-                            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                                <table className="data-table" style={{ fontSize: '0.8rem' }}>
-                                    <thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Qty</th><th style={{ textAlign: 'right' }}>Total Cost</th></tr></thead>
-                                    <tbody>
-                                        {auditModal.data.inventory_in_audit?.length > 0 ? auditModal.data.inventory_in_audit.map((t, i) => (
-                                            <tr key={i}>
-                                                <td>{new Date(t.created_at).toLocaleDateString()}</td>
-                                                <td style={{ fontWeight: 600 }}>{t.name}</td>
-                                                <td><span className="status-badge success">Restock</span></td>
-                                                <td>{t.quantity}</td>
-                                                <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(t.total_cost).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            </tr>
-                                        )) : <tr><td colSpan="5" style={{ textAlign: 'center', color: textMuted }}>No restock history</td></tr>}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </>
-                    )}
-
-                    {/* Overhead Manual Expenses view */}
-                    {auditModal.type === 'overhead' && (
-                        <div style={{ marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-                            <h3 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>
-                                <Plus size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                                Record Manual Expense
-                            </h3>
-                            <form onSubmit={onAddExpense} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                                <select className="form-input" value={expenseForm?.category || 'Inventory'} onChange={e => handleFormChange('category', e.target.value)} style={{ flex: '0 0 140px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
-                                    {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                                <input type="text" placeholder="Description..." value={expenseForm?.description || ''} onChange={e => handleFormChange('description', e.target.value)} style={{ flex: 1, minWidth: '120px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }} />
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <input type="number" min="0" placeholder="Amount (₱)" value={expenseForm?.amount || ''} onChange={e => handleFormChange('amount', e.target.value)} required style={{ flex: '0 0 110px', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${errors.amount ? '#ef4444' : '#e2e8f0'}`, background: errors.amount ? '#fef2f2' : 'white', fontSize: '0.85rem' }} />
-                                    {errors.amount && <span style={{ color: '#ef4444', fontSize: '0.7rem', marginTop: '2px' }}>{errors.amount}</span>}
-                                </div>
-                                <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', alignSelf: 'flex-start' }} disabled={!!errors.amount}>
-                                    <Plus size={14} /> Add
-                                </button>
-                            </form>
-
-                            <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>Expense Ledger</h3>
-                            <p style={{ margin: '0 0 12px', fontSize: '0.75rem', color: textMuted }}>
-                                Entries can be edited or deleted within 1 hour of creation.
-                            </p>
-                            {expenseLoading ? (
-                                <p style={{ color: textMuted, fontSize: '0.85rem' }}>Loading...</p>
-                            ) : expenseList.length === 0 ? (
-                                <p style={{ color: textMuted, fontSize: '0.85rem' }}>No manual expenses recorded yet.</p>
-                            ) : (
-                                <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
-                                    <table className="data-table" style={{ fontSize: '0.8rem' }}>
-                                        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th style={{ textAlign: 'right' }}>Amount</th><th style={{ width: '80px', textAlign: 'center' }}>Actions</th></tr></thead>
-                                        <tbody>
-                                            {expenseList.map(exp => {
-                                                const editable = isWithinEditWindow(exp.created_at);
-                                                const isEditing = editingId === exp.id;
-
-                                                return (
-                                                    <tr key={exp.id}>
-                                                        <td>{new Date(exp.created_at).toLocaleDateString()}</td>
-                                                        <td>
-                                                            {isEditing ? (
-                                                                <select value={editData.category} onChange={e => setEditData({ ...editData, category: e.target.value })} style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
-                                                                    {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                                </select>
-                                                            ) : (
-                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: EXPENSE_COLORS[exp.category] || '#64748b' }}></span>
-                                                                    {exp.category}
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                        <td>
-                                                            {isEditing ? (
-                                                                <input type="text" value={editData.description} onChange={e => handleEditChange('description', e.target.value)} style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem', width: '100%' }} />
-                                                            ) : (
-                                                                exp.description || '—'
-                                                            )}
+                                {/* General breakdown pie + list (Revenue/Appointments/Completion/Users) */}
+                                {auditModal.data?.breakdown && auditModal.type !== 'expenses' && (
+                                    <>
+                                        <div style={{ width: '100%', height: 350, marginBottom: '16px' }}>
+                                            <ResponsiveContainer>
+                                                <PieChart>
+                                                    <Pie data={auditModal.data.breakdown} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={3} dataKey="value" label={renderPieLabel} labelLine={true}>
+                                                        {auditModal.data.breakdown.map((entry, i) => (
+                                                            <Cell key={i} fill={RAINBOW_PALETTE[i % RAINBOW_PALETTE.length]} />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip formatter={(v, name) => ['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? [v, name] : [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} />
+                                                    <Legend />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                        <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                                            <thead><tr><th>Category</th><th style={{ textAlign: 'right' }}>Value</th></tr></thead>
+                                            <tbody>
+                                                {auditModal.data.breakdown.map((b, i) => (
+                                                    <tr key={i}>
+                                                        <td style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: RAINBOW_PALETTE[i % RAINBOW_PALETTE.length], display: 'inline-block' }}></span>
+                                                            {b.name}
                                                         </td>
                                                         <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                                                            {isEditing ? (
-                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                                    <input type="number" min="0" value={editData.amount} onChange={e => handleEditChange('amount', e.target.value)} style={{ padding: '4px 6px', borderRadius: '6px', border: `1px solid ${errors.editAmount ? '#ef4444' : '#e2e8f0'}`, background: errors.editAmount ? '#fef2f2' : 'white', fontSize: '0.8rem', width: '80px', textAlign: 'right' }} />
-                                                                    {errors.editAmount && <span style={{ color: '#ef4444', fontSize: '0.65rem' }}>{errors.editAmount}</span>}
-                                                                </div>
-                                                            ) : (
-                                                                `₱${Number(exp.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                                            )}
-                                                        </td>
-                                                        <td style={{ textAlign: 'center' }}>
-                                                            {editable ? (
-                                                                isEditing ? (
-                                                                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                                                                        <button onClick={saveEdit} title="Save" style={{ padding: '4px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Check size={13} /></button>
-                                                                        <button onClick={cancelEditing} title="Cancel" style={{ padding: '4px', background: '#94a3b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={13} /></button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                                                                        <button onClick={() => startEditing(exp)} title="Edit" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}><Edit3 size={14} /></button>
-                                                                        <button onClick={() => onDeleteExpense(exp.id)} title="Delete" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><Trash2 size={14} /></button>
-                                                                    </div>
-                                                                )
-                                                            ) : (
-                                                                <span style={{ fontSize: '0.7rem', color: textMuted }}>Locked</span>
-                                                            )}
+                                                            {['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? `${b.value} bookings` : `₱${Number(b.value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                                         </td>
                                                     </tr>
-                                                );
-                                            })}
+                                                ))}
+                                            </tbody>
+                                            {auditModal.data.total !== undefined && (
+                                                <tfoot>
+                                                    <tr>
+                                                        <td style={{ fontWeight: 700 }}>Total</td>
+                                                        <td style={{ textAlign: 'right', fontWeight: 700, color: brandColor }}>
+                                                            {['appointments', 'completion', 'users', 'styles'].includes(auditModal.type) ? auditModal.data.total : `₱${Number(auditModal.data.total).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                                        </td>
+                                                    </tr>
+                                                </tfoot>
+                                            )}
+                                        </table>
+                                    </>
+                                )}
+
+                                {/* Audited EXPENSES View */}
+                                {auditModal.type === 'expenses' && (
+                                    <>
+                                        <h3 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>Recent Artist Payouts</h3>
+                                        <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '24px' }}>
+                                            <table className="data-table" style={{ fontSize: '0.8rem' }}>
+                                                <thead><tr><th>Date</th><th>Artist</th><th>Method</th><th style={{ textAlign: 'right' }}>Amount</th></tr></thead>
+                                                <tbody>
+                                                    {auditModal.data.payouts_audit?.length > 0 ? auditModal.data.payouts_audit.map((p, i) => (
+                                                        <tr key={i}>
+                                                            <td>{new Date(p.created_at).toLocaleDateString()}</td>
+                                                            <td style={{ fontWeight: 600 }}>{p.artist_name || 'System Artist'}</td>
+                                                            <td><span className={`status-badge ${p.status === 'paid' ? 'success' : 'pending'}`}>{p.payout_method}</span></td>
+                                                            <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(p.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                        </tr>
+                                                    )) : <tr><td colSpan="4" style={{ textAlign: 'center', color: textMuted }}>No payouts history</td></tr>}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <h3 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>Recent Inventory Procurements (Stock In)</h3>
+                                        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                            <table className="data-table" style={{ fontSize: '0.8rem' }}>
+                                                <thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Qty</th><th style={{ textAlign: 'right' }}>Total Cost</th></tr></thead>
+                                                <tbody>
+                                                    {auditModal.data.inventory_in_audit?.length > 0 ? auditModal.data.inventory_in_audit.map((t, i) => (
+                                                        <tr key={i}>
+                                                            <td>{new Date(t.created_at).toLocaleDateString()}</td>
+                                                            <td style={{ fontWeight: 600 }}>{t.name}</td>
+                                                            <td><span className="status-badge success">Restock</span></td>
+                                                            <td>{t.quantity}</td>
+                                                            <td style={{ textAlign: 'right', color: '#ef4444', fontWeight: 600 }}>- ₱{Number(t.total_cost).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                        </tr>
+                                                    )) : <tr><td colSpan="5" style={{ textAlign: 'center', color: textMuted }}>No restock history</td></tr>}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Overhead Manual Expenses view */}
+                                {auditModal.type === 'overhead' && (
+                                    <div style={{ marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                                        <h3 style={{ margin: '0 0 12px', fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>
+                                            <Plus size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                                            Record Manual Expense
+                                        </h3>
+                                        <form onSubmit={onAddExpense} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                                            <select className="form-input" value={expenseForm?.category || 'Inventory'} onChange={e => handleFormChange('category', e.target.value)} style={{ flex: '0 0 140px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
+                                                {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                            <input type="text" placeholder="Description..." value={expenseForm?.description || ''} onChange={e => handleFormChange('description', e.target.value)} style={{ flex: 1, minWidth: '120px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }} />
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <input type="number" min="0" placeholder="Amount (₱)" value={expenseForm?.amount || ''} onChange={e => handleFormChange('amount', e.target.value)} required style={{ flex: '0 0 110px', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${errors.amount ? '#ef4444' : '#e2e8f0'}`, background: errors.amount ? '#fef2f2' : 'white', fontSize: '0.85rem' }} />
+                                                {errors.amount && <span style={{ color: '#ef4444', fontSize: '0.7rem', marginTop: '2px' }}>{errors.amount}</span>}
+                                            </div>
+                                            <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', alignSelf: 'flex-start' }} disabled={!!errors.amount}>
+                                                <Plus size={14} /> Add
+                                            </button>
+                                        </form>
+
+                                        <h3 style={{ margin: '0 0 8px', fontSize: '0.95rem', fontWeight: 700, color: textPrimary }}>Expense Ledger</h3>
+                                        <p style={{ margin: '0 0 12px', fontSize: '0.75rem', color: textMuted }}>
+                                            Entries can be edited or deleted within 1 hour of creation.
+                                        </p>
+                                        {expenseLoading ? (
+                                            <p style={{ color: textMuted, fontSize: '0.85rem' }}>Loading...</p>
+                                        ) : expenseList.length === 0 ? (
+                                            <p style={{ color: textMuted, fontSize: '0.85rem' }}>No manual expenses recorded yet.</p>
+                                        ) : (
+                                            <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                                                <table className="data-table" style={{ fontSize: '0.8rem' }}>
+                                                    <thead><tr><th>Date</th><th>Category</th><th>Description</th><th style={{ textAlign: 'right' }}>Amount</th><th style={{ width: '80px', textAlign: 'center' }}>Actions</th></tr></thead>
+                                                    <tbody>
+                                                        {expenseList.map(exp => {
+                                                            const editable = isWithinEditWindow(exp.created_at);
+                                                            const isEditing = editingId === exp.id;
+
+                                                            return (
+                                                                <tr key={exp.id}>
+                                                                    <td>{new Date(exp.created_at).toLocaleDateString()}</td>
+                                                                    <td>
+                                                                        {isEditing ? (
+                                                                            <select value={editData.category} onChange={e => setEditData({ ...editData, category: e.target.value })} style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
+                                                                                {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                                            </select>
+                                                                        ) : (
+                                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: EXPENSE_COLORS[exp.category] || '#64748b' }}></span>
+                                                                                {exp.category}
+                                                                            </span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td>
+                                                                        {isEditing ? (
+                                                                            <input type="text" value={editData.description} onChange={e => handleEditChange('description', e.target.value)} style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem', width: '100%' }} />
+                                                                        ) : (
+                                                                            exp.description || '—'
+                                                                        )}
+                                                                    </td>
+                                                                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                                                                        {isEditing ? (
+                                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                                                <input type="number" min="0" value={editData.amount} onChange={e => handleEditChange('amount', e.target.value)} style={{ padding: '4px 6px', borderRadius: '6px', border: `1px solid ${errors.editAmount ? '#ef4444' : '#e2e8f0'}`, background: errors.editAmount ? '#fef2f2' : 'white', fontSize: '0.8rem', width: '80px', textAlign: 'right' }} />
+                                                                                {errors.editAmount && <span style={{ color: '#ef4444', fontSize: '0.65rem' }}>{errors.editAmount}</span>}
+                                                                            </div>
+                                                                        ) : (
+                                                                            `₱${Number(exp.amount).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                                                        )}
+                                                                    </td>
+                                                                    <td style={{ textAlign: 'center' }}>
+                                                                        {editable ? (
+                                                                            isEditing ? (
+                                                                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                                                                    <button onClick={saveEdit} title="Save" style={{ padding: '4px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Check size={13} /></button>
+                                                                                    <button onClick={cancelEditing} title="Cancel" style={{ padding: '4px', background: '#94a3b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={13} /></button>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                                                                    <button onClick={() => startEditing(exp)} title="Edit" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', color: '#be9055' }}><Edit3 size={14} /></button>
+                                                                                    <button onClick={() => onDeleteExpense(exp.id)} title="Delete" style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><Trash2 size={14} /></button>
+                                                                                </div>
+                                                                            )
+                                                                        ) : (
+                                                                            <span style={{ fontSize: '0.7rem', color: textMuted }}>Locked</span>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Artist / Inventory list */}
+                                {auditModal.data?.list && (
+                                    <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Name</th>
+                                                {auditModal.type === 'artists' && <><th style={{ textAlign: 'right' }}>Revenue</th><th style={{ textAlign: 'right' }}>Appointments</th></>}
+                                                {auditModal.type === 'inventory' && <th style={{ textAlign: 'right' }}>Used</th>}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {auditModal.data.list.map((item, i) => (
+                                                <tr key={i}>
+                                                    <td>{i + 1}</td>
+                                                    <td style={{ fontWeight: 600 }}>{item.name}</td>
+                                                    {auditModal.type === 'artists' && <><td style={{ textAlign: 'right', color: '#10b981' }}>₱{Number(item.revenue || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td style={{ textAlign: 'right' }}>{item.appointments}</td></>}
+                                                    {auditModal.type === 'inventory' && <td style={{ textAlign: 'right', color: '#f59e0b', fontWeight: 600 }}>{item.used} {item.unit}</td>}
+                                                </tr>
+                                            ))}
                                         </tbody>
                                     </table>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                )}
 
-                    {/* Artist / Inventory list */}
-                    {auditModal.data?.list && (
-                        <table className="data-table" style={{ fontSize: '0.85rem' }}>
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Name</th>
-                                    {auditModal.type === 'artists' && <><th style={{ textAlign: 'right' }}>Revenue</th><th style={{ textAlign: 'right' }}>Appointments</th></>}
-                                    {auditModal.type === 'inventory' && <th style={{ textAlign: 'right' }}>Used</th>}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {auditModal.data.list.map((item, i) => (
-                                    <tr key={i}>
-                                        <td>{i + 1}</td>
-                                        <td style={{ fontWeight: 600 }}>{item.name}</td>
-                                        {auditModal.type === 'artists' && <><td style={{ textAlign: 'right', color: '#10b981' }}>₱{Number(item.revenue || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td style={{ textAlign: 'right' }}>{item.appointments}</td></>}
-                                        {auditModal.type === 'inventory' && <td style={{ textAlign: 'right', color: '#f59e0b', fontWeight: 600 }}>{item.used} {item.unit}</td>}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-
-                    {/* Duration audit */}
-                    {auditModal.type === 'duration' && (
-                        <div style={{ textAlign: 'center', padding: '24px' }}>
-                            <p style={{ fontSize: '2.5rem', fontWeight: 800, color: textPrimary, margin: '0 0 8px' }}>{formatDuration(auditModal.data?.avgDuration)}</p>
-                            <p style={{ color: textSecondary, fontSize: '0.9rem' }}>Average across all completed sessions</p>
-                        </div>
-                    )}
+                                {/* Duration audit */}
+                                {auditModal.type === 'duration' && (
+                                    <div style={{ textAlign: 'center', padding: '24px' }}>
+                                        <p style={{ fontSize: '2.5rem', fontWeight: 800, color: textPrimary, margin: '0 0 8px' }}>{formatDuration(auditModal.data?.avgDuration)}</p>
+                                        <p style={{ color: textSecondary, fontSize: '0.9rem' }}>Average across all completed sessions</p>
+                                    </div>
+                                )}
 
                             </>
                         )}

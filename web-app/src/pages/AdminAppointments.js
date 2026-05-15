@@ -793,7 +793,7 @@ function AdminAppointments() {
         showConfirm(`Are you sure you want to Rebook a next session for this project?`, async () => {
             let resolvedTotalSessions = parseInt(appointment.totalSessions || appointment.total_sessions) || 2;
             let nextSessionNumber = (appointment.sessionNumber || appointment.session_number || 1) + 1;
-            
+
             const projectId = appointment.project_id || appointment.projectId;
             if (projectId) {
                 try {
@@ -801,7 +801,7 @@ function AdminAppointments() {
                     if (projRes.data && projRes.data.success && projRes.data.project) {
                         const project = projRes.data.project;
                         resolvedTotalSessions = project.total_sessions_planned || resolvedTotalSessions;
-                        
+
                         if (project.sessions && project.sessions.length > 0) {
                             const realMax = project.sessions.reduce((max, s) => Math.max(max, s.session_number || 0), 0);
                             const countMax = project.sessions.length;
@@ -812,7 +812,7 @@ function AdminAppointments() {
                     console.warn('Failed to fetch project for rebook calculation', err);
                 }
             }
-            
+
             resolvedTotalSessions = Math.max(nextSessionNumber, resolvedTotalSessions);
 
             // Calculate remaining balance from previous session
@@ -1422,7 +1422,7 @@ function AdminAppointments() {
                                                 {dayAppts.length > 0 && (
                                                     <div className="admin-st-3c36f78c">
                                                         {dayAppts.slice(0, 5).map(apt => {
-                                                            let dotColor = '#7c3aed'; // default: scheduled (dark purple)
+                                                            let dotColor = '#be9055'; // default: scheduled (brand gold)
                                                             if (apt.status === 'confirmed') dotColor = '#38bdf8';
                                                             else if (apt.status === 'pending') dotColor = '#f59e0b';
                                                             else if (apt.status === 'in_progress') dotColor = '#0284c7';
@@ -1526,7 +1526,7 @@ function AdminAppointments() {
                                                     </span>
                                                 )}
                                             </div>
-                                            <span style={{ color: '#6366f1', fontWeight: '600', fontSize: '0.85rem' }}>{formatTime12Hour(apt.start_time || apt.time)}</span>
+                                            <span style={{ color: '#be9055', fontWeight: '600', fontSize: '0.85rem' }}>{formatTime12Hour(apt.start_time || apt.time)}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -1969,7 +1969,7 @@ function AdminAppointments() {
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0', marginTop: '12px' }}>
                                                         {parsedLog.map((entry, idx) => (
                                                             <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 0', borderBottom: idx < parsedLog.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: entry.action && entry.action.includes('Started') ? '#10b981' : entry.action && entry.action.includes('Completed') ? '#6366f1' : entry.action && entry.action.includes('Paused') ? '#f59e0b' : entry.action && entry.action.includes('Aborted') ? '#ef4444' : '#3b82f6', marginTop: '5px', flexShrink: 0 }} />
+                                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: entry.action && entry.action.includes('Started') ? '#10b981' : entry.action && entry.action.includes('Completed') ? '#be9055' : entry.action && entry.action.includes('Paused') ? '#f59e0b' : entry.action && entry.action.includes('Aborted') ? '#ef4444' : '#3b82f6', marginTop: '5px', flexShrink: 0 }} />
                                                                 <div style={{ flex: 1 }}>
                                                                     <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#1e293b' }}>{entry.action}</span>
                                                                 </div>
@@ -2096,7 +2096,7 @@ function AdminAppointments() {
                                 ) && (
                                         <button
                                             className="btn"
-                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(99,102,241,0.06))', color: '#6366f1', borderColor: 'rgba(99,102,241,0.3)', fontWeight: 600 }}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, rgba(190,144,85,0.12), rgba(190,144,85,0.06))', color: '#be9055', borderColor: 'rgba(190,144,85,0.3)', fontWeight: 600 }}
                                             onClick={() => handleRebookNextSession(selectedAppointment)}
                                             title="Create a follow-up session for this client"
                                         >
@@ -2127,12 +2127,24 @@ function AdminAppointments() {
                                             <button
                                                 className={`modal-tab-btn ${modalTab === 'pricing' ? 'active' : ''}`}
                                                 onClick={() => {
-                                                    const fullyPaid = selectedAppointment && selectedAppointment.price > 0 && (selectedAppointment.paymentStatus === 'paid' || Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price));
+                                                    const fullyPaid = selectedAppointment && (
+                                                        selectedAppointment.paymentStatus === 'paid'
+                                                        || (selectedAppointment.price > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))
+                                                    );
                                                     if (!fullyPaid) setModalTab('pricing');
                                                 }}
-                                                disabled={selectedAppointment && selectedAppointment.price > 0 && (selectedAppointment.paymentStatus === 'paid' || Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))}
-                                                title={selectedAppointment && selectedAppointment.price > 0 && (selectedAppointment.paymentStatus === 'paid' || Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price)) ? "Pricing is locked \u2014 this appointment is fully paid" : ""}
-                                                style={selectedAppointment && selectedAppointment.price > 0 && (selectedAppointment.paymentStatus === 'paid' || Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price)) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                                                disabled={selectedAppointment && (
+                                                    selectedAppointment.paymentStatus === 'paid'
+                                                    || (selectedAppointment.price > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))
+                                                )}
+                                                title={selectedAppointment && (
+                                                    selectedAppointment.paymentStatus === 'paid'
+                                                    || (selectedAppointment.price > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))
+                                                ) ? "Pricing is locked \u2014 this appointment is fully paid" : ""}
+                                                style={selectedAppointment && (
+                                                    selectedAppointment.paymentStatus === 'paid'
+                                                    || (selectedAppointment.price > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))
+                                                ) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                                             >
                                                 <PhilippinePeso size={16} /> Pricing
                                             </button>
@@ -2202,7 +2214,7 @@ function AdminAppointments() {
                                                 <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Requested Date</div>
                                                 <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
                                                     {new Date(pendingRescheduleRequest.requested_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                                                    {pendingRescheduleRequest.requested_time && ` at ${pendingRescheduleRequest.requested_time}`}
+                                                    {pendingRescheduleRequest.requested_time && ` at ${formatTime12Hour(pendingRescheduleRequest.requested_time)}`}
                                                 </div>
                                             </div>
                                             <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.8)', border: '1px solid #fde68a' }}>
@@ -2621,7 +2633,7 @@ function AdminAppointments() {
                                                                     }}>
                                                                         <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Time Slot</span>
                                                                         <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#1e293b' }}>
-                                                                            {(() => { const [h, m] = formData.time.split(':'); const hr = parseInt(h); return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`; })()}
+                                                                            {formatTime12Hour(formData.time)}
                                                                         </span>
                                                                     </div>
                                                                 )}
@@ -2681,6 +2693,64 @@ function AdminAppointments() {
                                                         )}
                                                     </div>
                                                 </div>
+
+                                                {/* Multi-Session Project Toggle (Task 1.2) */}
+                                                <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(190, 144, 85, 0.04)', borderRadius: '12px', border: '1px solid rgba(190, 144, 85, 0.15)' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: formData.totalSessions ? '14px' : 0 }}>
+                                                        <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <Layers size={16} style={{ color: '#be9055' }} />
+                                                            Multi-Session Project
+                                                        </label>
+                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!!formData.totalSessions}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setFormData({ ...formData, totalSessions: 2, sessionNumber: 1 });
+                                                                    } else {
+                                                                        setFormData({ ...formData, totalSessions: '', sessionNumber: '' });
+                                                                    }
+                                                                }}
+                                                                style={{ width: '18px', height: '18px', accentColor: '#be9055' }}
+                                                            />
+                                                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Enabled</span>
+                                                        </label>
+                                                    </div>
+                                                    {!!formData.totalSessions && (
+                                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                            <div style={{ flex: 1 }}>
+                                                                <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Session #</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    max={formData.totalSessions || 10}
+                                                                    value={formData.sessionNumber || 1}
+                                                                    onChange={(e) => setFormData({ ...formData, sessionNumber: Math.min(Math.max(1, parseInt(e.target.value) || 1), parseInt(formData.totalSessions) || 10) })}
+                                                                    className="premium-input-v2"
+                                                                    style={{ textAlign: 'center' }}
+                                                                />
+                                                            </div>
+                                                            <span style={{ fontSize: '1.1rem', color: '#94a3b8', fontWeight: 700, paddingTop: '18px' }}>of</span>
+                                                            <div style={{ flex: 1 }}>
+                                                                <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Total Sessions</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="2"
+                                                                    max="10"
+                                                                    value={formData.totalSessions || 2}
+                                                                    onChange={(e) => {
+                                                                        const val = Math.min(Math.max(2, parseInt(e.target.value) || 2), 10);
+                                                                        setFormData({ ...formData, totalSessions: val, sessionNumber: Math.min(parseInt(formData.sessionNumber) || 1, val) });
+                                                                    }}
+                                                                    className="premium-input-v2"
+                                                                    style={{ textAlign: 'center' }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
                                             </div>
 
                                             {/* --- PIERCING JEWELRY SELECTIONS (read-only info panel) --- */}
@@ -2732,130 +2802,149 @@ function AdminAppointments() {
 
 
 
-                                {modalTab === 'pricing' && (
-                                    /* Pricing Tab View */
-                                    <div className="fade-in admin-st-9628d1ce">
-                                        <div className="admin-st-dd4f6313">
-                                            <div className="admin-st-e5b0a825">
-                                                {/* Dual-service: show split price inputs */}
-                                                {formData.serviceType === 'Tattoo + Piercing' ? (
-                                                    <>
-                                                        <div className="form-group">
-                                                            <label className={`admin-st-6ad161f7 ${errors.tattooPrice ? 'text-red-500' : ''}`}><Syringe size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Tattoo Quote (₱) *</label>
-                                                            <input
-                                                                type="text"
-                                                                inputMode="numeric"
-                                                                value={formData.tattooPrice === 0 || formData.tattooPrice === '0' ? '' : formData.tattooPrice}
-                                                                onChange={(e) => {
-                                                                    const raw = e.target.value.replace(/[^0-9]/g, '');
-                                                                    const val = raw === '' ? 0 : Number(raw);
-                                                                    setFormData(prev => ({ ...prev, tattooPrice: val, price: val + (Number(prev.piercingPrice) || 0) }));
-                                                                }}
-                                                                placeholder="e.g. 5000"
-                                                                className={`premium-input-v2 admin-st-1a49bbe7 ${errors.tattooPrice ? 'border-red-500 bg-red-50' : ''}`}
-                                                            />
-                                                            {errors.tattooPrice && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.tattooPrice}</span>}
-                                                        </div>
-                                                        <div className="form-group">
-                                                            <label className={`admin-st-6ad161f7 ${errors.piercingPrice ? 'text-red-500' : ''}`}><Wrench size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Piercing Quote (₱) *</label>
-                                                            <input
-                                                                type="text"
-                                                                inputMode="numeric"
-                                                                value={formData.piercingPrice === 0 || formData.piercingPrice === '0' ? '' : formData.piercingPrice}
-                                                                onChange={(e) => {
-                                                                    const raw = e.target.value.replace(/[^0-9]/g, '');
-                                                                    const val = raw === '' ? 0 : Number(raw);
-                                                                    setFormData(prev => ({ ...prev, piercingPrice: val, price: (Number(prev.tattooPrice) || 0) + val }));
-                                                                }}
-                                                                placeholder="e.g. 2500"
-                                                                className={`premium-input-v2 admin-st-1a49bbe7 ${errors.piercingPrice ? 'border-red-500 bg-red-50' : ''}`}
-                                                            />
-                                                            {errors.piercingPrice && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.piercingPrice}</span>}
-                                                        </div>
-                                                        {/* Auto-computed total display */}
-                                                        <div style={{ gridColumn: '1 / -1', marginTop: '4px', padding: '12px 16px', borderRadius: '10px', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid #e2e8f0' }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Combined Total:</span>
-                                                                <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b' }}>₱{Number(formData.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                            </div>
-                                                            {formData.secondaryArtistId && (Number(formData.tattooPrice) > 0 || Number(formData.piercingPrice) > 0) && (
-                                                                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
-                                                                        <span><Syringe size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> {artists.find(a => String(a.id) === String(formData.artistId))?.name || 'Tattoo Artist'} earns (30%):</span>
-                                                                        <span style={{ fontWeight: 600, color: '#059669' }}>₱{(Number(formData.tattooPrice) * 0.30).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                                    </div>
-                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
-                                                                        <span><Wrench size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> {artists.find(a => String(a.id) === String(formData.secondaryArtistId))?.name || 'Piercer'} earns (30%):</span>
-                                                                        <span style={{ fontWeight: 600, color: '#059669' }}>₱{(Number(formData.piercingPrice) * 0.30).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="form-group">
-                                                        <label className={`admin-st-6ad161f7 ${errors.price ? 'text-red-500' : ''}`}>Total Quote (₱) *</label>
-                                                        <input
-                                                            type="text"
-                                                            inputMode="numeric"
-                                                            value={formData.price === 0 || formData.price === '0' ? '' : formData.price}
-                                                            onChange={(e) => {
-                                                                const raw = e.target.value.replace(/[^0-9]/g, '');
-                                                                handleInputChange('price', raw === '' ? 0 : Number(raw));
-                                                            }}
-                                                            placeholder="e.g. 5000"
-                                                            className={`premium-input-v2 admin-st-1a49bbe7 ${errors.price ? 'border-red-500 bg-red-50' : ''}`}
-                                                        />
-                                                        {errors.price && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.price}</span>}
-                                                    </div>
-                                                )}
-                                                <div className="form-group">
-                                                    <label className="admin-st-6ad161f7">Payment Strategy</label>
-                                                    <select value={formData.paymentStatus} onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })} className="premium-select-v2 admin-st-c8e7c63b">
-                                                        <option value="unpaid">Draft (Unquoted)</option>
-                                                        <option value="downpayment_paid">Downpayment Collected</option>
-                                                        <option value="paid">Fully Paid</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            {selectedAppointment && (
-                                                <div className="admin-st-4344b743">
-                                                    <div className="admin-st-7c85a4a1">
-                                                        <span className="admin-st-9e124000">Total Collected:</span>
-                                                        <span className="admin-st-3947f0f7">₱{Number(selectedAppointment.totalPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                    <div className="admin-st-ddde571d">
-                                                        <span className="admin-st-9e124000">Remaining Balance:</span>
-                                                        <span className="admin-st-da5d65cf">₱{Math.max(0, Number(formData.price) - Number(selectedAppointment.totalPaid)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                                    </div>
+                                {modalTab === 'pricing' && (() => {
+                                    const isPricingLocked = selectedAppointment && (
+                                        selectedAppointment.paymentStatus === 'paid'
+                                        || (selectedAppointment.price > 0 && Number(selectedAppointment.totalPaid) >= Number(selectedAppointment.price))
+                                    );
+                                    return (
+                                        /* Pricing Tab View */
+                                        <div className="fade-in admin-st-9628d1ce">
+                                            {isPricingLocked && (
+                                                <div style={{
+                                                    display: 'flex', alignItems: 'center', gap: '10px',
+                                                    padding: '12px 16px', marginBottom: '16px',
+                                                    borderRadius: '10px',
+                                                    background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.04))',
+                                                    border: '1px solid rgba(16,185,129,0.25)',
+                                                    color: '#065f46', fontSize: '0.88rem', fontWeight: 600
+                                                }}>
+                                                    <CheckCircle size={18} style={{ color: '#10b981', flexShrink: 0 }} />
+                                                    Pricing is locked — this appointment has been fully paid. No further changes are permitted.
                                                 </div>
                                             )}
-
-                                            <div className="admin-st-422e3858">
-                                                <button className="btn admin-st-c52b9668" onClick={() => setModalTab('details')}>Back to Details</button>
-
-                                                {formData.price > 0 && formData.paymentStatus === 'unpaid' && (
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-primary admin-st-2b208132"
-                                                        onClick={() => {
-                                                            showAlert('Payment Link Sent', `A digital payment checkout link for ₱${formData.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has been routed to the client.`, 'success');
-                                                        }}
-                                                    >
-                                                        <CreditCard size={20} /> Request Digital Payment
-                                                    </button>
-                                                )}
+                                            <div className="admin-st-dd4f6313" style={isPricingLocked ? { opacity: 0.55, pointerEvents: 'none' } : {}}>
+                                                <div className="admin-st-e5b0a825">
+                                                    {/* Dual-service: show split price inputs */}
+                                                    {formData.serviceType === 'Tattoo + Piercing' ? (
+                                                        <>
+                                                            <div className="form-group">
+                                                                <label className={`admin-st-6ad161f7 ${errors.tattooPrice ? 'text-red-500' : ''}`}><Syringe size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Tattoo Quote (₱) *</label>
+                                                                <input
+                                                                    type="text"
+                                                                    inputMode="numeric"
+                                                                    value={formData.tattooPrice === 0 || formData.tattooPrice === '0' ? '' : formData.tattooPrice}
+                                                                    onChange={(e) => {
+                                                                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                                        const val = raw === '' ? 0 : Number(raw);
+                                                                        setFormData(prev => ({ ...prev, tattooPrice: val, price: val + (Number(prev.piercingPrice) || 0) }));
+                                                                    }}
+                                                                    placeholder="e.g. 5000"
+                                                                    className={`premium-input-v2 admin-st-1a49bbe7 ${errors.tattooPrice ? 'border-red-500 bg-red-50' : ''}`}
+                                                                />
+                                                                {errors.tattooPrice && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.tattooPrice}</span>}
+                                                            </div>
+                                                            <div className="form-group">
+                                                                <label className={`admin-st-6ad161f7 ${errors.piercingPrice ? 'text-red-500' : ''}`}><Wrench size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> Piercing Quote (₱) *</label>
+                                                                <input
+                                                                    type="text"
+                                                                    inputMode="numeric"
+                                                                    value={formData.piercingPrice === 0 || formData.piercingPrice === '0' ? '' : formData.piercingPrice}
+                                                                    onChange={(e) => {
+                                                                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                                        const val = raw === '' ? 0 : Number(raw);
+                                                                        setFormData(prev => ({ ...prev, piercingPrice: val, price: (Number(prev.tattooPrice) || 0) + val }));
+                                                                    }}
+                                                                    placeholder="e.g. 2500"
+                                                                    className={`premium-input-v2 admin-st-1a49bbe7 ${errors.piercingPrice ? 'border-red-500 bg-red-50' : ''}`}
+                                                                />
+                                                                {errors.piercingPrice && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.piercingPrice}</span>}
+                                                            </div>
+                                                            {/* Auto-computed total display */}
+                                                            <div style={{ gridColumn: '1 / -1', marginTop: '4px', padding: '12px 16px', borderRadius: '10px', background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)', border: '1px solid #e2e8f0' }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Combined Total:</span>
+                                                                    <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b' }}>₱{Number(formData.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                </div>
+                                                                {formData.secondaryArtistId && (Number(formData.tattooPrice) > 0 || Number(formData.piercingPrice) > 0) && (
+                                                                    <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
+                                                                            <span><Syringe size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> {artists.find(a => String(a.id) === String(formData.artistId))?.name || 'Tattoo Artist'} earns (30%):</span>
+                                                                            <span style={{ fontWeight: 600, color: '#059669' }}>₱{(Number(formData.tattooPrice) * 0.30).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                        </div>
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
+                                                                            <span><Wrench size={13} style={{ display: 'inline', verticalAlign: '-2px' }} /> {artists.find(a => String(a.id) === String(formData.secondaryArtistId))?.name || 'Piercer'} earns (30%):</span>
+                                                                            <span style={{ fontWeight: 600, color: '#059669' }}>₱{(Number(formData.piercingPrice) * 0.30).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="form-group">
+                                                            <label className={`admin-st-6ad161f7 ${errors.price ? 'text-red-500' : ''}`}>Total Quote (₱) *</label>
+                                                            <input
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                value={formData.price === 0 || formData.price === '0' ? '' : formData.price}
+                                                                onChange={(e) => {
+                                                                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                                    handleInputChange('price', raw === '' ? 0 : Number(raw));
+                                                                }}
+                                                                placeholder="e.g. 5000"
+                                                                className={`premium-input-v2 admin-st-1a49bbe7 ${errors.price ? 'border-red-500 bg-red-50' : ''}`}
+                                                            />
+                                                            {errors.price && <span style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.price}</span>}
+                                                        </div>
+                                                    )}
+                                                    <div className="form-group">
+                                                        <label className="admin-st-6ad161f7">Payment Strategy</label>
+                                                        <select value={formData.paymentStatus} onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })} className="premium-select-v2 admin-st-c8e7c63b">
+                                                            <option value="unpaid">Draft (Unquoted)</option>
+                                                            <option value="downpayment_paid">Downpayment Collected</option>
+                                                            <option value="paid">Fully Paid</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
 
                                                 {selectedAppointment && (
-                                                    <button className="btn btn-primary admin-st-f9f5beee" onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>
-                                                        <PhilippinePeso size={20} /> Record Manual Payment
-                                                    </button>
+                                                    <div className="admin-st-4344b743">
+                                                        <div className="admin-st-7c85a4a1">
+                                                            <span className="admin-st-9e124000">Total Collected:</span>
+                                                            <span className="admin-st-3947f0f7">₱{Number(selectedAppointment.totalPaid).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                        <div className="admin-st-ddde571d">
+                                                            <span className="admin-st-9e124000">Remaining Balance:</span>
+                                                            <span className="admin-st-da5d65cf">₱{Math.max(0, Number(formData.price) - Number(selectedAppointment.totalPaid)).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        </div>
+                                                    </div>
                                                 )}
+
+                                                <div className="admin-st-422e3858">
+                                                    <button className="btn admin-st-c52b9668" onClick={() => setModalTab('details')}>Back to Details</button>
+
+                                                    {formData.price > 0 && formData.paymentStatus === 'unpaid' && (
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-primary admin-st-2b208132"
+                                                            onClick={() => {
+                                                                showAlert('Payment Link Sent', `A digital payment checkout link for ₱${formData.price.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has been routed to the client.`, 'success');
+                                                            }}
+                                                        >
+                                                            <CreditCard size={20} /> Request Digital Payment
+                                                        </button>
+                                                    )}
+
+                                                    {selectedAppointment && (
+                                                        <button className="btn btn-primary admin-st-f9f5beee" onClick={() => setManualPaymentModal({ isOpen: true, amount: Math.max(0, formData.price - selectedAppointment.totalPaid), method: 'Cash' })}>
+                                                            <PhilippinePeso size={20} /> Record Manual Payment
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
+                                    );
+                                })()}
 
                                 {modalTab === 'notes' && (
                                     /* Session Log Tab View */
@@ -2942,63 +3031,6 @@ function AdminAppointments() {
                                                         : "Add any notes about this new appointment — placement preferences, client requests, design specifics, scheduling notes, etc."
                                                     }
                                                 />
-                                            </div>
-
-                                            {/* Multi-Session Project Toggle (Task 1.2) */}
-                                            <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(99, 102, 241, 0.04)', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.15)' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: formData.totalSessions ? '14px' : 0 }}>
-                                                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        <Layers size={16} style={{ color: '#6366f1' }} />
-                                                        Multi-Session Project
-                                                    </label>
-                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={!!formData.totalSessions}
-                                                            onChange={(e) => {
-                                                                if (e.target.checked) {
-                                                                    setFormData({ ...formData, totalSessions: 2, sessionNumber: 1 });
-                                                                } else {
-                                                                    setFormData({ ...formData, totalSessions: '', sessionNumber: '' });
-                                                                }
-                                                            }}
-                                                            style={{ width: '18px', height: '18px', accentColor: '#6366f1' }}
-                                                        />
-                                                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Enabled</span>
-                                                    </label>
-                                                </div>
-                                                {!!formData.totalSessions && (
-                                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                                        <div style={{ flex: 1 }}>
-                                                            <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Session #</label>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                max={formData.totalSessions || 10}
-                                                                value={formData.sessionNumber || 1}
-                                                                onChange={(e) => setFormData({ ...formData, sessionNumber: Math.min(Math.max(1, parseInt(e.target.value) || 1), parseInt(formData.totalSessions) || 10) })}
-                                                                className="premium-input-v2"
-                                                                style={{ textAlign: 'center' }}
-                                                            />
-                                                        </div>
-                                                        <span style={{ fontSize: '1.1rem', color: '#94a3b8', fontWeight: 700, paddingTop: '18px' }}>of</span>
-                                                        <div style={{ flex: 1 }}>
-                                                            <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Total Sessions</label>
-                                                            <input
-                                                                type="number"
-                                                                min="2"
-                                                                max="10"
-                                                                value={formData.totalSessions || 2}
-                                                                onChange={(e) => {
-                                                                    const val = Math.min(Math.max(2, parseInt(e.target.value) || 2), 10);
-                                                                    setFormData({ ...formData, totalSessions: val, sessionNumber: Math.min(parseInt(formData.sessionNumber) || 1, val) });
-                                                                }}
-                                                                className="premium-input-v2"
-                                                                style={{ textAlign: 'center' }}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
                                             </div>
 
                                             {/* Special Discount Section (Task 1.3) */}

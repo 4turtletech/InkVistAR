@@ -168,9 +168,9 @@ function AdminAnalytics() {
                 break;
             case 'expenses':
                 title = 'Operations Audits — Payouts & Procurements';
-                data = { 
-                    breakdown: analytics.expenses.breakdown, 
-                    total: analytics.expenses.total, 
+                data = {
+                    breakdown: analytics.expenses.breakdown,
+                    total: analytics.expenses.total,
                     source: 'payouts table + inventory transactions (type=in)',
                     payouts_audit: analytics.expenses.payouts_audit,
                     inventory_in_audit: analytics.expenses.inventory_in_audit
@@ -358,15 +358,15 @@ function AdminAnalytics() {
                                                     <p className="admin-st-925e4e02">Select widgets to display</p>
                                                 </div>
                                             </div>
-                                            <button className="close-btn" onClick={() => setIsWidgetModalOpen(false)}><X size={24}/></button>
+                                            <button className="close-btn" onClick={() => setIsWidgetModalOpen(false)}><X size={24} /></button>
                                         </div>
                                         <div className="modal-body" style={{ padding: '20px 30px' }}>
                                             <div className="grid-2col" style={{ gap: '15px' }}>
                                                 {WIDGET_OPTIONS.map(widget => {
                                                     const isVisible = visibleWidgets.includes(widget.id);
                                                     return (
-                                                        <div 
-                                                            key={widget.id} 
+                                                        <div
+                                                            key={widget.id}
                                                             onClick={() => toggleWidget(widget.id)}
                                                             style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 15px', background: isVisible ? '#f8fafc' : 'transparent', border: `1px solid ${isVisible ? '#be9055' : '#e2e8f0'}`, borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s' }}
                                                         >
@@ -425,7 +425,7 @@ function AdminAnalytics() {
                                                                 />
                                                                 <YAxis tick={{ fill: '#171516', fontSize: 11 }} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
                                                                 <Tooltip
-                                                                    cursor={{ fill: 'rgba(99, 102, 241, 0.06)' }}
+                                                                    cursor={{ fill: 'rgba(190, 144, 85, 0.06)' }}
                                                                     contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '10px 14px', fontSize: '0.85rem' }}
                                                                     formatter={(value, name) => [`₱${Number(value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Revenue']}
                                                                     labelFormatter={(label, payload) => {
@@ -433,13 +433,13 @@ function AdminAnalytics() {
                                                                         return `${label} — ${appts} appointment${appts !== 1 ? 's' : ''}`;
                                                                     }}
                                                                 />
-                                                                <Bar dataKey="value" name="Revenue" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={dynamicBarSize} />
+                                                                <Bar dataKey="value" name="Revenue" fill="#be9055" radius={[8, 8, 0, 0]} barSize={dynamicBarSize} />
                                                             </BarChart>
                                                         );
                                                     })()}
                                                 </ResponsiveContainer>
                                             </div>
-                                            <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#6366f1' }}>View revenue source breakdown →</div>
+                                            <div style={{ paddingTop: '8px', fontSize: '0.75rem', fontWeight: 600, color: '#be9055' }}>View revenue source breakdown →</div>
                                         </div>
                                     )
                                 },
@@ -516,7 +516,7 @@ function AdminAnalytics() {
                                                             <YAxis dataKey="name" type="category" tick={{ fill: '#171516', fontSize: 12, fontWeight: 600 }} width={100} axisLine={{ stroke: '#cbd5e1' }} tickLine={{ stroke: '#cbd5e1' }} />
                                                             <Tooltip formatter={(v, name) => [`₱${Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name]} />
                                                             <Bar dataKey="revenue" name="Revenue" fill={RAINBOW_PALETTE[4]} radius={[0, 6, 6, 0]} barSize={24}>
-                                                               {analytics.artists.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[index % RAINBOW_PALETTE.length]} />)}
+                                                                {analytics.artists.map((_, index) => <Cell key={`cell-${index}`} fill={RAINBOW_PALETTE[index % RAINBOW_PALETTE.length]} />)}
                                                             </Bar>
                                                         </BarChart>
                                                     </ResponsiveContainer>

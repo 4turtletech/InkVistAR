@@ -77,12 +77,16 @@ export default function WaiverPrintView() {
     const bookingCode = getDisplayCode(a.booking_code, a.id);
     const clientName = a.customer_name || a.client_name || a.guest_email || 'Client';
     const waiverDate = a.waiver_accepted_at
-        ? new Date(a.waiver_accepted_at).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })
+        ? new Date(a.waiver_accepted_at.replace(' ', 'T') + '+08:00').toLocaleString('en-US', { 
+            dateStyle: 'long', 
+            timeStyle: 'short',
+            timeZone: 'Asia/Manila'
+          })
         : null;
     const appointmentDate = a.appointment_date
-        ? new Date(a.appointment_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+        ? new Date(a.appointment_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })
         : 'N/A';
-    const printDate = new Date().toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const printDate = new Date().toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Manila' });
 
     return (
         <div style={s.pageWrapper}>

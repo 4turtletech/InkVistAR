@@ -520,8 +520,8 @@ function ArtistPortal() {
                                                     onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
                                                     onMouseLeave={e => { e.currentTarget.style.background = !notif.is_read ? 'rgba(190, 144, 85, 0.05)' : 'transparent'; }}
                                                 >
-                                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                        <Bell size={14} color="#6366f1" />
+                                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(190, 144, 85, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                        <Bell size={14} color="#be9055" />
                                                     </div>
                                                     <div style={{ flex: 1, minWidth: 0 }}>
                                                         <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{notif.title}</p>
