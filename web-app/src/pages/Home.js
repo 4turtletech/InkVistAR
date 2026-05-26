@@ -304,14 +304,14 @@ function Home() {
                             <div className="service-animated-border"></div>
                         </div>
 
-                        <div className="service-card cinematic-bg fade-up stagger-4" style={{backgroundImage: "url('https://images.unsplash.com/photo-1562962230-16e4623d36e6?auto=format&fit=crop&q=80&w=800')"}}>
+                        <div className="service-card cinematic-bg fade-up stagger-4" style={{backgroundImage: "url('https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&q=80&w=800')"}}>
                             <div className="service-card-overlay">
                                 <div className="service-card-content">
-                                    <div className="service-icon-glowing"><Smartphone size={32} /></div>
-                                    <h3 className="service-title">AR Tattoo Preview</h3>
+                                    <div className="service-icon-glowing"><PenTool size={32} /></div>
+                                    <h3 className="service-title">Cover-Ups & Restoration</h3>
                                     <div className="service-hidden-content">
-                                        <p className="service-desc">Eliminate the guesswork before getting inked. Visualize your custom tattoo directly on your skin using our exclusive augmented reality platform.</p>
-                                        <button className="btn-text-gold" onClick={() => navigate('/book')}>Try It <ArrowRight size={16} /></button>
+                                        <p className="service-desc">Turn regret into a masterpiece. Our specialists seamlessly blend and rebuild existing tattoos into beautiful, refreshed works of art.</p>
+                                        <button className="btn-text-gold" onClick={() => navigate('/book')}>Consult Now <ArrowRight size={16} /></button>
                                     </div>
                                 </div>
                             </div>
@@ -320,11 +320,11 @@ function Home() {
                     </div>
                 </section>
 
-                {/* 5. The InkVistAR Process */}
+                {/* 5. The InkVictus Process */}
                 <section className="premium-section" ref={processRef}>
                     <div className="section-header fade-up stagger-1">
                         <span className="section-subtitle">How It Works</span>
-                        <h2 className="section-title">The InkVistAR Journey</h2>
+                        <h2 className="section-title">The InkVictus Journey</h2>
                     </div>
                     <div className="process-timeline">
                         <div className="process-step fade-up stagger-2">
@@ -334,8 +334,8 @@ function Home() {
                         </div>
                         <div className="process-step fade-up stagger-3">
                             <div className="process-number">02</div>
-                            <h3 className="process-title">AR Visualization</h3>
-                            <p className="process-desc">Use our app to project the digital design onto your skin in real-time, ensuring perfect placement.</p>
+                            <h3 className="process-title">Design Finalization</h3>
+                            <p className="process-desc">We perfect your design, sizing, and placement to ensure it perfectly complements your body's natural anatomy.</p>
                         </div>
                         <div className="process-step fade-up stagger-4">
                             <div className="process-number">03</div>
@@ -458,7 +458,7 @@ function Home() {
                             { q: "What is your minimum pricing?", a: "Our studio minimum is ₱2,500. Final pricing depends on the size, detail, and placement of the tattoo." },
                             { q: "Do you accept walk-ins?", a: "While we highly recommend booking an appointment to guarantee a spot, we do accept walk-ins subject to artist availability on the day." },
                             { q: "How do I prepare for my session?", a: "Get a good night's sleep, eat a full meal before arriving, and stay hydrated. Avoid alcohol and blood-thinning medications 24 hours prior." },
-                            { q: "Is the AR preview free?", a: "Yes, the Augmented Reality preview is included as part of our standard consultation process for all custom designs." }
+                            { q: "Do you do cover-ups?", a: "Yes, our artists specialize in cover-ups and restorations. We recommend booking a consultation first so we can assess the existing tattoo." }
                         ].map((faq, idx) => (
                             <div key={idx} className={`faq-item glass-card-premium ${openFaq === idx ? 'open' : ''}`} onClick={() => toggleFaq(idx)}>
                                 <div className="faq-question">
