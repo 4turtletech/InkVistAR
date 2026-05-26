@@ -5,14 +5,47 @@ import Navbar from '../components/Navbar';
 import ChatWidget from '../components/ChatWidget';
 import Footer from '../components/Footer';
 import ImageLightbox from '../components/ImageLightbox';
-import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, PenTool, Sparkles, Smartphone, Star, MapPin, ShieldCheck, ArrowRight, Plus, Minus } from 'lucide-react';
 import { API_URL } from '../config';
 
+const MagneticButton = ({ children, onClick, className }) => {
+    const btnRef = useRef(null);
+    const handleMouseMove = (e) => {
+        const btn = btnRef.current;
+        if (!btn) return;
+        const rect = btn.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+        btn.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
+    };
+    const handleMouseLeave = () => {
+        const btn = btnRef.current;
+        if (!btn) return;
+        btn.style.transform = `translate(0px, 0px)`;
+    };
+    return (
+        <button 
+            ref={btnRef} 
+            className={className} 
+            onClick={onClick} 
+            onMouseMove={handleMouseMove} 
+            onMouseLeave={handleMouseLeave}
+            style={{ transition: 'background 0.4s ease, box-shadow 0.4s ease' }}
+        >
+            {children}
+        </button>
+    );
+};
 
 function Home() {
     const navigate = useNavigate();
     const [lightboxSrc, setLightboxSrc] = useState(null);
     const [scrollY, setScrollY] = useState(0);
+    const [openFaq, setOpenFaq] = useState(null);
+
+    const toggleFaq = (idx) => {
+        setOpenFaq(openFaq === idx ? null : idx);
+    };
 
     // Deep Parallax Scroll Tracking
     useEffect(() => {
@@ -63,8 +96,11 @@ function Home() {
     };
 
     const artistsRef = useScrollFade();
-    const servicesRef = useScrollFade();
     const matrixRef = useScrollFade();
+    const servicesRef = useScrollFade();
+    const processRef = useScrollFade();
+    const hygieneRef = useScrollFade();
+    const faqRef = useScrollFade();
     const testimonialsRef = useScrollFade();
 
     // Testimonials State
@@ -107,8 +143,12 @@ function Home() {
             <Navbar />
             <div className="home-container">
                 {/* Ambient Glowing Orbs */}
-                <div className="ambient-glow-1" style={{ transform: `translateY(${scrollY * -0.15}px)` }}></div>
-                <div className="ambient-glow-2" style={{ transform: `translateY(${scrollY * -0.2}px)` }}></div>
+                <div className="ambient-wrapper" style={{ transform: `translateY(${scrollY * -0.15}px)` }}>
+                    <div className="ambient-glow-1"></div>
+                </div>
+                <div className="ambient-wrapper" style={{ transform: `translateY(${scrollY * -0.2}px)` }}>
+                    <div className="ambient-glow-2"></div>
+                </div>
                 
                 {/* 1. Hero Section */}
                 <header className="hero-header">
@@ -119,19 +159,31 @@ function Home() {
                             filter: `blur(${Math.min(scrollY * 0.015, 8)}px) brightness(${Math.max(1 - scrollY * 0.001, 0.4)})`
                         }}
                     >
-                        {/* Parallax effect grid leveraging dark high-res Unsplash ink images */}
-                        <img className="hero-parallax-img" src="https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?auto=format&fit=crop&q=80&w=1000" alt="Tattoo Art 1" />
-                        <img className="hero-parallax-img" src="https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&q=80&w=1000" alt="Tattoo Art 2" />
-                        <img className="hero-parallax-img" src="https://images.unsplash.com/photo-1562962230-16e4623d36e6?auto=format&fit=crop&q=80&w=1000" alt="Tattoo Art 3" />
+                        {/* Looping Hero Video */}
+                        <video 
+                            className="hero-parallax-img" 
+                            autoPlay 
+                            loop 
+                            muted 
+                            playsInline
+                            style={{ objectFit: 'cover' }}
+                        >
+                            <source src="https://assets.mixkit.co/videos/preview/mixkit-tattoo-artist-working-on-a-clients-arm-43099-large.mp4" type="video/mp4" />
+                        </video>
                     </div>
                     <div className="hero-overlay" style={{ opacity: Math.min(0.6 + scrollY * 0.001, 0.9) }}></div>
                     
-                    <div className="hero-content fade-up visible">
-                        <span className="hero-tagline">BGC's Premier Studio</span>
-                        <h1 className="hero-title"><span>INKVICTUS</span> TATTOO</h1>
-                        <button onClick={() => navigate('/book')} className="btn-gold-luxury">
-                            Book Consultation
-                        </button>
+                    <div className="hero-content">
+                        <span className="hero-tagline blur-reveal delay-1">BGC's Premier Studio</span>
+                        <h1 className="hero-title">
+                            <span className="blur-reveal delay-2 inline-block" style={{color: 'var(--accent-gold)'}}>INKVICTUS</span>{' '}
+                            <span className="blur-reveal delay-3 inline-block">TATTOO</span>
+                        </h1>
+                        <div className="blur-reveal delay-4">
+                            <MagneticButton onClick={() => navigate('/book')} className="btn-gold-luxury">
+                                Book Consultation
+                            </MagneticButton>
+                        </div>
                     </div>
                     
                     <div className="scroll-indicator fade-up visible">
@@ -224,20 +276,87 @@ function Home() {
                         <h2 className="section-title">Specialized Services</h2>
                     </div>
                     <div className="services-container">
-                        <div className="service-item glass-card-premium tilt-card fade-up stagger-2">
-                            <div className="service-icon"><PenTool size={30} /></div>
-                            <h3 className="service-title">Custom Tattoo Art</h3>
-                            <p className="service-desc">From breathtaking hyper-realism and fine-line to bold traditional designs, our artists craft timeless ink tailored perfectly to your vision.</p>
+                        <div className="service-card cinematic-bg fade-up stagger-2" style={{backgroundImage: "url('https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&q=80&w=800')"}}>
+                            <div className="service-card-overlay">
+                                <div className="service-card-content">
+                                    <div className="service-icon-glowing"><PenTool size={32} /></div>
+                                    <h3 className="service-title">Custom Tattoo Art</h3>
+                                    <div className="service-hidden-content">
+                                        <p className="service-desc">From breathtaking hyper-realism and fine-line to bold traditional designs, our artists craft timeless ink tailored perfectly to your vision.</p>
+                                        <button className="btn-text-gold" onClick={() => navigate('/book')}>Book Now <ArrowRight size={16} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="service-animated-border"></div>
                         </div>
-                        <div className="service-item glass-card-premium tilt-card fade-up stagger-3">
-                            <div className="service-icon"><Sparkles size={30} /></div>
-                            <h3 className="service-title">Professional Piercing</h3>
-                            <p className="service-desc">Safe, precise body and ear piercing performed in a strictly sterile environment, featuring a curated selection of premium, hypoallergenic jewelry.</p>
+
+                        <div className="service-card cinematic-bg fade-up stagger-3" style={{backgroundImage: "url('https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?auto=format&fit=crop&q=80&w=800')"}}>
+                            <div className="service-card-overlay">
+                                <div className="service-card-content">
+                                    <div className="service-icon-glowing"><Sparkles size={32} /></div>
+                                    <h3 className="service-title">Professional Piercing</h3>
+                                    <div className="service-hidden-content">
+                                        <p className="service-desc">Safe, precise body and ear piercing performed in a strictly sterile environment, featuring a curated selection of premium, hypoallergenic jewelry.</p>
+                                        <button className="btn-text-gold" onClick={() => navigate('/book')}>Book Now <ArrowRight size={16} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="service-animated-border"></div>
                         </div>
-                        <div className="service-item glass-card-premium tilt-card fade-up stagger-4">
-                            <div className="service-icon"><Smartphone size={30} /></div>
-                            <h3 className="service-title">AR Tattoo Preview</h3>
-                            <p className="service-desc">Eliminate the guesswork before getting inked. Visualize your custom tattoo directly on your skin using our exclusive augmented reality platform.</p>
+
+                        <div className="service-card cinematic-bg fade-up stagger-4" style={{backgroundImage: "url('https://images.unsplash.com/photo-1562962230-16e4623d36e6?auto=format&fit=crop&q=80&w=800')"}}>
+                            <div className="service-card-overlay">
+                                <div className="service-card-content">
+                                    <div className="service-icon-glowing"><Smartphone size={32} /></div>
+                                    <h3 className="service-title">AR Tattoo Preview</h3>
+                                    <div className="service-hidden-content">
+                                        <p className="service-desc">Eliminate the guesswork before getting inked. Visualize your custom tattoo directly on your skin using our exclusive augmented reality platform.</p>
+                                        <button className="btn-text-gold" onClick={() => navigate('/book')}>Try It <ArrowRight size={16} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="service-animated-border"></div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* 5. The InkVistAR Process */}
+                <section className="premium-section" ref={processRef}>
+                    <div className="section-header fade-up stagger-1">
+                        <span className="section-subtitle">How It Works</span>
+                        <h2 className="section-title">The InkVistAR Journey</h2>
+                    </div>
+                    <div className="process-timeline">
+                        <div className="process-step fade-up stagger-2">
+                            <div className="process-number">01</div>
+                            <h3 className="process-title">Consultation</h3>
+                            <p className="process-desc">Collaborate with our resident artists to brainstorm and refine your custom design concepts.</p>
+                        </div>
+                        <div className="process-step fade-up stagger-3">
+                            <div className="process-number">02</div>
+                            <h3 className="process-title">AR Visualization</h3>
+                            <p className="process-desc">Use our app to project the digital design onto your skin in real-time, ensuring perfect placement.</p>
+                        </div>
+                        <div className="process-step fade-up stagger-4">
+                            <div className="process-number">03</div>
+                            <h3 className="process-title">The Session</h3>
+                            <p className="process-desc">Relax in our premium studio while our experts bring your vision to life with precision.</p>
+                        </div>
+                        <div className="process-step fade-up stagger-5">
+                            <div className="process-number">04</div>
+                            <h3 className="process-title">Aftercare</h3>
+                            <p className="process-desc">Receive detailed aftercare instructions and premium products to ensure perfect healing.</p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* 6. Hygiene & Standards */}
+                <section className="premium-section hygiene-section" ref={hygieneRef}>
+                    <div className="glass-card-premium hygiene-banner fade-up stagger-1">
+                        <div className="hygiene-icon-wrapper"><ShieldCheck size={48} color="var(--accent-gold)" /></div>
+                        <div className="hygiene-text">
+                            <h2 className="hygiene-title">Uncompromising Safety Standards</h2>
+                            <p className="hygiene-desc">We strictly adhere to international health protocols. All tools are hospital-grade sterilized, and we use only single-use, disposable needles and vegan-friendly, heavy-metal-free premium inks.</p>
                         </div>
                     </div>
                 </section>
@@ -325,6 +444,32 @@ function Home() {
                                 )}
                             </>
                         )}
+                    </div>
+                </section>
+
+                {/* 7. FAQ Section */}
+                <section className="premium-section" ref={faqRef}>
+                    <div className="section-header fade-up stagger-1">
+                        <span className="section-subtitle">Information</span>
+                        <h2 className="section-title">Frequently Asked Questions</h2>
+                    </div>
+                    <div className="faq-container fade-up stagger-2">
+                        {[
+                            { q: "What is your minimum pricing?", a: "Our studio minimum is ₱2,500. Final pricing depends on the size, detail, and placement of the tattoo." },
+                            { q: "Do you accept walk-ins?", a: "While we highly recommend booking an appointment to guarantee a spot, we do accept walk-ins subject to artist availability on the day." },
+                            { q: "How do I prepare for my session?", a: "Get a good night's sleep, eat a full meal before arriving, and stay hydrated. Avoid alcohol and blood-thinning medications 24 hours prior." },
+                            { q: "Is the AR preview free?", a: "Yes, the Augmented Reality preview is included as part of our standard consultation process for all custom designs." }
+                        ].map((faq, idx) => (
+                            <div key={idx} className={`faq-item glass-card-premium ${openFaq === idx ? 'open' : ''}`} onClick={() => toggleFaq(idx)}>
+                                <div className="faq-question">
+                                    <h3>{faq.q}</h3>
+                                    <span className="faq-toggle-icon">{openFaq === idx ? <Minus size={20} /> : <Plus size={20} />}</span>
+                                </div>
+                                <div className="faq-answer">
+                                    <p>{faq.a}</p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </section>
 
